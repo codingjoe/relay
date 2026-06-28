@@ -1,0 +1,29 @@
+name: 📦 CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  container:
+    name: Build containers
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        container-file:
+          - Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.container-file }}
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,17 @@
+[project]
+name = "django-container"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "~=3.14.0"
+dependencies = [
+    "django>=6.0.5",
+    "django-environ>=0.13.0",
+    "django-health-check[psutil,redis]>=4.0.4",
+    "granian>=2.7.4",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.3.3",
+    "pyyaml>=6.0.3",
+    "redis>=7.2.0",
+    "whitenoise>=6.11.0",
+]

@@ -1,0 +1,36 @@
+name: 📦 Deploy Application
+on:
+  workflow_run:
+    workflows: [📦 CI]
+    strategy: wait-all
+    timeout: 0
+    branches: [main]
+    types:
+      - completed
+  workflow_dispatch: # Allow manual trigger
+    inputs:
+      environment:
+        description: 'Target environment for deployment'
+        required: true
+        type: environment
+        default: 'production'
+concurrency:
+  group: ${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Deploy with ${{ github.event.inputs.environment || 'production' }} configuration
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: https://${{ case(github.ref_name == 'main', vars.HOSTNAME, format('{0}.{1}', github.ref_name, vars.HOSTNAME)) }}
+    steps:
+      - uses: codingjoe/the-box/actions/deploy@main
+        with:
+          ssh-host: ${{ vars.SSH_HOSTNAME }}
+          ssh-known-hosts: ${{ vars.SSH_KNOWN_HOSTS }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          hostname: ${{ case(github.ref_name == 'main', vars.HOSTNAME, format('{0}.{1}', github.ref_name, vars.HOSTNAME)) }}
+          dotenv-private-key: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+          environment: ${{ github.event.inputs.environment || 'production' }}

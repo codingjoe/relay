@@ -1,0 +1,31 @@
+name: 📦 Prune Application
+on:
+  delete:
+    branches:
+  workflow_dispatch: # Allow manual trigger
+    inputs:
+      environment:
+        description: 'Target environment for deletion'
+        required: true
+        type: environment
+        default: 'production'
+concurrency:
+  group: ${{ github.ref_name || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  delete:
+    name: Prune ${{ github.event.ref || github.ref_name }} application
+    if: (endsWith(github.event.ref || github.ref_name, 'main') || github.ref_protected) == false
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: https://${{ format('{0}.{1}', github.event.ref || github.ref_name, vars.HOSTNAME) }}
+    steps:
+      - uses: codingjoe/the-box/actions/delete@main
+        with:
+          ssh-host: ${{ vars.SSH_HOSTNAME }}
+          ssh-known-hosts: ${{ vars.SSH_KNOWN_HOSTS }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          hostname: ${{ format('{0}.{1}', github.event.ref || github.ref_name, vars.HOSTNAME) }}
+          dotenv-private-key: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+          environment: ${{ github.event.inputs.environment || 'production' }}

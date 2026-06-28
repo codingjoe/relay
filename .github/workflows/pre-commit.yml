@@ -1,0 +1,38 @@
+# Update pre-commit hooks and apply fixes automatically
+name: pre-commit
+on:
+  schedule:
+    - cron: '0 0 * * 0' # weekly
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  pre-commit:
+    name: pre-commit autoupdate and run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit/
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+      - run: |
+          git config user.name "pre-commit-ci[bot]"
+          git config user.email "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+      - run: git checkout -B pre-commit-updates
+      - run: uvx pre-commit autoupdate | grep  updating | sed 's/\[//g; s/\]//g' > .pre-commit-autoupdate.log
+      - run: |
+          git add .pre-commit-config.yaml
+          git diff --cached --quiet || git commit -m "Update pre-commit hooks"
+      - run: SKIP=$(yq '.ci.skip' -o csv .pre-commit-config.yaml) uvx pre-commit run --all-files
+        continue-on-error: true
+      - run: |
+          git add --all
+          git diff --cached --quiet || git commit -m "Apply pre-commit fixes"
+      - run: git push --force origin pre-commit-updates
+      - run: |
+          gh pr create --title "Update pre-commit hooks" --body-file=.pre-commit-autoupdate.log --head "pre-commit-updates" || true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

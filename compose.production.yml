@@ -1,0 +1,56 @@
+include:
+  - oci://docker.io/codingjoe/the-box-postgres:latest
+  - oci://docker.io/codingjoe/the-box-redis:latest
+services:
+  web:
+    pull_policy: build
+    image: !reset
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${TARGET:-production}
+      args:
+        UV_NO_DEV: 0
+    environment:
+      HOSTNAME: ${HOSTNAME:-localhost}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
+      GRANIAN_INTERFACE: asgi # Options: asgi, wsgi, rsgi (default)
+      GRANIAN_LOG_ACCESS_ENABLED: true
+      GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
+      GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}' # JSON format
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+    command: ["-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+      #    depends_on:
+      #      migration:
+      #        condition: service_completed_successfully
+    labels:
+      - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
+      - "caddy.reverse_proxy.health_uri=/health/"
+      - "caddy.cache"
+#  migration:
+#    extends:
+#      service: web
+#    restart: no
+#    command: ["-m", "manage", "migrate", "--noinput"]
+#    deploy: !reset
+#    labels: !reset
+#    depends_on: !override
+#      postgres:
+#        condition: service_healthy
+#        required: true
+#        restart: true
+#      redis:
+#        condition: service_healthy
+#        required: true
+#        restart: true
+#    networks:
+#      - app
+#    environment:
+#      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+#      REDIS_URL: redis://:${REDIS_PASSWORD}@redis/

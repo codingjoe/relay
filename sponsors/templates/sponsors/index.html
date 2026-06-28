@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sponsor.pics | Beautiful GitHub Sponsor Badges</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image: radial-gradient(at 0% 0%, hsla(321,100%,95%,1) 0, transparent 50%),
+                              radial-gradient(at 50% 0%, hsla(256,100%,95%,1) 0, transparent 50%),
+                              radial-gradient(at 100% 0%, hsla(192,100%,95%,1) 0, transparent 50%);
+            background-attachment: fixed;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-900 antialiased flex flex-col">
+    <div class="max-w-4xl mx-auto px-6 py-12 flex-grow flex flex-col justify-center w-full">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-12">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-gradient-to-tr from-pink-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </div>
+                <span class="text-xl font-bold tracking-tight">sponsor.pics</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="text-center mb-12">
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
+                    Show your <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-600">sponsors</span> some love.
+                </h1>
+                <p class="text-slate-600 leading-relaxed max-w-xl mx-auto">
+                    Beautiful README badges to honor your GitHub sponsors.
+                </p>
+            </div>
+
+            <!-- Link Generator -->
+            <div class="glass p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-indigo-100/50 mb-12">
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">GitHub Owner</label>
+                            <input type="text" id="owner" placeholder="codingjoe" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Repository</label>
+                            <input type="text" id="repo" placeholder="esupgrade" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Markdown</span>
+                                <button id="copy-btn" onclick="copy()" class="text-xs font-bold text-pink-600 hover:text-pink-700">Copy</button>
+                            </div>
+                            <div id="markdown-display" class="bg-slate-900 text-slate-300 p-3 rounded-xl font-mono text-sm overflow-hidden break-all">
+                                ![Sponsors](https://sponsor.pics/codingjoe/esupgrade)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col h-full justify-center">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">Preview</span>
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-inner flex items-center justify-center p-6 min-h-[140px]">
+                            <img id="preview" src="/codingjoe/esupgrade" alt="Sponsors Preview" class="max-w-full drop-shadow-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-sm">
+            <p>&copy; 2026 <a href="https://github.com/codingjoe" class="hover:text-slate-900 transition-colors">codingjoe</a></p>
+            <div class="flex gap-6 items-center">
+                <a href="https://github.com/sponsors/codingjoe" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full hover:border-pink-500 hover:text-pink-600 transition-all shadow-sm font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    Sponsor me
+                </a>
+                <a href="https://github.com/codingjoe/the-box-django/tree/main/sponsors" class="hover:text-slate-900 transition-colors">Source Code</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const ownerInput = document.getElementById('owner');
+        const repoInput = document.getElementById('repo');
+        const previewImg = document.getElementById('preview');
+        const markdownDisplay = document.getElementById('markdown-display');
+        const copyBtn = document.getElementById('copy-btn');
+
+        function update() {
+            const owner = ownerInput.value || 'codingjoe';
+            const repo = repoInput.value || 'esupgrade';
+            const baseUrl = window.location.origin;
+            const path = `/${owner}/${repo}`;
+
+            markdownDisplay.textContent = `![Sponsors](${baseUrl}${path})`;
+            previewImg.src = path;
+        }
+
+        function copy() {
+            const text = markdownDisplay.textContent;
+            navigator.clipboard.writeText(text);
+
+            const original = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => copyBtn.textContent = original, 2000);
+        }
+
+        let timeout = null;
+        function debouncedUpdate() {
+            clearTimeout(timeout);
+            timeout = setTimeout(update, 250);
+        }
+
+        ownerInput.addEventListener('input', debouncedUpdate);
+        repoInput.addEventListener('input', debouncedUpdate);
+        update();
+    </script>
+</body>
+</html>
