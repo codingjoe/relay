@@ -1,5 +1,5 @@
 # https://github.com/amir20/dtop/blob/master/config.example.yaml
 hosts:
   - host: local
-  - host: ssh://collaborator@django.the-box.sh
+#  - host: ssh://collaborator@django.the-box.sh
 sort: name

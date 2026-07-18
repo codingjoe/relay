@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "login"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block content %}
+  <div class="text-center">
+    <h1>📬 {{ m|title }}</h1>
+    <h2>{% translate "sign in to continue"|title %}</h2>
+    <form method="post" action="{% url 'social:begin' 'github' %}" style="display: inline">
+      {% csrf_token %}
+      <button type="submit" role="button">{% translate "sign in with GitHub"|title %}</button>
+    </form>
+  </div>
+{% endblock %}

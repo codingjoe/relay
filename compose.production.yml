@@ -18,7 +18,8 @@ services:
       GRANIAN_LOG_ACCESS_ENABLED: true
       GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
       GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}' # JSON format
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
     command: ["-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application"]
     healthcheck:
       test: ["CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https"]
@@ -33,6 +34,38 @@ services:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
+  dns:
+    pull_policy: build
+    image: !reset
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${TARGET:-production}
+      args:
+        UV_NO_DEV: 0
+    command: ["-m", "manage", "dns"]
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    networks:
+      - app
+      - app-wan
+  smtp:
+    pull_policy: build
+    image: !reset
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${TARGET:-production}
+      args:
+        UV_NO_DEV: 0
+    command: ["-m", "manage", "smtp"]
+    ports:
+      - "25:25"
+      - "587:587"
+    networks:
+      - app
+      - app-wan
 #  migration:
 #    extends:
 #      service: web

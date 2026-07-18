@@ -9,3 +9,23 @@ services:
     command: ["-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}"]
     volumes:
       - .:/app:cached
+  dns:
+    build:
+      target: development
+    volumes:
+      - .:/app:cached
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+  smtp:
+    build:
+      target: development
+    volumes:
+      - .:/app:cached
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres

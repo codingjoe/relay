@@ -1,17 +1,64 @@
 [project]
-name = "django-container"
+name = "relay"
 version = "0.1.0"
-description = "Add your description here"
+description = "A digital infrastructure platform for email, VoIP, and more, built on Django 6.0"
 readme = "README.md"
 requires-python = "~=3.14.0"
 dependencies = [
+    "aiosmtplib>=3.0.0",
+    "aiosmtpd>=1.4.6",
+    "boto3>=1.40.0",
+    "cryptography>=45.0.0",
     "django>=6.0.5",
     "django-environ>=0.13.0",
     "django-health-check[psutil,redis]>=4.0.4",
+    "django-storages[s3]>=1.14.6",
+    "dkimpy>=1.1.5",
+    "dnslib>=0.9.26",
+    "dnspython>=2.7.0",
     "granian>=2.7.4",
     "httpx>=0.28.1",
     "psycopg[binary]>=3.3.3",
     "pyyaml>=6.0.3",
     "redis>=7.2.0",
+    "social-auth-app-django>=5.4.0",
     "whitenoise>=6.11.0",
+    "markdown>=3.10.2",
+]
+
+[dependency-groups]
+dev = [
+  { include-group = "test" },
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-django>=4.5.2",
+    "pytest-cov>=4.1.0",
+  "pytest-randomly>=3.16.0",
+    "pytest-xdist>=3.8.0",
+]
+
+
+
+[tool.pytest]
+addopts = ["--tb=short", "--fail-on-template-vars", "--reuse-db", "-q"]
+DJANGO_SETTINGS_MODULE = "root.settings"
+norecursedirs = ["storage", ".venv", "node_modules", ".direnv", ".git"]
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+env = [
+    "TEST=1",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+skip_empty = true
+omit = [
+    ".venv/*",
+    "*/tests/*",
+    "*/migrations/*",
+    "manage.py",
+    "conftest.py",
+    "*/baker_recipes.py",
+    "node_modules/*",
 ]

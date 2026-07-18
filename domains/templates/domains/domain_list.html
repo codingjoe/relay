@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "domains"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block content %}
+  <div class="grid">
+    <h2>{% translate "domains"|capfirst context "noun" %}</h2>
+    <div class="text-right">
+      <a href="{% url 'domains:domain_create' %}" role="button">{% translate "add domain"|title context "noun" %}</a>
+    </div>
+  </div>
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th>{% translate "sender subdomain"|title %}</th>
+          <th>{% translate "verified"|capfirst %}</th>
+          <th>NS</th>
+          <th>DMARC</th>
+          <th>{% translate "actions"|capfirst context "noun" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for domain in domains %}
+          <tr>
+            <td><a href="{% url 'domains:domain_detail' domain.pk %}">{{ domain.name }}</a></td>
+            <td><code>{{ domain.sender_domain }}</code></td>
+            <td>
+              {% if domain.verified_at %}✅ {% translate "verified"|capfirst %}{% else %}⏳
+                {% translate "pending"|capfirst %}{% endif %}
+            </td>
+            <td>{{ domain.ns_status }}</td>
+            <td>{{ domain.dmarc_status }}</td>
+            <td><a href="{% url 'domains:domain_detail' domain.pk %}">{% translate "DNS setup" %}</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">{% translate "no domains configured yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+{% endblock %}

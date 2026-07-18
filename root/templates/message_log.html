@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "message log"|title %} — {{ m|title }}{% endblock %}
+{% block content %}
+  <h2>{% translate "message log"|title %}</h2>
+
+  <form method="get" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end">
+    <label>
+      {% translate "domain"|capfirst context "noun" %}
+      <select name="domain">
+        <option value="">{% translate "all"|capfirst %}</option>
+        {% for domain in domains %}
+          <option value="{{ domain.pk }}" {% if filters.domain == domain.pk|stringformat:"s" %}selected{% endif %}>
+            {{ domain.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      {% translate "scope"|capfirst context "noun" %}
+      <select name="scope">
+        <option value="">{% translate "all"|capfirst %}</option>
+        <option value="incoming" {% if filters.scope == "incoming" %}selected{% endif %}>
+          {% translate "incoming" %}
+        </option>
+        <option value="outgoing" {% if filters.scope == "outgoing" %}selected{% endif %}>
+          {% translate "outgoing" %}
+        </option>
+      </select>
+    </label>
+    <label>
+      {% translate "status"|capfirst context "noun" %}
+      <select name="status">
+        <option value="">{% translate "all"|capfirst %}</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      {% translate "search"|capfirst context "verb" %}
+      <input type="search" name="search" value="{{ filters.search }}" placeholder='{% translate "recipient" %}'>
+    </label>
+    <button type="submit">{% translate "filter"|capfirst context "verb" %}</button>
+  </form>
+
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>{% translate "timestamp"|capfirst context "noun" %}</th>
+          <th>UUID</th>
+          <th>{% translate "scope"|capfirst context "noun" %}</th>
+          <th>{% translate "from"|capfirst context "email" %}</th>
+          <th>{% translate "to"|capfirst context "email" %}</th>
+          <th>{% translate "subject"|capfirst context "email" %}</th>
+          <th>{% translate "status"|capfirst context "noun" %}</th>
+          <th>{% translate "size"|capfirst context "noun" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for message in messages %}
+          <tr style="cursor: pointer" data-pk="{{ message.id }}">
+            <td>{{ message.received_at|date:"M d, Y H:i" }}</td>
+            <td><code>{{ message.id|truncatechars:13 }}</code></td>
+            <td>{% if message.scope == 'incoming' %}↙{% else %}↗{% endif %} {{ message.get_scope_display }}</td>
+            <td>{{ message.mail_from|truncatechars:30 }}</td>
+            <td>{{ message.rcpt_to|truncatechars:30 }}</td>
+            <td>{{ message.subject|truncatechars:40 }}</td>
+            <td>{{ message.get_status_display }}</td>
+            <td>{{ message.size|filesizeformat }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8">{% translate "no messages found." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+
+  {% if page_obj.has_other_pages %}
+    <nav aria-label="pagination">
+      {% if page_obj.has_previous %}
+        <a
+          href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.scope %}scope={{ filters.scope }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.previous_page_number }}"
+        >←</a>
+      {% endif %}
+      <span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a
+          href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.scope %}scope={{ filters.scope }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.next_page_number }}"
+        >→</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+
+  <dialog id="msg-modal">
+    <article>
+      <header>
+        <h3 id="modal-subject"></h3>
+      </header>
+      <table>
+        <tbody>
+          <tr>
+            <th>{% translate "UUID"|capfirst %}</th>
+            <td><code id="modal-uuid"></code></td>
+          </tr>
+          <tr>
+            <th>{% translate "from"|capfirst context "email" %}</th>
+            <td id="modal-from"></td>
+          </tr>
+          <tr>
+            <th>{% translate "to"|capfirst context "email" %}</th>
+            <td id="modal-to"></td>
+          </tr>
+          <tr>
+            <th>{% translate "timestamp"|capfirst context "noun" %}</th>
+            <td id="modal-timestamp"></td>
+          </tr>
+          <tr>
+            <th>{% translate "scope"|capfirst context "noun" %}</th>
+            <td id="modal-scope"></td>
+          </tr>
+          <tr>
+            <th>{% translate "status"|capfirst context "noun" %}</th>
+            <td id="modal-status"></td>
+          </tr>
+          <tr>
+            <th>{% translate "size"|capfirst context "noun" %}</th>
+            <td id="modal-size"></td>
+          </tr>
+          <tr>
+            <th>{% translate "message ID"|capfirst %}</th>
+            <td><code id="modal-message-id"></code></td>
+          </tr>
+          <tr>
+            <th>{% translate "domain"|capfirst context "noun" %}</th>
+            <td id="modal-domain"></td>
+          </tr>
+        </tbody>
+      </table>
+      <details>
+        <summary>{% translate "deliveries"|capfirst context "noun" %}</summary>
+        <table>
+          <thead>
+            <tr>
+              <th>{% translate "status"|capfirst context "noun" %}</th>
+              <th>{% translate "code"|capfirst context "noun" %}</th>
+              <th>{% translate "timestamp"|capfirst context "noun" %}</th>
+              <th>{% translate "details"|capfirst context "noun" %}</th>
+            </tr>
+          </thead>
+          <tbody id="modal-deliveries"></tbody>
+        </table>
+      </details>
+      <footer>
+        <a id="modal-detail-link" class="primary" href="#">{% translate "view full detail"|capfirst %}</a>
+        <button onclick="document.getElementById('msg-modal').close()">{% translate "close"|capfirst %}</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <script>
+    document.querySelectorAll('tr[data-pk]').forEach(row => {
+      row.addEventListener('click', async () => {
+        const pk = row.dataset.pk;
+        const modal = document.getElementById('msg-modal');
+        modal.showModal();
+        const resp = await fetch(`/email/${pk}/modal/`);
+        const data = await resp.json();
+        document.getElementById('modal-subject').textContent = data.subject || '—';
+        document.getElementById('modal-uuid').textContent = pk;
+        document.getElementById('modal-from').textContent = data.mail_from;
+        document.getElementById('modal-to').textContent = data.rcpt_to;
+        document.getElementById('modal-timestamp').textContent = new Date(data.received_at).toLocaleString();
+        document.getElementById('modal-scope').textContent = data.scope;
+        document.getElementById('modal-status').textContent = data.status;
+        document.getElementById('modal-size').textContent = `${(data.size / 1024).toFixed(1)} KB`;
+        document.getElementById('modal-message-id').textContent = data.message_id || '—';
+        document.getElementById('modal-domain').textContent = data.domain || '—';
+        document.getElementById('modal-detail-link').href = `/email/${pk}/`;
+        const tbody = document.getElementById('modal-deliveries');
+        tbody.innerHTML = (data.deliveries || []).map(d =>
+          `<tr><td>${d.status}</td><td>${d.code || '—'}</td><td>${new Date(d.created_at).toLocaleString()}</td><td>${(d.details || d.output || '').slice(0, 80)}</td></tr>`
+        ).join('') || '<tr><td colspan="4">—</td></tr>';
+      });
+    });
+  </script>
+{% endblock %}

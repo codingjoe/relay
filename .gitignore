@@ -218,3 +218,7 @@ backups/
 
 # pre-commit.ci
 .pre-commit-autoupdate.log
+
+# Django
+staticfiles/
+storage/
