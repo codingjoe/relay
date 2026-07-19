@@ -15,7 +15,7 @@
           <th>{% translate "domain"|capfirst context "noun" %}</th>
           <th>{% translate "sender subdomain"|title %}</th>
           <th>{% translate "verified"|capfirst %}</th>
-          <th>NS</th>
+          <th>Nameserver</th>
           <th>DMARC</th>
           <th>{% translate "actions"|capfirst context "noun" %}</th>
         </tr>
@@ -29,7 +29,7 @@
               {% if domain.verified_at %}✅ {% translate "verified"|capfirst %}{% else %}⏳
                 {% translate "pending"|capfirst %}{% endif %}
             </td>
-            <td>{{ domain.ns_status }}</td>
+            <td>{{ domain.nameserver_status }}</td>
             <td>{{ domain.dmarc_status }}</td>
             <td><a href="{% url 'domains:domain_detail' domain.pk %}">{% translate "DNS setup" %}</a></td>
           </tr>

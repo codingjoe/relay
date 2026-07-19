@@ -1,4 +1,4 @@
-"""DKIM signing for outbound messages."""
+"""DKIM signing and verification for outbound messages."""
 
 import logging
 
@@ -8,14 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM using the domain's private key.
+    """Sign a message with DKIM using the domain's active private key.
 
-    Args:
-        raw_bytes: Raw email message bytes
-        domain: Domain model instance with dkim_private_key
-
-    Returns:
-        Bytes of the signed message, or original if signing fails.
+    Returns the signed message bytes, or the original bytes if signing fails.
     """
     try:
         private_key = domain.dkim_private_key.encode("ascii")
@@ -36,10 +31,9 @@ def sign_message(raw_bytes, domain):
 
 
 def verify_signature(raw_bytes):
-    """Verify DKIM signature on a message.
+    """Verify a DKIM signature on a message.
 
-    Returns:
-        (verified: bool, domain: str or None)
+    Returns (verified: bool, domain: str or None).
     """
     try:
         verified = dkim.verify(raw_bytes)

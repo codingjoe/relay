@@ -31,6 +31,7 @@ Update it based on review feedback.
 
 - All fields should have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
+- Drop `class Meta` entirely if it only inherits without overriding anything.
 
 ## Model.save()
 
@@ -63,3 +64,9 @@ Update it based on review feedback.
 
 - Use names that cover both ingress and egress when a model tracks
   bidirectional events (e.g. `Transmission`, not `Delivery`).
+- Avoid abbreviations in general — write names out in full (e.g.
+  `nameserver`, not `ns`). This includes field names, verbose names,
+  and help text.
+- Email-specific abbreviations are OK since they are more common than
+  their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
+- Use `...` instead of `pass` in empty classes.

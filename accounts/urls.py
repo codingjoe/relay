@@ -13,8 +13,15 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
-    path("login/", LoginView.as_view(), name="login"),
-    path("logout/", LogoutView.as_view(), name="logout"),
+    path(
+        "account/",
+        include(
+            [
+                path("login", LoginView.as_view(), name="login"),
+                path("logout", LogoutView.as_view(), name="logout"),
+            ]
+        ),
+    ),
     path(
         "credentials/",
         include(

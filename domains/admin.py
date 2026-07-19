@@ -11,11 +11,11 @@ class DomainAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "name",
         "owner",
         "verified_at",
-        "ns_status",
+        "nameserver_status",
         "dmarc_status",
         "created_at",
     ]
-    list_filter = ["ns_status", "dmarc_status", "verified_at"]
+    list_filter = ["nameserver_status", "dmarc_status", "verified_at"]
     search_fields = ["name", "owner__username"]
     readonly_fields = [
         "verification_token",

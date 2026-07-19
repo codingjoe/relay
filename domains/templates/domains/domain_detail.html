@@ -14,14 +14,18 @@
 _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domain.name }};"</code></pre>
 
   <p>
-    {% if domain.ns_status == 'ok' %}<ins>✅ NS</ins>{% elif domain.ns_status == 'error' %}<del>❌
-        NS</del>{% else %}<mark>⏳ NS</mark>{% endif %}
+    {% if domain.nameserver_status == 'ok' %}<ins>✅ Nameserver</ins>{% elif domain.nameserver_status == 'error' %}<del
+      >❌ Nameserver</del>{% if domain.nameserver_error %}
+        — {{ domain.nameserver_error }}{% endif %}{% else %}<mark>⏳ Nameserver</mark>{% endif %}
     {% if domain.spf_status == 'ok' %}<ins>✅ SPF</ins>{% elif domain.spf_status == 'error' %}<del>❌
-        SPF</del>{% else %}<mark>⏳ SPF</mark>{% endif %}
+        SPF</del>{% if domain.spf_error %}
+        — {{ domain.spf_error }}{% endif %}{% else %}<mark>⏳ SPF</mark>{% endif %}
     {% if domain.dkim_status == 'ok' %}<ins>✅ DKIM</ins>{% elif domain.dkim_status == 'error' %}<del>❌
-        DKIM</del>{% else %}<mark>⏳ DKIM</mark>{% endif %}
+        DKIM</del>{% if domain.dkim_error %}
+        — {{ domain.dkim_error }}{% endif %}{% else %}<mark>⏳ DKIM</mark>{% endif %}
     {% if domain.dmarc_status == 'ok' %}<ins>✅ DMARC</ins>{% elif domain.dmarc_status == 'error' %}<del>❌
-        DMARC</del>{% else %}<mark>⏳ DMARC</mark>{% endif %}
+        DMARC</del>{% if domain.dmarc_error %}
+        — {{ domain.dmarc_error }}{% endif %}{% else %}<mark>⏳ DMARC</mark>{% endif %}
   </p>
 
   <form method="post" action="{% url 'domains:domain_verify' domain.pk %}" style="display: inline">

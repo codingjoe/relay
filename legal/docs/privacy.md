@@ -1,48 +1,46 @@
-{% load i18n %}
-
 # Privacy Policy
 
-{% blocktranslate %}Last updated: {{ last_updated }}{% endblocktranslate %}
+Last updated: {{ last_updated }}
 
-## 1. {% translate "overview"|title %}
+## 1. Overview
 
-{% blocktranslate %}{{ site_name }} collects and processes personal data in accordance with the General Data Protection Regulation (GDPR) and applicable data protection laws.{% endblocktranslate %}
+{{ site_name }} collects and processes personal data in accordance with the General Data Protection Regulation (GDPR) and applicable data protection laws.
 
-## 2. {% translate "data we collect"|title %}
+## 2. Data we collect
 
-### {% translate "account data"|title %}
+### Account data
 
-- {% translate "GitHub username and user ID" %}
-- {% translate "email address from your GitHub account" %}
+- GitHub username and user ID
+- Email address from your GitHub account
 
-### {% translate "usage data"|title %}
+### Usage data
 
-- {% translate "domains you register and their DNS status" %}
-- {% translate "SMTP credentials (hashed)" %}
-- {% translate "message metadata: sender, recipient, subject, status" %}
-- {% translate "IP addresses for spam prevention and abuse detection" %}
+- Domains you register and their DNS status
+- SMTP credentials (hashed)
+- Message metadata: sender, recipient, subject, status
+- IP addresses for spam prevention and abuse detection
 
-### {% translate "data we do not collect"|title %}
+### Data we do not collect
 
-- {% blocktranslate %}We do not read, store, or process the content of your emails beyond what is necessary for delivery and spam detection.{% endblocktranslate %}
+- We do not read, store, or process the content of your emails beyond what is necessary for delivery and spam detection.
 
-## 3. {% translate "legal basis"|title %}
+## 3. Legal basis
 
-{% blocktranslate %}Processing is based on Article 6(1)(b) GDPR (performance of a contract) and Article 6(1)(f) GDPR (legitimate interests in preventing abuse).{% endblocktranslate %}
+Processing is based on Article 6(1)(b) GDPR (performance of a contract) and Article 6(1)(f) GDPR (legitimate interests in preventing abuse).
 
-## 4. {% translate "data retention"|title %}
+## 4. Data retention
 
-{% blocktranslate %}Message metadata is retained for 30 days. Raw message bodies are stored only for the duration needed for delivery and are deleted immediately after successful delivery.{% endblocktranslate %}
+Message metadata is retained for 30 days. Raw message bodies are stored only for the duration needed for delivery and are deleted immediately after successful delivery.
 
-## 5. {% translate "your rights"|title %}
+## 5. Your rights
 
-- {% translate "right of access (Art. 15 GDPR)" %}
-- {% translate "right to rectification (Art. 16 GDPR)" %}
-- {% translate "right to erasure (Art. 17 GDPR)" %}
-- {% translate "right to restriction of processing (Art. 18 GDPR)" %}
-- {% translate "right to data portability (Art. 20 GDPR)" %}
-- {% translate "right to object (Art. 21 GDPR)" %}
+- Right of access (Art. 15 GDPR)
+- Right to rectification (Art. 16 GDPR)
+- Right to erasure (Art. 17 GDPR)
+- Right to restriction of processing (Art. 18 GDPR)
+- Right to data portability (Art. 20 GDPR)
+- Right to object (Art. 21 GDPR)
 
-## 6. {% translate "contact"|title %}
+## 6. Contact
 
-{% blocktranslate %}To exercise your rights or for privacy inquiries, contact us at {{ contact_email }}.{% endblocktranslate %}
+To exercise your rights or for privacy inquiries, contact us at {{ contact_email }}.

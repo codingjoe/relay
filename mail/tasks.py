@@ -22,7 +22,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
         raw_bytes = message.raw_body.read()
 
         if domain_id:
-            from smtp.dkim import sign_message
+            from domains.dkim import sign_message
 
             raw_bytes = sign_message(raw_bytes, Domain.objects.get(pk=domain_id))
             message.raw_body.save(

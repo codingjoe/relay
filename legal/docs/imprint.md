@@ -1,12 +1,10 @@
-{% load i18n %}
-
 # Imprint
 
 Information according to § 5 TMG / DDG.
 
 **{{ site_name }}**
 
-{% blocktranslate %}Provider of this service.{% endblocktranslate %}
+Provider of this service.
 
 ## Contact
 
@@ -15,10 +13,10 @@ Information according to § 5 TMG / DDG.
 
 ## Responsible for content
 
-{% blocktranslate %}The operator is responsible for the content of this website according to § 18 para. 2 MStV.{% endblocktranslate %}
+The operator is responsible for the content of this website according to § 18 para. 2 MStV.
 
 ## Disclaimer
 
-{% blocktranslate %}Liability for content — the content of this website was created with the greatest possible care. However, we cannot guarantee the contents' accuracy, completeness, or timeliness.{% endblocktranslate %}
+Liability for content — the content of this website was created with the greatest possible care. However, we cannot guarantee the contents' accuracy, completeness, or timeliness.
 
-{% blocktranslate %}Liability for links — this website may contain links to external websites. We have no influence on the content of those websites and are not responsible for them.{% endblocktranslate %}
+Liability for links — this website may contain links to external websites. We have no influence on the content of those websites and are not responsible for them.

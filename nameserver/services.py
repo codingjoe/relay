@@ -4,8 +4,8 @@ import dns.resolver
 from django.utils import timezone
 
 
-def verify_ns_delegation(domain):
-    """Check that NS records for the sender subdomain point to our nameservers."""
+def verify_nameserver_delegation(domain):
+    """Check that nameserver records for the sender subdomain point to our nameservers."""
     from django.conf import settings
 
     try:
@@ -70,7 +70,7 @@ def verify_domain_dns(domain):
     from domains.models import Domain
 
     checks = {
-        "ns": verify_ns_delegation,
+        "nameserver": verify_nameserver_delegation,
         "spf": check_spf,
         "dkim": check_dkim_cname,
         "dmarc": check_dmarc,
@@ -103,8 +103,8 @@ def verify_domain_dns(domain):
 
     domain.save(
         update_fields=[
-            "ns_status",
-            "ns_error",
+            "nameserver_status",
+            "nameserver_error",
             "spf_status",
             "spf_error",
             "dkim_status",

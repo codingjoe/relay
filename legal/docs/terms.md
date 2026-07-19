@@ -1,29 +1,27 @@
-{% load i18n %}
-
 # Terms of Service
 
-{% blocktranslate %}Last updated: {{ last_updated }}{% endblocktranslate %}
+Last updated: {{ last_updated }}
 
-## 1. {% translate "services" context "noun"|capfirst %}
+## 1. Services
 
-{% blocktranslate %}{{ site_name }} provides email and communication infrastructure services, including a built-in authoritative nameserver for automated DNS configuration.{% endblocktranslate %}
+{{ site_name }} provides email and communication infrastructure services, including a built-in authoritative nameserver for automated DNS configuration.
 
-## 2. {% translate "acceptance of terms"|title %}
+## 2. Acceptance of terms
 
-{% blocktranslate %}By accessing or using the service, you agree to be bound by these terms. If you do not agree, do not use the service.{% endblocktranslate %}
+By accessing or using the service, you agree to be bound by these terms. If you do not agree, do not use the service.
 
-## 3. {% translate "user accounts"|title %}
+## 3. User accounts
 
-{% blocktranslate %}Access to the service requires a valid account. Accounts are created via GitHub OAuth authentication. You are responsible for maintaining the security of your account and credentials.{% endblocktranslate %}
+Access to the service requires a valid account. Accounts are created via GitHub OAuth authentication. You are responsible for maintaining the security of your account and credentials.
 
-## 4. {% translate "acceptable use"|title %}
+## 4. Acceptable use
 
-{% blocktranslate %}You agree not to use the service for sending unsolicited bulk email (spam), illegal content, phishing, or any activity that violates applicable laws. We reserve the right to suspend or terminate accounts that violate these terms.{% endblocktranslate %}
+You agree not to use the service for sending unsolicited bulk email (spam), illegal content, phishing, or any activity that violates applicable laws. We reserve the right to suspend or terminate accounts that violate these terms.
 
-## 5. {% translate "service availability"|title %}
+## 5. Service availability
 
-{% blocktranslate %}We strive to maintain high availability but do not guarantee uninterrupted service. We are not liable for data loss, service interruptions, or downtime.{% endblocktranslate %}
+We strive to maintain high availability but do not guarantee uninterrupted service. We are not liable for data loss, service interruptions, or downtime.
 
-## 6. {% translate "termination"|title %}
+## 6. Termination
 
-{% blocktranslate %}We may terminate or suspend access to the service at our discretion. Upon termination, all your data will be deleted within 30 days.{% endblocktranslate %}
+We may terminate or suspend access to the service at our discretion. Upon termination, all your data will be deleted within 30 days.

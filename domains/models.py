@@ -82,9 +82,6 @@ class Credential(TimeStamped):
         help_text=_("If true, this credential is suspended and cannot be used."),
     )
 
-    class Meta(TimeStamped.Meta):
-        pass
-
     def __str__(self):
         return f"{self.owner.username} / {self.name or self.key[:8]}"
 
@@ -174,17 +171,17 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("When this domain was verified."),
     )
-    ns_status = models.CharField(
-        _("NS status"),
+    nameserver_status = models.CharField(
+        _("nameserver status"),
         max_length=9,
         choices=Status.choices,
         default=Status.UNCHECKED,
-        help_text=_("Status of NS delegation verification."),
+        help_text=_("Status of nameserver delegation verification."),
     )
-    ns_error = models.TextField(
-        _("NS error"),
+    nameserver_error = models.TextField(
+        _("nameserver error"),
         blank=True,
-        help_text=_("Error message if NS verification failed."),
+        help_text=_("Error message if nameserver verification failed."),
     )
     spf_status = models.CharField(
         _("SPF status"),
@@ -238,9 +235,6 @@ class Domain(TimeStamped):
         default=True,
         help_text=_("Whether this domain can receive email."),
     )
-
-    class Meta(TimeStamped.Meta):
-        pass
 
     def __str__(self):
         return self.name
