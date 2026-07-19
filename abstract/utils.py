@@ -45,22 +45,6 @@ def past(now=None):
     )
 
 
-def end_of_next_year(today=None):
-    """
-    Return date for the last day of the following year.
-
-    Args:
-        today (datetime.date):
-            Date on which to add the end-of-year offset. Default is today's date.
-
-    Returns:
-        datetime.date: Date for the last day of the following year.
-
-    """
-    today = today or timezone.localdate()
-    return today.replace(year=today.year + 1, month=12, day=31)
-
-
 def md_2_html(document: str, baselevel: int = 1) -> SafeText:
     """
     Convert Markdown to HTML as an HTML-safe string.

@@ -10,7 +10,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.generic import DetailView, ListView, TemplateView, View
+from django.views.generic import DetailView, ListView, View
 
 from accounts.models import user_organizations
 from domains.models import Domain
@@ -41,6 +41,7 @@ class MessageLogView(LoginRequiredMixin, ListView):
             "domains": Domain.objects.filter(
                 organization__in=user_organizations(self.request.user)
             ),
+            "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
             "status_choices": Message.Status.choices,
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
@@ -162,17 +163,7 @@ class MessageModalView(LoginRequiredMixin, View):
         )
 
 
-class TestEmailView(LoginRequiredMixin, TemplateView):
-    template_name = "mail/test_email.html"
-
-    def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {
-            "domains": Domain.objects.filter(
-                organization__in=user_organizations(self.request.user)
-            ),
-            "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
-        }
-
+class TestEmailView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         free_domain = settings.RELAY_FREE_SENDER_DOMAIN
         domain_pk = request.POST["domain"]

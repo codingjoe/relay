@@ -5,9 +5,24 @@
   <div class="grid">
     <h2>{% translate "domains"|capfirst context "noun" %}</h2>
     <div class="text-right">
-      <a href="{% url 'domains:domain_create' %}" role="button">{% translate "add domain"|title context "noun" %}</a>
+      <button onclick="document.getElementById('dlg-new-domain').showModal()">
+        {% translate "add domain"|title context "noun" %}
+      </button>
     </div>
   </div>
+  <dialog id="dlg-new-domain">
+    <form method="post" action="{% url 'domains:domain_create' %}">
+      {% csrf_token %}
+      <p>
+        <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
+        <input type="text" name="name" id="id_name" placeholder="example.com" required>
+      </p>
+      <button type="submit">{% translate "add"|capfirst context "verb" %}</button>
+      <button type="button" onclick="document.getElementById('dlg-new-domain').close()" class="outline">
+        {% translate "cancel"|capfirst context "verb" %}
+      </button>
+    </form>
+  </dialog>
   <figure>
     <table>
       <thead>
@@ -17,7 +32,6 @@
           <th>{% translate "verified"|capfirst %}</th>
           <th>Nameserver</th>
           <th>DMARC</th>
-          <th>{% translate "actions"|capfirst context "noun" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -31,10 +45,9 @@
             </td>
             <td>{{ domain.nameserver_status }}</td>
             <td>{{ domain.dmarc_status }}</td>
-            <td><a href="{% url 'domains:domain_detail' domain.pk %}">{% translate "DNS setup" %}</a></td>
           </tr>
         {% empty %}
-          <tr><td colspan="6">{% translate "no domains configured yet." %}</td></tr>
+          <tr><td colspan="5">{% translate "no domains configured yet." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

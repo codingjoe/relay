@@ -3,6 +3,37 @@
 {% block title %}{% translate "message log"|title %} — {{ m|title }}{% endblock %}
 {% block content %}
   <h2>{% translate "message log"|title %}</h2>
+  <button onclick="document.getElementById('dlg-test-email').showModal()">
+    {% translate "send test email"|title %}
+  </button>
+  <dialog id="dlg-test-email">
+    <form method="post" action="{% url 'mail:test_email' %}">
+      {% csrf_token %}
+      <p>
+        <label for="te-domain">{% translate "domain"|capfirst context "noun" %}</label>
+        <select id="te-domain" name="domain" required>
+          <option value="free">{{ free_sender_domain }} ({% translate "free" %})</option>
+          {% for domain in domains %}
+            <option value="{{ domain.pk }}">{{ domain.name }}</option>
+          {% empty %}
+            <option disabled>{% translate "no domains." %}</option>
+          {% endfor %}
+        </select>
+      </p>
+      <p>
+        <label for="te-subject">{% translate "subject"|capfirst context "email" %}</label>
+        <input type="text" id="te-subject" name="subject">
+      </p>
+      <p>
+        <label for="te-body">{% translate "body"|capfirst context "noun" %}</label>
+        <textarea id="te-body" name="body" rows="10"></textarea>
+      </p>
+      <button type="submit">{% translate "send"|capfirst context "verb" %}</button>
+      <button type="button" onclick="document.getElementById('dlg-test-email').close()" class="outline">
+        {% translate "cancel"|capfirst context "verb" %}
+      </button>
+    </form>
+  </dialog>
 
   <form method="get" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end">
     <label>
@@ -149,7 +180,7 @@
               <th>{% translate "details"|capfirst context "noun" %}</th>
             </tr>
           </thead>
-          <tbody id="modal-deliveries"></tbody>
+          <tbody id="modal-transmissions"></tbody>
         </table>
       </details>
       <footer>
@@ -178,8 +209,8 @@
         document.getElementById('modal-message-id').textContent = data.message_id || '—';
         document.getElementById('modal-domain').textContent = data.domain || '—';
         document.getElementById('modal-detail-link').href = `/email/${pk}/`;
-        const tbody = document.getElementById('modal-deliveries');
-        tbody.innerHTML = (data.deliveries || []).map(d =>
+        const tbody = document.getElementById('modal-transmissions');
+        tbody.innerHTML = (data.transmissions || []).map(d =>
           `<tr><td>${d.status}</td><td>${d.code || '—'}</td><td>${new Date(d.created_at).toLocaleString()}</td><td>${(d.details || d.output || '').slice(0, 80)}</td></tr>`
         ).join('') || '<tr><td colspan="4">—</td></tr>';
       });

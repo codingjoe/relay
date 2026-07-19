@@ -1,27 +1,20 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "organization"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block title %}{% translate "edit"|capfirst context "verb" %}
+  {% translate "organization"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
 {% block content %}
   <h2>
-    {% if object %}{% translate "edit"|capfirst context "verb" %}{% else %}{% translate "new"|capfirst %}{% endif %}
+    {% translate "edit"|capfirst context "verb" %}
     {% translate "organization"|capfirst context "noun" %}
   </h2>
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">{% translate "save"|capfirst context "verb" %}</button>
-    {% if object %}
-      <a
-        href="{% url 'accounts:organization_detail' object.slug %}"
-        role="button"
-        class="outline"
-      >{% translate "cancel"|capfirst context "verb" %}</a>
-    {% else %}
-      <a
-        href="{% url 'accounts:organization_list' %}"
-        role="button"
-        class="outline"
-      >{% translate "cancel"|capfirst context "verb" %}</a>
-    {% endif %}
+    <a
+      href="{% url 'accounts:organization_detail' object.pk %}"
+      role="button"
+      class="outline"
+    >{% translate "cancel"|capfirst context "verb" %}</a>
   </form>
 {% endblock %}

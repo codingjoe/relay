@@ -31,17 +31,6 @@ class Organization(TimeStamped):
         max_length=255,
         help_text=_("Organization display name."),
     )
-    slug = models.SlugField(
-        _("slug"),
-        max_length=255,
-        unique=True,
-        help_text=_("URL-friendly identifier."),
-    )
-    is_personal = models.BooleanField(
-        _("personal"),
-        default=False,
-        help_text=_("True for a user's default private organization."),
-    )
 
     def __str__(self):
         return self.name

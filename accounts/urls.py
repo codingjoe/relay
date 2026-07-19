@@ -7,7 +7,6 @@ from .views import (
     LoginView,
     MembershipCreateView,
     MembershipDeleteView,
-    OrganizationCreateView,
     OrganizationDeleteView,
     OrganizationDetailView,
     OrganizationListView,
@@ -32,30 +31,27 @@ urlpatterns = [
             [
                 path("", OrganizationListView.as_view(), name="organization_list"),
                 path(
-                    "new", OrganizationCreateView.as_view(), name="organization_create"
-                ),
-                path(
-                    "<slug:slug>",
+                    "<int:pk>",
                     OrganizationDetailView.as_view(),
                     name="organization_detail",
                 ),
                 path(
-                    "<slug:slug>/edit",
+                    "<int:pk>/edit",
                     OrganizationUpdateView.as_view(),
                     name="organization_update",
                 ),
                 path(
-                    "<slug:slug>/delete",
+                    "<int:pk>/delete",
                     OrganizationDeleteView.as_view(),
                     name="organization_delete",
                 ),
                 path(
-                    "<slug:slug>/members/new",
+                    "<int:pk>/members/new",
                     MembershipCreateView.as_view(),
                     name="membership_create",
                 ),
                 path(
-                    "<slug:slug>/members/<int:pk>/delete",
+                    "<int:pk>/members/<int:member_pk>/delete",
                     MembershipDeleteView.as_view(),
                     name="membership_delete",
                 ),

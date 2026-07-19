@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import DeleteView, ListView, TemplateView
+from django.views.generic import DeleteView, ListView, View
 
 from accounts.models import user_organizations
 
@@ -22,15 +22,16 @@ class SmtpCredentialListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
-        return super().get_context_data(**kwargs) | {
+        context = super().get_context_data(**kwargs) | {
             "smtp_hostname": f"smtp.{platform}",
             "smtp_port": settings.RELAY_SMTP_SUBMISSION_PORT,
         }
+        if raw_key := self.request.session.pop("raw_key", None):
+            context["raw_key"] = raw_key
+        return context
 
 
-class SmtpCredentialCreateView(LoginRequiredMixin, TemplateView):
-    template_name = "smtp/credential_form.html"
-
+class SmtpCredentialCreateView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         org = user_organizations(request.user).first()
         if org is None:
@@ -40,10 +41,8 @@ class SmtpCredentialCreateView(LoginRequiredMixin, TemplateView):
             type=SmtpCredential.Type.SMTP,
             name=request.POST.get("name", ""),
         )
-        return self.render_to_response(
-            self.get_context_data(**kwargs)
-            | {"raw_key": raw_key, "credential": credential}
-        )
+        request.session["raw_key"] = raw_key
+        return redirect("smtp:credential_list")
 
 
 class SmtpCredentialDeleteView(LoginRequiredMixin, DeleteView):

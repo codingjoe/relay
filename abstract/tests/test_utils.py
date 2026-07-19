@@ -1,6 +1,5 @@
 from abstract import utils
 from django.utils import timezone
-import datetime
 
 
 def test_future():
@@ -19,29 +18,6 @@ def test_future__max_offset():
 
 def test_past():
     assert utils.past() < timezone.now()
-
-
-def test_end_of_next_year():
-    assert utils.end_of_next_year(datetime.date(2010, 1, 10)) == datetime.date(
-        2011,
-        12,
-        31,
-    )
-    assert utils.end_of_next_year(datetime.date(2010, 12, 31)) == datetime.date(
-        2011,
-        12,
-        31,
-    )
-    assert utils.end_of_next_year(datetime.date(2010, 1, 1)) == datetime.date(
-        2011,
-        12,
-        31,
-    )
-    assert utils.end_of_next_year(datetime.date(2012, 1, 1)) == datetime.date(
-        2013,
-        12,
-        31,
-    )
 
 
 def test_md_2_html():

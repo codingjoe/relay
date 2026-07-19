@@ -7,9 +7,8 @@ from .models import Membership, Organization
 
 @admin.register(Organization)
 class OrganizationAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = ["name", "slug", "is_personal", "created_at"]
-    list_filter = ["is_personal"]
-    search_fields = ["name", "slug"]
+    list_display = ["name", "created_at"]
+    search_fields = ["name"]
 
 
 @admin.register(Membership)

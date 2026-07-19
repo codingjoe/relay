@@ -1,5 +1,6 @@
 """Domain management views."""
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -21,6 +22,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "domains": Domain.objects.filter(organization__in=orgs),
             "total_domains": Domain.objects.filter(organization__in=orgs).count(),
             "total_messages": Message.objects.filter(sender=self.request.user).count(),
+            "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
         }
 
 
