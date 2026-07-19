@@ -31,10 +31,11 @@ class OrganizationScopedView(LoginRequiredMixin):
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        self.org = get_object_or_404(
-            request.user.organizations.all(), pk=kwargs["org_pk"]
-        )
-        request.current_org = self.org
+        if request.user.is_authenticated:
+            self.org = get_object_or_404(
+                request.user.organizations.all(), pk=kwargs["org_pk"]
+            )
+            request.current_org = self.org
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {"org": self.org}
@@ -63,6 +64,7 @@ class OrganizationListView(LoginRequiredMixin, ListView):
     def post(self, request, *args, **kwargs):
         form = OrganizationForm(request.POST)
         if not form.is_valid():
+            self.object_list = self.get_queryset()
             return self.render_to_response(
                 self.get_context_data(**kwargs) | {"form": form}
             )

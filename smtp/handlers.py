@@ -70,13 +70,18 @@ class SMTPHandler:
             if credential is None:
                 return "535 Authentication failed"
             session.credential = credential
-            session.sender = (
-                credential.org.memberships.filter(user__username=username).first().user
-            )
+            membership = await get_membership(credential, username)
+            session.sender = membership.user
             return "235 Authentication successful"
         except Exception as e:
             logger.error(f"AUTH error: {e}")
             return "535 Authentication failed"
+
+
+@sync_to_async
+def get_membership(credential, username):
+    """Return the membership linking the credential's org to the given user."""
+    return credential.org.memberships.filter(user__username=username).first()
 
 
 @sync_to_async

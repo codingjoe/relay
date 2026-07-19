@@ -76,3 +76,46 @@ Update it based on review feedback.
 - Email-specific abbreviations are OK since they are more common than
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
 - Use `...` instead of `pass` in empty classes.
+
+## Testing
+
+- Use `pytest.mark.django_db` (not the `db` fixture) when a test needs the
+  database. This marker allows running non-DB tests in isolation:
+
+  ```bash
+  uv run pytest -m "not django_db"
+  ```
+
+- Tests that don't need the database carry no marker.
+
+- Prefer unit tests over integration tests — test model methods and
+  utility functions without the DB where possible.
+
+- CRUD view tests use Django's test client via the pytest-django `client`
+  fixture; use `client.force_login(user)` for authenticated requests.
+
+- Test names follow a double-underscore convention:
+
+  - Unit tests mirror the function/property name:
+    `test_fn__arbitrary_suffix` (e.g. `test_verify_key__wrong_key`,
+    `test_salt__returns_class_path`).
+  - View tests include the HTTP method:
+    `test_get__arbitrary_suffix` / `test_post__arbitrary_suffix`
+    (e.g. `test_get__not_found`, `test_post__creates_org`).
+
+- Group related tests in classes — no comment headlines (`# ── … ──`).
+  Use plain `class TestSomething:` with no decorator unless a class-level
+  `@pytest.mark.django_db` is needed.
+
+- One test per scenario; no parametrised mega-tests that obscure individual
+  assertions.
+
+- Avoid mocking and patching unless the code under test performs external I/O
+  (DNS lookups, SMTP delivery, HTTP requests). Mocks can diverge from the real
+  implementation — tests pass but production fails. Prefer real objects and
+  real database state.
+
+- Test modules do not need module docstrings.
+
+- Use `pytest.mark.asyncio` for async test methods (pytest-asyncio is
+  installed).

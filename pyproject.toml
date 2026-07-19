@@ -34,20 +34,19 @@ test = [
     "pytest>=7.4.0",
     "pytest-django>=4.5.2",
     "pytest-cov>=4.1.0",
-  "pytest-randomly>=3.16.0",
+    "pytest-randomly>=3.16.0",
     "pytest-xdist>=3.8.0",
+    "pytest-asyncio>=1.4.0",
 ]
 
 
 
 [tool.pytest]
-addopts = ["--tb=short", "--fail-on-template-vars", "--reuse-db", "-q"]
+addopts = ["--cov", "--tb=short", "--fail-on-template-vars", "--reuse-db", "-q"]
+asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "root.settings"
 norecursedirs = ["storage", ".venv", "node_modules", ".direnv", ".git"]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-env = [
-    "TEST=1",
-]
 
 [tool.coverage.report]
 show_missing = true

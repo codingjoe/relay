@@ -130,13 +130,13 @@ class DNSResolver:
             if qname_str.lower() == name or qname_str.lower().endswith(f".{name}"):
                 return domain
 
-        # User domains: match by sender subdomain prefix
-        prefix = settings.RELAY_SENDER_SUBDOMAIN_PREFIX.lower()
+        # User domains: match by sender subdomain prefix (may be multi-label)
+        prefix_labels = settings.RELAY_SENDER_SUBDOMAIN_PREFIX.lower().split(".")
         parts = qname_str.split(".")
 
-        for i, part in enumerate(parts):
-            if part.lower() == prefix:
-                if root := ".".join(parts[i + 1 :]):
+        for i in range(len(parts) - len(prefix_labels) + 1):
+            if [p.lower() for p in parts[i : i + len(prefix_labels)]] == prefix_labels:
+                if root := ".".join(parts[i + len(prefix_labels) :]):
                     return Domain.objects.filter(name__iexact=root).first()
                 break
 

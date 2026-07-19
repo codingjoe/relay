@@ -1,6 +1,6 @@
 """Domain management views."""
 
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, View
 
@@ -48,7 +48,6 @@ class DomainDetailView(OrganizationScopedView, DetailView):
 
 class DomainVerifyView(OrganizationScopedView, View):
     def post(self, request, org_pk, pk, *args, **kwargs):
-        domain = Domain.objects.filter(org=self.org, pk=pk).first()
-        if domain:
-            verify_domain_dns(domain)
+        domain = get_object_or_404(Domain, org=self.org, pk=pk)
+        verify_domain_dns(domain)
         return redirect("domains:domain_detail", org_pk=org_pk, pk=pk)
