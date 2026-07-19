@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     "abstract",
     "accounts",
     "domains",
-    "legal",
     "mail",
     "nameserver",
     "root",
@@ -89,7 +88,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            BASE_DIR / "docs",
+            BASE_DIR / "legal" / "docs",
         ],
         "OPTIONS": {
             "context_processors": (

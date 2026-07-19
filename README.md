@@ -81,6 +81,48 @@ User → Domain
 - **Primer CSS** — GitHub's design system CSS framework for the web UI
 - **Granian** — Rust-based ASGI server
 
+## App dependencies
+
+The graph shows a simplified representation of the app's dependencies.
+App dependencies should only exist in a single direction.
+Apps may access their parents or grandparents, but not their children.
+
+We have different types of apps:
+
+- **abstract**: Abstract apps are not meant to be used directly, but to be extended by other apps.
+- **platform**: Shared infrastructure used across all communication services (email now, VoIP and more later).
+- **services**: Specific communication services. Email today, VoIP and more tomorrow.
+
+```mermaid
+graph BT
+ abstract[abstract];
+ subgraph platform
+ direction BT
+ nameserver
+ domains
+ accounts
+ legal
+ domains --> nameserver
+ domains --> abstract
+ accounts --> domains
+ legal --> abstract
+ end
+ subgraph services
+ direction BT
+ mail
+ smtp
+ mail --> domains
+ mail --> abstract
+ smtp --> domains
+ smtp --> mail
+ end
+ services --> platform;
+ platform --> abstract;
+ root --> services;
+ root --> platform;
+ root(((root)))
+```
+
 ## Getting Started
 
 ### Prerequisites
