@@ -9,6 +9,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
+from accounts.models import OrganizationOwned
 
 
 def generate_dkim_identifier_string():
@@ -78,7 +79,7 @@ class DkimKey(TimeStamped):
         return f"{self.domain} / {self.key_type} / {self.selector}"
 
 
-class Domain(TimeStamped):
+class Domain(OrganizationOwned):
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
         EMAIL = "email", _("email")
@@ -94,13 +95,6 @@ class Domain(TimeStamped):
         max_length=255,
         unique=True,
         help_text=_("Sender domain name, e.g. example.com."),
-    )
-    organization = models.ForeignKey(
-        "accounts.Organization",
-        on_delete=models.CASCADE,
-        related_name="domains",
-        null=True,
-        help_text=_("Organization that owns this domain, null for system domains."),
     )
     verification_token = models.CharField(
         _("verification token"),
@@ -200,7 +194,7 @@ class Domain(TimeStamped):
 
     @property
     def is_system(self):
-        return self.organization is None
+        return self.org is None
 
     @property
     def active_dkim_key(self):

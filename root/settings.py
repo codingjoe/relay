@@ -60,9 +60,9 @@ INSTALLED_APPS = [
     "accounts",
     "domains",
     "legal",
-    "mail",
     "root",
     "smtp",
+    "tx_email",
 ]
 
 MIDDLEWARE = [
@@ -245,8 +245,8 @@ TASKS = {
 
 # Authentication
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "/dashboard/"
-LOGOUT_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "tx_email:dashboard"
+LOGOUT_REDIRECT_URL = "home"
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")

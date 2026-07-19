@@ -3,7 +3,6 @@
 from django.urls import include, path
 
 from .views import (
-    DashboardView,
     DomainCreateView,
     DomainDetailView,
     DomainListView,
@@ -13,7 +12,6 @@ from .views import (
 app_name = "domains"
 
 urlpatterns = [
-    path("dashboard/", DashboardView.as_view(), name="dashboard"),
     path(
         "domains/",
         include(

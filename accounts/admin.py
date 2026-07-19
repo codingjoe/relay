@@ -13,6 +13,6 @@ class OrganizationAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
 
 @admin.register(Membership)
 class MembershipAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = ["organization", "user", "role", "created_at"]
+    list_display = ["org", "user", "role", "created_at"]
     list_filter = ["role"]
-    search_fields = ["organization__name", "user__username"]
+    search_fields = ["org__name", "user__username"]

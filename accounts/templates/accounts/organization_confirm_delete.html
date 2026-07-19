@@ -12,7 +12,7 @@
     {% csrf_token %}
     <button type="submit">{% translate "delete"|capfirst context "verb" %}</button>
     <a
-      href="{% url 'accounts:organization_detail' organization.slug %}"
+      href="{% url 'accounts:organization_detail' organization.pk %}"
       role="button"
       class="outline"
     >{% translate "cancel"|capfirst context "verb" %}</a>

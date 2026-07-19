@@ -128,12 +128,12 @@ class DNSResolver:
         For strict DKIM alignment the user adds a CNAME on their root domain
         pointing into this zone, so the query still arrives here.
 
-        System domains (organization=None, e.g. the free sender domain) serve at
+        System domains (org=None, e.g. the free sender domain) serve at
         the domain apex — ``free.example.com``,
         ``selector._domainkey.free.example.com`` — all match directly.
         """
         # System domains: match by domain name suffix
-        for domain in Domain.objects.filter(organization=None):
+        for domain in Domain.objects.filter(org=None):
             name = domain.name.lower()
             if qname_str.lower() == name or qname_str.lower().endswith(f".{name}"):
                 return domain

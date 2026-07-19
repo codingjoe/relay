@@ -51,9 +51,9 @@ urlpatterns = [
     path("", include("domains.urls")),
     path("", include("accounts.urls")),
     path("", include("legal.urls")),
-    # Email service
-    path("email/", include("mail.urls")),
-    path("email/", include("smtp.urls")),
+    # Transactional email
+    path("transactional-email/", include("tx_email.urls")),
+    path("smtp/", include("smtp.urls")),
     # Social auth
     path("", include("social_django.urls")),
     path("admin/", admin.site.urls),

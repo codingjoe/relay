@@ -8,22 +8,22 @@ import dns.resolver
 from django.core.files.base import ContentFile
 from django.tasks import task
 
+from .models import OutgoingMessage, Transmission
+
 logger = logging.getLogger(__name__)
 
 
 @task
 def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
     """Deliver a single queued message via SMTP."""
-    from domains.models import Domain
-    from mail.models import Message, Transmission
-
-    message = Message.objects.get(pk=message_id)
+    message = OutgoingMessage.objects.get(pk=message_id)
 
     try:
         raw_bytes = message.raw_body.read()
 
         if domain_id:
             from domains.dkim import sign_message
+            from domains.models import Domain
 
             raw_bytes = sign_message(raw_bytes, Domain.objects.get(pk=domain_id))
             message.raw_body.save(
@@ -42,7 +42,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                 status=Transmission.Status.FAILED,
                 details=f"No MX records found for {rcpt_domain}",
             )
-            message.status = Message.Status.FAILED
+            message.status = OutgoingMessage.Status.FAILED
             message.save(update_fields=["status"])
             return
 
@@ -66,7 +66,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                     sent_with_ssl=True,
                     log_id=str(response)[:255] if response else "",
                 )
-                message.status = Message.Status.SENT
+                message.status = OutgoingMessage.Status.SENT
                 message.save(update_fields=["status"])
                 return
             except aiosmtplib.SMTPResponseException as e:
@@ -79,7 +79,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                     code=code,
                     output=str(e),
                 )
-                message.status = Message.Status.BOUNCED
+                message.status = OutgoingMessage.Status.BOUNCED
                 message.save(update_fields=["status"])
                 return
             except Exception:
@@ -94,7 +94,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
             status=Transmission.Status.FAILED,
             details=str(e),
         )
-        message.status = Message.Status.FAILED
+        message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
 
 

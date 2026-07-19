@@ -15,7 +15,7 @@ from django.views.generic import (
     UpdateView,
 )
 
-from .models import Membership, Organization, user_organizations
+from .models import Membership, Organization
 
 
 class LoginView(TemplateView):
@@ -27,7 +27,7 @@ class OrganizationListView(LoginRequiredMixin, ListView):
     context_object_name = "organizations"
 
     def get_queryset(self):
-        return user_organizations(self.request.user).prefetch_related(
+        return self.request.user.organizations.all().prefetch_related(
             Prefetch(
                 "memberships",
                 queryset=Membership.objects.filter(user=self.request.user),
@@ -47,7 +47,7 @@ class OrganizationListView(LoginRequiredMixin, ListView):
         org = form.save(commit=False)
         org.save()
         Membership.objects.create(
-            organization=org,
+            org=org,
             user=request.user,
             role=Membership.Role.ADMIN,
         )
@@ -63,7 +63,7 @@ class OrganizationDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "organization"
 
     def get_queryset(self):
-        return user_organizations(self.request.user)
+        return self.request.user.organizations.all()
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -81,7 +81,7 @@ class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
     fields = ["name"]
 
     def get_queryset(self):
-        return user_organizations(self.request.user)
+        return self.request.user.organizations.all()
 
     def dispatch(self, request, *args, **kwargs):
         org = self.get_object()
@@ -103,7 +103,7 @@ class OrganizationDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("accounts:organization_list")
 
     def get_queryset(self):
-        return user_organizations(self.request.user)
+        return self.request.user.organizations.all()
 
     def dispatch(self, request, *args, **kwargs):
         org = self.get_object()
@@ -124,11 +124,11 @@ class MembershipCreateView(LoginRequiredMixin, DetailView):
     context_object_name = "organization"
 
     def get_queryset(self):
-        return user_organizations(self.request.user)
+        return self.request.user.organizations.all()
 
     def get_object(self):
         return get_object_or_404(
-            user_organizations(self.request.user), pk=self.kwargs["pk"]
+            self.request.user.organizations.all(), pk=self.kwargs["pk"]
         )
 
     def dispatch(self, request, *args, **kwargs):
@@ -154,7 +154,7 @@ class MembershipCreateView(LoginRequiredMixin, DetailView):
                 self.get_context_data(object=org) | {"member_form": form}
             )
         Membership.objects.get_or_create(
-            organization=org,
+            org=org,
             user=user,
             defaults={"role": form.cleaned_data["role"]},
         )
@@ -167,15 +167,13 @@ class MembershipDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_object(self, queryset=None):
         org = get_object_or_404(
-            user_organizations(self.request.user), pk=self.kwargs["pk"]
+            self.request.user.organizations.all(), pk=self.kwargs["pk"]
         )
         if not org.memberships.filter(
             user=self.request.user, role=Membership.Role.ADMIN
         ).exists():
             raise PermissionDenied
-        return get_object_or_404(
-            Membership, pk=self.kwargs["member_pk"], organization=org
-        )
+        return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=org)
 
     def get_success_url(self):
         return reverse_lazy(

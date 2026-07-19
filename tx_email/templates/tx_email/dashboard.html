@@ -7,7 +7,7 @@
     {% translate "send test email"|title %}
   </button>
   <dialog id="dlg-test-email">
-    <form method="post" action="{% url 'mail:test_email' %}">
+    <form method="post" action="{% url 'smtp:test_email' %}">
       {% csrf_token %}
       <p>
         <label for="te-domain">{% translate "domain"|capfirst context "noun" %}</label>

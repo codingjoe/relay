@@ -16,6 +16,11 @@ Update it based on review feedback.
 - CRUD actions on objects should **not** end with a trailing slash.
   List/create views may use a trailing slash.
 
+- Always reference URLs by name, never by hardcoded path — in settings
+  (`LOGIN_URL`, `LOGIN_REDIRECT_URL`, `LOGOUT_REDIRECT_URL`), `redirect()`,
+  `reverse()`/`reverse_lazy()`, and templates (`{% url %}`). This keeps
+  redirects valid when paths move.
+
 ## Primary Keys
 
 - Prefer `BigAutoField` (bigint) for most models — easier to work with in Django.

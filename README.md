@@ -18,7 +18,7 @@ by the built-in nameserver. No more digging through DNS provider dashboards.
 Every account gets a **free sender domain** it can send from without configuring
 any DNS of its own. The domain is set via `RELAY_FREE_SENDER_DOMAIN` (defaults
 to `open.{RELAY_PLATFORM_DOMAIN}`, e.g. `open.localhost` in development) and is
-backed by a system-owned `Domain` (`owner=None`) that is auto-created by a
+backed by a system-owned `Domain` (`org=None`) that is auto-created by a
 migration and DKIM-signed automatically.
 
 The free domain is restricted: messages may only be sent to the user's own
@@ -58,19 +58,20 @@ For the free domain to resolve in production, the platform operator must:
 ## Architecture
 
 ```
-User → Domain
+Organization → Domain, SmtpCredential
 ```
 
-- **User** — Authenticated via GitHub OAuth, owns domains and SMTP credentials
+- **Organization** — Owns resources (domains, SMTP credentials); each user gets a personal org on signup
 - **Domain** — Sender domain with automatic DKIM key generation and DNS serving
+- **SmtpCredential** — Per-org API key used to authenticate outgoing SMTP submissions
 
 ### Services
 
-| Service | Port         | Description                        |
-| ------- | ------------ | ---------------------------------- |
-| Web     | 8000         | Django web UI (Granian)            |
-| DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)  |
-| SMTP    | 25, 587      | Inbound + outbound SMTP (aiosmtpd) |
+| Service | Port         | Description                          |
+| ------- | ------------ | ------------------------------------ |
+| Web     | 8000         | Django web UI (Granian)              |
+| DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
+| SMTP    | 25, 587      | Outgoing SMTP submissions (aiosmtpd) |
 
 ### Tech Stack
 
@@ -109,13 +110,12 @@ graph BT
  direction BT
  subgraph email
  direction BT
- mail
+ tx_email[tx_email]
  smtp
- mail --> domains
- mail --> abstract
  smtp --> accounts
  smtp --> domains
- smtp --> mail
+ tx_email --> smtp
+ tx_email --> domains
  end
  subgraph voip
  direction BT
