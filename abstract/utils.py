@@ -1,0 +1,97 @@
+import datetime
+import logging
+import random
+
+import markdown
+from django.utils import timezone
+from django.utils.safestring import mark_safe, SafeText
+from markdown.extensions.md_in_html import MarkdownInHtmlExtension
+from markdown.extensions.toc import TocExtension
+
+
+logger = logging.getLogger(__name__)
+
+
+def future(now=None, min_offset=1, max_offset=999):
+    """
+    Return random datetime in the near future.
+
+    Args:
+        now (datetime.datetime): Date on which to subtract the random offset.
+        min_offset (int): Minimum number of days to add.
+        max_offset (int): Maximum number of days to add.
+
+    Returns:
+        datetime.datetime: Random date in the future.
+
+    """
+    offset = random.randint(min_offset, max_offset)  # noqa: S311
+    return (now or timezone.localtime()) + datetime.timedelta(days=offset)
+
+
+def past(now=None):
+    """
+    Return random datetime in the near past.
+
+    Args:
+        now (datetime.datetime): Date on which to add the random offset.
+
+    Returns:
+        datetime.datetime: Random date in the past.
+
+    """
+    return (now or timezone.localtime()) - datetime.timedelta(
+        days=random.randint(1, 999),  # noqa: S311
+    )
+
+
+def md_2_html(document: str, baselevel: int = 1) -> SafeText:
+    """
+    Convert Markdown to HTML as an HTML-safe string.
+
+    Args:
+        document: Markdown string.
+        baselevel: Base level for the table of contents (default: 1).
+
+    Returns:
+        HTML based on the given Markdown value.
+
+    """
+    html = markdown.markdown(
+        document,
+        extensions=[
+            TocExtension(baselevel=baselevel),
+            MarkdownInHtmlExtension(),
+            "admonition",
+            "def_list",
+            "nl2br",
+            "smarty",
+            "tables",
+            "footnotes",
+            "fenced_code",
+        ],
+        extension_configs={
+            "smarty": {"smart_angled_quotes": True},
+            "footnotes": {"BACKLINK_TEXT": ""},
+        },
+    )
+
+    return mark_safe(html)  # noqa: S308
+
+
+def md_toc(document: str, depth=None) -> str:
+    """
+    Return a table of contents for the given Markdown document.
+
+    Args:
+        document (str): Markdown string.
+        depth (str|int): The depth of which to create the table of contents.
+               This may be a number or a range, e.g. `1-3`.
+               Default: 6.
+    """
+    md = markdown.Markdown(
+        extensions=["toc"],
+        extension_configs={"toc": {"toc_depth": depth or 6}},
+    )
+    md.convert(document)
+    return mark_safe(md.toc)  # noqa: S308

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <div class="grid">
+    <div style="position: sticky; top: 0">
+      <p>
+        <strong>
+          {{ title|title }}
+        </strong>
+      </p>
+      {% include_md_toc markdown_template toc_levels %}
+    </div>
+    <div>
+      {% include_md markdown_template %}
+    </div>
+  </div>
+{% endblock %}

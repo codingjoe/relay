@@ -69,7 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+legal/docs/_build/
 
 # PyBuilder
 .pybuilder/
@@ -218,3 +218,7 @@ backups/
 
 # pre-commit.ci
 .pre-commit-autoupdate.log
+
+# Django
+staticfiles/
+storage/

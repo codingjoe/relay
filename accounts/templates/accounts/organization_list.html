@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "organizations"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block content %}
+  <h2>{% translate "organizations"|capfirst context "noun" %}</h2>
+  <button onclick="document.getElementById('dlg-new-org').showModal()">{% translate "new organization"|title %}</button>
+  <dialog id="dlg-new-org">
+    <form method="post" action="{% url 'accounts:organization_list' %}">
+      {% csrf_token %}
+      <p>
+        <label for="id_name">{% translate "name"|capfirst context "noun" %}</label>
+        <input type="text" name="name" id="id_name" required>
+      </p>
+      <button type="submit">{% translate "create"|capfirst context "verb" %}</button>
+      <button type="button" onclick="document.getElementById('dlg-new-org').close()" class="outline">
+        {% translate "cancel"|capfirst context "verb" %}
+      </button>
+    </form>
+  </dialog>
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>{% translate "name"|capfirst context "noun" %}</th>
+          <th>{% translate "your role"|capfirst %}</th>
+          <th>{% translate "created"|capfirst %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for org in organizations %}
+          <tr>
+            <td><a href="{% url 'tx_email:dashboard' org.pk %}">{{ org.name }}</a></td>
+            <td>{{ org.my_membership.0.get_role_display }}</td>
+            <td>{{ org.created_at|date:"M d, Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3">{% translate "no organizations yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+{% endblock %}

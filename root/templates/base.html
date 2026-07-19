@@ -1,0 +1,100 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
+  <head>
+    <meta charset="UTF-8">
+    {% translate "relay" context "noun" as m %}
+    <title>{% block title %}{{ m|title }}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <link rel="stylesheet" href="{% static 'css/pico.classless.yellow.min.css' %}">
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <li><strong><a href="{% url 'home' %}">📬 {{ m|title }}</a></strong></li>
+        </ul>
+        <ul>
+          {% if user.is_authenticated %}
+            {% if current_org %}
+              <li>
+                <a href="{% url 'tx_email:dashboard' current_org.pk %}">
+                  <strong>{{ current_org.name }}</strong>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'domains:domain_list' current_org.pk %}"
+                >{% translate "domains"|capfirst context "noun" %}</a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'smtp:message_log' current_org.pk %}"
+                >{% translate "messages"|capfirst context "noun" %}</a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'smtp:credential_list' current_org.pk %}"
+                >{% translate "credentials"|capfirst context "noun" %}</a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'accounts:organization_detail' current_org.pk %}"
+                >{% translate "settings"|capfirst %}</a>
+              </li>
+            {% endif %}
+            <li>
+              <a
+                href="{% url 'accounts:organization_list' %}"
+              >{% translate "organizations"|capfirst context "noun" %}</a>
+            </li>
+          {% endif %}
+        </ul>
+        <ul>
+          {% if user.is_authenticated %}
+            <li>
+              <button onclick="document.getElementById('dlg-switch-org').showModal()">
+                {% translate "switch org"|capfirst %}
+              </button>
+              <dialog id="dlg-switch-org">
+                <h3>{% translate "switch org"|capfirst %}</h3>
+                <ul>
+                  {% for o in user_orgs %}
+                    <li>
+                      <a href="{% url 'tx_email:dashboard' o.pk %}">{{ o.name }}</a>
+                      {% if current_org and current_org.pk == o.pk %}<small>✓</small>{% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+                <button type="button" onclick="document.getElementById('dlg-switch-org').close()" class="outline">
+                  {% translate "close"|capfirst %}
+                </button>
+              </dialog>
+            </li>
+            <li>
+              <form method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button type="submit">{% translate "logout"|capfirst context "verb" %}</button>
+              </form>
+            </li>
+          {% else %}
+            <li>
+              <a href="{% url 'accounts:login' %}" role="button">{% translate "login"|capfirst context "noun" %}</a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </header>
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="container">
+      <small>
+        <a href="{% url 'legal:imprint' %}">{% translate "imprint"|capfirst %}</a> ·
+        <a href="{% url 'legal:terms' %}">{% translate "terms of service"|title %}</a> ·
+        <a href="{% url 'legal:privacy' %}">{% translate "privacy policy"|title %}</a>
+      </small>
+    </footer>
+  </body>
+</html>

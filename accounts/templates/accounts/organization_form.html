@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "edit"|capfirst context "verb" %}
+  {% translate "organization"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block content %}
+  <h2>
+    {% translate "edit"|capfirst context "verb" %}
+    {% translate "organization"|capfirst context "noun" %}
+  </h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{% translate "save"|capfirst context "verb" %}</button>
+    <a
+      href="{% url 'accounts:organization_detail' object.pk %}"
+      role="button"
+      class="outline"
+    >{% translate "cancel"|capfirst context "verb" %}</a>
+  </form>
+{% endblock %}

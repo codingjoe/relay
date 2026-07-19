@@ -53,8 +53,16 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party apps
     "health_check",
+    "social_django",
+    "storages",
     # First-party apps
-    "sponsors",
+    "abstract",
+    "accounts",
+    "domains",
+    "legal",
+    "root",
+    "smtp",
+    "tx_email",
 ]
 
 MIDDLEWARE = [
@@ -70,17 +78,40 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "root.urls"
 
+
+_TEMPLATES_LOADERS = [
+    "django.template.loaders.filesystem.Loader",
+    "django.template.loaders.app_directories.Loader",
+]
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
-        "APP_DIRS": True,
+        "DIRS": [
+            BASE_DIR / "legal" / "docs",
+        ],
         "OPTIONS": {
-            "context_processors": [
+            "context_processors": (
+                ["django.template.context_processors.debug"] if DEBUG else []
+            )
+            + [
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "accounts.context_processors.organizations",
             ],
+            "debug": DEBUG,
+            "loaders": (
+                _TEMPLATES_LOADERS
+                if DEBUG
+                else [
+                    (
+                        "django.template.loaders.cached.Loader",
+                        _TEMPLATES_LOADERS,
+                    ),
+                ]
+            ),
         },
     },
 ]
@@ -135,16 +166,113 @@ USE_TZ = True
 # Storages
 
 STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage"
+        if env("AWS_STORAGE_BUCKET_NAME", default="")
+        else "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
+# S3 / django-storages
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="us-east-1")
+AWS_S3_ACCESS_KEY_ID = env("AWS_S3_ACCESS_KEY_ID", default="")
+AWS_S3_SECRET_ACCESS_KEY = env("AWS_S3_SECRET_ACCESS_KEY", default="")
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default="")
+AWS_S3_ADDRESSING_STYLE = env("AWS_S3_ADDRESSING_STYLE", default="auto")
+AWS_S3_MESSAGE_PREFIX = env("AWS_S3_MESSAGE_PREFIX", default="messages/")
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+MEDIA_ROOT = BASE_DIR / "storage"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# Relay config
+
+RELAY_PLATFORM_DOMAIN = env(
+    "RELAY_PLATFORM_DOMAIN", default=env("HOSTNAME", default="localhost")
+)
+
+RELAY_SENDER_SUBDOMAIN_PREFIX = env(
+    "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"
+)
+
+RELAY_DNS_NS_NAMESERVERS = [
+    f"ns1.{RELAY_PLATFORM_DOMAIN}",
+    f"ns2.{RELAY_PLATFORM_DOMAIN}",
+]
+RELAY_DNS_SMTP_IPS = [
+    ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
+]
+RELAY_DNS_SPF_INCLUDE = f"spf.{RELAY_PLATFORM_DOMAIN}"
+RELAY_DNS_RETURN_PATH_DOMAIN = f"rp.{RELAY_PLATFORM_DOMAIN}"
+RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")
+RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX = env(
+    "RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX", default="rp"
+)
+RELAY_DNS_DOMAIN_VERIFY_PREFIX = env(
+    "RELAY_DNS_DOMAIN_VERIFY_PREFIX", default="relay-verification"
+)
+
+RELAY_FREE_SENDER_DOMAIN = env(
+    "RELAY_FREE_SENDER_DOMAIN", default=f"open.{RELAY_PLATFORM_DOMAIN}"
+)
+
+RELAY_SMTP_HOST = env("RELAY_SMTP_HOST", default="smtp")
+RELAY_SMTP_LISTEN_HOST = env("RELAY_SMTP_LISTEN_HOST", default="0.0.0.0")
+RELAY_SMTP_LISTEN_PORT = env.int("RELAY_SMTP_LISTEN_PORT", default=25)
+RELAY_SMTP_SUBMISSION_PORT = env.int("RELAY_SMTP_SUBMISSION_PORT", default=587)
+RELAY_SMTP_MAX_MESSAGE_SIZE = env.int(
+    "RELAY_SMTP_MAX_MESSAGE_SIZE", default=10485760
+)  # 10 MB
+
+RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
+RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
+
+# Django 6.0 task framework
+# Django ships only ImmediateBackend (runs synchronously) and DummyBackend
+# (stores results, never executes). For production, install a third-party
+# Redis/queue backend with a worker process.
+TASKS = {
+    "default": {
+        "BACKEND": "django.tasks.backends.immediate.ImmediateBackend",
+    },
+}
+
+# Authentication
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "accounts:organization_list"
+LOGOUT_REDIRECT_URL = "home"
+
+GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
+GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
+
+# python-social-auth
+AUTHENTICATION_BACKENDS = [
+    "social_core.backends.github.GithubOAuth2",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+SOCIAL_AUTH_GITHUB_KEY = GITHUB_CLIENT_ID
+SOCIAL_AUTH_GITHUB_SECRET = GITHUB_CLIENT_SECRET
+
+SOCIAL_AUTH_PIPELINE = (
+    "social_core.pipeline.social_auth.social_details",
+    "social_core.pipeline.social_auth.social_uid",
+    "social_core.pipeline.social_auth.auth_allowed",
+    "social_core.pipeline.social_auth.social_user",
+    "social_core.pipeline.user.get_username",
+    "social_core.pipeline.user.create_user",
+    "social_core.pipeline.social_auth.associate_user",
+    "social_core.pipeline.social_auth.load_extra_data",
+    "social_core.pipeline.user.user_details",
+    "accounts.pipelines.create_default_organization",
+)
 
 # Logging
 # https://docs.djangoproject.com/en/6.0/topics/logging/

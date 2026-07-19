@@ -27,3 +27,37 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+  pytest:
+    if: contains(github.head_ref, 'dependabot/npm_and_yarn') != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: relay
+          POSTGRES_PASSWORD: relay
+          POSTGRES_DB: relay
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    permissions:
+      contents: write
+    env:
+      TESTING: true
+      DJANGO_DATABASE_URL: postgresql://relay:relay@localhost/relay
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - run: sudo apt install -y postgresql-client
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: uv run python manage.py check
+      - run: uv run python manage.py collectstatic --no-input
+      - run: uv run python manage.py makemigrations --check --dry-run
+      - run: uv run py.test --cov --cov-report=xml --maxfail=5 -n auto "--randomly-seed=${{ github.run_id }}"
+      - uses: actions/upload-code-coverage@v1
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          fail-on-error: false
+          file: coverage.xml
+          language: python
+          label: python

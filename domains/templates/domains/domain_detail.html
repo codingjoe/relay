@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ domain.name }} — {{ m|title }}{% endblock %}
+{% block content %}
+  <h2>{{ domain.name }}</h2>
+
+  <pre><code>{{ domain.sender_domain }}.    NS    {{ nameservers.0 }}.
+{{ domain.sender_domain }}.    NS    {{ nameservers.1 }}.
+
+{{ domain.name }}.    TXT    "v=spf1 include:{{ spf_include }} ~all"
+
+{{ domain.dkim_cname_name }}.    CNAME    {{ domain.dkim_cname_target }}.
+
+_dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domain.name }};"</code></pre>
+
+  <p>
+    {% if domain.nameserver_status == 'ok' %}<ins>✅ Nameserver</ins>{% elif domain.nameserver_status == 'error' %}<del
+      >❌ Nameserver</del>{% if domain.nameserver_error %}
+        — {{ domain.nameserver_error }}{% endif %}{% else %}<mark>⏳ Nameserver</mark>{% endif %}
+    {% if domain.spf_status == 'ok' %}<ins>✅ SPF</ins>{% elif domain.spf_status == 'error' %}<del>❌
+        SPF</del>{% if domain.spf_error %}
+        — {{ domain.spf_error }}{% endif %}{% else %}<mark>⏳ SPF</mark>{% endif %}
+    {% if domain.dkim_status == 'ok' %}<ins>✅ DKIM</ins>{% elif domain.dkim_status == 'error' %}<del>❌
+        DKIM</del>{% if domain.dkim_error %}
+        — {{ domain.dkim_error }}{% endif %}{% else %}<mark>⏳ DKIM</mark>{% endif %}
+    {% if domain.dmarc_status == 'ok' %}<ins>✅ DMARC</ins>{% elif domain.dmarc_status == 'error' %}<del>❌
+        DMARC</del>{% if domain.dmarc_error %}
+        — {{ domain.dmarc_error }}{% endif %}{% else %}<mark>⏳ DMARC</mark>{% endif %}
+  </p>
+
+  <form method="post" action="{% url 'domains:domain_verify' org.pk domain.pk %}" style="display: inline">
+    {% csrf_token %}
+    <button type="submit">{% translate "verify DNS"|title %}</button>
+  </form>
+{% endblock %}
