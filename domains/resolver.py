@@ -126,14 +126,14 @@ class DNSResolver:
         For strict DKIM alignment the user adds a CNAME on their root domain
         pointing into this zone, so the query still arrives here.
 
-        System domains (owner=None, e.g. the free sender domain) serve at
+        System domains (organization=None, e.g. the free sender domain) serve at
         the domain apex — ``free.example.com``,
         ``selector._domainkey.free.example.com`` — all match directly.
         """
-        from domains.models import Domain
+        from .models import Domain
 
         # System domains: match by domain name suffix
-        for domain in Domain.objects.filter(owner=None):
+        for domain in Domain.objects.filter(organization=None):
             name = domain.name.lower()
             if qname_str.lower() == name or qname_str.lower().endswith(f".{name}"):
                 return domain
@@ -156,7 +156,7 @@ class DNSResolver:
         Returns the sender subdomain of the first domain whose SMTP IP
         matches the queried IP. Only one PTR per IP is possible.
         """
-        from domains.models import Domain
+        from .models import Domain
 
         # <reversed-ip>.in-addr.arpa → "1.0.0.127" → "127.0.0.1"
         ip = ".".join(reversed(qname_str.removesuffix(".in-addr.arpa").split(".")))

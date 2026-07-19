@@ -2,9 +2,20 @@
 {% load i18n %}
 {% block title %}{{ message.subject|truncatechars:50 }} — {{ m|title }}{% endblock %}
 {% block content %}
-  <p><a href="{% url 'mail:message_log' %}">← {% translate "message log"|capfirst %}</a></p>
+  <p><a href="{% url 'mail:message_log' %}">← {% translate "messages"|capfirst context "noun" %}</a></p>
 
   <h2>{{ message.subject }}</h2>
+
+  <dl>
+    <dt>{% translate "from"|capfirst %}</dt>
+    <dd><code>{{ message.mail_from }}</code></dd>
+    <dt>{% translate "to"|capfirst %}</dt>
+    <dd><code>{{ message.rcpt_to }}</code></dd>
+    {% if message.credential %}
+      <dt>{% translate "credential"|capfirst context "noun" %}</dt>
+      <dd><code>{{ message.credential.key_prefix }}…</code> ({{ message.credential.get_type_display }})</dd>
+    {% endif %}
+  </dl>
 
   <details open>
     <summary>{% translate "headers"|capfirst context "noun" %}</summary>

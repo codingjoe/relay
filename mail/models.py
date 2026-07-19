@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
-from domains.models import Credential, Domain
+from domains.models import Domain
 
 
 class Message(TimeStamped):
@@ -71,7 +71,7 @@ class Message(TimeStamped):
         related_name="messages",
     )
     credential = models.ForeignKey(
-        Credential,
+        "smtp.SmtpCredential",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

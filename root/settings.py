@@ -59,8 +59,8 @@ INSTALLED_APPS = [
     "abstract",
     "accounts",
     "domains",
+    "legal",
     "mail",
-    "nameserver",
     "root",
     "smtp",
 ]
@@ -270,7 +270,7 @@ SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.associate_user",
     "social_core.pipeline.social_auth.load_extra_data",
     "social_core.pipeline.user.user_details",
-    "accounts.pipelines.create_default_credential",
+    "accounts.pipelines.create_default_organization",
 )
 
 # Logging

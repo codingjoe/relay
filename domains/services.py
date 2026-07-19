@@ -67,7 +67,7 @@ def verify_domain_dns(domain):
     Everything else (MX, A, Return-Path) is served automatically
     by our nameserver once NS delegation is active.
     """
-    from domains.models import Domain
+    from .models import Domain
 
     checks = {
         "nameserver": verify_nameserver_delegation,

@@ -1,14 +1,22 @@
 """Message log and detail views."""
 
 from email import message_from_bytes
+from email.message import EmailMessage
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.files.base import ContentFile
+from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.generic import DetailView, ListView, View
+from django.views.generic import DetailView, ListView, TemplateView, View
+
+from accounts.models import user_organizations
+from domains.models import Domain
 
 from .models import Message, Transmission
+from .tasks import deliver_message
 
 
 class MessageLogView(LoginRequiredMixin, ListView):
@@ -30,7 +38,9 @@ class MessageLogView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "domains": self.request.user.domains.all(),
+            "domains": Domain.objects.filter(
+                organization__in=user_organizations(self.request.user)
+            ),
             "status_choices": Message.Status.choices,
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
@@ -109,7 +119,9 @@ class MessageDetailView(LoginRequiredMixin, DetailView):
 class MessageModalView(LoginRequiredMixin, View):
     def get(self, request, pk, *args, **kwargs):
         message = get_object_or_404(
-            Message.objects.filter(sender=request.user).select_related("domain"),
+            Message.objects.filter(sender=request.user).select_related(
+                "domain", "credential"
+            ),
             pk=pk,
         )
         transmissions = Transmission.objects.filter(message=message).values(
@@ -133,6 +145,14 @@ class MessageModalView(LoginRequiredMixin, View):
                 "size": message.size,
                 "message_id": message.message_id,
                 "domain": message.domain.name if message.domain else None,
+                "credential": message.credential.key_prefix
+                if message.credential
+                else None,
+                "credential_type": (
+                    message.credential.get_type_display()
+                    if message.credential
+                    else None
+                ),
                 "tag": message.tag,
                 "detail_url": reverse_lazy(
                     "mail:message_detail", kwargs={"pk": message.id}
@@ -140,3 +160,59 @@ class MessageModalView(LoginRequiredMixin, View):
                 "transmissions": list(transmissions),
             }
         )
+
+
+class TestEmailView(LoginRequiredMixin, TemplateView):
+    template_name = "mail/test_email.html"
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "domains": Domain.objects.filter(
+                organization__in=user_organizations(self.request.user)
+            ),
+            "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
+        }
+
+    def post(self, request, *args, **kwargs):
+        free_domain = settings.RELAY_FREE_SENDER_DOMAIN
+        domain_pk = request.POST["domain"]
+        if domain_pk == "free":
+            mail_from = f"{request.user.username}@{free_domain}"
+            domain = None
+        else:
+            domain = Domain.objects.get(
+                pk=domain_pk,
+                organization__in=user_organizations(request.user),
+            )
+            mail_from = f"postmaster@{domain.name}"
+
+        msg = EmailMessage()
+        msg["From"] = mail_from
+        msg["To"] = request.user.email
+        msg["Subject"] = request.POST.get("subject", "")
+        msg.set_content(request.POST.get("body", ""))
+        raw_bytes = msg.as_bytes()
+
+        message = Message(
+            sender=request.user,
+            scope=Message.Scope.OUTGOING,
+            rcpt_to=request.user.email,
+            mail_from=mail_from,
+            subject=request.POST.get("subject", ""),
+            message_id=msg.get("Message-ID", ""),
+            domain=domain,
+            status=Message.Status.PENDING,
+            size=len(raw_bytes),
+        )
+        message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
+        message.save()
+
+        transaction.on_commit(
+            lambda: deliver_message.enqueue(
+                message_id=str(message.id),
+                rcpt_to=request.user.email,
+                mail_from=mail_from,
+                domain_id=domain.pk if domain else None,
+            )
+        )
+        return redirect("mail:message_log")

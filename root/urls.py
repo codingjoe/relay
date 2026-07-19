@@ -47,10 +47,14 @@ urlpatterns = [
         ),
     ),
     path("", views.HomeView.as_view(), name="home"),
-    path("", include("mail.urls")),
+    # Platform
     path("", include("domains.urls")),
     path("", include("accounts.urls")),
-    path("", include("social_django.urls")),
     path("", include("legal.urls")),
+    # Email service
+    path("email/", include("mail.urls")),
+    path("email/", include("smtp.urls")),
+    # Social auth
+    path("", include("social_django.urls")),
     path("admin/", admin.site.urls),
 ]

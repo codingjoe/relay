@@ -1,13 +1,30 @@
-"""URL configuration for mail message views."""
+"""URL configuration for the email service — messages and test email."""
 
-from django.urls import path
+from django.urls import include, path
 
-from .views import MessageDetailView, MessageLogView, MessageModalView
+from .views import (
+    MessageDetailView,
+    MessageLogView,
+    MessageModalView,
+    TestEmailView,
+)
 
 app_name = "mail"
 
 urlpatterns = [
-    path("email/", MessageLogView.as_view(), name="message_log"),
-    path("email/<uuid:pk>/", MessageDetailView.as_view(), name="message_detail"),
-    path("email/<uuid:pk>/modal/", MessageModalView.as_view(), name="message_modal"),
+    path(
+        "messages/",
+        include(
+            [
+                path("", MessageLogView.as_view(), name="message_log"),
+                path("<uuid:pk>/", MessageDetailView.as_view(), name="message_detail"),
+                path(
+                    "<uuid:pk>/modal/",
+                    MessageModalView.as_view(),
+                    name="message_modal",
+                ),
+            ]
+        ),
+    ),
+    path("test/", TestEmailView.as_view(), name="test_email"),
 ]

@@ -8,7 +8,6 @@ from .views import (
     DomainDetailView,
     DomainListView,
     DomainVerifyView,
-    TestEmailView,
 )
 
 app_name = "domains"
@@ -30,5 +29,4 @@ urlpatterns = [
             ]
         ),
     ),
-    path("test-email/", TestEmailView.as_view(), name="test_email"),
 ]

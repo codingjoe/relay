@@ -98,23 +98,28 @@ graph BT
  abstract[abstract];
  subgraph platform
  direction BT
- nameserver
- domains
  accounts
+ domains
  legal
- domains --> nameserver
- domains --> abstract
- accounts --> domains
+ domains --> accounts
+ accounts --> abstract
  legal --> abstract
  end
  subgraph services
+ direction BT
+ subgraph email
  direction BT
  mail
  smtp
  mail --> domains
  mail --> abstract
+ smtp --> accounts
  smtp --> domains
  smtp --> mail
+ end
+ subgraph voip
+ direction BT
+ end
  end
  services --> platform;
  platform --> abstract;
@@ -122,64 +127,3 @@ graph BT
  root --> platform;
  root(((root)))
 ```
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.14
-- PostgreSQL
-- Redis
-- Docker (optional, for containerized deployment)
-
-### Local Development
-
-```bash
-# Install dependencies
-uv sync
-
-# Run migrations
-python manage.py migrate
-
-# Create a superuser
-python manage.py createsuperuser
-
-# Start the development server
-python manage.py runserver
-```
-
-### Docker
-
-```bash
-# Build and start all services
-docker compose up -d
-
-# Run migrations
-docker compose exec web python manage.py migrate
-```
-
-### Environment Variables
-
-| Variable                       | Default                  | Description                                                  |
-| ------------------------------ | ------------------------ | ------------------------------------------------------------ |
-| `SECRET_KEY`                   | —                        | Django secret key                                            |
-| `DEBUG`                        | `False`                  | Debug mode                                                   |
-| `DATABASE_URL`                 | `sqlite:///db.sqlite3`   | Database URL                                                 |
-| `REDIS_URL`                    | `redis:///`              | Redis URL                                                    |
-| `RELAY_PLATFORM_DOMAIN`        | `localhost`              | Platform domain used to derive other domains                 |
-| `RELAY_FREE_SENDER_DOMAIN`     | `open.{platform_domain}` | Free sender domain (system-owned, sends to own address only) |
-| `RELAY_DNS_NS_NAMESERVERS`     | `ns1,ns2.relay.dev`      | Authoritative nameservers                                    |
-| `RELAY_DNS_MX_RECORDS`         | `mx1,mx2.relay.dev`      | MX records to serve                                          |
-| `RELAY_DNS_SPF_INCLUDE`        | `spf.relay.dev`          | SPF include target                                           |
-| `RELAY_DNS_RETURN_PATH_DOMAIN` | `rp.relay.dev`           | Return-Path CNAME target                                     |
-| `RELAY_SMTP_LISTEN_PORT`       | `25`                     | SMTP listen port                                             |
-| `RELAY_SMTP_SUBMISSION_PORT`   | `587`                    | SMTP submission port                                         |
-| `RELAY_DNS_LISTEN_PORT`        | `53`                     | DNS listen port                                              |
-| `GITHUB_CLIENT_ID`             | —                        | GitHub OAuth app client ID                                   |
-| `GITHUB_CLIENT_SECRET`         | —                        | GitHub OAuth app client secret                               |
-
-### GitHub OAuth Setup
-
-1. Go to **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
-1. Set **Authorization callback URL** to `https://<your-domain>/auth/github/callback/`
-1. Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in your environment

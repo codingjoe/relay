@@ -18,12 +18,17 @@
         <ul>
           {% if user.is_authenticated %}
             <li><a href="{% url 'domains:dashboard' %}">{% translate "dashboard"|capfirst %}</a></li>
-            <li><a href="{% url 'domains:domain_list' %}">{% translate "domains"|capfirst context "noun" %}</a></li>
             <li>
-              <a href="{% url 'accounts:credential_list' %}">{% translate "credentials"|capfirst context "noun" %}</a>
+              <a
+                href="{% url 'accounts:organization_list' %}"
+              >{% translate "organizations"|capfirst context "noun" %}</a>
             </li>
-            <li><a href="{% url 'domains:test_email' %}">{% translate "test email"|capfirst %}</a></li>
-            <li><a href="{% url 'mail:message_log' %}">{% translate "message log"|capfirst %}</a></li>
+            <li><a href="{% url 'domains:domain_list' %}">{% translate "domains"|capfirst context "noun" %}</a></li>
+            <li><a href="{% url 'mail:message_log' %}">{% translate "messages"|capfirst context "noun" %}</a></li>
+            <li>
+              <a href="{% url 'smtp:credential_list' %}">{% translate "credentials"|capfirst context "noun" %}</a>
+            </li>
+            <li><a href="{% url 'mail:test_email' %}">{% translate "test email"|capfirst %}</a></li>
           {% endif %}
         </ul>
         <ul>

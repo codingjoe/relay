@@ -45,10 +45,7 @@ def test_end_of_next_year():
 
 
 def test_md_2_html():
-    assert (
-        utils.md_2_html("Peter Piper picked a peck of pickled peppers.")
-        == "<p>Peter Piper picked a peck of pickled peppers.</p>"
-    )
+    assert utils.md_2_html("How much is the fish?") == "<p>How much is the fish?</p>"
 
 
 def test_md_toc():

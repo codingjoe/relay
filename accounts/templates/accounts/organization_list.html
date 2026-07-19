@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "organizations"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block content %}
+  <h2>{% translate "organizations"|capfirst context "noun" %}</h2>
+  <a href="{% url 'accounts:organization_create' %}" role="button">{% translate "new organization"|title %}</a>
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>{% translate "name"|capfirst context "noun" %}</th>
+          <th>{% translate "personal"|capfirst %}</th>
+          <th>{% translate "your role"|capfirst %}</th>
+          <th>{% translate "created"|capfirst %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for org in organizations %}
+          <tr>
+            <td><a href="{% url 'accounts:organization_detail' org.slug %}">{{ org.name }}</a></td>
+            <td>{{ org.is_personal|yesno }}</td>
+            <td>{{ org.my_membership.0.get_role_display }}</td>
+            <td>{{ org.created_at|date:"M d, Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">{% translate "no organizations yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+{% endblock %}

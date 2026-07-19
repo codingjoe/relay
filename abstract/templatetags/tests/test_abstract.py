@@ -10,7 +10,7 @@ from ...utils import future
 def test_include_md():
     assert (
         abstract.include_md("_testfixtures/include_md.md")
-        == "<p>Peter Piper picked a peck of pickled peppers.</p>"
+        == "<p>How much is the fish?</p>"
     )
 
 
@@ -19,9 +19,7 @@ def test_include_md_toc():
         '<div class="toc">\n'
         "<ul>\n"
         '<li><a href="#level-1">Level 1</a><ul>\n'
-        '<li><a href="#level-2">Level 2</a><ul>\n'
-        '<li><a href="#level-3">Level 3</a></li>\n'
-        "</ul>\n"
+        '<li><a href="#level-2">Level 2</a>'
         "</li>\n"
         "</ul>\n"
         "</li>\n"

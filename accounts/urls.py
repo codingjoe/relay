@@ -1,13 +1,17 @@
-"""URL configuration for accounts — auth and credentials."""
+"""URL configuration for accounts — auth, organizations, and members."""
 
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 
 from .views import (
-    CredentialCreateView,
-    CredentialDeleteView,
-    CredentialListView,
     LoginView,
+    MembershipCreateView,
+    MembershipDeleteView,
+    OrganizationCreateView,
+    OrganizationDeleteView,
+    OrganizationDetailView,
+    OrganizationListView,
+    OrganizationUpdateView,
 )
 
 app_name = "accounts"
@@ -23,15 +27,37 @@ urlpatterns = [
         ),
     ),
     path(
-        "credentials/",
+        "organizations/",
         include(
             [
-                path("", CredentialListView.as_view(), name="credential_list"),
-                path("new", CredentialCreateView.as_view(), name="credential_create"),
+                path("", OrganizationListView.as_view(), name="organization_list"),
                 path(
-                    "<int:pk>/delete",
-                    CredentialDeleteView.as_view(),
-                    name="credential_delete",
+                    "new", OrganizationCreateView.as_view(), name="organization_create"
+                ),
+                path(
+                    "<slug:slug>",
+                    OrganizationDetailView.as_view(),
+                    name="organization_detail",
+                ),
+                path(
+                    "<slug:slug>/edit",
+                    OrganizationUpdateView.as_view(),
+                    name="organization_update",
+                ),
+                path(
+                    "<slug:slug>/delete",
+                    OrganizationDeleteView.as_view(),
+                    name="organization_delete",
+                ),
+                path(
+                    "<slug:slug>/members/new",
+                    MembershipCreateView.as_view(),
+                    name="membership_create",
+                ),
+                path(
+                    "<slug:slug>/members/<int:pk>/delete",
+                    MembershipDeleteView.as_view(),
+                    name="membership_delete",
                 ),
             ]
         ),

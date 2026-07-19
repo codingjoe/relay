@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         from django.conf import settings
-        from nameserver.server import DNSServer
+        from domains.server import DNSServer
 
         host = options["host"] or settings.RELAY_DNS_LISTEN_HOST
         port = options["port"] or settings.RELAY_DNS_LISTEN_PORT

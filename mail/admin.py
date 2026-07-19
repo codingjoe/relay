@@ -12,10 +12,11 @@ class MessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "scope",
         "mail_from",
         "rcpt_to",
+        "credential",
         "status",
         "received_at",
     ]
-    list_filter = ["scope", "status"]
+    list_filter = ["scope", "status", "credential__type"]
     search_fields = [
         "mail_from",
         "rcpt_to",

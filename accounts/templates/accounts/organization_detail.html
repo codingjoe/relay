@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{{ organization.name }} — {{ m|title }}{% endblock %}
+{% block content %}
+  <h2>{{ organization.name }}</h2>
+  {% if organization.is_personal %}<mark>{% translate "personal organization"|capfirst %}</mark>{% endif %}
+
+  <h3>{% translate "members"|capfirst context "noun" %}</h3>
+  <figure>
+    <table>
+      <thead>
+        <tr>
+          <th>{% translate "user"|capfirst context "noun" %}</th>
+          <th>{% translate "role"|capfirst context "noun" %}</th>
+          <th>{% translate "joined"|capfirst %}</th>
+          {% if is_admin %}<th></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in memberships %}
+          <tr>
+            <td>{{ m.user.username }}</td>
+            <td>{{ m.get_role_display }}</td>
+            <td>{{ m.created_at|naturaltime|capfirst }}</td>
+            {% if is_admin %}
+              <td>
+                {% if not organization.is_personal or m.user != user %}
+                  <form
+                    method="post"
+                    action="{% url 'accounts:membership_delete' organization.slug m.pk %}"
+                    style="display: inline"
+                  >
+                    {% csrf_token %}
+                    <button
+                      type="submit"
+                      class="outline"
+                      onclick="return confirm('{% translate "remove this member?"|capfirst context "verb" %}')"
+                    >
+                      {% translate "remove"|capfirst context "verb" %}
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+
+  {% if is_admin %}
+    <a
+      href="{% url 'accounts:membership_create' organization.slug %}"
+      role="button"
+    >{% translate "add member"|title %}</a>
+    <a
+      href="{% url 'accounts:organization_update' organization.slug %}"
+      role="button"
+      class="outline"
+    >{% translate "edit"|capfirst context "verb" %}</a>
+    {% if not organization.is_personal %}
+      <a
+        href="{% url 'accounts:organization_delete' organization.slug %}"
+        role="button"
+        class="outline"
+      >{% translate "delete"|capfirst context "verb" %}</a>
+    {% endif %}
+  {% endif %}
+{% endblock %}

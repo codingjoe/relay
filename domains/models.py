@@ -5,15 +5,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
-
-
-def generate_credential_key():
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(24))
 
 
 def generate_dkim_identifier_string():
@@ -37,57 +31,6 @@ def generate_rsa_private_key(key_size=2048):
         encryption_algorithm=serialization.NoEncryption(),
     )
     return pem.decode("ascii")
-
-
-class Credential(TimeStamped):
-    class Type(models.TextChoices):
-        SMTP = "smtp", _("SMTP")
-        SMTP_IP = "smtp-ip", _("SMTP-IP")
-
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="credentials",
-    )
-    key = models.CharField(
-        _("key"),
-        max_length=24,
-        unique=True,
-        editable=False,
-        default=generate_credential_key,
-        help_text=_("Auto-generated API key for SMTP authentication."),
-    )
-    type = models.CharField(
-        _("type"),
-        max_length=7,
-        choices=Type.choices,
-        default=Type.SMTP,
-        help_text=_("Credential type for SMTP authentication."),
-    )
-    name = models.CharField(
-        _("name"),
-        max_length=255,
-        blank=True,
-        help_text=_("Human-readable label for this credential."),
-    )
-    last_used_at = models.DateTimeField(
-        _("last used"),
-        null=True,
-        blank=True,
-        help_text=_("When this credential was last used for SMTP auth."),
-    )
-    hold = models.BooleanField(
-        _("hold"),
-        default=False,
-        help_text=_("If true, this credential is suspended and cannot be used."),
-    )
-
-    def __str__(self):
-        return f"{self.owner.username} / {self.name or self.key[:8]}"
-
-    def touch(self):
-        self.last_used_at = timezone.now()
-        self.save(update_fields=["last_used_at", "modified_at"])
 
 
 class DkimKey(TimeStamped):
@@ -151,12 +94,12 @@ class Domain(TimeStamped):
         unique=True,
         help_text=_("Sender domain name, e.g. example.com."),
     )
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    organization = models.ForeignKey(
+        "accounts.Organization",
         on_delete=models.CASCADE,
         related_name="domains",
         null=True,
-        help_text=_("Owner of this domain, null for system domains."),
+        help_text=_("Organization that owns this domain, null for system domains."),
     )
     verification_token = models.CharField(
         _("verification token"),
@@ -256,7 +199,7 @@ class Domain(TimeStamped):
 
     @property
     def is_system(self):
-        return self.owner is None
+        return self.organization is None
 
     @property
     def active_dkim_key(self):
