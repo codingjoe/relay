@@ -1,4 +1,7 @@
+from django.conf import settings
 from django.core.management.base import BaseCommand
+
+from smtp.server import run_smtp_server
 
 
 class Command(BaseCommand):
@@ -9,9 +12,6 @@ class Command(BaseCommand):
         parser.add_argument("--port", type=int, default=None, help="Listen port")
 
     def handle(self, *args, **options):
-        from django.conf import settings
-        from smtp.server import run_smtp_server
-
         host = options["host"] or settings.RELAY_SMTP_LISTEN_HOST
         port = options["port"] or settings.RELAY_SMTP_LISTEN_PORT
         max_size = settings.RELAY_SMTP_MAX_MESSAGE_SIZE

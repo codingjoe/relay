@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
 
+from accounts.models import Membership
 from domains.models import Domain
 from mail.models import Message
 from mail.tasks import deliver_message
@@ -110,8 +111,6 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     )
 
     if scope == Message.Scope.INCOMING and domain and domain.organization:
-        from accounts.models import Membership
-
         membership = (
             Membership.objects.filter(organization=domain.organization)
             .select_related("user")

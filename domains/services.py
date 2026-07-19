@@ -1,13 +1,14 @@
 """DNS verification services — validates NS delegation and DMARC on root domain."""
 
 import dns.resolver
+from django.conf import settings
 from django.utils import timezone
+
+from .models import Domain
 
 
 def verify_nameserver_delegation(domain):
     """Check that nameserver records for the sender subdomain point to our nameservers."""
-    from django.conf import settings
-
     try:
         ns_records = dns.resolver.resolve(domain.sender_domain, "NS")
         our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
@@ -33,8 +34,6 @@ def check_dmarc(domain):
 
 def check_spf(domain):
     """Check that the root domain has an SPF record including our SPF include."""
-    from django.conf import settings
-
     try:
         txt_records = dns.resolver.resolve(domain.name, "TXT")
         return any(
@@ -67,8 +66,6 @@ def verify_domain_dns(domain):
     Everything else (MX, A, Return-Path) is served automatically
     by our nameserver once NS delegation is active.
     """
-    from .models import Domain
-
     checks = {
         "nameserver": verify_nameserver_delegation,
         "spf": check_spf,

@@ -3,6 +3,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.db.models import Prefetch
 from django.forms import CharField, ChoiceField, Form
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -26,8 +27,6 @@ class OrganizationListView(LoginRequiredMixin, ListView):
     context_object_name = "organizations"
 
     def get_queryset(self):
-        from django.db.models import Prefetch
-
         return user_organizations(self.request.user).prefetch_related(
             Prefetch(
                 "memberships",

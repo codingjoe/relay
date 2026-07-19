@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 import aiosmtplib
+import dns.resolver
 from django.core.files.base import ContentFile
 from django.tasks import task
 
@@ -99,8 +100,6 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
 
 def fetch_mx_hosts(domain):
     """Fetch MX records for a domain, sorted by priority."""
-    import dns.resolver
-
     try:
         records = dns.resolver.resolve(domain, "MX")
         return [

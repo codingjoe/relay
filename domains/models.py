@@ -1,3 +1,4 @@
+import base64
 import secrets
 import string
 
@@ -231,8 +232,6 @@ class Domain(TimeStamped):
 
     @property
     def dkim_public_key_b64(self):
-        import base64
-
         private_key = serialization.load_pem_private_key(
             self.dkim_private_key.encode("ascii"),
             password=None,

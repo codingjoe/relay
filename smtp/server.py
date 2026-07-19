@@ -1,6 +1,9 @@
 """aiosmtpd SMTP server."""
 
 import logging
+import signal
+import sys
+import time
 
 from aiosmtpd.controller import Controller
 
@@ -40,17 +43,12 @@ def run_smtp_server(host="0.0.0.0", port=25, max_message_size=10485760):
     server = SMTPServer(host=host, port=port, max_message_size=max_message_size)
     server.start()
 
-    import signal
-    import sys
-
     def signal_handler(sig, frame):
         server.stop()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-
-    import time
 
     while True:
         time.sleep(1)

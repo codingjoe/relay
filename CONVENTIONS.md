@@ -49,8 +49,9 @@ Update it based on review feedback.
 
 ## Imports
 
+- All imports at the top of a file, except inside Celery/Django tasks where
+  late imports are needed to avoid import cycles.
 - Import views as `from . import views` in URL configs.
-- Move imports to the top of the file, not inside functions.
 - Do not import with different names (no `import x as y`) unless necessary.
 - Do not import per-property — import the module directly.
 

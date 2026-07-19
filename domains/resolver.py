@@ -10,6 +10,8 @@ from django.conf import settings
 from dnslib import A, CNAME, DNSLabel, MX, NS, PTR, RR, TXT
 from dnslib.dns import QTYPE
 
+from .models import Domain
+
 
 def txt(value):
     """Create a TXT rdata, splitting values >255 chars into multiple strings."""
@@ -130,8 +132,6 @@ class DNSResolver:
         the domain apex — ``free.example.com``,
         ``selector._domainkey.free.example.com`` — all match directly.
         """
-        from .models import Domain
-
         # System domains: match by domain name suffix
         for domain in Domain.objects.filter(organization=None):
             name = domain.name.lower()
@@ -156,8 +156,6 @@ class DNSResolver:
         Returns the sender subdomain of the first domain whose SMTP IP
         matches the queried IP. Only one PTR per IP is possible.
         """
-        from .models import Domain
-
         # <reversed-ip>.in-addr.arpa → "1.0.0.127" → "127.0.0.1"
         ip = ".".join(reversed(qname_str.removesuffix(".in-addr.arpa").split(".")))
         if ip not in settings.RELAY_DNS_SMTP_IPS:

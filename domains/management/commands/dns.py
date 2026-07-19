@@ -2,7 +2,10 @@ import signal
 import sys
 import time
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
+
+from domains.server import DNSServer
 
 
 class Command(BaseCommand):
@@ -15,9 +18,6 @@ class Command(BaseCommand):
         parser.add_argument("--port", type=int, default=None, help="Listen port")
 
     def handle(self, *args, **options):
-        from django.conf import settings
-        from domains.server import DNSServer
-
         host = options["host"] or settings.RELAY_DNS_LISTEN_HOST
         port = options["port"] or settings.RELAY_DNS_LISTEN_PORT
 
