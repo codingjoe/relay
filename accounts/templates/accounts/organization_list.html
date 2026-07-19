@@ -29,7 +29,7 @@
       <tbody>
         {% for org in organizations %}
           <tr>
-            <td><a href="{% url 'accounts:organization_detail' org.pk %}">{{ org.name }}</a></td>
+            <td><a href="{% url 'tx_email:dashboard' org.pk %}">{{ org.name }}</a></td>
             <td>{{ org.my_membership.0.get_role_display }}</td>
             <td>{{ org.created_at|date:"M d, Y" }}</td>
           </tr>

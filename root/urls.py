@@ -47,14 +47,14 @@ urlpatterns = [
         ),
     ),
     path("", views.HomeView.as_view(), name="home"),
-    # Platform
-    path("", include("domains.urls")),
+    # Platform (not org-scoped)
     path("", include("accounts.urls")),
     path("", include("legal.urls")),
-    # Transactional email
-    path("transactional-email/", include("tx_email.urls")),
-    path("smtp/", include("smtp.urls")),
-    # Social auth
+    # Org-scoped
+    path("org/<int:org_pk>/", include("tx_email.urls")),
+    path("org/<int:org_pk>/", include("smtp.urls")),
+    path("org/<int:org_pk>/domains/", include("domains.urls")),
+    # Social auth + admin
     path("", include("social_django.urls")),
     path("admin/", admin.site.urls),
 ]

@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
-from django.forms import CharField, ChoiceField, Form
+from django.forms import CharField, ChoiceField, Form, ModelForm
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import (
@@ -16,6 +16,28 @@ from django.views.generic import (
 )
 
 from .models import Membership, Organization
+
+
+class OrganizationScopedView(LoginRequiredMixin):
+    """Base for org-scoped views: load the org from the URL and enforce membership.
+
+    Subclasses receive `self.org` and `org` is added to the template context.
+    The current org is also stashed on the request for the navbar context
+    processor. `self.org` is set in `setup()` so subclasses that override
+    `dispatch()` (e.g. for admin-only checks) see it before dispatch runs.
+    """
+
+    org = None
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.org = get_object_or_404(
+            request.user.organizations.all(), pk=kwargs["org_pk"]
+        )
+        request.current_org = self.org
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {"org": self.org}
 
 
 class LoginView(TemplateView):
@@ -51,41 +73,42 @@ class OrganizationListView(LoginRequiredMixin, ListView):
             user=request.user,
             role=Membership.Role.ADMIN,
         )
-        return redirect("accounts:organization_detail", pk=org.pk)
+        return redirect("tx_email:dashboard", org_pk=org.pk)
 
 
-class OrganizationForm(Form):
-    name = CharField(max_length=255)
+class OrganizationForm(ModelForm):
+    class Meta:
+        model = Organization
+        fields = ["name"]
 
 
-class OrganizationDetailView(LoginRequiredMixin, DetailView):
+class OrganizationDetailView(OrganizationScopedView, DetailView):
     template_name = "accounts/organization_detail.html"
     context_object_name = "organization"
 
-    def get_queryset(self):
-        return self.request.user.organizations.all()
+    def get_object(self, queryset=None):
+        return self.org
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "memberships": self.object.memberships.select_related("user"),
-            "is_admin": self.object.memberships.filter(
+            "memberships": self.org.memberships.select_related("user"),
+            "is_admin": self.org.memberships.filter(
                 user=self.request.user, role=Membership.Role.ADMIN
             ).exists(),
             "member_form": MembershipForm(),
         }
 
 
-class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
+class OrganizationUpdateView(OrganizationScopedView, UpdateView):
     model = Organization
     template_name = "accounts/organization_form.html"
     fields = ["name"]
 
-    def get_queryset(self):
-        return self.request.user.organizations.all()
+    def get_object(self, queryset=None):
+        return self.org
 
     def dispatch(self, request, *args, **kwargs):
-        org = self.get_object()
-        if not org.memberships.filter(
+        if not self.org.memberships.filter(
             user=request.user, role=Membership.Role.ADMIN
         ).exists():
             raise PermissionDenied
@@ -93,21 +116,20 @@ class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy(
-            "accounts:organization_detail", kwargs={"pk": self.object.pk}
+            "accounts:organization_detail", kwargs={"org_pk": self.org.pk}
         )
 
 
-class OrganizationDeleteView(LoginRequiredMixin, DeleteView):
+class OrganizationDeleteView(OrganizationScopedView, DeleteView):
     model = Organization
     template_name = "accounts/organization_confirm_delete.html"
     success_url = reverse_lazy("accounts:organization_list")
 
-    def get_queryset(self):
-        return self.request.user.organizations.all()
+    def get_object(self, queryset=None):
+        return self.org
 
     def dispatch(self, request, *args, **kwargs):
-        org = self.get_object()
-        if not org.memberships.filter(
+        if not self.org.memberships.filter(
             user=request.user, role=Membership.Role.ADMIN
         ).exists():
             raise PermissionDenied
@@ -116,66 +138,60 @@ class OrganizationDeleteView(LoginRequiredMixin, DeleteView):
 
 class MembershipForm(Form):
     username = CharField(max_length=150)
-    role = ChoiceField(choices=Membership.Role.choices, initial=Membership.Role.WRITE)
+    role = ChoiceField(choices=Membership.Role, initial=Membership.Role.WRITE)
 
 
-class MembershipCreateView(LoginRequiredMixin, DetailView):
+class MembershipCreateView(OrganizationScopedView, DetailView):
     template_name = "accounts/organization_detail.html"
     context_object_name = "organization"
 
-    def get_queryset(self):
-        return self.request.user.organizations.all()
-
-    def get_object(self):
-        return get_object_or_404(
-            self.request.user.organizations.all(), pk=self.kwargs["pk"]
-        )
+    def get_object(self, queryset=None):
+        return self.org
 
     def dispatch(self, request, *args, **kwargs):
-        org = self.get_object()
-        if not org.memberships.filter(
+        if not self.org.memberships.filter(
             user=request.user, role=Membership.Role.ADMIN
         ).exists():
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, pk, *args, **kwargs):
-        org = self.get_object()
+    def post(self, request, org_pk, *args, **kwargs):
+        self.object = self.org
         form = MembershipForm(request.POST)
         if not form.is_valid():
             return self.render_to_response(
-                self.get_context_data(object=org) | {"member_form": form}
+                self.get_context_data() | {"member_form": form}
             )
         try:
             user = User.objects.get(username=form.cleaned_data["username"])
         except User.DoesNotExist:
             form.add_error("username", "User not found")
             return self.render_to_response(
-                self.get_context_data(object=org) | {"member_form": form}
+                self.get_context_data() | {"member_form": form}
             )
         Membership.objects.get_or_create(
-            org=org,
+            org=self.org,
             user=user,
             defaults={"role": form.cleaned_data["role"]},
         )
-        return redirect("accounts:organization_detail", pk=org.pk)
+        return redirect("accounts:organization_detail", org_pk=org_pk)
 
 
-class MembershipDeleteView(LoginRequiredMixin, DeleteView):
+class MembershipDeleteView(OrganizationScopedView, DeleteView):
     model = Membership
     template_name = "accounts/membership_confirm_delete.html"
 
-    def get_object(self, queryset=None):
-        org = get_object_or_404(
-            self.request.user.organizations.all(), pk=self.kwargs["pk"]
-        )
-        if not org.memberships.filter(
-            user=self.request.user, role=Membership.Role.ADMIN
+    def dispatch(self, request, *args, **kwargs):
+        if not self.org.memberships.filter(
+            user=request.user, role=Membership.Role.ADMIN
         ).exists():
             raise PermissionDenied
-        return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=org)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=self.org)
 
     def get_success_url(self):
         return reverse_lazy(
-            "accounts:organization_detail", kwargs={"pk": self.kwargs["pk"]}
+            "accounts:organization_detail", kwargs={"org_pk": self.org.pk}
         )

@@ -7,7 +7,7 @@
     {% translate "send test email"|title %}
   </button>
   <dialog id="dlg-test-email">
-    <form method="post" action="{% url 'smtp:test_email' %}">
+    <form method="post" action="{% url 'smtp:test_email' org.pk %}">
       {% csrf_token %}
       <p>
         <label for="te-domain">{% translate "domain"|capfirst context "noun" %}</label>
@@ -58,7 +58,7 @@
       <tbody>
         {% for domain in domains %}
           <tr>
-            <td><a href="{% url 'domains:domain_detail' domain.pk %}">{{ domain.name }}</a></td>
+            <td><a href="{% url 'domains:domain_detail' org.pk domain.pk %}">{{ domain.name }}</a></td>
             <td>
               {% if domain.verified_at %}✅ {% translate "verified"|capfirst %}{% else %}⏳
                 {% translate "pending"|capfirst %}{% endif %}

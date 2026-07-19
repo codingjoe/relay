@@ -1,4 +1,4 @@
-"""URL configuration for the SMTP service — messages and credentials."""
+"""URL configuration for the SMTP service — messages and credentials (org-scoped)."""
 
 from django.urls import include, path
 
@@ -30,10 +30,10 @@ urlpatterns = [
                     OutgoingMessageModalView.as_view(),
                     name="message_modal",
                 ),
+                path("test", TestEmailView.as_view(), name="test_email"),
             ]
         ),
     ),
-    path("test", TestEmailView.as_view(), name="test_email"),
     path(
         "credentials/",
         include(

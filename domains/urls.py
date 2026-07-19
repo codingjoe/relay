@@ -1,6 +1,6 @@
-"""URL configuration for domain management."""
+"""URL configuration for domain management (org-scoped)."""
 
-from django.urls import include, path
+from django.urls import path
 
 from .views import (
     DomainCreateView,
@@ -12,19 +12,8 @@ from .views import (
 app_name = "domains"
 
 urlpatterns = [
-    path(
-        "domains/",
-        include(
-            [
-                path("", DomainListView.as_view(), name="domain_list"),
-                path("new", DomainCreateView.as_view(), name="domain_create"),
-                path("<int:pk>", DomainDetailView.as_view(), name="domain_detail"),
-                path(
-                    "<int:pk>/verify",
-                    DomainVerifyView.as_view(),
-                    name="domain_verify",
-                ),
-            ]
-        ),
-    ),
+    path("", DomainListView.as_view(), name="domain_list"),
+    path("new", DomainCreateView.as_view(), name="domain_create"),
+    path("<int:pk>", DomainDetailView.as_view(), name="domain_detail"),
+    path("<int:pk>/verify", DomainVerifyView.as_view(), name="domain_verify"),
 ]

@@ -1,9 +1,6 @@
-"""DNS record resolver — builds DNS records from Domain models.
+"""DNS record resolver — build DNS records from Domain models.
 
-Design decisions:
-- Functions are not prefixed with underscore because this project is not
-  a package for redistribution (see CONVENTIONS.md).
-- qtype dispatch uses match/case for readability.
+qtype dispatch uses match/case for readability (see CONVENTIONS.md).
 """
 
 from django.conf import settings
@@ -120,17 +117,12 @@ class DNSResolver:
         return records
 
     def find_domain(self, qname_str):
-        """Find the Domain whose zone matches this query.
+        """Return the Domain whose zone owns a query name, or None.
 
-        User domains use a fixed sender subdomain prefix (e.g. ``mail.relay``).
-        Any record under that zone — ``rp.mail.example.com``,
-        ``selector._domainkey.mail.example.com`` — belongs to the same Domain.
-        For strict DKIM alignment the user adds a CNAME on their root domain
-        pointing into this zone, so the query still arrives here.
-
-        System domains (org=None, e.g. the free sender domain) serve at
-        the domain apex — ``free.example.com``,
-        ``selector._domainkey.free.example.com`` — all match directly.
+        System domains (org=None) match at the apex; user domains match via
+        their fixed sender subdomain prefix (e.g. ``mail.example.com``).
+        For DKIM alignment the user adds a CNAME on the root domain pointing
+        into this zone, so the query still arrives here.
         """
         # System domains: match by domain name suffix
         for domain in Domain.objects.filter(org=None):
@@ -151,10 +143,10 @@ class DNSResolver:
         return None
 
     def resolve_ptr(self, qname, qname_str):
-        """Resolve a reverse DNS (PTR) query — <reversed-ip>.in-addr.arpa.
+        """Return PTR records for the sender subdomain of the queried SMTP IP.
 
-        Returns the sender subdomain of the first domain whose SMTP IP
-        matches the queried IP. Only one PTR per IP is possible.
+        Only one PTR per IP is possible; return an empty list when the IP is
+        not one of ours.
         """
         # <reversed-ip>.in-addr.arpa → "1.0.0.127" → "127.0.0.1"
         ip = ".".join(reversed(qname_str.removesuffix(".in-addr.arpa").split(".")))

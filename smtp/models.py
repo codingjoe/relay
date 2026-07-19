@@ -36,28 +36,34 @@ class OutgoingMessage(TimeStamped):
         on_delete=models.CASCADE,
         related_name="outgoing_messages",
     )
+    org = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="outgoing_messages",
+        help_text=_("Owning organization."),
+    )
     rcpt_to = models.TextField(
         _("to"),
-        help_text=_("Recipient email address(es)."),
+        help_text=_("Envelope recipient address(es) (RCPT TO)."),
     )
     mail_from = models.EmailField(
         _("from"),
-        help_text=_("Sender email address."),
+        help_text=_("Envelope sender address (MAIL FROM)."),
     )
     subject = models.TextField(
         _("subject"),
         blank=True,
-        help_text=_("Email subject line."),
+        help_text=_("RFC 5322 Subject header value."),
     )
     message_id = models.TextField(
         _("message ID"),
         blank=True,
-        help_text=_("SMTP Message-ID header value."),
+        help_text=_("RFC 5322 Message-ID header."),
     )
     received_at = models.DateTimeField(
         _("received at"),
         auto_now_add=True,
-        help_text=_("When this message was received by the SMTP server."),
+        help_text=_("When the submission was accepted."),
     )
     domain = models.ForeignKey(
         Domain,
@@ -76,20 +82,20 @@ class OutgoingMessage(TimeStamped):
     status = models.CharField(
         _("status"),
         max_length=10,
-        choices=Status.choices,
+        choices=Status,
         default=Status.PENDING,
-        help_text=_("Current delivery status of this message."),
+        help_text=_("Send/deliver lifecycle state."),
     )
     received_with_ssl = models.BooleanField(
         _("received with SSL"),
         default=False,
-        help_text=_("Whether the message was received over a TLS connection."),
+        help_text=_("Submission received over TLS."),
     )
     raw_body = models.FileField(
         _("raw body"),
         upload_to="mail/",
         blank=True,
-        help_text=_("Raw .eml file for this message."),
+        help_text=_("Raw RFC 822 message bytes."),
     )
 
     class Meta(TimeStamped.Meta):
@@ -105,7 +111,7 @@ class OutgoingMessage(TimeStamped):
 
 
 class Transmission(TimeStamped):
-    """A delivery attempt for an outgoing message.
+    """Track a single delivery attempt for an outgoing message.
 
     Each message may have multiple transmissions (e.g. retry attempts).
     """
@@ -130,8 +136,8 @@ class Transmission(TimeStamped):
     status = models.CharField(
         _("status"),
         max_length=10,
-        choices=Status.choices,
-        help_text=_("Transmission status for this attempt."),
+        choices=Status,
+        help_text=_("Outcome of this delivery attempt."),
     )
     code = models.PositiveIntegerField(
         _("code"),
@@ -142,23 +148,23 @@ class Transmission(TimeStamped):
     output = models.TextField(
         _("output"),
         blank=True,
-        help_text=_("Raw SMTP output from the remote server."),
+        help_text=_("Raw SMTP transcript from the remote server."),
     )
     details = models.TextField(
         _("details"),
         blank=True,
-        help_text=_("Human-readable transmission details."),
+        help_text=_("Human-readable explanation of the outcome."),
     )
     sent_with_ssl = models.BooleanField(
         _("sent with SSL"),
         default=False,
-        help_text=_("Whether this transmission was sent over TLS."),
+        help_text=_("Delivered over TLS."),
     )
     log_id = models.CharField(
         _("log ID"),
         max_length=255,
         blank=True,
-        help_text=_("Remote server log ID for this transmission."),
+        help_text=_("Remote server log identifier."),
     )
 
     class Meta(TimeStamped.Meta):
@@ -169,7 +175,7 @@ class Transmission(TimeStamped):
 
 
 class SmtpCredential(Credential):
-    """SMTP credential — concrete implementation of accounts.Credential."""
+    """Authenticate outgoing SMTP submissions for an organization."""
 
     class Type(models.TextChoices):
         SMTP = "smtp", _("SMTP")
@@ -178,7 +184,7 @@ class SmtpCredential(Credential):
     type = models.CharField(
         _("type"),
         max_length=7,
-        choices=Type.choices,
+        choices=Type,
         default=Type.SMTP,
         help_text=_("SMTP authentication method."),
     )

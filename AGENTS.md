@@ -12,21 +12,27 @@ and Return-Path are served automatically. GitHub OAuth for auth.
 Three services from one codebase, each a separate Docker container:
 
 - **Web** — Django web UI + admin (Granian ASGI in prod, `runserver` in dev).
-- **DNS** — Authoritative nameserver (dnslib, UDP+TCP). `nameserver/resolver.py`
+- **DNS** — Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
   builds DNS records from `Domain` model properties — no zone files.
-- **SMTP** — Inbound/outbound mail (aiosmtpd). `smtp/handlers.py` receives,
-  authenticates via `Credential`, stores raw body as `FileField`, dispatches
-  delivery via Django task framework.
+- **SMTP** — Outgoing mail submissions (aiosmtpd). `smtp/handlers.py`
+  authenticates via `SmtpCredential`, stores the raw body as a `FileField`,
+  and dispatches delivery via the Django task framework. Incoming (MX)
+  mail is out of scope for now.
 
-Apps: `root` (settings, root URLs, base templates — no cross-app model imports),
-`accounts` (OAuth + SMTP credentials), `domains` (Domain, DkimKey, DNS
-verification, dashboard), `mail` (Message, Transmission, delivery task),
-`nameserver` (resolver, server, DNS verification services), `smtp` (server,
-handlers, DKIM signing), `legal` (Markdown legal pages), `abstract` (shared
-TimeStamped model, admin mixins, Markdown utils).
+Apps: `root` (settings, root URLs, base templates — no cross-app model
+imports), `accounts` (Organization, Membership, abstract Credential, OAuth,
+org CRUD), `domains` (Domain, DkimKey, DNS resolver/server/services, domain
+views), `smtp` (OutgoingMessage, Transmission, SmtpCredential, delivery
+task, handler/server, message + credential views), `tx_email` (the unified
+transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
+(shared TimeStamped model, admin mixins, Markdown utils).
+
+App dependencies flow in one direction — see the graph in `README.md`:
+`tx_email → smtp`, `smtp → domains, accounts`, `domains → accounts`. Apps
+must never import from their dependents.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
-S3 via django-storages, social-auth-app-django, Primer CSS.
+S3 via django-storages, social-auth-app-django, Pico CSS.
 
 ## Core commands & workflows
 
@@ -77,16 +83,16 @@ Before you finish, always:
 
 - `CONVENTIONS.md` — authoritative coding conventions (URLs, PKs, model fields,
   save patterns, control flow, imports, auth, naming).
-- `README.md` — setup guide, architecture overview, env var reference,
+- `README.md` — setup guide, architecture overview, app dependency graph,
   free sender domain docs.
-- `.github/copilot-instructions.md` — detailed architecture and app-by-app
-  guide for AI coding assistants.
+- `REVIEW.md` — the reviewer's standing rules (conventions, dependency
+  direction); `CLAUDE.md` and `.github/copilot-instructions.md` symlink to it.
 - `root/settings.py` — all `RELAY_*` config and environment variables.
-- `docs/` — legal page Markdown sources (imprint, privacy, terms).
+- `legal/docs/` — legal page Markdown sources (imprint, privacy, terms).
 
 ## Examples
 
-**Good:** Add a new field to `Message` with `verbose_name` and `help_text`,
+**Good:** Add a field to `OutgoingMessage` with `verbose_name` and `help_text`,
 generate a migration, run `manage.py check` + `makemigrations --check`,
 verify `CONVENTIONS.md` doesn't need updating.
 

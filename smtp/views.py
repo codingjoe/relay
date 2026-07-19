@@ -4,7 +4,6 @@ from email import message_from_bytes
 from email.message import EmailMessage
 
 from django.conf import settings
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import JsonResponse
@@ -12,21 +11,20 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import DeleteView, DetailView, ListView, View
 
+from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
 from .models import OutgoingMessage, SmtpCredential, Transmission
 from .tasks import deliver_message
 
 
-class OutgoingMessageLogView(LoginRequiredMixin, ListView):
+class OutgoingMessageLogView(OrganizationScopedView, ListView):
     template_name = "smtp/message_log.html"
     context_object_name = "messages"
     paginate_by = 50
 
     def get_queryset(self):
-        qs = OutgoingMessage.objects.filter(sender=self.request.user).select_related(
-            "domain"
-        )
+        qs = OutgoingMessage.objects.filter(org=self.org).select_related("domain")
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain_id=domain)
         if status := self.request.GET.get("status"):
@@ -37,9 +35,7 @@ class OutgoingMessageLogView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "domains": Domain.objects.filter(
-                org__in=self.request.user.organizations.all()
-            ),
+            "domains": Domain.objects.filter(org=self.org),
             "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
             "status_choices": OutgoingMessage.Status.choices,
             "filters": {
@@ -50,12 +46,12 @@ class OutgoingMessageLogView(LoginRequiredMixin, ListView):
         }
 
 
-class OutgoingMessageDetailView(LoginRequiredMixin, DetailView):
+class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
     template_name = "smtp/message_detail.html"
     context_object_name = "message"
 
     def get_queryset(self):
-        return OutgoingMessage.objects.filter(sender=self.request.user).select_related(
+        return OutgoingMessage.objects.filter(org=self.org).select_related(
             "domain", "credential"
         )
 
@@ -115,10 +111,10 @@ class OutgoingMessageDetailView(LoginRequiredMixin, DetailView):
         }
 
 
-class OutgoingMessageModalView(LoginRequiredMixin, View):
-    def get(self, request, pk, *args, **kwargs):
+class OutgoingMessageModalView(OrganizationScopedView, View):
+    def get(self, request, org_pk, pk, *args, **kwargs):
         message = get_object_or_404(
-            OutgoingMessage.objects.filter(sender=request.user).select_related(
+            OutgoingMessage.objects.filter(org=self.org).select_related(
                 "domain", "credential"
             ),
             pk=pk,
@@ -151,25 +147,23 @@ class OutgoingMessageModalView(LoginRequiredMixin, View):
                     else None
                 ),
                 "detail_url": reverse_lazy(
-                    "smtp:message_detail", kwargs={"pk": message.id}
+                    "smtp:message_detail",
+                    kwargs={"org_pk": self.org.pk, "pk": message.id},
                 ),
                 "transmissions": list(transmissions),
             }
         )
 
 
-class TestEmailView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
+class TestEmailView(OrganizationScopedView, View):
+    def post(self, request, org_pk, *args, **kwargs):
         free_domain = settings.RELAY_FREE_SENDER_DOMAIN
         domain_pk = request.POST["domain"]
         if domain_pk == "free":
             mail_from = f"{request.user.username}@{free_domain}"
             domain = None
         else:
-            domain = Domain.objects.get(
-                pk=domain_pk,
-                org__in=request.user.organizations.all(),
-            )
+            domain = Domain.objects.get(pk=domain_pk, org=self.org)
             mail_from = f"postmaster@{domain.name}"
 
         msg = EmailMessage()
@@ -181,6 +175,7 @@ class TestEmailView(LoginRequiredMixin, View):
 
         message = OutgoingMessage(
             sender=request.user,
+            org=self.org,
             rcpt_to=request.user.email,
             mail_from=mail_from,
             subject=request.POST.get("subject", ""),
@@ -199,17 +194,15 @@ class TestEmailView(LoginRequiredMixin, View):
                 domain_id=domain.pk if domain else None,
             )
         )
-        return redirect("smtp:message_log")
+        return redirect("smtp:message_log", org_pk=org_pk)
 
 
-class SmtpCredentialListView(LoginRequiredMixin, ListView):
+class SmtpCredentialListView(OrganizationScopedView, ListView):
     template_name = "smtp/credential_list.html"
     context_object_name = "credentials"
 
     def get_queryset(self):
-        return SmtpCredential.objects.filter(
-            org__in=self.request.user.organizations.all()
-        )
+        return SmtpCredential.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -222,25 +215,22 @@ class SmtpCredentialListView(LoginRequiredMixin, ListView):
         return context
 
 
-class SmtpCredentialCreateView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
-        org = request.user.organizations.first()
-        if org is None:
-            return redirect("smtp:credential_list")
+class SmtpCredentialCreateView(OrganizationScopedView, View):
+    def post(self, request, org_pk, *args, **kwargs):
         credential, raw_key = SmtpCredential.objects.create_with_key(
-            org=org,
+            org=self.org,
             type=SmtpCredential.Type.SMTP,
             name=request.POST.get("name", ""),
         )
         request.session["raw_key"] = raw_key
-        return redirect("smtp:credential_list")
+        return redirect("smtp:credential_list", org_pk=org_pk)
 
 
-class SmtpCredentialDeleteView(LoginRequiredMixin, DeleteView):
+class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
     model = SmtpCredential
-    success_url = reverse_lazy("smtp:credential_list")
 
     def get_queryset(self):
-        return SmtpCredential.objects.filter(
-            org__in=self.request.user.organizations.all()
-        )
+        return SmtpCredential.objects.filter(org=self.org)
+
+    def get_success_url(self):
+        return reverse_lazy("smtp:credential_list", kwargs={"org_pk": self.org.pk})

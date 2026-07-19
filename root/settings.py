@@ -99,6 +99,7 @@ TEMPLATES = [
                 "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "accounts.context_processors.organizations",
             ],
             "debug": DEBUG,
             "loaders": (
@@ -245,7 +246,7 @@ TASKS = {
 
 # Authentication
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "tx_email:dashboard"
+LOGIN_REDIRECT_URL = "accounts:organization_list"
 LOGOUT_REDIRECT_URL = "home"
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")

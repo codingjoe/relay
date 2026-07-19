@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class SMTPServer:
-    """SMTP server wrapper using aiosmtpd."""
+    """Wrap aiosmtpd to serve outgoing SMTP submissions."""
 
     def __init__(self, host="0.0.0.0", port=25, max_message_size=10485760):
         self.host = host
@@ -39,7 +39,7 @@ class SMTPServer:
 
 
 def run_smtp_server(host="0.0.0.0", port=25, max_message_size=10485760):
-    """Run the SMTP server (blocking)."""
+    """Run the SMTP submission server until interrupted."""
     server = SMTPServer(host=host, port=port, max_message_size=max_message_size)
     server.start()
 

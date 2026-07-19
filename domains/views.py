@@ -1,39 +1,42 @@
 """Domain management views."""
 
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, View
+
+from accounts.views import OrganizationScopedView
 
 from .models import Domain
 from .services import verify_domain_dns
 
 
-class DomainListView(LoginRequiredMixin, ListView):
+class DomainListView(OrganizationScopedView, ListView):
     template_name = "domains/domain_list.html"
     context_object_name = "domains"
 
     def get_queryset(self):
-        return Domain.objects.filter(org__in=self.request.user.organizations.all())
+        return Domain.objects.filter(org=self.org)
 
 
-class DomainCreateView(LoginRequiredMixin, CreateView):
+class DomainCreateView(OrganizationScopedView, CreateView):
     model = Domain
     template_name = "domains/domain_form.html"
     fields = ["name"]
-    success_url = reverse_lazy("domains:domain_list")
 
     def form_valid(self, form):
-        form.instance.org = self.request.user.organizations.first()
+        form.instance.org = self.org
         return super().form_valid(form)
 
+    def get_success_url(self):
+        return reverse_lazy("domains:domain_list", kwargs={"org_pk": self.org.pk})
 
-class DomainDetailView(LoginRequiredMixin, DetailView):
+
+class DomainDetailView(OrganizationScopedView, DetailView):
     template_name = "domains/domain_detail.html"
     context_object_name = "domain"
 
     def get_queryset(self):
-        return Domain.objects.filter(org__in=self.request.user.organizations.all())
+        return Domain.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -43,11 +46,9 @@ class DomainDetailView(LoginRequiredMixin, DetailView):
         }
 
 
-class DomainVerifyView(LoginRequiredMixin, View):
-    def post(self, request, pk, *args, **kwargs):
-        domain = Domain.objects.filter(
-            org__in=request.user.organizations.all(), pk=pk
-        ).first()
+class DomainVerifyView(OrganizationScopedView, View):
+    def post(self, request, org_pk, pk, *args, **kwargs):
+        domain = Domain.objects.filter(org=self.org, pk=pk).first()
         if domain:
             verify_domain_dns(domain)
-        return redirect("domains:domain_detail", pk=pk)
+        return redirect("domains:domain_detail", org_pk=org_pk, pk=pk)

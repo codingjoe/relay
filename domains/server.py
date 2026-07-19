@@ -10,7 +10,7 @@ from .resolver import DNSResolver
 
 
 class DNSServer:
-    """Authoritative DNS server using dnslib."""
+    """Serve authoritative DNS records from the database."""
 
     def __init__(self, host="0.0.0.0", port=53):
         self.host = host

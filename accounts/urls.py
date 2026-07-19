@@ -1,4 +1,4 @@
-"""URL configuration for accounts — auth, organizations, and members."""
+"""URL configuration for accounts — auth, organizations, and org settings."""
 
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
@@ -30,28 +30,35 @@ urlpatterns = [
         include(
             [
                 path("", OrganizationListView.as_view(), name="organization_list"),
+            ]
+        ),
+    ),
+    path(
+        "org/<int:org_pk>/settings/",
+        include(
+            [
                 path(
-                    "<int:pk>",
+                    "",
                     OrganizationDetailView.as_view(),
                     name="organization_detail",
                 ),
                 path(
-                    "<int:pk>/edit",
+                    "edit",
                     OrganizationUpdateView.as_view(),
                     name="organization_update",
                 ),
                 path(
-                    "<int:pk>/delete",
+                    "delete",
                     OrganizationDeleteView.as_view(),
                     name="organization_delete",
                 ),
                 path(
-                    "<int:pk>/members/new",
+                    "members/new",
                     MembershipCreateView.as_view(),
                     name="membership_create",
                 ),
                 path(
-                    "<int:pk>/members/<int:member_pk>/delete",
+                    "members/<int:member_pk>/delete",
                     MembershipDeleteView.as_view(),
                     name="membership_delete",
                 ),

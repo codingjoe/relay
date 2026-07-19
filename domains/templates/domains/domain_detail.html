@@ -28,7 +28,7 @@ _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domai
         — {{ domain.dmarc_error }}{% endif %}{% else %}<mark>⏳ DMARC</mark>{% endif %}
   </p>
 
-  <form method="post" action="{% url 'domains:domain_verify' domain.pk %}" style="display: inline">
+  <form method="post" action="{% url 'domains:domain_verify' org.pk domain.pk %}" style="display: inline">
     {% csrf_token %}
     <button type="submit">{% translate "verify DNS"|title %}</button>
   </form>

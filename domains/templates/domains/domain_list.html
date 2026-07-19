@@ -11,7 +11,7 @@
     </div>
   </div>
   <dialog id="dlg-new-domain">
-    <form method="post" action="{% url 'domains:domain_create' %}">
+    <form method="post" action="{% url 'domains:domain_create' org.pk %}">
       {% csrf_token %}
       <p>
         <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
@@ -37,7 +37,7 @@
       <tbody>
         {% for domain in domains %}
           <tr>
-            <td><a href="{% url 'domains:domain_detail' domain.pk %}">{{ domain.name }}</a></td>
+            <td><a href="{% url 'domains:domain_detail' org.pk domain.pk %}">{{ domain.name }}</a></td>
             <td><code>{{ domain.sender_domain }}</code></td>
             <td>
               {% if domain.verified_at %}✅ {% translate "verified"|capfirst %}{% else %}⏳

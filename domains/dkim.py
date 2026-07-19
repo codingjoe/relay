@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def sign_message(raw_bytes, domain):
     """Sign a message with DKIM using the domain's active private key.
 
-    Returns the signed message bytes, or the original bytes if signing fails.
+    Return the signed message bytes, or the original bytes if signing fails.
     """
     try:
         private_key = domain.dkim_private_key.encode("ascii")
@@ -33,7 +33,7 @@ def sign_message(raw_bytes, domain):
 def verify_signature(raw_bytes):
     """Verify a DKIM signature on a message.
 
-    Returns (verified: bool, domain: str or None).
+    Return (verified: bool, domain: str or None).
     """
     try:
         verified = dkim.verify(raw_bytes)

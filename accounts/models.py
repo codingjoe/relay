@@ -4,7 +4,7 @@ Organizations own resources (domains, credentials) — not individual users.
 Each user gets a personal organization on signup. Members share access to
 all org resources. Credentials are hashed and shown only once at creation.
 
-Concrete credential models live in service apps (e.g. mail.SmtpCredential).
+Concrete credential models live in service apps (e.g. smtp.SmtpCredential).
 """
 
 import secrets
@@ -20,7 +20,7 @@ from abstract.models import TimeStamped
 
 
 def generate_api_key():
-    """Generate a random 32-character API key."""
+    """Generate a 32-character random secret for use as an API key."""
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(32))
 
@@ -29,7 +29,7 @@ class Organization(TimeStamped):
     name = models.CharField(
         _("name"),
         max_length=255,
-        help_text=_("Organization display name."),
+        help_text=_("Display name shown to members."),
     )
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -59,7 +59,7 @@ class Membership(TimeStamped):
     role = models.CharField(
         _("role"),
         max_length=5,
-        choices=Role.choices,
+        choices=Role,
         default=Role.WRITE,
         help_text=_(
             "Write members can use services; admin members can also manage users."
@@ -79,20 +79,18 @@ class Membership(TimeStamped):
 
 
 class OrganizationOwned(TimeStamped):
-    """Abstract base for resources owned by an organization.
+    """Provide a required `org` foreign key for resources always owned by an organization.
 
-    Concrete org-owned models (Domain, SmtpCredential) inherit this so the
-    `org` foreign key and its conventions live in one place. `org` is nullable
-    to allow system-owned objects (e.g. the free sender domain).
+    Use this mixin for resources that always belong to an org (e.g.
+    credentials). Resources that can be system-owned (e.g. the free sender
+    domain) keep their own nullable `org` foreign key instead.
     """
 
     org = models.ForeignKey(
         Organization,
         on_delete=models.CASCADE,
         related_name="%(class)ss",
-        null=True,
-        blank=True,
-        help_text=_("Organization that owns this resource; null for system objects."),
+        help_text=_("Owning organization."),
     )
 
     class Meta:
@@ -101,7 +99,10 @@ class OrganizationOwned(TimeStamped):
 
 class CredentialQuerySet(models.QuerySet):
     def create_with_key(self, *, org, name="", **kwargs):
-        """Create a credential with a generated key. Returns (credential, raw_key)."""
+        """Create and persist a credential with a generated key.
+
+        Returns (credential, raw_key); the raw key is shown to the caller once.
+        """
         raw_key = generate_api_key()
         credential = self.model(org=org, name=name, **kwargs)
         credential.set_key(raw_key)
@@ -114,7 +115,7 @@ class Credential(OrganizationOwned):
 
     The plaintext key is never stored — only a hash (like Django passwords).
     The key_prefix (first 8 chars) enables O(1) lookup before hash verification.
-    Concrete models live in service apps (e.g. mail.SmtpCredential).
+    Concrete models live in service apps (e.g. smtp.SmtpCredential).
     """
 
     key_hash = models.CharField(
@@ -127,24 +128,24 @@ class Credential(OrganizationOwned):
         _("key prefix"),
         max_length=8,
         editable=False,
-        help_text=_("First 8 characters for display and lookup."),
+        help_text=_("First 8 characters, for display and O(1) lookup."),
     )
     name = models.CharField(
         _("name"),
         max_length=255,
         blank=True,
-        help_text=_("Human-readable label for this credential."),
+        help_text=_("Human-readable label."),
     )
     last_used_at = models.DateTimeField(
         _("last used"),
         null=True,
         blank=True,
-        help_text=_("When this key was last used for authentication."),
+        help_text=_("Last successful verification."),
     )
     hold = models.BooleanField(
         _("hold"),
         default=False,
-        help_text=_("If true, this key is suspended and cannot be used."),
+        help_text=_("Suspended keys cannot be used."),
     )
 
     objects = CredentialQuerySet.as_manager()
@@ -157,16 +158,22 @@ class Credential(OrganizationOwned):
 
     @property
     def salt(self):
-        """Deterministic salt based on the concrete class module and name."""
+        """Return a stable salt unique to the concrete credential class."""
         return f"{self.__class__.__module__}.{self.__class__.__name__}"
 
     def set_key(self, raw_key):
-        """Hash and store the key. Caller must show raw_key to the user once."""
+        """Persist a one-way representation of the key.
+
+        The plaintext is shown to the caller once and never stored.
+        """
         self.key_hash = make_password(raw_key, self.salt)
         self.key_prefix = raw_key[:8]
 
     def verify_key(self, raw_key):
-        """Return True if raw_key matches the stored hash, updating last_used_at."""
+        """Validate the provided key against the stored credential.
+
+        Records a successful check as the last use and returns whether it matched.
+        """
         if check_password(raw_key, self.key_hash):
             self.last_used_at = timezone.now()
             self.save(update_fields=["last_used_at", "modified_at"])

@@ -7,7 +7,7 @@
     {% translate "send test email"|title %}
   </button>
   <dialog id="dlg-test-email">
-    <form method="post" action="{% url 'smtp:test_email' %}">
+    <form method="post" action="{% url 'smtp:test_email' org.pk %}">
       {% csrf_token %}
       <p>
         <label for="te-domain">{% translate "domain"|capfirst context "noun" %}</label>
@@ -172,7 +172,7 @@
         const pk = row.dataset.pk;
         const modal = document.getElementById('msg-modal');
         modal.showModal();
-        const resp = await fetch(`/smtp/messages/${pk}/modal`);
+        const resp = await fetch(`/org/{{ org.pk }}/messages/${pk}/modal`);
         const data = await resp.json();
         document.getElementById('modal-subject').textContent = data.subject || '—';
         document.getElementById('modal-uuid').textContent = pk;
@@ -182,7 +182,7 @@
         document.getElementById('modal-status').textContent = data.status;
         document.getElementById('modal-message-id').textContent = data.message_id || '—';
         document.getElementById('modal-domain').textContent = data.domain || '—';
-        document.getElementById('modal-detail-link').href = `/smtp/messages/${pk}`;
+        document.getElementById('modal-detail-link').href = `/org/{{ org.pk }}/messages/${pk}`;
         const tbody = document.getElementById('modal-transmissions');
         tbody.innerHTML = (data.transmissions || []).map(d =>
           `<tr><td>${d.status}</td><td>${d.code || '—'}</td><td>${new Date(d.created_at).toLocaleString()}</td><td>${(d.details || d.output || '').slice(0, 80)}</td></tr>`

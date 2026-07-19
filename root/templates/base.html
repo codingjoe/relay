@@ -17,21 +17,61 @@
         </ul>
         <ul>
           {% if user.is_authenticated %}
-            <li><a href="{% url 'tx_email:dashboard' %}">{% translate "dashboard"|capfirst %}</a></li>
+            {% if current_org %}
+              <li>
+                <a href="{% url 'tx_email:dashboard' current_org.pk %}">
+                  <strong>{{ current_org.name }}</strong>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'domains:domain_list' current_org.pk %}"
+                >{% translate "domains"|capfirst context "noun" %}</a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'smtp:message_log' current_org.pk %}"
+                >{% translate "messages"|capfirst context "noun" %}</a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'smtp:credential_list' current_org.pk %}"
+                >{% translate "credentials"|capfirst context "noun" %}</a>
+              </li>
+              <li>
+                <a
+                  href="{% url 'accounts:organization_detail' current_org.pk %}"
+                >{% translate "settings"|capfirst %}</a>
+              </li>
+            {% endif %}
             <li>
               <a
                 href="{% url 'accounts:organization_list' %}"
               >{% translate "organizations"|capfirst context "noun" %}</a>
             </li>
-            <li><a href="{% url 'domains:domain_list' %}">{% translate "domains"|capfirst context "noun" %}</a></li>
-            <li><a href="{% url 'smtp:message_log' %}">{% translate "messages"|capfirst context "noun" %}</a></li>
-            <li>
-              <a href="{% url 'smtp:credential_list' %}">{% translate "credentials"|capfirst context "noun" %}</a>
-            </li>
           {% endif %}
         </ul>
         <ul>
           {% if user.is_authenticated %}
+            <li>
+              <button onclick="document.getElementById('dlg-switch-org').showModal()">
+                {% translate "switch org"|capfirst %}
+              </button>
+              <dialog id="dlg-switch-org">
+                <h3>{% translate "switch org"|capfirst %}</h3>
+                <ul>
+                  {% for o in user_orgs %}
+                    <li>
+                      <a href="{% url 'tx_email:dashboard' o.pk %}">{{ o.name }}</a>
+                      {% if current_org and current_org.pk == o.pk %}<small>✓</small>{% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+                <button type="button" onclick="document.getElementById('dlg-switch-org').close()" class="outline">
+                  {% translate "close"|capfirst %}
+                </button>
+              </dialog>
+            </li>
             <li>
               <form method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}

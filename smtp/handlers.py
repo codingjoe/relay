@@ -23,14 +23,14 @@ logger = logging.getLogger(__name__)
 
 
 class SMTPHandler:
-    """aiosmtpd handler for outgoing mail submissions."""
+    """Receive authenticated outgoing mail submissions from SMTP clients."""
 
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         envelope.rcpt_tos.append(address)
         return "250 OK"
 
     async def handle_DATA(self, server, session, envelope):
-        """Process a submitted outgoing message."""
+        """Store a submitted outgoing message and enqueue its delivery."""
         credential = getattr(session, "credential", None)
         sender = getattr(session, "sender", None)
         if credential is None or sender is None:
@@ -81,7 +81,7 @@ class SMTPHandler:
 
 @sync_to_async
 def authenticate(username: str, key: str):
-    """Look up API key by prefix, then verify the full key against the hash."""
+    """Authenticate a user by their SMTP credential, returning it or None."""
     api_keys = SmtpCredential.objects.select_related("org").filter(
         key_prefix=key[:8],
         org__memberships__user__username=username,
@@ -96,6 +96,7 @@ def authenticate(username: str, key: str):
 
 @sync_to_async
 def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl):
+    """Persist a submitted outgoing message and enqueue its delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
 
@@ -114,6 +115,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
 
     message = OutgoingMessage(
         sender=sender,
+        org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
         subject=subject,

@@ -1,4 +1,4 @@
-"""Outbound message transmission using Django 6.0 task framework."""
+"""Outgoing message delivery tasks."""
 
 import asyncio
 import logging
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 @task
 def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
-    """Deliver a single queued message via SMTP."""
+    """Deliver a queued outgoing message to its recipients."""
     message = OutgoingMessage.objects.get(pk=message_id)
 
     try:

@@ -79,7 +79,7 @@ Organization → Domain, SmtpCredential
 - **PostgreSQL** — primary database
 - **Redis** — caching and rate limiting
 - **S3** — raw message body storage via django-storages
-- **Primer CSS** — GitHub's design system CSS framework for the web UI
+- **Pico CSS** — classless CSS framework for the web UI
 - **Granian** — Rust-based ASGI server
 
 ## App dependencies

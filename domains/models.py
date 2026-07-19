@@ -9,7 +9,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
-from accounts.models import OrganizationOwned
 
 
 def generate_dkim_identifier_string():
@@ -49,22 +48,22 @@ class DkimKey(TimeStamped):
     key_type = models.CharField(
         _("key type"),
         max_length=8,
-        choices=KeyType.choices,
-        help_text=_("Cryptographic algorithm and size for this DKIM key."),
+        choices=KeyType,
+        help_text=_("Algorithm and size for this DKIM key."),
     )
     private_key = models.TextField(
         _("private key"),
-        help_text=_("PEM-encoded private key used for DKIM signing."),
+        help_text=_("PEM-encoded key used for DKIM signing."),
     )
     selector = models.CharField(
         _("selector"),
         max_length=6,
-        help_text=_("DKIM selector string used in the DNS record name."),
+        help_text=_("DKIM selector in the DNS record name."),
     )
     is_active = models.BooleanField(
         _("active"),
         default=True,
-        help_text=_("Only active keys are used for signing and served in DNS."),
+        help_text=_("Only active keys sign and are served in DNS."),
     )
 
     class Meta(TimeStamped.Meta):
@@ -79,7 +78,7 @@ class DkimKey(TimeStamped):
         return f"{self.domain} / {self.key_type} / {self.selector}"
 
 
-class Domain(OrganizationOwned):
+class Domain(TimeStamped):
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
         EMAIL = "email", _("email")
@@ -94,84 +93,92 @@ class Domain(OrganizationOwned):
         _("name"),
         max_length=255,
         unique=True,
-        help_text=_("Sender domain name, e.g. example.com."),
+        help_text=_("Sender domain, e.g. example.com."),
+    )
+    org = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="domains",
+        null=True,
+        blank=True,
+        help_text=_("Owning organization; null for system domains."),
     )
     verification_token = models.CharField(
         _("verification token"),
         max_length=16,
         default=generate_verification_token,
         editable=False,
-        help_text=_("Token placed in DNS for domain verification."),
+        help_text=_("Token published in DNS to prove ownership."),
     )
     verified_at = models.DateTimeField(
         _("verified at"),
         null=True,
         blank=True,
-        help_text=_("When this domain was verified."),
+        help_text=_("When DNS verification completed."),
     )
     nameserver_status = models.CharField(
         _("nameserver status"),
         max_length=9,
-        choices=Status.choices,
+        choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("Status of nameserver delegation verification."),
+        help_text=_("NS delegation check result."),
     )
     nameserver_error = models.TextField(
         _("nameserver error"),
         blank=True,
-        help_text=_("Error message if nameserver verification failed."),
+        help_text=_("Failure detail if NS delegation is incorrect."),
     )
     spf_status = models.CharField(
         _("SPF status"),
         max_length=9,
-        choices=Status.choices,
+        choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("Status of SPF record verification."),
+        help_text=_("SPF record check result."),
     )
     spf_error = models.TextField(
         _("SPF error"),
         blank=True,
-        help_text=_("Error message if SPF verification failed."),
+        help_text=_("Failure detail if the SPF record is incorrect."),
     )
     dkim_status = models.CharField(
         _("DKIM status"),
         max_length=9,
-        choices=Status.choices,
+        choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("Status of DKIM CNAME verification."),
+        help_text=_("DKIM CNAME check result."),
     )
     dkim_error = models.TextField(
         _("DKIM error"),
         blank=True,
-        help_text=_("Error message if DKIM verification failed."),
+        help_text=_("Failure detail if the DKIM CNAME is incorrect."),
     )
     dmarc_status = models.CharField(
         _("DMARC status"),
         max_length=9,
-        choices=Status.choices,
+        choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("Status of DMARC record verification."),
+        help_text=_("DMARC record check result."),
     )
     dmarc_error = models.TextField(
         _("DMARC error"),
         blank=True,
-        help_text=_("Error message if DMARC verification failed."),
+        help_text=_("Failure detail if the DMARC record is incorrect."),
     )
     dns_checked_at = models.DateTimeField(
         _("DNS checked at"),
         null=True,
         blank=True,
-        help_text=_("When DNS checks were last run."),
+        help_text=_("Last DNS check timestamp."),
     )
     outgoing = models.BooleanField(
         _("outgoing"),
         default=True,
-        help_text=_("Whether this domain can send email."),
+        help_text=_("Allow sending from this domain."),
     )
     incoming = models.BooleanField(
         _("incoming"),
         default=True,
-        help_text=_("Whether this domain can receive email."),
+        help_text=_("Allow receiving for this domain."),
     )
 
     def __str__(self):
@@ -212,12 +219,12 @@ class Domain(OrganizationOwned):
 
     @property
     def sender_domain(self):
-        """The fixed sender subdomain our nameserver is authoritative for."""
+        """Return the sender subdomain our nameserver serves."""
         return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{self.name}"
 
     @property
     def dkim_signing_domain(self):
-        """Domain used in DKIM d= tag — always the root domain."""
+        """Return the root domain used as the DKIM d= tag."""
         return self.name
 
     @property
@@ -243,18 +250,18 @@ class Domain(OrganizationOwned):
 
     @property
     def dkim_record_name(self):
-        """Where our nameserver serves the DKIM public key."""
+        """Return the record name our nameserver serves the DKIM public key at."""
         base = self.name if self.is_system else self.sender_domain
         return f"{self.dkim_selector}._domainkey.{base}"
 
     @property
     def dkim_cname_name(self):
-        """CNAME record the user adds on root domain."""
+        """Return the CNAME record name the user adds on the root domain."""
         return f"{self.dkim_selector}._domainkey.{self.name}"
 
     @property
     def dkim_cname_target(self):
-        """Where the DKIM CNAME points — our nameserver's record."""
+        """Return the target the DKIM CNAME points to on our nameserver."""
         return self.dkim_record_name
 
     @property
