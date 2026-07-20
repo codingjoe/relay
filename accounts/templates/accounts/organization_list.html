@@ -8,8 +8,16 @@
     <form method="post" action="{% url 'accounts:organization_list' %}">
       {% csrf_token %}
       <p>
-        <label for="id_name">{% translate "name"|capfirst context "noun" %}</label>
-        <input type="text" name="name" id="id_name" required>
+        <label for="id_slug">{% translate "slug"|capfirst context "noun" %}</label>
+        <input
+          type="text"
+          name="slug"
+          id="id_slug"
+          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+          title="{% translate 'lowercase letters, digits, and hyphens' %}"
+          placeholder="my-org"
+          required
+        >
       </p>
       <button type="submit">{% translate "create"|capfirst context "verb" %}</button>
       <button type="button" onclick="document.getElementById('dlg-new-org').close()" class="outline">
@@ -21,7 +29,7 @@
     <table>
       <thead>
         <tr>
-          <th>{% translate "name"|capfirst context "noun" %}</th>
+          <th>{% translate "slug"|capfirst context "noun" %}</th>
           <th>{% translate "your role"|capfirst %}</th>
           <th>{% translate "created"|capfirst %}</th>
         </tr>
@@ -29,7 +37,7 @@
       <tbody>
         {% for org in organizations %}
           <tr>
-            <td><a href="{% url 'tx_email:dashboard' org.pk %}">{{ org.name }}</a></td>
+            <td><a href="{% url 'tx_email:dashboard' org.slug %}">{{ org.slug }}</a></td>
             <td>{{ org.my_membership.0.get_role_display }}</td>
             <td>{{ org.created_at|date:"M d, Y" }}</td>
           </tr>

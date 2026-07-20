@@ -2,7 +2,7 @@
 {% load i18n %}
 {% block title %}{{ message.subject|truncatechars:50 }} — {{ m|title }}{% endblock %}
 {% block content %}
-  <p><a href="{% url 'smtp:message_log' org.pk %}">← {% translate "messages"|capfirst context "noun" %}</a></p>
+  <p><a href="{% url 'smtp:message_log' org.slug %}">← {% translate "messages"|capfirst context "noun" %}</a></p>
 
   <h2>{{ message.subject }}</h2>
 

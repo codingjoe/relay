@@ -1,3 +1,4 @@
+import pytest
 from django.test import RequestFactory, override_settings
 
 from root.views import HomeView
@@ -17,3 +18,14 @@ class TestHomeView:
         view.request = RequestFactory().get("/", HTTP_HOST="localhost:8000")
         context = view.get_context_data()
         assert context["nameservers"] == ["ns1.localhost", "ns2.localhost"]
+
+
+@pytest.mark.django_db
+class TestHomeViewRender:
+    def test_get__renders_for_anonymous(self, client):
+        response = client.get("/")
+        assert response.status_code == 200
+
+    def test_get__renders_for_authenticated(self, admin_client):
+        response = admin_client.get("/")
+        assert response.status_code == 200

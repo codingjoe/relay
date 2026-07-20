@@ -13,6 +13,7 @@ import string
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -26,10 +27,11 @@ def generate_api_key():
 
 
 class Organization(TimeStamped):
-    name = models.CharField(
-        _("name"),
+    slug = models.SlugField(
+        _("slug"),
         max_length=255,
-        help_text=_("Display name shown to members."),
+        unique=True,
+        help_text=_("URL-safe identifier, lowercase letters, digits, and hyphens."),
     )
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -38,7 +40,10 @@ class Organization(TimeStamped):
     )
 
     def __str__(self):
-        return self.name
+        return self.slug
+
+    def get_absolute_url(self):
+        return reverse("accounts:organization_detail", kwargs={"org_slug": self.slug})
 
 
 class Membership(TimeStamped):

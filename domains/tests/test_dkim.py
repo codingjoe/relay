@@ -22,7 +22,7 @@ class TestSignMessage:
     def test_sign_message__returns_signed_bytes(self):
         from domains.dkim import sign_message
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"DKIM-Signature:" in signed
@@ -30,7 +30,7 @@ class TestSignMessage:
     def test_sign_message__includes_selector(self):
         from domains.dkim import sign_message
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
         assert domain.dkim_selector.encode() in signed
@@ -38,7 +38,7 @@ class TestSignMessage:
     def test_sign_message__includes_domain(self):
         from domains.dkim import sign_message
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"d=example.com" in signed

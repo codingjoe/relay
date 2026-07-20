@@ -90,7 +90,7 @@ class TestDomainSave:
     def test_save__creates_dkim_key(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         assert domain.dkim_keys.count() == 1
         key = domain.dkim_keys.first()
@@ -101,7 +101,7 @@ class TestDomainSave:
     def test_save__does_not_duplicate_dkim_key(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         domain.save()
         assert domain.dkim_keys.count() == 1
@@ -112,7 +112,7 @@ class TestDkimKeyProperties:
     def test_active_dkim_key__returns_first_active(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         key = domain.active_dkim_key
         assert key is not None
@@ -123,14 +123,14 @@ class TestDkimKeyProperties:
 
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         b64mod.b64decode(domain.dkim_public_key_b64, validate=True)
 
     def test_dkim_record__contains_public_key(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         record = domain.dkim_record
         assert "v=DKIM1" in record
@@ -139,7 +139,7 @@ class TestDkimKeyProperties:
     def test_dkim_identifier_string__returns_selector(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         key = domain.active_dkim_key
         assert domain.dkim_identifier_string == key.selector
@@ -151,7 +151,7 @@ class TestDkimRecordNames:
     def test_dkim_record_name__user_domain_uses_sender_subdomain(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         assert domain.dkim_record_name.startswith("relay-")
         assert domain.dkim_record_name.endswith("._domainkey.mail.relay.example.com")
@@ -164,7 +164,7 @@ class TestDkimRecordNames:
     def test_dkim_cname_name__uses_root_domain(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         assert domain.dkim_cname_name.startswith("relay-")
         assert domain.dkim_cname_name.endswith("._domainkey.example.com")
@@ -172,7 +172,7 @@ class TestDkimRecordNames:
     def test_dkim_cname_target__equals_record_name(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         assert domain.dkim_cname_target == domain.dkim_record_name
 
@@ -182,5 +182,21 @@ class TestDomainIsSystem:
     def test_is_system__false_for_org(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         assert Domain(name="example.com", org=org).is_system is False
+
+
+@pytest.mark.django_db
+class TestDomainGetAbsoluteUrl:
+    def test_get_absolute_url__returns_detail_url(self):
+        from accounts.models import Organization
+
+        org = Organization.objects.create(slug="acme")
+        domain = Domain.objects.create(name="example.com", org=org)
+        url = domain.get_absolute_url()
+        assert url is not None
+        assert f"/org/{org.slug}/domains/{domain.pk}" in url
+
+    def test_get_absolute_url__none_for_system_domain(self):
+        domain = Domain.objects.create(name="system.com", org=None)
+        assert domain.get_absolute_url() is None

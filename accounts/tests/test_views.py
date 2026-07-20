@@ -12,7 +12,7 @@ class TestOrganizationListView:
         assert "/account/login" in response.url
 
     def test_get__shows_user_orgs(self, admin_client, org):
-        other_org = Organization.objects.create(name="Other")
+        other_org = Organization.objects.create(slug="other")
         Membership.objects.create(
             org=other_org,
             user=User.objects.create_user(username="carol", email="c@example.com"),
@@ -25,16 +25,16 @@ class TestOrganizationListView:
         assert other_org not in orgs
 
     def test_post__creates_org_and_admin_membership(self, admin_client, user):
-        response = admin_client.post("/organizations/", {"name": "New Org"})
+        response = admin_client.post("/organizations/", {"slug": "new-org"})
         assert response.status_code == 302
-        org = Organization.objects.get(name="New Org")
-        assert response.url.endswith(f"/org/{org.pk}/")
+        org = Organization.objects.get(slug="new-org")
+        assert response.url.endswith(f"/org/{org.slug}/")
         assert Membership.objects.filter(
             org=org, user=user, role=Membership.Role.ADMIN
         ).exists()
 
     def test_post__invalid_form_re_renders(self, admin_client):
-        response = admin_client.post("/organizations/", {"name": ""})
+        response = admin_client.post("/organizations/", {"slug": ""})
         assert response.status_code == 200
         assert response.context["form"].errors
 
@@ -42,21 +42,21 @@ class TestOrganizationListView:
 @pytest.mark.django_db
 class TestOrganizationDetailView:
     def test_get__requires_login(self, client, org):
-        response = client.get(f"/org/{org.pk}/settings/")
+        response = client.get(f"/org/{org.slug}/settings/")
         assert response.status_code == 302
         assert "/account/login" in response.url
 
     def test_get__ok_for_member(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.pk}/settings/")
+        response = admin_client.get(f"/org/{org.slug}/settings/")
         assert response.status_code == 200
         assert response.context["organization"] == org
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.pk}/settings/")
+        response = admin_client.get(f"/org/{write_org.slug}/settings/")
         assert response.status_code == 404
 
     def test_get__context_has_memberships_and_is_admin(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.pk}/settings/")
+        response = admin_client.get(f"/org/{org.slug}/settings/")
         assert response.context["is_admin"] is True
         assert list(response.context["memberships"]) == list(
             org.memberships.select_related("user")
@@ -68,23 +68,23 @@ class TestOrganizationUpdateView:
     def test_get__requires_admin(self, client, org, other_user):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
         client.force_login(other_user)
-        response = client.get(f"/org/{org.pk}/settings/edit")
+        response = client.get(f"/org/{org.slug}/settings/edit")
         assert response.status_code == 403
 
     def test_get__admin_can_access(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.pk}/settings/edit")
+        response = admin_client.get(f"/org/{org.slug}/settings/edit")
         assert response.status_code == 200
 
-    def test_post__changes_name(self, admin_client, org):
+    def test_post__changes_slug(self, admin_client, org):
         response = admin_client.post(
-            f"/org/{org.pk}/settings/edit", {"name": "Renamed"}
+            f"/org/{org.slug}/settings/edit", {"slug": "renamed"}
         )
         assert response.status_code == 302
         org.refresh_from_db()
-        assert org.name == "Renamed"
+        assert org.slug == "renamed"
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.pk}/settings/edit")
+        response = admin_client.get(f"/org/{write_org.slug}/settings/edit")
         assert response.status_code == 404
 
 
@@ -93,20 +93,20 @@ class TestOrganizationDeleteView:
     def test_get__requires_admin(self, client, org, other_user):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
         client.force_login(other_user)
-        response = client.get(f"/org/{org.pk}/settings/delete")
+        response = client.get(f"/org/{org.slug}/settings/delete")
         assert response.status_code == 403
 
     def test_get__admin_can_access(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.pk}/settings/delete")
+        response = admin_client.get(f"/org/{org.slug}/settings/delete")
         assert response.status_code == 200
 
     def test_post__removes_org(self, admin_client, org):
-        response = admin_client.post(f"/org/{org.pk}/settings/delete")
+        response = admin_client.post(f"/org/{org.slug}/settings/delete")
         assert response.status_code == 302
         assert not Organization.objects.filter(pk=org.pk).exists()
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.pk}/settings/delete")
+        response = admin_client.get(f"/org/{write_org.slug}/settings/delete")
         assert response.status_code == 404
 
 
@@ -115,12 +115,12 @@ class TestMembershipCreateView:
     def test_get__requires_admin(self, client, org, other_user):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
         client.force_login(other_user)
-        response = client.get(f"/org/{org.pk}/settings/members/new")
+        response = client.get(f"/org/{org.slug}/settings/members/new")
         assert response.status_code == 403
 
     def test_post__adds_member(self, admin_client, org, other_user):
         response = admin_client.post(
-            f"/org/{org.pk}/settings/members/new",
+            f"/org/{org.slug}/settings/members/new",
             {"username": "bob", "role": "write"},
         )
         assert response.status_code == 302
@@ -130,7 +130,7 @@ class TestMembershipCreateView:
 
     def test_post__unknown_user_shows_error(self, admin_client, org):
         response = admin_client.post(
-            f"/org/{org.pk}/settings/members/new",
+            f"/org/{org.slug}/settings/members/new",
             {"username": "ghost", "role": "write"},
         )
         assert response.status_code == 200
@@ -138,7 +138,7 @@ class TestMembershipCreateView:
 
     def test_post__invalid_form_re_renders(self, admin_client, org):
         response = admin_client.post(
-            f"/org/{org.pk}/settings/members/new",
+            f"/org/{org.slug}/settings/members/new",
             {"username": "", "role": "write"},
         )
         assert response.status_code == 200
@@ -146,14 +146,14 @@ class TestMembershipCreateView:
 
     def test_post__idempotent_for_existing_member(self, admin_client, org, user):
         response = admin_client.post(
-            f"/org/{org.pk}/settings/members/new",
+            f"/org/{org.slug}/settings/members/new",
             {"username": "alice", "role": "write"},
         )
         assert response.status_code == 302
         assert Membership.objects.filter(org=org, user=user).count() == 1
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.pk}/settings/members/new")
+        response = admin_client.get(f"/org/{write_org.slug}/settings/members/new")
         assert response.status_code == 404
 
 
@@ -163,20 +163,22 @@ class TestMembershipDeleteView:
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
         client.force_login(other_user)
         membership = Membership.objects.get(org=org, user=other_user)
-        response = client.get(f"/org/{org.pk}/settings/members/{membership.pk}/delete")
+        response = client.get(
+            f"/org/{org.slug}/settings/members/{membership.pk}/delete"
+        )
         assert response.status_code == 403
 
     def test_post__removes_member(self, admin_client, org, other_user):
         m = Membership.objects.create(
             org=org, user=other_user, role=Membership.Role.WRITE
         )
-        response = admin_client.post(f"/org/{org.pk}/settings/members/{m.pk}/delete")
+        response = admin_client.post(f"/org/{org.slug}/settings/members/{m.pk}/delete")
         assert response.status_code == 302
         assert not Membership.objects.filter(pk=m.pk).exists()
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         membership = write_org.memberships.first()
         response = admin_client.get(
-            f"/org/{write_org.pk}/settings/members/{membership.pk}/delete"
+            f"/org/{write_org.slug}/settings/members/{membership.pk}/delete"
         )
         assert response.status_code == 404

@@ -10,7 +10,7 @@ def create_default_organization(backend, user, response, is_new=False, *args, **
     """Create a personal organization with admin membership for new users."""
     if not is_new:
         return
-    org = Organization.objects.create(name=user.username)
+    org = Organization.objects.create(slug=user.username)
     Membership.objects.create(
         org=org,
         user=user,

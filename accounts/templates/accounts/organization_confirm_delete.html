@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "delete"|capfirst context "verb" %} {{ organization.name }} —
+{% block title %}{% translate "delete"|capfirst context "verb" %} {{ organization.slug }} —
   {{ m|title }}{% endblock %}
 {% block content %}
-  <h2>{% translate "delete"|capfirst context "verb" %} {{ organization.name }}</h2>
+  <h2>{% translate "delete"|capfirst context "verb" %} {{ organization.slug }}</h2>
   <p>
     {% blocktranslate %}this will permanently delete the organization and all its resources (domains,
       credentials).{% endblocktranslate %}
@@ -12,7 +12,7 @@
     {% csrf_token %}
     <button type="submit">{% translate "delete"|capfirst context "verb" %}</button>
     <a
-      href="{% url 'accounts:organization_detail' organization.pk %}"
+      href="{{ organization.get_absolute_url }}"
       role="button"
       class="outline"
     >{% translate "cancel"|capfirst context "verb" %}</a>

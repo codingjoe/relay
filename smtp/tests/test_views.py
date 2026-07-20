@@ -29,12 +29,12 @@ def make_message(org, user, **kwargs):
 @pytest.mark.django_db
 class TestMessageLogView:
     def test_get__requires_login(self, client, org):
-        response = client.get(f"/org/{org.pk}/messages/")
+        response = client.get(f"/org/{org.slug}/messages/")
         assert response.status_code == 302
         assert "/account/login" in response.url
 
     def test_get__ok_for_member(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.pk}/messages/")
+        response = admin_client.get(f"/org/{org.slug}/messages/")
         assert response.status_code == 200
 
     def test_get__filters_by_org(self, admin_client, org, user, write_org):
@@ -42,7 +42,7 @@ class TestMessageLogView:
         make_message(
             write_org, User.objects.create_user(username="z", email="z@example.com")
         )
-        response = admin_client.get(f"/org/{org.pk}/messages/")
+        response = admin_client.get(f"/org/{org.slug}/messages/")
         assert response.status_code == 200
         messages = list(response.context["messages"])
         assert len(messages) == 1
@@ -51,7 +51,7 @@ class TestMessageLogView:
     def test_get__filter_by_status(self, admin_client, org, user):
         make_message(org, user, status=OutgoingMessage.Status.PENDING)
         make_message(org, user, status=OutgoingMessage.Status.SENT)
-        response = admin_client.get(f"/org/{org.pk}/messages/?status=sent")
+        response = admin_client.get(f"/org/{org.slug}/messages/?status=sent")
         assert response.status_code == 200
         messages = list(response.context["messages"])
         assert len(messages) == 1
@@ -60,14 +60,14 @@ class TestMessageLogView:
     def test_get__filter_by_search(self, admin_client, org, user):
         make_message(org, user, rcpt_to="alice@example.com")
         make_message(org, user, rcpt_to="bob@example.com")
-        response = admin_client.get(f"/org/{org.pk}/messages/?search=alice")
+        response = admin_client.get(f"/org/{org.slug}/messages/?search=alice")
         assert response.status_code == 200
         messages = list(response.context["messages"])
         assert len(messages) == 1
         assert "alice" in messages[0].rcpt_to
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.pk}/messages/")
+        response = admin_client.get(f"/org/{write_org.slug}/messages/")
         assert response.status_code == 404
 
 
@@ -75,7 +75,7 @@ class TestMessageLogView:
 class TestMessageDetailView:
     def test_get__ok_for_member(self, admin_client, org, user):
         msg = make_message(org, user)
-        response = admin_client.get(f"/org/{org.pk}/messages/{msg.id}")
+        response = admin_client.get(f"/org/{org.slug}/messages/{msg.id}")
         assert response.status_code == 200
         assert response.context["message"] == msg
 
@@ -84,12 +84,12 @@ class TestMessageDetailView:
     ):
         other_user = User.objects.create_user(username="z", email="z@example.com")
         msg = make_message(write_org, other_user)
-        response = admin_client.get(f"/org/{org.pk}/messages/{msg.id}")
+        response = admin_client.get(f"/org/{org.slug}/messages/{msg.id}")
         assert response.status_code == 404
 
     def test_get__context_has_headers_and_parts(self, admin_client, org, user):
         msg = make_message(org, user)
-        response = admin_client.get(f"/org/{org.pk}/messages/{msg.id}")
+        response = admin_client.get(f"/org/{org.slug}/messages/{msg.id}")
         assert response.status_code == 200
         assert "headers" in response.context
         assert "parts" in response.context
@@ -100,7 +100,7 @@ class TestMessageDetailView:
 class TestMessageModalView:
     def test_get__returns_json(self, admin_client, org, user):
         msg = make_message(org, user)
-        response = admin_client.get(f"/org/{org.pk}/messages/{msg.id}/modal")
+        response = admin_client.get(f"/org/{org.slug}/messages/{msg.id}/modal")
         assert response.status_code == 200
         data = response.json()
         assert data["mail_from"] == msg.mail_from
@@ -110,7 +110,7 @@ class TestMessageModalView:
     def test_get__not_found_for_other_org(self, admin_client, org, write_org):
         other_user = User.objects.create_user(username="z", email="z@example.com")
         msg = make_message(write_org, other_user)
-        response = admin_client.get(f"/org/{org.pk}/messages/{msg.id}/modal")
+        response = admin_client.get(f"/org/{org.slug}/messages/{msg.id}/modal")
         assert response.status_code == 404
 
 
@@ -118,7 +118,7 @@ class TestMessageModalView:
 class TestTestEmailView:
     def test_post__creates_message_and_redirects(self, admin_client, org, user):
         response = admin_client.post(
-            f"/org/{org.pk}/messages/test",
+            f"/org/{org.slug}/messages/test",
             {"domain": "free", "subject": "Test", "body": "Hello"},
         )
         assert response.status_code == 302
@@ -132,7 +132,7 @@ class TestTestEmailView:
 
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.post(
-            f"/org/{org.pk}/messages/test",
+            f"/org/{org.slug}/messages/test",
             {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
         )
         assert response.status_code == 302
@@ -144,30 +144,30 @@ class TestTestEmailView:
 @pytest.mark.django_db
 class TestCredentialListView:
     def test_get__requires_login(self, client, org):
-        response = client.get(f"/org/{org.pk}/credentials/")
+        response = client.get(f"/org/{org.slug}/credentials/")
         assert response.status_code == 302
         assert "/account/login" in response.url
 
     def test_get__ok_for_member(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.pk}/credentials/")
+        response = admin_client.get(f"/org/{org.slug}/credentials/")
         assert response.status_code == 200
 
     def test_get__filters_by_org(self, admin_client, org, write_org):
         SmtpCredential.objects.create_with_key(org=org, name="mine")
         SmtpCredential.objects.create_with_key(org=write_org, name="theirs")
-        response = admin_client.get(f"/org/{org.pk}/credentials/")
+        response = admin_client.get(f"/org/{org.slug}/credentials/")
         assert response.status_code == 200
         creds = list(response.context["credentials"])
         assert len(creds) == 1
         assert creds[0].name == "mine"
 
     def test_get__context_has_smtp_info(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.pk}/credentials/")
+        response = admin_client.get(f"/org/{org.slug}/credentials/")
         assert "smtp_hostname" in response.context
         assert "smtp_port" in response.context
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.pk}/credentials/")
+        response = admin_client.get(f"/org/{write_org.slug}/credentials/")
         assert response.status_code == 404
 
 
@@ -175,7 +175,7 @@ class TestCredentialListView:
 class TestCredentialCreateView:
     def test_post__creates_credential(self, admin_client, org):
         response = admin_client.post(
-            f"/org/{org.pk}/credentials/new", {"name": "Production"}
+            f"/org/{org.slug}/credentials/new", {"name": "Production"}
         )
         assert response.status_code == 302
         cred = SmtpCredential.objects.filter(org=org).first()
@@ -183,7 +183,7 @@ class TestCredentialCreateView:
         assert cred.name == "Production"
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
-        admin_client.post(f"/org/{org.pk}/credentials/new", {"name": "Prod"})
+        admin_client.post(f"/org/{org.slug}/credentials/new", {"name": "Prod"})
         assert "raw_key" in admin_client.session
 
 
@@ -191,11 +191,11 @@ class TestCredentialCreateView:
 class TestCredentialDeleteView:
     def test_post__removes_credential(self, admin_client, org):
         cred, _ = SmtpCredential.objects.create_with_key(org=org, name="old")
-        response = admin_client.post(f"/org/{org.pk}/credentials/{cred.pk}/delete")
+        response = admin_client.post(f"/org/{org.slug}/credentials/{cred.pk}/delete")
         assert response.status_code == 302
         assert not SmtpCredential.objects.filter(pk=cred.pk).exists()
 
     def test_post__not_found_for_other_org(self, admin_client, org, write_org):
         cred, _ = SmtpCredential.objects.create_with_key(org=write_org, name="x")
-        response = admin_client.post(f"/org/{org.pk}/credentials/{cred.pk}/delete")
+        response = admin_client.post(f"/org/{org.slug}/credentials/{cred.pk}/delete")
         assert response.status_code == 404

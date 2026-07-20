@@ -19,29 +19,27 @@
           {% if user.is_authenticated %}
             {% if current_org %}
               <li>
-                <a href="{% url 'tx_email:dashboard' current_org.pk %}">
-                  <strong>{{ current_org.name }}</strong>
+                <a href="{% url 'tx_email:dashboard' current_org.slug %}">
+                  <strong>{{ current_org.slug }}</strong>
                 </a>
               </li>
               <li>
                 <a
-                  href="{% url 'domains:domain_list' current_org.pk %}"
+                  href="{% url 'domains:domain_list' current_org.slug %}"
                 >{% translate "domains"|capfirst context "noun" %}</a>
               </li>
               <li>
                 <a
-                  href="{% url 'smtp:message_log' current_org.pk %}"
+                  href="{% url 'smtp:message_log' current_org.slug %}"
                 >{% translate "messages"|capfirst context "noun" %}</a>
               </li>
               <li>
                 <a
-                  href="{% url 'smtp:credential_list' current_org.pk %}"
+                  href="{% url 'smtp:credential_list' current_org.slug %}"
                 >{% translate "credentials"|capfirst context "noun" %}</a>
               </li>
               <li>
-                <a
-                  href="{% url 'accounts:organization_detail' current_org.pk %}"
-                >{% translate "settings"|capfirst %}</a>
+                <a href="{{ current_org.get_absolute_url }}">{% translate "settings"|capfirst %}</a>
               </li>
             {% endif %}
             <li>
@@ -62,8 +60,8 @@
                 <ul>
                   {% for o in user_orgs %}
                     <li>
-                      <a href="{% url 'tx_email:dashboard' o.pk %}">{{ o.name }}</a>
-                      {% if current_org and current_org.pk == o.pk %}<small>✓</small>{% endif %}
+                      <a href="{% url 'tx_email:dashboard' o.slug %}">{{ o.slug }}</a>
+                      {% if current_org and current_org.slug == o.slug %}<small>✓</small>{% endif %}
                     </li>
                   {% endfor %}
                 </ul>

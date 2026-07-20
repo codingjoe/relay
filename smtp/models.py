@@ -9,6 +9,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -108,6 +109,12 @@ class OutgoingMessage(TimeStamped):
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
+
+    def get_absolute_url(self):
+        return reverse(
+            "smtp:message_detail",
+            kwargs={"org_slug": self.org.slug, "pk": self.id},
+        )
 
 
 class Transmission(TimeStamped):

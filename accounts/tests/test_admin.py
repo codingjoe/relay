@@ -9,11 +9,11 @@ class TestOrganizationAdmin:
         assert isinstance(admin.site._registry[Organization], OrganizationAdmin)
 
     def test_organization_admin__list_display(self):
-        assert "name" in OrganizationAdmin.list_display
+        assert "slug" in OrganizationAdmin.list_display
         assert "created_at" in OrganizationAdmin.list_display
 
     def test_organization_admin__search_fields(self):
-        assert "name" in OrganizationAdmin.search_fields
+        assert "slug" in OrganizationAdmin.search_fields
 
 
 class TestMembershipAdmin:

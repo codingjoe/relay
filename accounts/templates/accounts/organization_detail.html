@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{{ organization.name }} — {{ m|title }}{% endblock %}
+{% block title %}{{ organization.slug }} — {{ m|title }}{% endblock %}
 {% block content %}
-  <h2>{{ organization.name }}</h2>
+  <h2>{{ organization.slug }}</h2>
 
   <h3>{% translate "members"|capfirst context "noun" %}</h3>
   {% if is_admin %}
     <button onclick="document.getElementById('dlg-add-member').showModal()">{% translate "add member"|title %}</button>
     <dialog id="dlg-add-member">
-      <form method="post" action="{% url 'accounts:membership_create' organization.pk %}">
+      <form method="post" action="{% url 'accounts:membership_create' organization.slug %}">
         {% csrf_token %}
         <p>
           <label for="id_username">{% translate "username"|capfirst context "noun" %}</label>
@@ -48,7 +48,7 @@
               <td>
                 <form
                   method="post"
-                  action="{% url 'accounts:membership_delete' organization.pk m.pk %}"
+                  action="{% url 'accounts:membership_delete' organization.slug m.pk %}"
                   style="display: inline"
                 >
                   {% csrf_token %}
@@ -70,12 +70,12 @@
 
   {% if is_admin %}
     <a
-      href="{% url 'accounts:organization_update' organization.pk %}"
+      href="{% url 'accounts:organization_update' organization.slug %}"
       role="button"
       class="outline"
     >{% translate "edit"|capfirst context "verb" %}</a>
     <a
-      href="{% url 'accounts:organization_delete' organization.pk %}"
+      href="{% url 'accounts:organization_delete' organization.slug %}"
       role="button"
       class="outline"
     >{% translate "delete"|capfirst context "verb" %}</a>
