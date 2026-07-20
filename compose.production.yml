@@ -14,6 +14,7 @@ services:
     environment:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
+      DEBUG: ${DEBUG:-false}
       GRANIAN_INTERFACE: asgi # Options: asgi, wsgi, rsgi (default)
       GRANIAN_LOG_ACCESS_ENABLED: true
       GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
