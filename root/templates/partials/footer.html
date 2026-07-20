@@ -1,0 +1,14 @@
+{% load i18n %}
+<footer class="app-footer">
+  <div class="flex items-center justify-between gap-4 flex-wrap">
+    <span>
+      <strong>{% translate "relay" context "noun" as m %}{{ m|title }}</strong>
+      <span class="text-muted-foreground">— {% translate "infrastructure as a service" %}</span>
+    </span>
+    <nav class="flex gap-3">
+      <a href="{% url 'legal:imprint' %}" class="link">{% translate "imprint"|capfirst %}</a>
+      <a href="{% url 'legal:terms' %}" class="link">{% translate "terms of service"|title %}</a>
+      <a href="{% url 'legal:privacy' %}" class="link">{% translate "privacy policy"|title %}</a>
+    </nav>
+  </div>
+</footer>

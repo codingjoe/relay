@@ -2,9 +2,20 @@
 {% load i18n %}
 {% block title %}{{ domain.name }} — {{ m|title }}{% endblock %}
 {% block content %}
-  <h2>{{ domain.name }}</h2>
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{{ domain.name }}</h2>
+    <form method="post" action="{% url 'domains:domain_verify' org.slug domain.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn" data-variant="outline">{% translate "verify DNS"|title %}</button>
+    </form>
+  </header>
 
-  <pre><code>{{ domain.sender_domain }}.    NS    {{ nameservers.0 }}.
+  <section class="flex flex-col gap-3 mb-6">
+    <h3 class="m-0">{% translate "DNS records"|capfirst context "noun" %}</h3>
+    <p class="text-muted-foreground m-0">
+      {% translate "publish these records at your DNS provider to enable sending from this domain."|capfirst %}
+    </p>
+    <pre class="bg-muted p-4 rounded-md overflow-auto text-sm"><code>{{ domain.sender_domain }}.    NS    {{ nameservers.0 }}.
 {{ domain.sender_domain }}.    NS    {{ nameservers.1 }}.
 
 {{ domain.name }}.    TXT    "v=spf1 include:{{ spf_include }} ~all"
@@ -12,24 +23,41 @@
 {{ domain.dkim_cname_name }}.    CNAME    {{ domain.dkim_cname_target }}.
 
 _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domain.name }};"</code></pre>
+  </section>
 
-  <p>
-    {% if domain.nameserver_status == 'ok' %}<ins>✅ Nameserver</ins>{% elif domain.nameserver_status == 'error' %}<del
-      >❌ Nameserver</del>{% if domain.nameserver_error %}
-        — {{ domain.nameserver_error }}{% endif %}{% else %}<mark>⏳ Nameserver</mark>{% endif %}
-    {% if domain.spf_status == 'ok' %}<ins>✅ SPF</ins>{% elif domain.spf_status == 'error' %}<del>❌
-        SPF</del>{% if domain.spf_error %}
-        — {{ domain.spf_error }}{% endif %}{% else %}<mark>⏳ SPF</mark>{% endif %}
-    {% if domain.dkim_status == 'ok' %}<ins>✅ DKIM</ins>{% elif domain.dkim_status == 'error' %}<del>❌
-        DKIM</del>{% if domain.dkim_error %}
-        — {{ domain.dkim_error }}{% endif %}{% else %}<mark>⏳ DKIM</mark>{% endif %}
-    {% if domain.dmarc_status == 'ok' %}<ins>✅ DMARC</ins>{% elif domain.dmarc_status == 'error' %}<del>❌
-        DMARC</del>{% if domain.dmarc_error %}
-        — {{ domain.dmarc_error }}{% endif %}{% else %}<mark>⏳ DMARC</mark>{% endif %}
-  </p>
-
-  <form method="post" action="{% url 'domains:domain_verify' org.slug domain.pk %}" style="display: inline">
-    {% csrf_token %}
-    <button type="submit">{% translate "verify DNS"|title %}</button>
-  </form>
+  <section class="flex flex-col gap-3">
+    <h3 class="m-0">{% translate "verification status"|title %}</h3>
+    <ul class="flex flex-col gap-2 m-0 p-0 list-none">
+      <li class="flex items-center gap-2">
+        {% if domain.nameserver_status == 'ok' %}<span class="badge"
+          >✅</span>{% elif domain.nameserver_status == 'error' %}<span class="badge">❌</span>{% else %}<span
+            class="badge"
+          >⏳</span>{% endif %}
+        <strong>Nameserver</strong>
+        {% if domain.nameserver_error %}<span class="text-muted-foreground">—
+            {{ domain.nameserver_error }}</span>{% endif %}
+      </li>
+      <li class="flex items-center gap-2">
+        {% if domain.spf_status == 'ok' %}<span class="badge">✅</span>{% elif domain.spf_status == 'error' %}<span
+            class="badge"
+          >❌</span>{% else %}<span class="badge">⏳</span>{% endif %}
+        <strong>SPF</strong>
+        {% if domain.spf_error %}<span class="text-muted-foreground">— {{ domain.spf_error }}</span>{% endif %}
+      </li>
+      <li class="flex items-center gap-2">
+        {% if domain.dkim_status == 'ok' %}<span class="badge">✅</span>{% elif domain.dkim_status == 'error' %}<span
+            class="badge"
+          >❌</span>{% else %}<span class="badge">⏳</span>{% endif %}
+        <strong>DKIM</strong>
+        {% if domain.dkim_error %}<span class="text-muted-foreground">— {{ domain.dkim_error }}</span>{% endif %}
+      </li>
+      <li class="flex items-center gap-2">
+        {% if domain.dmarc_status == 'ok' %}<span class="badge">✅</span>{% elif domain.dmarc_status == 'error' %}<span
+            class="badge"
+          >❌</span>{% else %}<span class="badge">⏳</span>{% endif %}
+        <strong>DMARC</strong>
+        {% if domain.dmarc_error %}<span class="text-muted-foreground">— {{ domain.dmarc_error }}</span>{% endif %}
+      </li>
+    </ul>
+  </section>
 {% endblock %}

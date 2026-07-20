@@ -43,6 +43,9 @@ class OutgoingMessageLogView(OrganizationScopedView, ListView):
                 "status": self.request.GET.get("status", ""),
                 "search": self.request.GET.get("search", ""),
             },
+            "breadcrumb_trail": self.extend_breadcrumb(
+                {"label": "Message log"},
+            ),
         }
 
 
@@ -108,6 +111,10 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
             "received": received,
             "parts": parts,
             "transmissions": Transmission.objects.filter(message=message),
+            "breadcrumb_trail": self.extend_breadcrumb(
+                {"label": "Message log", "url": "smtp:message_log"},
+                {"label": message.subject or "(no subject)"},
+            ),
         }
 
 
@@ -206,6 +213,9 @@ class SmtpCredentialListView(OrganizationScopedView, ListView):
         context = super().get_context_data(**kwargs) | {
             "smtp_hostname": f"smtp.{platform}",
             "smtp_port": settings.RELAY_SMTP_SUBMISSION_PORT,
+            "breadcrumb_trail": self.extend_breadcrumb(
+                {"label": "SMTP credentials"},
+            ),
         }
         if raw_key := self.request.session.pop("raw_key", None):
             context["raw_key"] = raw_key

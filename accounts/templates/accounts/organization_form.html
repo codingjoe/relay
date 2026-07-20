@@ -3,18 +3,37 @@
 {% block title %}{% translate "edit"|capfirst context "verb" %}
   {% translate "organization"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
 {% block content %}
-  <h2>
-    {% translate "edit"|capfirst context "verb" %}
-    {% translate "organization"|capfirst context "noun" %}
-  </h2>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">{% translate "save"|capfirst context "verb" %}</button>
-    <a
-      href="{{ object.get_absolute_url }}"
-      role="button"
-      class="outline"
-    >{% translate "cancel"|capfirst context "verb" %}</a>
-  </form>
+  <div class="max-w-md">
+    <h2 class="mb-6">
+      {% translate "edit"|capfirst context "verb" %}
+      {% translate "organization"|capfirst context "noun" %}
+    </h2>
+    <form method="post">
+      {% csrf_token %}
+      <fieldset class="fieldset">
+        <div role="group" class="field">
+          <label for="{{ form.slug.id_for_label }}">{{ form.slug.label }}</label>
+          <input
+            type="text"
+            name="{{ form.slug.name }}"
+            id="{{ form.slug.id_for_label }}"
+            value="{{ form.slug.value|default_if_none:'' }}"
+            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+            class="input"
+            required
+          >
+          <p class="text-sm text-muted-foreground">{{ form.slug.help_text }}</p>
+          {% if form.slug.errors %}
+            <p class="text-sm text-destructive">{{ form.slug.errors|join:" " }}</p>
+          {% endif %}
+        </div>
+      </fieldset>
+      <div class="flex gap-2 mt-6">
+        <button type="submit" class="btn">{% translate "save"|capfirst context "verb" %}</button>
+        <a href="{{ object.get_absolute_url }}" class="btn" data-variant="outline">
+          {% translate "cancel"|capfirst context "verb" %}
+        </a>
+      </div>
+    </form>
+  </div>
 {% endblock %}

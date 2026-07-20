@@ -39,7 +39,55 @@ class OrganizationScopedView(LoginRequiredMixin):
             request.current_org = self.org
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {"org": self.org}
+        return super().get_context_data(**kwargs) | {
+            "org": self.org,
+            "breadcrumb_trail": self.breadcrumb_trail(),
+        }
+
+    def breadcrumb_trail(self):
+        """Return the breadcrumb trail for the current org-scoped view.
+
+        The base trail is ``Relay → Org`` (with both clickable).
+
+        Sub-pages extend it via ``extend_breadcrumb()`` to produce
+        ``Relay → Org → Section`` (Section is the current page).
+        """
+        from django.urls import reverse
+
+        return [
+            {"label": "Relay", "url": reverse("home")},
+            {
+                "label": self.org.slug,
+                "url": reverse(
+                    "tx_email:dashboard", kwargs={"org_slug": self.org.slug}
+                ),
+            },
+        ]
+
+    def extend_breadcrumb(self, *crumbs):
+        """Append crumbs to the base trail.
+
+        Each crumb is ``{"label", "url"}``. ``url`` may be a URL name
+        string (reversed with ``self.kwargs``) or a literal path. The
+        final crumb is treated as the current page and rendered without
+        a link.
+        """
+        from django.urls import reverse, NoReverseMatch
+
+        middle = []
+        for crumb in crumbs[:-1] if len(crumbs) > 1 else []:
+            label = crumb["label"]
+            url = crumb.get("url")
+            if isinstance(url, str) and " " not in url and not url.startswith("/"):
+                try:
+                    url = reverse(url, kwargs=self.kwargs)
+                except NoReverseMatch:
+                    pass
+            middle.append({"label": label, "url": url})
+        trail = self.breadcrumb_trail() + middle
+        if crumbs:
+            trail.append({"label": crumbs[-1]["label"], "url": None})
+        return trail
 
 
 class LoginView(TemplateView):
@@ -106,6 +154,9 @@ class OrganizationDetailView(OrganizationScopedView, DetailView):
                 user=self.request.user, role=Membership.Role.ADMIN
             ).exists(),
             "member_form": MembershipForm(),
+            "breadcrumb_trail": self.extend_breadcrumb(
+                {"label": "Settings"},
+            ),
         }
 
 

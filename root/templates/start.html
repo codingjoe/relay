@@ -1,69 +1,382 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block title %}{% translate "relay — zero-config email infrastructure"|title %}{% endblock %}
 {% block content %}
-  <div class="text-center">
-    <h1>📬 {{ m|title }}</h1>
-    <h2>{% translate "zero-config email infrastructure"|title %}</h2>
-    <p>
-      {% blocktranslate %}a modern B2B communication platform with a built-in authoritative nameserver. send email
-        without the DNS headache.{% endblocktranslate %}
+  <section class="landing-hero">
+    <p class="landing-eyebrow">{% translate "b2b communication, simplified"|capfirst %}</p>
+    <h1>
+      {% blocktranslate %}send email <span class="landing-accent"
+        >without the DNS headache</span>.{% endblocktranslate %}
+    </h1>
+    <p class="landing-sub">
+      {% blocktranslate %}relay is a modern communication platform with a built-in authoritative nameserver. point your
+        NS to us, and MX, SPF, DKIM, and Return-Path are served automatically.{% endblocktranslate %}
     </p>
-    {% if user.is_authenticated %}
-      <a href="{% url 'accounts:organization_list' %}" role="button">{% translate "go to dashboard"|capfirst %} →</a>
-    {% else %}
-      <form method="post" action="{% url 'social:begin' 'github' %}" style="display: inline">
-        {% csrf_token %}
-        <button type="submit" role="button">{% translate "get started"|title %} →</button>
-      </form>
-    {% endif %}
-  </div>
+    <div class="landing-cta">
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:organization_list' %}" class="btn" data-size="lg">
+          {% translate "go to dashboard"|capfirst %}
+          <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
+        </a>
+      {% else %}
+        <form method="post" action="{% url 'social:begin' 'github' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn" data-size="lg">
+            <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+            {% translate "get started free"|capfirst %}
+          </button>
+        </form>
+        <a href="#how" class="btn" data-size="lg" data-variant="ghost">
+          {% translate "how it works"|capfirst %}
+        </a>
+      {% endif %}
+    </div>
+    <p class="landing-meta">
+      <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+      {% translate "no credit card required"|capfirst %}
+      <span aria-hidden="true">·</span>
+      <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+      {% translate "1,000 emails/month free"|capfirst %}
+    </p>
+  </section>
 
-  <hr>
+  <section class="landing-features">
+    <div class="landing-feature">
+      <div class="landing-feature-copy">
+        <h2>{% translate "instant setup"|capfirst %}</h2>
+        <p>
+          {% blocktranslate %}add your sender subdomain, point two NS records, and you're sending. no zone files, no
+            DKIM alignment gymnastics, no Return-Path CNAMEs — relay serves the full mail record set from a built-in
+            authoritative nameserver.{% endblocktranslate %}
+        </p>
+        <ul class="landing-list">
+          <li>
+            <i data-lucide="zap" class="size-4" aria-hidden="true"></i>{% translate "minutes to first send"|capfirst %}
+          </li>
+          <li>
+            <i
+              data-lucide="shield-check"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "DKIM aligned via DMARC relaxed"|capfirst %}
+          </li>
+          <li>
+            <i
+              data-lucide="plug"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "works with any SMTP client"|capfirst %}
+          </li>
+        </ul>
+      </div>
+      <div class="landing-feature-art" aria-hidden="true">
+        <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" role="presentation">
+          <defs>
+            <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--accent)" stop-opacity="0.08" />
+              <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <rect width="400" height="320" fill="url(#bg1)" />
+          <rect x="80" y="60" width="240" height="180" rx="12" fill="var(--card)" stroke="var(--border)" />
+          <rect x="80" y="60" width="240" height="32" rx="12" fill="var(--muted)" />
+          <circle cx="100" cy="76" r="4" fill="var(--border)" />
+          <circle cx="116" cy="76" r="4" fill="var(--border)" />
+          <circle cx="132" cy="76" r="4" fill="var(--border)" />
+          <rect x="100" y="112" width="120" height="8" rx="4" fill="var(--border)" />
+          <rect x="100" y="128" width="200" height="6" rx="3" fill="var(--border)" opacity="0.6" />
+          <rect x="100" y="142" width="180" height="6" rx="3" fill="var(--border)" opacity="0.6" />
+          <rect x="100" y="156" width="160" height="6" rx="3" fill="var(--border)" opacity="0.6" />
+          <rect x="100" y="180" width="200" height="6" rx="3" fill="var(--border)" opacity="0.4" />
+          <rect x="100" y="194" width="140" height="6" rx="3" fill="var(--border)" opacity="0.4" />
+          <rect x="100" y="218" width="80" height="20" rx="6" fill="var(--accent)" />
+          <path
+            d="M250 110 L 320 110 M 250 130 L 310 130 M 250 150 L 290 150"
+            stroke="var(--accent)"
+            stroke-width="2"
+            stroke-linecap="round"
+            opacity="0.5"
+          />
+          <circle cx="320" cy="110" r="6" fill="var(--accent)" />
+          <circle cx="310" cy="130" r="6" fill="var(--accent)" opacity="0.7" />
+          <circle cx="290" cy="150" r="6" fill="var(--accent)" opacity="0.4" />
+        </svg>
+      </div>
+    </div>
 
-  <h3>{% translate "two DNS records. that's it."|title %}</h3>
-  <p>
-    {% blocktranslate %}traditional mail servers require you to manually configure MX, SPF, DKIM, Return-Path, and CNAME
-      records at your DNS provider. relay eliminates all of that.{% endblocktranslate %}
-  </p>
-  <ol>
-    <li>
-      <strong>{% translate "NS delegation" %}</strong> —
-      {% blocktranslate %}delegate your sender subdomain to our nameservers.{% endblocktranslate %}
-      <pre><code>mail.example.com.   NS   {{ nameservers.0 }}.
+    <div class="landing-feature">
+      <div class="landing-feature-art" aria-hidden="true">
+        <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" role="presentation">
+          <rect x="40" y="40" width="320" height="220" rx="12" fill="var(--card)" stroke="var(--border)" />
+          <rect x="40" y="40" width="320" height="28" rx="12" fill="var(--muted)" />
+          <text x="60" y="58" font-family="ui-monospace,monospace" font-size="10" fill="var(--muted-foreground)">
+            relay · messages · last 24h
+          </text>
+          <polyline
+            points="70,200 110,170 150,180 190,140 230,150 270,110 310,120 340,90"
+            fill="none"
+            stroke="var(--accent)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <polyline
+            points="70,200 110,200 150,200 190,200 230,200 270,200 310,200 340,200"
+            fill="none"
+            stroke="var(--border)"
+            stroke-width="1"
+            stroke-dasharray="2 4"
+          />
+          <circle cx="110" cy="170" r="3" fill="var(--accent)" />
+          <circle cx="150" cy="180" r="3" fill="var(--accent)" />
+          <circle cx="190" cy="140" r="3" fill="var(--accent)" />
+          <circle cx="230" cy="150" r="3" fill="var(--accent)" />
+          <circle cx="270" cy="110" r="3" fill="var(--accent)" />
+          <circle cx="310" cy="120" r="3" fill="var(--accent)" />
+          <circle cx="340" cy="90" r="4" fill="var(--accent)" />
+          <text x="60" y="240" font-family="ui-monospace,monospace" font-size="9" fill="var(--muted-foreground)">
+            delivered
+          </text>
+          <text
+            x="320"
+            y="240"
+            font-family="ui-monospace,monospace"
+            font-size="9"
+            fill="var(--accent)"
+            text-anchor="end"
+          >
+            99.7%
+          </text>
+        </svg>
+      </div>
+      <div class="landing-feature-copy">
+        <h2>{% translate "monitoring that earns its keep"|capfirst %}</h2>
+        <p>
+          {% blocktranslate %}every send is logged with full headers, DKIM signatures, and per-recipient transmission
+            traces. search, filter by status, and inspect raw MIME — so you can debug delivery in seconds, not
+            hours.{% endblocktranslate %}
+        </p>
+        <ul class="landing-list">
+          <li>
+            <i
+              data-lucide="activity"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "live delivery status per message"|capfirst %}
+          </li>
+          <li>
+            <i
+              data-lucide="file-text"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "raw MIME inspector + headers view"|capfirst %}
+          </li>
+          <li>
+            <i
+              data-lucide="search"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "search by recipient, subject, or domain"|capfirst %}
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="landing-feature">
+      <div class="landing-feature-copy">
+        <h2>{% translate "friendly to your stack"|capfirst %}</h2>
+        <p>
+          {% blocktranslate %}use the included SMTP submission server with credential-based auth, or call our API
+            directly. organizations, members, and roles are first-class — invite your team and audit who sent
+            what.{% endblocktranslate %}
+        </p>
+        <ul class="landing-list">
+          <li>
+            <i
+              data-lucide="key-round"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "per-organization SMTP credentials"|capfirst %}
+          </li>
+          <li>
+            <i
+              data-lucide="users"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "org & member roles (admin, write)"|capfirst %}
+          </li>
+          <li>
+            <i
+              data-lucide="github"
+              class="size-4"
+              aria-hidden="true"
+            ></i>{% translate "sign in with GitHub OAuth"|capfirst %}
+          </li>
+        </ul>
+      </div>
+      <div class="landing-feature-art" aria-hidden="true">
+        <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" role="presentation">
+          <rect x="60" y="60" width="180" height="80" rx="10" fill="var(--card)" stroke="var(--border)" />
+          <text x="78" y="92" font-family="ui-monospace,monospace" font-size="10" fill="var(--muted-foreground)">
+            SMTP
+          </text>
+          <text
+            x="78"
+            y="120"
+            font-family="ui-monospace,monospace"
+            font-size="11"
+            font-weight="600"
+            fill="var(--foreground)"
+          >
+            smtp.relay.io:587
+          </text>
+          <rect x="80" y="200" width="180" height="80" rx="10" fill="var(--card)" stroke="var(--border)" />
+          <text x="98" y="232" font-family="ui-monospace,monospace" font-size="10" fill="var(--muted-foreground)">
+            API
+          </text>
+          <text
+            x="98"
+            y="260"
+            font-family="ui-monospace,monospace"
+            font-size="11"
+            font-weight="600"
+            fill="var(--foreground)"
+          >
+            POST /messages
+          </text>
+          <rect x="260" y="130" width="80" height="80" rx="40" fill="var(--accent)" opacity="0.15" />
+          <path d="M275 165 L 295 175 L 295 155 Z" fill="var(--accent)" />
+          <path
+            d="M280 130 L 320 130 M 280 130 L 280 175 M 280 175 L 320 175 M 320 130 L 320 175"
+            stroke="var(--accent)"
+            stroke-width="1.5"
+            fill="none"
+            opacity="0.4"
+          />
+          <path
+            d="M80 170 L 80 200 M 240 130 L 260 170"
+            stroke="var(--accent)"
+            stroke-width="1.5"
+            stroke-dasharray="4 4"
+            fill="none"
+            opacity="0.5"
+          />
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="landing-how">
+    <h2>{% translate "two DNS records. that's it."|capfirst %}</h2>
+    <p class="landing-sub">
+      {% blocktranslate %}traditional mail servers need you to maintain MX, SPF, DKIM, Return-Path, and CNAME records at
+        your DNS provider. relay eliminates all of that.{% endblocktranslate %}
+    </p>
+    <ol class="landing-steps">
+      <li>
+        <div class="landing-step-num">1</div>
+        <div>
+          <h3>{% translate "NS delegation"|capfirst %}</h3>
+          <p>{% blocktranslate %}delegate your sender subdomain to relay's nameservers.{% endblocktranslate %}</p>
+          <pre><code>mail.example.com.   NS   {{ nameservers.0 }}.
 mail.example.com.   NS   {{ nameservers.1 }}.</code></pre>
-    </li>
-    <li>
-      <strong>{% translate "DMARC record" %}</strong> —
-      {% blocktranslate %}on your root domain.{% endblocktranslate %}
-      <pre><code>_dmarc.example.com.   TXT  "v=DMARC1; p=none; rua=mailto:dmarc@example.com;"</code></pre>
-    </li>
-  </ol>
-  <p>
-    {% blocktranslate %}everything else — MX, SPF, DKIM, Return-Path, PTR — is served <strong>automatically</strong>
-      by our built-in nameserver. DKIM and SPF align with your root domain via DMARC relaxed
-      alignment.{% endblocktranslate %}
-  </p>
+        </div>
+      </li>
+      <li>
+        <div class="landing-step-num">2</div>
+        <div>
+          <h3>{% translate "DMARC record"|capfirst %}</h3>
+          <p>{% blocktranslate %}on your root domain — for alignment.{% endblocktranslate %}</p>
+          <pre><code>_dmarc.example.com.   TXT  "v=DMARC1; p=none; rua=mailto:dmarc@example.com;"</code></pre>
+        </div>
+      </li>
+      <li>
+        <div class="landing-step-num">3</div>
+        <div>
+          <h3>{% translate "send"|capfirst %}</h3>
+          <p>
+            {% blocktranslate %}everything else — MX, SPF, DKIM, Return-Path, PTR — is served
+              <strong>automatically</strong> by relay's built-in nameserver.{% endblocktranslate %}
+          </p>
+        </div>
+      </li>
+    </ol>
+  </section>
 
-  <hr>
+  <section class="landing-pricing">
+    <h2>{% translate "start free. scale when you need to."|capfirst %}</h2>
+    <div class="landing-pricing-card">
+      <div class="landing-pricing-head">
+        <p class="landing-eyebrow">{% translate "free forever"|capfirst %}</p>
+        <p class="landing-price">
+          <span class="landing-price-num">$0</span>
+          <span class="landing-price-unit">{% translate "per month"|capfirst %}</span>
+        </p>
+      </div>
+      <ul class="landing-list">
+        <li>
+          <i data-lucide="check" class="size-4" aria-hidden="true"></i>{% translate "1,000 emails / month"|capfirst %}
+        </li>
+        <li>
+          <i data-lucide="check" class="size-4" aria-hidden="true"></i>{% translate "unlimited domains"|capfirst %}
+        </li>
+        <li>
+          <i
+            data-lucide="check"
+            class="size-4"
+            aria-hidden="true"
+          ></i>{% translate "DKIM signing + DMARC alignment"|capfirst %}
+        </li>
+        <li>
+          <i
+            data-lucide="check"
+            class="size-4"
+            aria-hidden="true"
+          ></i>{% translate "full message log + search"|capfirst %}
+        </li>
+        <li>
+          <i
+            data-lucide="check"
+            class="size-4"
+            aria-hidden="true"
+          ></i>{% translate "one organization, multiple members"|capfirst %}
+        </li>
+      </ul>
+      <div class="landing-pricing-cta">
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:organization_list' %}" class="btn" data-size="lg">
+            {% translate "go to dashboard"|capfirst %}
+          </a>
+        {% else %}
+          <form method="post" action="{% url 'social:begin' 'github' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn" data-size="lg">
+              <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+              {% translate "get started free"|capfirst %}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </section>
 
-  <h3>{% translate "features"|title %}</h3>
-  <ul>
-    <li>
-      <strong>{% translate "built-in DNS" %}</strong> — {% blocktranslate %}authoritative nameserver serves all mail
-        records automatically{% endblocktranslate %}
-    </li>
-    <li>
-      <strong>{% translate "DKIM signing" %}</strong> — {% blocktranslate %}RSA 2048-bit keys generated
-        per-domain{% endblocktranslate %}
-    </li>
-    <li>
-      <strong>{% translate "SMTP sending" %}</strong> — {% blocktranslate %}send via SMTP with credential-based
-        authentication{% endblocktranslate %}
-    </li>
-    <li>
-      <strong>{% translate "GitHub OAuth" %}</strong> — {% blocktranslate %}sign up and log in with your GitHub
-        account{% endblocktranslate %}
-    </li>
-  </ul>
+  <section class="landing-final">
+    <h2>{% translate "ready to leave the DNS alone?"|capfirst %}</h2>
+    <p>
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:organization_list' %}" class="btn" data-size="lg">
+          {% translate "go to dashboard"|capfirst %}
+          <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
+        </a>
+      {% else %}
+        <form method="post" action="{% url 'social:begin' 'github' %}" style="display: inline">
+          {% csrf_token %}
+          <button type="submit" class="btn" data-size="lg">
+            <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+            {% translate "get started free"|capfirst %}
+          </button>
+        </form>
+      {% endif %}
+    </p>
+  </section>
 {% endblock %}

@@ -17,6 +17,13 @@ class DomainListView(OrganizationScopedView, ListView):
     def get_queryset(self):
         return Domain.objects.filter(org=self.org)
 
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "breadcrumb_trail": self.extend_breadcrumb(
+                {"label": "Domains"},
+            ),
+        }
+
 
 class DomainCreateView(OrganizationScopedView, CreateView):
     model = Domain
@@ -43,6 +50,10 @@ class DomainDetailView(OrganizationScopedView, DetailView):
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "spf_include": f"spf.{platform}",
+            "breadcrumb_trail": self.extend_breadcrumb(
+                {"label": "Domains", "url": "domains:domain_list"},
+                {"label": self.object.name},
+            ),
         }
 
 

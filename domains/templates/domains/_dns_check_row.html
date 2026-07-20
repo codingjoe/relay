@@ -1,0 +1,14 @@
+{% load i18n %}
+<tr>
+  <td class="font-medium">{{ label }}</td>
+  <td>
+    {% if status == 'ok' %}
+      <span class="badge badge-success">{% translate "ok"|capfirst %}</span>
+    {% elif status == 'error' %}
+      <span class="badge badge-destructive">{% translate "error"|capfirst %}</span>
+    {% else %}
+      <span class="badge badge-outline">{% translate "pending"|capfirst %}</span>
+    {% endif %}
+  </td>
+  <td class="text-sm text-muted-foreground">{{ error|default:"—"|capfirst }}</td>
+</tr>

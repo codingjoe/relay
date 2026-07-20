@@ -1,0 +1,63 @@
+{% load i18n %}
+<aside id="app-sidebar" class="sidebar" data-side="left" data-breakpoint="md">
+  <nav aria-label='{% translate "email"|capfirst %}'>
+    <section class="scrollbar-sm">
+      <div role="group" aria-labelledby="app-sidebar-group-email">
+        <h3 id="app-sidebar-group-email">{% translate "email"|capfirst %}</h3>
+        <ul>
+          <li>
+            <a
+              href="{% url 'tx_email:dashboard' current_org.slug %}"
+              {% if request.resolver_match.namespace == 'tx_email' %}aria-current="page"{% endif %}
+            >
+              <i data-lucide="layout-dashboard" class="size-5 shrink-0" aria-hidden="true"></i>
+              <span>{% translate "dashboard"|capfirst %}</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="{% url 'smtp:message_log' current_org.slug %}"
+              {% if request.resolver_match.namespace == 'smtp' and request.resolver_match.url_name == 'message_log' or request.resolver_match.url_name == 'message_detail' or request.resolver_match.url_name == 'message_modal' %}
+                aria-current="page"
+              {% endif %}
+            >
+              <i data-lucide="message-square" class="size-5 shrink-0" aria-hidden="true"></i>
+              <span>{% translate "messages"|capfirst context "noun" %}</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="{% url 'smtp:credential_list' current_org.slug %}"
+              {% if request.resolver_match.namespace == 'smtp' and request.resolver_match.url_name == 'credential_list' or request.resolver_match.url_name == 'credential_create' or request.resolver_match.url_name == 'credential_delete' %}
+                aria-current="page"
+              {% endif %}
+            >
+              <i data-lucide="key-round" class="size-5 shrink-0" aria-hidden="true"></i>
+              <span>{% translate "credentials"|capfirst context "noun" %}</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="{% url 'domains:domain_list' current_org.slug %}"
+              {% if request.resolver_match.namespace == 'domains' %}aria-current="page"{% endif %}
+            >
+              <i data-lucide="globe" class="size-5 shrink-0" aria-hidden="true"></i>
+              <span>{% translate "domains"|capfirst context "noun" %}</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="{{ current_org.get_absolute_url }}"
+              {% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name == 'organization_detail' or request.resolver_match.url_name == 'membership_create' or request.resolver_match.url_name == 'membership_delete' or request.resolver_match.url_name == 'organization_update' or request.resolver_match.url_name == 'organization_delete' %}
+                aria-current="page"
+              {% endif %}
+            >
+              <i data-lucide="settings" class="size-5 shrink-0" aria-hidden="true"></i>
+              <span>{% translate "settings"|capfirst %}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </nav>
+</aside>

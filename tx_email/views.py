@@ -17,4 +17,5 @@ class DashboardView(OrganizationScopedView, TemplateView):
             "total_domains": Domain.objects.filter(org=self.org).count(),
             "total_messages": OutgoingMessage.objects.filter(org=self.org).count(),
             "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
+            "breadcrumb_trail": self.breadcrumb_trail(),
         }

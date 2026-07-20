@@ -77,6 +77,44 @@ Update it based on review feedback.
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
 - Use `...` instead of `pass` in empty classes.
 
+## Templates & UI
+
+- Use [basecoat-css](https://basecoatui.com/) (maia style) for all UI styling.
+  Do **not** use pico.css or any other CSS framework.
+- Use Django template inheritance: define the shell once in
+  `root/templates/base.html` and have every page template `{% extends "base.html" %}`.
+  Pages only override `{% block title %}` and `{% block content %}`.
+- For interactive widgets, prefer off-the-shelf basecoat components over custom
+  CSS or custom JS:
+  - Buttons: `<button class="btn" data-variant="outline|ghost" data-size="sm|icon|default">`.
+  - Cards: `<article class="card">`.
+  - Tables: wrap in `<div class="table-container"><table class="table">`.
+  - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
+    open with `.showModal()` and close with `.close()`.
+  - Form controls: `<input class="input">`, `<select class="select w-full">`,
+    `<textarea class="textarea">`. Always pair form controls with `w-full` so
+    they fill the field width inside dialogs and filter rows. Wrap each form
+    in `<fieldset class="fieldset">` and each field in
+    `<div role="group" class="field">` with a native `<label for="id_x">…</label>`
+    linked to the control via `id="id_x"`. The `.field` container provides
+    spacing and error styling; native controls auto-style. Do not nest inputs
+    inside `<label>` or use `<span class="label">` for the label text.
+  - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
+  - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
+  - Breadcrumbs: `<nav class="breadcrumb" aria-label="breadcrumb"><ol>…</ol></nav>`,
+    with the current page as `<span aria-current="page">` (no link) and
+    `<li aria-hidden="true"><i data-lucide="chevron-right" data-rtl-flip class="icon-sm"></i></li>`
+    as the separator.
+- Icons use [Lucide](https://lucide.dev/) via vanilla JS — load the UMD
+  bundle from a CDN with `defer` and call `lucide.createIcons()` on
+  `DOMContentLoaded`. Render icons with `<i data-lucide="name" class="size-4|size-5|size-3.5" aria-hidden="true">`
+  (Tailwind size scale: 3.5=14px, 4=16px, 5=20px). Never inline Lucide SVGs
+  by hand — the library replaces the `<i>` element with the SVG at runtime.
+- Custom CSS lives in `root/static/css/app.css` and is limited to layout glue
+  (app shell, topbar, sidebar wrapper, content padding) and the marketing-page
+  sections (hero, features, how-it-works, pricing). Do not use it for
+  component styling — use basecoat classes instead.
+
 ## Testing
 
 - Use `pytest.mark.django_db` (not the `db` fixture) when a test needs the

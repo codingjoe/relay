@@ -2,29 +2,48 @@
 {% load i18n %}
 {% block title %}{% translate "domains"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
 {% block content %}
-  <div class="grid">
-    <h2>{% translate "domains"|capfirst context "noun" %}</h2>
-    <div class="text-right">
-      <button onclick="document.getElementById('dlg-new-domain').showModal()">
-        {% translate "add domain"|title context "noun" %}
-      </button>
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "domains"|capfirst context "noun" %}</h2>
+    <button type="button" class="btn" onclick="document.getElementById('dlg-new-domain').showModal()">
+      {% translate "add domain"|title context "noun" %}
+    </button>
+  </header>
+
+  <dialog class="dialog" id="dlg-new-domain">
+    <div>
+      <header>
+        <h2>{% translate "add domain"|title context "noun" %}</h2>
+        <p>{% translate "add a domain you control to start sending email from it."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'domains:domain_create' org.slug %}" id="dlg-new-domain-form">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
+              <input type="text" name="name" id="id_name" placeholder="example.com" required class="input">
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="outline"
+          onclick="document.getElementById('dlg-new-domain').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="dlg-new-domain-form" class="btn">
+          {% translate "add"|capfirst context "verb" %}
+        </button>
+      </footer>
     </div>
-  </div>
-  <dialog id="dlg-new-domain">
-    <form method="post" action="{% url 'domains:domain_create' org.slug %}">
-      {% csrf_token %}
-      <p>
-        <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
-        <input type="text" name="name" id="id_name" placeholder="example.com" required>
-      </p>
-      <button type="submit">{% translate "add"|capfirst context "verb" %}</button>
-      <button type="button" onclick="document.getElementById('dlg-new-domain').close()" class="outline">
-        {% translate "cancel"|capfirst context "verb" %}
-      </button>
-    </form>
   </dialog>
-  <figure>
-    <table>
+
+  <div class="table-container">
+    <table class="table">
       <thead>
         <tr>
           <th>{% translate "domain"|capfirst context "noun" %}</th>
@@ -51,5 +70,5 @@
         {% endfor %}
       </tbody>
     </table>
-  </figure>
+  </div>
 {% endblock %}

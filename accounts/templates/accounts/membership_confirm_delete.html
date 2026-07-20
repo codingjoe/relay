@@ -2,18 +2,18 @@
 {% load i18n %}
 {% block title %}{% translate "remove member"|capfirst %} — {{ object.user.username }}{% endblock %}
 {% block content %}
-  <h2>{% translate "remove"|capfirst context "verb" %} {{ object.user.username }}</h2>
-  <p>
-    {% blocktranslate with user=object.user.username %}this will remove {{ user }} from the
-      organization.{% endblocktranslate %}
-  </p>
-  <form method="post">
-    {% csrf_token %}
-    <button type="submit">{% translate "remove"|capfirst context "verb" %}</button>
-    <a
-      href="{{ object.org.get_absolute_url }}"
-      role="button"
-      class="outline"
-    >{% translate "cancel"|capfirst context "verb" %}</a>
-  </form>
+  <div class="max-w-md">
+    <h2 class="mb-4">{% translate "remove"|capfirst context "verb" %} {{ object.user.username }}</h2>
+    <p class="mb-6 text-muted-foreground">
+      {% blocktranslate with user=object.user.username %}this will remove {{ user }} from the
+        organization.{% endblocktranslate %}
+    </p>
+    <form method="post" class="flex gap-2">
+      {% csrf_token %}
+      <button type="submit" class="btn">{% translate "remove"|capfirst context "verb" %}</button>
+      <a href="{{ object.org.get_absolute_url }}" class="btn" data-variant="outline">
+        {% translate "cancel"|capfirst context "verb" %}
+      </a>
+    </form>
+  </div>
 {% endblock %}

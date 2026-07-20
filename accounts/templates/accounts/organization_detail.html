@@ -2,82 +2,118 @@
 {% load i18n abstract %}
 {% block title %}{{ organization.slug }} — {{ m|title }}{% endblock %}
 {% block content %}
-  <h2>{{ organization.slug }}</h2>
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{{ organization.slug }}</h2>
+    {% if is_admin %}
+      <div class="flex gap-2">
+        <a href="{% url 'accounts:organization_update' organization.slug %}" class="btn" data-variant="outline">
+          {% translate "edit"|capfirst context "verb" %}
+        </a>
+        <a href="{% url 'accounts:organization_delete' organization.slug %}" class="btn" data-variant="outline">
+          {% translate "delete"|capfirst context "verb" %}
+        </a>
+      </div>
+    {% endif %}
+  </header>
 
-  <h3>{% translate "members"|capfirst context "noun" %}</h3>
-  {% if is_admin %}
-    <button onclick="document.getElementById('dlg-add-member').showModal()">{% translate "add member"|title %}</button>
-    <dialog id="dlg-add-member">
-      <form method="post" action="{% url 'accounts:membership_create' organization.slug %}">
-        {% csrf_token %}
-        <p>
-          <label for="id_username">{% translate "username"|capfirst context "noun" %}</label>
-          <input type="text" name="username" id="id_username" required>
-        </p>
-        <p>
-          <label for="id_role">{% translate "role"|capfirst context "noun" %}</label>
-          <select name="role" id="id_role">
-            <option value="write">{% translate "write"|capfirst %}</option>
-            <option value="admin">{% translate "admin"|capfirst %}</option>
-          </select>
-        </p>
-        <button type="submit">{% translate "add"|capfirst context "verb" %}</button>
-        <button type="button" onclick="document.getElementById('dlg-add-member').close()" class="outline">
-          {% translate "cancel"|capfirst context "verb" %}
+  <section class="flex flex-col gap-3">
+    <header class="flex items-center justify-between">
+      <h3 class="m-0">{% translate "members"|capfirst context "noun" %}</h3>
+      {% if is_admin %}
+        <button
+          type="button"
+          class="btn"
+          data-variant="outline"
+          data-size="sm"
+          onclick="document.getElementById('dlg-add-member').showModal()"
+        >
+          {% translate "add member"|title %}
         </button>
-      </form>
-    </dialog>
-  {% endif %}
-  <figure>
-    <table>
-      <thead>
-        <tr>
-          <th>{% translate "user"|capfirst context "noun" %}</th>
-          <th>{% translate "role"|capfirst context "noun" %}</th>
-          <th>{% translate "joined"|capfirst %}</th>
-          {% if is_admin %}<th></th>{% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for m in memberships %}
-          <tr>
-            <td>{{ m.user.username }}</td>
-            <td>{{ m.get_role_display }}</td>
-            <td>{{ m.created_at|naturaltime|capfirst }}</td>
-            {% if is_admin %}
-              <td>
-                <form
-                  method="post"
-                  action="{% url 'accounts:membership_delete' organization.slug m.pk %}"
-                  style="display: inline"
-                >
-                  {% csrf_token %}
-                  <button
-                    type="submit"
-                    class="outline"
-                    onclick="return confirm('{% translate "remove this member?"|capfirst context "verb" %}')"
-                  >
-                    {% translate "remove"|capfirst context "verb" %}
-                  </button>
-                </form>
-              </td>
-            {% endif %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </figure>
+      {% endif %}
+    </header>
 
-  {% if is_admin %}
-    <a
-      href="{% url 'accounts:organization_update' organization.slug %}"
-      role="button"
-      class="outline"
-    >{% translate "edit"|capfirst context "verb" %}</a>
-    <a
-      href="{% url 'accounts:organization_delete' organization.slug %}"
-      role="button"
-      class="outline"
-    >{% translate "delete"|capfirst context "verb" %}</a>
-  {% endif %}
+    {% if is_admin %}
+      <dialog class="dialog" id="dlg-add-member">
+        <div>
+          <header>
+            <h2>{% translate "add member"|title %}</h2>
+            <p>{% translate "invite a user to this organization."|capfirst %}</p>
+          </header>
+          <section>
+            <form
+              method="post"
+              action="{% url 'accounts:membership_create' organization.slug %}"
+              id="dlg-add-member-form"
+            >
+              {% csrf_token %}
+              <fieldset class="fieldset">
+                <div role="group" class="field">
+                  <label for="id_username">{% translate "username"|capfirst context "noun" %}</label>
+                  <input type="text" name="username" id="id_username" required class="input">
+                </div>
+                <div role="group" class="field">
+                  <label for="id_role">{% translate "role"|capfirst context "noun" %}</label>
+                  <select name="role" id="id_role" class="select w-full">
+                    <option value="write">{% translate "write"|capfirst %}</option>
+                    <option value="admin">{% translate "admin"|capfirst %}</option>
+                  </select>
+                </div>
+              </fieldset>
+            </form>
+          </section>
+          <footer>
+            <button
+              type="button"
+              class="btn"
+              data-variant="outline"
+              onclick="document.getElementById('dlg-add-member').close()"
+            >
+              {% translate "cancel"|capfirst context "verb" %}
+            </button>
+            <button type="submit" form="dlg-add-member-form" class="btn">
+              {% translate "add"|capfirst context "verb" %}
+            </button>
+          </footer>
+        </div>
+      </dialog>
+    {% endif %}
+
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{% translate "user"|capfirst context "noun" %}</th>
+            <th>{% translate "role"|capfirst context "noun" %}</th>
+            <th>{% translate "joined"|capfirst %}</th>
+            {% if is_admin %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in memberships %}
+            <tr>
+              <td>{{ m.user.username }}</td>
+              <td>{{ m.get_role_display }}</td>
+              <td>{{ m.created_at|naturaltime|capfirst }}</td>
+              {% if is_admin %}
+                <td>
+                  <form method="post" action="{% url 'accounts:membership_delete' organization.slug m.pk %}">
+                    {% csrf_token %}
+                    <button
+                      type="submit"
+                      class="btn"
+                      data-variant="outline"
+                      data-size="sm"
+                      onclick="return confirm('{% translate "remove this member?"|capfirst context "verb" %}')"
+                    >
+                      {% translate "remove"|capfirst context "verb" %}
+                    </button>
+                  </form>
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 {% endblock %}

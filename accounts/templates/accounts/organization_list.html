@@ -2,31 +2,57 @@
 {% load i18n %}
 {% block title %}{% translate "organizations"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
 {% block content %}
-  <h2>{% translate "organizations"|capfirst context "noun" %}</h2>
-  <button onclick="document.getElementById('dlg-new-org').showModal()">{% translate "new organization"|title %}</button>
-  <dialog id="dlg-new-org">
-    <form method="post" action="{% url 'accounts:organization_list' %}">
-      {% csrf_token %}
-      <p>
-        <label for="id_slug">{% translate "slug"|capfirst context "noun" %}</label>
-        <input
-          type="text"
-          name="slug"
-          id="id_slug"
-          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-          title="{% translate 'lowercase letters, digits, and hyphens' %}"
-          placeholder="my-org"
-          required
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "organizations"|capfirst context "noun" %}</h2>
+    <button type="button" class="btn" onclick="document.getElementById('dlg-new-org').showModal()">
+      {% translate "new organization"|title %}
+    </button>
+  </header>
+
+  <dialog class="dialog" id="dlg-new-org">
+    <div>
+      <header>
+        <h2>{% translate "new organization"|title %}</h2>
+        <p>{% translate "create a new organization to manage your email infrastructure."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'accounts:organization_list' %}" id="dlg-new-org-form">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_slug">{% translate "slug"|capfirst context "noun" %}</label>
+              <input
+                type="text"
+                name="slug"
+                id="id_slug"
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                title="{% translate 'lowercase letters, digits, and hyphens' %}"
+                placeholder="my-org"
+                required
+                class="input"
+              >
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="outline"
+          onclick="document.getElementById('dlg-new-org').close()"
         >
-      </p>
-      <button type="submit">{% translate "create"|capfirst context "verb" %}</button>
-      <button type="button" onclick="document.getElementById('dlg-new-org').close()" class="outline">
-        {% translate "cancel"|capfirst context "verb" %}
-      </button>
-    </form>
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="dlg-new-org-form" class="btn">
+          {% translate "create"|capfirst context "verb" %}
+        </button>
+      </footer>
+    </div>
   </dialog>
-  <figure>
-    <table>
+
+  <div class="table-container">
+    <table class="table">
       <thead>
         <tr>
           <th>{% translate "slug"|capfirst context "noun" %}</th>
@@ -46,5 +72,5 @@
         {% endfor %}
       </tbody>
     </table>
-  </figure>
+  </div>
 {% endblock %}
