@@ -106,58 +106,6 @@ Update it based on review feedback.
     inside `<label>` or use `<span class="label">` for the label text.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
-  - Toasts: the base template includes `partials/toaster.html`, which renders
-    a `<div id="toaster" class="toaster" data-align="end">` near the end of
-    `<body>`. Add a Django message in any view with
-    `messages.success(request, _("…"))` / `messages.error(…)` / `messages.info(…)`
-    and the toaster will pick it up on the next render. The toaster template
-    uses the `{% render_toasts %}` template tag (in `root/templatetags/toaster.py`)
-    instead of iterating `{% for message in messages %}` directly, so it
-    works even on views that expose a queryset under the `messages` name
-    (e.g. the SMTP outbox).
-  - Charts: use basecoat's chart component (Chart.js + `basecoat-css` chart
-    plugin). Render a `<canvas id="…" aria-label="…">` inside an existing
-    basecoat `<section class="card">` and initialize it with
-    `window.basecoat.chart("#…", { type, labelKey, data, series, options })`
-    on `DOMContentLoaded`. Pass `legend: true` to render a basecoat-styled
-    legend below the canvas. Serialize per-day data with
-    `{{ chart.rows|json_script:"chart-data" }}` and parse it back with
-    `JSON.parse(document.getElementById("chart-data").textContent)` — never
-    hand-render JSON in the template. Build the data in the view as
-    `(series, rows)` so the template stays a thin presentation layer. Bind
-    series colors to semantic CSS variables (`--color-success`,
-    `--color-warning`, `--color-destructive`, `--color-primary`,
-    `--color-muted-foreground`) so the palette reflects the data meaning,
-    not the index — and add `pointRadius: 0, pointHoverRadius: 4` to the
-    `dataset` options so line markers only appear on hover. Localize the
-    x-axis and tooltip via `Intl.DateTimeFormat(document.documentElement.lang, …)`
-    inside `ticks.callback` and `tooltip.callbacks.title` — the base template
-    sets `<html lang="{{ LANGUAGE_CODE }}">`, so no extra plumbing is needed.
-    In `ticks.callback`, `value` is the *index*; resolve it to the actual
-    label with `this.getLabelForValue(value)`. Constrain chart height with
-    a Tailwind `h-72` (or similar) class on the `<canvas>` — basecoat's
-    `.chart` wrapper defaults to `aspect-video`, which becomes too tall on
-    wide content.
-  - Breadcrumbs: `<nav … aria-label="breadcrumb"><ol>…</ol></nav>`,
-    with the current page as `<span aria-current="page">` (no link) and
-    `<li aria-hidden="true"><i data-lucide="chevron-right" data-rtl-flip class="icon-sm"></i></li>`
-    as the separator. Render the breadcrumb *inside* the content div (just
-    before `{% block content %}`) so it inherits the page padding. Use
-    negative horizontal margins (`-mx-6`) to span the full content width
-    and add a border-bottom + muted background to separate it from page
-    content. The trail starts with the active main-nav section (e.g.
-    "Email"), not the brand name, and does not include the org slug —
-    the org is already visible in the topbar switcher.
-  - Sidebar and main-nav links: assign each link's URL to a variable with
-    `{% url '...' as var %}`, then use exact `request.path == var` to set
-    `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
-    a substring check would highlight the org-root dashboard link on every
-    child page, since `/org/demo/` is a substring of `/org/demo/messages/`.
-    For routes with detail subpages (e.g. `/org/<slug>/credentials/<id>/delete/`),
-    highlight the list page only — the subpage is not a list view, so it
-    should not appear active. Hide main-nav links entirely when no org is
-    selected. Use `request.resolver_match` only when no URL alias exists,
-    never alongside a `{% url ... as var %}` assignment.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (e.g. organizations). Prefer items
@@ -189,6 +137,16 @@ Update it based on review feedback.
   `{{ form }}` / `{{ form.field }}` so the overrides apply automatically;
   only fall back to hand-written inputs when a widget truly needs custom
   markup.
+- Sidebar and main-nav links: assign each link's URL to a variable with
+  `{% url '...' as var %}`, then use exact `request.path == var` to set
+  `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
+  a substring check would highlight the org-root dashboard link on every
+  child page, since `/org/demo/` is a substring of `/org/demo/messages/`.
+  For routes with detail subpages (e.g. `/org/<slug>/credentials/<id>/delete/`),
+  highlight the list page only — the subpage is not a list view, so it
+  should not appear active. Hide main-nav links entirely when no org is
+  selected. Use `request.resolver_match` only when no URL alias exists,
+  never alongside a `{% url ... as var %}` assignment.
 
 ## Testing
 

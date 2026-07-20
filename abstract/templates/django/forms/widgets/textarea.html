@@ -1,6 +1,3 @@
-{% comment %}
-Override Django's textarea widget to add the basecoat `textarea` class.
-{% endcomment %}
 <textarea
   name="{{ widget.name }}"
   class="textarea {{ widget.attrs.class|default:'' }}"
