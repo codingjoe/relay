@@ -5,17 +5,13 @@
   z-index: 0;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-size: initial;
-}
-
 .landing-accent::after {
   content: "";
   position: absolute;
   inset-inline: 0;
   bottom: 0.05em;
   height: 0.4em;
-  background: color-mix(in srgb, var(--color-primary) 25%, transparent);
+  background: color-mix(in srgb, oklch(55% 0.14 280) 25%, transparent);
   z-index: -1;
   border-radius: 4px;
 }

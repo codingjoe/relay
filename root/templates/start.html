@@ -15,19 +15,19 @@
       <div class="landing-network__pulse landing-network__pulse--c"></div>
     </div>
 
-    <section class="flex flex-col items-center text-center gap-7 pt-24 sm:pt-32 pb-16 sm:pb-20 max-w-4xl mx-auto px-4 sm:px-8">
+    <section class="flex flex-col items-center text-center gap-8 pt-20 sm:pt-28 pb-16 sm:pb-20 max-w-5xl mx-auto px-4 sm:px-8">
       <span
-        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium text-muted-foreground shadow-sm"
+        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-mono font-medium text-muted-foreground shadow-sm"
       >
-        <i data-lucide="heart" class="size-3.5 text-primary" aria-hidden="true"></i>
         {% translate "for nerds by nerds"|capfirst %}
+        <span class="text-muted-foreground/50">&lt;3</span>
       </span>
-      <h1 class="text-6xl sm:text-8xl font-bold tracking-tighter leading-[1.02] m-0">
+      <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0">
         Infrastructure <span class="landing-accent">as a Service</span>
       </h1>
       <p class="text-xl sm:text-2xl text-muted-foreground m-0 max-w-3xl leading-relaxed">
-        {% blocktranslate %}email sending and receiving, sender reputation monitoring, and a dev sandbox — ready the
-          moment you sign up.{% endblocktranslate %}
+        {% blocktranslate %}email sending, receiving, reputation monitoring, and a dev sandbox — ready the moment you
+          sign up.{% endblocktranslate %}
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         {% if user.is_authenticated %}
@@ -45,7 +45,7 @@
           </form>
         {% endif %}
       </div>
-      <p class="text-sm text-muted-foreground flex items-center gap-3 m-0">
+      <p class="text-sm text-muted-foreground flex items-center gap-3 m-0 font-mono">
         <span class="inline-flex items-center gap-1.5">
           <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
           {% translate "no credit card required"|capfirst %}
@@ -66,8 +66,7 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "email sending"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}send via SMTP with automated DMARC, SPF, and DKIM sender
-              verification.{% endblocktranslate %}
+            {% blocktranslate %}Send via SMTP or MCP with automated sender verification.{% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
@@ -76,7 +75,7 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}receive incoming mail via webhooks.{% endblocktranslate %}
+            {% blocktranslate %}Receive incoming mail via webhooks, API, or MCP.{% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
@@ -85,17 +84,17 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "reputation monitoring"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}track delivery status, bounce rates, and sender reputation across all
+            {% blocktranslate %}Track delivery status, bounce rates, and sender reputation across all
               domains.{% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
-            <i data-lucide="wand" class="size-6 text-primary" aria-hidden="true"></i>
+            <i data-lucide="terminal" class="size-6 text-primary" aria-hidden="true"></i>
           </div>
           <h3 class="m-0 text-lg">{% translate "dev sandbox"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}test credentials and a free sender domain ready the moment you sign
+            {% blocktranslate %}Test credentials and a free sender domain ready the moment you sign
               up.{% endblocktranslate %}
           </p>
         </article>
@@ -108,11 +107,21 @@
             {% blocktranslate %}GDPR compliant, EU data sovereignty, no third-country transfer.{% endblocktranslate %}
           </p>
         </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="cpu" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "AI-first"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}For AI agents to send and receive email, with a focus on privacy and
+              security.{% endblocktranslate %}
+          </p>
+        </article>
       </div>
     </section>
 
     <section class="py-16 sm:py-24 max-w-lg mx-auto px-4 sm:px-8">
-      <h2 class="text-center text-3xl sm:text-5xl font-bold tracking-tight m-0 mb-3">
+      <h2 class="text-center text-1xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
         {% translate "start free. pay as you go."|capfirst %}
       </h2>
       <p class="text-center text-muted-foreground m-0 mb-10">
@@ -134,7 +143,7 @@
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "30-day message log retention"|capfirst %}
+              {% translate "30-day message retention"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
@@ -142,15 +151,15 @@
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "DKIM signing + DMARC alignment"|capfirst %}
+              {% translate "DKIM, SPF, DMARC management"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "full message log + search"|capfirst %}
+              {% translate "sender reputation monitoring"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "one organization, multiple members"|capfirst %}
+              {% translate "unlimited team members"|capfirst %}
             </li>
           </ul>
         </section>
@@ -191,8 +200,8 @@
     }
 
     .landing-network {
-      --ink: oklch(40% 0.14 280);
-      --ink-soft: oklch(48% 0.12 280);
+      --ink: oklch(55% 0.14 280);
+      --ink-soft: oklch(88% 0.12 280);
       --accent: oklch(55% 0.24 290);
     }
 
@@ -220,14 +229,14 @@
       position: absolute;
       offset-path: path('M -50 220 C 200 60, 400 360, 600 200 S 1000 40, 1250 240');
       offset-rotate: 0deg;
-      width: 18px;
-      height: 18px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: var(--accent);
       box-shadow:
-        0 0 0 6px oklch(60% 0.2 290 / 0.08),
-        0 0 32px 8px oklch(60% 0.2 290 / 0.55),
-        0 0 60px 16px oklch(60% 0.2 290 / 0.25);
+        0 0 0 4px oklch(60% 0.2 290 / 0.06),
+        0 0 18px 4px oklch(60% 0.2 290 / 0.4),
+        0 0 36px 10px oklch(60% 0.2 290 / 0.2);
       animation: pulse-travel 9s linear infinite;
     }
 
@@ -243,6 +252,10 @@
     .landing-network__pulse--c {
       offset-path: path('M -50 520 C 300 320, 500 560, 700 420 S 1100 260, 1250 500');
       animation-delay: -6s;
+    }
+
+    .landing-cli {
+      box-shadow: 0 1px 0 oklch(60% 0.18 290 / 0.06);
     }
 
     @keyframes pulse-travel {
