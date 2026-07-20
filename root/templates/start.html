@@ -120,27 +120,45 @@
       </div>
     </section>
 
-    <section class="py-16 sm:py-24 max-w-lg mx-auto px-4 sm:px-8">
+    <section class="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-8">
       <h2 class="text-center text-1xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
         {% translate "start free. pay as you go."|capfirst %}
       </h2>
       <p class="text-center text-muted-foreground m-0 mb-10">
         {% blocktranslate %}no contracts, no surprises.{% endblocktranslate %}
       </p>
-      <div class="card p-8 shadow-sm border-primary/20">
+      <div class="card p-8 shadow-sm border-primary/20 max-w-lg mx-auto">
         <header class="m-0">
-          <p class="text-sm font-medium text-muted-foreground m-0">{% translate "free tier"|capfirst %}</p>
-          <p class="m-0 mt-1">
-            <span class="text-6xl font-bold tracking-tight">$0</span>
-            <span class="text-muted-foreground ms-1">{% translate "per month"|capfirst %}</span>
+          <p class="text-sm font-medium text-muted-foreground m-0">{% translate "pay as you go"|capfirst %}</p>
+          <p class="m-0 mt-1 flex items-baseline gap-1">
+            <span class="text-6xl font-bold tracking-tight font-mono" id="price-amount">€0</span>
+            <span class="text-muted-foreground" id="price-period">
+              {% blocktranslate %}/ month{% endblocktranslate %}
+            </span>
           </p>
         </header>
+        <section class="m-0 mt-6 flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-2 text-sm font-mono">
+            <label for="price-slider" class="text-muted-foreground">{% translate "monthly volume"|capfirst %}</label>
+            <output for="price-slider" id="price-volume" class="font-semibold">0</output>
+          </div>
+          <input
+            type="range"
+            id="price-slider"
+            class="input w-full"
+            min="0"
+            max="100000"
+            step="1000"
+            value="1000"
+            aria-label="monthly email volume"
+          >
+          <p class="text-xs text-muted-foreground m-0 font-mono">
+            {% blocktranslate %}first 1,000 emails free, then €0.75 / 1,000 emails{% endblocktranslate %}
+          </p>
+        </section>
+        <hr class="my-6 border-border">
         <section class="m-0">
           <ul class="flex flex-col gap-3 m-0 p-0 list-none">
-            <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "1,000 emails / month"|capfirst %}
-            </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
               {% translate "30-day message retention"|capfirst %}
@@ -163,7 +181,7 @@
             </li>
           </ul>
         </section>
-        <footer class="m-0">
+        <footer class="m-0 mt-6">
           {% if user.is_authenticated %}
             <a href="{% url 'accounts:organization_list' %}" class="btn w-full" data-size="lg">
               {% translate "go to dashboard"|capfirst %}
@@ -282,4 +300,25 @@
       }
     }
   </style>
+  <script>
+    const slider = document.getElementById("price-slider");
+    const amount = document.getElementById("price-amount");
+    const period = document.getElementById("price-period");
+    const volume = document.getElementById("price-volume");
+    if (slider && amount && period && volume) {
+      const formatVolume = (n) => n.toLocaleString("en-US");
+      const formatEur = (n) =>
+        new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(n);
+      const update = () => {
+        const v = Number(slider.value);
+        const billable = Math.max(0, v - 1000);
+        const total = billable * 0.00075;
+        volume.textContent = `${formatVolume(v)} emails / month`;
+        amount.textContent = formatEur(total);
+        period.textContent = `/ month`;
+      };
+      slider.addEventListener("input", update);
+      update();
+    }
+  </script>
 {% endblock %}
