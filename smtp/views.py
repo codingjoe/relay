@@ -112,7 +112,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
 
 
 class OutgoingMessageModalView(OrganizationScopedView, View):
-    def get(self, request, org_pk, pk, *args, **kwargs):
+    def get(self, request, org_slug, pk, *args, **kwargs):
         message = get_object_or_404(
             OutgoingMessage.objects.filter(org=self.org).select_related(
                 "domain", "credential"
@@ -146,17 +146,14 @@ class OutgoingMessageModalView(OrganizationScopedView, View):
                     if message.credential
                     else None
                 ),
-                "detail_url": reverse_lazy(
-                    "smtp:message_detail",
-                    kwargs={"org_pk": self.org.pk, "pk": message.id},
-                ),
+                "detail_url": message.get_absolute_url(),
                 "transmissions": list(transmissions),
             }
         )
 
 
 class TestEmailView(OrganizationScopedView, View):
-    def post(self, request, org_pk, *args, **kwargs):
+    def post(self, request, org_slug, *args, **kwargs):
         free_domain = settings.RELAY_FREE_SENDER_DOMAIN
         domain_pk = request.POST["domain"]
         if domain_pk == "free":
@@ -194,7 +191,7 @@ class TestEmailView(OrganizationScopedView, View):
                 domain_id=domain.pk if domain else None,
             )
         )
-        return redirect("smtp:message_log", org_pk=org_pk)
+        return redirect("smtp:message_log", org_slug=org_slug)
 
 
 class SmtpCredentialListView(OrganizationScopedView, ListView):
@@ -216,14 +213,14 @@ class SmtpCredentialListView(OrganizationScopedView, ListView):
 
 
 class SmtpCredentialCreateView(OrganizationScopedView, View):
-    def post(self, request, org_pk, *args, **kwargs):
+    def post(self, request, org_slug, *args, **kwargs):
         credential, raw_key = SmtpCredential.objects.create_with_key(
             org=self.org,
             type=SmtpCredential.Type.SMTP,
             name=request.POST.get("name", ""),
         )
         request.session["raw_key"] = raw_key
-        return redirect("smtp:credential_list", org_pk=org_pk)
+        return redirect("smtp:credential_list", org_slug=org_slug)
 
 
 class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
@@ -233,4 +230,4 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
         return SmtpCredential.objects.filter(org=self.org)
 
     def get_success_url(self):
-        return reverse_lazy("smtp:credential_list", kwargs={"org_pk": self.org.pk})
+        return reverse_lazy("smtp:credential_list", kwargs={"org_slug": self.org.slug})

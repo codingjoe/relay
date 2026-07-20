@@ -51,9 +51,9 @@ urlpatterns = [
     path("", include("accounts.urls")),
     path("", include("legal.urls")),
     # Org-scoped
-    path("org/<int:org_pk>/", include("tx_email.urls")),
-    path("org/<int:org_pk>/", include("smtp.urls")),
-    path("org/<int:org_pk>/domains/", include("domains.urls")),
+    path("org/<slug:org_slug>/", include("tx_email.urls")),
+    path("org/<slug:org_slug>/", include("smtp.urls")),
+    path("org/<slug:org_slug>/domains/", include("domains.urls")),
     # Social auth + admin
     path("", include("social_django.urls")),
     path("admin/", admin.site.urls),

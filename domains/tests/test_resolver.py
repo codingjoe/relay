@@ -29,7 +29,7 @@ class TestFindDomain:
         assert domain.name == "open.localhost"
 
     def test_find_domain__user_domain(self):
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         domain = DNSResolver().find_domain("mail.relay.example.com")
         assert domain is not None
@@ -57,7 +57,7 @@ class TestResolve:
         assert len(records) == 2
 
     def test_resolve__spf_txt(self):
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve(DNSLabel("mail.relay.example.com"), "TXT")
         assert len(records) == 1
@@ -70,7 +70,7 @@ class TestResolve:
         assert len(records) == 1
 
     def test_resolve__cname_return_path(self):
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve(DNSLabel("rp.mail.relay.example.com"), "CNAME")
         assert len(records) == 1
@@ -82,13 +82,13 @@ class TestResolve:
 @pytest.mark.django_db
 class TestResolvePtr:
     def test_resolve_ptr__known_ip(self):
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve(DNSLabel("1.0.0.127.in-addr.arpa"), "PTR")
         assert len(records) == 1
 
     def test_resolve_ptr__unknown_ip(self):
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve(DNSLabel("1.1.1.255.in-addr.arpa"), "PTR")
         assert records == []

@@ -34,7 +34,7 @@ urlpatterns = [
         ),
     ),
     path(
-        "org/<int:org_pk>/settings/",
+        "org/<slug:org_slug>/settings/",
         include(
             [
                 path(

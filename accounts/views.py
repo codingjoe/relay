@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
-from django.forms import CharField, ChoiceField, Form, ModelForm
+from django.forms import CharField, ChoiceField, Form, ModelForm, SlugField, TextInput
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import (
@@ -14,6 +14,7 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
+from django.utils.translation import gettext_lazy as _
 
 from .models import Membership, Organization
 
@@ -33,7 +34,7 @@ class OrganizationScopedView(LoginRequiredMixin):
         super().setup(request, *args, **kwargs)
         if request.user.is_authenticated:
             self.org = get_object_or_404(
-                request.user.organizations.all(), pk=kwargs["org_pk"]
+                request.user.organizations.all(), slug=kwargs["org_slug"]
             )
             request.current_org = self.org
 
@@ -75,13 +76,20 @@ class OrganizationListView(LoginRequiredMixin, ListView):
             user=request.user,
             role=Membership.Role.ADMIN,
         )
-        return redirect("tx_email:dashboard", org_pk=org.pk)
+        return redirect("tx_email:dashboard", org_slug=org.slug)
 
 
 class OrganizationForm(ModelForm):
+    slug = SlugField(
+        widget=TextInput(
+            attrs={"pattern": r"[a-z0-9]+(?:-[a-z0-9]+)*"},
+        ),
+        help_text=_("URL-safe identifier, lowercase letters, digits, and hyphens."),
+    )
+
     class Meta:
         model = Organization
-        fields = ["name"]
+        fields = ["slug"]
 
 
 class OrganizationDetailView(OrganizationScopedView, DetailView):
@@ -104,7 +112,7 @@ class OrganizationDetailView(OrganizationScopedView, DetailView):
 class OrganizationUpdateView(OrganizationScopedView, UpdateView):
     model = Organization
     template_name = "accounts/organization_form.html"
-    fields = ["name"]
+    form_class = OrganizationForm
 
     def get_object(self, queryset=None):
         return self.org
@@ -117,9 +125,7 @@ class OrganizationUpdateView(OrganizationScopedView, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse_lazy(
-            "accounts:organization_detail", kwargs={"org_pk": self.org.pk}
-        )
+        return self.org.get_absolute_url()
 
 
 class OrganizationDeleteView(OrganizationScopedView, DeleteView):
@@ -157,7 +163,7 @@ class MembershipCreateView(OrganizationScopedView, DetailView):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, org_pk, *args, **kwargs):
+    def post(self, request, org_slug, *args, **kwargs):
         self.object = self.org
         form = MembershipForm(request.POST)
         if not form.is_valid():
@@ -176,7 +182,7 @@ class MembershipCreateView(OrganizationScopedView, DetailView):
             user=user,
             defaults={"role": form.cleaned_data["role"]},
         )
-        return redirect("accounts:organization_detail", org_pk=org_pk)
+        return redirect(self.org.get_absolute_url())
 
 
 class MembershipDeleteView(OrganizationScopedView, DeleteView):
@@ -194,6 +200,4 @@ class MembershipDeleteView(OrganizationScopedView, DeleteView):
         return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=self.org)
 
     def get_success_url(self):
-        return reverse_lazy(
-            "accounts:organization_detail", kwargs={"org_pk": self.org.pk}
-        )
+        return self.org.get_absolute_url()

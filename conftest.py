@@ -29,7 +29,7 @@ def other_user(db):
 
 @pytest.fixture
 def org(db, user):
-    org = Organization.objects.create(name="Test Org")
+    org = Organization.objects.create(slug="test-org")
     Membership.objects.create(
         org=org,
         user=user,
@@ -40,7 +40,7 @@ def org(db, user):
 
 @pytest.fixture
 def write_org(db, other_user):
-    org = Organization.objects.create(name="Other Org")
+    org = Organization.objects.create(slug="other-org")
     Membership.objects.create(
         org=org,
         user=other_user,

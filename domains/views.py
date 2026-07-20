@@ -28,7 +28,7 @@ class DomainCreateView(OrganizationScopedView, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy("domains:domain_list", kwargs={"org_pk": self.org.pk})
+        return reverse_lazy("domains:domain_list", kwargs={"org_slug": self.org.slug})
 
 
 class DomainDetailView(OrganizationScopedView, DetailView):
@@ -47,7 +47,7 @@ class DomainDetailView(OrganizationScopedView, DetailView):
 
 
 class DomainVerifyView(OrganizationScopedView, View):
-    def post(self, request, org_pk, pk, *args, **kwargs):
+    def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(Domain, org=self.org, pk=pk)
         verify_domain_dns(domain)
-        return redirect("domains:domain_detail", org_pk=org_pk, pk=pk)
+        return redirect(domain.get_absolute_url())

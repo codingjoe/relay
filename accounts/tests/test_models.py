@@ -20,7 +20,7 @@ class TestCredentialSalt:
     def test_salt__returns_class_path(self):
         from smtp.models import SmtpCredential
 
-        cred = SmtpCredential(org=Organization.objects.create(name="O"))
+        cred = SmtpCredential(org=Organization.objects.create(slug="o"))
         assert cred.salt == "smtp.models.SmtpCredential"
 
 
@@ -29,7 +29,7 @@ class TestSetKey:
     def test_set_key__stores_hash_and_prefix(self):
         from smtp.models import SmtpCredential
 
-        cred = SmtpCredential(org=Organization.objects.create(name="O"))
+        cred = SmtpCredential(org=Organization.objects.create(slug="o"))
         raw_key = generate_api_key()
         cred.set_key(raw_key)
         assert cred.key_hash != raw_key
@@ -41,7 +41,7 @@ class TestVerifyKey:
     def test_verify_key__correct_key(self):
         from smtp.models import SmtpCredential
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         assert cred.last_used_at is None
         assert cred.verify_key(raw_key) is True
@@ -51,14 +51,14 @@ class TestVerifyKey:
     def test_verify_key__wrong_key(self):
         from smtp.models import SmtpCredential
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         assert cred.verify_key("wrong-key-12345678") is False
 
     def test_verify_key__does_not_update_last_used_on_failure(self):
         from smtp.models import SmtpCredential
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         cred.verify_key("wrong-key-12345678")
         cred.refresh_from_db()
@@ -70,7 +70,7 @@ class TestCreateWithKey:
     def test_create_with_key__returns_credential_and_raw_key(self):
         from smtp.models import SmtpCredential
 
-        org = Organization.objects.create(name="O")
+        org = Organization.objects.create(slug="o")
         cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="prod")
         assert cred.pk is not None
         assert len(raw_key) == 32
@@ -110,13 +110,13 @@ class TestCredentialHold:
 
 @pytest.mark.django_db
 class TestOrganization:
-    def test_str__returns_name(self):
-        org = Organization.objects.create(name="Acme Inc")
-        assert str(org) == "Acme Inc"
+    def test_str__returns_slug(self):
+        org = Organization.objects.create(slug="acme-inc")
+        assert str(org) == "acme-inc"
 
     def test_members__uses_membership_through(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
-        org = Organization.objects.create(name="Acme")
+        org = Organization.objects.create(slug="acme")
         Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
         assert user in org.members.all()
         assert user.organizations.filter(pk=org.pk).exists()
@@ -126,15 +126,26 @@ class TestOrganization:
 class TestMembership:
     def test_str__includes_user_org_and_role(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
-        org = Organization.objects.create(name="Acme")
+        org = Organization.objects.create(slug="acme")
         m = Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
         assert "alice" in str(m)
-        assert "Acme" in str(m)
+        assert "acme" in str(m)
         assert "admin" in str(m)
 
     def test_unique_constraint__one_membership_per_org(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
-        org = Organization.objects.create(name="Acme")
+        org = Organization.objects.create(slug="acme")
         Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
         with pytest.raises(Exception):  # noqa: PT011
             Membership.objects.create(org=org, user=user, role=Membership.Role.WRITE)
+
+
+@pytest.mark.django_db
+class TestOrganizationGetAbsoluteUrl:
+    def test_get_absolute_url__returns_detail_url(self):
+        from django.urls import reverse
+
+        org = Organization.objects.create(slug="acme")
+        assert org.get_absolute_url() == reverse(
+            "accounts:organization_detail", kwargs={"org_slug": "acme"}
+        )

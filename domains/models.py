@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.conf import settings
 from django.db import models
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -183,6 +184,14 @@ class Domain(TimeStamped):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        if self.org is None:
+            return None
+        return reverse(
+            "domains:domain_detail",
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
