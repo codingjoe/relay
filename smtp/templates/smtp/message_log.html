@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "message log"|title %} — {{ m|title }}{% endblock %}
+{% block title %}{% translate "message log"|title %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "message log"|title %}</h2>
     <button
       type="button"
       class="btn"
-      data-variant="outline"
+      data-variant="secondary"
       onclick="document.getElementById('dlg-test-email').showModal()"
     >
       {% translate "send test email"|title %}
@@ -50,7 +50,7 @@
         <button
           type="button"
           class="btn"
-          data-variant="outline"
+          data-variant="secondary"
           onclick="document.getElementById('dlg-test-email').close()"
         >
           {% translate "cancel"|capfirst context "verb" %}
@@ -132,24 +132,44 @@
   </div>
 
   {% if page_obj.has_other_pages %}
-    <nav class="flex items-center justify-center gap-3" aria-label="pagination">
-      {% if page_obj.has_previous %}
-        <a
-          class="btn"
-          data-variant="outline"
-          data-size="sm"
-          href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.previous_page_number }}"
-        >←</a>
-      {% endif %}
-      <span class="text-sm text-muted-foreground">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}
-        <a
-          class="btn"
-          data-variant="outline"
-          data-size="sm"
-          href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.next_page_number }}"
-        >→</a>
-      {% endif %}
+    <nav
+      role="navigation"
+      aria-label='{% translate "pagination"|capfirst %}'
+      class="mx-auto flex w-full justify-center"
+    >
+      <ul class="flex flex-row items-center gap-1">
+        {% if page_obj.has_previous %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.previous_page_number }}"
+            >
+              <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
+              {% translate "previous"|capfirst %}
+            </a>
+          </li>
+        {% endif %}
+        <li>
+          <span class="btn" data-variant="secondary" data-size="sm" aria-current="page">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+          </span>
+        </li>
+        {% if page_obj.has_next %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.next_page_number }}"
+            >
+              {% translate "next"|capfirst %}
+              <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
     </nav>
   {% endif %}
 
@@ -211,7 +231,12 @@
         </details>
       </section>
       <footer>
-        <button type="button" class="btn" data-variant="outline" onclick="document.getElementById('msg-modal').close()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('msg-modal').close()"
+        >
           {% translate "close"|capfirst %}
         </button>
         <a id="modal-detail-link" class="btn" href="#">{% translate "view full detail"|capfirst %}</a>

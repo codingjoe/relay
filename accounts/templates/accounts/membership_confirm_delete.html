@@ -11,7 +11,7 @@
     <form method="post" class="flex gap-2">
       {% csrf_token %}
       <button type="submit" class="btn">{% translate "remove"|capfirst context "verb" %}</button>
-      <a href="{{ object.org.get_absolute_url }}" class="btn" data-variant="outline">
+      <a href="{{ object.org.get_absolute_url }}" class="btn" data-variant="secondary">
         {% translate "cancel"|capfirst context "verb" %}
       </a>
     </form>

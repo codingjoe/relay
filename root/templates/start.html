@@ -1,351 +1,39 @@
 {% extends "base.html" %}
 {% load i18n static %}
-{% block title %}{% translate "relay — zero-config email infrastructure"|title %}{% endblock %}
+{% block topbar %}{% endblock %}
+{% block chrome %}{% endblock %}
+{% block title %}{% translate "relay — infrastructure as a service"|title %}{% endblock %}
 {% block content %}
-  <section class="landing-hero">
-    <p class="landing-eyebrow">{% translate "b2b communication, simplified"|capfirst %}</p>
-    <h1>
-      {% blocktranslate %}send email <span class="landing-accent"
-        >without the DNS headache</span>.{% endblocktranslate %}
-    </h1>
-    <p class="landing-sub">
-      {% blocktranslate %}relay is a modern communication platform with a built-in authoritative nameserver. point your
-        NS to us, and MX, SPF, DKIM, and Return-Path are served automatically.{% endblocktranslate %}
-    </p>
-    <div class="landing-cta">
-      {% if user.is_authenticated %}
-        <a href="{% url 'accounts:organization_list' %}" class="btn" data-size="lg">
-          {% translate "go to dashboard"|capfirst %}
-          <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
-        </a>
-      {% else %}
-        <form method="post" action="{% url 'social:begin' 'github' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn" data-size="lg">
-            <i data-lucide="github" class="size-4" aria-hidden="true"></i>
-            {% translate "get started free"|capfirst %}
-          </button>
-        </form>
-        <a href="#how" class="btn" data-size="lg" data-variant="ghost">
-          {% translate "how it works"|capfirst %}
-        </a>
-      {% endif %}
-    </div>
-    <p class="landing-meta">
-      <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
-      {% translate "no credit card required"|capfirst %}
-      <span aria-hidden="true">·</span>
-      <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
-      {% translate "1,000 emails/month free"|capfirst %}
-    </p>
-  </section>
-
-  <section class="landing-features">
-    <div class="landing-feature">
-      <div class="landing-feature-copy">
-        <h2>{% translate "instant setup"|capfirst %}</h2>
-        <p>
-          {% blocktranslate %}add your sender subdomain, point two NS records, and you're sending. no zone files, no
-            DKIM alignment gymnastics, no Return-Path CNAMEs — relay serves the full mail record set from a built-in
-            authoritative nameserver.{% endblocktranslate %}
-        </p>
-        <ul class="landing-list">
-          <li>
-            <i data-lucide="zap" class="size-4" aria-hidden="true"></i>{% translate "minutes to first send"|capfirst %}
-          </li>
-          <li>
-            <i
-              data-lucide="shield-check"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "DKIM aligned via DMARC relaxed"|capfirst %}
-          </li>
-          <li>
-            <i
-              data-lucide="plug"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "works with any SMTP client"|capfirst %}
-          </li>
-        </ul>
-      </div>
-      <div class="landing-feature-art" aria-hidden="true">
-        <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" role="presentation">
-          <defs>
-            <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="var(--accent)" stop-opacity="0.08" />
-              <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
-            </linearGradient>
-          </defs>
-          <rect width="400" height="320" fill="url(#bg1)" />
-          <rect x="80" y="60" width="240" height="180" rx="12" fill="var(--card)" stroke="var(--border)" />
-          <rect x="80" y="60" width="240" height="32" rx="12" fill="var(--muted)" />
-          <circle cx="100" cy="76" r="4" fill="var(--border)" />
-          <circle cx="116" cy="76" r="4" fill="var(--border)" />
-          <circle cx="132" cy="76" r="4" fill="var(--border)" />
-          <rect x="100" y="112" width="120" height="8" rx="4" fill="var(--border)" />
-          <rect x="100" y="128" width="200" height="6" rx="3" fill="var(--border)" opacity="0.6" />
-          <rect x="100" y="142" width="180" height="6" rx="3" fill="var(--border)" opacity="0.6" />
-          <rect x="100" y="156" width="160" height="6" rx="3" fill="var(--border)" opacity="0.6" />
-          <rect x="100" y="180" width="200" height="6" rx="3" fill="var(--border)" opacity="0.4" />
-          <rect x="100" y="194" width="140" height="6" rx="3" fill="var(--border)" opacity="0.4" />
-          <rect x="100" y="218" width="80" height="20" rx="6" fill="var(--accent)" />
-          <path
-            d="M250 110 L 320 110 M 250 130 L 310 130 M 250 150 L 290 150"
-            stroke="var(--accent)"
-            stroke-width="2"
-            stroke-linecap="round"
-            opacity="0.5"
-          />
-          <circle cx="320" cy="110" r="6" fill="var(--accent)" />
-          <circle cx="310" cy="130" r="6" fill="var(--accent)" opacity="0.7" />
-          <circle cx="290" cy="150" r="6" fill="var(--accent)" opacity="0.4" />
-        </svg>
-      </div>
+  <div class="start relative isolate -mx-6 sm:-mx-8">
+    <div
+      class="landing-network pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      aria-hidden="true"
+    >
+      <div class="landing-network__grid"></div>
+      <div class="landing-network__pulse landing-network__pulse--a"></div>
+      <div class="landing-network__pulse landing-network__pulse--b"></div>
+      <div class="landing-network__pulse landing-network__pulse--c"></div>
     </div>
 
-    <div class="landing-feature">
-      <div class="landing-feature-art" aria-hidden="true">
-        <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" role="presentation">
-          <rect x="40" y="40" width="320" height="220" rx="12" fill="var(--card)" stroke="var(--border)" />
-          <rect x="40" y="40" width="320" height="28" rx="12" fill="var(--muted)" />
-          <text x="60" y="58" font-family="ui-monospace,monospace" font-size="10" fill="var(--muted-foreground)">
-            relay · messages · last 24h
-          </text>
-          <polyline
-            points="70,200 110,170 150,180 190,140 230,150 270,110 310,120 340,90"
-            fill="none"
-            stroke="var(--accent)"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <polyline
-            points="70,200 110,200 150,200 190,200 230,200 270,200 310,200 340,200"
-            fill="none"
-            stroke="var(--border)"
-            stroke-width="1"
-            stroke-dasharray="2 4"
-          />
-          <circle cx="110" cy="170" r="3" fill="var(--accent)" />
-          <circle cx="150" cy="180" r="3" fill="var(--accent)" />
-          <circle cx="190" cy="140" r="3" fill="var(--accent)" />
-          <circle cx="230" cy="150" r="3" fill="var(--accent)" />
-          <circle cx="270" cy="110" r="3" fill="var(--accent)" />
-          <circle cx="310" cy="120" r="3" fill="var(--accent)" />
-          <circle cx="340" cy="90" r="4" fill="var(--accent)" />
-          <text x="60" y="240" font-family="ui-monospace,monospace" font-size="9" fill="var(--muted-foreground)">
-            delivered
-          </text>
-          <text
-            x="320"
-            y="240"
-            font-family="ui-monospace,monospace"
-            font-size="9"
-            fill="var(--accent)"
-            text-anchor="end"
-          >
-            99.7%
-          </text>
-        </svg>
-      </div>
-      <div class="landing-feature-copy">
-        <h2>{% translate "monitoring that earns its keep"|capfirst %}</h2>
-        <p>
-          {% blocktranslate %}every send is logged with full headers, DKIM signatures, and per-recipient transmission
-            traces. search, filter by status, and inspect raw MIME — so you can debug delivery in seconds, not
-            hours.{% endblocktranslate %}
-        </p>
-        <ul class="landing-list">
-          <li>
-            <i
-              data-lucide="activity"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "live delivery status per message"|capfirst %}
-          </li>
-          <li>
-            <i
-              data-lucide="file-text"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "raw MIME inspector + headers view"|capfirst %}
-          </li>
-          <li>
-            <i
-              data-lucide="search"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "search by recipient, subject, or domain"|capfirst %}
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="landing-feature">
-      <div class="landing-feature-copy">
-        <h2>{% translate "friendly to your stack"|capfirst %}</h2>
-        <p>
-          {% blocktranslate %}use the included SMTP submission server with credential-based auth, or call our API
-            directly. organizations, members, and roles are first-class — invite your team and audit who sent
-            what.{% endblocktranslate %}
-        </p>
-        <ul class="landing-list">
-          <li>
-            <i
-              data-lucide="key-round"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "per-organization SMTP credentials"|capfirst %}
-          </li>
-          <li>
-            <i
-              data-lucide="users"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "org & member roles (admin, write)"|capfirst %}
-          </li>
-          <li>
-            <i
-              data-lucide="github"
-              class="size-4"
-              aria-hidden="true"
-            ></i>{% translate "sign in with GitHub OAuth"|capfirst %}
-          </li>
-        </ul>
-      </div>
-      <div class="landing-feature-art" aria-hidden="true">
-        <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" role="presentation">
-          <rect x="60" y="60" width="180" height="80" rx="10" fill="var(--card)" stroke="var(--border)" />
-          <text x="78" y="92" font-family="ui-monospace,monospace" font-size="10" fill="var(--muted-foreground)">
-            SMTP
-          </text>
-          <text
-            x="78"
-            y="120"
-            font-family="ui-monospace,monospace"
-            font-size="11"
-            font-weight="600"
-            fill="var(--foreground)"
-          >
-            smtp.relay.io:587
-          </text>
-          <rect x="80" y="200" width="180" height="80" rx="10" fill="var(--card)" stroke="var(--border)" />
-          <text x="98" y="232" font-family="ui-monospace,monospace" font-size="10" fill="var(--muted-foreground)">
-            API
-          </text>
-          <text
-            x="98"
-            y="260"
-            font-family="ui-monospace,monospace"
-            font-size="11"
-            font-weight="600"
-            fill="var(--foreground)"
-          >
-            POST /messages
-          </text>
-          <rect x="260" y="130" width="80" height="80" rx="40" fill="var(--accent)" opacity="0.15" />
-          <path d="M275 165 L 295 175 L 295 155 Z" fill="var(--accent)" />
-          <path
-            d="M280 130 L 320 130 M 280 130 L 280 175 M 280 175 L 320 175 M 320 130 L 320 175"
-            stroke="var(--accent)"
-            stroke-width="1.5"
-            fill="none"
-            opacity="0.4"
-          />
-          <path
-            d="M80 170 L 80 200 M 240 130 L 260 170"
-            stroke="var(--accent)"
-            stroke-width="1.5"
-            stroke-dasharray="4 4"
-            fill="none"
-            opacity="0.5"
-          />
-        </svg>
-      </div>
-    </div>
-  </section>
-
-  <section id="how" class="landing-how">
-    <h2>{% translate "two DNS records. that's it."|capfirst %}</h2>
-    <p class="landing-sub">
-      {% blocktranslate %}traditional mail servers need you to maintain MX, SPF, DKIM, Return-Path, and CNAME records at
-        your DNS provider. relay eliminates all of that.{% endblocktranslate %}
-    </p>
-    <ol class="landing-steps">
-      <li>
-        <div class="landing-step-num">1</div>
-        <div>
-          <h3>{% translate "NS delegation"|capfirst %}</h3>
-          <p>{% blocktranslate %}delegate your sender subdomain to relay's nameservers.{% endblocktranslate %}</p>
-          <pre><code>mail.example.com.   NS   {{ nameservers.0 }}.
-mail.example.com.   NS   {{ nameservers.1 }}.</code></pre>
-        </div>
-      </li>
-      <li>
-        <div class="landing-step-num">2</div>
-        <div>
-          <h3>{% translate "DMARC record"|capfirst %}</h3>
-          <p>{% blocktranslate %}on your root domain — for alignment.{% endblocktranslate %}</p>
-          <pre><code>_dmarc.example.com.   TXT  "v=DMARC1; p=none; rua=mailto:dmarc@example.com;"</code></pre>
-        </div>
-      </li>
-      <li>
-        <div class="landing-step-num">3</div>
-        <div>
-          <h3>{% translate "send"|capfirst %}</h3>
-          <p>
-            {% blocktranslate %}everything else — MX, SPF, DKIM, Return-Path, PTR — is served
-              <strong>automatically</strong> by relay's built-in nameserver.{% endblocktranslate %}
-          </p>
-        </div>
-      </li>
-    </ol>
-  </section>
-
-  <section class="landing-pricing">
-    <h2>{% translate "start free. scale when you need to."|capfirst %}</h2>
-    <div class="landing-pricing-card">
-      <div class="landing-pricing-head">
-        <p class="landing-eyebrow">{% translate "free forever"|capfirst %}</p>
-        <p class="landing-price">
-          <span class="landing-price-num">$0</span>
-          <span class="landing-price-unit">{% translate "per month"|capfirst %}</span>
-        </p>
-      </div>
-      <ul class="landing-list">
-        <li>
-          <i data-lucide="check" class="size-4" aria-hidden="true"></i>{% translate "1,000 emails / month"|capfirst %}
-        </li>
-        <li>
-          <i data-lucide="check" class="size-4" aria-hidden="true"></i>{% translate "unlimited domains"|capfirst %}
-        </li>
-        <li>
-          <i
-            data-lucide="check"
-            class="size-4"
-            aria-hidden="true"
-          ></i>{% translate "DKIM signing + DMARC alignment"|capfirst %}
-        </li>
-        <li>
-          <i
-            data-lucide="check"
-            class="size-4"
-            aria-hidden="true"
-          ></i>{% translate "full message log + search"|capfirst %}
-        </li>
-        <li>
-          <i
-            data-lucide="check"
-            class="size-4"
-            aria-hidden="true"
-          ></i>{% translate "one organization, multiple members"|capfirst %}
-        </li>
-      </ul>
-      <div class="landing-pricing-cta">
+    <section class="flex flex-col items-center text-center gap-7 pt-24 sm:pt-32 pb-16 sm:pb-20 max-w-4xl mx-auto px-4 sm:px-8">
+      <span
+        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium text-muted-foreground shadow-sm"
+      >
+        <i data-lucide="heart" class="size-3.5 text-primary" aria-hidden="true"></i>
+        {% translate "for nerds by nerds"|capfirst %}
+      </span>
+      <h1 class="text-6xl sm:text-8xl font-bold tracking-tighter leading-[1.02] m-0">
+        Infrastructure <span class="landing-accent">as a Service</span>
+      </h1>
+      <p class="text-xl sm:text-2xl text-muted-foreground m-0 max-w-3xl leading-relaxed">
+        {% blocktranslate %}email sending and receiving, sender reputation monitoring, and a dev sandbox — ready the
+          moment you sign up.{% endblocktranslate %}
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         {% if user.is_authenticated %}
           <a href="{% url 'accounts:organization_list' %}" class="btn" data-size="lg">
             {% translate "go to dashboard"|capfirst %}
+            <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
           </a>
         {% else %}
           <form method="post" action="{% url 'social:begin' 'github' %}">
@@ -357,26 +45,228 @@ mail.example.com.   NS   {{ nameservers.1 }}.</code></pre>
           </form>
         {% endif %}
       </div>
-    </div>
-  </section>
+      <p class="text-sm text-muted-foreground flex items-center gap-3 m-0">
+        <span class="inline-flex items-center gap-1.5">
+          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% translate "no credit card required"|capfirst %}
+        </span>
+        <span aria-hidden="true">·</span>
+        <span class="inline-flex items-center gap-1.5">
+          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% translate "no setup required"|capfirst %}
+        </span>
+      </p>
+    </section>
 
-  <section class="landing-final">
-    <h2>{% translate "ready to leave the DNS alone?"|capfirst %}</h2>
-    <p>
-      {% if user.is_authenticated %}
-        <a href="{% url 'accounts:organization_list' %}" class="btn" data-size="lg">
-          {% translate "go to dashboard"|capfirst %}
-          <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
-        </a>
-      {% else %}
-        <form method="post" action="{% url 'social:begin' 'github' %}" style="display: inline">
-          {% csrf_token %}
-          <button type="submit" class="btn" data-size="lg">
-            <i data-lucide="github" class="size-4" aria-hidden="true"></i>
-            {% translate "get started free"|capfirst %}
-          </button>
-        </form>
-      {% endif %}
-    </p>
-  </section>
+    <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="send" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "email sending"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}send via SMTP with automated DMARC, SPF, and DKIM sender
+              verification.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="inbox" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}receive incoming mail via webhooks.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="line-chart" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "reputation monitoring"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}track delivery status, bounce rates, and sender reputation across all
+              domains.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="wand" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "dev sandbox"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}test credentials and a free sender domain ready the moment you sign
+              up.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="shield-check" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "hosted in the EU"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}GDPR compliant, EU data sovereignty, no third-country transfer.{% endblocktranslate %}
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="py-16 sm:py-24 max-w-lg mx-auto px-4 sm:px-8">
+      <h2 class="text-center text-3xl sm:text-5xl font-bold tracking-tight m-0 mb-3">
+        {% translate "start free. pay as you go."|capfirst %}
+      </h2>
+      <p class="text-center text-muted-foreground m-0 mb-10">
+        {% blocktranslate %}no contracts, no surprises.{% endblocktranslate %}
+      </p>
+      <div class="card p-8 shadow-sm border-primary/20">
+        <header class="m-0">
+          <p class="text-sm font-medium text-muted-foreground m-0">{% translate "free tier"|capfirst %}</p>
+          <p class="m-0 mt-1">
+            <span class="text-6xl font-bold tracking-tight">$0</span>
+            <span class="text-muted-foreground ms-1">{% translate "per month"|capfirst %}</span>
+          </p>
+        </header>
+        <section class="m-0">
+          <ul class="flex flex-col gap-3 m-0 p-0 list-none">
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "1,000 emails / month"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "30-day message log retention"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "unlimited domains"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "DKIM signing + DMARC alignment"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "full message log + search"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "one organization, multiple members"|capfirst %}
+            </li>
+          </ul>
+        </section>
+        <footer class="m-0">
+          {% if user.is_authenticated %}
+            <a href="{% url 'accounts:organization_list' %}" class="btn w-full" data-size="lg">
+              {% translate "go to dashboard"|capfirst %}
+              <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
+            </a>
+          {% else %}
+            <form method="post" action="{% url 'social:begin' 'github' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn w-full" data-size="lg">
+                <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+                {% translate "get started free"|capfirst %}
+              </button>
+            </form>
+          {% endif %}
+        </footer>
+      </div>
+    </section>
+  </div>
+
+  <style>
+    body {
+      background-color: oklch(99% 0.005 270);
+    }
+
+    .start .card,
+    .start [class*='bg-card'] {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background-color: color-mix(in srgb, var(--color-card) 75%, transparent);
+    }
+
+    .start {
+      --color-card: oklch(100% 0 0);
+    }
+
+    .landing-network {
+      --ink: oklch(40% 0.14 280);
+      --ink-soft: oklch(48% 0.12 280);
+      --accent: oklch(55% 0.24 290);
+    }
+
+    .landing-network__grid {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1.5px 1.5px, var(--ink-soft) 1.5px, transparent 0);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse 95% 75% at 50% 35%, black 50%, transparent 95%);
+      opacity: 0.9;
+    }
+
+    .landing-network__grid::before {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, color-mix(in srgb, var(--ink) 40%, transparent) 1px, transparent 1px),
+        linear-gradient(to bottom, color-mix(in srgb, var(--ink) 40%, transparent) 1px, transparent 1px);
+      background-size: 160px 160px;
+      content: '';
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, black 30%, transparent 80%);
+    }
+
+    .landing-network__pulse {
+      position: absolute;
+      offset-path: path('M -50 220 C 200 60, 400 360, 600 200 S 1000 40, 1250 240');
+      offset-rotate: 0deg;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow:
+        0 0 0 6px oklch(60% 0.2 290 / 0.08),
+        0 0 32px 8px oklch(60% 0.2 290 / 0.55),
+        0 0 60px 16px oklch(60% 0.2 290 / 0.25);
+      animation: pulse-travel 9s linear infinite;
+    }
+
+    .landing-network__pulse--a {
+      animation-delay: 0s;
+    }
+
+    .landing-network__pulse--b {
+      offset-path: path('M 1250 120 C 900 280, 700 40, 400 240 S 100 320, -50 160');
+      animation-delay: -3s;
+    }
+
+    .landing-network__pulse--c {
+      offset-path: path('M -50 520 C 300 320, 500 560, 700 420 S 1100 260, 1250 500');
+      animation-delay: -6s;
+    }
+
+    @keyframes pulse-travel {
+      0% {
+        offset-distance: 0%;
+        opacity: 0;
+      }
+      8% {
+        opacity: 1;
+      }
+      92% {
+        opacity: 1;
+      }
+      100% {
+        offset-distance: 100%;
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .landing-network__pulse {
+        animation: none;
+        opacity: 0;
+      }
+    }
+  </style>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{{ message.subject|truncatechars:50 }} — {{ m|title }}{% endblock %}
+{% block title %}{{ message.subject|truncatechars:50 }} — relay{% endblock %}
 {% block content %}
   <a href="{% url 'smtp:message_log' org.slug %}" class="btn mb-4" data-variant="ghost" data-size="sm">
     <svg

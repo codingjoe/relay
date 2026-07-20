@@ -1,0 +1,12 @@
+{% comment %}
+Override Django's textarea widget to add the basecoat `textarea` class.
+{% endcomment %}
+<textarea
+  name="{{ widget.name }}"
+  class="textarea {{ widget.attrs.class|default:'' }}"
+  {% for name, value in widget.attrs.items %}
+    {% if name != 'class' and value is not False %}
+      {% if value is True %}{{ name }}{% else %}{{ name }}="{{ value|stringformat:'s' }}"{% endif %}
+    {% endif %}
+  {% endfor %}
+>{% if widget.value %}{{ widget.value }}{% endif %}</textarea>

@@ -1,12 +1,14 @@
 """Account views — auth, organization and member management."""
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
-from django.forms import CharField, ChoiceField, Form, ModelForm, SlugField, TextInput
+from django.forms import CharField, ModelForm, SlugField, TextInput
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from django.views.generic import (
     DeleteView,
     DetailView,
@@ -14,7 +16,6 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
-from django.utils.translation import gettext_lazy as _
 
 from .models import Membership, Organization
 
@@ -47,22 +48,33 @@ class OrganizationScopedView(LoginRequiredMixin):
     def breadcrumb_trail(self):
         """Return the breadcrumb trail for the current org-scoped view.
 
-        The base trail is ``Relay → Org`` (with both clickable).
+        The base trail is ``Org`` (clickable). For email namespaces
+        (tx_email, smtp, domains) an ``Email`` crumb is appended, linking
+        to the email dashboard.
 
         Sub-pages extend it via ``extend_breadcrumb()`` to produce
-        ``Relay → Org → Section`` (Section is the current page).
+        ``Org → Email → Section`` (Section is the current page).
         """
         from django.urls import reverse
 
-        return [
-            {"label": "Relay", "url": reverse("home")},
+        trail = [
             {
                 "label": self.org.slug,
                 "url": reverse(
-                    "tx_email:dashboard", kwargs={"org_slug": self.org.slug}
+                    "accounts:organization_home", kwargs={"org_slug": self.org.slug}
                 ),
             },
         ]
+        if self.request.resolver_match.namespace in ("tx_email", "smtp", "domains"):
+            trail.append(
+                {
+                    "label": _("Email"),
+                    "url": reverse(
+                        "tx_email:dashboard", kwargs={"org_slug": self.org.slug}
+                    ),
+                }
+            )
+        return trail
 
     def extend_breadcrumb(self, *crumbs):
         """Append crumbs to the base trail.
@@ -70,10 +82,16 @@ class OrganizationScopedView(LoginRequiredMixin):
         Each crumb is ``{"label", "url"}``. ``url`` may be a URL name
         string (reversed with ``self.kwargs``) or a literal path. The
         final crumb is treated as the current page and rendered without
-        a link.
+        a link. With no arguments, the last base crumb becomes the
+        current page (used by the email dashboard).
         """
         from django.urls import reverse, NoReverseMatch
 
+        trail = self.breadcrumb_trail()
+        if not crumbs:
+            if trail:
+                trail = trail[:-1] + [{"label": trail[-1]["label"], "url": None}]
+            return trail
         middle = []
         for crumb in crumbs[:-1] if len(crumbs) > 1 else []:
             label = crumb["label"]
@@ -84,9 +102,8 @@ class OrganizationScopedView(LoginRequiredMixin):
                 except NoReverseMatch:
                     pass
             middle.append({"label": label, "url": url})
-        trail = self.breadcrumb_trail() + middle
-        if crumbs:
-            trail.append({"label": crumbs[-1]["label"], "url": None})
+        trail = trail + middle
+        trail.append({"label": crumbs[-1]["label"], "url": None})
         return trail
 
 
@@ -104,7 +121,8 @@ class OrganizationListView(LoginRequiredMixin, ListView):
                 "memberships",
                 queryset=Membership.objects.filter(user=self.request.user),
                 to_attr="my_membership",
-            )
+            ),
+            "memberships__user",
         )
 
     def get_context_data(self, **kwargs):
@@ -124,7 +142,10 @@ class OrganizationListView(LoginRequiredMixin, ListView):
             user=request.user,
             role=Membership.Role.ADMIN,
         )
-        return redirect("tx_email:dashboard", org_slug=org.slug)
+        messages.success(
+            request, _("Organization “%(slug)s” created.") % {"slug": org.slug}
+        )
+        return redirect("accounts:organization_home", org_slug=org.slug)
 
 
 class OrganizationForm(ModelForm):
@@ -138,6 +159,19 @@ class OrganizationForm(ModelForm):
     class Meta:
         model = Organization
         fields = ["slug"]
+
+
+class OrganizationHomeView(OrganizationScopedView, DetailView):
+    template_name = "accounts/organization_home.html"
+    context_object_name = "organization"
+
+    def get_object(self, queryset=None):
+        return self.org
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "breadcrumb_trail": [{"label": self.org.slug, "url": None}],
+        }
 
 
 class OrganizationDetailView(OrganizationScopedView, DetailView):
@@ -175,6 +209,13 @@ class OrganizationUpdateView(OrganizationScopedView, UpdateView):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            _("Organization “%(slug)s” updated.") % {"slug": self.org.slug},
+        )
+        return super().form_valid(form)
+
     def get_success_url(self):
         return self.org.get_absolute_url()
 
@@ -194,10 +235,20 @@ class OrganizationDeleteView(OrganizationScopedView, DeleteView):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            _("Organization “%(slug)s” deleted.") % {"slug": self.org.slug},
+        )
+        return super().form_valid(form)
 
-class MembershipForm(Form):
-    username = CharField(max_length=150)
-    role = ChoiceField(choices=Membership.Role, initial=Membership.Role.WRITE)
+
+class MembershipForm(ModelForm):
+    username = CharField(max_length=150, required=False)
+
+    class Meta:
+        model = Membership
+        fields = ["role"]
 
 
 class MembershipCreateView(OrganizationScopedView, DetailView):
@@ -228,11 +279,21 @@ class MembershipCreateView(OrganizationScopedView, DetailView):
             return self.render_to_response(
                 self.get_context_data() | {"member_form": form}
             )
-        Membership.objects.get_or_create(
+        membership, created = Membership.objects.get_or_create(
             org=self.org,
             user=user,
             defaults={"role": form.cleaned_data["role"]},
         )
+        if created:
+            messages.success(
+                request,
+                _("%(user)s added to “%(org)s”.")
+                % {"user": user.username, "org": self.org.slug},
+            )
+        else:
+            messages.info(
+                request, _("%(user)s is already a member.") % {"user": user.username}
+            )
         return redirect(self.org.get_absolute_url())
 
 
@@ -252,3 +313,39 @@ class MembershipDeleteView(OrganizationScopedView, DeleteView):
 
     def get_success_url(self):
         return self.org.get_absolute_url()
+
+    def form_valid(self, form):
+        username = self.get_object().user.username
+        messages.success(
+            self.request,
+            _("%(user)s removed from “%(org)s”.")
+            % {"user": username, "org": self.org.slug},
+        )
+        return super().form_valid(form)
+
+
+class MembershipUpdateView(OrganizationScopedView, UpdateView):
+    model = Membership
+    form_class = MembershipForm
+    template_name = "accounts/membership_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.org.memberships.filter(
+            user=request.user, role=Membership.Role.ADMIN
+        ).exists():
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=self.org)
+
+    def get_success_url(self):
+        return self.org.get_absolute_url()
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            _("%(user)s role updated to %(role)s.")
+            % {"user": self.object.user.username, "role": form.cleaned_data["role"]},
+        )
+        return super().form_valid(form)

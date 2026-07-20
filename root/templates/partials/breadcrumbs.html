@@ -1,0 +1,21 @@
+{% load i18n %}
+{% if breadcrumb_trail %}
+  <nav class="breadcrumb" aria-label='{% translate "breadcrumb"|capfirst %}'>
+    <ol>
+      {% for item in breadcrumb_trail %}
+        <li>
+          {% if item.url %}
+            <a href="{{ item.url }}">{{ item.label }}</a>
+          {% else %}
+            <span aria-current="page">{{ item.label }}</span>
+          {% endif %}
+        </li>
+        {% if not forloop.last %}
+          <li aria-hidden="true">
+            <i data-lucide="chevron-right" data-rtl-flip class="icon-sm"></i>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ol>
+  </nav>
+{% endif %}

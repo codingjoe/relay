@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% load i18n %}
-{% block title %}{% translate "organizations"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% load i18n accounts %}
+{% block title %}{% translate "organizations"|capfirst context "noun" %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "organizations"|capfirst context "noun" %}</h2>
@@ -39,7 +39,7 @@
         <button
           type="button"
           class="btn"
-          data-variant="outline"
+          data-variant="secondary"
           onclick="document.getElementById('dlg-new-org').close()"
         >
           {% translate "cancel"|capfirst context "verb" %}
@@ -51,26 +51,44 @@
     </div>
   </dialog>
 
-  <div class="table-container">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>{% translate "slug"|capfirst context "noun" %}</th>
-          <th>{% translate "your role"|capfirst %}</th>
-          <th>{% translate "created"|capfirst %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for org in organizations %}
-          <tr>
-            <td><a href="{% url 'tx_email:dashboard' org.slug %}">{{ org.slug }}</a></td>
-            <td>{{ org.my_membership.0.get_role_display }}</td>
-            <td>{{ org.created_at|date:"M d, Y" }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="3">{% translate "no organizations yet." %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="item-group">
+    {% for org in organizations %}
+      <article class="item" data-variant="outline">
+        <section>
+          <h3><a href="{% url 'accounts:organization_home' org.slug %}">{{ org.slug }}</a></h3>
+          <p class="flex items-center gap-3 flex-wrap">
+            {{ org.my_membership.0.get_role_display }} · {{ org.created_at|date:"M d, Y" }}
+            <div class="avatar-group">
+              {% for m in org.memberships.all|slice:":5" %}
+                <span class="avatar" data-size="sm">
+                  <img src="{% gravatar_url m.user 56 %}" alt="@{{ m.user.username }}">
+                  <span>{{ m.user.username|slice:":2"|upper }}</span>
+                </span>
+              {% endfor %}
+              {% if org.memberships.all|length > 5 %}
+                <span
+                  data-count
+                  aria-label="{% blocktranslate count counter=org.memberships.all|length|add:'-5' %}{{ counter }} additional member{% plural %}{{ counter }} additional members{% endblocktranslate %}"
+                >
+                  <i data-lucide="plus" class="size-3.5" aria-hidden="true"></i>
+                </span>
+              {% endif %}
+            </div>
+          </p>
+        </section>
+        <aside>
+          <a
+            href="{% url 'accounts:organization_detail' org.slug %}"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+          >
+            {% translate "manage"|capfirst context "verb" %}
+          </a>
+        </aside>
+      </article>
+    {% empty %}
+      <p class="text-muted-foreground">{% translate "no organizations yet." %}</p>
+    {% endfor %}
   </div>
 {% endblock %}

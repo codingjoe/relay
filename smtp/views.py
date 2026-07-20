@@ -4,11 +4,13 @@ from email import message_from_bytes
 from email.message import EmailMessage
 
 from django.conf import settings
+from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from django.views.generic import DeleteView, DetailView, ListView, View
 
 from accounts.views import OrganizationScopedView
@@ -198,6 +200,7 @@ class TestEmailView(OrganizationScopedView, View):
                 domain_id=domain.pk if domain else None,
             )
         )
+        messages.success(request, _("Test message queued for delivery."))
         return redirect("smtp:message_log", org_slug=org_slug)
 
 
@@ -230,6 +233,10 @@ class SmtpCredentialCreateView(OrganizationScopedView, View):
             name=request.POST.get("name", ""),
         )
         request.session["raw_key"] = raw_key
+        messages.success(
+            request,
+            _("SMTP credential “%(name)s” created.") % {"name": credential.name},
+        )
         return redirect("smtp:credential_list", org_slug=org_slug)
 
 
@@ -241,3 +248,7 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
 
     def get_success_url(self):
         return reverse_lazy("smtp:credential_list", kwargs={"org_slug": self.org.slug})
+
+    def form_valid(self, form):
+        messages.success(self.request, _("SMTP credential deleted."))
+        return super().form_valid(form)

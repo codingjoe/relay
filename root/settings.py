@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 import environ
 
+import django.forms
+
 env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False)
@@ -43,6 +45,10 @@ USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
+
+# Render Django forms (and widgets) using the project's template engine,
+# so per-project overrides under `templates/django/forms/...` take effect.
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -79,17 +85,31 @@ MIDDLEWARE = [
 ROOT_URLCONF = "root.urls"
 
 
-_TEMPLATES_LOADERS = [
-    "django.template.loaders.filesystem.Loader",
+# Bundled Django form templates (so FORM_RENDERER=TemplatesSetting can
+# fall back to them when the project does not override a widget template).
+# The bundled dir is loaded via a dedicated filesystem loader placed *after*
+# app_directories, so app-level widget overrides (e.g. abstract app) win.
+_DJANGO_FORM_TEMPLATES_DIR = Path(os.path.dirname(django.forms.__file__)) / "templates"
+
+# Loader order matters: app_directories must precede the bundled form
+# templates so that widget overrides in <app>/templates/django/forms/widgets/
+# take precedence over the defaults bundled with Django.
+_UNCACHED_TEMPLATES_LOADERS = [
     "django.template.loaders.app_directories.Loader",
+    (
+        "django.template.loaders.filesystem.Loader",
+        [_DJANGO_FORM_TEMPLATES_DIR],
+    ),
+    (
+        "django.template.loaders.filesystem.Loader",
+        [BASE_DIR / "legal" / "docs"],
+    ),
 ]
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [
-            BASE_DIR / "legal" / "docs",
-        ],
+        "DIRS": [],
         "OPTIONS": {
             "context_processors": (
                 ["django.template.context_processors.debug"] if DEBUG else []
@@ -103,12 +123,12 @@ TEMPLATES = [
             ],
             "debug": DEBUG,
             "loaders": (
-                _TEMPLATES_LOADERS
+                _UNCACHED_TEMPLATES_LOADERS
                 if DEBUG
                 else [
                     (
                         "django.template.loaders.cached.Loader",
-                        _TEMPLATES_LOADERS,
+                        _UNCACHED_TEMPLATES_LOADERS,
                     ),
                 ]
             ),

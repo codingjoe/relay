@@ -28,7 +28,7 @@ class TestMarkdownView:
         view.title = "Test"
         view.breadcrumbs = [("Home", "home")]
         view.request = RequestFactory().get("/test/")
-        breadcrumbs = view.get_context_data()["breadcrumbs"]
-        assert breadcrumbs[-1]["title"] == "Test"
-        assert breadcrumbs[-1]["url"] == "/test/"
-        assert breadcrumbs[0]["title"] == "Home"
+        breadcrumbs = view.get_context_data()["breadcrumb_trail"]
+        assert breadcrumbs[-1]["label"] == "Test"
+        assert breadcrumbs[-1]["url"] is None
+        assert breadcrumbs[0]["label"] == "Home"

@@ -1,0 +1,13 @@
+{% load i18n %}{% for toast in toasts %}
+  <div class="toast" role="status" aria-atomic="true" data-category="{{ toast.category }}">
+    <div class="toast-content">
+      <section>
+        <h2>{{ toast.title }}</h2>
+        <p>{{ toast.body }}</p>
+      </section>
+      <footer>
+        <button type="button" class="btn" data-toast-action>{% translate "Dismiss" %}</button>
+      </footer>
+    </div>
+  </div>
+{% endfor %}

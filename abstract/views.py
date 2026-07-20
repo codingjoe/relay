@@ -20,8 +20,9 @@ class MarkdownView(generic.TemplateView):
             "title": self.title,
             "markdown_template": self.markdown_template,
             "toc_levels": self.toc_levels,
-            "breadcrumbs": [
-                {"title": title, "url": reverse(url)} for title, url in self.breadcrumbs
+            "breadcrumb_trail": [
+                {"label": label, "url": reverse(url) if url else None}
+                for label, url in self.breadcrumbs
             ]
-            + [{"title": self.title, "url": self.request.path}],
+            + [{"label": self.title, "url": None}],
         }

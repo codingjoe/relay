@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "dashboard"|capfirst %} — {{ m|title }}{% endblock %}
+{% block title %}{% translate "dashboard"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "dashboard"|capfirst %}</h2>
     <button
       type="button"
       class="btn"
-      data-variant="outline"
+      data-variant="secondary"
       onclick="document.getElementById('dlg-test-email').showModal()"
     >
       {% translate "send test email"|title %}
@@ -50,7 +50,7 @@
         <button
           type="button"
           class="btn"
-          data-variant="outline"
+          data-variant="secondary"
           onclick="document.getElementById('dlg-test-email').close()"
         >
           {% translate "cancel"|capfirst context "verb" %}
@@ -62,47 +62,69 @@
     </div>
   </dialog>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-    <article class="card">
-      <div class="flex flex-col gap-1">
-        <h3 class="m-0 text-3xl font-bold">{{ total_domains }}</h3>
-        <p class="m-0 text-muted-foreground">{% translate "domains"|capfirst context "noun" %}</p>
-      </div>
-    </article>
-    <article class="card">
-      <div class="flex flex-col gap-1">
-        <h3 class="m-0 text-3xl font-bold">{{ total_messages }}</h3>
-        <p class="m-0 text-muted-foreground">{% translate "messages"|capfirst context "noun" %}</p>
-      </div>
-    </article>
-  </div>
-
-  <section class="flex flex-col gap-3">
-    <h3 class="m-0">{% translate "domains"|capfirst context "noun" %}</h3>
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>{% translate "domain"|capfirst context "noun" %}</th>
-            <th>{% translate "verified"|capfirst %}</th>
-            <th>{% translate "created"|capfirst %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for domain in domains %}
-            <tr>
-              <td><a href="{% url 'domains:domain_detail' org.slug domain.pk %}">{{ domain.name }}</a></td>
-              <td>
-                {% if domain.verified_at %}✅ {% translate "verified"|capfirst %}{% else %}⏳
-                  {% translate "pending"|capfirst %}{% endif %}
-              </td>
-              <td>{{ domain.created_at|naturaltime|capfirst }}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="3">{% translate "no domains yet." %}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <section class="card">
+    <header>
+      <h3 class="m-0">{% translate "messages by status" %}</h3>
+      <p class="m-0 text-muted-foreground">
+        {% blocktranslate count days=chart.rows|length %}{{ days }} day{% plural %}{{ days }}
+          days{% endblocktranslate %}
+      </p>
+    </header>
+    <canvas id="chart-messages" class="h-72" aria-label="{% translate 'messages by status' %}"></canvas>
+    {{ chart.rows|json_script:"chart-messages-data" }}
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        window.basecoat.chart("#chart-messages", {
+          type: "line",
+          labelKey: "day",
+          data: JSON.parse(document.getElementById("chart-messages-data").textContent),
+          series: {
+            {% for series in chart.series %}
+              "{{ series.key }}": {
+                label: "{{ series.label|capfirst }}",
+                color: "{{ series.color }}",
+                surface: "gradient",
+                dataset: {
+                  fill: true,
+                  tension: 0.35,
+                  stack: "status",
+                  pointRadius: 0,
+                  pointHoverRadius: 4,
+                },
+              }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          },
+          options: {
+            scales: {
+              x: {
+                ticks: {
+                  maxTicksLimit: 6,
+                  callback: function (value) {
+                    return new Intl.DateTimeFormat(document.documentElement.lang, {
+                      month: "short",
+                      day: "numeric",
+                    }).format(new Date(this.getLabelForValue(value)));
+                  },
+                },
+              },
+              y: { stacked: true, beginAtZero: true },
+            },
+            plugins: {
+              tooltip: {
+                mode: "index",
+                callbacks: {
+                  title: (items) =>
+                    new Intl.DateTimeFormat(document.documentElement.lang, {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }).format(new Date(items[0].label)),
+                },
+              },
+            },
+          },
+        });
+      });
+    </script>
   </section>
 {% endblock %}

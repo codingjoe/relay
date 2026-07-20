@@ -1,37 +1,53 @@
 {% load i18n accounts %}
-<header class="app-topbar">
-  <button
-    type="button"
-    class="btn"
-    data-size="icon"
-    data-variant="ghost"
-    onclick="document.getElementById('app-sidebar')?.toggle()"
-    aria-label='{% translate "toggle sidebar"|capfirst %}'
-  >
-    <i data-lucide="panel-left" class="size-5" aria-hidden="true"></i>
-  </button>
+<header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0 z-40">
+  {% if current_org %}
+    <button
+      type="button"
+      class="btn"
+      data-size="icon"
+      data-variant="ghost"
+      onclick="document.getElementById('app-sidebar')?.toggle()"
+      aria-label='{% translate "toggle sidebar"|capfirst %}'
+    >
+      <i data-lucide="panel-left" aria-hidden="true"></i>
+    </button>
+  {% endif %}
 
-  <a href="{% url 'home' %}" class="app-logo" aria-label='{% translate "relay" context "noun"|capfirst %}'>
-    {% translate "relay" context "noun"|capfirst %}
+  <a
+    href="{% url 'home' %}"
+    class="font-bold text-lg tracking-tight"
+    aria-label="relay"
+  >
+    relay
   </a>
 
-  <nav class="app-tabs grow" aria-label='{% translate "main"|capfirst %}'>
-    <a
-      href="{% url 'home' %}"
-      {% if not current_org %}aria-current="page"{% endif %}
-    >{% translate "relay" context "noun"|capfirst %}</a>
-    <a
-      href="{% if current_org %}{% url 'tx_email:dashboard' current_org.slug %}{% else %}{% url 'accounts:login' %}{% endif %}"
-      {% if current_org %}aria-current="page"{% endif %}
-    >{% translate "email"|capfirst %}</a>
-    <a
-      href="#"
-      aria-disabled="true"
-      title='{% translate "coming soon" %}'
-    >{% translate "voip"|capfirst context "noun" %}</a>
-  </nav>
+  {% if current_org %}
+    <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
+      {% url 'tx_email:dashboard' current_org.slug as email_url %}
+      <a
+        href="{{ email_url }}"
+        class="btn"
+        data-size="sm"
+        data-variant="ghost"
+        {% if request.path == email_url %}aria-current="page"{% endif %}
+      >{% translate "email"|capfirst context "noun" %}</a>
+      <button
+        type="button"
+        class="btn"
+        data-size="sm"
+        data-variant="ghost"
+        aria-disabled="true"
+        title='{% translate "coming soon" %}'
+      >
+        {% translate "VoIP" context "acronym" %}
+        <span class="badge" data-size="sm">{% translate "coming soon" %}</span>
+      </button>
+    </nav>
+  {% else %}
+    <div class="grow"></div>
+  {% endif %}
 
-  <div class="app-topbar-right">
+  <div class="flex items-center gap-2 ms-auto">
     {% if user.is_authenticated %}
       {% if current_org %}
         <div class="dropdown-menu" id="org-switcher">
@@ -58,7 +74,7 @@
                     data-value="{{ o.slug }}"
                     {% if o.slug == current_org.slug %}data-checked{% endif %}
                   >
-                    <a href="{% url 'tx_email:dashboard' o.slug %}" class="w-full">
+                    <a href="{% url 'accounts:organization_home' o.slug %}" class="w-full">
                       <span class="grow">{{ o.slug }}</span>
                       {% if o.slug == current_org.slug %}
                         <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
@@ -87,7 +103,7 @@
           aria-controls="user-menu-menu"
           aria-haspopup="menu"
           aria-expanded="false"
-          class="app-avatar-btn"
+          class="rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <span class="avatar" data-size="sm">
             <img src="{% gravatar_url user 56 %}" alt="@{{ user.username }}">
@@ -110,14 +126,6 @@
                   {% translate "your organizations"|capfirst context "noun" %}
                 </a>
               </div>
-              {% if current_org %}
-                <div role="menuitem">
-                  <a href="{{ current_org.get_absolute_url }}">
-                    <i data-lucide="settings" class="size-3.5" aria-hidden="true"></i>
-                    {% translate "settings"|capfirst %}
-                  </a>
-                </div>
-              {% endif %}
             </div>
             <hr role="separator">
             <div role="group">

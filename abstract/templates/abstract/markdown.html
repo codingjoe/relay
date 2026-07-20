@@ -3,15 +3,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-  <div class="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-8">
-    <aside class="md:sticky md:top-0 md:self-start">
-      <p class="font-semibold mb-3">
-        {{ title|title }}
-      </p>
-      {% include_md_toc markdown_template toc_levels %}
-    </aside>
-    <article>
-      {% include_md markdown_template %}
-    </article>
-  </div>
+  <article class="prose max-w-3xl mx-auto">
+    {% include_md markdown_template %}
+  </article>
 {% endblock %}

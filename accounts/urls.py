@@ -7,8 +7,10 @@ from .views import (
     LoginView,
     MembershipCreateView,
     MembershipDeleteView,
+    MembershipUpdateView,
     OrganizationDeleteView,
     OrganizationDetailView,
+    OrganizationHomeView,
     OrganizationListView,
     OrganizationUpdateView,
 )
@@ -34,33 +36,50 @@ urlpatterns = [
         ),
     ),
     path(
-        "org/<slug:org_slug>/settings/",
+        "org/<slug:org_slug>/",
         include(
             [
                 path(
                     "",
-                    OrganizationDetailView.as_view(),
-                    name="organization_detail",
+                    OrganizationHomeView.as_view(),
+                    name="organization_home",
                 ),
                 path(
-                    "edit",
-                    OrganizationUpdateView.as_view(),
-                    name="organization_update",
-                ),
-                path(
-                    "delete",
-                    OrganizationDeleteView.as_view(),
-                    name="organization_delete",
-                ),
-                path(
-                    "members/new",
-                    MembershipCreateView.as_view(),
-                    name="membership_create",
-                ),
-                path(
-                    "members/<int:member_pk>/delete",
-                    MembershipDeleteView.as_view(),
-                    name="membership_delete",
+                    "settings/",
+                    include(
+                        [
+                            path(
+                                "",
+                                OrganizationDetailView.as_view(),
+                                name="organization_detail",
+                            ),
+                            path(
+                                "edit",
+                                OrganizationUpdateView.as_view(),
+                                name="organization_update",
+                            ),
+                            path(
+                                "delete",
+                                OrganizationDeleteView.as_view(),
+                                name="organization_delete",
+                            ),
+                            path(
+                                "members/new",
+                                MembershipCreateView.as_view(),
+                                name="membership_create",
+                            ),
+                            path(
+                                "members/<int:member_pk>/delete",
+                                MembershipDeleteView.as_view(),
+                                name="membership_delete",
+                            ),
+                            path(
+                                "members/<int:member_pk>/edit",
+                                MembershipUpdateView.as_view(),
+                                name="membership_update",
+                            ),
+                        ]
+                    ),
                 ),
             ]
         ),

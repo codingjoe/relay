@@ -49,11 +49,11 @@ urlpatterns = [
     path("", views.HomeView.as_view(), name="home"),
     # Platform (not org-scoped)
     path("", include("accounts.urls")),
-    path("", include("legal.urls")),
-    # Org-scoped
-    path("org/<slug:org_slug>/", include("tx_email.urls")),
-    path("org/<slug:org_slug>/", include("smtp.urls")),
-    path("org/<slug:org_slug>/domains/", include("domains.urls")),
+    path("legal/", include("legal.urls")),
+    # Org-scoped email
+    path("org/<slug:org_slug>/email/", include("tx_email.urls")),
+    path("org/<slug:org_slug>/email/", include("smtp.urls")),
+    path("org/<slug:org_slug>/email/domains/", include("domains.urls")),
     # Social auth + admin
     path("", include("social_django.urls")),
     path("admin/", admin.site.urls),

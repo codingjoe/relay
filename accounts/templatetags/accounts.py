@@ -24,4 +24,4 @@ def gravatar_url(user: User, size: int = 80) -> str:
 @register.simple_tag
 def platform_name() -> str:
     """Return the configured site name used in templates."""
-    return getattr(settings, "RELAY_PLATFORM_NAME", "Relay")
+    return getattr(settings, "RELAY_PLATFORM_NAME", "relay")

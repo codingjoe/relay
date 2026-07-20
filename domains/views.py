@@ -1,8 +1,10 @@
 """Domain management views."""
 
+from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, View
+from django.utils.translation import gettext_lazy as _
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
 from accounts.views import OrganizationScopedView
 
@@ -32,6 +34,10 @@ class DomainCreateView(OrganizationScopedView, CreateView):
 
     def form_valid(self, form):
         form.instance.org = self.org
+        messages.success(
+            self.request,
+            _("Domain “%(name)s” added.") % {"name": form.instance.name},
+        )
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -61,4 +67,35 @@ class DomainVerifyView(OrganizationScopedView, View):
     def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(Domain, org=self.org, pk=pk)
         verify_domain_dns(domain)
+        all_ok = all(
+            getattr(domain, f"{field}_status") == Domain.Status.OK
+            for field in ("nameserver", "spf", "dkim", "dmarc")
+        )
+        if all_ok:
+            messages.success(
+                request,
+                _("DNS records verified for “%(name)s”.") % {"name": domain.name},
+            )
+        else:
+            messages.error(
+                request,
+                _("DNS verification failed for “%(name)s”.") % {"name": domain.name},
+            )
         return redirect(domain.get_absolute_url())
+
+
+class DomainDeleteView(OrganizationScopedView, DeleteView):
+    model = Domain
+
+    def get_queryset(self):
+        return Domain.objects.filter(org=self.org)
+
+    def get_success_url(self):
+        return reverse_lazy("domains:domain_list", kwargs={"org_slug": self.org.slug})
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            _("Domain “%(name)s” deleted.") % {"name": self.object.name},
+        )
+        return super().form_valid(form)

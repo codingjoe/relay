@@ -1,0 +1,12 @@
+{% comment %}
+Override Django's select widget to add the basecoat `select` class.
+{% endcomment %}
+<select
+  name="{{ widget.name }}"
+  class="select {{ widget.attrs.class|default:'' }}"
+  {% for name, value in widget.attrs.items %}{% if name != 'class' and value is not False %}{% if value is True %} {{ name }}{% else %} {{ name }}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}{% endfor %}
+>{% for group_name, group_choices, group_index in widget.optgroups %}{% if group_name %}
+  <optgroup label="{{ group_name }}">{% endif %}{% for option in group_choices %}
+  {% include option.template_name with widget=option %}{% endfor %}{% if group_name %}
+  </optgroup>{% endif %}{% endfor %}
+</select>

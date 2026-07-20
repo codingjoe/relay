@@ -1,12 +1,30 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{{ domain.name }} — {{ m|title }}{% endblock %}
+{% block title %}{{ domain.name }} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{{ domain.name }}</h2>
-    <form method="post" action="{% url 'domains:domain_verify' org.slug domain.pk %}">
+    <form method="post">
       {% csrf_token %}
-      <button type="submit" class="btn" data-variant="outline">{% translate "verify DNS"|title %}</button>
+      <div role="group" class="button-group">
+        <button
+          type="submit"
+          class="btn"
+          data-variant="primary"
+          formaction="{% url 'domains:domain_verify' org.slug domain.pk %}"
+        >
+          {% translate "verify DNS"|title %}
+        </button>
+        <button
+          type="submit"
+          class="btn"
+          data-variant="destructive"
+          formaction="{% url 'domains:domain_delete' org.slug domain.pk %}"
+          onclick="return confirm('{% translate "delete this domain?"|capfirst context "verb" %}')"
+        >
+          {% translate "delete"|capfirst context "verb" %}
+        </button>
+      </div>
     </form>
   </header>
 
@@ -29,32 +47,71 @@ _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domai
     <h3 class="m-0">{% translate "verification status"|title %}</h3>
     <ul class="flex flex-col gap-2 m-0 p-0 list-none">
       <li class="flex items-center gap-2">
-        {% if domain.nameserver_status == 'ok' %}<span class="badge"
-          >✅</span>{% elif domain.nameserver_status == 'error' %}<span class="badge">❌</span>{% else %}<span
-            class="badge"
-          >⏳</span>{% endif %}
+        {% if domain.nameserver_status == 'ok' %}<i
+            data-lucide="circle-check"
+            class="size-4 text-success"
+            aria-hidden="true"
+          ></i>{% elif domain.nameserver_status == 'error' %}<i
+            data-lucide="circle-x"
+            class="size-4 text-destructive"
+            aria-hidden="true"
+          ></i>{% else %}<i
+            data-lucide="circle-dashed"
+            class="size-4 text-muted-foreground"
+            aria-hidden="true"
+          ></i>{% endif %}
         <strong>Nameserver</strong>
         {% if domain.nameserver_error %}<span class="text-muted-foreground">—
             {{ domain.nameserver_error }}</span>{% endif %}
       </li>
       <li class="flex items-center gap-2">
-        {% if domain.spf_status == 'ok' %}<span class="badge">✅</span>{% elif domain.spf_status == 'error' %}<span
-            class="badge"
-          >❌</span>{% else %}<span class="badge">⏳</span>{% endif %}
+        {% if domain.spf_status == 'ok' %}<i
+            data-lucide="circle-check"
+            class="size-4 text-success"
+            aria-hidden="true"
+          ></i>{% elif domain.spf_status == 'error' %}<i
+            data-lucide="circle-x"
+            class="size-4 text-destructive"
+            aria-hidden="true"
+          ></i>{% else %}<i
+            data-lucide="circle-dashed"
+            class="size-4 text-muted-foreground"
+            aria-hidden="true"
+          ></i>{% endif %}
         <strong>SPF</strong>
         {% if domain.spf_error %}<span class="text-muted-foreground">— {{ domain.spf_error }}</span>{% endif %}
       </li>
       <li class="flex items-center gap-2">
-        {% if domain.dkim_status == 'ok' %}<span class="badge">✅</span>{% elif domain.dkim_status == 'error' %}<span
-            class="badge"
-          >❌</span>{% else %}<span class="badge">⏳</span>{% endif %}
+        {% if domain.dkim_status == 'ok' %}<i
+            data-lucide="circle-check"
+            class="size-4 text-success"
+            aria-hidden="true"
+          ></i>{% elif domain.dkim_status == 'error' %}<i
+            data-lucide="circle-x"
+            class="size-4 text-destructive"
+            aria-hidden="true"
+          ></i>{% else %}<i
+            data-lucide="circle-dashed"
+            class="size-4 text-muted-foreground"
+            aria-hidden="true"
+          ></i>{% endif %}
         <strong>DKIM</strong>
         {% if domain.dkim_error %}<span class="text-muted-foreground">— {{ domain.dkim_error }}</span>{% endif %}
       </li>
       <li class="flex items-center gap-2">
-        {% if domain.dmarc_status == 'ok' %}<span class="badge">✅</span>{% elif domain.dmarc_status == 'error' %}<span
-            class="badge"
-          >❌</span>{% else %}<span class="badge">⏳</span>{% endif %}
+        {% if domain.dmarc_status == 'ok' %}<i
+            data-lucide="circle-check"
+            class="size-4 text-success"
+            aria-hidden="true"
+          ></i>{% elif domain.dmarc_status == 'error' %}<i
+            data-lucide="circle-x"
+            class="size-4 text-destructive"
+            aria-hidden="true"
+          ></i>{% else %}<i
+            data-lucide="circle-dashed"
+            class="size-4 text-muted-foreground"
+            aria-hidden="true"
+          ></i>{% endif %}
         <strong>DMARC</strong>
         {% if domain.dmarc_error %}<span class="text-muted-foreground">— {{ domain.dmarc_error }}</span>{% endif %}
       </li>

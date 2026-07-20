@@ -1,0 +1,14 @@
+{% comment %}
+Override Django's checkbox widget to add the basecoat `checkbox` class.
+{% endcomment %}
+<input
+  type="checkbox"
+  name="{{ widget.name }}"
+  class="checkbox {{ widget.attrs.class|default:'' }}"
+  {% if widget.value != None %}value="{{ widget.value|stringformat:'s' }}"{% endif %}
+  {% for name, value in widget.attrs.items %}
+    {% if name != 'class' and value is not False %}
+      {% if value is True %}{{ name }}{% else %}{{ name }}="{{ value|stringformat:'s' }}"{% endif %}
+    {% endif %}
+  {% endfor %}
+>
