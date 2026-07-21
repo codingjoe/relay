@@ -1,5 +1,3 @@
-"""Account-related template tags."""
-
 import hashlib
 
 from django import template

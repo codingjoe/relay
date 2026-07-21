@@ -2,12 +2,12 @@
 
 from django.urls import path
 
-from .views import ImprintView, PrivacyView, TermsView
+from . import views
 
 app_name = "legal"
 
 urlpatterns = [
-    path("imprint/", ImprintView.as_view(), name="imprint"),
-    path("terms/", TermsView.as_view(), name="terms"),
-    path("privacy/", PrivacyView.as_view(), name="privacy"),
+    path("imprint/", views.ImprintView.as_view(), name="imprint"),
+    path("terms/", views.TermsView.as_view(), name="terms"),
+    path("privacy/", views.PrivacyView.as_view(), name="privacy"),
 ]
