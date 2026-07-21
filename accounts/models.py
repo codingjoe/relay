@@ -43,7 +43,7 @@ class Organization(TimeStamped):
         return self.slug
 
     def get_absolute_url(self):
-        return reverse("accounts:organization_detail", kwargs={"org_slug": self.slug})
+        return reverse("accounts:org-home", kwargs={"org_slug": self.slug})
 
 
 class Membership(TimeStamped):

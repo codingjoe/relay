@@ -147,5 +147,5 @@ class TestOrganizationGetAbsoluteUrl:
 
         org = Organization.objects.create(slug="acme")
         assert org.get_absolute_url() == reverse(
-            "accounts:organization_detail", kwargs={"org_slug": "acme"}
+            "accounts:org-home", kwargs={"org_slug": "acme"}
         )

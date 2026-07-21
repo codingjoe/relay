@@ -24,11 +24,13 @@ class TestMarkdownView:
         assert view.get_context_data()["toc_levels"] == "2-3"
 
     def test_get_context_data__has_breadcrumbs(self):
-        view = MarkdownView()
-        view.title = "Test"
-        view.breadcrumbs = [("Home", "home")]
+        class TestMarkdownView(MarkdownView):
+            title = "Test"
+            parent = "home"
+
+        view = TestMarkdownView()
         view.request = RequestFactory().get("/test/")
         breadcrumbs = view.get_context_data()["breadcrumbs"]
         assert breadcrumbs[-1]["title"] == "Test"
-        assert breadcrumbs[-1]["url"] == "/test/"
+        assert breadcrumbs[-1]["url"] is None
         assert breadcrumbs[0]["title"] == "Home"

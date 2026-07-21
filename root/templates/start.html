@@ -1,69 +1,332 @@
 {% extends "base.html" %}
-{% load i18n %}
-{% block title %}{% translate "relay — zero-config email infrastructure"|title %}{% endblock %}
+{% load i18n static %}
+{% block topbar %}{% endblock %}
+{% block chrome %}{% endblock %}
+{% block title %}{% translate "relay — infrastructure as a service"|title %}{% endblock %}
 {% block content %}
-  <div class="text-center">
-    <h1>📬 {{ m|title }}</h1>
-    <h2>{% translate "zero-config email infrastructure"|title %}</h2>
-    <p>
-      {% blocktranslate %}a modern B2B communication platform with a built-in authoritative nameserver. send email
-        without the DNS headache.{% endblocktranslate %}
-    </p>
-    {% if user.is_authenticated %}
-      <a href="{% url 'accounts:organization_list' %}" role="button">{% translate "go to dashboard"|capfirst %} →</a>
-    {% else %}
-      <form method="post" action="{% url 'social:begin' 'github' %}" style="display: inline">
-        {% csrf_token %}
-        <button type="submit" role="button">{% translate "get started"|title %} →</button>
-      </form>
-    {% endif %}
+  <div class="start relative isolate -mx-6 sm:-mx-8">
+    <div
+      class="landing-network pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      aria-hidden="true"
+    >
+      <div class="landing-network__grid"></div>
+      <div class="landing-network__pulse landing-network__pulse--a"></div>
+      <div class="landing-network__pulse landing-network__pulse--b"></div>
+      <div class="landing-network__pulse landing-network__pulse--c"></div>
+    </div>
+
+    <section class="flex flex-col items-center text-center gap-8 pt-20 sm:pt-28 pb-16 sm:pb-20 max-w-5xl mx-auto px-4 sm:px-8">
+      <span
+        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-mono font-medium text-muted-foreground shadow-sm"
+      >
+        {% translate "for nerds by nerds"|capfirst %}
+        <span class="text-muted-foreground/50">&lt;3</span>
+      </span>
+      <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0">
+        Infrastructure <span class="landing-accent">as a Service</span>
+      </h1>
+      <p class="text-xl sm:text-2xl text-muted-foreground m-0 max-w-3xl leading-relaxed">
+        {% blocktranslate %}email sending, receiving, reputation monitoring, and a dev sandbox — ready the moment you
+          sign up.{% endblocktranslate %}
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
+            {% translate "go to dashboard"|capfirst %}
+            <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
+          </a>
+        {% else %}
+          <form method="post" action="{% url 'social:begin' 'github' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn" data-size="lg">
+              <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+              {% translate "get started free"|capfirst %}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+      <p class="text-sm text-muted-foreground flex items-center gap-3 m-0 font-mono">
+        <span class="inline-flex items-center gap-1.5">
+          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% translate "no credit card required"|capfirst %}
+        </span>
+        <span aria-hidden="true">·</span>
+        <span class="inline-flex items-center gap-1.5">
+          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% translate "no setup required"|capfirst %}
+        </span>
+      </p>
+    </section>
+
+    <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="send" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "email sending"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}Send via SMTP or MCP with automated sender verification.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="inbox" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}Receive incoming mail via webhooks, API, or MCP.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="line-chart" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "reputation monitoring"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}Track delivery status, bounce rates, and sender reputation across all
+              domains.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="terminal" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "dev sandbox"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}Test credentials and a free sender domain ready the moment you sign
+              up.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="shield-check" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "hosted in the EU"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}GDPR compliant, EU data sovereignty, no third-country transfer.{% endblocktranslate %}
+          </p>
+        </article>
+        <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
+          <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
+            <i data-lucide="cpu" class="size-6 text-primary" aria-hidden="true"></i>
+          </div>
+          <h3 class="m-0 text-lg">{% translate "AI-first"|capfirst %}</h3>
+          <p class="text-muted-foreground m-0 leading-relaxed">
+            {% blocktranslate %}For AI agents to send and receive email, with a focus on privacy and
+              security.{% endblocktranslate %}
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-8">
+      <h2 class="text-center text-1xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
+        {% translate "start free. pay as you go."|capfirst %}
+      </h2>
+      <p class="text-center text-muted-foreground m-0 mb-10">
+        {% blocktranslate %}no contracts, no surprises.{% endblocktranslate %}
+      </p>
+      <div class="card p-8 shadow-sm border-primary/20 max-w-lg mx-auto">
+        <header class="m-0">
+          <p class="text-sm font-medium text-muted-foreground m-0">{% translate "pay as you go"|capfirst %}</p>
+          <p class="m-0 mt-1 flex items-baseline gap-1">
+            <span class="text-6xl font-bold tracking-tight font-mono" id="price-amount">€0</span>
+            <span class="text-muted-foreground" id="price-period">
+              {% blocktranslate %}/ month{% endblocktranslate %}
+            </span>
+          </p>
+        </header>
+        <section class="m-0 mt-6 flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-2 text-sm font-mono">
+            <label for="price-slider" class="text-muted-foreground">{% translate "monthly volume"|capfirst %}</label>
+            <output for="price-slider" id="price-volume" class="font-semibold">0</output>
+          </div>
+          <input
+            type="range"
+            id="price-slider"
+            class="input w-full"
+            min="0"
+            max="100000"
+            step="1000"
+            value="1000"
+            aria-label="monthly email volume"
+          >
+          <p class="text-xs text-muted-foreground m-0 font-mono">
+            {% blocktranslate %}first 1,000 emails free, then €0.75 / 1,000 emails{% endblocktranslate %}
+          </p>
+        </section>
+        <hr class="my-6 border-border">
+        <section class="m-0">
+          <ul class="flex flex-col gap-3 m-0 p-0 list-none">
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "30-day message retention"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "unlimited domains"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "DKIM, SPF, DMARC management"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "sender reputation monitoring"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "unlimited team members"|capfirst %}
+            </li>
+          </ul>
+        </section>
+        <footer class="m-0 mt-6">
+          {% if user.is_authenticated %}
+            <a href="{% url 'accounts:org-list' %}" class="btn w-full" data-size="lg">
+              {% translate "go to dashboard"|capfirst %}
+              <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
+            </a>
+          {% else %}
+            <form method="post" action="{% url 'social:begin' 'github' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn w-full" data-size="lg">
+                <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+                {% translate "get started free"|capfirst %}
+              </button>
+            </form>
+          {% endif %}
+        </footer>
+      </div>
+    </section>
   </div>
 
-  <hr>
+  <style>
+    .start .card,
+    .start [class*='bg-card'] {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background-color: color-mix(in srgb, var(--color-card) 75%, transparent);
+    }
 
-  <h3>{% translate "two DNS records. that's it."|title %}</h3>
-  <p>
-    {% blocktranslate %}traditional mail servers require you to manually configure MX, SPF, DKIM, Return-Path, and CNAME
-      records at your DNS provider. relay eliminates all of that.{% endblocktranslate %}
-  </p>
-  <ol>
-    <li>
-      <strong>{% translate "NS delegation" %}</strong> —
-      {% blocktranslate %}delegate your sender subdomain to our nameservers.{% endblocktranslate %}
-      <pre><code>mail.example.com.   NS   {{ nameservers.0 }}.
-mail.example.com.   NS   {{ nameservers.1 }}.</code></pre>
-    </li>
-    <li>
-      <strong>{% translate "DMARC record" %}</strong> —
-      {% blocktranslate %}on your root domain.{% endblocktranslate %}
-      <pre><code>_dmarc.example.com.   TXT  "v=DMARC1; p=none; rua=mailto:dmarc@example.com;"</code></pre>
-    </li>
-  </ol>
-  <p>
-    {% blocktranslate %}everything else — MX, SPF, DKIM, Return-Path, PTR — is served <strong>automatically</strong>
-      by our built-in nameserver. DKIM and SPF align with your root domain via DMARC relaxed
-      alignment.{% endblocktranslate %}
-  </p>
+    .landing-accent {
+      z-index: 0;
+      position: relative;
+    }
 
-  <hr>
+    .landing-accent::after {
+      z-index: -1;
+      position: absolute;
+      bottom: 0.05em;
+      height: 0.4em;
+      inset-inline: 0;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--color-primary) 25%, transparent);
+      content: '';
+    }
 
-  <h3>{% translate "features"|title %}</h3>
-  <ul>
-    <li>
-      <strong>{% translate "built-in DNS" %}</strong> — {% blocktranslate %}authoritative nameserver serves all mail
-        records automatically{% endblocktranslate %}
-    </li>
-    <li>
-      <strong>{% translate "DKIM signing" %}</strong> — {% blocktranslate %}RSA 2048-bit keys generated
-        per-domain{% endblocktranslate %}
-    </li>
-    <li>
-      <strong>{% translate "SMTP sending" %}</strong> — {% blocktranslate %}send via SMTP with credential-based
-        authentication{% endblocktranslate %}
-    </li>
-    <li>
-      <strong>{% translate "GitHub OAuth" %}</strong> — {% blocktranslate %}sign up and log in with your GitHub
-        account{% endblocktranslate %}
-    </li>
-  </ul>
+    .landing-network {
+      --ink: var(--color-foreground);
+      --ink-soft: var(--color-muted-foreground);
+      --accent: var(--color-primary);
+    }
+
+    .landing-network__grid {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1.5px 1.5px, var(--ink-soft) 1.5px, transparent 0);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse 95% 75% at 50% 35%, black 50%, transparent 95%);
+      opacity: 0.9;
+    }
+
+    .landing-network__grid::before {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, color-mix(in srgb, var(--ink) 40%, transparent) 1px, transparent 1px),
+        linear-gradient(to bottom, color-mix(in srgb, var(--ink) 40%, transparent) 1px, transparent 1px);
+      background-size: 160px 160px;
+      content: '';
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, black 30%, transparent 80%);
+    }
+
+    .landing-network__pulse {
+      position: absolute;
+      offset-path: path('M -50 220 C 200 60, 400 360, 600 200 S 1000 40, 1250 240');
+      offset-rotate: 0deg;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow:
+        0 0 0 4px color-mix(in srgb, var(--color-primary) 6%, transparent),
+        0 0 18px 4px color-mix(in srgb, var(--color-primary) 40%, transparent),
+        0 0 36px 10px color-mix(in srgb, var(--color-primary) 20%, transparent);
+      animation: pulse-travel 9s linear infinite;
+    }
+
+    .landing-network__pulse--a {
+      animation-delay: 0s;
+    }
+
+    .landing-network__pulse--b {
+      offset-path: path('M 1250 120 C 900 280, 700 40, 400 240 S 100 320, -50 160');
+      animation-delay: -3s;
+    }
+
+    .landing-network__pulse--c {
+      offset-path: path('M -50 520 C 300 320, 500 560, 700 420 S 1100 260, 1250 500');
+      animation-delay: -6s;
+    }
+
+    .landing-cli {
+      box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    @keyframes pulse-travel {
+      0% {
+        offset-distance: 0%;
+        opacity: 0;
+      }
+      8% {
+        opacity: 1;
+      }
+      92% {
+        opacity: 1;
+      }
+      100% {
+        offset-distance: 100%;
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .landing-network__pulse {
+        animation: none;
+        opacity: 0;
+      }
+    }
+  </style>
+  <script>
+    const slider = document.getElementById("price-slider");
+    const amount = document.getElementById("price-amount");
+    const period = document.getElementById("price-period");
+    const volume = document.getElementById("price-volume");
+    if (slider && amount && period && volume) {
+      const formatVolume = (n) => n.toLocaleString("en-US");
+      const formatEur = (n) =>
+        new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(n);
+      const update = () => {
+        const v = Number(slider.value);
+        const billable = Math.max(0, v - 1000);
+        const total = billable * 0.00075;
+        volume.textContent = `${formatVolume(v)} emails / month`;
+        amount.textContent = formatEur(total);
+        period.textContent = `/ month`;
+      };
+      slider.addEventListener("input", update);
+      update();
+    }
+  </script>
 {% endblock %}

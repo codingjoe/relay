@@ -1,0 +1,43 @@
+{% load i18n %}
+<aside id="app-sidebar" class="sidebar" data-side="left" data-breakpoint="md">
+  <nav aria-label='{% translate "email"|capfirst %}'>
+    <section class="scrollbar-sm">
+      <div role="group" aria-labelledby="app-sidebar-group-email">
+        <h3 id="app-sidebar-group-email">{% translate "email"|capfirst %}</h3>
+        <ul>
+          <li>
+            {% url 'tx_email:dashboard' current_org.slug as dashboard_url %}
+            <a href="{{ dashboard_url }}" {% if request.path == dashboard_url %}aria-current="page"{% endif %}>
+              <i data-lucide="layout-dashboard" class="shrink-0" aria-hidden="true"></i>
+              <span>{% translate "dashboard"|capfirst %}</span>
+            </a>
+          </li>
+          <li>
+            {% url 'smtp:message-list' current_org.slug as message_log_url %}
+            <a href="{{ message_log_url }}" {% if request.path == message_log_url %}aria-current="page"{% endif %}>
+              <i data-lucide="message-square" class="shrink-0" aria-hidden="true"></i>
+              <span>{% translate "messages"|capfirst context "noun" %}</span>
+            </a>
+          </li>
+          <li>
+            {% url 'smtp:credential-list' current_org.slug as credential_list_url %}
+            <a
+              href="{{ credential_list_url }}"
+              {% if request.path == credential_list_url %}aria-current="page"{% endif %}
+            >
+              <i data-lucide="key-round" class="shrink-0" aria-hidden="true"></i>
+              <span>{% translate "credentials"|capfirst context "noun" %}</span>
+            </a>
+          </li>
+          <li>
+            {% url 'domains:domain-list' current_org.slug as domain_list_url %}
+            <a href="{{ domain_list_url }}" {% if request.path == domain_list_url %}aria-current="page"{% endif %}>
+              <i data-lucide="globe" class="shrink-0" aria-hidden="true"></i>
+              <span>{% translate "domains"|capfirst context "noun" %}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </nav>
+</aside>

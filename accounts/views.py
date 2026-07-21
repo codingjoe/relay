@@ -1,12 +1,14 @@
 """Account views — auth, organization and member management."""
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
-from django.forms import CharField, ChoiceField, Form, ModelForm, SlugField, TextInput
+from django.forms import CharField, ModelForm, SlugField, TextInput
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import NoReverseMatch, reverse, reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from django.views.generic import (
     DeleteView,
     DetailView,
@@ -14,12 +16,13 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
-from django.utils.translation import gettext_lazy as _
+
+from abstract.views import BreadcrumbViewMixin
 
 from .models import Membership, Organization
 
 
-class OrganizationScopedView(LoginRequiredMixin):
+class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
     """Base for org-scoped views: load the org from the URL and enforce membership.
 
     Subclasses receive `self.org` and `org` is added to the template context.
@@ -29,6 +32,18 @@ class OrganizationScopedView(LoginRequiredMixin):
     """
 
     org = None
+
+    @classmethod
+    def get_url(cls, request) -> str | None:
+        """Reverse the parent URL using org-scoped kwargs from the request."""
+        if not cls.parent:
+            return None
+        match = request.resolver_match
+        kwargs = match.kwargs if match else {}
+        try:
+            return reverse(cls.parent, kwargs=kwargs)
+        except NoReverseMatch:
+            return reverse(cls.parent, kwargs={"org_slug": kwargs["org_slug"]})
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
@@ -56,7 +71,8 @@ class OrganizationListView(LoginRequiredMixin, ListView):
                 "memberships",
                 queryset=Membership.objects.filter(user=self.request.user),
                 to_attr="my_membership",
-            )
+            ),
+            "memberships__user",
         )
 
     def get_context_data(self, **kwargs):
@@ -76,7 +92,8 @@ class OrganizationListView(LoginRequiredMixin, ListView):
             user=request.user,
             role=Membership.Role.ADMIN,
         )
-        return redirect("tx_email:dashboard", org_slug=org.slug)
+        messages.success(request, _("Organization “%(org)s” created.") % {"org": org})
+        return redirect("accounts:org-home", org_slug=org.slug)
 
 
 class OrganizationForm(ModelForm):
@@ -92,9 +109,27 @@ class OrganizationForm(ModelForm):
         fields = ["slug"]
 
 
+class OrganizationHomeView(OrganizationScopedView, DetailView):
+    template_name = "accounts/organization_home.html"
+    context_object_name = "organization"
+    parent = ""
+
+    @classmethod
+    def get_title(cls, request=None) -> str:
+        """Return the organization name from the request's current org."""
+        if request and hasattr(request, "current_org"):
+            return str(request.current_org)
+        return ""
+
+    def get_object(self, queryset=None):
+        return self.org
+
+
 class OrganizationDetailView(OrganizationScopedView, DetailView):
     template_name = "accounts/organization_detail.html"
     context_object_name = "organization"
+    title = _("Settings")
+    parent = "accounts:org-home"
 
     def get_object(self, queryset=None):
         return self.org
@@ -113,6 +148,8 @@ class OrganizationUpdateView(OrganizationScopedView, UpdateView):
     model = Organization
     template_name = "accounts/organization_form.html"
     form_class = OrganizationForm
+    title = _("Edit")
+    parent = "accounts:org-detail"
 
     def get_object(self, queryset=None):
         return self.org
@@ -123,6 +160,13 @@ class OrganizationUpdateView(OrganizationScopedView, UpdateView):
         ).exists():
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            _("Organization “%(org)s” updated.") % {"org": self.org},
+        )
+        return super().form_valid(form)
 
     def get_success_url(self):
         return self.org.get_absolute_url()
@@ -131,7 +175,9 @@ class OrganizationUpdateView(OrganizationScopedView, UpdateView):
 class OrganizationDeleteView(OrganizationScopedView, DeleteView):
     model = Organization
     template_name = "accounts/organization_confirm_delete.html"
-    success_url = reverse_lazy("accounts:organization_list")
+    success_url = reverse_lazy("accounts:org-list")
+    title = _("Delete")
+    parent = "accounts:org-detail"
 
     def get_object(self, queryset=None):
         return self.org
@@ -143,15 +189,27 @@ class OrganizationDeleteView(OrganizationScopedView, DeleteView):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            _("Organization “%(org)s” deleted.") % {"org": self.org},
+        )
+        return super().form_valid(form)
 
-class MembershipForm(Form):
-    username = CharField(max_length=150)
-    role = ChoiceField(choices=Membership.Role, initial=Membership.Role.WRITE)
+
+class MembershipForm(ModelForm):
+    username = CharField(max_length=150, required=False)
+
+    class Meta:
+        model = Membership
+        fields = ["role"]
 
 
 class MembershipCreateView(OrganizationScopedView, DetailView):
     template_name = "accounts/organization_detail.html"
     context_object_name = "organization"
+    title = _("Settings")
+    parent = "accounts:org-home"
 
     def get_object(self, queryset=None):
         return self.org
@@ -177,17 +235,28 @@ class MembershipCreateView(OrganizationScopedView, DetailView):
             return self.render_to_response(
                 self.get_context_data() | {"member_form": form}
             )
-        Membership.objects.get_or_create(
+        membership, created = Membership.objects.get_or_create(
             org=self.org,
             user=user,
             defaults={"role": form.cleaned_data["role"]},
         )
+        if created:
+            messages.success(
+                request,
+                _("%(user)s added to “%(org)s”.")
+                % {"user": user.username, "org": self.org},
+            )
+        else:
+            messages.info(
+                request, _("%(user)s is already a member.") % {"user": user.username}
+            )
         return redirect(self.org.get_absolute_url())
 
 
 class MembershipDeleteView(OrganizationScopedView, DeleteView):
     model = Membership
     template_name = "accounts/membership_confirm_delete.html"
+    parent = "accounts:org-detail"
 
     def dispatch(self, request, *args, **kwargs):
         if not self.org.memberships.filter(
@@ -201,3 +270,39 @@ class MembershipDeleteView(OrganizationScopedView, DeleteView):
 
     def get_success_url(self):
         return self.org.get_absolute_url()
+
+    def form_valid(self, form):
+        username = self.get_object().user.username
+        messages.success(
+            self.request,
+            _("%(user)s removed from “%(org)s”.") % {"user": username, "org": self.org},
+        )
+        return super().form_valid(form)
+
+
+class MembershipUpdateView(OrganizationScopedView, UpdateView):
+    model = Membership
+    form_class = MembershipForm
+    template_name = "accounts/membership_form.html"
+    parent = "accounts:org-detail"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.org.memberships.filter(
+            user=request.user, role=Membership.Role.ADMIN
+        ).exists():
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=self.org)
+
+    def get_success_url(self):
+        return self.org.get_absolute_url()
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            _("%(user)s role updated to %(role)s.")
+            % {"user": self.object.user.username, "role": form.cleaned_data["role"]},
+        )
+        return super().form_valid(form)

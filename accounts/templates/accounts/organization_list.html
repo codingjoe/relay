@@ -1,50 +1,82 @@
 {% extends "base.html" %}
-{% load i18n %}
-{% block title %}{% translate "organizations"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% load i18n accounts abstract %}
+{% block title %}{% translate "organizations"|capfirst context "noun" %} — relay{% endblock %}
 {% block content %}
-  <h2>{% translate "organizations"|capfirst context "noun" %}</h2>
-  <button onclick="document.getElementById('dlg-new-org').showModal()">{% translate "new organization"|title %}</button>
-  <dialog id="dlg-new-org">
-    <form method="post" action="{% url 'accounts:organization_list' %}">
-      {% csrf_token %}
-      <p>
-        <label for="id_slug">{% translate "slug"|capfirst context "noun" %}</label>
-        <input
-          type="text"
-          name="slug"
-          id="id_slug"
-          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-          title="{% translate 'lowercase letters, digits, and hyphens' %}"
-          placeholder="my-org"
-          required
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "organizations"|capfirst context "noun" %}</h2>
+    <button type="button" class="btn" onclick="document.getElementById('dlg-new-org').showModal()">
+      {% translate "new organization"|title %}
+    </button>
+  </header>
+
+  <dialog class="dialog" id="dlg-new-org">
+    <div>
+      <header>
+        <h2>{% translate "new organization"|title %}</h2>
+        <p>{% translate "create a new organization to manage your email infrastructure."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'accounts:org-list' %}" id="dlg-new-org-form">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            {{ form }}
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('dlg-new-org').close()"
         >
-      </p>
-      <button type="submit">{% translate "create"|capfirst context "verb" %}</button>
-      <button type="button" onclick="document.getElementById('dlg-new-org').close()" class="outline">
-        {% translate "cancel"|capfirst context "verb" %}
-      </button>
-    </form>
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="dlg-new-org-form" class="btn">
+          {% translate "create"|capfirst context "verb" %}
+        </button>
+      </footer>
+    </div>
   </dialog>
-  <figure>
-    <table>
-      <thead>
-        <tr>
-          <th>{% translate "slug"|capfirst context "noun" %}</th>
-          <th>{% translate "your role"|capfirst %}</th>
-          <th>{% translate "created"|capfirst %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for org in organizations %}
-          <tr>
-            <td><a href="{% url 'tx_email:dashboard' org.slug %}">{{ org.slug }}</a></td>
-            <td>{{ org.my_membership.0.get_role_display }}</td>
-            <td>{{ org.created_at|date:"M d, Y" }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="3">{% translate "no organizations yet." %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </figure>
+
+  <div class="item-group">
+    {% for org in organizations %}
+      <article class="item" data-variant="outline">
+        <section>
+          <h3><a href="{% url 'accounts:org-home' org.slug %}">{{ org.slug }}</a></h3>
+          <p class="flex items-center gap-3 flex-wrap">
+            {{ org.my_membership.0.get_role_display }} · {{ org.created_at|naturalday|capfirst }}
+            <div class="avatar-group">
+              {% for m in org.memberships.all|slice:":5" %}
+                <span class="avatar" data-size="sm">
+                  <img src="{% gravatar_url m.user 56 %}" alt="@{{ m.user.username }}">
+                  <span>{{ m.user.username|slice:":2"|upper }}</span>
+                </span>
+              {% endfor %}
+              {% if org.memberships.all|length > 5 %}
+                <span
+                  data-count
+                  aria-label="{% blocktranslate count counter=org.memberships.all|length|add:'-5' %}{{ counter }} additional member{% plural %}{{ counter }} additional members{% endblocktranslate %}"
+                >
+                  <i data-lucide="plus" class="size-3.5" aria-hidden="true"></i>
+                </span>
+              {% endif %}
+            </div>
+          </p>
+        </section>
+        <aside>
+          <a
+            href="{% url 'accounts:org-detail' org.slug %}"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+          >
+            {% translate "manage"|capfirst context "verb" %}
+          </a>
+        </aside>
+      </article>
+    {% empty %}
+      <p class="text-muted-foreground">{% translate "no organizations yet." %}</p>
+    {% endfor %}
+  </div>
 {% endblock %}

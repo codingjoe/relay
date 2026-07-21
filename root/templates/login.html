@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "login"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block title %}{% translate "login"|capfirst context "noun" %} — relay{% endblock %}
 {% block content %}
-  <div class="text-center">
-    <h1>📬 {{ m|title }}</h1>
-    <h2>{% translate "sign in to continue"|title %}</h2>
-    <form method="post" action="{% url 'social:begin' 'github' %}" style="display: inline">
+  <div class="flex flex-col items-center justify-center text-center gap-6 py-12">
+    <h1 class="text-4xl font-bold m-0 flex items-center gap-3">
+      <i data-lucide="mailboxes" class="size-8" aria-hidden="true"></i>
+      relay
+    </h1>
+    <h2 class="text-xl text-muted-foreground m-0">{% translate "sign in to continue"|title %}</h2>
+    <form method="post" action="{% url 'social:begin' 'github' %}">
       {% csrf_token %}
-      <button type="submit" role="button">{% translate "sign in with GitHub"|title %}</button>
+      <button type="submit" class="btn" data-size="lg">{% translate "sign in with GitHub"|title %}</button>
     </form>
   </div>
 {% endblock %}

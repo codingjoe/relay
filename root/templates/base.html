@@ -1,98 +1,53 @@
-{% load static i18n %}
+{% load static i18n accounts %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
   <head>
     <meta charset="UTF-8">
-    {% translate "relay" context "noun" as m %}
-    <title>{% block title %}{{ m|title }}{% endblock %}</title>
+    <title>{% block title %}relay{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
-    <link rel="stylesheet" href="{% static 'css/pico.classless.yellow.min.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/basecoat-maia.cdn.min.css">
+    <style>
+      :root {
+        --color-primary: hsl(268, 100%, 41%);
+        --color-primary-foreground: hsl(0, 0%, 100%);
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/chart.min.js" defer></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script defer>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (window.lucide) window.lucide.createIcons();
+      });
+      (() => {
+        try {
+          const stored = localStorage.getItem("themeMode");
+          if (stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (_) {}
+      })();
+    </script>
   </head>
-  <body>
-    <header>
-      <nav>
-        <ul>
-          <li><strong><a href="{% url 'home' %}">📬 {{ m|title }}</a></strong></li>
-        </ul>
-        <ul>
-          {% if user.is_authenticated %}
-            {% if current_org %}
-              <li>
-                <a href="{% url 'tx_email:dashboard' current_org.slug %}">
-                  <strong>{{ current_org.slug }}</strong>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="{% url 'domains:domain_list' current_org.slug %}"
-                >{% translate "domains"|capfirst context "noun" %}</a>
-              </li>
-              <li>
-                <a
-                  href="{% url 'smtp:message_log' current_org.slug %}"
-                >{% translate "messages"|capfirst context "noun" %}</a>
-              </li>
-              <li>
-                <a
-                  href="{% url 'smtp:credential_list' current_org.slug %}"
-                >{% translate "credentials"|capfirst context "noun" %}</a>
-              </li>
-              <li>
-                <a href="{{ current_org.get_absolute_url }}">{% translate "settings"|capfirst %}</a>
-              </li>
-            {% endif %}
-            <li>
-              <a
-                href="{% url 'accounts:organization_list' %}"
-              >{% translate "organizations"|capfirst context "noun" %}</a>
-            </li>
-          {% endif %}
-        </ul>
-        <ul>
-          {% if user.is_authenticated %}
-            <li>
-              <button onclick="document.getElementById('dlg-switch-org').showModal()">
-                {% translate "switch org"|capfirst %}
-              </button>
-              <dialog id="dlg-switch-org">
-                <h3>{% translate "switch org"|capfirst %}</h3>
-                <ul>
-                  {% for o in user_orgs %}
-                    <li>
-                      <a href="{% url 'tx_email:dashboard' o.slug %}">{{ o.slug }}</a>
-                      {% if current_org and current_org.slug == o.slug %}<small>✓</small>{% endif %}
-                    </li>
-                  {% endfor %}
-                </ul>
-                <button type="button" onclick="document.getElementById('dlg-switch-org').close()" class="outline">
-                  {% translate "close"|capfirst %}
-                </button>
-              </dialog>
-            </li>
-            <li>
-              <form method="post" action="{% url 'accounts:logout' %}">
-                {% csrf_token %}
-                <button type="submit">{% translate "logout"|capfirst context "verb" %}</button>
-              </form>
-            </li>
-          {% else %}
-            <li>
-              <a href="{% url 'accounts:login' %}" role="button">{% translate "login"|capfirst context "noun" %}</a>
-            </li>
-          {% endif %}
-        </ul>
-      </nav>
-    </header>
-    <main class="container">
-      {% block content %}{% endblock %}
+  <body class="min-h-screen flex">
+    {% if current_org and request.resolver_match.namespace != 'accounts' %}
+      {% include "partials/sidebar.html" %}
+    {% endif %}
+    <main class="flex-1 flex flex-col min-w-0">
+      {% block topbar %}{% include "partials/topbar.html" %}{% endblock %}
+      {% block chrome %}
+        <div class="flex items-center gap-2 px-6 h-14">
+          {% include "partials/breadcrumbs.html" %}
+        </div>
+      {% endblock chrome %}
+      <div class="flex-1 px-6 max-w-7xl w-full mx-auto">
+        {% block content %}{% endblock %}
+      </div>
+      {% include "partials/footer.html" %}
     </main>
-    <footer class="container">
-      <small>
-        <a href="{% url 'legal:imprint' %}">{% translate "imprint"|capfirst %}</a> ·
-        <a href="{% url 'legal:terms' %}">{% translate "terms of service"|title %}</a> ·
-        <a href="{% url 'legal:privacy' %}">{% translate "privacy policy"|title %}</a>
-      </small>
-    </footer>
+    {% include "partials/toaster.html" %}
   </body>
 </html>

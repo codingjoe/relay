@@ -1,0 +1,151 @@
+{% load i18n accounts %}
+<header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0">
+  {% if current_org %}
+    <button
+      type="button"
+      class="btn"
+      data-size="icon"
+      data-variant="ghost"
+      onclick="document.getElementById('app-sidebar')?.toggle()"
+      aria-label='{% translate "toggle sidebar"|capfirst %}'
+    >
+      <i data-lucide="panel-left" aria-hidden="true"></i>
+    </button>
+  {% endif %}
+
+  <a
+    href="{% url 'home' %}"
+    class="font-bold text-lg tracking-tight"
+    aria-label="relay"
+  >
+    relay
+  </a>
+
+  {% if current_org %}
+    <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
+      {% url 'tx_email:dashboard' current_org.slug as email_url %}
+      <a
+        href="{{ email_url }}"
+        class="btn"
+        data-size="sm"
+        data-variant="ghost"
+        {% if request.path == email_url %}aria-current="page"{% endif %}
+      >{% translate "email"|capfirst context "noun" %}</a>
+      <button
+        type="button"
+        class="btn"
+        data-size="sm"
+        data-variant="ghost"
+        aria-disabled="true"
+        title='{% translate "coming soon" %}'
+      >
+        {% translate "VoIP" context "acronym" %}
+        <span class="badge" data-size="sm">{% translate "coming soon" %}</span>
+      </button>
+    </nav>
+  {% else %}
+    <div class="grow"></div>
+  {% endif %}
+
+  <div class="flex items-center gap-2 ms-auto">
+    {% if user.is_authenticated %}
+      {% if current_org %}
+        <div class="dropdown-menu" id="org-switcher">
+          <button
+            type="button"
+            class="btn"
+            data-size="sm"
+            id="org-switcher-trigger"
+            aria-controls="org-switcher-menu"
+            aria-haspopup="menu"
+            aria-expanded="false"
+          >
+            <i data-lucide="building-2" class="size-3.5" aria-hidden="true"></i>
+            <span class="hidden md:inline">{{ current_org.slug }}</span>
+            <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
+          </button>
+          <div aria-hidden="true" data-align="end" data-popover data-side="bottom" id="org-switcher-popover">
+            <div aria-labelledby="org-switcher-trigger" id="org-switcher-menu" role="menu">
+              <div role="group">
+                <div role="heading">{% translate "switch organization"|capfirst %}</div>
+                {% for o in user_orgs %}
+                  <div
+                    role="menuitem"
+                    data-value="{{ o.slug }}"
+                    {% if o.slug == current_org.slug %}data-checked{% endif %}
+                  >
+                    <a href="{% url 'accounts:org-home' o.slug %}" class="w-full">
+                      <span class="grow">{{ o.slug }}</span>
+                      {% if o.slug == current_org.slug %}
+                        <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+                      {% endif %}
+                    </a>
+                  </div>
+                {% endfor %}
+              </div>
+              <hr role="separator">
+              <div role="group">
+                <div role="menuitem">
+                  <a
+                    href="{% url 'accounts:org-list' %}"
+                  >{% translate "all organizations"|capfirst context "noun" %}…</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="dropdown-menu" id="user-menu">
+        <button
+          type="button"
+          id="user-menu-trigger"
+          aria-controls="user-menu-menu"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          class="rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <span class="avatar" data-size="sm">
+            <img src="{% gravatar_url user 56 %}" alt="@{{ user.username }}">
+            <span>{{ user.username|slice:":2"|upper }}</span>
+          </span>
+        </button>
+        <div aria-hidden="true" data-align="end" data-popover data-side="bottom" id="user-menu-popover">
+          <div aria-labelledby="user-menu-trigger" id="user-menu-menu" role="menu">
+            <div role="group">
+              <div role="heading">
+                {% translate "signed in as"|capfirst %}
+                <div class="text-foreground font-semibold">@{{ user.username }}</div>
+              </div>
+            </div>
+            <hr role="separator">
+            <div role="group">
+              <div role="menuitem">
+                <a href="{% url 'accounts:org-list' %}">
+                  <i data-lucide="building-2" class="size-3.5" aria-hidden="true"></i>
+                  {% translate "your organizations"|capfirst context "noun" %}
+                </a>
+              </div>
+            </div>
+            <hr role="separator">
+            <div role="group">
+              <div role="menuitem">
+                <form method="post" action="{% url 'accounts:logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full justify-start">
+                    <i data-lucide="log-out" class="size-3.5" aria-hidden="true"></i>
+                    {% translate "logout"|capfirst context "verb" %}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
+        {% translate "login"|capfirst context "noun" %}
+      </a>
+    {% endif %}
+  </div>
+</header>

@@ -1,96 +1,107 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{{ message.subject|truncatechars:50 }} — {{ m|title }}{% endblock %}
+{% block title %}{{ message.subject|truncatechars:50 }} — relay{% endblock %}
 {% block content %}
-  <p><a href="{% url 'smtp:message_log' org.slug %}">← {% translate "messages"|capfirst context "noun" %}</a></p>
+  <a href="{% url 'smtp:message-list' org.slug %}" class="btn mb-4" data-variant="ghost" data-size="sm">
+    <i data-lucide="arrow-left" class="size-4" aria-hidden="true"></i>
+    {% translate "messages"|capfirst context "noun" %}
+  </a>
 
-  <h2>{{ message.subject }}</h2>
+  <h2 class="mb-4">{{ message.subject }}</h2>
 
-  <dl>
-    <dt>{% translate "from"|capfirst %}</dt>
+  <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 mb-6">
+    <dt class="font-semibold">{% translate "from"|capfirst %}</dt>
     <dd><code>{{ message.mail_from }}</code></dd>
-    <dt>{% translate "to"|capfirst %}</dt>
+    <dt class="font-semibold">{% translate "to"|capfirst %}</dt>
     <dd><code>{{ message.rcpt_to }}</code></dd>
     {% if message.credential %}
-      <dt>{% translate "credential"|capfirst context "noun" %}</dt>
+      <dt class="font-semibold">{% translate "credential"|capfirst context "noun" %}</dt>
       <dd><code>{{ message.credential.key_prefix }}…</code> ({{ message.credential.get_type_display }})</dd>
     {% endif %}
   </dl>
 
-  <details open>
-    <summary>{% translate "headers"|capfirst context "noun" %}</summary>
-    <table>
-      <thead>
-        <tr>
-          <th>{% translate "header"|capfirst context "noun" %}</th>
-          <th>{% translate "value"|capfirst context "noun" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for key, value in headers %}
-          <tr>
-            <td>{{ key }}</td>
-            <td><code>{{ value }}</code></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </details>
-
-  <details open>
-    <summary>{% translate "body"|capfirst context "noun" %}</summary>
-    {% for part in parts %}
-      {% if parts|length > 1 %}
-        <h4>{{ part.content_type }}</h4>
-      {% endif %}
-      {% if part.headers %}
-        <details>
-          <summary>{% translate "part headers"|capfirst %}</summary>
-          <table>
-            <tbody>
-              {% for key, value in part.headers %}
-                <tr>
-                  <td>{{ key }}</td>
-                  <td><code>{{ value }}</code></td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </details>
-      {% endif %}
-      <pre>{{ part.body }}</pre>
-    {% endfor %}
-  </details>
-
-  {% if deliveries %}
-    <details open>
-      <summary>{% translate "transmissions"|capfirst context "noun" %}</summary>
-      <table>
+  <details open class="mb-4">
+    <summary class="cursor-pointer font-semibold">{% translate "headers"|capfirst context "noun" %}</summary>
+    <div class="table-container mt-3">
+      <table class="table">
         <thead>
           <tr>
-            <th>{% translate "status"|capfirst context "noun" %}</th>
-            <th>{% translate "code"|capfirst context "noun" %}</th>
-            <th>{% translate "timestamp"|capfirst context "noun" %}</th>
-            <th>{% translate "SSL"|capfirst %}</th>
-            <th>{% translate "log ID"|capfirst %}</th>
-            <th>{% translate "output"|capfirst context "noun" %}</th>
-            <th>{% translate "details"|capfirst context "noun" %}</th>
+            <th>{% translate "header"|capfirst context "noun" %}</th>
+            <th>{% translate "value"|capfirst context "noun" %}</th>
           </tr>
         </thead>
         <tbody>
-          {% for transmission in transmissions %}
+          {% for key, value in headers %}
             <tr>
-              <td>{{ transmission.get_status_display }}</td>
-              <td>{{ transmission.code|default:"—" }}</td>
-              <td>{{ transmission.created_at|date:"M d, H:i" }}</td>
-              <td>{{ transmission.sent_with_ssl|yesno }}</td>
-              <td><code>{{ transmission.log_id|default:"—" }}</code></td>
-              <td>{{ transmission.output|truncatechars:120 }}</td>
-              <td>{{ transmission.details|truncatechars:120 }}</td>
+              <td>{{ key }}</td>
+              <td><code>{{ value }}</code></td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
+    </div>
+  </details>
+
+  <details open class="mb-4">
+    <summary class="cursor-pointer font-semibold">{% translate "body"|capfirst context "noun" %}</summary>
+    <div class="flex flex-col gap-3 mt-3">
+      {% for part in parts %}
+        {% if parts|length > 1 %}
+          <h4 class="m-0">{{ part.content_type }}</h4>
+        {% endif %}
+        {% if part.headers %}
+          <details>
+            <summary class="cursor-pointer text-sm">{% translate "part headers"|capfirst %}</summary>
+            <div class="table-container mt-2">
+              <table class="table">
+                <tbody>
+                  {% for key, value in part.headers %}
+                    <tr>
+                      <td>{{ key }}</td>
+                      <td><code>{{ value }}</code></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        {% endif %}
+        <pre class="bg-muted p-3 rounded-md overflow-auto text-sm">{{ part.body }}</pre>
+      {% endfor %}
+    </div>
+  </details>
+
+  {% if transmissions %}
+    <details open class="mb-4">
+      <summary class="cursor-pointer font-semibold">{% translate "transmissions"|capfirst context "noun" %}</summary>
+      <div class="table-container mt-3">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{% translate "status"|capfirst context "noun" %}</th>
+              <th>{% translate "code"|capfirst context "noun" %}</th>
+              <th>{% translate "timestamp"|capfirst context "noun" %}</th>
+              <th>{% translate "SSL"|capfirst %}</th>
+              <th>{% translate "log ID"|capfirst %}</th>
+              <th>{% translate "output"|capfirst context "noun" %}</th>
+              <th>{% translate "details"|capfirst context "noun" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for transmission in transmissions %}
+              <tr>
+                <td>{{ transmission.get_status_display }}</td>
+                <td>{{ transmission.code|default:"—" }}</td>
+                <td>{{ transmission.created_at|date:"M d, H:i" }}</td>
+                <td>{{ transmission.sent_with_ssl|yesno }}</td>
+                <td><code>{{ transmission.log_id|default:"—" }}</code></td>
+                <td>{{ transmission.output|truncatechars:120 }}</td>
+                <td>{{ transmission.details|truncatechars:120 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </details>
   {% endif %}
 {% endblock %}

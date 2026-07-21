@@ -5,6 +5,10 @@ Update it based on review feedback.
 
 ## URLs
 
+- Use the `app:model-CRUD` naming pattern with hyphens (e.g. `org-list`,
+  `org-detail`, `org-create`, `domain-verify`, `message-list`). This mirrors
+  DRF's router convention.
+
 - Use nested `include()` for cascaded paths:
 
   ```python
@@ -20,6 +24,10 @@ Update it based on review feedback.
   (`LOGIN_URL`, `LOGIN_REDIRECT_URL`, `LOGOUT_REDIRECT_URL`), `redirect()`,
   `reverse()`/`reverse_lazy()`, and templates (`{% url %}`). This keeps
   redirects valid when paths move.
+
+- Use `param_replace` (from `abstract` template tags) to build filtered
+  pagination URLs: `href="?{% param_replace page=page_obj.next_page_number %}"`.
+  Never hand-construct query strings in templates.
 
 ## Primary Keys
 
@@ -56,7 +64,8 @@ Update it based on review feedback.
 
 - All imports at the top of a file, except inside Celery/Django tasks where
   late imports are needed to avoid import cycles.
-- Import views as `from . import views` in URL configs.
+- Import views as `from . import views` in URL configs, then reference
+  `views.MyView.as_view()`.
 - Do not import with different names (no `import x as y`) unless necessary.
 - Do not import per-property — import the module directly.
 
@@ -76,6 +85,82 @@ Update it based on review feedback.
 - Email-specific abbreviations are OK since they are more common than
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
 - Use `...` instead of `pass` in empty classes.
+
+## Templates & UI
+
+- Use [basecoat-css](https://basecoatui.com/) (maia style) for all UI styling.
+  Do **not** use pico.css or any other CSS framework.
+- Use Django template inheritance: define the shell once in
+  `root/templates/base.html` and have every page template `{% extends "base.html" %}`.
+  Pages only override `{% block title %}` and `{% block content %}`.
+- For interactive widgets, prefer off-the-shelf basecoat components over custom
+  CSS or custom JS:
+  - Buttons: `<button class="btn" data-variant="secondary|ghost|destructive" data-size="sm|icon|default">`.
+    Use `data-variant="secondary"` for most non-primary buttons. Reserve
+    `data-variant="outline"` for `item` elements (outlined cards), never for
+    buttons inside a `button-group`. Use `data-variant="destructive"` for
+    delete/remove actions. Omit `data-variant` entirely for the primary
+    action in a group.
+  - Cards: `<article class="card">`.
+  - Tables: wrap in `<div class="table-container"><table class="table">`.
+  - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
+    open with `.showModal()` and close with `.close()`.
+  - Form controls: `<input class="input">`, `<select class="select w-full">`,
+    `<textarea class="textarea">`. Always pair form controls with `w-full` so
+    they fill the field width inside dialogs and filter rows. Wrap each form
+    in `<fieldset class="fieldset">` and each field in
+    `<div role="group" class="field">` with a native `<label for="id_x">…</label>`
+    linked to the control via `id="id_x"`. The `.field` container provides
+    spacing and error styling; native controls auto-style. Do not nest inputs
+    inside `<label>` or use `<span class="label">` for the label text.
+  - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
+  - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
+  - Items: use basecoat's `<a class="item" data-variant="outline">` (or
+    `<article class="item">`) inside a `<div class="item-group">` for list
+    pages that show selectable entities (e.g. organizations). Prefer items
+    over tables when each row is a single clickable entity with a title and
+    short metadata.
+  - Brand name: write `relay` in lowercase everywhere — it is a brand name,
+    not a translatable string. Do not wrap it in `{% translate %}` or
+    apply `|capfirst`/`|title`.
+- Icons use [Lucide](https://lucide.dev/) via vanilla JS — load the UMD
+  bundle from a CDN with `defer` and call `lucide.createIcons()` on
+  `DOMContentLoaded`. Render icons with `<i data-lucide="name" class="size-4|size-5|size-3.5" aria-hidden="true">`
+  (Tailwind size scale: 3.5=14px, 4=16px, 5=20px). Never inline Lucide SVGs
+  by hand — the library replaces the `<i>` element with the SVG at runtime.
+  Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons —
+  use Lucide icons with semantic color classes instead (e.g.
+  `circle-check` with `text-success`, `circle-x` with `text-destructive`,
+  `circle-dashed` with `text-muted-foreground`).
+- Custom CSS lives in `root/static/css/app.css` and is kept to the bare
+  minimum. Use it only for layout glue basecoat/Tailwind don't provide
+  directly (e.g. the breadcrumb container's background, marketing-page
+  accent highlights). Do not use it for component styling — use basecoat
+  classes instead. If a utility is missing, prefer a Tailwind utility
+  before adding a custom rule.
+- Django form widgets are styled by overriding templates under
+  `abstract/templates/django/forms/widgets/{input,checkbox,select,textarea}.html`.
+  Each override adds the matching basecoat class
+  (`input`, `checkbox`, `select`, `textarea`) while preserving any custom
+  `widget.attrs` the form supplies. Prefer rendering forms with
+  `{{ form }}` / `{{ form.field }}` so the overrides apply automatically;
+  only fall back to hand-written inputs when a widget truly needs custom
+  markup.
+- Sidebar and main-nav links: assign each URL to a variable with
+  `{% url '...' as var %}`, then use exact `request.path == var` to set
+  `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
+  a substring check would highlight parent links on every child page.
+  Hide main-nav links entirely when no org is selected.
+- Breadcrumbs: use `BreadcrumbViewMixin` from `abstract.views`. Each view
+  sets `title` (the breadcrumb title) and `parent` (the URL name of the
+  parent page). The mixin builds the chain by traversing parents via
+  `get_url(cls, request)` and `get_title(cls, request)` classmethods.
+  Override `get_title` for request-dependent titles (e.g., the org name
+  from `request.current_org`). Override `get_url` for URL patterns that
+  need request kwargs (e.g., `OrganizationScopedView` passes `org_slug`).
+  For detail views with no `title`, the breadcrumb falls back to
+  `str(self.object)`. Context variable is `breadcrumbs`, dict keys are
+  `{"title": ..., "url": ...}`.
 
 ## Testing
 

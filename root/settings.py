@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import environ
 
+
 env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False)
@@ -44,7 +45,15 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 
+# Render Django forms (and widgets) using the project's template engine,
+# so per-project overrides under `templates/django/forms/...` take effect.
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
+
 INSTALLED_APPS = [
+    # First-party apps (abstract first so its widget overrides win)
+    "abstract",
+    "django.forms",
+    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -56,7 +65,6 @@ INSTALLED_APPS = [
     "social_django",
     "storages",
     # First-party apps
-    "abstract",
     "accounts",
     "domains",
     "legal",
@@ -77,7 +85,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "root.urls"
-
 
 _TEMPLATES_LOADERS = [
     "django.template.loaders.filesystem.Loader",
@@ -246,7 +253,7 @@ TASKS = {
 
 # Authentication
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "accounts:organization_list"
+LOGIN_REDIRECT_URL = "accounts:org-list"
 LOGOUT_REDIRECT_URL = "home"
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")

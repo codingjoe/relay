@@ -1,17 +1,7 @@
-"""URL configuration for accounts — auth, organizations, and org settings."""
-
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 
-from .views import (
-    LoginView,
-    MembershipCreateView,
-    MembershipDeleteView,
-    OrganizationDeleteView,
-    OrganizationDetailView,
-    OrganizationListView,
-    OrganizationUpdateView,
-)
+from . import views
 
 app_name = "accounts"
 
@@ -20,7 +10,7 @@ urlpatterns = [
         "account/",
         include(
             [
-                path("login", LoginView.as_view(), name="login"),
+                path("login", views.LoginView.as_view(), name="login"),
                 path("logout", LogoutView.as_view(), name="logout"),
             ]
         ),
@@ -29,38 +19,62 @@ urlpatterns = [
         "organizations/",
         include(
             [
-                path("", OrganizationListView.as_view(), name="organization_list"),
+                path("", views.OrganizationListView.as_view(), name="org-list"),
             ]
         ),
     ),
     path(
-        "org/<slug:org_slug>/settings/",
+        "org/<slug:org_slug>/",
         include(
             [
                 path(
                     "",
-                    OrganizationDetailView.as_view(),
-                    name="organization_detail",
+                    views.OrganizationHomeView.as_view(),
+                    name="org-home",
                 ),
                 path(
-                    "edit",
-                    OrganizationUpdateView.as_view(),
-                    name="organization_update",
-                ),
-                path(
-                    "delete",
-                    OrganizationDeleteView.as_view(),
-                    name="organization_delete",
-                ),
-                path(
-                    "members/new",
-                    MembershipCreateView.as_view(),
-                    name="membership_create",
-                ),
-                path(
-                    "members/<int:member_pk>/delete",
-                    MembershipDeleteView.as_view(),
-                    name="membership_delete",
+                    "settings/",
+                    include(
+                        [
+                            path(
+                                "",
+                                views.OrganizationDetailView.as_view(),
+                                name="org-detail",
+                            ),
+                            path(
+                                "edit",
+                                views.OrganizationUpdateView.as_view(),
+                                name="org-update",
+                            ),
+                            path(
+                                "delete",
+                                views.OrganizationDeleteView.as_view(),
+                                name="org-delete",
+                            ),
+                            path(
+                                "members/",
+                                include(
+                                    [
+                                        path(
+                                            "new",
+                                            views.MembershipCreateView.as_view(),
+                                            name="member-create",
+                                        ),
+                                        path(
+                                            "<int:member_pk>/delete",
+                                            views.MembershipDeleteView.as_view(),
+                                            name="member-delete",
+                                        ),
+                                        path(
+                                            "<int:member_pk>/edit",
+                                            views.MembershipUpdateView.as_view(),
+                                            name="member-update",
+                                        ),
+                                    ]
+                                ),
+                            ),
+                        ]
+                    ),
                 ),
             ]
         ),

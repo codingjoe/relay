@@ -1,55 +1,70 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "domains"|capfirst context "noun" %} — {{ m|title }}{% endblock %}
+{% block title %}{% translate "domains"|capfirst context "noun" %} — relay{% endblock %}
 {% block content %}
-  <div class="grid">
-    <h2>{% translate "domains"|capfirst context "noun" %}</h2>
-    <div class="text-right">
-      <button onclick="document.getElementById('dlg-new-domain').showModal()">
-        {% translate "add domain"|title context "noun" %}
-      </button>
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "domains"|capfirst context "noun" %}</h2>
+    <button type="button" class="btn" onclick="document.getElementById('dlg-new-domain').showModal()">
+      {% translate "add domain"|title context "noun" %}
+    </button>
+  </header>
+
+  <dialog class="dialog" id="dlg-new-domain">
+    <div>
+      <header>
+        <h2>{% translate "add domain"|title context "noun" %}</h2>
+        <p>{% translate "add a domain you control to start sending email from it."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'domains:domain-create' org.slug %}" id="dlg-new-domain-form">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
+              <input type="text" name="name" id="id_name" placeholder="example.com" required class="input">
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('dlg-new-domain').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="dlg-new-domain-form" class="btn">
+          {% translate "add"|capfirst context "verb" %}
+        </button>
+      </footer>
     </div>
-  </div>
-  <dialog id="dlg-new-domain">
-    <form method="post" action="{% url 'domains:domain_create' org.slug %}">
-      {% csrf_token %}
-      <p>
-        <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
-        <input type="text" name="name" id="id_name" placeholder="example.com" required>
-      </p>
-      <button type="submit">{% translate "add"|capfirst context "verb" %}</button>
-      <button type="button" onclick="document.getElementById('dlg-new-domain').close()" class="outline">
-        {% translate "cancel"|capfirst context "verb" %}
-      </button>
-    </form>
   </dialog>
-  <figure>
-    <table>
-      <thead>
-        <tr>
-          <th>{% translate "domain"|capfirst context "noun" %}</th>
-          <th>{% translate "sender subdomain"|title %}</th>
-          <th>{% translate "verified"|capfirst %}</th>
-          <th>Nameserver</th>
-          <th>DMARC</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for domain in domains %}
-          <tr>
-            <td><a href="{% url 'domains:domain_detail' org.slug domain.pk %}">{{ domain.name }}</a></td>
-            <td><code>{{ domain.sender_domain }}</code></td>
-            <td>
-              {% if domain.verified_at %}✅ {% translate "verified"|capfirst %}{% else %}⏳
-                {% translate "pending"|capfirst %}{% endif %}
-            </td>
-            <td>{{ domain.nameserver_status }}</td>
-            <td>{{ domain.dmarc_status }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5">{% translate "no domains configured yet." %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </figure>
+
+  <div class="item-group">
+    {% for domain in domains %}
+      <a href="{% url 'domains:domain-detail' org.slug domain.pk %}" class="item" data-variant="outline">
+        <section>
+          <h3>{{ domain.name }}</h3>
+          <p class="flex items-center gap-2 flex-wrap">
+            <code>{{ domain.sender_domain }}</code>
+            {% if domain.verified_at %}
+              <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% translate "verified"|capfirst %}
+            {% else %}
+              <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% translate "pending"|capfirst %}
+            {% endif %}
+            <span aria-hidden="true">·</span>
+            {{ domain.nameserver_status }}
+            <span aria-hidden="true">·</span>
+            {{ domain.dmarc_status }}
+          </p>
+        </section>
+      </a>
+    {% empty %}
+      <p class="text-muted-foreground">{% translate "no domains configured yet." %}</p>
+    {% endfor %}
+  </div>
 {% endblock %}

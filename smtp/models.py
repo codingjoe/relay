@@ -112,7 +112,7 @@ class OutgoingMessage(TimeStamped):
 
     def get_absolute_url(self):
         return reverse(
-            "smtp:message_detail",
+            "smtp:message-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.id},
         )
 

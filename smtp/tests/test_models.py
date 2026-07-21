@@ -99,4 +99,4 @@ class TestOutgoingMessageGetAbsoluteUrl:
         )
         url = msg.get_absolute_url()
         assert url is not None
-        assert f"/org/{org.slug}/messages/{msg.id}" in url
+        assert f"/org/{org.slug}/email/messages/{msg.id}" in url

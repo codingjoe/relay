@@ -1,8 +1,63 @@
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.views import generic
 
 
-class MarkdownView(generic.TemplateView):
+class BreadcrumbViewMixin:
+    """Build breadcrumbs by traversing parent references.
+
+    Each view sets:
+    - `title`: the breadcrumb title for this page (class attribute).
+    - `parent`: the URL name of the parent page, or "" for the root.
+
+    Override `get_title(cls, request)` for dynamic titles that depend on
+    the request (e.g., the current org name from `request.current_org`).
+    Override `get_url(cls, request)` for URL patterns that need kwargs
+    from the request (e.g., org-scoped views).
+    """
+
+    title: str = ""
+    parent: str = ""
+
+    @classmethod
+    def get_title(cls, request=None) -> str:
+        """Return the breadcrumb title for this page."""
+        return str(cls.title) if cls.title else ""
+
+    @classmethod
+    def get_url(cls, request) -> str | None:
+        """Return the URL for this view's parent, or None if this is the root."""
+        if not cls.parent:
+            return None
+        return reverse(cls.parent)
+
+    def get_breadcrumbs(self):
+        """Build the breadcrumb chain by traversing parents to the root."""
+        breadcrumbs = [{"title": self.get_title(self.request), "url": None}]
+        if not breadcrumbs[0]["title"] and hasattr(self, "object") and self.object:
+            breadcrumbs[0]["title"] = str(self.object)
+
+        url = self.get_url(self.request)
+        while url:
+            match = resolve(url)
+            view_class = getattr(match.func, "view_class", None)
+            if view_class and hasattr(view_class, "get_title"):
+                title = view_class.get_title(self.request)
+                breadcrumbs.append({"title": title, "url": url})
+                url = view_class.get_url(self.request)
+            else:
+                breadcrumbs.append({"title": "", "url": url})
+                break
+
+        breadcrumbs.reverse()
+        return breadcrumbs
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "breadcrumbs": self.get_breadcrumbs(),
+        }
+
+
+class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
     """Render Markdown files in a template."""
 
     template_name = "abstract/markdown.html"
@@ -11,8 +66,6 @@ class MarkdownView(generic.TemplateView):
     """Page title."""
     markdown_template: str = ""
     """Template name of the markdown file to render."""
-    breadcrumbs: list[tuple[str, str]] = []
-    """List of breadcrumbs to render on the page."""
     toc_levels: str = "2-3"
 
     def get_context_data(self, **kwargs):
@@ -20,8 +73,4 @@ class MarkdownView(generic.TemplateView):
             "title": self.title,
             "markdown_template": self.markdown_template,
             "toc_levels": self.toc_levels,
-            "breadcrumbs": [
-                {"title": title, "url": reverse(url)} for title, url in self.breadcrumbs
-            ]
-            + [{"title": self.title, "url": self.request.path}],
         }
