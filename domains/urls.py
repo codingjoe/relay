@@ -2,20 +2,14 @@
 
 from django.urls import path
 
-from .views import (
-    DomainCreateView,
-    DomainDeleteView,
-    DomainDetailView,
-    DomainListView,
-    DomainVerifyView,
-)
+from . import views
 
 app_name = "domains"
 
 urlpatterns = [
-    path("", DomainListView.as_view(), name="domain_list"),
-    path("new", DomainCreateView.as_view(), name="domain_create"),
-    path("<int:pk>", DomainDetailView.as_view(), name="domain_detail"),
-    path("<int:pk>/delete", DomainDeleteView.as_view(), name="domain_delete"),
-    path("<int:pk>/verify", DomainVerifyView.as_view(), name="domain_verify"),
+    path("", views.DomainListView.as_view(), name="domain-list"),
+    path("new", views.DomainCreateView.as_view(), name="domain-create"),
+    path("<int:pk>", views.DomainDetailView.as_view(), name="domain-detail"),
+    path("<int:pk>/delete", views.DomainDeleteView.as_view(), name="domain-delete"),
+    path("<int:pk>/verify", views.DomainVerifyView.as_view(), name="domain-verify"),
 ]

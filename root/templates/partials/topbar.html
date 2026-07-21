@@ -74,7 +74,7 @@
                     data-value="{{ o.slug }}"
                     {% if o.slug == current_org.slug %}data-checked{% endif %}
                   >
-                    <a href="{% url 'accounts:organization_home' o.slug %}" class="w-full">
+                    <a href="{% url 'accounts:org-home' o.slug %}" class="w-full">
                       <span class="grow">{{ o.slug }}</span>
                       {% if o.slug == current_org.slug %}
                         <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
@@ -87,7 +87,7 @@
               <div role="group">
                 <div role="menuitem">
                   <a
-                    href="{% url 'accounts:organization_list' %}"
+                    href="{% url 'accounts:org-list' %}"
                   >{% translate "all organizations"|capfirst context "noun" %}…</a>
                 </div>
               </div>
@@ -121,7 +121,7 @@
             <hr role="separator">
             <div role="group">
               <div role="menuitem">
-                <a href="{% url 'accounts:organization_list' %}">
+                <a href="{% url 'accounts:org-list' %}">
                   <i data-lucide="building-2" class="size-3.5" aria-hidden="true"></i>
                   {% translate "your organizations"|capfirst context "noun" %}
                 </a>

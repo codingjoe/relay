@@ -51,6 +51,9 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 INSTALLED_APPS = [
+    # First-party apps (abstract first so its widget overrides win)
+    "abstract",
+    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -62,7 +65,6 @@ INSTALLED_APPS = [
     "social_django",
     "storages",
     # First-party apps
-    "abstract",
     "accounts",
     "domains",
     "legal",
@@ -85,15 +87,9 @@ MIDDLEWARE = [
 ROOT_URLCONF = "root.urls"
 
 
-# Bundled Django form templates (so FORM_RENDERER=TemplatesSetting can
-# fall back to them when the project does not override a widget template).
-# The bundled dir is loaded via a dedicated filesystem loader placed *after*
-# app_directories, so app-level widget overrides (e.g. abstract app) win.
+# Bundled Django form templates (for FORM_RENDERER=TemplatesSetting).
 _DJANGO_FORM_TEMPLATES_DIR = Path(os.path.dirname(django.forms.__file__)) / "templates"
 
-# Loader order matters: app_directories must precede the bundled form
-# templates so that widget overrides in <app>/templates/django/forms/widgets/
-# take precedence over the defaults bundled with Django.
 _UNCACHED_TEMPLATES_LOADERS = [
     "django.template.loaders.app_directories.Loader",
     (
@@ -266,7 +262,7 @@ TASKS = {
 
 # Authentication
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "accounts:organization_list"
+LOGIN_REDIRECT_URL = "accounts:org-list"
 LOGOUT_REDIRECT_URL = "home"
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")

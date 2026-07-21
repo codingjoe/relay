@@ -2,10 +2,10 @@
 
 from django.urls import path
 
-from .views import DashboardView
+from . import views
 
 app_name = "tx_email"
 
 urlpatterns = [
-    path("", DashboardView.as_view(), name="dashboard"),
+    path("", views.DashboardView.as_view(), name="dashboard"),
 ]

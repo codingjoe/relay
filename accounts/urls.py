@@ -3,17 +3,7 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 
-from .views import (
-    LoginView,
-    MembershipCreateView,
-    MembershipDeleteView,
-    MembershipUpdateView,
-    OrganizationDeleteView,
-    OrganizationDetailView,
-    OrganizationHomeView,
-    OrganizationListView,
-    OrganizationUpdateView,
-)
+from . import views
 
 app_name = "accounts"
 
@@ -22,7 +12,7 @@ urlpatterns = [
         "account/",
         include(
             [
-                path("login", LoginView.as_view(), name="login"),
+                path("login", views.LoginView.as_view(), name="login"),
                 path("logout", LogoutView.as_view(), name="logout"),
             ]
         ),
@@ -31,7 +21,7 @@ urlpatterns = [
         "organizations/",
         include(
             [
-                path("", OrganizationListView.as_view(), name="organization_list"),
+                path("", views.OrganizationListView.as_view(), name="org-list"),
             ]
         ),
     ),
@@ -41,8 +31,8 @@ urlpatterns = [
             [
                 path(
                     "",
-                    OrganizationHomeView.as_view(),
-                    name="organization_home",
+                    views.OrganizationHomeView.as_view(),
+                    name="org-home",
                 ),
                 path(
                     "settings/",
@@ -50,33 +40,33 @@ urlpatterns = [
                         [
                             path(
                                 "",
-                                OrganizationDetailView.as_view(),
-                                name="organization_detail",
+                                views.OrganizationDetailView.as_view(),
+                                name="org-detail",
                             ),
                             path(
                                 "edit",
-                                OrganizationUpdateView.as_view(),
-                                name="organization_update",
+                                views.OrganizationUpdateView.as_view(),
+                                name="org-update",
                             ),
                             path(
                                 "delete",
-                                OrganizationDeleteView.as_view(),
-                                name="organization_delete",
+                                views.OrganizationDeleteView.as_view(),
+                                name="org-delete",
                             ),
                             path(
                                 "members/new",
-                                MembershipCreateView.as_view(),
-                                name="membership_create",
+                                views.MembershipCreateView.as_view(),
+                                name="member-create",
                             ),
                             path(
                                 "members/<int:member_pk>/delete",
-                                MembershipDeleteView.as_view(),
-                                name="membership_delete",
+                                views.MembershipDeleteView.as_view(),
+                                name="member-delete",
                             ),
                             path(
                                 "members/<int:member_pk>/edit",
-                                MembershipUpdateView.as_view(),
-                                name="membership_update",
+                                views.MembershipUpdateView.as_view(),
+                                name="member-update",
                             ),
                         ]
                     ),

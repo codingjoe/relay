@@ -16,7 +16,7 @@
         <p>{% translate "add a domain you control to start sending email from it."|capfirst %}</p>
       </header>
       <section>
-        <form method="post" action="{% url 'domains:domain_create' org.slug %}" id="dlg-new-domain-form">
+        <form method="post" action="{% url 'domains:domain-create' org.slug %}" id="dlg-new-domain-form">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
@@ -44,7 +44,7 @@
 
   <div class="item-group">
     {% for domain in domains %}
-      <a href="{% url 'domains:domain_detail' org.slug domain.pk %}" class="item" data-variant="outline">
+      <a href="{% url 'domains:domain-detail' org.slug domain.pk %}" class="item" data-variant="outline">
         <section>
           <h3>{{ domain.name }}</h3>
           <p class="flex items-center gap-2 flex-wrap">

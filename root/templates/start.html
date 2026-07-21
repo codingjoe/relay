@@ -31,7 +31,7 @@
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         {% if user.is_authenticated %}
-          <a href="{% url 'accounts:organization_list' %}" class="btn" data-size="lg">
+          <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
             {% translate "go to dashboard"|capfirst %}
             <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
           </a>
@@ -183,7 +183,7 @@
         </section>
         <footer class="m-0 mt-6">
           {% if user.is_authenticated %}
-            <a href="{% url 'accounts:organization_list' %}" class="btn w-full" data-size="lg">
+            <a href="{% url 'accounts:org-list' %}" class="btn w-full" data-size="lg">
               {% translate "go to dashboard"|capfirst %}
               <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
             </a>
@@ -215,6 +215,22 @@
 
     .start {
       --color-card: oklch(100% 0 0);
+    }
+
+    .landing-accent {
+      z-index: 0;
+      position: relative;
+    }
+
+    .landing-accent::after {
+      z-index: -1;
+      position: absolute;
+      bottom: 0.05em;
+      height: 0.4em;
+      inset-inline: 0;
+      border-radius: 4px;
+      background: color-mix(in srgb, oklch(55% 0.14 280) 25%, transparent);
+      content: '';
     }
 
     .landing-network {

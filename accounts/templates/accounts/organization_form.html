@@ -11,16 +11,7 @@
     <form method="post">
       {% csrf_token %}
       <fieldset class="fieldset">
-        <div role="group" class="field">
-          {{ form.slug.label_tag }}
-          {{ form.slug }}
-          {% if form.slug.help_text %}
-            <p class="text-sm text-muted-foreground">{{ form.slug.help_text }}</p>
-          {% endif %}
-          {% if form.slug.errors %}
-            <p class="text-sm text-destructive">{{ form.slug.errors|join:" " }}</p>
-          {% endif %}
-        </div>
+        {{ form }}
       </fieldset>
       <div class="flex gap-2 mt-6">
         <button type="submit" class="btn">{% translate "save"|capfirst context "verb" %}</button>

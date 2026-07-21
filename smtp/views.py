@@ -24,6 +24,8 @@ class OutgoingMessageLogView(OrganizationScopedView, ListView):
     template_name = "smtp/message_log.html"
     context_object_name = "messages"
     paginate_by = 50
+    title = _("Message log")
+    parent = "tx_email:dashboard"
 
     def get_queryset(self):
         qs = OutgoingMessage.objects.filter(org=self.org).select_related("domain")
@@ -45,15 +47,13 @@ class OutgoingMessageLogView(OrganizationScopedView, ListView):
                 "status": self.request.GET.get("status", ""),
                 "search": self.request.GET.get("search", ""),
             },
-            "breadcrumb_trail": self.extend_breadcrumb(
-                {"label": "Message log"},
-            ),
         }
 
 
 class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
     template_name = "smtp/message_detail.html"
     context_object_name = "message"
+    parent = "smtp:message-list"
 
     def get_queryset(self):
         return OutgoingMessage.objects.filter(org=self.org).select_related(
@@ -113,10 +113,6 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
             "received": received,
             "parts": parts,
             "transmissions": Transmission.objects.filter(message=message),
-            "breadcrumb_trail": self.extend_breadcrumb(
-                {"label": "Message log", "url": "smtp:message_log"},
-                {"label": message.subject or "(no subject)"},
-            ),
         }
 
 
@@ -201,12 +197,14 @@ class TestEmailView(OrganizationScopedView, View):
             )
         )
         messages.success(request, _("Test message queued for delivery."))
-        return redirect("smtp:message_log", org_slug=org_slug)
+        return redirect("smtp:message-list", org_slug=org_slug)
 
 
 class SmtpCredentialListView(OrganizationScopedView, ListView):
     template_name = "smtp/credential_list.html"
     context_object_name = "credentials"
+    title = _("SMTP credentials")
+    parent = "tx_email:dashboard"
 
     def get_queryset(self):
         return SmtpCredential.objects.filter(org=self.org)
@@ -216,9 +214,6 @@ class SmtpCredentialListView(OrganizationScopedView, ListView):
         context = super().get_context_data(**kwargs) | {
             "smtp_hostname": f"smtp.{platform}",
             "smtp_port": settings.RELAY_SMTP_SUBMISSION_PORT,
-            "breadcrumb_trail": self.extend_breadcrumb(
-                {"label": "SMTP credentials"},
-            ),
         }
         if raw_key := self.request.session.pop("raw_key", None):
             context["raw_key"] = raw_key
@@ -237,17 +232,19 @@ class SmtpCredentialCreateView(OrganizationScopedView, View):
             request,
             _("SMTP credential “%(name)s” created.") % {"name": credential.name},
         )
-        return redirect("smtp:credential_list", org_slug=org_slug)
+        return redirect("smtp:credential-list", org_slug=org_slug)
 
 
 class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
     model = SmtpCredential
+    title = _("Delete")
+    parent = "smtp:credential-list"
 
     def get_queryset(self):
         return SmtpCredential.objects.filter(org=self.org)
 
     def get_success_url(self):
-        return reverse_lazy("smtp:credential_list", kwargs={"org_slug": self.org.slug})
+        return reverse_lazy("smtp:credential-list", kwargs={"org_slug": self.org.slug})
 
     def form_valid(self, form):
         messages.success(self.request, _("SMTP credential deleted."))

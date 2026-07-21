@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
 from accounts.views import OrganizationScopedView
@@ -28,55 +29,55 @@ CHART_COLORS = {
 }
 
 
-def _chart_data(org):
-    """Return ``(series, rows)`` for a stacked line chart of recent messages.
-
-    ``series`` maps ``OutgoingMessage.Status`` values to chart series config.
-    ``rows`` is a list of per-day dicts keyed by status, in chronological order,
-    suitable for direct serialization into a basecoat ``data`` array.
-    """
-    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
-    rows = (
-        OutgoingMessage.objects.filter(org=org, received_at__date__gte=start)
-        .annotate(day=TruncDate("received_at"))
-        .values("day", "status")
-        .annotate(count=Count("id"))
-    )
-    counts = {}
-    for row in rows:
-        counts.setdefault(row["day"], {})[row["status"]] = row["count"]
-    statuses = list(OutgoingMessage.Status)
-    series = [
-        {
-            "key": status.value,
-            "label": str(status.label),
-            "color": CHART_COLORS[status.value],
-        }
-        for status in statuses
-    ]
-    days = [start + timedelta(days=offset) for offset in range(CHART_DAYS)]
-    return series, [
-        {
-            "day": day.isoformat(),
-            **{
-                status.value: counts.get(day, {}).get(status.value, 0)
-                for status in statuses
-            },
-        }
-        for day in days
-    ]
-
-
 class DashboardView(OrganizationScopedView, TemplateView):
     template_name = "tx_email/dashboard.html"
+    title = _("Email")
+    parent = "accounts:org-home"
+
+    def get_chart_data(self):
+        """Return ``(series, rows)`` for a stacked line chart of recent messages.
+
+        ``series`` maps ``OutgoingMessage.Status`` values to chart series config.
+        ``rows`` is a list of per-day dicts keyed by status, in chronological order,
+        suitable for direct serialization into a basecoat ``data`` array.
+        """
+        start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
+        rows = (
+            OutgoingMessage.objects.filter(org=self.org, received_at__date__gte=start)
+            .annotate(day=TruncDate("received_at"))
+            .values("day", "status")
+            .annotate(count=Count("id"))
+        )
+        counts = {}
+        for row in rows:
+            counts.setdefault(row["day"], {})[row["status"]] = row["count"]
+        statuses = list(OutgoingMessage.Status)
+        series = [
+            {
+                "key": status.value,
+                "label": str(status.label),
+                "color": CHART_COLORS[status.value],
+            }
+            for status in statuses
+        ]
+        days = [start + timedelta(days=offset) for offset in range(CHART_DAYS)]
+        return series, [
+            {
+                "day": day.isoformat(),
+                **{
+                    status.value: counts.get(day, {}).get(status.value, 0)
+                    for status in statuses
+                },
+            }
+            for day in days
+        ]
 
     def get_context_data(self, **kwargs):
-        series, rows = _chart_data(self.org)
+        series, rows = self.get_chart_data()
         return super().get_context_data(**kwargs) | {
             "domains": Domain.objects.filter(org=self.org),
             "total_domains": Domain.objects.filter(org=self.org).count(),
             "total_messages": OutgoingMessage.objects.filter(org=self.org).count(),
             "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
             "chart": {"series": series, "rows": rows},
-            "breadcrumb_trail": self.extend_breadcrumb(),
         }

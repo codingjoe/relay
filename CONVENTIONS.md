@@ -5,6 +5,10 @@ Update it based on review feedback.
 
 ## URLs
 
+- Use the `app:model-CRUD` naming pattern with hyphens (e.g. `org-list`,
+  `org-detail`, `org-create`, `domain-verify`, `message-list`). This mirrors
+  DRF's router convention.
+
 - Use nested `include()` for cascaded paths:
 
   ```python
@@ -20,6 +24,10 @@ Update it based on review feedback.
   (`LOGIN_URL`, `LOGIN_REDIRECT_URL`, `LOGOUT_REDIRECT_URL`), `redirect()`,
   `reverse()`/`reverse_lazy()`, and templates (`{% url %}`). This keeps
   redirects valid when paths move.
+
+- Use `param_replace` (from `abstract` template tags) to build filtered
+  pagination URLs: `href="?{% param_replace page=page_obj.next_page_number %}"`.
+  Never hand-construct query strings in templates.
 
 ## Primary Keys
 
@@ -56,7 +64,8 @@ Update it based on review feedback.
 
 - All imports at the top of a file, except inside Celery/Django tasks where
   late imports are needed to avoid import cycles.
-- Import views as `from . import views` in URL configs.
+- Import views as `from . import views` in URL configs, then reference
+  `views.MyView.as_view()`.
 - Do not import with different names (no `import x as y`) unless necessary.
 - Do not import per-property — import the module directly.
 
@@ -137,16 +146,21 @@ Update it based on review feedback.
   `{{ form }}` / `{{ form.field }}` so the overrides apply automatically;
   only fall back to hand-written inputs when a widget truly needs custom
   markup.
-- Sidebar and main-nav links: assign each link's URL to a variable with
+- Sidebar and main-nav links: assign each URL to a variable with
   `{% url '...' as var %}`, then use exact `request.path == var` to set
   `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
-  a substring check would highlight the org-root dashboard link on every
-  child page, since `/org/demo/` is a substring of `/org/demo/messages/`.
-  For routes with detail subpages (e.g. `/org/<slug>/credentials/<id>/delete/`),
-  highlight the list page only — the subpage is not a list view, so it
-  should not appear active. Hide main-nav links entirely when no org is
-  selected. Use `request.resolver_match` only when no URL alias exists,
-  never alongside a `{% url ... as var %}` assignment.
+  a substring check would highlight parent links on every child page.
+  Hide main-nav links entirely when no org is selected.
+- Breadcrumbs: use `BreadcrumbViewMixin` from `abstract.views`. Each view
+  sets `title` (the breadcrumb title) and `parent` (the URL name of the
+  parent page). The mixin builds the chain by traversing parents via
+  `get_url(cls, request)` and `get_title(cls, request)` classmethods.
+  Override `get_title` for request-dependent titles (e.g., the org name
+  from `request.current_org`). Override `get_url` for URL patterns that
+  need request kwargs (e.g., `OrganizationScopedView` passes `org_slug`).
+  For detail views with no `title`, the breadcrumb falls back to
+  `str(self.object)`. Context variable is `breadcrumbs`, dict keys are
+  `{"title": ..., "url": ...}`.
 
 ## Testing
 

@@ -2,15 +2,7 @@
 
 from django.urls import include, path
 
-from .views import (
-    OutgoingMessageDetailView,
-    OutgoingMessageLogView,
-    OutgoingMessageModalView,
-    SmtpCredentialCreateView,
-    SmtpCredentialDeleteView,
-    SmtpCredentialListView,
-    TestEmailView,
-)
+from . import views
 
 app_name = "smtp"
 
@@ -19,18 +11,18 @@ urlpatterns = [
         "messages/",
         include(
             [
-                path("", OutgoingMessageLogView.as_view(), name="message_log"),
+                path("", views.OutgoingMessageLogView.as_view(), name="message-list"),
                 path(
                     "<uuid:pk>",
-                    OutgoingMessageDetailView.as_view(),
-                    name="message_detail",
+                    views.OutgoingMessageDetailView.as_view(),
+                    name="message-detail",
                 ),
                 path(
                     "<uuid:pk>/modal",
-                    OutgoingMessageModalView.as_view(),
-                    name="message_modal",
+                    views.OutgoingMessageModalView.as_view(),
+                    name="message-modal",
                 ),
-                path("test", TestEmailView.as_view(), name="test_email"),
+                path("test", views.TestEmailView.as_view(), name="message-test"),
             ]
         ),
     ),
@@ -38,14 +30,18 @@ urlpatterns = [
         "credentials/",
         include(
             [
-                path("", SmtpCredentialListView.as_view(), name="credential_list"),
                 path(
-                    "new", SmtpCredentialCreateView.as_view(), name="credential_create"
+                    "", views.SmtpCredentialListView.as_view(), name="credential-list"
+                ),
+                path(
+                    "new",
+                    views.SmtpCredentialCreateView.as_view(),
+                    name="credential-create",
                 ),
                 path(
                     "<int:pk>/delete",
-                    SmtpCredentialDeleteView.as_view(),
-                    name="credential_delete",
+                    views.SmtpCredentialDeleteView.as_view(),
+                    name="credential-delete",
                 ),
             ]
         ),

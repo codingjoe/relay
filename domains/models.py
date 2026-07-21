@@ -189,7 +189,7 @@ class Domain(TimeStamped):
         if self.org is None:
             return None
         return reverse(
-            "domains:domain_detail",
+            "domains:domain-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 

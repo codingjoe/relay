@@ -1,10 +1,14 @@
 """Root project views."""
 
+from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
+from abstract.views import BreadcrumbViewMixin
 
-class HomeView(TemplateView):
+
+class HomeView(BreadcrumbViewMixin, TemplateView):
     template_name = "start.html"
+    title = _("Home")
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]

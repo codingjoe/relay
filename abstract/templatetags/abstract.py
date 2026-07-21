@@ -38,6 +38,21 @@ def naturaltime(value: datetime.datetime):
     return formats.date_format(value, "SHORT_DATETIME_FORMAT")
 
 
+@register.simple_tag(takes_context=True)
+def param_replace(context, **kwargs):
+    """Replace query parameters in the current URL.
+
+    Preserves existing GET parameters and overrides the ones passed as kwargs.
+    Empty values are removed.
+    """
+    d = context["request"].GET.copy()
+    for k, v in kwargs.items():
+        d[k] = v
+    for k in [k for k, v in d.items() if not v]:
+        del d[k]
+    return d.urlencode()
+
+
 @register.simple_tag
 def include_md(template_name, **context):
     return utils.md_2_html(loader.get_template(template_name).render(context=context))

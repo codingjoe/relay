@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n accounts %}
+{% load i18n accounts abstract %}
 {% block title %}{% translate "organizations"|capfirst context "noun" %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -16,22 +16,10 @@
         <p>{% translate "create a new organization to manage your email infrastructure."|capfirst %}</p>
       </header>
       <section>
-        <form method="post" action="{% url 'accounts:organization_list' %}" id="dlg-new-org-form">
+        <form method="post" action="{% url 'accounts:org-list' %}" id="dlg-new-org-form">
           {% csrf_token %}
           <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_slug">{% translate "slug"|capfirst context "noun" %}</label>
-              <input
-                type="text"
-                name="slug"
-                id="id_slug"
-                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                title="{% translate 'lowercase letters, digits, and hyphens' %}"
-                placeholder="my-org"
-                required
-                class="input"
-              >
-            </div>
+            {{ form }}
           </fieldset>
         </form>
       </section>
@@ -55,9 +43,9 @@
     {% for org in organizations %}
       <article class="item" data-variant="outline">
         <section>
-          <h3><a href="{% url 'accounts:organization_home' org.slug %}">{{ org.slug }}</a></h3>
+          <h3><a href="{% url 'accounts:org-home' org.slug %}">{{ org.slug }}</a></h3>
           <p class="flex items-center gap-3 flex-wrap">
-            {{ org.my_membership.0.get_role_display }} · {{ org.created_at|date:"M d, Y" }}
+            {{ org.my_membership.0.get_role_display }} · {{ org.created_at|naturalday|capfirst }}
             <div class="avatar-group">
               {% for m in org.memberships.all|slice:":5" %}
                 <span class="avatar" data-size="sm">
@@ -78,7 +66,7 @@
         </section>
         <aside>
           <a
-            href="{% url 'accounts:organization_detail' org.slug %}"
+            href="{% url 'accounts:org-detail' org.slug %}"
             class="btn"
             data-variant="secondary"
             data-size="sm"

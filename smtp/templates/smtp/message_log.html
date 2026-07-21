@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n abstract %}
 {% block title %}{% translate "message log"|title %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -21,7 +21,7 @@
         <p>{% translate "send a test message to verify your setup."|capfirst %}</p>
       </header>
       <section>
-        <form method="post" action="{% url 'smtp:test_email' org.slug %}" id="dlg-test-email-form">
+        <form method="post" action="{% url 'smtp:message-test' org.slug %}" id="dlg-test-email-form">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
@@ -144,7 +144,7 @@
               class="btn"
               data-variant="ghost"
               data-size="sm"
-              href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.previous_page_number }}"
+              href="?{% param_replace page=page_obj.previous_page_number %}"
             >
               <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
               {% translate "previous"|capfirst %}
@@ -162,7 +162,7 @@
               class="btn"
               data-variant="ghost"
               data-size="sm"
-              href="?{% if filters.domain %}domain={{ filters.domain }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.search %}search={{ filters.search }}&{% endif %}page={{ page_obj.next_page_number }}"
+              href="?{% param_replace page=page_obj.next_page_number %}"
             >
               {% translate "next"|capfirst %}
               <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>

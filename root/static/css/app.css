@@ -1,21 +1,5 @@
 /* Layout glue: the only styles basecoat and Tailwind don't provide directly. */
 
-.landing-accent {
-  position: relative;
-  z-index: 0;
-}
-
-.landing-accent::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0.05em;
-  height: 0.4em;
-  background: color-mix(in srgb, oklch(55% 0.14 280) 25%, transparent);
-  z-index: -1;
-  border-radius: 4px;
-}
-
 /* Semantic status colors used by message-status charts. */
 :root {
   --color-success: oklch(64.8% .15 145);

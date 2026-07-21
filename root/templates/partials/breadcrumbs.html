@@ -1,13 +1,13 @@
 {% load i18n %}
-{% if breadcrumb_trail %}
+{% if breadcrumbs %}
   <nav class="breadcrumb" aria-label='{% translate "breadcrumb"|capfirst %}'>
     <ol>
-      {% for item in breadcrumb_trail %}
+      {% for item in breadcrumbs %}
         <li>
           {% if item.url %}
-            <a href="{{ item.url }}">{{ item.label }}</a>
+            <a href="{{ item.url }}">{{ item.title }}</a>
           {% else %}
-            <span aria-current="page">{{ item.label }}</span>
+            <span aria-current="page">{{ item.title }}</span>
           {% endif %}
         </li>
         {% if not forloop.last %}
