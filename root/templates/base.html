@@ -16,6 +16,14 @@
       document.addEventListener("DOMContentLoaded", () => {
         if (window.lucide) window.lucide.createIcons();
       });
+      (() => {
+        try {
+          const stored = localStorage.getItem("themeMode");
+          if (stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (_) {}
+      })();
     </script>
   </head>
   <body class="min-h-screen flex">
