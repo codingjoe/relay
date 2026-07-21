@@ -17,10 +17,9 @@ from django.views.generic import (
     UpdateView,
 )
 
-from .models import Membership, Organization
-
-
 from abstract.views import BreadcrumbViewMixin
+
+from .models import Membership, Organization
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
@@ -117,6 +116,7 @@ class OrganizationHomeView(OrganizationScopedView, DetailView):
 
     @classmethod
     def get_title(cls, request=None) -> str:
+        """Return the organization name from the request's current org."""
         if request and hasattr(request, "current_org"):
             return str(request.current_org)
         return ""

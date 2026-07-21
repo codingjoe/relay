@@ -7,6 +7,8 @@ from abstract.views import BreadcrumbViewMixin
 
 
 class HomeView(BreadcrumbViewMixin, TemplateView):
+    """Marketing landing page for unauthenticated visitors."""
+
     template_name = "start.html"
     title = _("Home")
 

@@ -1,5 +1,3 @@
-"""URL configuration for legal pages."""
-
 from django.urls import path
 
 from . import views

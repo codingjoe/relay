@@ -1,5 +1,3 @@
-"""URL configuration for domain management (org-scoped)."""
-
 from django.urls import path
 
 from . import views

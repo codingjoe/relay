@@ -1,5 +1,3 @@
-"""URL configuration for the transactional email dashboard."""
-
 from django.urls import path
 
 from . import views

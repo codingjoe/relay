@@ -1,4 +1,3 @@
-# Django's humanize filters
 import datetime
 
 from django.contrib.humanize.templatetags import humanize
@@ -16,6 +15,11 @@ register.filter(is_safe=True)(humanize.apnumber)
 
 @register.filter(expects_localtime=True)
 def naturalday(value):
+    """Format a date as a human-readable day (e.g., "today", "yesterday", "Sep 13").
+
+    Falls back to `SHORT_DATE_FORMAT` for dates in the current year and
+    `DATE_FORMAT` for dates in other years.
+    """
     if value and value.year != timezone.now().year:
         return f"{humanize.naturalday(value, 'DATE_FORMAT')}"
     return humanize.naturalday(value, "SHORT_DATE_FORMAT")
@@ -23,6 +27,18 @@ def naturalday(value):
 
 @register.filter(expects_localtime=True)
 def naturaltime(value: datetime.datetime):
+    """Format a datetime as a human-readable relative time.
+
+    Uses Django's `naturaltime` for recent values (within ±2 hours), then
+    falls back to progressively longer date/time formats for older values.
+
+    Args:
+        value: The datetime to format.
+
+    Returns:
+        A human-readable time string, or the input unchanged if it is not
+        a datetime.
+    """
     if not isinstance(value, datetime.datetime):
         return value
     now = timezone.now()
@@ -44,6 +60,13 @@ def param_replace(context, **kwargs):
 
     Preserves existing GET parameters and overrides the ones passed as kwargs.
     Empty values are removed.
+
+    Args:
+        context: The template context (must contain `request`).
+        **kwargs: Query parameters to set or override.
+
+    Returns:
+        A URL-encoded query string with the updated parameters.
     """
     d = context["request"].GET.copy()
     for k, v in kwargs.items():
@@ -55,11 +78,22 @@ def param_replace(context, **kwargs):
 
 @register.simple_tag
 def include_md(template_name, **context):
+    """Render a Markdown template to HTML."""
     return utils.md_2_html(loader.get_template(template_name).render(context=context))
 
 
 @register.simple_tag
 def include_md_toc(template_name, depth=None, **context):
+    """Render a table of contents for a Markdown template.
+
+    Args:
+        template_name: The template to render and extract headings from.
+        depth: The heading depth range (e.g., `"2-3"`). Defaults to 6.
+        **context: Extra context passed to the template.
+
+    Returns:
+        HTML for the table of contents.
+    """
     return utils.md_toc(
         loader.get_template(template_name).render(context=context),
         depth=depth,

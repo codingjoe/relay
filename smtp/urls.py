@@ -1,5 +1,3 @@
-"""URL configuration for the SMTP service — messages and credentials (org-scoped)."""
-
 from django.urls import include, path
 
 from . import views

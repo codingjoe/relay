@@ -1,5 +1,3 @@
-"""URL configuration for accounts — auth, organizations, and org settings."""
-
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 

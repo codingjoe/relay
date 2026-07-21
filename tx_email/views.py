@@ -30,16 +30,18 @@ CHART_COLORS = {
 
 
 class DashboardView(OrganizationScopedView, TemplateView):
+    """Unified transactional email dashboard for an organization."""
+
     template_name = "tx_email/dashboard.html"
     title = _("Email")
     parent = "accounts:org-home"
 
     def get_chart_data(self):
-        """Return ``(series, rows)`` for a stacked line chart of recent messages.
+        """Return `(series, rows)` for a stacked line chart of recent messages.
 
-        ``series`` maps ``OutgoingMessage.Status`` values to chart series config.
-        ``rows`` is a list of per-day dicts keyed by status, in chronological order,
-        suitable for direct serialization into a basecoat ``data`` array.
+        `series` maps `OutgoingMessage.Status` values to chart series config.
+        `rows` is a list of per-day dicts keyed by status, in chronological
+        order, suitable for direct serialization into a basecoat `data` array.
         """
         start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
         rows = (
