@@ -50,19 +50,19 @@ class TestDomainCreateView:
 class TestDomainDetailView:
     def test_get__ok_for_member(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}")
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
         assert response.status_code == 200
         assert response.context["domain"] == domain
 
     def test_get__context_has_nameservers(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}")
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
         assert "nameservers" in response.context
         assert "spf_include" in response.context
 
     def test_get__not_found_for_other_org(self, admin_client, org, write_org):
         domain = Domain.objects.create(name="other.com", org=write_org)
-        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}")
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
         assert response.status_code == 404
 
 
@@ -82,7 +82,7 @@ class TestDomainVerifyView:
             f"/org/{org.slug}/email/domains/{domain.pk}/verify"
         )
         assert response.status_code == 302
-        assert response.url.endswith(f"/org/{org.slug}/email/domains/{domain.pk}")
+        assert response.url.endswith(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
     def test_post__not_found_for_other_org(self, admin_client, org, write_org):
         domain = Domain.objects.create(name="other.com", org=write_org)
