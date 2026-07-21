@@ -1,7 +1,7 @@
 <input
   type="{{ widget.type }}"
   name="{{ widget.name }}"
-  class="input {{ widget.attrs.class|default:'' }}"
+  class="input{% for name, value in widget.attrs.items %}{% if name == 'class' %} {{ value }}{% endif %}{% endfor %}"
   {% if widget.value != None %}value="{{ widget.value|stringformat:'s' }}"{% endif %}
   {% for name, value in widget.attrs.items %}
     {% if name != 'class' and value is not False %}

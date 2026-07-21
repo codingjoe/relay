@@ -195,7 +195,7 @@ class TestDomainGetAbsoluteUrl:
         domain = Domain.objects.create(name="example.com", org=org)
         url = domain.get_absolute_url()
         assert url is not None
-        assert f"/org/{org.slug}/domains/{domain.pk}" in url
+        assert f"/org/{org.slug}/email/domains/{domain.pk}" in url
 
     def test_get_absolute_url__none_for_system_domain(self):
         domain = Domain.objects.create(name="system.com", org=None)
