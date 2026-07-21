@@ -14,7 +14,6 @@ import os
 from pathlib import Path
 import environ
 
-import django.forms
 
 env = environ.Env(
     # set casting, default value
@@ -54,6 +53,7 @@ INSTALLED_APPS = [
     # First-party apps (abstract first so its widget overrides win)
     "abstract",
     # Django
+    "django.forms",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -86,26 +86,17 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "root.urls"
 
-
-# Bundled Django form templates (for FORM_RENDERER=TemplatesSetting).
-_DJANGO_FORM_TEMPLATES_DIR = Path(os.path.dirname(django.forms.__file__)) / "templates"
-
-_UNCACHED_TEMPLATES_LOADERS = [
+_TEMPLATES_LOADERS = [
+    "django.template.loaders.filesystem.Loader",
     "django.template.loaders.app_directories.Loader",
-    (
-        "django.template.loaders.filesystem.Loader",
-        [_DJANGO_FORM_TEMPLATES_DIR],
-    ),
-    (
-        "django.template.loaders.filesystem.Loader",
-        [BASE_DIR / "legal" / "docs"],
-    ),
 ]
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR / "legal" / "docs",
+        ],
         "OPTIONS": {
             "context_processors": (
                 ["django.template.context_processors.debug"] if DEBUG else []
@@ -119,12 +110,12 @@ TEMPLATES = [
             ],
             "debug": DEBUG,
             "loaders": (
-                _UNCACHED_TEMPLATES_LOADERS
+                _TEMPLATES_LOADERS
                 if DEBUG
                 else [
                     (
                         "django.template.loaders.cached.Loader",
-                        _UNCACHED_TEMPLATES_LOADERS,
+                        _TEMPLATES_LOADERS,
                     ),
                 ]
             ),

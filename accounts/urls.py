@@ -52,19 +52,26 @@ urlpatterns = [
                                 name="org-delete",
                             ),
                             path(
-                                "members/new",
-                                views.MembershipCreateView.as_view(),
-                                name="member-create",
-                            ),
-                            path(
-                                "members/<int:member_pk>/delete",
-                                views.MembershipDeleteView.as_view(),
-                                name="member-delete",
-                            ),
-                            path(
-                                "members/<int:member_pk>/edit",
-                                views.MembershipUpdateView.as_view(),
-                                name="member-update",
+                                "members/",
+                                include(
+                                    [
+                                        path(
+                                            "new",
+                                            views.MembershipCreateView.as_view(),
+                                            name="member-create",
+                                        ),
+                                        path(
+                                            "<int:member_pk>/delete",
+                                            views.MembershipDeleteView.as_view(),
+                                            name="member-delete",
+                                        ),
+                                        path(
+                                            "<int:member_pk>/edit",
+                                            views.MembershipUpdateView.as_view(),
+                                            name="member-update",
+                                        ),
+                                    ]
+                                ),
                             ),
                         ]
                     ),
