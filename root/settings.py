@@ -52,8 +52,8 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 INSTALLED_APPS = [
     # First-party apps (abstract first so its widget overrides win)
     "abstract",
-    # Django
     "django.forms",
+    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

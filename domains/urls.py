@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 from . import views
 
@@ -7,7 +7,14 @@ app_name = "domains"
 urlpatterns = [
     path("", views.DomainListView.as_view(), name="domain-list"),
     path("new", views.DomainCreateView.as_view(), name="domain-create"),
-    path("<int:pk>", views.DomainDetailView.as_view(), name="domain-detail"),
-    path("<int:pk>/delete", views.DomainDeleteView.as_view(), name="domain-delete"),
-    path("<int:pk>/verify", views.DomainVerifyView.as_view(), name="domain-verify"),
+    path(
+        "<int:pk>/",
+        include(
+            [
+                path("", views.DomainDetailView.as_view(), name="domain-detail"),
+                path("delete", views.DomainDeleteView.as_view(), name="domain-delete"),
+                path("verify", views.DomainVerifyView.as_view(), name="domain-verify"),
+            ]
+        ),
+    ),
 ]
