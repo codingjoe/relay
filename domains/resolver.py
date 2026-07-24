@@ -41,7 +41,6 @@ class DNSResolver:
 
     def resolve_domain_records(self, qname, qtype, qname_str, domain):
         """Build DNS records for a matched domain."""
-        # System domains serve at apex; user domains at sender subdomain
         base = domain.name if domain.is_system else domain.sender_domain
         records = []
 
@@ -91,11 +90,25 @@ class DNSResolver:
                 RR(qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL)
             )
 
-        dkim_name = domain.dkim_record_name
-        if qname_lower == dkim_name.rstrip(".").lower():
-            records.append(
-                RR(qname, QTYPE.TXT, rdata=txt(domain.dkim_record), ttl=self.RECORD_TTL)
-            )
+        # DKIM — serve public key for each active key at its selector name
+        for key in domain.active_dkim_keys:
+            key_record_name = f"{key.selector}._domainkey.{base}"
+            if qname_lower == key_record_name.rstrip(".").lower():
+                from cryptography.hazmat.primitives import serialization as ser
+                import base64 as b64
+
+                priv = ser.load_pem_private_key(
+                    key.private_key.encode("ascii"), password=None
+                )
+                pub = priv.public_key()
+                der = pub.public_bytes(
+                    encoding=ser.Encoding.DER,
+                    format=ser.PublicFormat.SubjectPublicKeyInfo,
+                )
+                record = f"v=DKIM1; t=s; h=sha256; p={b64.b64encode(der).decode()};"
+                records.append(
+                    RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
+                )
 
         verify_name = domain.verification_record_name
         if qname_lower == verify_name.rstrip(".").lower():
@@ -108,7 +121,6 @@ class DNSResolver:
                 )
             )
 
-        # DMARC for system domains (user domains set DMARC on their root)
         if domain.is_system and qname_lower == f"_dmarc.{domain.name}".lower():
             records.append(
                 RR(qname, QTYPE.TXT, rdata=txt("v=DMARC1; p=none"), ttl=self.RECORD_TTL)
@@ -120,17 +132,13 @@ class DNSResolver:
         """Return the Domain whose zone owns a query name, or None.
 
         System domains (org=None) match at the apex; user domains match via
-        their fixed sender subdomain prefix (e.g. ``mail.example.com``).
-        For DKIM alignment the user adds a CNAME on the root domain pointing
-        into this zone, so the query still arrives here.
+        their fixed sender subdomain prefix (e.g. ``mail.relay.example.com``).
         """
-        # System domains: match by domain name suffix
         for domain in Domain.objects.filter(org=None):
             name = domain.name.lower()
             if qname_str.lower() == name or qname_str.lower().endswith(f".{name}"):
                 return domain
 
-        # User domains: match by sender subdomain prefix (may be multi-label)
         prefix_labels = settings.RELAY_SENDER_SUBDOMAIN_PREFIX.lower().split(".")
         parts = qname_str.split(".")
 
@@ -143,12 +151,7 @@ class DNSResolver:
         return None
 
     def resolve_ptr(self, qname, qname_str):
-        """Return PTR records for the sender subdomain of the queried SMTP IP.
-
-        Only one PTR per IP is possible; return an empty list when the IP is
-        not one of ours.
-        """
-        # <reversed-ip>.in-addr.arpa → "1.0.0.127" → "127.0.0.1"
+        """Return PTR records for the sender subdomain of the queried SMTP IP."""
         ip = ".".join(reversed(qname_str.removesuffix(".in-addr.arpa").split(".")))
         if ip not in settings.RELAY_DNS_SMTP_IPS:
             return []

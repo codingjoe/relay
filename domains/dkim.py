@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 def sign_message(raw_bytes, domain):
     """Sign a message with DKIM using the domain's active private key.
 
-    Return the signed message bytes, or the original bytes if signing fails.
+    Always signs with ``d=domain.name`` (the root domain). With relaxed
+    DMARC alignment (``adkim=r``), email from subdomains like
+    ``app.acme.com`` still passes DMARC.
     """
     try:
         private_key = domain.dkim_private_key.encode("ascii")

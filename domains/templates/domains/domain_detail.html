@@ -28,25 +28,14 @@
     </form>
   </header>
 
-  <section class="flex flex-col gap-3 mb-6">
-    <h3 class="m-0">{% translate "DNS records"|capfirst context "noun" %}</h3>
-    <p class="text-muted-foreground m-0">
-      {% translate "publish these records at your DNS provider to enable sending from this domain."|capfirst %}
-    </p>
-    <pre class="bg-muted p-4 rounded-md overflow-auto text-sm"><code>{{ domain.sender_domain }}.    NS    {{ nameservers.0 }}.
-{{ domain.sender_domain }}.    NS    {{ nameservers.1 }}.
+  <p class="text-muted-foreground mb-6">
+    {% translate "publish these records at your DNS provider. relaxed DMARC alignment covers all subdomains."|capfirst %}
+  </p>
 
-{{ domain.name }}.    TXT    "v=spf1 include:{{ spf_include }} ~all"
-
-{{ domain.dkim_cname_name }}.    CNAME    {{ domain.dkim_cname_target }}.
-
-_dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domain.name }};"</code></pre>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <h3 class="m-0">{% translate "verification status"|title %}</h3>
-    <ul class="flex flex-col gap-2 m-0 p-0 list-none">
-      <li class="flex items-center gap-2">
+  <div class="flex flex-col gap-4">
+    {# Nameserver #}
+    <div role="group" class="field">
+      <div class="flex items-center gap-2">
         {% if domain.nameserver_status == 'ok' %}
           <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
         {% elif domain.nameserver_status == 'error' %}
@@ -54,12 +43,46 @@ _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domai
         {% else %}
           <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         {% endif %}
-        <strong>Nameserver</strong>
-        {% if domain.nameserver_error %}
-          <span class="text-muted-foreground">— {{ domain.nameserver_error }}</span>
-        {% endif %}
-      </li>
-      <li class="flex items-center gap-2">
+        <label>NS</label>
+      </div>
+      <p class="text-sm text-muted-foreground">
+        {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
+      </p>
+      {% if domain.nameserver_error %}
+        <p class="text-sm text-destructive">{{ domain.nameserver_error }}</p>
+      {% endif %}
+      {% for ns in nameservers %}
+        <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
+          <input type="text" readonly value="{{ domain.sender_domain }}" onfocus="this.select()">
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-sm"
+            onclick="navigator.clipboard.writeText('{{ domain.sender_domain }}')"
+            aria-label='{% translate "copy name"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+          <span>NS</span>
+          <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-sm"
+            onclick="navigator.clipboard.writeText('{{ ns }}.')"
+            aria-label='{% translate "copy value"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+        </div>
+      {% endfor %}
+    </div>
+
+    {# SPF #}
+    <div role="group" class="field">
+      <div class="flex items-center gap-2">
         {% if domain.spf_status == 'ok' %}
           <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
         {% elif domain.spf_status == 'error' %}
@@ -67,12 +90,44 @@ _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domai
         {% else %}
           <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         {% endif %}
-        <strong>SPF</strong>
-        {% if domain.spf_error %}
-          <span class="text-muted-foreground">— {{ domain.spf_error }}</span>
-        {% endif %}
-      </li>
-      <li class="flex items-center gap-2">
+        <label>SPF</label>
+      </div>
+      <p class="text-sm text-muted-foreground">
+        {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
+      </p>
+      {% if domain.spf_error %}
+        <p class="text-sm text-destructive">{{ domain.spf_error }}</p>
+      {% endif %}
+      <div class="input-group">
+        <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('{{ domain.name }}')"
+          aria-label='{% translate "copy name"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+        <span>TXT</span>
+        <input type="text" readonly value="&quot;{{ domain.root_spf_record }}&quot;" onfocus="this.select()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('{{ domain.root_spf_record }}')"
+          aria-label='{% translate "copy value"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    {# DKIM — one CNAME per cipher #}
+    <div role="group" class="field">
+      <div class="flex items-center gap-2">
         {% if domain.dkim_status == 'ok' %}
           <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
         {% elif domain.dkim_status == 'error' %}
@@ -80,12 +135,46 @@ _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domai
         {% else %}
           <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         {% endif %}
-        <strong>DKIM</strong>
-        {% if domain.dkim_error %}
-          <span class="text-muted-foreground">— {{ domain.dkim_error }}</span>
-        {% endif %}
-      </li>
-      <li class="flex items-center gap-2">
+        <label>DKIM</label>
+      </div>
+      <p class="text-sm text-muted-foreground">
+        {% translate "cryptographic email signing. one CNAME per cipher."|capfirst %}
+      </p>
+      {% if domain.dkim_error %}
+        <p class="text-sm text-destructive">{{ domain.dkim_error }}</p>
+      {% endif %}
+      {% for cname in dkim_cnames %}
+        <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
+          <input type="text" readonly value="{{ cname.0 }}" onfocus="this.select()">
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-sm"
+            onclick="navigator.clipboard.writeText('{{ cname.0 }}')"
+            aria-label='{% translate "copy name"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+          <span>CNAME</span>
+          <input type="text" readonly value="{{ cname.1 }}." onfocus="this.select()">
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-sm"
+            onclick="navigator.clipboard.writeText('{{ cname.1 }}.')"
+            aria-label='{% translate "copy value"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+        </div>
+      {% endfor %}
+    </div>
+
+    {# DMARC #}
+    <div role="group" class="field">
+      <div class="flex items-center gap-2">
         {% if domain.dmarc_status == 'ok' %}
           <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
         {% elif domain.dmarc_status == 'error' %}
@@ -93,11 +182,44 @@ _dmarc.{{ domain.name }}.    TXT    "v=DMARC1; p=none; rua=mailto:dmarc@{{ domai
         {% else %}
           <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         {% endif %}
-        <strong>DMARC</strong>
-        {% if domain.dmarc_error %}
-          <span class="text-muted-foreground">— {{ domain.dmarc_error }}</span>
-        {% endif %}
-      </li>
-    </ul>
-  </section>
+        <label>DMARC</label>
+      </div>
+      <p class="text-sm text-muted-foreground">
+        {% translate "email authentication policy. relaxed alignment covers subdomains."|capfirst %}
+      </p>
+      {% if domain.dmarc_error %}
+        <p class="text-sm text-destructive">{{ domain.dmarc_error }}</p>
+      {% endif %}
+      <div class="input-group">
+        <input type="text" readonly value="_dmarc.{{ domain.name }}" onfocus="this.select()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('_dmarc.{{ domain.name }}')"
+          aria-label='{% translate "copy name"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+        <span>TXT</span>
+        <input
+          type="text"
+          readonly
+          value="&quot;v=DMARC1; p=none; sp=none; adkim=r; aspf=r; rua=mailto:dmarc@{{ domain.name }};&quot;"
+          onfocus="this.select()"
+        >
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('v=DMARC1; p=none; sp=none; adkim=r; aspf=r; rua=mailto:dmarc@{{ domain.name }};')"
+          aria-label='{% translate "copy value"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
 {% endblock %}

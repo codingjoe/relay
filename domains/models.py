@@ -12,11 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from abstract.models import TimeStamped
 
 
-def generate_dkim_identifier_string():
-    alphabet = string.ascii_lowercase + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(6))
-
-
 def generate_verification_token():
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(16))
@@ -27,6 +22,18 @@ def generate_rsa_private_key(key_size=2048):
         public_exponent=65537,
         key_size=key_size,
     )
+    pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    return pem.decode("ascii")
+
+
+def generate_ed25519_private_key():
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    private_key = Ed25519PrivateKey.generate()
     pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -56,11 +63,6 @@ class DkimKey(TimeStamped):
         _("private key"),
         help_text=_("PEM-encoded key used for DKIM signing."),
     )
-    selector = models.CharField(
-        _("selector"),
-        max_length=6,
-        help_text=_("DKIM selector in the DNS record name."),
-    )
     is_active = models.BooleanField(
         _("active"),
         default=True,
@@ -70,16 +72,28 @@ class DkimKey(TimeStamped):
     class Meta(TimeStamped.Meta):
         constraints = [
             models.UniqueConstraint(
-                fields=["domain", "selector"],
-                name="unique_dkim_selector_per_domain",
+                fields=["domain", "key_type"],
+                name="unique_dkim_key_type_per_domain",
             ),
         ]
 
     def __str__(self):
-        return f"{self.domain} / {self.key_type} / {self.selector}"
+        return f"{self.domain} / {self.key_type}"
+
+    @property
+    def selector(self) -> str:
+        """DKIM selector derived from the key type (e.g. relay-rsa2048)."""
+        return f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-{self.key_type}"
 
 
 class Domain(TimeStamped):
+    """Root domain — verified once with NS delegation, DMARC, SPF, and DKIM.
+
+    Uses relaxed DMARC alignment (``adkim=r``, ``aspf=r``) so email from
+    any subdomain (e.g. ``app.acme.com``) is signed with ``d=acme.com``
+    and still passes DMARC.
+    """
+
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
         EMAIL = "email", _("email")
@@ -94,7 +108,7 @@ class Domain(TimeStamped):
         _("name"),
         max_length=255,
         unique=True,
-        help_text=_("Sender domain, e.g. example.com."),
+        help_text=_("Root domain, e.g. acme.com."),
     )
     org = models.ForeignKey(
         "accounts.Organization",
@@ -122,7 +136,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("NS delegation check result."),
+        help_text=_("NS delegation check result for the sender subdomain."),
     )
     nameserver_error = models.TextField(
         _("nameserver error"),
@@ -134,7 +148,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("SPF record check result."),
+        help_text=_("SPF record check result on the root domain."),
     )
     spf_error = models.TextField(
         _("SPF error"),
@@ -146,7 +160,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("DKIM CNAME check result."),
+        help_text=_("DKIM CNAME check result on the root domain."),
     )
     dkim_error = models.TextField(
         _("DKIM error"),
@@ -158,7 +172,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("DMARC record check result."),
+        help_text=_("DMARC record check result on the root domain."),
     )
     dmarc_error = models.TextField(
         _("DMARC error"),
@@ -170,16 +184,6 @@ class Domain(TimeStamped):
         null=True,
         blank=True,
         help_text=_("Last DNS check timestamp."),
-    )
-    outgoing = models.BooleanField(
-        _("outgoing"),
-        default=True,
-        help_text=_("Allow sending from this domain."),
-    )
-    incoming = models.BooleanField(
-        _("incoming"),
-        default=True,
-        help_text=_("Allow receiving for this domain."),
     )
 
     def __str__(self):
@@ -197,11 +201,24 @@ class Domain(TimeStamped):
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new and not self.dkim_keys.exists():
-            DkimKey.objects.create(
-                domain=self,
-                key_type=DkimKey.KeyType.RSA_2048,
-                private_key=generate_rsa_private_key(2048),
-                selector=generate_dkim_identifier_string(),
+            DkimKey.objects.bulk_create(
+                [
+                    DkimKey(
+                        domain=self,
+                        key_type=DkimKey.KeyType.RSA_2048,
+                        private_key=generate_rsa_private_key(2048),
+                    ),
+                    DkimKey(
+                        domain=self,
+                        key_type=DkimKey.KeyType.RSA_1024,
+                        private_key=generate_rsa_private_key(1024),
+                    ),
+                    DkimKey(
+                        domain=self,
+                        key_type=DkimKey.KeyType.ED25519,
+                        private_key=generate_ed25519_private_key(),
+                    ),
+                ]
             )
 
     @property
@@ -217,23 +234,22 @@ class Domain(TimeStamped):
         return self.dkim_keys.filter(is_active=True).first()
 
     @property
+    def active_dkim_keys(self):
+        return self.dkim_keys.filter(is_active=True)
+
+    @property
     def dkim_private_key(self):
         key = self.active_dkim_key
         return key.private_key if key else ""
 
     @property
-    def dkim_identifier_string(self):
-        key = self.active_dkim_key
-        return key.selector if key else ""
-
-    @property
     def sender_domain(self):
-        """Return the sender subdomain our nameserver serves."""
+        """Return the sender subdomain zone apex our nameserver serves."""
         return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{self.name}"
 
     @property
     def dkim_signing_domain(self):
-        """Return the root domain used as the DKIM d= tag."""
+        """Return the root domain used as the DKIM d= tag by default."""
         return self.name
 
     @property
@@ -255,7 +271,9 @@ class Domain(TimeStamped):
 
     @property
     def dkim_selector(self):
-        return f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-{self.dkim_identifier_string}"
+        """Selector of the primary active DKIM key."""
+        key = self.active_dkim_key
+        return key.selector if key else settings.RELAY_DNS_DKIM_IDENTIFIER
 
     @property
     def dkim_record_name(self):
@@ -277,9 +295,22 @@ class Domain(TimeStamped):
     def dkim_record(self):
         return f"v=DKIM1; t=s; h=sha256; p={self.dkim_public_key_b64};"
 
+    def dkim_cname_for_key(self, key) -> tuple[str, str]:
+        """Return (cname_name, cname_target) for a specific DkimKey."""
+        base = self.name if self.is_system else self.sender_domain
+        name = f"{key.selector}._domainkey.{self.name}"
+        target = f"{key.selector}._domainkey.{base}"
+        return name, target
+
     @property
     def spf_record(self):
-        return f"v=spf1 a mx include:{settings.RELAY_DNS_SPF_INCLUDE} ~all"
+        """SPF served at the sender subdomain by our nameserver."""
+        return "v=spf1 a mx ~all"
+
+    @property
+    def root_spf_record(self):
+        """SPF the user adds on their root domain — includes our sender subdomain."""
+        return f"v=spf1 include:{self.sender_domain} ~all"
 
     @property
     def return_path_domain(self):

@@ -2,7 +2,7 @@
 
 This app owns the entire sending path: the message record, delivery
 transmissions, and the SMTP credentials used to authenticate submissions.
-Incoming (MX) mail is out of scope for now and will live in a separate app.
+Incoming (MX) mail lives in the separate ``mx`` app.
 """
 
 import uuid
@@ -14,7 +14,6 @@ from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
 from accounts.models import Credential
-from domains.models import Domain
 
 
 class OutgoingMessage(TimeStamped):
@@ -67,7 +66,7 @@ class OutgoingMessage(TimeStamped):
         help_text=_("When the submission was accepted."),
     )
     domain = models.ForeignKey(
-        Domain,
+        "domains.Domain",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

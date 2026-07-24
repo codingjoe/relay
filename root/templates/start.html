@@ -39,7 +39,7 @@
           <form method="post" action="{% url 'social:begin' 'github' %}">
             {% csrf_token %}
             <button type="submit" class="btn" data-size="lg">
-              <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+              <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
               {% translate "get started free"|capfirst %}
             </button>
           </form>
@@ -191,7 +191,7 @@
             <form method="post" action="{% url 'social:begin' 'github' %}">
               {% csrf_token %}
               <button type="submit" class="btn w-full" data-size="lg">
-                <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+                <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
                 {% translate "get started free"|capfirst %}
               </button>
             </form>
@@ -226,8 +226,8 @@
     }
 
     .landing-network {
-      --ink: var(--color-foreground);
-      --ink-soft: var(--color-muted-foreground);
+      --ink: color-mix(in srgb, var(--color-foreground) 25%, transparent);
+      --ink-soft: color-mix(in srgb, var(--color-muted-foreground) 25%, transparent);
       --accent: var(--color-primary);
     }
 

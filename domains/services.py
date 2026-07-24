@@ -33,11 +33,11 @@ def check_dmarc(domain):
 
 
 def check_spf(domain):
-    """Check that the root domain has an SPF record including our SPF include."""
+    """Check that the root domain has an SPF record including our sender subdomain."""
     try:
         txt_records = dns.resolver.resolve(domain.name, "TXT")
         return any(
-            settings.RELAY_DNS_SPF_INCLUDE
+            domain.sender_domain
             in "".join(s.decode() if isinstance(s, bytes) else s for s in r.strings)
             for r in txt_records
         )

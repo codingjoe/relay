@@ -1,8 +1,8 @@
 """SMTP handlers for outgoing mail submissions.
 
 Only authenticated submissions (valid SMTP credential) are accepted;
-unauthenticated/inbound mail is rejected. Incoming (MX) delivery is out
-of scope for now.
+unauthenticated/inbound mail is rejected. Incoming (MX) delivery is handled
+by the ``mx`` app.
 """
 
 import base64
