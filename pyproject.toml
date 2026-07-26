@@ -5,7 +5,7 @@ description = "A digital infrastructure platform for email, VoIP, and more, buil
 readme = "README.md"
 requires-python = "~=3.14.0"
 dependencies = [
-    "aiosmtplib>=3.0.0",
+    "aiosmtplib>=5.1.2",
     "aiosmtpd>=1.4.6",
     "boto3>=1.40.0",
     "cryptography>=45.0.0",
