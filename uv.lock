@@ -825,14 +825,14 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
-    { name = "aiosmtplib", specifier = ">=3.0.0" },
+    { name = "aiosmtplib", specifier = ">=5.1.2" },
     { name = "boto3", specifier = ">=1.40.0" },
     { name = "cryptography", specifier = ">=45.0.0" },
     { name = "django", specifier = ">=6.0.6" },
     { name = "django-environ", specifier = ">=0.13.0" },
     { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.0.4" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
-    { name = "dkimpy", specifier = ">=1.1.5" },
+    { name = "dkimpy", specifier = ">=1.1.8" },
     { name = "dnslib", specifier = ">=0.9.26" },
     { name = "dnspython", specifier = ">=2.7.0" },
     { name = "granian", specifier = ">=2.7.4" },
@@ -842,8 +842,8 @@ requires-dist = [
     { name = "pynacl", specifier = ">=1.5.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "redis", specifier = ">=7.2.0" },
-    { name = "social-auth-app-django", specifier = ">=5.4.0" },
-    { name = "whitenoise", specifier = ">=6.11.0" },
+    { name = "social-auth-app-django", specifier = ">=6.0.1" },
+    { name = "whitenoise", specifier = ">=6.12.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -852,7 +852,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "pytest-django", specifier = ">=4.5.2" },
-    { name = "pytest-randomly", specifier = ">=3.16.0" },
+    { name = "pytest-randomly", specifier = ">=4.1.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
 ]
 test = [
@@ -860,7 +860,7 @@ test = [
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "pytest-django", specifier = ">=4.5.2" },
-    { name = "pytest-randomly", specifier = ">=3.16.0" },
+    { name = "pytest-randomly", specifier = ">=4.1.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
 ]
 
@@ -915,16 +915,16 @@ wheels = [
 
 [[package]]
 name = "social-auth-app-django"
-version = "6.0.0"
+version = "6.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "django" },
     { name = "social-auth-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/8e/60593750bf1e2734e9b2b3ff85b685038fcc35446c5541e08fa4cdec17b9/social_auth_app_django-6.0.0.tar.gz", hash = "sha256:421916bf136c77a8683cac7505a3b2ecf7d5c8ec18455ffa883f2cb5161847b1", size = 31297, upload-time = "2026-06-23T15:35:44.429Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/7a/5d3f1e4a90edaff35824864c233a3c6a291621cc9dd39c157431fbb6376d/social_auth_app_django-6.0.1.tar.gz", hash = "sha256:43002de0530e2ad13ef067f54aba7185a05fc8527310006c5328dc0b5e7a4cfd", size = 31664, upload-time = "2026-07-24T06:55:59.119Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/79/5ae902ba623c906cfd172a2ed21d2e481f7cb1752f89fb5ce305f387d40a/social_auth_app_django-6.0.0-py3-none-any.whl", hash = "sha256:6974cb00bb462149b8384448c0aff6fb8e6c2b00efacca40d0270695d416cceb", size = 29464, upload-time = "2026-06-23T15:35:43.462Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/e9/c0b06b90b76d02b8e45d6989d0adb947df9b6d9b37d3c96e486f2de37bdb/social_auth_app_django-6.0.1-py3-none-any.whl", hash = "sha256:652ec21105ef58a34ffd223a02c338bc03e5f56d357ee69c33283afd08442065", size = 29481, upload-time = "2026-07-24T06:55:58.115Z" },
 ]
 
 [[package]]
@@ -974,9 +974,9 @@ wheels = [
 
 [[package]]
 name = "whitenoise"
-version = "6.11.0"
+version = "6.12.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/15/95/8c81ec6b6ebcbf8aca2de7603070ccf37dbb873b03f20708e0f7c1664bc6/whitenoise-6.11.0.tar.gz", hash = "sha256:0f5bfce6061ae6611cd9396a8231e088722e4fc67bc13a111be74c738d99375f", size = 26432, upload-time = "2025-09-18T09:16:10.995Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/2a/55b3f3a4ec326cd077c1c3defeee656b9298372a69229134d930151acd01/whitenoise-6.12.0.tar.gz", hash = "sha256:f723ebb76a112e98816ff80fcea0a6c9b8ecde835f8ddda25df7a30a3c2db6ad", size = 26841, upload-time = "2026-02-27T00:05:42.028Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/e9/4366332f9295fe0647d7d3251ce18f5615fbcb12d02c79a26f8dba9221b3/whitenoise-6.11.0-py3-none-any.whl", hash = "sha256:b2aeb45950597236f53b5342b3121c5de69c8da0109362aee506ce88e022d258", size = 20197, upload-time = "2025-09-18T09:16:09.754Z" },
+    { url = "https://files.pythonhosted.org/packages/db/eb/d5583a11486211f3ebd4b385545ae787f32363d453c19fffd81106c9c138/whitenoise-6.12.0-py3-none-any.whl", hash = "sha256:fc5e8c572e33ebf24795b47b6a7da8da3c00cff2349f5b04c02f28d0cc5a3cc2", size = 20302, upload-time = "2026-02-27T00:05:40.086Z" },
 ]
