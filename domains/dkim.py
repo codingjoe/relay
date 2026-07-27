@@ -18,10 +18,12 @@ def sign_message(raw_bytes, domain):
     """
     signed = raw_bytes
     for selector, key in domain.dkim_ciphers:
+        if key is None:
+            continue
         try:
             sig = key.sign_dkim(signed, selector, domain.name, INCLUDE_HEADERS)
             signed = sig + signed
-        except (AttributeError, dkim.DKIMException) as e:
+        except dkim.DKIMException as e:
             logger.error(f"DKIM signing failed for {domain.name} ({selector}): {e}")
     return signed
 
