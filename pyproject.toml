@@ -62,3 +62,8 @@ omit = [
     "*/baker_recipes.py",
     "node_modules/*",
 ]
+
+[tool.ruff.lint]
+ignore = [
+  "RUF012",
+]
