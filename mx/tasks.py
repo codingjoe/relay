@@ -1,4 +1,8 @@
-"""Webhook dispatch tasks for incoming mail."""
+"""Webhook dispatch tasks for incoming mail.
+
+Retry schedule and delivery semantics follow the Standard Webhooks spec:
+https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md#deliverability-and-reliability
+"""
 
 import json
 import logging
@@ -18,8 +22,9 @@ from .models import IncomingMessage, Webhook, WebhookDelivery
 logger = logging.getLogger(__name__)
 
 
-# Standard Webhooks retry schedule: time since *original* delivery attempt.
-# Each entry is the delay (in seconds) before the next attempt.
+# Standard Webhooks retry schedule — delay *between* consecutive attempts,
+# with jitter added at enqueue time. See "Deliverability and reliability":
+# https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md#deliverability-and-reliability
 WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
     0,  # immediate (first attempt)
     5,  # 5 seconds
@@ -35,61 +40,67 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 
 
 @task
-def dispatch_webhook(message_id, attempt=0):
-    """Deliver an incoming message to all matching active webhooks for its org.
+def dispatch_webhook(message_id):
+    """Fan out an incoming message to all matching active webhooks.
 
-    Retries are scheduled by re-enqueueing the same task with an incremented
-    ``attempt`` index, per the Standard Webhooks retry schedule. ``message``
-    status is only updated on the final attempt.
+    Each matching webhook gets its own per-endpoint delivery task so a
+    failing endpoint retries independently — already-succeeded endpoints
+    are never re-delivered.
     """
     message = IncomingMessage.objects.get(pk=message_id)
-    webhooks = Webhook.objects.filter(org=message.org, is_active=True)
-    is_final_attempt = attempt >= len(WEBHOOK_RETRY_DELAYS) - 1
-    deliveries = [
-        deliver_with_retries(message, webhook, attempt, is_final_attempt)
-        for webhook in webhooks
+    webhooks = [
+        webhook
+        for webhook in Webhook.objects.filter(org=message.org, is_active=True)
         if webhook.matches(message.rcpt_to)
     ]
-    any_sent = any(deliveries)
-    any_failed = any(not d for d in deliveries)
-
-    match is_final_attempt, [any_sent, any_failed]:
-        case False, _:
-            pass
-        case _, [True, _]:
-            message.status = IncomingMessage.Status.WEBHOOK_SENT
-            message.save(update_fields=["status"])
-        case _, [False, True]:
-            message.status = IncomingMessage.Status.WEBHOOK_FAILED
-            message.save(update_fields=["status"])
-        case _:
+    match webhooks:
+        case []:
             message.status = IncomingMessage.Status.DROPPED
             message.save(update_fields=["status"])
+        case _:
+            for webhook in webhooks:
+                deliver_webhook.enqueue(
+                    message_id=message_id, webhook_id=str(webhook.pk)
+                )
 
 
-def schedule_retry(message_id, webhook, attempt):
-    match attempt < len(WEBHOOK_RETRY_DELAYS) - 1:
-        case True:
-            delay = WEBHOOK_RETRY_DELAYS[attempt + 1] + secrets.randbelow(30)
-            dispatch_webhook.using(run_after=time.time() + delay).enqueue(
-                message_id=message_id, attempt=attempt + 1
-            )
-        case False:
-            pass
+@task
+def deliver_webhook(message_id, webhook_id, attempt=0):
+    """Deliver to a single webhook, retrying per the Standard Webhooks schedule.
 
+    On success the message is marked ``WEBHOOK_SENT``. On final failure the
+    message is marked ``WEBHOOK_FAILED`` only if no prior delivery succeeded
+    (i.e. status is still ``RECEIVED``).
+    """
+    message = IncomingMessage.objects.get(pk=message_id)
+    webhook = Webhook.objects.get(pk=webhook_id)
+    if not webhook.is_active:
+        mark_failed_if_pending(message)
+        return
 
-def deliver_with_retries(message, webhook, attempt, is_final_attempt):
     ok, status_code = deliver_to_webhook(message, webhook)
     match ok, status_code:
         case (True, _):
-            webhook.last_used_at = timezone.now()
-            webhook.save(update_fields=["last_used_at"])
+            Webhook.objects.filter(pk=webhook.pk).update(last_used_at=timezone.now())
+            message.status = IncomingMessage.Status.WEBHOOK_SENT
+            message.save(update_fields=["status"])
         case (False, 410):
-            webhook.is_active = False
-            webhook.save(update_fields=["is_active"])
-        case (False, _) if not is_final_attempt:
-            schedule_retry(str(message.id), webhook, attempt)
-    return ok
+            Webhook.objects.filter(pk=webhook.pk).update(is_active=False)
+            mark_failed_if_pending(message)
+        case (False, _) if attempt < len(WEBHOOK_RETRY_DELAYS) - 1:
+            delay = WEBHOOK_RETRY_DELAYS[attempt + 1] + secrets.randbelow(30)
+            deliver_webhook.using(run_after=time.time() + delay).enqueue(
+                message_id=message_id, webhook_id=webhook_id, attempt=attempt + 1
+            )
+        case _:
+            mark_failed_if_pending(message)
+
+
+def mark_failed_if_pending(message):
+    """Set ``WEBHOOK_FAILED`` only if the message has not yet been delivered."""
+    IncomingMessage.objects.filter(
+        pk=message.id, status=IncomingMessage.Status.RECEIVED
+    ).update(status=IncomingMessage.Status.WEBHOOK_FAILED)
 
 
 @dataclass
