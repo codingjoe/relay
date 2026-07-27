@@ -1,8 +1,11 @@
 import secrets
 import string
+from functools import reduce
+from operator import or_
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -12,10 +15,12 @@ from kms.models import SigningKey
 
 class DomainQuerySet(models.QuerySet):
     def root_for(self, name):
-        rcpt_lower = name.lower()
-        parts = rcpt_lower.split(".")
+        parts = name.lower().split(".")
         candidates = [".".join(parts[i:]) for i in range(len(parts))]
-        return self.filter(name__iexact=candidates, org__isnull=False)
+        return self.filter(
+            reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
+            org__isnull=False,
+        )
 
 
 def generate_verification_token():
@@ -152,6 +157,11 @@ class Domain(TimeStamped):
 
     def __str__(self):
         return self.name
+
+    class Meta(TimeStamped.Meta):
+        indexes = [
+            models.Index(Lower("name"), name="domain_name_lower_idx"),
+        ]
 
     objects = models.Manager.from_queryset(DomainQuerySet)()
 

@@ -29,7 +29,7 @@ class MXHandler:
             mail_from,
             rcpt_to,
             raw_bytes,
-            getattr(session, "tls", False),
+            getattr(session, "ssl", False),
         )
         logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
         return result

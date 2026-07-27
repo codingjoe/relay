@@ -5,6 +5,7 @@ from email import message_from_bytes
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -27,6 +28,8 @@ class IncomingMessageListView(OrganizationScopedView, ListView):
 
     def get_queryset(self):
         qs = IncomingMessage.objects.filter(org=self.org)
+        if domain := self.request.GET.get("domain"):
+            qs = qs.filter(receiving_domain=domain)
         if search := self.request.GET.get("search"):
             qs = qs.filter(mail_from__icontains=search)
         return qs
@@ -122,21 +125,22 @@ class WebhookCreateView(OrganizationScopedView, View):
         )
         address_pattern = f"{pattern_prefix}@{domain_part}"
 
-        signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
-        webhook = Webhook(
-            org=self.org,
-            url=url,
-            name=name,
-            address_pattern=address_pattern,
-            signing_key=signing_key,
-        )
         try:
-            webhook.full_clean()
-        except ValidationError:
-            messages.error(request, _("Webhook URL must use HTTPS."))
-            return redirect("mx:webhook-list", org_slug=org_slug)
-        webhook.save(force_insert=True)
-        messages.success(request, _("Webhook created."))
+            with transaction.atomic():
+                signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
+                webhook = Webhook(
+                    org=self.org,
+                    url=url,
+                    name=name,
+                    address_pattern=address_pattern,
+                    signing_key=signing_key,
+                )
+                webhook.full_clean()
+                webhook.save(force_insert=True)
+        except ValidationError as e:
+            messages.error(request, "; ".join(e.messages))
+        else:
+            messages.success(request, _("Webhook created."))
         return redirect("mx:webhook-list", org_slug=org_slug)
 
 

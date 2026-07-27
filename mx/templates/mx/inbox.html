@@ -13,7 +13,7 @@
         <select id="filter-domain" name="domain" class="select w-full">
           <option value="">{% translate "all"|capfirst %}</option>
           {% for rd in receiving_domains %}
-            <option value="{{ rd.pk }}" {% if filters.domain == rd.pk|stringformat:"s" %}selected{% endif %}>
+            <option value="{{ rd.name }}" {% if filters.domain == rd.name %}selected{% endif %}>
               {{ rd.name }}
             </option>
           {% endfor %}
