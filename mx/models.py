@@ -1,9 +1,4 @@
-"""MX ingress models — incoming messages, webhooks, and deliveries.
-
-This app owns the incoming delivery path: the incoming message record,
-webhook endpoints (with per-webhook receiving domain config), and webhook
-delivery tracking. Domain configuration lives in the ``domains`` app.
-"""
+"""MX ingress models — incoming messages, webhooks, and deliveries."""
 
 import base64
 import uuid
@@ -22,6 +17,8 @@ from kms.models import SigningKey
 
 
 class IncomingMessage(MessageMixin, TimeStamped):
+    """An email captured by the MX server, awaiting webhook dispatch."""
+
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
         WEBHOOK_SENT = "webhook_sent", _("webhook sent")
@@ -71,6 +68,8 @@ class IncomingMessage(MessageMixin, TimeStamped):
 
 
 class Webhook(OrganizationOwned):
+    """An HTTPS endpoint that receives webhook deliveries for matching addresses."""
+
     class MxStatus(models.TextChoices):
         OK = "ok", _("ok")
         ERROR = "error", _("error")
@@ -148,7 +147,7 @@ class Webhook(OrganizationOwned):
 
     @property
     def is_free_domain(self) -> bool:
-        """True if the receiving domain is the free sender domain managed by us."""
+        """Report whether the receiving domain is the free sender domain managed by us."""
         return (
             self.receiving_domain_name.lower()
             == settings.RELAY_FREE_SENDER_DOMAIN.lower()
@@ -156,7 +155,7 @@ class Webhook(OrganizationOwned):
 
     @property
     def mx_target(self) -> str:
-        """The expected MX exchange hostname."""
+        """Compute the MX exchange hostname senders should deliver to."""
         from domains.models import Domain
 
         receiving = self.receiving_domain_name.lower()
@@ -166,13 +165,13 @@ class Webhook(OrganizationOwned):
 
     @property
     def mx_record(self) -> str:
-        """The MX record the user needs to set (empty for free domain)."""
+        """Describe the MX record the user must add (empty for free domains)."""
         if self.is_free_domain:
             return ""
         return f"MX {self.receiving_domain_name} → {self.mx_target}"
 
     def matches(self, rcpt_to) -> bool:
-        """Return True if this webhook should fire for the given recipient."""
+        """Match this webhook against a recipient address."""
         return fnmatch(rcpt_to.lower(), self.address_pattern.lower())
 
     @property
@@ -187,6 +186,8 @@ class Webhook(OrganizationOwned):
 
 
 class WebhookDelivery(TimeStamped):
+    """A record of one webhook POST attempt and its outcome."""
+
     class Status(models.TextChoices):
         SENT = "sent", _("sent")
         FAILED = "failed", _("failed")

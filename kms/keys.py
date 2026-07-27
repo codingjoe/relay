@@ -1,10 +1,4 @@
-"""Public-key cryptography helpers used by DKIM keys and webhook signing.
-
-All private keys are encrypted at rest via :mod:`kms.keystore` (Fernet
-keyed off ``settings.SECRET_KEY``). Public keys stay in plaintext so they
-can be shared with clients (DKIM public keys go in DNS, webhook public
-keys go in Standard Webhooks ``whpk_`` format).
-"""
+"""Asymmetric key generation, encryption, and signing helpers."""
 
 import hashlib
 from dataclasses import dataclass
@@ -17,8 +11,6 @@ from . import keystore
 
 
 class Algorithm:
-    """Algorithm labels — kept as strings for stable DB storage."""
-
     RSA_2048 = "rsa-2048"
     RSA_1024 = "rsa-1024"
     ED25519 = "ed25519"
@@ -67,7 +59,7 @@ def generate_ed25519_private_key() -> str:
     )
 
 
-def _public_pem_from_private(private_pem: str) -> str:
+def public_pem_from_private(private_pem: str) -> str:
     """Derive the PEM-encoded public key from a private key PEM."""
     private_key = serialization.load_pem_private_key(
         private_pem.encode(), password=None
@@ -82,9 +74,14 @@ def _public_pem_from_private(private_pem: str) -> str:
     )
 
 
-def _key_id_from_public_pem(public_pem: str) -> str:
-    """Return a 16-char SHA256 fingerprint of the PEM bytes (Standard Webhooks style)."""
+def key_id_from_public_pem(public_pem: str) -> str:
+    """Return a 16-char SHA256 fingerprint of the PEM bytes."""
     return hashlib.sha256(public_pem.encode()).hexdigest()[:16]
+
+
+def load_public_pem(public_pem: str):
+    """Return the in-memory public key object from a PEM string."""
+    return serialization.load_pem_public_key(public_pem.encode())
 
 
 def generate(algorithm: str) -> KeyPair:
@@ -98,11 +95,11 @@ def generate(algorithm: str) -> KeyPair:
             private_pem = generate_ed25519_private_key()
         case _:
             raise ValueError(f"Unsupported algorithm: {algorithm}")
-    public_pem = _public_pem_from_private(private_pem)
+    public_pem = public_pem_from_private(private_pem)
     return KeyPair(
         ciphertext=keystore.encrypt(private_pem),
         public_key_pem=public_pem,
-        key_id=_key_id_from_public_pem(public_pem),
+        key_id=key_id_from_public_pem(public_pem),
         algorithm=algorithm,
     )
 

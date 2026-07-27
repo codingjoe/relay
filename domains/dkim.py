@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM using the domain's active private key.
+    """Sign a message with DKIM using the domain's RSA-2048 private key.
 
     Always signs with ``d=domain.name`` (the root domain). With relaxed
     DMARC alignment (``adkim=r``), email from subdomains like
@@ -35,7 +35,8 @@ def sign_message(raw_bytes, domain):
 def verify_signature(raw_bytes):
     """Verify a DKIM signature on a message.
 
-    Return (verified: bool, domain: str or None).
+    Returns ``(verified, domain)`` where ``domain`` is the signing domain
+    if the signature is valid, otherwise ``None``.
     """
     try:
         verified = dkim.verify(raw_bytes)

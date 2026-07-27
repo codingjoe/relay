@@ -197,12 +197,12 @@ class Domain(TimeStamped):
 
     @property
     def primary_dkim_key(self):
-        """The RSA-2048 signing key — used to sign outbound mail."""
+        """Return the RSA-2048 key used to sign outbound mail."""
         return self.dkim_key_rsa2048
 
     @property
     def dkim_ciphers(self):
-        """All DKIM signing keys in DNS-served order (RSA-2048, RSA-1024, Ed25519)."""
+        """Return all DKIM signing keys in DNS-served order."""
         return [
             ("rsa2048", self.dkim_key_rsa2048),
             ("rsa1024", self.dkim_key_rsa1024),
@@ -211,7 +211,7 @@ class Domain(TimeStamped):
 
     @property
     def dkim_private_key(self):
-        """Decrypted PKCS#8 PEM of the RSA-2048 key (for DKIM signing)."""
+        """Return the decrypted RSA-2048 PEM, ready for the DKIM library."""
         from kms import keys as kms_keys
 
         return (
@@ -227,15 +227,17 @@ class Domain(TimeStamped):
 
     @property
     def dkim_signing_domain(self):
-        """Return the root domain used as the DKIM d= tag by default."""
+        """Return the root domain used as the DKIM ``d=`` tag by default."""
         return self.name
 
     @property
     def dmarc_record_name(self):
+        """Return the ``_dmarc.<name>`` record name our nameserver serves."""
         return f"_dmarc.{self.name}"
 
     @property
     def dkim_public_key_b64(self):
+        """Return the base64-encoded RSA-2048 public key for the DKIM ``p=`` tag."""
         import base64
 
         key = self.primary_dkim_key
@@ -243,7 +245,7 @@ class Domain(TimeStamped):
 
     @property
     def dkim_selector(self):
-        """Selector of the primary (RSA-2048) DKIM key, e.g. ``relay-rsa2048``."""
+        """Return the selector of the primary RSA-2048 DKIM key."""
         return f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-rsa2048"
 
     @property
@@ -264,10 +266,11 @@ class Domain(TimeStamped):
 
     @property
     def dkim_record(self):
+        """Return the DKIM TXT record value served by our nameserver."""
         return f"v=DKIM1; t=s; h=sha256; p={self.dkim_public_key_b64};"
 
     def dkim_cname_for_selector(self, selector: str) -> tuple[str, str]:
-        """Return (cname_name, cname_target) for a specific DKIM selector."""
+        """Return the ``(cname_name, cname_target)`` pair for a specific DKIM selector."""
         base = self.name if self.is_system else self.sender_domain
         name = f"{selector}._domainkey.{self.name}"
         target = f"{selector}._domainkey.{base}"
@@ -275,29 +278,32 @@ class Domain(TimeStamped):
 
     @property
     def dkim_cnames(self):
-        """All DKIM (cname_name, cname_target) pairs, one per cipher."""
+        """Return all DKIM ``(cname_name, cname_target)`` pairs, one per cipher."""
         return [
             self.dkim_cname_for_selector(selector) for selector, _ in self.dkim_ciphers
         ]
 
     @property
     def spf_record(self):
-        """SPF served at the sender subdomain by our nameserver."""
+        """Return the SPF record served at the sender subdomain by our nameserver."""
         return "v=spf1 a mx ~all"
 
     @property
     def root_spf_record(self):
-        """SPF the user adds on their root domain — includes our sender subdomain."""
+        """Return the SPF record the user adds on their root domain."""
         return f"v=spf1 include:{self.sender_domain} ~all"
 
     @property
     def return_path_domain(self):
+        """Return the custom return-path subdomain zone apex our nameserver serves."""
         return f"{settings.RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX}.{self.sender_domain}"
 
     @property
     def verification_record_name(self):
+        """Return the verification record name our nameserver serves."""
         return f"{settings.RELAY_DNS_DOMAIN_VERIFY_PREFIX}.{self.sender_domain}"
 
     @property
     def verification_record(self):
+        """Return the verification TXT record value served by our nameserver."""
         return f"{settings.RELAY_DNS_DOMAIN_VERIFY_PREFIX} {self.verification_token}"

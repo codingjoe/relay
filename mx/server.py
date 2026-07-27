@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class MXServer:
-    """Wrap aiosmtpd to receive incoming MX mail delivery."""
+    """Receive incoming MX mail delivery over SMTP, optionally with STARTTLS."""
 
     def __init__(
         self,
@@ -32,7 +32,7 @@ class MXServer:
         self.controller = None
 
     def build_tls_context(self):
-        """Return an SSLContext for STARTTLS, or None when no cert is configured."""
+        """Build the STARTTLS context, or return None when no cert is configured."""
         if not self.tls_cert_path or not self.tls_key_path:
             return None
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

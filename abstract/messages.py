@@ -1,15 +1,12 @@
-"""Abstract models shared between ``IncomingMessage`` and ``OutgoingMessage``.
-
-Both SMTP submissions and MX deliveries produce a message with the same
-RFC 5322 envelope/header essentials. Keeping them in a single mixin avoids
-field drift between the two message stores.
-"""
+"""Common fields shared between inbound and outbound email messages."""
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
 class MessageMixin(models.Model):
+    """Shared RFC 5322 envelope and header fields for stored email messages."""
+
     class Meta:
         abstract = True
 

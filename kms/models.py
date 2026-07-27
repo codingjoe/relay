@@ -1,10 +1,4 @@
-"""Cryptographic key storage in the ``kms`` app.
-
-The ``SigningKey`` model is the cryptographic primitive. It knows an
-algorithm, a public PEM, and a Fernet-encrypted private PEM. It exposes
-only three operations: generate a key, return the public key, and sign
-payloads. Private key material never leaves the ``kms`` app.
-"""
+"""Cryptographic signing key storage."""
 
 from cryptography.hazmat.primitives import serialization
 from django.db import models
@@ -13,11 +7,6 @@ from django.utils.translation import gettext_lazy as _
 from abstract.models import TimeStamped
 
 from . import keys
-
-
-def _load_public_pem(public_key: str):
-    """Return the in-memory public key object from a PEM string."""
-    return serialization.load_pem_public_key(public_key.encode())
 
 
 class SigningKey(TimeStamped):
@@ -71,14 +60,14 @@ class SigningKey(TimeStamped):
 
     def public_bytes_raw(self) -> bytes:
         """Return the raw public key bytes (used for Standard Webhooks ``whpk_``)."""
-        return _load_public_pem(self.public_key).public_bytes(
+        return keys.load_public_pem(self.public_key).public_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PublicFormat.Raw,
         )
 
     def public_bytes_der(self) -> bytes:
         """Return the SubjectPublicKeyInfo DER encoding (used for DKIM ``p=``)."""
-        return _load_public_pem(self.public_key).public_bytes(
+        return keys.load_public_pem(self.public_key).public_bytes(
             encoding=serialization.Encoding.DER,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )

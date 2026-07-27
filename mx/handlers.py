@@ -1,9 +1,4 @@
-"""MX handler for incoming mail delivery.
-
-Accepts unauthenticated mail from remote MTAs for domains that match
-an organization's root domain. Stores the raw body and enqueues webhook
-dispatch.
-"""
+"""MX handler for incoming mail delivery."""
 
 import logging
 from email import message_from_bytes
@@ -21,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class MXHandler:
-    """Receive incoming mail from remote SMTP servers via MX delivery."""
+    """Validate, persist, and dispatch incoming mail from remote MTAs."""
 
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         envelope.rcpt_tos.append(address)
