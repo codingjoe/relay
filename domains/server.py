@@ -3,8 +3,9 @@
 import socket
 import threading
 
+from django.db import DatabaseError
 from dnslib import DNSRecord
-from dnslib.dns import QTYPE, RCODE
+from dnslib.dns import QTYPE, RCODE, DNSError
 
 from .resolver import DNSResolver
 
@@ -23,7 +24,7 @@ class DNSServer:
         """Handle a single DNS request."""
         try:
             request = DNSRecord.parse(data)
-        except Exception:
+        except DNSError:
             return
 
         qname = request.q.qname
@@ -37,12 +38,12 @@ class DNSServer:
             records = self.resolver.resolve(qname, qtype_str)
             for rr in records:
                 reply.add_answer(rr)
-        except Exception:
+        except DNSError, DatabaseError:
             reply.header.rcode = RCODE.SERVFAIL
 
         try:
             sock.sendto(reply.pack(), addr)
-        except Exception:
+        except OSError:
             pass
 
     def run_udp(self):
@@ -71,7 +72,7 @@ class DNSServer:
 
         while self._running:
             try:
-                conn, addr = sock.accept()
+                conn, _addr = sock.accept()
                 threading.Thread(
                     target=self.handle_tcp_request,
                     args=(conn,),
@@ -88,7 +89,7 @@ class DNSServer:
             length = int.from_bytes(data, "big")
             data = conn.recv(length)
             self.handle_tcp_query(data, conn)
-        except Exception:
+        except OSError:
             pass
         finally:
             conn.close()
@@ -96,7 +97,7 @@ class DNSServer:
     def handle_tcp_query(self, data, conn):
         try:
             request = DNSRecord.parse(data)
-        except Exception:
+        except DNSError:
             return
 
         qname = request.q.qname
@@ -110,7 +111,7 @@ class DNSServer:
             records = self.resolver.resolve(qname, qtype_str)
             for rr in records:
                 reply.add_answer(rr)
-        except Exception:
+        except DNSError, DatabaseError:
             reply.header.rcode = RCODE.SERVFAIL
 
         packed = reply.pack()
@@ -129,5 +130,5 @@ class DNSServer:
         for sock in self._socks:
             try:
                 sock.close()
-            except Exception:
+            except OSError:
                 pass

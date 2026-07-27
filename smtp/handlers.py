@@ -7,7 +7,7 @@ from email import message_from_bytes
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import DatabaseError, transaction
 
 from domains.models import Domain
 
@@ -68,7 +68,7 @@ class SMTPHandler:
             membership = await get_membership(credential, username)
             session.sender = membership.user
             return "235 Authentication successful"
-        except Exception as e:
+        except (ValueError, DatabaseError) as e:
             logger.error(f"AUTH error: {e}")
             return "535 Authentication failed"
 
@@ -128,7 +128,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     try:
         message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
         message.save()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — storage backend raises varied exceptions
         logger.error(f"Failed to store message body: {e}")
         return "451 Requested action aborted: local error"
 

@@ -235,7 +235,7 @@ class MembershipCreateView(OrganizationScopedView, DetailView):
             return self.render_to_response(
                 self.get_context_data() | {"member_form": form}
             )
-        membership, created = Membership.objects.get_or_create(
+        _membership, created = Membership.objects.get_or_create(
             org=self.org,
             user=user,
             defaults={"role": form.cleaned_data["role"]},

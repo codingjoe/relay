@@ -14,9 +14,9 @@ import base64
 import hashlib
 import os
 from pathlib import Path
+
 import environ
 from cryptography.fernet import Fernet
-
 
 env = environ.Env(
     # set casting, default value

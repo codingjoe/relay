@@ -4,10 +4,9 @@ import random
 
 import markdown
 from django.utils import timezone
-from django.utils.safestring import mark_safe, SafeText
+from django.utils.safestring import SafeText, mark_safe
 from markdown.extensions.md_in_html import MarkdownInHtmlExtension
 from markdown.extensions.toc import TocExtension
-
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ def future(now=None, min_offset=1, max_offset=999):
         datetime.datetime: Random date in the future.
 
     """
-    offset = random.randint(min_offset, max_offset)  # noqa: S311
+    offset = random.randint(min_offset, max_offset)
     return (now or timezone.localtime()) + datetime.timedelta(days=offset)
 
 
@@ -41,7 +40,7 @@ def past(now=None):
 
     """
     return (now or timezone.localtime()) - datetime.timedelta(
-        days=random.randint(1, 999),  # noqa: S311
+        days=random.randint(1, 999),
     )
 
 
@@ -76,7 +75,7 @@ def md_2_html(document: str, baselevel: int = 1) -> SafeText:
         },
     )
 
-    return mark_safe(html)  # noqa: S308
+    return mark_safe(html)
 
 
 def md_toc(document: str, depth=None) -> str:
@@ -94,4 +93,4 @@ def md_toc(document: str, depth=None) -> str:
         extension_configs={"toc": {"toc_depth": depth or 6}},
     )
     md.convert(document)
-    return mark_safe(md.toc)  # noqa: S308
+    return mark_safe(md.toc)

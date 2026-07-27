@@ -61,7 +61,6 @@ class TestDeliverMessage:
         self, user, org, dns_resolver
     ):
         from domains.models import Domain
-
         from smtp.tasks import deliver_message
 
         domain = Domain.objects.create(name="example.com", org=org)

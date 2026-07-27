@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 
 from accounts.models import Membership, Organization, generate_api_key
 
@@ -52,14 +53,14 @@ class TestVerifyKey:
         from smtp.models import SmtpCredential
 
         org = Organization.objects.create(slug="o")
-        cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
+        cred, _raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         assert cred.verify_key("wrong-key-12345678") is False
 
     def test_verify_key__does_not_update_last_used_on_failure(self):
         from smtp.models import SmtpCredential
 
         org = Organization.objects.create(slug="o")
-        cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
+        cred, _raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         cred.verify_key("wrong-key-12345678")
         cred.refresh_from_db()
         assert cred.last_used_at is None
@@ -98,7 +99,7 @@ class TestCredentialHold:
     def test_not_hold__included_in_query(self, user, org):
         from smtp.models import SmtpCredential
 
-        cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
+        _cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         qs = SmtpCredential.objects.select_related("org").filter(
             key_prefix=raw_key[:8],
             org__memberships__user__username=user.username,
@@ -136,7 +137,7 @@ class TestMembership:
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="acme")
         Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
-        with pytest.raises(Exception):  # noqa: PT011
+        with pytest.raises(IntegrityError):
             Membership.objects.create(org=org, user=user, role=Membership.Role.WRITE)
 
 

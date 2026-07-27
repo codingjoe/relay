@@ -1,7 +1,6 @@
 """Cryptographic signing key storage."""
 
 import dkim
-
 from cryptography.hazmat.primitives import serialization
 from django.db import models
 from django.utils.translation import gettext_lazy as _

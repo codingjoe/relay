@@ -1,3 +1,4 @@
+import itertools
 import time
 
 import pytest
@@ -98,7 +99,7 @@ class TestRetrySchedule:
         assert WEBHOOK_RETRY_DELAYS[0] == 0
 
     def test_retry_delays__monotonically_increasing(self):
-        for earlier, later in zip(WEBHOOK_RETRY_DELAYS, WEBHOOK_RETRY_DELAYS[1:]):
+        for earlier, later in itertools.pairwise(WEBHOOK_RETRY_DELAYS):
             assert later > earlier
 
     def test_retry_delays__ends_after_24h(self):

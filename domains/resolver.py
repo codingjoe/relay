@@ -3,7 +3,7 @@
 import base64
 
 from django.conf import settings
-from dnslib import A, CNAME, DNSLabel, MX, NS, PTR, RR, TXT
+from dnslib import CNAME, MX, NS, PTR, RR, TXT, A, DNSLabel
 from dnslib.dns import QTYPE
 
 from .models import Domain

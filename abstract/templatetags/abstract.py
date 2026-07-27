@@ -3,7 +3,7 @@ import datetime
 from django.contrib.humanize.templatetags import humanize
 from django.template import loader
 from django.template.defaulttags import register
-from django.utils import timezone, formats
+from django.utils import formats, timezone
 
 from .. import utils
 

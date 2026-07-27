@@ -1,5 +1,6 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from django.db import IntegrityError
 
 from kms.models import SigningKey
 
@@ -103,7 +104,7 @@ class TestSigningKeyConstraints:
         """Two keys with the same algorithm and key_id cannot coexist."""
         key1 = SigningKey.generate("ed25519")
         # Force a duplicate key_id.
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             SigningKey.objects.create(
                 algorithm=key1.algorithm,
                 key_id=key1.key_id,

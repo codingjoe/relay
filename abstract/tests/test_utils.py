@@ -1,5 +1,6 @@
-from abstract import utils
 from django.utils import timezone
+
+from abstract import utils
 
 
 def test_future():
