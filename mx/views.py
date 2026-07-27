@@ -4,6 +4,7 @@ from email import message_from_bytes
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -129,6 +130,11 @@ class WebhookCreateView(OrganizationScopedView, View):
             address_pattern=address_pattern,
             signing_key=signing_key,
         )
+        try:
+            webhook.full_clean()
+        except ValidationError:
+            messages.error(request, _("Webhook URL must use HTTPS."))
+            return redirect("mx:webhook-list", org_slug=org_slug)
         webhook.save(force_insert=True)
         messages.success(request, _("Webhook created."))
         return redirect("mx:webhook-list", org_slug=org_slug)

@@ -182,13 +182,14 @@
     <pre class="bg-muted p-3 rounded-md overflow-auto text-sm"><code>{
   "type": "email.received",
   "message_id": "0192...",
-  "from": "sender@example.com",
-  "to": "recipient@app.acme.com",
+  "sender": "sender@example.com",
+  "recipient": "recipient@app.acme.com",
   "subject": "Hello",
   "rfc822_message_id": "&lt;abc@example.com&gt;",
   "received_with_tls": true,
-  "domain": "app.acme.com",
-  "body_url": "https://bucket.s3.amazonaws.com/incoming/uuid.eml?..."
+  "receiving_domain": "app.acme.com",
+  "body_url": "https://bucket.s3.amazonaws.com/messages/uuid.eml?...",
+  "received_at": "2026-07-27T18:58:09Z"
 }</code></pre>
   </section>
 {% endblock %}
