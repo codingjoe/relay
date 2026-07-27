@@ -21,14 +21,15 @@ Three services from one codebase, each a separate Docker container:
 
 Apps: `root` (settings, root URLs, base templates — no cross-app model
 imports), `accounts` (Organization, Membership, abstract Credential, OAuth,
-org CRUD), `domains` (Domain, DkimKey, DNS resolver/server/services, domain
-views), `smtp` (OutgoingMessage, Transmission, SmtpCredential, delivery
+org CRUD), `domains` (Domain, DNS resolver/server/services, domain
+views), `kms` (SigningKey, Fernet ciphertext, public/private keypair
+generation, signing — no app-specific knowledge), `smtp` (OutgoingMessage, Transmission, SmtpCredential, delivery
 task, handler/server, message + credential views), `tx_email` (the unified
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
 App dependencies flow in one direction — see the graph in `README.md`:
-`tx_email → smtp`, `smtp → domains, accounts`, `domains → accounts`. Apps
+`tx_email → smtp, mx`, `smtp, mx → domains, accounts, kms`, `domains → accounts, kms`, `accounts → kms`. Apps
 must never import from their dependents.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,

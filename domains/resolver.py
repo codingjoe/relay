@@ -3,6 +3,8 @@
 qtype dispatch uses match/case for readability (see CONVENTIONS.md).
 """
 
+import base64
+
 from django.conf import settings
 from dnslib import A, CNAME, DNSLabel, MX, NS, PTR, RR, TXT
 from dnslib.dns import QTYPE
@@ -90,22 +92,14 @@ class DNSResolver:
                 RR(qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL)
             )
 
-        # DKIM — serve public key for each active key at its selector name
-        for key in domain.active_dkim_keys:
-            key_record_name = f"{key.selector}._domainkey.{base}"
+        # DKIM — serve public key for each cipher at its selector name
+        for selector, key in domain.dkim_ciphers:
+            if not key:
+                continue
+            key_record_name = f"{selector}._domainkey.{base}"
             if qname_lower == key_record_name.rstrip(".").lower():
-                from cryptography.hazmat.primitives import serialization as ser
-                import base64 as b64
-
-                priv = ser.load_pem_private_key(
-                    key.private_key.encode("ascii"), password=None
-                )
-                pub = priv.public_key()
-                der = pub.public_bytes(
-                    encoding=ser.Encoding.DER,
-                    format=ser.PublicFormat.SubjectPublicKeyInfo,
-                )
-                record = f"v=DKIM1; t=s; h=sha256; p={b64.b64encode(der).decode()};"
+                p = base64.b64encode(key.public_bytes_der()).decode("ascii")
+                record = f"v=DKIM1; t=s; h=sha256; p={p};"
                 records.append(
                     RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
                 )

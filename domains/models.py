@@ -1,9 +1,6 @@
-import base64
 import secrets
 import string
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -12,78 +9,25 @@ from django.utils.translation import gettext_lazy as _
 from abstract.models import TimeStamped
 
 
+class DomainQuerySet(models.QuerySet):
+    def root_for(self, name):
+        """Filter to root Domains that own ``name`` (exact match or parent suffix).
+
+        Strips subdomain labels one at a time until an owned root is found.
+        Returns the queryset — chain ``.get()`` to fetch one or raise.
+        """
+        rcpt_lower = name.lower()
+        parts = rcpt_lower.split(".")
+        candidates = [".".join(parts[i:]) for i in range(len(parts))]
+        return self.filter(name__iexact=candidates, org__isnull=False)
+
+
+DomainManager = models.Manager.from_queryset(DomainQuerySet)
+
+
 def generate_verification_token():
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(16))
-
-
-def generate_rsa_private_key(key_size=2048):
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=key_size,
-    )
-    pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    return pem.decode("ascii")
-
-
-def generate_ed25519_private_key():
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
-    private_key = Ed25519PrivateKey.generate()
-    pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    return pem.decode("ascii")
-
-
-class DkimKey(TimeStamped):
-    class KeyType(models.TextChoices):
-        RSA_2048 = "rsa2048", _("RSA 2048")
-        RSA_1024 = "rsa1024", _("RSA 1024")
-        ED25519 = "ed25519", _("Ed25519")
-
-    domain = models.ForeignKey(
-        "Domain",
-        on_delete=models.CASCADE,
-        related_name="dkim_keys",
-    )
-    key_type = models.CharField(
-        _("key type"),
-        max_length=8,
-        choices=KeyType,
-        help_text=_("Algorithm and size for this DKIM key."),
-    )
-    private_key = models.TextField(
-        _("private key"),
-        help_text=_("PEM-encoded key used for DKIM signing."),
-    )
-    is_active = models.BooleanField(
-        _("active"),
-        default=True,
-        help_text=_("Only active keys sign and are served in DNS."),
-    )
-
-    class Meta(TimeStamped.Meta):
-        constraints = [
-            models.UniqueConstraint(
-                fields=["domain", "key_type"],
-                name="unique_dkim_key_type_per_domain",
-            ),
-        ]
-
-    def __str__(self):
-        return f"{self.domain} / {self.key_type}"
-
-    @property
-    def selector(self) -> str:
-        """DKIM selector derived from the key type (e.g. relay-rsa2048)."""
-        return f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-{self.key_type}"
 
 
 class Domain(TimeStamped):
@@ -186,8 +130,37 @@ class Domain(TimeStamped):
         help_text=_("Last DNS check timestamp."),
     )
 
+    dkim_key_rsa2048 = models.ForeignKey(
+        "kms.SigningKey",
+        on_delete=models.PROTECT,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_("RSA-2048 DKIM signing key."),
+    )
+    dkim_key_rsa1024 = models.ForeignKey(
+        "kms.SigningKey",
+        on_delete=models.PROTECT,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_(
+            "RSA-1024 DKIM signing key — for compatibility with older verifiers."
+        ),
+    )
+    dkim_key_ed25519 = models.ForeignKey(
+        "kms.SigningKey",
+        on_delete=models.PROTECT,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_("Ed25519 DKIM signing key."),
+    )
+
     def __str__(self):
         return self.name
+
+    objects = DomainManager()
 
     def get_absolute_url(self):
         if self.org is None:
@@ -198,26 +171,19 @@ class Domain(TimeStamped):
         )
 
     def save(self, *args, **kwargs):
+        from kms.models import SigningKey
+
         is_new = self.pk is None
         super().save(*args, **kwargs)
-        if is_new and not self.dkim_keys.exists():
-            DkimKey.objects.bulk_create(
-                [
-                    DkimKey(
-                        domain=self,
-                        key_type=DkimKey.KeyType.RSA_2048,
-                        private_key=generate_rsa_private_key(2048),
-                    ),
-                    DkimKey(
-                        domain=self,
-                        key_type=DkimKey.KeyType.RSA_1024,
-                        private_key=generate_rsa_private_key(1024),
-                    ),
-                    DkimKey(
-                        domain=self,
-                        key_type=DkimKey.KeyType.ED25519,
-                        private_key=generate_ed25519_private_key(),
-                    ),
+        if is_new and self.org is not None and self.dkim_key_rsa2048_id is None:
+            self.dkim_key_rsa2048 = SigningKey.generate(SigningKey.Algorithm.RSA_2048)
+            self.dkim_key_rsa1024 = SigningKey.generate(SigningKey.Algorithm.RSA_1024)
+            self.dkim_key_ed25519 = SigningKey.generate(SigningKey.Algorithm.ED25519)
+            super().save(
+                update_fields=[
+                    "dkim_key_rsa2048",
+                    "dkim_key_rsa1024",
+                    "dkim_key_ed25519",
                 ]
             )
 
@@ -230,17 +196,29 @@ class Domain(TimeStamped):
         return self.org is None
 
     @property
-    def active_dkim_key(self):
-        return self.dkim_keys.filter(is_active=True).first()
+    def primary_dkim_key(self):
+        """The RSA-2048 signing key — used to sign outbound mail."""
+        return self.dkim_key_rsa2048
 
     @property
-    def active_dkim_keys(self):
-        return self.dkim_keys.filter(is_active=True)
+    def dkim_ciphers(self):
+        """All DKIM signing keys in DNS-served order (RSA-2048, RSA-1024, Ed25519)."""
+        return [
+            ("rsa2048", self.dkim_key_rsa2048),
+            ("rsa1024", self.dkim_key_rsa1024),
+            ("ed25519", self.dkim_key_ed25519),
+        ]
 
     @property
     def dkim_private_key(self):
-        key = self.active_dkim_key
-        return key.private_key if key else ""
+        """Decrypted PKCS#8 PEM of the RSA-2048 key (for DKIM signing)."""
+        from kms import keys as kms_keys
+
+        return (
+            kms_keys.decrypt(self.dkim_key_rsa2048.private_key)
+            if self.dkim_key_rsa2048
+            else ""
+        )
 
     @property
     def sender_domain(self):
@@ -258,22 +236,15 @@ class Domain(TimeStamped):
 
     @property
     def dkim_public_key_b64(self):
-        private_key = serialization.load_pem_private_key(
-            self.dkim_private_key.encode("ascii"),
-            password=None,
-        )
-        public_key = private_key.public_key()
-        der = public_key.public_bytes(
-            encoding=serialization.Encoding.DER,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
-        return base64.b64encode(der).decode("ascii")
+        import base64
+
+        key = self.primary_dkim_key
+        return base64.b64encode(key.public_bytes_der()).decode() if key else ""
 
     @property
     def dkim_selector(self):
-        """Selector of the primary active DKIM key."""
-        key = self.active_dkim_key
-        return key.selector if key else settings.RELAY_DNS_DKIM_IDENTIFIER
+        """Selector of the primary (RSA-2048) DKIM key, e.g. ``relay-rsa2048``."""
+        return f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-rsa2048"
 
     @property
     def dkim_record_name(self):
@@ -295,12 +266,19 @@ class Domain(TimeStamped):
     def dkim_record(self):
         return f"v=DKIM1; t=s; h=sha256; p={self.dkim_public_key_b64};"
 
-    def dkim_cname_for_key(self, key) -> tuple[str, str]:
-        """Return (cname_name, cname_target) for a specific DkimKey."""
+    def dkim_cname_for_selector(self, selector: str) -> tuple[str, str]:
+        """Return (cname_name, cname_target) for a specific DKIM selector."""
         base = self.name if self.is_system else self.sender_domain
-        name = f"{key.selector}._domainkey.{self.name}"
-        target = f"{key.selector}._domainkey.{base}"
+        name = f"{selector}._domainkey.{self.name}"
+        target = f"{selector}._domainkey.{base}"
         return name, target
+
+    @property
+    def dkim_cnames(self):
+        """All DKIM (cname_name, cname_target) pairs, one per cipher."""
+        return [
+            self.dkim_cname_for_selector(selector) for selector, _ in self.dkim_ciphers
+        ]
 
     @property
     def spf_record(self):

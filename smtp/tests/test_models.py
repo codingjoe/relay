@@ -36,7 +36,7 @@ class TestOutgoingMessageDefaults:
         )
         assert msg.status == OutgoingMessage.Status.PENDING
 
-    def test_default_received_with_ssl__false(self):
+    def test_default_received_with_tls__false(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="o")
         msg = OutgoingMessage.objects.create(
@@ -45,7 +45,7 @@ class TestOutgoingMessageDefaults:
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
         )
-        assert msg.received_with_ssl is False
+        assert msg.received_with_tls is False
 
 
 @pytest.mark.django_db

@@ -48,9 +48,9 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
 
-    # Find a root domain that the recipient domain is a subdomain of (or equal to)
-    domain = find_root_domain(rcpt_domain)
-    if domain is None:
+    try:
+        domain = Domain.objects.root_for(rcpt_domain).select_related("org").get()
+    except Domain.DoesNotExist:
         return "550 Relay not authorised for this recipient"
 
     message = IncomingMessage(
@@ -73,22 +73,3 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls):
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
 
     return "250 OK"
-
-
-def find_root_domain(rcpt_domain):
-    """Find the root Domain that owns rcpt_domain (exact match or parent suffix)."""
-    if not rcpt_domain:
-        return None
-    rcpt_lower = rcpt_domain.lower()
-    # Try exact match first, then progressively strip subdomain labels
-    parts = rcpt_lower.split(".")
-    for i in range(len(parts)):
-        candidate = ".".join(parts[i:])
-        domain = (
-            Domain.objects.filter(name__iexact=candidate, org__isnull=False)
-            .select_related("org")
-            .first()
-        )
-        if domain:
-            return domain
-    return None

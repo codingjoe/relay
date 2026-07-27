@@ -12,11 +12,12 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.messages import MessageMixin
 from abstract.models import TimeStamped
 from accounts.models import Credential
 
 
-class OutgoingMessage(TimeStamped):
+class OutgoingMessage(MessageMixin, TimeStamped):
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
         SENT = "sent", _("sent")
@@ -42,29 +43,6 @@ class OutgoingMessage(TimeStamped):
         related_name="outgoing_messages",
         help_text=_("Owning organization."),
     )
-    rcpt_to = models.TextField(
-        _("to"),
-        help_text=_("Envelope recipient address(es) (RCPT TO)."),
-    )
-    mail_from = models.EmailField(
-        _("from"),
-        help_text=_("Envelope sender address (MAIL FROM)."),
-    )
-    subject = models.TextField(
-        _("subject"),
-        blank=True,
-        help_text=_("RFC 5322 Subject header value."),
-    )
-    message_id = models.TextField(
-        _("message ID"),
-        blank=True,
-        help_text=_("RFC 5322 Message-ID header."),
-    )
-    received_at = models.DateTimeField(
-        _("received at"),
-        auto_now_add=True,
-        help_text=_("When the submission was accepted."),
-    )
     domain = models.ForeignKey(
         "domains.Domain",
         on_delete=models.SET_NULL,
@@ -85,17 +63,6 @@ class OutgoingMessage(TimeStamped):
         choices=Status,
         default=Status.PENDING,
         help_text=_("Send/deliver lifecycle state."),
-    )
-    received_with_ssl = models.BooleanField(
-        _("received with SSL"),
-        default=False,
-        help_text=_("Submission received over TLS."),
-    )
-    raw_body = models.FileField(
-        _("raw body"),
-        upload_to="mail/",
-        blank=True,
-        help_text=_("Raw RFC 822 message bytes."),
     )
 
     class Meta(TimeStamped.Meta):

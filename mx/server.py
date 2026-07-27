@@ -20,7 +20,7 @@ class MXServer:
         self,
         host="0.0.0.0",
         port=25,
-        max_message_size=10485760,
+        max_message_size=10 * (1024**2),  # 10 MB
         tls_cert_path="",
         tls_key_path="",
     ):
@@ -60,7 +60,7 @@ class MXServer:
 def run_mx_server(
     host="0.0.0.0",
     port=25,
-    max_message_size=10485760,
+    max_message_size=10 * (1024**2),  # 10 MB
     tls_cert_path="",
     tls_key_path="",
 ):

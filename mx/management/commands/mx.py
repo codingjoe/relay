@@ -5,7 +5,9 @@ from mx.server import run_mx_server
 
 
 class Command(BaseCommand):
-    help = "Run the MX receiving server"
+    """Run the MX receiving server."""
+
+    help = __doc__
 
     def add_arguments(self, parser):
         parser.add_argument("--host", default=None, help="Listen host")

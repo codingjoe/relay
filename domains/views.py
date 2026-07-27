@@ -51,12 +51,9 @@ class DomainDetailView(OrganizationScopedView, DetailView):
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
-        dkim_cnames = [
-            self.object.dkim_cname_for_key(key) for key in self.object.active_dkim_keys
-        ]
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
-            "dkim_cnames": dkim_cnames,
+            "dkim_cnames": self.object.dkim_cnames,
         }
 
 

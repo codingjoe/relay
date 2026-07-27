@@ -128,7 +128,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         domain=domain,
         credential=credential,
         status=OutgoingMessage.Status.PENDING,
-        received_with_ssl=bool(ssl),
+        received_with_tls=bool(ssl),
     )
     try:
         message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)

@@ -1,25 +1,8 @@
-import string
-
 import pytest
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from domains.models import (
-    DkimKey,
-    Domain,
-    generate_dkim_identifier_string,
-    generate_rsa_private_key,
-    generate_verification_token,
-)
-
-
-class TestGenerateDkimIdentifierString:
-    def test_generate_dkim_identifier_string__length(self):
-        assert len(generate_dkim_identifier_string()) == 6
-
-    def test_generate_dkim_identifier_string__charset(self):
-        ident = generate_dkim_identifier_string()
-        assert all(c in string.ascii_lowercase + string.digits for c in ident)
+from domains.models import Domain, generate_verification_token
+from kms import keys as kms_keys
 
 
 class TestGenerateVerificationToken:
@@ -32,10 +15,12 @@ class TestGenerateVerificationToken:
 
 class TestGenerateRsaPrivateKey:
     def test_generate_rsa_private_key__returns_pem(self):
-        pem = generate_rsa_private_key()
+        pem = kms_keys.generate_rsa_private_key(2048)
         assert pem.startswith("-----BEGIN PRIVATE KEY-----")
-        key = serialization.load_pem_private_key(pem.encode("ascii"), password=None)
-        assert isinstance(key, rsa.RSAPrivateKey)
+        assert isinstance(
+            kms_keys.load(kms_keys.keystore.encrypt(pem)),
+            rsa.RSAPrivateKey,
+        )
 
 
 class TestDomainPropertiesNoDb:
@@ -62,9 +47,9 @@ class TestDomainPropertiesNoDb:
         assert Domain(name="open.localhost", org=None).is_system is True
 
     def test_spf_record__includes_spf_include(self):
-        record = Domain(name="example.com").spf_record
+        record = Domain(name="example.com").root_spf_record
         assert "v=spf1" in record
-        assert "include:spf.localhost" in record
+        assert "include:mail.relay.example.com" in record
 
     def test_return_path_domain__uses_prefix(self):
         assert (
@@ -87,36 +72,34 @@ class TestDomainPropertiesNoDb:
 
 @pytest.mark.django_db
 class TestDomainSave:
-    def test_save__creates_dkim_key(self):
+    def test_save__creates_dkim_keys(self):
         from accounts.models import Organization
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        assert domain.dkim_keys.count() == 1
-        key = domain.dkim_keys.first()
-        assert key.key_type == DkimKey.KeyType.RSA_2048
-        assert len(key.selector) == 6
-        assert "BEGIN PRIVATE KEY" in key.private_key
+        assert domain.dkim_key_rsa2048 is not None
+        assert domain.dkim_key_rsa1024 is not None
+        assert domain.dkim_key_ed25519 is not None
 
-    def test_save__does_not_duplicate_dkim_key(self):
+    def test_save__does_not_duplicate_dkim_keys(self):
         from accounts.models import Organization
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
+        first = domain.dkim_key_rsa2048
         domain.save()
-        assert domain.dkim_keys.count() == 1
+        assert domain.dkim_key_rsa2048 == first
 
 
 @pytest.mark.django_db
 class TestDkimKeyProperties:
-    def test_active_dkim_key__returns_first_active(self):
+    def test_dkim_ciphers__returns_all_three(self):
         from accounts.models import Organization
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        key = domain.active_dkim_key
-        assert key is not None
-        assert key.is_active is True
+        selectors = [selector for selector, _ in domain.dkim_ciphers]
+        assert selectors == ["rsa2048", "rsa1024", "ed25519"]
 
     def test_dkim_public_key_b64__valid_base64(self):
         import base64 as b64mod
@@ -136,14 +119,12 @@ class TestDkimKeyProperties:
         assert "v=DKIM1" in record
         assert domain.dkim_public_key_b64 in record
 
-    def test_dkim_identifier_string__returns_selector(self):
+    def test_dkim_selector__is_rsa2048(self):
         from accounts.models import Organization
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        key = domain.active_dkim_key
-        assert domain.dkim_identifier_string == key.selector
-        assert domain.dkim_selector == f"relay-{key.selector}"
+        assert domain.dkim_selector == "relay-rsa2048"
 
 
 @pytest.mark.django_db

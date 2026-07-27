@@ -90,6 +90,11 @@ data with a storage URL for the raw message body — the raw body is never
 included inline. Webhooks can be filtered by receiving domain and recipient
 address glob pattern.
 
+> **STARTTLS cert provisioning**: in production, mount the same certificate
+> the Caddy reverse proxy uses into the MX container and point
+> `RELAY_MX_TLS_CERT_PATH` / `RELAY_MX_TLS_KEY_PATH` at it. The cert must
+> include the MX hostname (e.g. `mail.relay.acme.com`).
+
 ### Tech Stack
 
 - **Django 6.0** with the task framework for async message delivery
@@ -114,6 +119,7 @@ We have different types of apps:
 ```mermaid
 graph BT
  abstract[abstract];
+ kms[kms];
  subgraph platform
  direction BT
  accounts
@@ -121,6 +127,7 @@ graph BT
  legal
  domains --> accounts
  accounts --> abstract
+ domains --> kms
  legal --> abstract
  end
  subgraph services
@@ -134,9 +141,9 @@ graph BT
  smtp --> domains
  mx --> accounts
  mx --> domains
+ mx --> kms
  tx_email --> smtp
  tx_email --> mx
- tx_email --> domains
  end
  subgraph voip
  direction BT

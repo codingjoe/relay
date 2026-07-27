@@ -6,32 +6,22 @@ delivery tracking. Domain configuration lives in the ``domains`` app.
 """
 
 import base64
-import hashlib
 import uuid
 from fnmatch import fnmatch
 
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PrivateKey,
-)
 from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.messages import MessageMixin
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
+from kms.models import SigningKey
 
 
-def fernet() -> Fernet:
-    """Return a Fernet instance keyed by Django's SECRET_KEY."""
-    key = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
-    return Fernet(base64.urlsafe_b64encode(key))
-
-
-class IncomingMessage(TimeStamped):
+class IncomingMessage(MessageMixin, TimeStamped):
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
         WEBHOOK_SENT = "webhook_sent", _("webhook sent")
@@ -54,40 +44,6 @@ class IncomingMessage(TimeStamped):
         max_length=255,
         blank=True,
         help_text=_("Domain part of the recipient address, e.g. app.acme.com."),
-    )
-    mail_from = models.EmailField(
-        _("from"),
-        help_text=_("Envelope sender address (MAIL FROM)."),
-    )
-    rcpt_to = models.TextField(
-        _("to"),
-        help_text=_("Envelope recipient address(es) (RCPT TO)."),
-    )
-    subject = models.TextField(
-        _("subject"),
-        blank=True,
-        help_text=_("RFC 5322 Subject header value."),
-    )
-    message_id = models.TextField(
-        _("message ID"),
-        blank=True,
-        help_text=_("RFC 5322 Message-ID header."),
-    )
-    received_at = models.DateTimeField(
-        _("received at"),
-        auto_now_add=True,
-        help_text=_("When the message was accepted via MX."),
-    )
-    received_with_tls = models.BooleanField(
-        _("received with TLS"),
-        default=False,
-        help_text=_("Incoming delivery used STARTTLS."),
-    )
-    raw_body = models.FileField(
-        _("raw body"),
-        upload_to="incoming/",
-        blank=True,
-        help_text=_("Raw RFC 822 message bytes."),
     )
     status = models.CharField(
         _("status"),
@@ -144,21 +100,11 @@ class Webhook(OrganizationOwned):
             "or support@acme.com."
         ),
     )
-    private_key = models.TextField(
-        _("private key"),
-        editable=False,
-        help_text=_("Fernet-encrypted Ed25519 private key."),
-    )
-    public_key = models.TextField(
-        _("public key"),
-        editable=False,
-        help_text=_("Ed25519 public key — share with clients to verify signatures."),
-    )
-    key_id = models.CharField(
-        _("key ID"),
-        max_length=16,
-        editable=False,
-        help_text=_("Short fingerprint of the public key."),
+    signing_key = models.ForeignKey(
+        SigningKey,
+        on_delete=models.PROTECT,
+        related_name="webhooks",
+        help_text=_("Ed25519 keypair used to sign webhook payloads."),
     )
     mx_status = models.CharField(
         _("MX status"),
@@ -214,12 +160,8 @@ class Webhook(OrganizationOwned):
         from domains.models import Domain
 
         receiving = self.receiving_domain_name.lower()
-        parts = receiving.split(".")
-        for i in range(len(parts)):
-            candidate = ".".join(parts[i:])
-            domain = Domain.objects.filter(name__iexact=candidate).first()
-            if domain:
-                return domain.sender_domain
+        if domain := Domain.objects.root_for(receiving).first():
+            return domain.sender_domain
         return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{receiving}"
 
     @property
@@ -233,42 +175,15 @@ class Webhook(OrganizationOwned):
         """Return True if this webhook should fire for the given recipient."""
         return fnmatch(rcpt_to.lower(), self.address_pattern.lower())
 
-    def generate_keypair(self):
-        """Generate an Ed25519 keypair and store the private key encrypted."""
-        private = Ed25519PrivateKey.generate()
-        private_pem = private.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption(),
-        )
-        public = private.public_key()
-        public_pem = public.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        ).decode()
-        self.private_key = fernet().encrypt(private_pem).decode()
-        self.public_key = public_pem
-        self.key_id = hashlib.sha256(public_pem.encode()).hexdigest()[:16]
-
-    def load_private_key(self) -> Ed25519PrivateKey:
-        """Decrypt and return the Ed25519 private key."""
-        private_pem = fernet().decrypt(self.private_key.encode())
-        return serialization.load_pem_private_key(private_pem, password=None)
-
     @property
     def public_key_serialized(self) -> str:
         """Return the public key in Standard Webhooks ``whpk_`` format."""
-        raw = serialization.load_pem_public_key(self.public_key.encode()).public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw,
-        )
-        return f"whpk_{base64.b64encode(raw).decode()}"
+        return f"whpk_{base64.b64encode(self.signing_key.public_bytes_raw()).decode()}"
 
     def sign(self, msg_id: str, timestamp: int, payload: bytes) -> str:
         """Sign a Standard Webhooks message and return ``v1a,{base64}``."""
         signed_content = f"{msg_id}.{timestamp}.".encode() + payload
-        signature = self.load_private_key().sign(signed_content)
-        return f"v1a,{base64.b64encode(signature).decode()}"
+        return f"v1a,{base64.b64encode(self.signing_key.sign(signed_content)).decode()}"
 
 
 class WebhookDelivery(TimeStamped):

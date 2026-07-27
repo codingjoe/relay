@@ -10,9 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import base64
+import hashlib
 import os
 from pathlib import Path
 import environ
+from cryptography.fernet import Fernet
 
 
 env = environ.Env(
@@ -29,6 +32,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY", default="django-insecure-!@#$%^&*()_+")
+
+# Fernet instance for symmetric encryption of secrets at rest (e.g. webhook
+# signing keys). Keyed off SECRET_KEY so a single key rotation invalidates
+# all ciphertexts. Migrate to a hardware KMS (e.g. AWS KMS) in production.
+FERNET = Fernet(base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
@@ -66,6 +74,7 @@ INSTALLED_APPS = [
     "storages",
     # First-party apps
     "accounts",
+    "kms",
     "domains",
     "legal",
     "root",

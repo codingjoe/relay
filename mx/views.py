@@ -11,6 +11,7 @@ from django.views.generic import DeleteView, DetailView, ListView, View
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
+from kms.models import SigningKey
 
 from .models import IncomingMessage, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
@@ -111,13 +112,15 @@ class WebhookCreateView(OrganizationScopedView, View):
         )
         address_pattern = f"{pattern_prefix}@{domain_part}"
 
+        signing_key = SigningKey.generate("ed25519")
+        signing_key.save()
         webhook = Webhook(
             org=self.org,
             url=url,
             name=name,
             address_pattern=address_pattern,
+            signing_key=signing_key,
         )
-        webhook.generate_keypair()
         webhook.save()
         messages.success(request, _("Webhook created."))
         return redirect("mx:webhook-list", org_slug=org_slug)
