@@ -80,7 +80,7 @@ class DNSResolver:
         return records
 
     def resolve_txt(self, qname, qname_str, base, domain):
-        """Build TXT records for SPF, DKIM, verification, and DMARC."""
+        """Build TXT records for SPF, DKIM, verification, DMARC, and TLS-RPT."""
         records = []
         qname_lower = qname_str.lower()
 
@@ -112,9 +112,31 @@ class DNSResolver:
                 )
             )
 
+        # DMARC — system domains serve at the apex, user domains serve at the
+        # sender subdomain for external reporting authorization.
         if domain.is_system and qname_lower == f"_dmarc.{domain.name}".lower():
             records.append(
                 RR(qname, QTYPE.TXT, rdata=txt("v=DMARC1; p=none"), ttl=self.RECORD_TTL)
+            )
+        if not domain.is_system and qname_lower == f"_dmarc.{base}".lower():
+            records.append(
+                RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.sender_dmarc_record),
+                    ttl=self.RECORD_TTL,
+                )
+            )
+
+        # TLS-RPT — served at _smtp._tls.{base} for all domains.
+        if qname_lower == f"_smtp._tls.{base}".lower():
+            records.append(
+                RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.sender_tls_rpt_record),
+                    ttl=self.RECORD_TTL,
+                )
             )
 
         return records

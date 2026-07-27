@@ -15,6 +15,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
 
+from .charts import build_incoming_chart
 from .models import IncomingMessage, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
 
@@ -37,6 +38,7 @@ class IncomingMessageListView(OrganizationScopedView, ListView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "receiving_domains": Domain.objects.filter(org=self.org),
+            "chart": build_incoming_chart(self.org),
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
                 "search": self.request.GET.get("search", ""),

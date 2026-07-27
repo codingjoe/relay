@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "TLS report"|capfirst %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">
+      {% translate "TLS report"|capfirst %}
+      {% if report.domain %}— {{ report.domain }}{% endif %}
+    </h2>
+  </header>
+
+  <div class="card mb-6">
+    <dl class="grid grid-cols-2 gap-4 m-0">
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
+        <dd class="m-0">{{ report.reporting_org }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "reporting email"|capfirst %}</dt>
+        <dd class="m-0">{{ report.reporting_email }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "report ID"|capfirst %}</dt>
+        <dd class="m-0">{{ report.report_id }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "status"|capfirst context "noun" %}</dt>
+        <dd class="m-0">{{ report.get_status_display }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
+        <dd class="m-0">{{ report.begin_at|date:"M d, Y H:i" }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
+        <dd class="m-0">{{ report.end_at|date:"M d, Y H:i" }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "successful sessions"|capfirst %}</dt>
+        <dd class="m-0">{{ report.successful_session_count }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "failed sessions"|capfirst %}</dt>
+        <dd class="m-0">{{ report.failed_session_count }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  {% if report.error %}
+    <div class="card mb-6 border-destructive">
+      <p class="m-0 text-destructive">{{ report.error }}</p>
+    </div>
+  {% endif %}
+
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{% translate "failure type"|capfirst %}</th>
+          <th>{% translate "sending MTA"|capfirst %}</th>
+          <th>{% translate "receiving MX"|capfirst %}</th>
+          <th>{% translate "receiving MX IP"|capfirst %}</th>
+          <th>{% translate "count"|capfirst %}</th>
+          <th>{% translate "policy"|capfirst %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for failure in failures %}
+          <tr>
+            <td>{{ failure.get_result_type_display }}</td>
+            <td>{{ failure.sending_mta_ip_address }}</td>
+            <td>{{ failure.receiving_mx_hostname }}</td>
+            <td>{{ failure.receiving_mx_ip_address|default:"—" }}</td>
+            <td>{{ failure.count }}</td>
+            <td>{{ failure.get_policy_type_display }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">{% translate "no failures in this report." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

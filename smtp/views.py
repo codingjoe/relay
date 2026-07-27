@@ -16,6 +16,7 @@ from django.views.generic import DeleteView, DetailView, ListView, View
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
+from .charts import build_outgoing_chart
 from .models import OutgoingMessage, SmtpCredential, Transmission
 from .tasks import deliver_message
 
@@ -42,6 +43,7 @@ class OutgoingMessageLogView(OrganizationScopedView, ListView):
             "domains": Domain.objects.filter(org=self.org),
             "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
             "status_choices": OutgoingMessage.Status.choices,
+            "chart": build_outgoing_chart(self.org),
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
                 "status": self.request.GET.get("status", ""),

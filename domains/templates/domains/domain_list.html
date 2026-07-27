@@ -46,20 +46,16 @@
     {% for domain in domains %}
       <a href="{% url 'domains:domain-detail' org.slug domain.pk %}" class="item" data-variant="outline">
         <section>
-          <h3>{{ domain.name }}</h3>
-          <p class="flex items-center gap-2 flex-wrap">
-            <code>{{ domain.sender_domain }}</code>
+          <h3>
             {% if domain.verified_at %}
               <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% translate "verified"|capfirst %}
             {% else %}
-              <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% translate "pending"|capfirst %}
+              <i data-lucide="loader-circle" class="size-4 text-muted-foreground animate-spin" aria-hidden="true"></i>
             {% endif %}
-            <span aria-hidden="true">·</span>
-            {{ domain.nameserver_status }}
-            <span aria-hidden="true">·</span>
-            {{ domain.dmarc_status }}
+            {{ domain.name }}
+          </h3>
+          <p class="flex items-center gap-2 flex-wrap">
+            <code>{{ domain.sender_domain }}</code>
           </p>
         </section>
       </a>

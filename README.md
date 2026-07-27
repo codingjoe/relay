@@ -137,13 +137,18 @@ graph BT
  tx_email[tx_email]
  smtp
  mx
+ dmarc
  smtp --> accounts
  smtp --> domains
  mx --> accounts
  mx --> domains
  mx --> kms
+ mx --> dmarc
+ dmarc --> accounts
+ dmarc --> domains
  tx_email --> smtp
  tx_email --> mx
+ tx_email --> dmarc
  end
  subgraph voip
  direction BT

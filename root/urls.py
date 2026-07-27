@@ -58,6 +58,7 @@ urlpatterns = [
                 path("", include("tx_email.urls")),
                 path("", include("smtp.urls")),
                 path("", include("mx.urls")),
+                path("", include("dmarc.urls")),
                 path("domains/", include("domains.urls")),
             ]
         ),
