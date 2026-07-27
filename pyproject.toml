@@ -5,7 +5,7 @@ description = "A digital infrastructure platform for email, VoIP, and more, buil
 readme = "README.md"
 requires-python = "~=3.14.0"
 dependencies = [
-    "aiosmtplib>=3.0.0",
+    "aiosmtplib>=5.1.2",
     "aiosmtpd>=1.4.6",
     "boto3>=1.40.0",
     "cryptography>=45.0.0",
@@ -13,7 +13,7 @@ dependencies = [
     "django-environ>=0.13.0",
     "django-health-check[psutil,redis]>=4.0.4",
     "django-storages[s3]>=1.14.6",
-    "dkimpy>=1.1.5",
+    "dkimpy>=1.1.8",
     "pynacl>=1.5.0",
     "dnslib>=0.9.26",
     "dnspython>=2.7.0",
@@ -22,8 +22,8 @@ dependencies = [
     "psycopg[binary]>=3.3.3",
     "pyyaml>=6.0.3",
     "redis>=7.2.0",
-    "social-auth-app-django>=5.4.0",
-    "whitenoise>=6.11.0",
+    "social-auth-app-django>=6.0.1",
+    "whitenoise>=6.12.0",
     "markdown>=3.10.2",
 ]
 
@@ -35,7 +35,7 @@ test = [
     "pytest>=7.4.0",
     "pytest-django>=4.5.2",
     "pytest-cov>=4.1.0",
-    "pytest-randomly>=3.16.0",
+    "pytest-randomly>=4.1.0",
     "pytest-xdist>=3.8.0",
     "pytest-asyncio>=1.4.0",
 ]
