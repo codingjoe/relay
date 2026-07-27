@@ -39,7 +39,7 @@ class _CaptureHandler(BaseHTTPRequestHandler):
     status_code = 200
     requests: list = []
 
-    def do_POST(self):  # noqa: N802
+    def do_POST(self):
         length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(length) if length else b""
         type(self).requests.append(

@@ -101,9 +101,8 @@ class TestProcessMessage:
         assert result == "550 Recipient not allowed for free sender domain"
 
     async def test_process_message__creates_outgoing_message(self, user, org):
-        from smtp.models import OutgoingMessage
-
         from smtp.handlers import process_message
+        from smtp.models import OutgoingMessage
 
         cred, _ = SmtpCredential.objects.create_with_key(org=org)
         msg = EmailMessage()

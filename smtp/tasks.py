@@ -13,6 +13,10 @@ from .models import OutgoingMessage, Transmission
 logger = logging.getLogger(__name__)
 
 
+class MxHostsExhausted(Exception):
+    """All MX hosts for a recipient domain failed to accept the message."""
+
+
 @task
 def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
     """Deliver a queued outgoing message to its recipients."""
@@ -82,12 +86,12 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                 message.status = OutgoingMessage.Status.BOUNCED
                 message.save(update_fields=["status"])
                 return
-            except Exception:
+            except aiosmtplib.SMTPException, OSError:
                 continue
 
-        raise Exception(f"All MX hosts failed for {rcpt_domain}")
+        raise MxHostsExhausted(f"All MX hosts failed for {rcpt_domain}")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — storage backend raises varied exceptions
         logger.error(f"Transmission error for message {message_id}: {e}")
         Transmission.objects.create(
             message=message,
@@ -106,5 +110,5 @@ def fetch_mx_hosts(domain):
             str(r.exchange).rstrip(".")
             for r in sorted(records, key=lambda r: r.preference)
         ]
-    except Exception:
+    except dns.exception.DNSException:
         return []

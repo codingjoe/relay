@@ -22,7 +22,7 @@ def gravatar_url(user: User, size: int = 80) -> str:
         The Gravatar URL string.
     """
     email = (getattr(user, "email", "") or "").strip().lower()
-    digest = hashlib.md5(email.encode("utf-8")).hexdigest()  # noqa: S324
+    digest = hashlib.md5(email.encode("utf-8")).hexdigest()
     return f"https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}"
 
 

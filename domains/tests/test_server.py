@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import dnslib
 import pytest
-from dnslib import DNSLabel, QTYPE
+from dnslib import QTYPE, DNSLabel
 
 
 class TestDnsServerInit:
