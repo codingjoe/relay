@@ -29,12 +29,7 @@ def generate_verification_token():
 
 
 class Domain(TimeStamped):
-    """Root domain — verified once with NS delegation, DMARC, SPF, and DKIM.
-
-    Uses relaxed DMARC alignment (``adkim=r``, ``aspf=r``) so email from
-    any subdomain (e.g. ``app.acme.com``) is signed with ``d=acme.com``
-    and still passes DMARC.
-    """
+    """Root domain — verified once with NS delegation, DMARC, SPF, and DKIM."""
 
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")

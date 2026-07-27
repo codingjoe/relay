@@ -1,9 +1,4 @@
-"""SMTP handlers for outgoing mail submissions.
-
-Only authenticated submissions (valid SMTP credential) are accepted;
-unauthenticated/inbound mail is rejected. Incoming (MX) delivery is handled
-by the ``mx`` app.
-"""
+"""SMTP handlers for outgoing mail submissions."""
 
 import base64
 import logging
@@ -30,7 +25,7 @@ class SMTPHandler:
         return "250 OK"
 
     async def handle_DATA(self, server, session, envelope):
-        """Store a submitted outgoing message and enqueue its delivery."""
+        """Store a submitted outgoing message."""
         credential = getattr(session, "credential", None)
         sender = getattr(session, "sender", None)
         if credential is None or sender is None:
@@ -101,7 +96,7 @@ def authenticate(username: str, key: str):
 
 @sync_to_async
 def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl):
-    """Persist a submitted outgoing message and enqueue its delivery."""
+    """Store a submitted outgoing message and enqueue its delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
 

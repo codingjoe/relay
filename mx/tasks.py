@@ -41,12 +41,7 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 
 @task
 def dispatch_webhook(message_id):
-    """Fan out an incoming message to all matching active webhooks.
-
-    Each matching webhook gets its own per-endpoint delivery task so a
-    failing endpoint retries independently — already-succeeded endpoints
-    are never re-delivered.
-    """
+    """Fan out an incoming message to all matching active webhooks."""
     message = IncomingMessage.objects.get(pk=message_id)
     webhooks = [
         webhook
@@ -66,12 +61,7 @@ def dispatch_webhook(message_id):
 
 @task
 def deliver_webhook(message_id, webhook_id, attempt=0):
-    """Deliver to a single webhook, retrying per the Standard Webhooks schedule.
-
-    On success the message is marked ``WEBHOOK_SENT``. On final failure the
-    message is marked ``WEBHOOK_FAILED`` only if no prior delivery succeeded
-    (i.e. status is still ``RECEIVED``).
-    """
+    """Deliver to a single webhook, retrying per the Standard Webhooks schedule."""
     message = IncomingMessage.objects.get(pk=message_id)
     webhook = Webhook.objects.get(pk=webhook_id)
     if not webhook.is_active:
@@ -97,7 +87,7 @@ def deliver_webhook(message_id, webhook_id, attempt=0):
 
 
 def mark_failed_if_pending(message):
-    """Set ``WEBHOOK_FAILED`` only if the message has not yet been delivered."""
+    """Set `WEBHOOK_FAILED` only if the message has not yet been delivered."""
     IncomingMessage.objects.filter(
         pk=message.id, status=IncomingMessage.Status.RECEIVED
     ).update(status=IncomingMessage.Status.WEBHOOK_FAILED)

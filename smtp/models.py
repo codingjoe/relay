@@ -1,9 +1,4 @@
-"""SMTP sending models — outgoing messages, transmissions, and credentials.
-
-This app owns the entire sending path: the message record, delivery
-transmissions, and the SMTP credentials used to authenticate submissions.
-Incoming (MX) mail lives in the separate ``mx`` app.
-"""
+"""SMTP sending models — outgoing messages, transmissions, and credentials."""
 
 import uuid
 

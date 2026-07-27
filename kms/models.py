@@ -12,12 +12,7 @@ from . import keys
 
 
 class SigningKey(TimeStamped):
-    """A cryptographic signing key — algorithm-agnostic and purpose-agnostic.
-
-    The private PEM is Fernet-encrypted at rest via :mod:`kms.keystore`. The
-    public PEM is stored in plaintext so verifiers (DNS, HTTP ``whpk_``
-    header, …) can fetch it without a decryption key.
-    """
+    """A cryptographic signing key — algorithm-agnostic and purpose-agnostic."""
 
     class Algorithm(models.TextChoices):
         RSA_2048 = "rsa-2048", "RSA 2048"

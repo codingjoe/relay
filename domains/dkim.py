@@ -10,12 +10,7 @@ INCLUDE_HEADERS = ["From", "To", "Subject", "Date", "Message-ID"]
 
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM using every cipher the domain has a key for.
-
-    Each cipher produces its own DKIM-Signature header, prepended in turn.
-    With relaxed DMARC alignment (adkim=r), email from subdomains still
-    passes DMARC because d= is always the root domain.
-    """
+    """Sign a message with DKIM using every cipher the domain has a key for."""
     signed = raw_bytes
     for selector, key in domain.dkim_ciphers:
         if key is None:

@@ -53,17 +53,7 @@ def check_dkim_cname(domain):
 
 
 def verify_domain_dns(domain):
-    """Run DNS checks for a domain and update its status fields.
-
-    Four things require user action on their DNS:
-    - NS delegation of the sender subdomain to our nameservers
-    - SPF record on the root domain
-    - DKIM CNAME on the root domain
-    - DMARC record on the root domain
-
-    Everything else (MX, A, Return-Path) is served automatically
-    by our nameserver once NS delegation is active.
-    """
+    """Run DNS checks for a domain and update its status fields."""
     checks = {
         "nameserver": verify_nameserver_delegation,
         "spf": check_spf,

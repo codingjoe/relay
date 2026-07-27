@@ -1,7 +1,4 @@
-"""DNS record resolver — build DNS records from Domain models.
-
-qtype dispatch uses match/case for readability (see CONVENTIONS.md).
-"""
+"""DNS record resolver — build DNS records from Domain models."""
 
 import base64
 
@@ -20,7 +17,7 @@ def txt(value):
 
 
 class DNSResolver:
-    """Resolve DNS queries against the database."""
+    """Resolve DNS queries."""
 
     MX_PRIORITY = 10
     NS_TTL = 3600
@@ -123,11 +120,7 @@ class DNSResolver:
         return records
 
     def find_domain(self, qname_str):
-        """Return the Domain whose zone owns a query name, or None.
-
-        System domains (org=None) match at the apex; user domains match via
-        their fixed sender subdomain prefix (e.g. ``mail.relay.example.com``).
-        """
+        """Return the Domain whose zone owns a query name, or None."""
         for domain in Domain.objects.filter(org=None):
             name = domain.name.lower()
             if qname_str.lower() == name or qname_str.lower().endswith(f".{name}"):

@@ -41,12 +41,7 @@ class DashboardView(OrganizationScopedView, TemplateView):
     parent = "accounts:org-home"
 
     def get_chart_data(self):
-        """Return `(series, rows)` for a stacked line chart of recent messages.
-
-        `series` maps `OutgoingMessage.Status` values to chart series config.
-        `rows` is a list of per-day dicts keyed by status, in chronological
-        order, suitable for direct serialization into a basecoat `data` array.
-        """
+        """Return `(series, rows)` for a stacked line chart of recent messages."""
         return self.chart_data_for(OutgoingMessage)
 
     def get_incoming_chart_data(self):
