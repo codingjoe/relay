@@ -131,7 +131,7 @@
             {% endif %}
             <details class="mt-2">
               <summary class="cursor-pointer text-sm">
-                {% translate "public key"|capfirst %} <code>{{ webhook.key_id }}</code>
+                {% translate "public key"|capfirst %} <code>{{ webhook.signing_key.key_id }}</code>
               </summary>
               <pre class="bg-muted p-3 rounded-md overflow-auto text-sm mt-2"><code>{{ webhook.public_key_serialized }}</code></pre>
             </details>

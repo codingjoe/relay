@@ -16,7 +16,7 @@
     <dd><code>{{ message.rcpt_to }}</code></dd>
     {% if message.receiving_domain %}
       <dt class="font-semibold">{% translate "domain"|capfirst context "noun" %}</dt>
-      <dd>{{ message.receiving_domain.name }}</dd>
+      <dd>{{ message.receiving_domain }}</dd>
     {% endif %}
     <dt class="font-semibold">{% translate "received"|capfirst context "noun" %}</dt>
     <dd>{{ message.received_at|date:"M d, Y H:i" }}</dd>

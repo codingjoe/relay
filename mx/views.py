@@ -30,6 +30,15 @@ class IncomingMessageListView(OrganizationScopedView, ListView):
             qs = qs.filter(mail_from__icontains=search)
         return qs
 
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "receiving_domains": Domain.objects.filter(org=self.org),
+            "filters": {
+                "domain": self.request.GET.get("domain", ""),
+                "search": self.request.GET.get("search", ""),
+            },
+        }
+
 
 class IncomingMessageDetailView(OrganizationScopedView, DetailView):
     template_name = "mx/message_detail.html"
@@ -145,7 +154,7 @@ class WebhookDeleteView(OrganizationScopedView, DeleteView):
 class WebhookTestView(OrganizationScopedView, View):
     def post(self, request, org_slug, pk, *args, **kwargs):
         webhook = get_object_or_404(Webhook, pk=pk, org=self.org)
-        ok = deliver_to_webhook(message=None, webhook=webhook, is_test=True)
+        ok, _status = deliver_to_webhook(message=None, webhook=webhook, is_test=True)
         if ok:
             messages.success(request, _("Test webhook delivered."))
         else:
