@@ -64,7 +64,9 @@ class TestCheckSpf:
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        dns_resolver.add(domain.name, "TXT", "v=spf1 include:spf.localhost ~all")
+        dns_resolver.add(
+            domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
+        )
         assert check_spf(domain) is True
 
     def test_check_spf__absent(self, dns_resolver):
@@ -90,12 +92,27 @@ class TestCheckDkimCname:
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
+        for cname_name, _ in domain.dkim_cnames:
+            dns_resolver.add(
+                cname_name,
+                "CNAME",
+                "relay-abc._domainkey.mail.relay.example.com.",
+            )
+        assert check_dkim_cname(domain) is True
+
+    def test_check_dkim_cname__fails_if_any_cname_missing(self, dns_resolver):
+        from domains.services import check_dkim_cname
+
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        # Add only the first CNAME, leave the other two unresolved
+        first_name, _ = domain.dkim_cnames[0]
         dns_resolver.add(
-            domain.dkim_cname_name,
+            first_name,
             "CNAME",
             "relay-abc._domainkey.mail.relay.example.com.",
         )
-        assert check_dkim_cname(domain) is True
+        assert check_dkim_cname(domain) is False
 
     def test_check_dkim_cname__nxdomain(self, dns_resolver):
         from domains.services import check_dkim_cname
@@ -113,12 +130,15 @@ class TestVerifyDomainDns:
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         dns_resolver.add(domain.sender_domain, "NS", "ns1.localhost.", "ns2.localhost.")
-        dns_resolver.add(domain.name, "TXT", "v=spf1 include:spf.localhost ~all")
         dns_resolver.add(
-            domain.dkim_cname_name,
-            "CNAME",
-            "relay-abc._domainkey.mail.relay.example.com.",
+            domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
         )
+        for cname_name, _ in domain.dkim_cnames:
+            dns_resolver.add(
+                cname_name,
+                "CNAME",
+                "relay-abc._domainkey.mail.relay.example.com.",
+            )
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         verify_domain_dns(domain)
 
@@ -153,11 +173,12 @@ class TestVerifyDomainDns:
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         dns_resolver.add(domain.sender_domain, "NS", "ns1.localhost.", "ns2.localhost.")
-        dns_resolver.add(
-            domain.dkim_cname_name,
-            "CNAME",
-            "relay-abc._domainkey.mail.relay.example.com.",
-        )
+        for cname_name, _ in domain.dkim_cnames:
+            dns_resolver.add(
+                cname_name,
+                "CNAME",
+                "relay-abc._domainkey.mail.relay.example.com.",
+            )
         verify_domain_dns(domain)
 
         domain.refresh_from_db()
@@ -176,12 +197,15 @@ class TestVerifyDomainDns:
             name="example.com", org=org, verified_at=old_verified
         )
         dns_resolver.add(domain.sender_domain, "NS", "ns1.localhost.", "ns2.localhost.")
-        dns_resolver.add(domain.name, "TXT", "v=spf1 include:spf.localhost ~all")
         dns_resolver.add(
-            domain.dkim_cname_name,
-            "CNAME",
-            "relay-abc._domainkey.mail.relay.example.com.",
+            domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
         )
+        for cname_name, _ in domain.dkim_cnames:
+            dns_resolver.add(
+                cname_name,
+                "CNAME",
+                "relay-abc._domainkey.mail.relay.example.com.",
+            )
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         verify_domain_dns(domain)
 

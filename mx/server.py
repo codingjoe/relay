@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class MXServer:
-    """Receive incoming MX mail delivery over SMTP, optionally with STARTTLS."""
-
     def __init__(
         self,
         host="0.0.0.0",
@@ -32,12 +30,12 @@ class MXServer:
         self.controller = None
 
     def build_tls_context(self):
-        """Build the STARTTLS context, or return None when no cert is configured."""
-        if not self.tls_cert_path or not self.tls_key_path:
+        try:
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(self.tls_cert_path, self.tls_key_path)
+            return context
+        except FileNotFoundError, ssl.SSLError:
             return None
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(self.tls_cert_path, self.tls_key_path)
-        return context
 
     def start(self):
         handler = MXHandler()
@@ -64,7 +62,6 @@ def run_mx_server(
     tls_cert_path="",
     tls_key_path="",
 ):
-    """Run the MX receiving server until interrupted."""
     server = MXServer(
         host=host,
         port=port,

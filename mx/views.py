@@ -121,8 +121,7 @@ class WebhookCreateView(OrganizationScopedView, View):
         )
         address_pattern = f"{pattern_prefix}@{domain_part}"
 
-        signing_key = SigningKey.generate("ed25519")
-        signing_key.save()
+        signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
         webhook = Webhook(
             org=self.org,
             url=url,
@@ -130,7 +129,7 @@ class WebhookCreateView(OrganizationScopedView, View):
             address_pattern=address_pattern,
             signing_key=signing_key,
         )
-        webhook.save()
+        webhook.save(force_insert=True)
         messages.success(request, _("Webhook created."))
         return redirect("mx:webhook-list", org_slug=org_slug)
 

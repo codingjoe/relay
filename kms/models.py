@@ -1,5 +1,7 @@
 """Cryptographic signing key storage."""
 
+import dkim
+
 from cryptography.hazmat.primitives import serialization
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -28,8 +30,8 @@ class SigningKey(TimeStamped):
         choices=Algorithm,
         help_text=_("Public-key algorithm and size used to sign."),
     )
-    private_key = models.TextField(
-        _("private key"),
+    encrypted_private_key = models.TextField(
+        _("encrypted private key"),
         help_text=_("Fernet-encrypted PKCS#8 PEM."),
     )
     public_key = models.TextField(
@@ -55,18 +57,30 @@ class SigningKey(TimeStamped):
         return f"{self.algorithm}/{self.key_id}"
 
     def sign(self, payload: bytes) -> bytes:
-        """Sign ``payload`` with the private key and return the raw signature bytes."""
-        return keys.load(self.private_key).sign(payload)
+        return keys.load(self.encrypted_private_key).sign(payload)
+
+    def sign_dkim(
+        self, message: bytes, selector: str, domain: str, include_headers: list[str]
+    ) -> bytes:
+        privkey, algo = keys.dkim_key_material(
+            self.encrypted_private_key, self.algorithm
+        )
+        return dkim.sign(
+            message,
+            selector.encode("ascii"),
+            domain.encode("ascii"),
+            privkey,
+            signature_algorithm=algo,
+            include_headers=include_headers,
+        )
 
     def public_bytes_raw(self) -> bytes:
-        """Return the raw public key bytes (used for Standard Webhooks ``whpk_``)."""
         return keys.load_public_pem(self.public_key).public_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PublicFormat.Raw,
         )
 
     def public_bytes_der(self) -> bytes:
-        """Return the SubjectPublicKeyInfo DER encoding (used for DKIM ``p=``)."""
         return keys.load_public_pem(self.public_key).public_bytes(
             encoding=serialization.Encoding.DER,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
@@ -74,11 +88,10 @@ class SigningKey(TimeStamped):
 
     @classmethod
     def generate(cls, algorithm: str) -> SigningKey:
-        """Generate a new key for the given algorithm and persist it."""
         pair = keys.generate(algorithm)
         return cls.objects.create(
             algorithm=algorithm,
-            private_key=pair.ciphertext,
+            encrypted_private_key=pair.ciphertext,
             public_key=pair.public_key_pem,
             key_id=pair.key_id,
         )

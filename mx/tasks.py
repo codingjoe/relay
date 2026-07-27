@@ -45,42 +45,40 @@ def dispatch_webhook(message_id, attempt=0):
     message = IncomingMessage.objects.get(pk=message_id)
     webhooks = Webhook.objects.filter(org=message.org, is_active=True)
     is_final_attempt = attempt >= len(WEBHOOK_RETRY_DELAYS) - 1
-    any_sent = False
-    any_failed = False
+    deliveries = [
+        deliver_with_retries(message, webhook, attempt, is_final_attempt)
+        for webhook in webhooks
+        if webhook.matches(message.rcpt_to)
+    ]
+    any_sent = any(deliveries)
+    any_failed = any(not d for d in deliveries)
 
-    for webhook in webhooks:
-        if not webhook.matches(message.rcpt_to):
-            continue
-        if deliver_with_retries(message, webhook, attempt, is_final_attempt):
-            any_sent = True
-        else:
-            any_failed = True
-
-    if not is_final_attempt:
-        return
-
-    match [any_sent, any_failed]:
-        case [True, _]:
+    match is_final_attempt, [any_sent, any_failed]:
+        case False, _:
+            pass
+        case _, [True, _]:
             message.status = IncomingMessage.Status.WEBHOOK_SENT
-        case [False, True]:
+            message.save(update_fields=["status"])
+        case _, [False, True]:
             message.status = IncomingMessage.Status.WEBHOOK_FAILED
+            message.save(update_fields=["status"])
         case _:
             message.status = IncomingMessage.Status.DROPPED
-    message.save(update_fields=["status"])
+            message.save(update_fields=["status"])
 
 
 def schedule_retry(message_id, webhook, attempt):
-    """Re-enqueue the next retry attempt per the Standard Webhooks schedule."""
-    if attempt >= len(WEBHOOK_RETRY_DELAYS) - 1:
-        return
-    delay = WEBHOOK_RETRY_DELAYS[attempt + 1] + secrets.randbelow(30)
-    dispatch_webhook.using(run_after=time.time() + delay).enqueue(
-        message_id=message_id, attempt=attempt + 1
-    )
+    match attempt < len(WEBHOOK_RETRY_DELAYS) - 1:
+        case True:
+            delay = WEBHOOK_RETRY_DELAYS[attempt + 1] + secrets.randbelow(30)
+            dispatch_webhook.using(run_after=time.time() + delay).enqueue(
+                message_id=message_id, attempt=attempt + 1
+            )
+        case False:
+            pass
 
 
 def deliver_with_retries(message, webhook, attempt, is_final_attempt):
-    """Deliver once and react to the outcome (success, 410, or scheduled retry)."""
     ok, status_code = deliver_to_webhook(message, webhook)
     match ok, status_code:
         case (True, _):
@@ -140,8 +138,6 @@ class WebhookEvent:
 
 
 class WebhookJSONEncoder(DjangoJSONEncoder):
-    """Serialise :class:`WebhookEvent` instances alongside Django JSON defaults."""
-
     def default(self, obj):
         if isinstance(obj, WebhookEvent):
             return obj.__dict__
@@ -149,11 +145,6 @@ class WebhookJSONEncoder(DjangoJSONEncoder):
 
 
 def deliver_to_webhook(message, webhook, is_test=False):
-    """POST a signed webhook payload and record the delivery attempt.
-
-    Returns ``(ok, status_code)`` where ``status_code`` is ``0`` on transport
-    failure.
-    """
     msg_id = f"msg_{uuid.uuid7()}"
     timestamp = int(time.time())
     payload = WebhookEvent.from_message(message, is_test=is_test)
@@ -182,7 +173,7 @@ def deliver_to_webhook(message, webhook, is_test=False):
             response_code=status_code,
             response_body=response.text[:2000],
         )
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.error(f"Webhook delivery to {webhook.url} failed: {e}")
         WebhookDelivery.objects.create(
             message=message,

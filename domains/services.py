@@ -8,7 +8,6 @@ from .models import Domain
 
 
 def verify_nameserver_delegation(domain):
-    """Check that nameserver records for the sender subdomain point to our nameservers."""
     try:
         ns_records = dns.resolver.resolve(domain.sender_domain, "NS")
         our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
@@ -19,7 +18,6 @@ def verify_nameserver_delegation(domain):
 
 
 def check_dmarc(domain):
-    """Check that a DMARC record exists on the root domain."""
     try:
         txt_records = dns.resolver.resolve(domain.dmarc_record_name, "TXT")
         return any(
@@ -33,7 +31,6 @@ def check_dmarc(domain):
 
 
 def check_spf(domain):
-    """Check that the root domain has an SPF record including our sender subdomain."""
     try:
         txt_records = dns.resolver.resolve(domain.name, "TXT")
         return any(
@@ -46,10 +43,11 @@ def check_spf(domain):
 
 
 def check_dkim_cname(domain):
-    """Check that the DKIM CNAME on the root domain resolves to our nameserver."""
     try:
-        dns.resolver.resolve(domain.dkim_cname_name, "CNAME")
-        return True
+        return all(
+            bool(dns.resolver.resolve(cname_name, "CNAME"))
+            for cname_name, _ in domain.dkim_cnames
+        )
     except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
         return False
 
@@ -86,7 +84,11 @@ def verify_domain_dns(domain):
                 f"{field}_error",
                 "" if ok else f"{field} record not found or incorrect",
             )
-        except Exception as e:
+        except (
+            dns.resolver.NXDOMAIN,
+            dns.resolver.NoAnswer,
+            dns.exception.Timeout,
+        ) as e:
             setattr(domain, f"{field}_status", Domain.Status.ERROR)
             setattr(domain, f"{field}_error", str(e))
 

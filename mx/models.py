@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from abstract.messages import MessageMixin
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
+from domains.models import Domain
 from kms.models import SigningKey
 
 
@@ -140,14 +141,12 @@ class Webhook(OrganizationOwned):
 
     @property
     def receiving_domain_name(self) -> str:
-        """Extract the domain from the address pattern (e.g. *@app.acme.com → app.acme.com)."""
         if "@" in self.address_pattern:
             return self.address_pattern.split("@", 1)[1]
         return self.address_pattern
 
     @property
     def is_free_domain(self) -> bool:
-        """Report whether the receiving domain is the free sender domain managed by us."""
         return (
             self.receiving_domain_name.lower()
             == settings.RELAY_FREE_SENDER_DOMAIN.lower()
@@ -155,9 +154,6 @@ class Webhook(OrganizationOwned):
 
     @property
     def mx_target(self) -> str:
-        """Compute the MX exchange hostname senders should deliver to."""
-        from domains.models import Domain
-
         receiving = self.receiving_domain_name.lower()
         if domain := Domain.objects.root_for(receiving).first():
             return domain.sender_domain
@@ -165,22 +161,18 @@ class Webhook(OrganizationOwned):
 
     @property
     def mx_record(self) -> str:
-        """Describe the MX record the user must add (empty for free domains)."""
         if self.is_free_domain:
             return ""
         return f"MX {self.receiving_domain_name} → {self.mx_target}"
 
     def matches(self, rcpt_to) -> bool:
-        """Match this webhook against a recipient address."""
         return fnmatch(rcpt_to.lower(), self.address_pattern.lower())
 
     @property
     def public_key_serialized(self) -> str:
-        """Return the public key in Standard Webhooks ``whpk_`` format."""
         return f"whpk_{base64.b64encode(self.signing_key.public_bytes_raw()).decode()}"
 
     def sign(self, msg_id: str, timestamp: int, payload: bytes) -> str:
-        """Sign a Standard Webhooks message and return ``v1a,{base64}``."""
         signed_content = f"{msg_id}.{timestamp}.".encode() + payload
         return f"v1a,{base64.b64encode(self.signing_key.sign(signed_content)).decode()}"
 

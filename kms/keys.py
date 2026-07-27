@@ -1,5 +1,6 @@
 """Asymmetric key generation, encryption, and signing helpers."""
 
+import base64
 import hashlib
 from dataclasses import dataclass
 
@@ -25,8 +26,6 @@ DEFAULT_DKIM_ALGORITHMS: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class KeyPair:
-    """A generated keypair with Fernet-encrypted private PEM and plaintext public PEM."""
-
     ciphertext: str  # Fernet-encrypted PEM
     public_key_pem: str  # plaintext PEM
     key_id: str  # short SHA256 prefix of public key
@@ -34,7 +33,6 @@ class KeyPair:
 
 
 def generate_rsa_private_key(key_size: int) -> str:
-    """Return a PEM-encoded RSA private key (PKCS#8, unencrypted)."""
     return (
         rsa.generate_private_key(public_exponent=65537, key_size=key_size)
         .private_bytes(
@@ -47,7 +45,6 @@ def generate_rsa_private_key(key_size: int) -> str:
 
 
 def generate_ed25519_private_key() -> str:
-    """Return a PEM-encoded Ed25519 private key (PKCS#8, unencrypted)."""
     return (
         Ed25519PrivateKey.generate()
         .private_bytes(
@@ -60,7 +57,6 @@ def generate_ed25519_private_key() -> str:
 
 
 def public_pem_from_private(private_pem: str) -> str:
-    """Derive the PEM-encoded public key from a private key PEM."""
     private_key = serialization.load_pem_private_key(
         private_pem.encode(), password=None
     )
@@ -75,17 +71,14 @@ def public_pem_from_private(private_pem: str) -> str:
 
 
 def key_id_from_public_pem(public_pem: str) -> str:
-    """Return a 16-char SHA256 fingerprint of the PEM bytes."""
     return hashlib.sha256(public_pem.encode()).hexdigest()[:16]
 
 
 def load_public_pem(public_pem: str):
-    """Return the in-memory public key object from a PEM string."""
     return serialization.load_pem_public_key(public_pem.encode())
 
 
 def generate(algorithm: str) -> KeyPair:
-    """Generate a keypair for the given algorithm, returning encrypted material."""
     match algorithm:
         case "rsa-2048":
             private_pem = generate_rsa_private_key(2048)
@@ -105,11 +98,25 @@ def generate(algorithm: str) -> KeyPair:
 
 
 def decrypt(ciphertext: str) -> str:
-    """Decrypt stored ciphertext to a PEM-encoded private key."""
     return keystore.decrypt(ciphertext)
 
 
 def load(ciphertext: str):
-    """Decrypt a private key and return the in-memory key object."""
     pem = decrypt(ciphertext).encode("ascii")
     return serialization.load_pem_private_key(pem, password=None)
+
+
+def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:
+    match algorithm:
+        case Algorithm.RSA_2048 | Algorithm.RSA_1024:
+            return decrypt(ciphertext).encode("ascii"), b"rsa-sha256"
+        case Algorithm.ED25519:
+            private = load(ciphertext)
+            raw_seed = private.private_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PrivateFormat.Raw,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+            return base64.b64encode(raw_seed), b"ed25519-sha256"
+        case _:
+            raise ValueError(f"Unsupported algorithm for DKIM: {algorithm}")
