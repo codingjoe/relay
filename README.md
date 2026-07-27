@@ -61,9 +61,12 @@ For the free domain to resolve in production, the platform operator must:
 Organization → Domain, SmtpCredential
 ```
 
-- **Organization** — Owns resources (domains, SMTP credentials); each user gets a personal org on signup
-- **Domain** — Sender domain with automatic DKIM key generation and DNS serving
+- **Organization** — Owns resources (domains, credentials); each user gets a personal org on signup
+- **Domain** — Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
+- **SendingDomain** — Envelope-from domain (e.g. acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
+- **ReceivingDomain** — Receiving domain with MX record pointing to the root domain's sender subdomain
 - **SmtpCredential** — Per-org API key used to authenticate outgoing SMTP submissions
+- **Webhook** — Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
 
 ### Services
 
@@ -71,7 +74,26 @@ Organization → Domain, SmtpCredential
 | ------- | ------------ | ------------------------------------ |
 | Web     | 8000         | Django web UI (Granian)              |
 | DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
-| SMTP    | 25, 587      | Outgoing SMTP submissions (aiosmtpd) |
+| SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
+| MX      | 25           | Incoming MX delivery (aiosmtpd)      |
+
+Incoming email is received by the MX server (port 25, STARTTLS by default)
+and dispatched to configurable per-organization webhooks. Clients configure
+receiving domains (e.g. `app.acme.com`) by pointing an MX record to their
+sender subdomain (e.g. `MX app.acme.com → mail.relay.acme.com`). Webhooks
+follow the [Standard Webhooks](https://standardwebhooks.com) specification —
+each delivery includes `webhook-id`, `webhook-timestamp`, and
+`webhook-signature` headers with an Ed25519 (`v1a`) signature. Each webhook
+has its own keypair, so clients verify with the webhook's public key
+(`whpk_` format) using any Standard Webhooks SDK. The payload is flat event
+data with a storage URL for the raw message body — the raw body is never
+included inline. Webhooks can be filtered by receiving domain and recipient
+address glob pattern.
+
+> **STARTTLS cert provisioning**: in production, mount the same certificate
+> the Caddy reverse proxy uses into the MX container and point
+> `RELAY_MX_TLS_CERT_PATH` / `RELAY_MX_TLS_KEY_PATH` at it. The cert must
+> include the MX hostname (e.g. `mail.relay.acme.com`).
 
 ### Tech Stack
 
@@ -97,6 +119,7 @@ We have different types of apps:
 ```mermaid
 graph BT
  abstract[abstract];
+ kms[kms];
  subgraph platform
  direction BT
  accounts
@@ -104,6 +127,7 @@ graph BT
  legal
  domains --> accounts
  accounts --> abstract
+ domains --> kms
  legal --> abstract
  end
  subgraph services
@@ -112,10 +136,14 @@ graph BT
  direction BT
  tx_email[tx_email]
  smtp
+ mx
  smtp --> accounts
  smtp --> domains
+ mx --> accounts
+ mx --> domains
+ mx --> kms
  tx_email --> smtp
- tx_email --> domains
+ tx_email --> mx
  end
  subgraph voip
  direction BT

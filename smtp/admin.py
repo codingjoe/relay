@@ -24,7 +24,6 @@ class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "sender__username",
     ]
     readonly_fields = ["id", "received_at"]
-    date_hierarchy = "received_at"
 
 
 @admin.register(Transmission)

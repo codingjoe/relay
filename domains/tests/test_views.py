@@ -58,7 +58,7 @@ class TestDomainDetailView:
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
         assert "nameservers" in response.context
-        assert "spf_include" in response.context
+        assert "dkim_cnames" in response.context
 
     def test_get__not_found_for_other_org(self, admin_client, org, write_org):
         domain = Domain.objects.create(name="other.com", org=write_org)
@@ -71,12 +71,15 @@ class TestDomainVerifyView:
     def test_post__redirects_to_detail(self, admin_client, org, dns_resolver):
         domain = Domain.objects.create(name="example.com", org=org)
         dns_resolver.add(domain.sender_domain, "NS", "ns1.localhost.", "ns2.localhost.")
-        dns_resolver.add(domain.name, "TXT", "v=spf1 include:spf.localhost ~all")
         dns_resolver.add(
-            domain.dkim_cname_name,
-            "CNAME",
-            "relay-abc._domainkey.mail.relay.example.com.",
+            domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
         )
+        for cname_name, _ in domain.dkim_cnames:
+            dns_resolver.add(
+                cname_name,
+                "CNAME",
+                "relay-abc._domainkey.mail.relay.example.com.",
+            )
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         response = admin_client.post(
             f"/org/{org.slug}/email/domains/{domain.pk}/verify"

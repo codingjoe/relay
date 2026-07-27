@@ -1,20 +1,26 @@
-import base64
 import secrets
 import string
+from functools import reduce
+from operator import or_
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
+from kms.models import SigningKey
 
 
-def generate_dkim_identifier_string():
-    alphabet = string.ascii_lowercase + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(6))
+class DomainQuerySet(models.QuerySet):
+    def root_for(self, name):
+        parts = name.lower().split(".")
+        candidates = [".".join(parts[i:]) for i in range(len(parts))]
+        return self.filter(
+            reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
+            org__isnull=False,
+        )
 
 
 def generate_verification_token():
@@ -22,64 +28,9 @@ def generate_verification_token():
     return "".join(secrets.choice(alphabet) for _ in range(16))
 
 
-def generate_rsa_private_key(key_size=2048):
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=key_size,
-    )
-    pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    return pem.decode("ascii")
-
-
-class DkimKey(TimeStamped):
-    class KeyType(models.TextChoices):
-        RSA_2048 = "rsa2048", _("RSA 2048")
-        RSA_1024 = "rsa1024", _("RSA 1024")
-        ED25519 = "ed25519", _("Ed25519")
-
-    domain = models.ForeignKey(
-        "Domain",
-        on_delete=models.CASCADE,
-        related_name="dkim_keys",
-    )
-    key_type = models.CharField(
-        _("key type"),
-        max_length=8,
-        choices=KeyType,
-        help_text=_("Algorithm and size for this DKIM key."),
-    )
-    private_key = models.TextField(
-        _("private key"),
-        help_text=_("PEM-encoded key used for DKIM signing."),
-    )
-    selector = models.CharField(
-        _("selector"),
-        max_length=6,
-        help_text=_("DKIM selector in the DNS record name."),
-    )
-    is_active = models.BooleanField(
-        _("active"),
-        default=True,
-        help_text=_("Only active keys sign and are served in DNS."),
-    )
-
-    class Meta(TimeStamped.Meta):
-        constraints = [
-            models.UniqueConstraint(
-                fields=["domain", "selector"],
-                name="unique_dkim_selector_per_domain",
-            ),
-        ]
-
-    def __str__(self):
-        return f"{self.domain} / {self.key_type} / {self.selector}"
-
-
 class Domain(TimeStamped):
+    """Root domain — verified once with NS delegation, DMARC, SPF, and DKIM."""
+
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
         EMAIL = "email", _("email")
@@ -94,7 +45,7 @@ class Domain(TimeStamped):
         _("name"),
         max_length=255,
         unique=True,
-        help_text=_("Sender domain, e.g. example.com."),
+        help_text=_("Root domain, e.g. acme.com."),
     )
     org = models.ForeignKey(
         "accounts.Organization",
@@ -122,7 +73,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("NS delegation check result."),
+        help_text=_("NS delegation check result for the sender subdomain."),
     )
     nameserver_error = models.TextField(
         _("nameserver error"),
@@ -134,7 +85,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("SPF record check result."),
+        help_text=_("SPF record check result on the root domain."),
     )
     spf_error = models.TextField(
         _("SPF error"),
@@ -146,7 +97,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("DKIM CNAME check result."),
+        help_text=_("DKIM CNAME check result on the root domain."),
     )
     dkim_error = models.TextField(
         _("DKIM error"),
@@ -158,7 +109,7 @@ class Domain(TimeStamped):
         max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("DMARC record check result."),
+        help_text=_("DMARC record check result on the root domain."),
     )
     dmarc_error = models.TextField(
         _("DMARC error"),
@@ -171,19 +122,43 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Last DNS check timestamp."),
     )
-    outgoing = models.BooleanField(
-        _("outgoing"),
-        default=True,
-        help_text=_("Allow sending from this domain."),
+
+    dkim_key_rsa2048 = models.ForeignKey(
+        "kms.SigningKey",
+        on_delete=models.PROTECT,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_("RSA-2048 DKIM signing key."),
     )
-    incoming = models.BooleanField(
-        _("incoming"),
-        default=True,
-        help_text=_("Allow receiving for this domain."),
+    dkim_key_rsa1024 = models.ForeignKey(
+        "kms.SigningKey",
+        on_delete=models.PROTECT,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_(
+            "RSA-1024 DKIM signing key — for compatibility with older verifiers."
+        ),
+    )
+    dkim_key_ed25519 = models.ForeignKey(
+        "kms.SigningKey",
+        on_delete=models.PROTECT,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_("Ed25519 DKIM signing key."),
     )
 
     def __str__(self):
         return self.name
+
+    class Meta(TimeStamped.Meta):
+        indexes = [
+            models.Index(Lower("name"), name="domain_name_lower_idx"),
+        ]
+
+    objects = models.Manager.from_queryset(DomainQuerySet)()
 
     def get_absolute_url(self):
         if self.org is None:
@@ -196,12 +171,16 @@ class Domain(TimeStamped):
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         super().save(*args, **kwargs)
-        if is_new and not self.dkim_keys.exists():
-            DkimKey.objects.create(
-                domain=self,
-                key_type=DkimKey.KeyType.RSA_2048,
-                private_key=generate_rsa_private_key(2048),
-                selector=generate_dkim_identifier_string(),
+        if is_new and self.org is not None and self.dkim_key_rsa2048_id is None:
+            self.dkim_key_rsa2048 = SigningKey.generate(SigningKey.Algorithm.RSA_2048)
+            self.dkim_key_rsa1024 = SigningKey.generate(SigningKey.Algorithm.RSA_1024)
+            self.dkim_key_ed25519 = SigningKey.generate(SigningKey.Algorithm.ED25519)
+            super().save(
+                update_fields=[
+                    "dkim_key_rsa2048",
+                    "dkim_key_rsa1024",
+                    "dkim_key_ed25519",
+                ]
             )
 
     @property
@@ -213,73 +192,41 @@ class Domain(TimeStamped):
         return self.org is None
 
     @property
-    def active_dkim_key(self):
-        return self.dkim_keys.filter(is_active=True).first()
-
-    @property
-    def dkim_private_key(self):
-        key = self.active_dkim_key
-        return key.private_key if key else ""
-
-    @property
-    def dkim_identifier_string(self):
-        key = self.active_dkim_key
-        return key.selector if key else ""
+    def dkim_ciphers(self):
+        prefix = settings.RELAY_DNS_DKIM_IDENTIFIER
+        return [
+            (f"{prefix}-rsa2048", self.dkim_key_rsa2048),
+            (f"{prefix}-rsa1024", self.dkim_key_rsa1024),
+            (f"{prefix}-ed25519", self.dkim_key_ed25519),
+        ]
 
     @property
     def sender_domain(self):
-        """Return the sender subdomain our nameserver serves."""
         return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{self.name}"
-
-    @property
-    def dkim_signing_domain(self):
-        """Return the root domain used as the DKIM d= tag."""
-        return self.name
 
     @property
     def dmarc_record_name(self):
         return f"_dmarc.{self.name}"
 
-    @property
-    def dkim_public_key_b64(self):
-        private_key = serialization.load_pem_private_key(
-            self.dkim_private_key.encode("ascii"),
-            password=None,
-        )
-        public_key = private_key.public_key()
-        der = public_key.public_bytes(
-            encoding=serialization.Encoding.DER,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
-        return base64.b64encode(der).decode("ascii")
-
-    @property
-    def dkim_selector(self):
-        return f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-{self.dkim_identifier_string}"
-
-    @property
-    def dkim_record_name(self):
-        """Return the record name our nameserver serves the DKIM public key at."""
+    def dkim_cname_for_selector(self, selector: str) -> tuple[str, str]:
         base = self.name if self.is_system else self.sender_domain
-        return f"{self.dkim_selector}._domainkey.{base}"
+        name = f"{selector}._domainkey.{self.name}"
+        target = f"{selector}._domainkey.{base}"
+        return name, target
 
     @property
-    def dkim_cname_name(self):
-        """Return the CNAME record name the user adds on the root domain."""
-        return f"{self.dkim_selector}._domainkey.{self.name}"
-
-    @property
-    def dkim_cname_target(self):
-        """Return the target the DKIM CNAME points to on our nameserver."""
-        return self.dkim_record_name
-
-    @property
-    def dkim_record(self):
-        return f"v=DKIM1; t=s; h=sha256; p={self.dkim_public_key_b64};"
+    def dkim_cnames(self):
+        return [
+            self.dkim_cname_for_selector(selector) for selector, _ in self.dkim_ciphers
+        ]
 
     @property
     def spf_record(self):
-        return f"v=spf1 a mx include:{settings.RELAY_DNS_SPF_INCLUDE} ~all"
+        return "v=spf1 a mx ~all"
+
+    @property
+    def root_spf_record(self):
+        return f"v=spf1 include:{self.sender_domain} ~all"
 
     @property
     def return_path_domain(self):

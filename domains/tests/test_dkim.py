@@ -27,13 +27,23 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"DKIM-Signature:" in signed
 
-    def test_sign_message__includes_selector(self):
+    def test_sign_message__signs_with_all_three_ciphers(self):
         from domains.dkim import sign_message
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
-        assert domain.dkim_selector.encode() in signed
+        assert signed.count(b"DKIM-Signature:") == 3
+
+    def test_sign_message__includes_all_selectors(self):
+        from domains.dkim import sign_message
+
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        signed = sign_message(make_email().as_bytes(), domain)
+        assert b"s=relay-rsa2048" in signed
+        assert b"s=relay-rsa1024" in signed
+        assert b"s=relay-ed25519" in signed
 
     def test_sign_message__includes_domain(self):
         from domains.dkim import sign_message
@@ -43,7 +53,7 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"d=example.com" in signed
 
-    def test_sign_message__returns_original_on_error(self):
+    def test_sign_message__returns_original_when_no_keys(self):
         from domains.dkim import sign_message
 
         domain = Domain(name="example.com")

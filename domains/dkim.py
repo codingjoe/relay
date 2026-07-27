@@ -6,37 +6,26 @@ import dkim
 
 logger = logging.getLogger(__name__)
 
+INCLUDE_HEADERS = ["From", "To", "Subject", "Date", "Message-ID"]
+
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM using the domain's active private key.
-
-    Return the signed message bytes, or the original bytes if signing fails.
-    """
-    try:
-        private_key = domain.dkim_private_key.encode("ascii")
-        selector = domain.dkim_selector
-        domain_name = domain.dkim_signing_domain
-
-        sig = dkim.sign(
-            raw_bytes,
-            selector.encode("ascii"),
-            domain_name.encode("ascii"),
-            private_key,
-            include_headers=["From", "To", "Subject", "Date", "Message-ID"],
-        )
-        return sig
-    except Exception as e:
-        logger.error(f"DKIM signing failed for domain {domain.name}: {e}")
-        return raw_bytes
+    """Sign a message with DKIM using every cipher the domain has a key for."""
+    signed = raw_bytes
+    for selector, key in domain.dkim_ciphers:
+        if key is None:
+            continue
+        try:
+            sig = key.sign_dkim(signed, selector, domain.name, INCLUDE_HEADERS)
+            signed = sig + signed
+        except dkim.DKIMException as e:
+            logger.error(f"DKIM signing failed for {domain.name} ({selector}): {e}")
+    return signed
 
 
 def verify_signature(raw_bytes):
-    """Verify a DKIM signature on a message.
-
-    Return (verified: bool, domain: str or None).
-    """
     try:
         verified = dkim.verify(raw_bytes)
-        return verified, None
-    except Exception:
+    except dkim.DKIMException:
         return False, None
+    return verified, None

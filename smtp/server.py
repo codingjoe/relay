@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class SMTPServer:
-    """Wrap aiosmtpd to serve outgoing SMTP submissions."""
+    """Serve outgoing SMTP submissions."""
 
     def __init__(self, host="0.0.0.0", port=25, max_message_size=10485760):
         self.host = host

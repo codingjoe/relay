@@ -53,7 +53,7 @@ class DomainDetailView(OrganizationScopedView, DetailView):
         platform = self.request.get_host().split(":")[0]
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
-            "spf_include": f"spf.{platform}",
+            "dkim_cnames": self.object.dkim_cnames,
         }
 
 

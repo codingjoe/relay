@@ -10,9 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import base64
+import hashlib
 import os
 from pathlib import Path
 import environ
+from cryptography.fernet import Fernet
 
 
 env = environ.Env(
@@ -29,6 +32,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY", default="django-insecure-!@#$%^&*()_+")
+
+# Fernet instance for symmetric encryption of secrets at rest (e.g. webhook
+# signing keys). Keyed off SECRET_KEY so a single key rotation invalidates
+# all ciphertexts. Migrate to a hardware KMS (e.g. AWS KMS) in production.
+FERNET = Fernet(base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
@@ -66,11 +74,13 @@ INSTALLED_APPS = [
     "storages",
     # First-party apps
     "accounts",
+    "kms",
     "domains",
     "legal",
     "root",
     "smtp",
     "tx_email",
+    "mx",
 ]
 
 MIDDLEWARE = [
@@ -232,11 +242,21 @@ RELAY_FREE_SENDER_DOMAIN = env(
 
 RELAY_SMTP_HOST = env("RELAY_SMTP_HOST", default="smtp")
 RELAY_SMTP_LISTEN_HOST = env("RELAY_SMTP_LISTEN_HOST", default="0.0.0.0")
-RELAY_SMTP_LISTEN_PORT = env.int("RELAY_SMTP_LISTEN_PORT", default=25)
+RELAY_SMTP_LISTEN_PORT = env.int("RELAY_SMTP_LISTEN_PORT", default=587)
 RELAY_SMTP_SUBMISSION_PORT = env.int("RELAY_SMTP_SUBMISSION_PORT", default=587)
 RELAY_SMTP_MAX_MESSAGE_SIZE = env.int(
     "RELAY_SMTP_MAX_MESSAGE_SIZE", default=10485760
 )  # 10 MB
+
+RELAY_MX_LISTEN_HOST = env("RELAY_MX_LISTEN_HOST", default="0.0.0.0")
+RELAY_MX_LISTEN_PORT = env.int("RELAY_MX_LISTEN_PORT", default=25)
+RELAY_MX_MAX_MESSAGE_SIZE = env.int(
+    "RELAY_MX_MAX_MESSAGE_SIZE", default=10485760
+)  # 10 MB
+RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
+RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
+
+RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 
 RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
 RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)

@@ -62,8 +62,22 @@ services:
         UV_NO_DEV: 0
     command: ["-m", "manage", "smtp"]
     ports:
-      - "25:25"
       - "587:587"
+    networks:
+      - app
+      - app-wan
+  mx:
+    pull_policy: build
+    image: !reset
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${TARGET:-production}
+      args:
+        UV_NO_DEV: 0
+    command: ["-m", "manage", "mx"]
+    ports:
+      - "25:25"
     networks:
       - app
       - app-wan

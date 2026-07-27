@@ -1,4 +1,4 @@
-"""dnslib-based authoritative DNS server."""
+"""Authoritative DNS server."""
 
 import socket
 import threading
@@ -10,7 +10,7 @@ from .resolver import DNSResolver
 
 
 class DNSServer:
-    """Serve authoritative DNS records from the database."""
+    """Serve authoritative DNS records."""
 
     def __init__(self, host="0.0.0.0", port=53):
         self.host = host

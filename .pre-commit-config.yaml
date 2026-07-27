@@ -20,7 +20,7 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, main]
       - id: detect-private-key
-        exclude: domains/tests/test_models.py
+        exclude: ^(domains|kms)/tests/test_models\.py$|kms/tests/test_keys\.py$
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
