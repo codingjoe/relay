@@ -2,6 +2,9 @@
 <section class="card {{ class }}">
   <header>
     <h3 class="m-0">{{ title }}</h3>
+    <p class="m-0 text-muted-foreground">
+      {% blocktranslate count days=chart.rows|length %}{{ days }} day{% plural %}{{ days }} days{% endblocktranslate %}
+    </p>
   </header>
   <canvas id="{{ id }}" class="h-72" aria-label="{{ title }}"></canvas>
   {{ chart.rows|json_script:data_id }}
@@ -12,10 +15,10 @@
         labelKey: "day",
         data: JSON.parse(document.getElementById("{{ data_id }}").textContent),
         series: {
-        {% for s in chart.series %}
-          "{{ s.key }}": {
-            label: "{{ s.label|capfirst }}",
-            color: "{{ s.color }}",
+        {% for series in chart.series %}
+          "{{ series.key }}": {
+            label: "{{ series.label|capfirst }}",
+            color: "{{ series.color }}",
             surface: "gradient",
             dataset: {
               fill: true,
