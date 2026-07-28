@@ -12,9 +12,14 @@ Update it based on review feedback.
 - Use nested `include()` for cascaded paths:
 
   ```python
-  path("credentials/", include([
-      path("new", …),
-  ]))
+  path(
+      "credentials/",
+      include(
+          [
+              path("new", ...),
+          ]
+      ),
+  )
   ```
 
 - CRUD actions on objects should **not** end with a trailing slash.
@@ -66,6 +71,20 @@ Update it based on review feedback.
 
 - No private functions (underscore prefix) — this project is not for redistribution.
 - Function names should be descriptive, not ambiguous.
+
+## Docstrings
+
+- Use Google-style Markdown docstrings (Napoleon). Not RST.
+- Start with a verb describing the external behavior (e.g. "Return",
+  "Send", "Validate", "Determine").
+- Keep docstrings concise — one sentence for simple functions.
+- Never repeat the function/method name in the docstring.
+- Never describe implementation details — describe what, not how.
+- Use bullet lists for parameters only when the function has 3+ non-obvious
+  parameters. Otherwise the signature is self-documenting.
+- Do NOT use double backticks (` ` `) for inline code — use single backticks (` \` \`\`). Double backticks are RST syntax, not Markdown.
+- Do not write docstrings for inherited methods or properties — the
+  base class already documents them.
 
 ## Control Flow
 

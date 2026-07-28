@@ -1,7 +1,4 @@
-"""Evaluate incoming messages for DMARC compliance.
-
-Uses dkimpy for DKIM verification and dnspython for SPF/DMARC DNS lookups.
-"""
+"""Evaluate DMARC compliance for incoming messages."""
 
 import ipaddress
 import logging
@@ -18,11 +15,7 @@ EMAIL_DOMAIN_PATTERN = re.compile(r"@([\w.-]+)")
 
 
 def evaluate_dmarc(incoming_message):
-    """Evaluate DMARC for an incoming message.
-
-    Returns a dict with source_ip_address, header_from, envelope_from,
-    dkim_domain/result/alignment, spf_domain/result/alignment, and disposition.
-    """
+    """Return DMARC evaluation results for an incoming message."""
     raw_bytes = incoming_message.raw_body.read()
     msg = message_from_bytes(raw_bytes)
 
@@ -59,14 +52,14 @@ def evaluate_dmarc(incoming_message):
 
 
 def extract_domain(email_or_header):
-    """Extract the domain from an email address or From header."""
+    """Return the domain part of an email address or From header."""
     if match := EMAIL_DOMAIN_PATTERN.search(email_or_header):
         return match.group(1).lower()
     return email_or_header.lower().strip()
 
 
 def extract_source_ip(msg):
-    """Extract the sending IP from the first Received header."""
+    """Return the sending IP address from the first Received header."""
     for header in msg.get_all("Received", []):
         if match := RECEIVED_IP_PATTERN.search(header):
             ip_str = match.group(1) or match.group(2)
@@ -79,10 +72,7 @@ def extract_source_ip(msg):
 
 
 def lookup_dmarc_policy(domain):
-    """Look up and parse the DMARC TXT record for a domain.
-
-    Returns a dict with keys: version, p, sp, adkim, aspf, rua, ruf, pct.
-    """
+    """Return the DMARC TXT record parsed as a policy dict for a domain."""
     try:
         records = dns.resolver.resolve(f"_dmarc.{domain}", "TXT")
     except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
@@ -109,10 +99,7 @@ def lookup_dmarc_policy(domain):
 
 
 def verify_dkim(raw_bytes):
-    """Verify DKIM signatures in a raw email.
-
-    Returns (result, domain) where result is pass/fail/none/permerror/temperror.
-    """
+    """Check DKIM signatures in a raw email and return the result with the signing domain."""
     try:
         verified = dkim.verify(raw_bytes)
     except dkim.DKIMException:
@@ -134,10 +121,7 @@ def verify_dkim(raw_bytes):
 
 
 def check_spf(source_ip, domain):
-    """Check SPF for a source IP against a domain's SPF record.
-
-    Returns (result, domain) where result is pass/fail/neutral/none.
-    """
+    """Validate a source IP against a domain's SPF record."""
     if not source_ip or not domain:
         return "none", domain
 
@@ -163,11 +147,7 @@ def check_spf(source_ip, domain):
 
 
 def check_alignment(auth_domain, header_from_domain, policy):
-    """Check if an authenticated domain aligns with the header-from domain.
-
-    Relaxed alignment (default) allows subdomain matching.
-    Strict alignment requires exact match.
-    """
+    """Determine if an authenticated domain aligns with the header-from domain."""
     if not auth_domain or not header_from_domain:
         return False
 
@@ -186,7 +166,7 @@ def check_alignment(auth_domain, header_from_domain, policy):
 
 
 def determine_disposition(policy, dkim_aligned, spf_aligned):
-    """Determine the DMARC disposition based on policy and alignment."""
+    """Return the DMARC disposition based on policy and alignment."""
     if dkim_aligned or spf_aligned:
         return "none"
     return policy.get("p", "none")

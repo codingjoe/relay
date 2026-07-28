@@ -18,7 +18,7 @@ DMARC_CHART_COLORS = {
 
 
 def build_dmarc_chart(org, days=CHART_DAYS):
-    """Build a stacked line chart of DMARC message counts by disposition."""
+    """Return chart data for DMARC message counts grouped by disposition."""
     start = timezone.localdate() - timedelta(days=days - 1)
     rows = (
         DmarcRecord.objects.filter(

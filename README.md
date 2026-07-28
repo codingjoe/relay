@@ -67,6 +67,12 @@ Organization → Domain, SmtpCredential
 - **ReceivingDomain** — Receiving domain with MX record pointing to the root domain's sender subdomain
 - **SmtpCredential** — Per-org API key used to authenticate outgoing SMTP submissions
 - **Webhook** — Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
+- **DmarcReport** — Aggregate DMARC report (RUA) received from external organizations, parsed from XML
+- **DmarcFailureReport** — Forensic DMARC report (RUF) received from external organizations, parsed from ARF
+- **TlsReport** — TLS-RPT report received from external organizations, parsed from JSON via DRF serializers
+
+All report models use multi-table inheritance with `IncomingMessage` so they
+inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
@@ -101,7 +107,7 @@ address glob pattern.
 - **PostgreSQL** — primary database
 - **Redis** — caching and rate limiting
 - **S3** — raw message body storage via django-storages
-- **Pico CSS** — classless CSS framework for the web UI
+- **basecoat CSS** — component-based CSS framework for the web UI
 - **Granian** — Rust-based ASGI server
 
 ## App dependencies

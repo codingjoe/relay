@@ -11,10 +11,7 @@ from mx.models import IncomingMessage
 
 
 def adopt_incoming_message(cls, message, **extra):
-    """Promote an existing IncomingMessage to a child report type via MTI.
-    Inserts only the child table row — the parent (IncomingMessage) row
-    already exists and is linked via the parent_ptr.
-    """
+    """Promote an existing IncomingMessage to a report type via multi-table inheritance."""
     instance = cls(**extra)
     parent_ptr = instance._meta.parents[IncomingMessage]
     setattr(instance, parent_ptr.attname, message.pk)
@@ -36,7 +33,7 @@ def adopt_incoming_message(cls, message, **extra):
 
 
 class DmarcReport(IncomingMessage):
-    """An aggregate DMARC report received from a reporting organization."""
+    """Aggregate DMARC report received from a reporting organization."""
 
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
@@ -121,7 +118,7 @@ class DmarcReport(IncomingMessage):
 
 
 class DmarcRecord(TimeStamped):
-    """A single source-IP record within a DMARC aggregate report."""
+    """Source-IP record within a DMARC aggregate report."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -213,7 +210,7 @@ class DmarcRecord(TimeStamped):
 
 
 class DmarcFailureReport(IncomingMessage):
-    """A DMARC forensic (RUF) report received from a reporting organization."""
+    """DMARC forensic (RUF) report received from a reporting organization."""
 
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @task
 def parse_dmarc_report(report_pk):
-    """Parse a received DMARC aggregate report and store its records."""
+    """Process a received DMARC aggregate report and store its records."""
     report = DmarcReport.objects.get(pk=report_pk)
     try:
         raw_bytes = report.raw_body.read()
@@ -70,7 +70,7 @@ def parse_dmarc_report(report_pk):
 
 @task
 def parse_dmarc_failure_report(report_pk):
-    """Parse a received DMARC forensic (RUF) report."""
+    """Process a received DMARC forensic (RUF) report."""
     report = DmarcFailureReport.objects.get(pk=report_pk)
     try:
         raw_bytes = report.raw_body.read()

@@ -10,11 +10,7 @@ from .serializers import TlsReportSerializer
 
 
 def extract_attachment(raw_bytes):
-    """Extract and decompress the report attachment from a raw email.
-
-    TLS-RPT reports arrive as gzip- or zip-compressed JSON.
-    Returns the decompressed bytes, or ``None`` if no attachment is found.
-    """
+    """Return the decompressed TLS-RPT report attachment from a raw email, or None."""
     msg = message_from_bytes(raw_bytes)
     for part in msg.walk():
         if part.get_content_disposition() == "attachment":
@@ -32,10 +28,7 @@ def extract_attachment(raw_bytes):
 
 
 def parse_tls_json(data):
-    """Parse a TLS-RPT JSON report using a DRF serializer.
-
-    Returns ``{"metadata": {...}, "policies": [...]}``.
-    """
+    """Return a TLS-RPT JSON report deserialized via a DRF serializer."""
     report_data = json.loads(data)
     serializer = TlsReportSerializer(data=report_data)
     serializer.is_valid(raise_exception=True)

@@ -12,11 +12,7 @@ DEFAULT_MAX_AGE = 3600
 
 
 def fetch_mta_sts_policy(domain):
-    """Fetch and parse the MTA-STS policy for *domain* over HTTPS.
-
-    Returns a dict with ``mode``, ``mx_patterns``, ``max_age``,
-    ``policy_id`` and ``status`` keys.
-    """
+    """Retrieve and parse the MTA-STS policy for *domain* over HTTPS."""
     url = f"https://mta-sts.{domain}/.well-known/mta-sts.txt"
     policy = {
         "mode": "",
@@ -45,11 +41,7 @@ def fetch_mta_sts_policy(domain):
 
 
 def get_mta_sts_policy(domain):
-    """Return the MTA-STS policy for *domain*, fetching and caching on miss.
-
-    Returns a policy dict with ``status`` set to ``"none"`` if the fetch
-    fails (no MTA-STS published, DNS error, or HTTP error).
-    """
+    """Return the MTA-STS policy for *domain*, fetching and caching on miss."""
     if cached := cache.get(f"mta-sts:{domain}"):
         return cached
     try:
@@ -67,10 +59,7 @@ def get_mta_sts_policy(domain):
 
 
 def check_mta_sts(recipient_domain, mx_hostname):
-    """Check if the MX hostname is allowed by the recipient's MTA-STS policy.
-
-    Returns an ``(allowed, reason)`` tuple.
-    """
+    """Validate if the MX hostname is allowed by the recipient's MTA-STS policy."""
     policy = get_mta_sts_policy(recipient_domain)
 
     if policy["status"] != "loaded":

@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 
 class ChartSeriesSerializer(serializers.Serializer):
-    """A single chart series (e.g. one status/disposition)."""
+    """Single chart series (e.g. one status/disposition)."""
 
     key = serializers.CharField()
     label = serializers.CharField()
@@ -12,7 +12,7 @@ class ChartSeriesSerializer(serializers.Serializer):
 
 
 class ChartDataSerializer(serializers.Serializer):
-    """Chart data payload: series metadata + data rows."""
+    """Series metadata and data rows for a chart."""
 
     series = ChartSeriesSerializer(many=True)
     rows = serializers.ListField(child=serializers.DictField())

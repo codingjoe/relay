@@ -1,8 +1,4 @@
-"""Webhook dispatch tasks for incoming mail and TLS-RPT report parsing.
-
-Retry schedule and delivery semantics follow the Standard Webhooks spec:
-https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md#deliverability-and-reliability
-"""
+"""Webhook dispatch and TLS-RPT report parsing tasks."""
 
 import json
 import logging
@@ -191,7 +187,7 @@ def deliver_to_webhook(message, webhook, is_test=False):
 
 @task
 def parse_tls_report(report_pk):
-    """Parse a received TLS-RPT report and store its failures."""
+    """Process a received TLS-RPT report and store its failures."""
     report = TlsReport.objects.get(pk=report_pk)
     try:
         raw_bytes = report.raw_body.read()

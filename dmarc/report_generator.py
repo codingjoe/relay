@@ -1,8 +1,4 @@
-"""Generate and send DMARC aggregate (RUA) and forensic (RUF) reports.
-
-Outbound reports are sent as outgoing messages — no database tracking
-is needed since the report email itself serves as the record.
-"""
+"""Generate and send DMARC aggregate (RUA) and forensic (RUF) reports."""
 
 import gzip
 import logging
@@ -16,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_rua_xml(domain_name, evaluations, begin_at, end_at):
-    """Generate a DMARC aggregate report XML string using a Django template.
+    """Render a DMARC aggregate report XML string using a Django template.
 
     - **domain_name**: the monitored domain.
     - **evaluations**: list of dicts with source_ip_address, disposition,
@@ -43,7 +39,7 @@ def generate_rua_xml(domain_name, evaluations, begin_at, end_at):
 
 
 def send_rua_report(recipient, domain_name, xml_bytes, report_id):
-    """Send a DMARC aggregate report email with gzip-compressed XML attachment."""
+    """Deliver a DMARC aggregate report email with gzip-compressed XML attachment."""
     compressed = gzip.compress(xml_bytes)
     email = EmailMessage(
         subject=f"Report Domain: {domain_name} Submitter: relay Report-ID: {report_id}",
@@ -57,7 +53,7 @@ def send_rua_report(recipient, domain_name, xml_bytes, report_id):
 
 
 def extract_rua_address(rua_value):
-    """Extract the first mailto: address from a DMARC rua/ruf tag value."""
+    """Return the first mailto: address from a DMARC rua/ruf tag value."""
     if not rua_value:
         return ""
     for part in rua_value.split(","):
@@ -68,7 +64,7 @@ def extract_rua_address(rua_value):
 
 
 def build_arf_report(**fields):
-    """Build an ARF (Abuse Reporting Format) report body."""
+    """Return an ARF (Abuse Reporting Format) report body as a string."""
     lines = [
         "This is an email abuse report for an email message received from",
         f"IP {fields.get('source_ip', 'unknown')} on {fields.get('arrival_date', 'unknown')}.",

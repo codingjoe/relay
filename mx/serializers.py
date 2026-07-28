@@ -11,7 +11,7 @@ class TlsReportDateRangeSerializer(serializers.Serializer):
 
 
 class TlsFailureDetailSerializer(serializers.Serializer):
-    """A single TLS failure record within a TLS-RPT report."""
+    """TLS failure record within a TLS-RPT report."""
 
     result_type = serializers.CharField(source="result-type", default="other")
     sending_mta_ip_address = serializers.CharField(
@@ -53,7 +53,7 @@ class TlsPolicySummarySerializer(serializers.Serializer):
 
 
 class TlsPolicyEntrySerializer(serializers.Serializer):
-    """A policy entry with its summary and failure details."""
+    """Policy entry with its summary and failure details."""
 
     policy = TlsPolicySerializer(required=False, default=dict)
     summary = TlsPolicySummarySerializer(required=False, default=dict)
@@ -75,7 +75,7 @@ class TlsReportSerializer(serializers.Serializer):
 
     @property
     def metadata(self):
-        """Extract report metadata from validated data."""
+        """Return report metadata from validated data."""
         validated = self.validated_data
         date_range = validated.get("date_range", {})
         return {
@@ -88,7 +88,7 @@ class TlsReportSerializer(serializers.Serializer):
 
     @property
     def parsed_policies(self):
-        """Extract policy data with failures from validated data."""
+        """Return policy data with failures from validated data."""
         policies = []
         for entry in self.validated_data.get("policies", []):
             policy = entry.get("policy", {})

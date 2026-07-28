@@ -34,7 +34,7 @@ TLS_CHART_COLORS = {
 
 
 def build_incoming_chart(org, days=CHART_DAYS):
-    """Build a stacked line chart of incoming messages by status."""
+    """Return chart data for incoming messages grouped by status."""
     start = timezone.localdate() - timedelta(days=days - 1)
     rows = (
         IncomingMessage.objects.filter(org=org, received_at__date__gte=start)
@@ -53,7 +53,7 @@ def build_incoming_chart(org, days=CHART_DAYS):
 
 
 def build_tls_chart(org, days=CHART_DAYS):
-    """Build a stacked line chart of TLS failure counts by result type."""
+    """Return chart data for TLS failure counts grouped by result type."""
     start = timezone.localdate() - timedelta(days=days - 1)
     rows = (
         TlsFailure.objects.filter(

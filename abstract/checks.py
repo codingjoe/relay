@@ -7,12 +7,7 @@ from django.db.models import CharField, UUIDField
 
 @register()
 def check_uuid_pk_for_message_related(app_configs, **kwargs):
-    """Warn if a model with a FK to a UUID-PK model doesn't use UUID PK.
-
-    Models related to message models (IncomingMessage, OutgoingMessage, etc.)
-    should use UUIDv7 as their primary key for consistency and to avoid
-    potential overflow when the UUID is larger than bigint.
-    """
+    """Warn if a model with a FK to a UUID-PK model doesn't use UUID PK."""
     errors = []
     for model in apps.get_models():
         pk = model._meta.pk
@@ -38,12 +33,7 @@ def check_uuid_pk_for_message_related(app_configs, **kwargs):
 
 @register()
 def check_charfield_with_choices(app_configs, **kwargs):
-    """Warn if a CharField has choices — should use TextField with choices.
-
-    In PostgreSQL there is no performance advantage to varchar over text.
-    Choice fields should use ``TextField(choices=...)`` — Django's choice
-    validation works without ``max_length``.
-    """
+    """Warn if a CharField has choices — use TextField with choices instead."""
     errors = []
     for model in apps.get_models():
         for field in model._meta.get_fields():

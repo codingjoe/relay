@@ -18,10 +18,7 @@ VALID_DELIVERY_RESULTS = frozenset({"delivered", "spam", "policy", "rejected", "
 
 
 def extract_attachment(raw_bytes):
-    """Extract and decompress the report attachment from a raw email.
-
-    Returns the decompressed bytes, or ``None`` if no attachment is found.
-    """
+    """Return the decompressed report attachment from a raw email, or None."""
     msg = message_from_bytes(raw_bytes)
     for part in msg.walk():
         if part.get_content_disposition() == "attachment":
@@ -39,7 +36,7 @@ def extract_attachment(raw_bytes):
 
 
 def parse_dmarc_xml(data):
-    """Parse a DMARC aggregate report XML into a dict."""
+    """Convert a DMARC aggregate report XML into a dict."""
     root = ET.fromstring(data)
 
     metadata_elem = root.find("report_metadata")
@@ -81,22 +78,19 @@ def parse_dmarc_xml(data):
 
 
 def text(parent, path):
-    """Get stripped text from an XML element at the given XPath, or empty string."""
+    """Return stripped text from an XML element at the given XPath, or empty string."""
     elem = parent.find(path) if parent is not None else None
     return elem.text.strip() if elem is not None and elem.text else ""
 
 
 def parse_timestamp(parent, path):
-    """Parse a Unix timestamp from an XML element into an aware datetime."""
+    """Convert a Unix timestamp from an XML element into an aware datetime."""
     value = text(parent, path)
     return datetime.fromtimestamp(int(value), tz=UTC) if value else None
 
 
 def parse_arf(raw_bytes):
-    """Parse an ARF (Abuse Reporting Format) DMARC RUF report.
-
-    Returns a dict with the report metadata, or raises ``ValueError``.
-    """
+    """Return the parsed ARF (Abuse Reporting Format) DMARC RUF report as a dict."""
     msg = message_from_bytes(raw_bytes)
     report_data = {
         "reporting_org": msg.get("From", ""),

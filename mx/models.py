@@ -227,7 +227,7 @@ class WebhookDelivery(TimeStamped):
 
 
 class TlsReport(IncomingMessage):
-    """A TLS-RPT report received from a sending organization."""
+    """TLS-RPT report received from a sending organization."""
 
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
@@ -313,7 +313,7 @@ class TlsReport(IncomingMessage):
 
     @classmethod
     def adopt(cls, message, **extra):
-        """Promote an existing IncomingMessage to a TlsReport via MTI."""
+        """Promote an existing IncomingMessage to a TlsReport via multi-table inheritance."""
         from django.db import connection
 
         instance = cls(**extra)
@@ -337,7 +337,7 @@ class TlsReport(IncomingMessage):
 
 
 class TlsFailure(TimeStamped):
-    """A single TLS failure record within a TLS-RPT report."""
+    """TLS failure record within a TLS-RPT report."""
 
     id = models.UUIDField(
         primary_key=True,

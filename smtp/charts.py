@@ -22,7 +22,7 @@ CHART_COLORS = {
 
 
 def build_outgoing_chart(org, days=CHART_DAYS):
-    """Build a stacked line chart of outgoing messages by status."""
+    """Return chart data for outgoing messages grouped by status."""
     start = timezone.localdate() - timedelta(days=days - 1)
     rows = (
         OutgoingMessage.objects.filter(org=org, received_at__date__gte=start)
