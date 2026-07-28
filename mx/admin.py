@@ -4,7 +4,6 @@ from abstract.admin import TimeStampedAdminMixin
 
 from .models import (
     IncomingMessage,
-    MtaStsPolicy,
     TlsFailure,
     TlsReport,
     Webhook,
@@ -59,9 +58,9 @@ class TlsReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "end_at",
         "successful_session_count",
         "failed_session_count",
-        "status",
+        "report_status",
     ]
-    list_filter = ["status", "domain"]
+    list_filter = ["report_status", "domain"]
     search_fields = ["reporting_org", "report_id", "domain__name"]
 
 
@@ -80,11 +79,3 @@ class TlsFailureAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "sending_mta_ip_address",
         "report__report_id",
     ]
-
-
-@admin.register(MtaStsPolicy)
-class MtaStsPolicyAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = ["domain", "status", "mode", "policy_id", "checked_at"]
-    list_filter = ["status", "mode"]
-    search_fields = ["domain", "policy_id"]
-    readonly_fields = ["id", "modified_at", "created_at"]

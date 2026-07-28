@@ -1,21 +1,29 @@
-"""Generate and send DMARC aggregate (RUA) and forensic (RUF) reports."""
+"""Generate and send DMARC aggregate (RUA) and forensic (RUF) reports.
+
+Outbound reports are sent as outgoing messages — no database tracking
+is needed since the report email itself serves as the record.
+"""
 
 import gzip
 import logging
-import smtplib
 import uuid
 import xml.etree.ElementTree as ET
 
 from django.conf import settings
 from django.core.mail import EmailMessage
 
-from .models import DmarcEvaluation, OutgoingDmarcReport
-
 logger = logging.getLogger(__name__)
 
 
 def generate_rua_xml(domain_name, evaluations, begin_at, end_at):
-    """Generate a DMARC aggregate report XML string."""
+    """Generate a DMARC aggregate report XML string.
+
+    - **domain_name**: the monitored domain.
+    - **evaluations**: list of dicts with source_ip_address, disposition,
+      dkim_alignment, spf_alignment, header_from, dkim_domain, dkim_result,
+      spf_domain, spf_result.
+    - **begin_at** / **end_at**: the report period.
+    """
     report_id = str(uuid.uuid7())
     root = ET.Element("feedback")
 
@@ -42,23 +50,31 @@ def generate_rua_xml(domain_name, evaluations, begin_at, end_at):
     for evaluation in evaluations:
         record = ET.SubElement(root, "record")
         row = ET.SubElement(record, "row")
-        ET.SubElement(row, "source_ip").text = evaluation.source_ip_address or ""
+        ET.SubElement(row, "source_ip").text = evaluation.get("source_ip_address", "")
         ET.SubElement(row, "count").text = "1"
         policy_eval = ET.SubElement(row, "policy_evaluated")
-        ET.SubElement(policy_eval, "disposition").text = evaluation.disposition
-        ET.SubElement(policy_eval, "dkim").text = evaluation.dkim_alignment
-        ET.SubElement(policy_eval, "spf").text = evaluation.spf_alignment
+        ET.SubElement(policy_eval, "disposition").text = evaluation.get(
+            "disposition", "none"
+        )
+        ET.SubElement(policy_eval, "dkim").text = evaluation.get(
+            "dkim_alignment", "fail"
+        )
+        ET.SubElement(policy_eval, "spf").text = evaluation.get("spf_alignment", "fail")
 
         identifiers = ET.SubElement(record, "identifiers")
-        ET.SubElement(identifiers, "header_from").text = evaluation.header_from
+        ET.SubElement(identifiers, "header_from").text = evaluation.get(
+            "header_from", ""
+        )
 
         auth_results = ET.SubElement(record, "auth_results")
         dkim_result = ET.SubElement(auth_results, "dkim")
-        ET.SubElement(dkim_result, "domain").text = evaluation.dkim_domain
-        ET.SubElement(dkim_result, "result").text = evaluation.dkim_result
+        ET.SubElement(dkim_result, "domain").text = evaluation.get("dkim_domain", "")
+        ET.SubElement(dkim_result, "result").text = evaluation.get(
+            "dkim_result", "none"
+        )
         spf_result = ET.SubElement(auth_results, "spf")
-        ET.SubElement(spf_result, "domain").text = evaluation.spf_domain
-        ET.SubElement(spf_result, "result").text = evaluation.spf_result
+        ET.SubElement(spf_result, "domain").text = evaluation.get("spf_domain", "")
+        ET.SubElement(spf_result, "result").text = evaluation.get("spf_result", "none")
 
     xml_bytes = ET.tostring(root, encoding="UTF-8", xml_declaration=True)
     return xml_bytes, report_id
@@ -76,122 +92,6 @@ def send_rua_report(recipient, domain_name, xml_bytes, report_id):
     filename = f"{domain_name}!{report_id}!relay.xml.gz"
     email.attach(filename, compressed, "application/gzip")
     email.send()
-
-
-def generate_and_send_rua(domain, begin_at, end_at):
-    """Generate and send a RUA report for a domain.
-
-    Aggregates evaluations for the domain that haven't been included in a
-    report yet, generates XML, and sends via email.
-    """
-    evaluations = list(
-        DmarcEvaluation.objects.filter(
-            domain=domain,
-            included_in_report=False,
-            created_at__gte=begin_at,
-            created_at__lte=end_at,
-        )
-    )
-
-    if not evaluations:
-        return None
-
-    from .evaluation import lookup_dmarc_policy
-
-    policy = lookup_dmarc_policy(domain.name)
-    rua_address = extract_rua_address(policy.get("rua", ""))
-    if not rua_address:
-        return None
-
-    xml_bytes, report_id = generate_rua_xml(domain.name, evaluations, begin_at, end_at)
-
-    report = OutgoingDmarcReport.objects.create(
-        org=domain.org,
-        domain=domain,
-        report_type=OutgoingDmarcReport.ReportType.RUA,
-        recipient=rua_address,
-        begin_at=begin_at,
-        end_at=end_at,
-        record_count=len(evaluations),
-        status=OutgoingDmarcReport.Status.GENERATING,
-    )
-
-    try:
-        send_rua_report(rua_address, domain.name, xml_bytes, report_id)
-    except (smtplib.SMTPException, OSError) as e:
-        logger.error(f"Failed to send RUA report for {domain.name}: {e}")
-        report.status = OutgoingDmarcReport.Status.FAILED
-        report.error = str(e)
-        report.save(update_fields=["status", "error"])
-        return report
-
-    report.status = OutgoingDmarcReport.Status.SENT
-    DmarcEvaluation.objects.filter(pk__in=[e.pk for e in evaluations]).update(
-        included_in_report=True
-    )
-    report.save(update_fields=["status", "error"])
-    return report
-
-
-def generate_and_send_ruf(domain, evaluation):
-    """Generate and send a RUF (forensic) report for a failed message."""
-    from .evaluation import lookup_dmarc_policy
-
-    policy = lookup_dmarc_policy(domain.name)
-    ruf_address = extract_rua_address(policy.get("ruf", ""))
-    if not ruf_address:
-        return None
-
-    incoming = evaluation.incoming_message
-    raw_headers = ""
-    if incoming.raw_body:
-        from email import message_from_bytes
-
-        raw_bytes = incoming.raw_body.read()
-        msg = message_from_bytes(raw_bytes)
-        raw_headers = "\n".join(f"{k}: {v}" for k, v in msg.items())
-
-    arf_body = build_arf_report(
-        source_ip=evaluation.source_ip_address or "",
-        header_from=evaluation.header_from,
-        envelope_from=incoming.mail_from,
-        rcpt_to=incoming.rcpt_to,
-        arrival_date=incoming.received_at.isoformat(),
-        auth_results=evaluation.dkim_result,
-        delivery_result="policy",
-        original_headers=raw_headers,
-    )
-
-    email = EmailMessage(
-        subject=f"DMARC failure report for {domain.name}",
-        body=arf_body,
-        from_email=f"{settings.RELAY_DMARC_RUF_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
-        to=[ruf_address],
-    )
-
-    report = OutgoingDmarcReport.objects.create(
-        org=domain.org,
-        domain=domain,
-        report_type=OutgoingDmarcReport.ReportType.RUF,
-        recipient=ruf_address,
-        begin_at=evaluation.created_at,
-        end_at=evaluation.created_at,
-        record_count=1,
-        status=OutgoingDmarcReport.Status.GENERATING,
-    )
-
-    try:
-        email.send()
-    except (smtplib.SMTPException, OSError) as e:
-        logger.error(f"Failed to send RUF report for {domain.name}: {e}")
-        report.status = OutgoingDmarcReport.Status.FAILED
-        report.error = str(e)
-        report.save(update_fields=["status", "error"])
-        return report
-
-    report.status = OutgoingDmarcReport.Status.SENT
-    report.save(update_fields=["status", "error"])
-    return report
 
 
 def extract_rua_address(rua_value):

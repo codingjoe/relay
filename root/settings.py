@@ -267,7 +267,6 @@ RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
 RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
 RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
 
-RELAY_MTA_STS_CACHE_HOURS = env.int("RELAY_MTA_STS_CACHE_HOURS", default=24)
 
 # Django 6.0 task framework
 # Django ships only ImmediateBackend (runs synchronously) and DummyBackend

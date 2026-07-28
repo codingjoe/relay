@@ -1,13 +1,40 @@
-"""DMARC aggregate report, forensic report, and evaluation models."""
+"""DMARC aggregate report and forensic report models."""
 
-from django.db import models
+from django.db import connection, models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
+from mx.models import IncomingMessage
 
 
-class DmarcReport(TimeStamped):
+def adopt_incoming_message(cls, message, **extra):
+    """Promote an existing IncomingMessage to a child report type via MTI.
+
+    Inserts only the child table row — the parent (IncomingMessage) row
+    already exists and is linked via the parent_ptr.
+    """
+    instance = cls(**extra)
+    parent_ptr = instance._meta.parents[IncomingMessage]
+    setattr(instance, parent_ptr.attname, message.pk)
+    for field in message._meta.concrete_fields:
+        setattr(instance, field.attname, getattr(message, field.attname))
+    local_fields = instance._meta.local_fields
+    columns = [f.column for f in local_fields]
+    values = [
+        f.get_db_prep_save(f.value_from_object(instance), connection)
+        for f in local_fields
+    ]
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"INSERT INTO {instance._meta.db_table}"
+            f" ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})",
+            values,
+        )
+    return instance
+
+
+class DmarcReport(IncomingMessage):
     """An aggregate DMARC report received from a reporting organization."""
 
     class Status(models.TextChoices):
@@ -20,12 +47,6 @@ class DmarcReport(TimeStamped):
         QUARANTINE = "quarantine", _("quarantine")
         REJECT = "reject", _("reject")
 
-    org = models.ForeignKey(
-        "accounts.Organization",
-        on_delete=models.CASCADE,
-        related_name="dmarc_reports",
-        help_text=_("Owning organization."),
-    )
     domain = models.ForeignKey(
         "domains.Domain",
         on_delete=models.SET_NULL,
@@ -34,15 +55,8 @@ class DmarcReport(TimeStamped):
         related_name="dmarc_reports",
         help_text=_("Monitored domain."),
     )
-    incoming_message = models.OneToOneField(
-        "mx.IncomingMessage",
-        on_delete=models.CASCADE,
-        related_name="dmarc_report",
-        help_text=_("Incoming email that delivered this report."),
-    )
-    reporting_org = models.CharField(
+    reporting_org = models.TextField(
         _("reporting organization"),
-        max_length=255,
         blank=True,
         help_text=_("Organization that generated the report (from XML metadata)."),
     )
@@ -68,8 +82,8 @@ class DmarcReport(TimeStamped):
         blank=True,
         help_text=_("End of the report period."),
     )
-    status = models.CharField(
-        _("status"),
+    report_status = models.CharField(
+        _("report status"),
         max_length=8,
         choices=Status,
         default=Status.RECEIVED,
@@ -81,7 +95,7 @@ class DmarcReport(TimeStamped):
         help_text=_("Parse error detail if processing failed."),
     )
 
-    class Meta(TimeStamped.Meta):
+    class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=["domain", "report_id"],
@@ -89,8 +103,8 @@ class DmarcReport(TimeStamped):
             ),
         ]
         indexes = [
-            models.Index(fields=["org", "status"]),
-            models.Index(fields=["org", "begin_at"]),
+            models.Index(fields=["report_status"]),
+            models.Index(fields=["begin_at"]),
         ]
 
     def __str__(self):
@@ -101,6 +115,10 @@ class DmarcReport(TimeStamped):
             "dmarc:report-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
+
+    @classmethod
+    def adopt(cls, message, **extra):
+        return adopt_incoming_message(cls, message, **extra)
 
 
 class DmarcRecord(TimeStamped):
@@ -150,21 +168,18 @@ class DmarcRecord(TimeStamped):
         choices=Alignment,
         help_text=_("SPF alignment result."),
     )
-    header_from = models.CharField(
+    header_from = models.TextField(
         _("header from"),
-        max_length=255,
         blank=True,
         help_text=_("From header domain."),
     )
-    envelope_from = models.CharField(
+    envelope_from = models.TextField(
         _("envelope from"),
-        max_length=255,
         blank=True,
         help_text=_("Envelope sender domain (MAIL FROM)."),
     )
-    dkim_domain = models.CharField(
+    dkim_domain = models.TextField(
         _("DKIM domain"),
-        max_length=255,
         blank=True,
         help_text=_("DKIM signing domain."),
     )
@@ -175,9 +190,8 @@ class DmarcRecord(TimeStamped):
         blank=True,
         help_text=_("DKIM authentication result."),
     )
-    spf_domain = models.CharField(
+    spf_domain = models.TextField(
         _("SPF domain"),
-        max_length=255,
         blank=True,
         help_text=_("SPF checked domain."),
     )
@@ -189,7 +203,7 @@ class DmarcRecord(TimeStamped):
         help_text=_("SPF authentication result."),
     )
 
-    class Meta(TimeStamped.Meta):
+    class Meta:
         indexes = [
             models.Index(fields=["report", "source_ip_address"]),
         ]
@@ -198,7 +212,7 @@ class DmarcRecord(TimeStamped):
         return f"{self.source_ip_address} ×{self.count} ({self.disposition})"
 
 
-class DmarcFailureReport(TimeStamped):
+class DmarcFailureReport(IncomingMessage):
     """A DMARC forensic (RUF) report received from a reporting organization."""
 
     class Status(models.TextChoices):
@@ -213,12 +227,6 @@ class DmarcFailureReport(TimeStamped):
         REJECTED = "rejected", _("rejected")
         OTHER = "other", _("other")
 
-    org = models.ForeignKey(
-        "accounts.Organization",
-        on_delete=models.CASCADE,
-        related_name="dmarc_failure_reports",
-        help_text=_("Owning organization."),
-    )
     domain = models.ForeignKey(
         "domains.Domain",
         on_delete=models.SET_NULL,
@@ -227,15 +235,8 @@ class DmarcFailureReport(TimeStamped):
         related_name="dmarc_failure_reports",
         help_text=_("Monitored domain."),
     )
-    incoming_message = models.OneToOneField(
-        "mx.IncomingMessage",
-        on_delete=models.CASCADE,
-        related_name="dmarc_failure_report",
-        help_text=_("Incoming email that delivered this report."),
-    )
-    reporting_org = models.CharField(
+    reporting_org = models.TextField(
         _("reporting organization"),
-        max_length=255,
         blank=True,
         help_text=_("Organization that generated the report."),
     )
@@ -283,8 +284,8 @@ class DmarcFailureReport(TimeStamped):
         blank=True,
         help_text=_("Headers of the original message from the report."),
     )
-    status = models.CharField(
-        _("status"),
+    report_status = models.CharField(
+        _("report status"),
         max_length=8,
         choices=Status,
         default=Status.RECEIVED,
@@ -296,10 +297,10 @@ class DmarcFailureReport(TimeStamped):
         help_text=_("Parse error detail if processing failed."),
     )
 
-    class Meta(TimeStamped.Meta):
+    class Meta:
         indexes = [
-            models.Index(fields=["org", "status"]),
-            models.Index(fields=["org", "arrival_at"]),
+            models.Index(fields=["report_status"]),
+            models.Index(fields=["arrival_at"]),
         ]
 
     def __str__(self):
@@ -313,201 +314,6 @@ class DmarcFailureReport(TimeStamped):
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
-
-class DmarcEvaluation(TimeStamped):
-    """DMARC evaluation result for a single incoming message.
-
-    Tracks SPF/DKIM authentication and DMARC policy evaluation so that
-    aggregate (RUA) and forensic (RUF) reports can be generated for
-    outbound delivery.
-    """
-
-    class Disposition(models.TextChoices):
-        NONE = "none", _("none")
-        QUARANTINE = "quarantine", _("quarantine")
-        REJECT = "reject", _("reject")
-
-    class Alignment(models.TextChoices):
-        PASS = "pass", _("pass")
-        FAIL = "fail", _("fail")
-
-    class AuthResult(models.TextChoices):
-        PASS = "pass", _("pass")
-        FAIL = "fail", _("fail")
-        NEUTRAL = "neutral", _("neutral")
-        NONE = "none", _("none")
-        PERMERROR = "permerror", _("permerror")
-        TEMPERROR = "temperror", _("temperror")
-
-    incoming_message = models.OneToOneField(
-        "mx.IncomingMessage",
-        on_delete=models.CASCADE,
-        related_name="dmarc_evaluation",
-        help_text=_("Incoming message that was evaluated."),
-    )
-    domain = models.ForeignKey(
-        "domains.Domain",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="dmarc_evaluations",
-        help_text=_("Domain being evaluated (header-from domain)."),
-    )
-    org = models.ForeignKey(
-        "accounts.Organization",
-        on_delete=models.CASCADE,
-        related_name="dmarc_evaluations",
-        help_text=_("Owning organization."),
-    )
-    source_ip_address = models.GenericIPAddressField(
-        _("source IP address"),
-        null=True,
-        blank=True,
-        help_text=_("Sending IP address."),
-    )
-    disposition = models.CharField(
-        _("disposition"),
-        max_length=10,
-        choices=Disposition,
-        default=Disposition.NONE,
-        help_text=_("DMARC policy outcome."),
-    )
-    dkim_alignment = models.CharField(
-        _("DKIM alignment"),
-        max_length=4,
-        choices=Alignment,
-        default=Alignment.FAIL,
-        help_text=_("DKIM alignment result."),
-    )
-    spf_alignment = models.CharField(
-        _("SPF alignment"),
-        max_length=4,
-        choices=Alignment,
-        default=Alignment.FAIL,
-        help_text=_("SPF alignment result."),
-    )
-    header_from = models.CharField(
-        _("header from"),
-        max_length=255,
-        blank=True,
-        help_text=_("From header domain."),
-    )
-    envelope_from = models.CharField(
-        _("envelope from"),
-        max_length=255,
-        blank=True,
-        help_text=_("Envelope sender domain (MAIL FROM)."),
-    )
-    dkim_domain = models.CharField(
-        _("DKIM domain"),
-        max_length=255,
-        blank=True,
-        help_text=_("DKIM signing domain."),
-    )
-    dkim_result = models.CharField(
-        _("DKIM result"),
-        max_length=9,
-        choices=AuthResult,
-        default=AuthResult.NONE,
-        help_text=_("DKIM authentication result."),
-    )
-    spf_domain = models.CharField(
-        _("SPF domain"),
-        max_length=255,
-        blank=True,
-        help_text=_("SPF checked domain."),
-    )
-    spf_result = models.CharField(
-        _("SPF result"),
-        max_length=9,
-        choices=AuthResult,
-        default=AuthResult.NONE,
-        help_text=_("SPF authentication result."),
-    )
-    included_in_report = models.BooleanField(
-        _("included in report"),
-        default=False,
-        help_text=_("Whether this evaluation has been included in a sent report."),
-    )
-
-    class Meta(TimeStamped.Meta):
-        indexes = [
-            models.Index(fields=["domain", "included_in_report"]),
-            models.Index(fields=["org", "disposition"]),
-        ]
-
-    def __str__(self):
-        return f"{self.source_ip_address} → {self.header_from} ({self.disposition})"
-
-
-class OutgoingDmarcReport(TimeStamped):
-    """A DMARC aggregate (RUA) report generated and sent by Relay."""
-
-    class Status(models.TextChoices):
-        GENERATING = "generating", _("generating")
-        SENT = "sent", _("sent")
-        FAILED = "failed", _("failed")
-
-    class ReportType(models.TextChoices):
-        RUA = "rua", _("RUA")
-        RUF = "ruf", _("RUF")
-
-    org = models.ForeignKey(
-        "accounts.Organization",
-        on_delete=models.CASCADE,
-        related_name="outgoing_dmarc_reports",
-        help_text=_("Owning organization."),
-    )
-    domain = models.ForeignKey(
-        "domains.Domain",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="outgoing_dmarc_reports",
-        help_text=_("Domain the report covers."),
-    )
-    report_type = models.CharField(
-        _("report type"),
-        max_length=3,
-        choices=ReportType,
-        default=ReportType.RUA,
-        help_text=_("RUA (aggregate) or RUF (forensic)."),
-    )
-    recipient = models.EmailField(
-        _("recipient"),
-        help_text=_("Email address the report was sent to."),
-    )
-    begin_at = models.DateTimeField(
-        _("begin at"),
-        help_text=_("Start of the report period."),
-    )
-    end_at = models.DateTimeField(
-        _("end at"),
-        help_text=_("End of the report period."),
-    )
-    record_count = models.PositiveIntegerField(
-        _("record count"),
-        default=0,
-        help_text=_("Number of records included in the report."),
-    )
-    status = models.CharField(
-        _("status"),
-        max_length=10,
-        choices=Status,
-        default=Status.GENERATING,
-        help_text=_("Report sending lifecycle state."),
-    )
-    error = models.TextField(
-        _("error"),
-        blank=True,
-        help_text=_("Error detail if sending failed."),
-    )
-
-    class Meta(TimeStamped.Meta):
-        indexes = [
-            models.Index(fields=["org", "status"]),
-            models.Index(fields=["domain", "report_type"]),
-        ]
-
-    def __str__(self):
-        return f"{self.domain} → {self.recipient} ({self.report_type})"
+    @classmethod
+    def adopt(cls, message, **extra):
+        return adopt_incoming_message(cls, message, **extra)

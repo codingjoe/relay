@@ -192,9 +192,9 @@ def deliver_to_webhook(message, webhook, is_test=False):
 @task
 def parse_tls_report(report_pk):
     """Parse a received TLS-RPT report and store its failures."""
-    report = TlsReport.objects.select_related("incoming_message").get(pk=report_pk)
+    report = TlsReport.objects.get(pk=report_pk)
     try:
-        raw_bytes = report.incoming_message.raw_body.read()
+        raw_bytes = report.raw_body.read()
         data = extract_attachment(raw_bytes)
         if data is None:
             raise ValueError("No attachment found in TLS-RPT report email.")
@@ -235,11 +235,11 @@ def parse_tls_report(report_pk):
         report.failed_session_count = total_failed
 
         TlsFailure.objects.bulk_create(failures)
-        report.status = TlsReport.Status.PARSED
+        report.report_status = TlsReport.Status.PARSED
         report.error = ""
-    except Exception as e:  # noqa: BLE001
+    except (OSError, ValueError) as e:
         logger.error(f"Failed to parse TLS-RPT report {report_pk}: {e}")
-        report.status = TlsReport.Status.FAILED
+        report.report_status = TlsReport.Status.FAILED
         report.error = str(e)
     finally:
         if report.pk:
@@ -252,7 +252,7 @@ def parse_tls_report(report_pk):
                     "end_at",
                     "successful_session_count",
                     "failed_session_count",
-                    "status",
+                    "report_status",
                     "error",
                 ]
             )

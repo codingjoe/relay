@@ -3,7 +3,6 @@
 from datetime import timedelta
 
 CHART_DAYS = 30
-CHART_DAYS_SHORT = 7
 
 
 def build_chart_data(rows, choices, colors, start, group_field, days=CHART_DAYS):

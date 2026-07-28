@@ -43,7 +43,7 @@ urlpatterns = [
             [
                 path("", views.TlsReportListView.as_view(), name="tls-report-list"),
                 path(
-                    "<int:pk>",
+                    "<uuid:pk>",
                     views.TlsReportDetailView.as_view(),
                     name="tls-report-detail",
                 ),

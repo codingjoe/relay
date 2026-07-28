@@ -58,7 +58,7 @@ def build_tls_chart(org, days=CHART_DAYS):
     rows = (
         TlsFailure.objects.filter(
             report__org=org,
-            report__status=TlsReport.Status.PARSED,
+            report__report_status=TlsReport.Status.PARSED,
             report__begin_at__date__gte=start,
         )
         .annotate(day=TruncDate("report__begin_at"))

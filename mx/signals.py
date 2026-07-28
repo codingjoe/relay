@@ -25,11 +25,10 @@ def handle_incoming_message(sender, instance, created, **kwargs):
     match local_part:
         case settings.RELAY_TLS_REPORT_LOCAL_PART:
             domain = Domain.objects.root_for(instance.receiving_domain).first()
-            report = TlsReport.objects.create(
-                org=instance.org,
+            report = TlsReport.adopt(
+                instance,
                 domain=domain,
-                incoming_message=instance,
                 report_id=str(uuid.uuid7()),
-                status=TlsReport.Status.RECEIVED,
+                report_status=TlsReport.Status.RECEIVED,
             )
             transaction.on_commit(lambda: parse_tls_report.enqueue(report_pk=report.pk))

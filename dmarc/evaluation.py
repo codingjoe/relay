@@ -99,24 +99,11 @@ def lookup_dmarc_policy(domain):
             part = part.strip()
             if "=" not in part:
                 continue
-            key, value = part.split("=", 1)
-            key = key.strip()
-            value = value.strip()
-            match key:
-                case "p":
-                    policy["p"] = value
-                case "sp":
-                    policy["sp"] = value
-                case "adkim":
-                    policy["adkim"] = value
-                case "aspf":
-                    policy["aspf"] = value
-                case "rua":
-                    policy["rua"] = value
-                case "ruf":
-                    policy["ruf"] = value
-                case "pct":
-                    policy["pct"] = int(value)
+            key, value = (s.strip() for s in part.split("=", 1))
+            if key in {"p", "sp", "adkim", "aspf", "rua", "ruf"}:
+                policy[key] = value
+            elif key == "pct":
+                policy[key] = int(value)
         return policy
     return {}
 
@@ -200,13 +187,6 @@ def check_alignment(auth_domain, header_from_domain, policy):
 
 def determine_disposition(policy, dkim_aligned, spf_aligned):
     """Determine the DMARC disposition based on policy and alignment."""
-    p = policy.get("p", "none")
     if dkim_aligned or spf_aligned:
         return "none"
-    match p:
-        case "quarantine":
-            return "quarantine"
-        case "reject":
-            return "reject"
-        case _:
-            return "none"
+    return policy.get("p", "none")

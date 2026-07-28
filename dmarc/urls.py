@@ -11,7 +11,7 @@ urlpatterns = [
             [
                 path("", views.DmarcReportListView.as_view(), name="report-list"),
                 path(
-                    "<int:pk>",
+                    "<uuid:pk>",
                     views.DmarcReportDetailView.as_view(),
                     name="report-detail",
                 ),
@@ -28,7 +28,7 @@ urlpatterns = [
                     name="failure-report-list",
                 ),
                 path(
-                    "<int:pk>",
+                    "<uuid:pk>",
                     views.DmarcFailureReportDetailView.as_view(),
                     name="failure-report-detail",
                 ),

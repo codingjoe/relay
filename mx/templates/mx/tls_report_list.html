@@ -52,14 +52,14 @@
             <td>{{ report.successful_session_count }}</td>
             <td>{{ report.failed_session_count }}</td>
             <td>
-              {% if report.status == 'parsed' %}
+              {% if report.report_status == 'parsed' %}
                 <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% elif report.status == 'failed' %}
+              {% elif report.report_status == 'failed' %}
                 <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
               {% else %}
                 <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
               {% endif %}
-              {{ report.get_status_display }}
+              {{ report.get_report_status_display }}
             </td>
           </tr>
         {% empty %}
