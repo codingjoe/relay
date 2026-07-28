@@ -1,5 +1,3 @@
-"""Chart data builders for DMARC reports."""
-
 from datetime import timedelta
 
 from django.db.models import Sum

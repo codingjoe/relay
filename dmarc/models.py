@@ -1,5 +1,3 @@
-"""DMARC aggregate report and forensic report models."""
-
 import uuid
 
 from django.db import connection, models

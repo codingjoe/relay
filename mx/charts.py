@@ -1,5 +1,3 @@
-"""Chart data builders for incoming messages and TLS-RPT reports."""
-
 from datetime import timedelta
 
 from django.db.models import Count, Sum

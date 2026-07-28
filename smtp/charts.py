@@ -1,5 +1,3 @@
-"""Chart data builder for outgoing messages."""
-
 from datetime import timedelta
 
 from django.db.models import Count
