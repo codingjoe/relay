@@ -37,4 +37,17 @@ urlpatterns = [
             ]
         ),
     ),
+    path(
+        "tls/",
+        include(
+            [
+                path("", views.TlsReportListView.as_view(), name="tls-report-list"),
+                path(
+                    "<int:pk>",
+                    views.TlsReportDetailView.as_view(),
+                    name="tls-report-detail",
+                ),
+            ]
+        ),
+    ),
 ]

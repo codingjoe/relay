@@ -2,7 +2,6 @@
 
 import gzip
 import io
-import json
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import UTC, datetime
@@ -85,55 +84,6 @@ def parse_dmarc_xml(data):
     return {"metadata": metadata, "records": records}
 
 
-def parse_tls_json(data):
-    """Parse a TLS-RPT JSON report into a dict.
-
-    Returns ``{"metadata": {...}, "policies": [...]}`` where each policy is
-    ``{"policy_type": ..., "policy_domain": ..., "successful_session_count": ...,
-    "failed_session_count": ..., "failures": [...]}``.
-    """
-    report = json.loads(data)
-
-    date_range = report.get("date-range", {})
-    metadata = {
-        "reporting_org": report.get("organization-name", ""),
-        "reporting_email": report.get("contact-info", ""),
-        "report_id": report.get("report-id", ""),
-        "begin_at": parse_iso_datetime(date_range.get("start-datetime")),
-        "end_at": parse_iso_datetime(date_range.get("end-datetime")),
-    }
-
-    policies = []
-    for policy_entry in report.get("policies", []):
-        policy = policy_entry.get("policy", {})
-        summary = policy_entry.get("summary", {})
-        failures = []
-        for fd in policy_entry.get("failure-details", []):
-            failures.append(
-                {
-                    "result_type": fd.get("result-type", "other"),
-                    "sending_mta_ip_address": fd.get("sending-mta-ip", ""),
-                    "receiving_mx_hostname": fd.get("receiving-mx-hostname", ""),
-                    "receiving_mx_ip_address": fd.get("receiving-mx-ip"),
-                    "count": int(fd.get("failed-session-count", 0)),
-                    "additional_info": fd.get("additional-information", ""),
-                }
-            )
-        policies.append(
-            {
-                "policy_type": policy.get("policy-type", "sts"),
-                "policy_domain": policy.get("policy-domain", ""),
-                "successful_session_count": int(
-                    summary.get("successful-session-count", 0)
-                ),
-                "failed_session_count": int(summary.get("failed-session-count", 0)),
-                "failures": failures,
-            }
-        )
-
-    return {"metadata": metadata, "policies": policies}
-
-
 def text(parent, path):
     """Get stripped text from an XML element at the given XPath, or empty string."""
     if parent is None:
@@ -150,8 +100,71 @@ def parse_timestamp(parent, path):
     return datetime.fromtimestamp(int(value), tz=UTC)
 
 
-def parse_iso_datetime(value):
-    """Parse an ISO 8601 datetime string into an aware datetime."""
-    if not value:
-        return None
-    return datetime.fromisoformat(value)
+def parse_arf(raw_bytes):
+    """Parse an ARF (Abuse Reporting Format) DMARC RUF report.
+
+    Returns a dict with the report metadata, or raises ``ValueError``.
+    """
+    msg = message_from_bytes(raw_bytes)
+    report_data = {
+        "reporting_org": msg.get("From", ""),
+        "reporting_email": msg.get("From", ""),
+        "source_ip_address": "",
+        "arrival_at": None,
+        "original_mail_from": "",
+        "original_rcpt_to": "",
+        "authentication_results": "",
+        "delivery_result": "other",
+        "original_headers": "",
+    }
+
+    for part in msg.walk():
+        if part.is_multipart():
+            continue
+        content_type = part.get_content_type()
+
+        match content_type:
+            case "message/feedback-report":
+                payload = part.get_payload(decode=True)
+                if payload:
+                    text = payload.decode("utf-8", errors="replace")
+                    for line in text.splitlines():
+                        if ":" not in line:
+                            continue
+                        key, value = line.split(":", 1)
+                        key = key.strip().lower()
+                        value = value.strip()
+                        match key:
+                            case "source-ip":
+                                report_data["source_ip_address"] = value
+                            case "original-mail-from":
+                                report_data["original_mail_from"] = value
+                            case "original-rcpt-to":
+                                report_data["original_rcpt_to"] = value
+                            case "arrival-date":
+                                report_data["arrival_at"] = datetime.fromisoformat(
+                                    value
+                                )
+                            case "auth-failure" | "authentication-results":
+                                report_data["authentication_results"] = value
+                            case "delivery-result":
+                                result = value.lower().replace(" ", "-")
+                                if result in {
+                                    "delivered",
+                                    "spam",
+                                    "policy",
+                                    "rejected",
+                                    "other",
+                                }:
+                                    report_data["delivery_result"] = result
+
+            case "text/rfc822-headers" | "message/rfc822":
+                payload = part.get_payload(decode=True)
+                if payload:
+                    report_data["original_headers"] = payload.decode(
+                        "utf-8", errors="replace"
+                    )
+
+    if not report_data["source_ip_address"] and not report_data["original_mail_from"]:
+        raise ValueError("No ARF feedback-report content found.")
+    return report_data

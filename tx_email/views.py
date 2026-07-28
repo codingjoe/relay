@@ -5,9 +5,9 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
 from accounts.views import OrganizationScopedView
-from dmarc.charts import build_dmarc_chart, build_tls_chart
+from dmarc.charts import build_dmarc_chart
 from domains.models import Domain
-from mx.charts import build_incoming_chart
+from mx.charts import build_incoming_chart, build_tls_chart
 from smtp.charts import build_outgoing_chart
 from smtp.models import OutgoingMessage
 

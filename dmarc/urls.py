@@ -19,14 +19,18 @@ urlpatterns = [
         ),
     ),
     path(
-        "tls/",
+        "dmarc/failures/",
         include(
             [
-                path("", views.TlsReportListView.as_view(), name="tls-report-list"),
+                path(
+                    "",
+                    views.DmarcFailureReportListView.as_view(),
+                    name="failure-report-list",
+                ),
                 path(
                     "<int:pk>",
-                    views.TlsReportDetailView.as_view(),
-                    name="tls-report-detail",
+                    views.DmarcFailureReportDetailView.as_view(),
+                    name="failure-report-detail",
                 ),
             ]
         ),

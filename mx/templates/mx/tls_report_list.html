@@ -44,7 +44,7 @@
         {% for report in reports %}
           <tr
             class="cursor-pointer"
-            onclick="window.location.href = '{% url 'dmarc:tls-report-detail' org.slug report.pk %}'"
+            onclick="window.location.href = '{% url 'mx:tls-report-detail' org.slug report.pk %}'"
           >
             <td>{{ report.begin_at|naturalday }}</td>
             <td>{{ report.domain|default:"—" }}</td>

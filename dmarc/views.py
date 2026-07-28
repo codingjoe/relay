@@ -1,4 +1,4 @@
-"""DMARC and TLS-RPT report views."""
+"""DMARC report views."""
 
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, ListView
@@ -6,8 +6,8 @@ from django.views.generic import DetailView, ListView
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .charts import build_dmarc_chart, build_tls_chart
-from .models import DmarcReport, TlsReport
+from .charts import build_dmarc_chart
+from .models import DmarcFailureReport, DmarcReport
 
 
 class DmarcReportListView(OrganizationScopedView, ListView):
@@ -47,15 +47,15 @@ class DmarcReportDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class TlsReportListView(OrganizationScopedView, ListView):
-    template_name = "dmarc/tls_report_list.html"
+class DmarcFailureReportListView(OrganizationScopedView, ListView):
+    template_name = "dmarc/failure_report_list.html"
     context_object_name = "reports"
     paginate_by = 50
-    title = _("TLS reports")
+    title = _("DMARC failure reports")
     parent = "tx_email:dashboard"
 
     def get_queryset(self):
-        qs = TlsReport.objects.filter(org=self.org)
+        qs = DmarcFailureReport.objects.filter(org=self.org)
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
         return qs
@@ -66,19 +66,18 @@ class TlsReportListView(OrganizationScopedView, ListView):
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
             },
-            "chart": build_tls_chart(self.org),
         }
 
 
-class TlsReportDetailView(OrganizationScopedView, DetailView):
-    template_name = "dmarc/tls_report_detail.html"
+class DmarcFailureReportDetailView(OrganizationScopedView, DetailView):
+    template_name = "dmarc/failure_report_detail.html"
     context_object_name = "report"
-    parent = "dmarc:tls-report-list"
+    parent = "dmarc:failure-report-list"
 
     def get_queryset(self):
-        return TlsReport.objects.filter(org=self.org)
+        return DmarcFailureReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "failures": self.object.failures.select_related("report"),
+            "incoming_message": self.object.incoming_message,
         }

@@ -1,4 +1,4 @@
-"""Signal handlers for DMARC and TLS-RPT report ingestion."""
+"""Signal handlers for DMARC report ingestion and evaluation."""
 
 import uuid
 
@@ -9,13 +9,17 @@ from django.dispatch import receiver
 
 from domains.models import Domain
 
-from .models import DmarcReport, TlsReport
-from .tasks import parse_dmarc_report, parse_tls_report
+from .models import DmarcFailureReport, DmarcReport
+from .tasks import (
+    evaluate_incoming_message,
+    parse_dmarc_failure_report,
+    parse_dmarc_report,
+)
 
 
 @receiver(post_save, sender="mx.IncomingMessage")
 def handle_incoming_message(sender, instance, created, **kwargs):
-    """Create a report stub when a report email arrives as an IncomingMessage."""
+    """Create a report stub or evaluate DMARC when an email arrives."""
     if not created:
         return
 
@@ -35,13 +39,19 @@ def handle_incoming_message(sender, instance, created, **kwargs):
             transaction.on_commit(
                 lambda: parse_dmarc_report.enqueue(report_pk=report.pk)
             )
-        case settings.RELAY_TLS_REPORT_LOCAL_PART:
+        case settings.RELAY_DMARC_RUF_LOCAL_PART:
             domain = Domain.objects.root_for(instance.receiving_domain).first()
-            report = TlsReport.objects.create(
+            report = DmarcFailureReport.objects.create(
                 org=instance.org,
                 domain=domain,
                 incoming_message=instance,
-                report_id=str(uuid.uuid7()),
-                status=TlsReport.Status.RECEIVED,
+                status=DmarcFailureReport.Status.RECEIVED,
             )
-            transaction.on_commit(lambda: parse_tls_report.enqueue(report_pk=report.pk))
+            transaction.on_commit(
+                lambda: parse_dmarc_failure_report.enqueue(report_pk=report.pk)
+            )
+        case _:
+            # Non-report messages: evaluate DMARC
+            transaction.on_commit(
+                lambda: evaluate_incoming_message.enqueue(message_pk=instance.pk)
+            )

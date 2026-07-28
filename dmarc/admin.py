@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from abstract.admin import TimeStampedAdminMixin
 
-from .models import DmarcRecord, DmarcReport, TlsFailure, TlsReport
+from .models import DmarcFailureReport, DmarcRecord, DmarcReport
 
 
 @admin.register(DmarcReport)
@@ -35,34 +35,21 @@ class DmarcRecordAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     search_fields = ["source_ip_address", "header_from", "report__report_id"]
 
 
-@admin.register(TlsReport)
-class TlsReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+@admin.register(DmarcFailureReport)
+class DmarcFailureReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",
-        "report_id",
-        "begin_at",
-        "end_at",
-        "successful_session_count",
-        "failed_session_count",
+        "source_ip_address",
+        "original_mail_from",
+        "delivery_result",
         "status",
     ]
-    list_filter = ["status", "domain"]
-    search_fields = ["reporting_org", "report_id", "domain__name"]
-
-
-@admin.register(TlsFailure)
-class TlsFailureAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = [
-        "report",
-        "result_type",
-        "sending_mta_ip_address",
-        "receiving_mx_hostname",
-        "count",
-    ]
-    list_filter = ["result_type", "policy_type"]
+    list_filter = ["status", "delivery_result", "domain"]
     search_fields = [
-        "receiving_mx_hostname",
-        "sending_mta_ip_address",
-        "report__report_id",
+        "reporting_org",
+        "original_mail_from",
+        "source_ip_address",
+        "domain__name",
     ]
+    readonly_fields = ["id", "arrival_at"]

@@ -245,13 +245,21 @@ class Domain(TimeStamped):
         return f"{settings.RELAY_DMARC_REPORT_LOCAL_PART}@{self.sender_domain}"
 
     @property
+    def dmarc_ruf_reporting_address(self):
+        return f"{settings.RELAY_DMARC_RUF_LOCAL_PART}@{self.sender_domain}"
+
+    @property
     def tls_reporting_address(self):
         return f"{settings.RELAY_TLS_REPORT_LOCAL_PART}@{self.sender_domain}"
 
     @property
     def dmarc_record(self):
-        """DMARC record for the root domain, with rua pointing to the sender subdomain."""
-        return f"v=DMARC1; p=none; sp=none; adkim=r; aspf=r; rua=mailto:{self.dmarc_reporting_address};"
+        """DMARC record for the root domain, with rua/ruf pointing to the sender subdomain."""
+        return (
+            f"v=DMARC1; p=none; sp=none; adkim=r; aspf=r;"
+            f" rua=mailto:{self.dmarc_reporting_address};"
+            f" ruf=mailto:{self.dmarc_ruf_reporting_address};"
+        )
 
     @property
     def tls_rpt_record(self):

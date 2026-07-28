@@ -1,4 +1,4 @@
-"""MX ingress views — inbox and webhook management."""
+"""MX ingress views — inbox, webhook management, and TLS-RPT reports."""
 
 from email import message_from_bytes
 
@@ -171,3 +171,46 @@ class WebhookTestView(OrganizationScopedView, View):
         else:
             messages.error(request, _("Test webhook failed."))
         return redirect("mx:webhook-list", org_slug=org_slug)
+
+
+class TlsReportListView(OrganizationScopedView, ListView):
+    template_name = "mx/tls_report_list.html"
+    context_object_name = "reports"
+    paginate_by = 50
+    title = _("TLS reports")
+    parent = "tx_email:dashboard"
+
+    def get_queryset(self):
+        from .models import TlsReport
+
+        qs = TlsReport.objects.filter(org=self.org)
+        if domain := self.request.GET.get("domain"):
+            qs = qs.filter(domain__name=domain)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        from .charts import build_tls_chart
+
+        return super().get_context_data(**kwargs) | {
+            "domains": Domain.objects.filter(org=self.org),
+            "filters": {
+                "domain": self.request.GET.get("domain", ""),
+            },
+            "chart": build_tls_chart(self.org),
+        }
+
+
+class TlsReportDetailView(OrganizationScopedView, DetailView):
+    template_name = "mx/tls_report_detail.html"
+    context_object_name = "report"
+    parent = "mx:tls-report-list"
+
+    def get_queryset(self):
+        from .models import TlsReport
+
+        return TlsReport.objects.filter(org=self.org)
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "failures": self.object.failures.select_related("report"),
+        }

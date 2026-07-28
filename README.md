@@ -140,6 +140,7 @@ graph BT
  dmarc
  smtp --> accounts
  smtp --> domains
+ smtp --> mx
  mx --> accounts
  mx --> domains
  mx --> kms
