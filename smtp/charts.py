@@ -6,9 +6,19 @@ from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from abstract.charts import CHART_DAYS, MESSAGE_CHART_COLORS, build_chart_data
+from abstract.charts import CHART_DAYS, build_chart_data
 
 from .models import OutgoingMessage
+
+CHART_COLORS = {
+    "delivered": "var(--color-success)",
+    "sent": "var(--color-primary)",
+    "pending": "var(--color-muted-foreground)",
+    "held": "var(--color-warning)",
+    "bounced": "var(--color-warning)",
+    "failed": "var(--color-destructive)",
+    "dropped": "var(--color-destructive)",
+}
 
 
 def build_outgoing_chart(org, days=CHART_DAYS):
@@ -23,7 +33,7 @@ def build_outgoing_chart(org, days=CHART_DAYS):
     return build_chart_data(
         rows,
         list(OutgoingMessage.Status),
-        MESSAGE_CHART_COLORS,
+        CHART_COLORS,
         start,
         "status",
         days=days,

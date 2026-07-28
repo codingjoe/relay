@@ -34,6 +34,12 @@ class DmarcReport(TimeStamped):
         related_name="dmarc_reports",
         help_text=_("Monitored domain."),
     )
+    incoming_message = models.OneToOneField(
+        "mx.IncomingMessage",
+        on_delete=models.CASCADE,
+        related_name="dmarc_report",
+        help_text=_("Incoming email that delivered this report."),
+    )
     reporting_org = models.CharField(
         _("reporting organization"),
         max_length=255,
@@ -61,11 +67,6 @@ class DmarcReport(TimeStamped):
         null=True,
         blank=True,
         help_text=_("End of the report period."),
-    )
-    raw_email = models.FileField(
-        _("raw email"),
-        upload_to="dmarc_reports/",
-        help_text=_("Raw report email with XML attachment."),
     )
     status = models.CharField(
         _("status"),
@@ -219,6 +220,12 @@ class TlsReport(TimeStamped):
         related_name="tls_reports",
         help_text=_("Domain the report covers."),
     )
+    incoming_message = models.OneToOneField(
+        "mx.IncomingMessage",
+        on_delete=models.CASCADE,
+        related_name="tls_report",
+        help_text=_("Incoming email that delivered this report."),
+    )
     reporting_org = models.CharField(
         _("reporting organization"),
         max_length=255,
@@ -246,11 +253,6 @@ class TlsReport(TimeStamped):
         null=True,
         blank=True,
         help_text=_("End of the report period."),
-    )
-    raw_email = models.FileField(
-        _("raw email"),
-        upload_to="tls_reports/",
-        help_text=_("Raw report email with JSON attachment."),
     )
     status = models.CharField(
         _("status"),

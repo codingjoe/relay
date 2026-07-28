@@ -45,7 +45,7 @@
             class="cursor-pointer"
             onclick="window.location.href = '{% url 'dmarc:report-detail' org.slug report.pk %}'"
           >
-            <td>{{ report.begin_at|date:"M d, Y" }}</td>
+            <td>{{ report.begin_at|naturalday }}</td>
             <td>{{ report.domain|default:"—" }}</td>
             <td>{{ report.reporting_org|truncatechars:30 }}</td>
             <td>{{ report.report_id|truncatechars:40 }}</td>

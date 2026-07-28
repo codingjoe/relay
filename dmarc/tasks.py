@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 @task
 def parse_dmarc_report(report_pk):
     """Parse a received DMARC aggregate report and store its records."""
-    report = DmarcReport.objects.get(pk=report_pk)
+    report = DmarcReport.objects.select_related("incoming_message").get(pk=report_pk)
     try:
-        raw_bytes = report.raw_email.read()
+        raw_bytes = report.incoming_message.raw_body.read()
         data = extract_attachment(raw_bytes)
         if data is None:
             raise ValueError("No attachment found in DMARC report email.")
@@ -70,9 +70,9 @@ def parse_dmarc_report(report_pk):
 @task
 def parse_tls_report(report_pk):
     """Parse a received TLS-RPT report and store its failures."""
-    report = TlsReport.objects.get(pk=report_pk)
+    report = TlsReport.objects.select_related("incoming_message").get(pk=report_pk)
     try:
-        raw_bytes = report.raw_email.read()
+        raw_bytes = report.incoming_message.raw_body.read()
         data = extract_attachment(raw_bytes)
         if data is None:
             raise ValueError("No attachment found in TLS-RPT report email.")

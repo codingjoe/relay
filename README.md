@@ -143,9 +143,9 @@ graph BT
  mx --> accounts
  mx --> domains
  mx --> kms
- mx --> dmarc
  dmarc --> accounts
  dmarc --> domains
+ dmarc --> mx
  tx_email --> smtp
  tx_email --> mx
  tx_email --> dmarc

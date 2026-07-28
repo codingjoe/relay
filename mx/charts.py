@@ -6,9 +6,18 @@ from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from abstract.charts import CHART_DAYS, MESSAGE_CHART_COLORS, build_chart_data
+from abstract.charts import CHART_DAYS, build_chart_data
 
 from .models import IncomingMessage
+
+CHART_COLORS = {
+    "delivered": "var(--color-success)",
+    "webhook_sent": "var(--color-success)",
+    "received": "var(--color-muted-foreground)",
+    "bounced": "var(--color-warning)",
+    "dropped": "var(--color-destructive)",
+    "webhook_failed": "var(--color-destructive)",
+}
 
 
 def build_incoming_chart(org, days=CHART_DAYS):
@@ -23,7 +32,7 @@ def build_incoming_chart(org, days=CHART_DAYS):
     return build_chart_data(
         rows,
         list(IncomingMessage.Status),
-        MESSAGE_CHART_COLORS,
+        CHART_COLORS,
         start,
         "status",
         days=days,

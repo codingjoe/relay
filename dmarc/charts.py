@@ -6,14 +6,28 @@ from django.db.models import Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from abstract.charts import (
-    CHART_DAYS,
-    DMARC_CHART_COLORS,
-    TLS_CHART_COLORS,
-    build_chart_data,
-)
+from abstract.charts import CHART_DAYS, build_chart_data
 
 from .models import DmarcRecord, DmarcReport, TlsFailure, TlsReport
+
+DMARC_CHART_COLORS = {
+    "none": "var(--color-success)",
+    "quarantine": "var(--color-warning)",
+    "reject": "var(--color-destructive)",
+}
+
+TLS_CHART_COLORS = {
+    "starttls-not-supported": "var(--color-destructive)",
+    "certificate-expired": "var(--color-warning)",
+    "certificate-not-trusted": "var(--color-destructive)",
+    "certificate-name-mismatch": "var(--color-warning)",
+    "tls-version-invalid": "var(--color-warning)",
+    "tlsa-invalid": "var(--color-warning)",
+    "dane-required": "var(--color-warning)",
+    "sts-policy-invalid": "var(--color-warning)",
+    "sts-webpki-invalid": "var(--color-warning)",
+    "other": "var(--color-muted-foreground)",
+}
 
 
 def build_dmarc_chart(org, days=CHART_DAYS):
