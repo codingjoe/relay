@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feedback>
+  <report_metadata>
+    <org_name>relay</org_name>
+    <email>{{ reporting_email }}</email>
+    <report_id>{{ report_id }}</report_id>
+    <date_range>
+      <begin>{{ begin_timestamp }}</begin>
+      <end>{{ end_timestamp }}</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>{{ domain_name }}</domain>
+    <adkim>r</adkim>
+    <aspf>r</aspf>
+    <p>none</p>
+    <sp>none</sp>
+    <pct>100</pct>
+  </policy_published>
+  {% for evaluation in evaluations %}
+  <record>
+    <row>
+      <source_ip>{{ evaluation.source_ip_address }}</source_ip>
+      <count>1</count>
+      <policy_evaluated>
+        <disposition>{{ evaluation.disposition }}</disposition>
+        <dkim>{{ evaluation.dkim_alignment }}</dkim>
+        <spf>{{ evaluation.spf_alignment }}</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>{{ evaluation.header_from }}</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>{{ evaluation.dkim_domain }}</domain>
+        <result>{{ evaluation.dkim_result }}</result>
+      </dkim>
+      <spf>
+        <domain>{{ evaluation.spf_domain }}</domain>
+        <result>{{ evaluation.spf_result }}</result>
+      </spf>
+    </auth_results>
+  </record>
+  {% endfor %}
+</feedback>

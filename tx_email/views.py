@@ -1,9 +1,12 @@
-"""Provide the unified transactional email dashboard."""
+"""Provide the unified transactional email dashboard and chart API."""
 
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.response import Response
 
+from abstract.serializers import ChartDataSerializer
 from accounts.views import OrganizationScopedView
 from dmarc.charts import build_dmarc_chart
 from domains.models import Domain
@@ -30,3 +33,23 @@ class DashboardView(OrganizationScopedView, TemplateView):
             "dmarc_chart": build_dmarc_chart(self.org),
             "tls_chart": build_tls_chart(self.org),
         }
+
+
+class ChartDataView(OrganizationScopedView, RetrieveAPIView):
+    """API endpoint returning chart data as JSON for interactive charts."""
+
+    serializer_class = ChartDataSerializer
+
+    CHART_BUILDERS = {
+        "outgoing": build_outgoing_chart,
+        "incoming": build_incoming_chart,
+        "dmarc": build_dmarc_chart,
+        "tls": build_tls_chart,
+    }
+
+    def retrieve(self, request, *args, **kwargs):
+        chart_type = kwargs["chart_type"]
+        builder = self.CHART_BUILDERS[chart_type]
+        data = builder(self.org)
+        serializer = self.get_serializer(data)
+        return Response(serializer.data)

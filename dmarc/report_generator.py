@@ -7,16 +7,16 @@ is needed since the report email itself serves as the record.
 import gzip
 import logging
 import uuid
-import xml.etree.ElementTree as ET
 
 from django.conf import settings
 from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
 
 def generate_rua_xml(domain_name, evaluations, begin_at, end_at):
-    """Generate a DMARC aggregate report XML string.
+    """Generate a DMARC aggregate report XML string using a Django template.
 
     - **domain_name**: the monitored domain.
     - **evaluations**: list of dicts with source_ip_address, disposition,
@@ -25,59 +25,21 @@ def generate_rua_xml(domain_name, evaluations, begin_at, end_at):
     - **begin_at** / **end_at**: the report period.
     """
     report_id = str(uuid.uuid7())
-    root = ET.Element("feedback")
-
-    metadata = ET.SubElement(root, "report_metadata")
-    ET.SubElement(metadata, "org_name").text = "relay"
-    ET.SubElement(
-        metadata, "email"
-    ).text = (
-        f"{settings.RELAY_DMARC_REPORT_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}"
+    xml = render_to_string(
+        "dmarc/rua_report.xml",
+        {
+            "reporting_email": (
+                f"{settings.RELAY_DMARC_REPORT_LOCAL_PART}"
+                f"@{settings.RELAY_PLATFORM_DOMAIN}"
+            ),
+            "report_id": report_id,
+            "begin_timestamp": int(begin_at.timestamp()),
+            "end_timestamp": int(end_at.timestamp()),
+            "domain_name": domain_name,
+            "evaluations": evaluations,
+        },
     )
-    ET.SubElement(metadata, "report_id").text = report_id
-    date_range = ET.SubElement(metadata, "date_range")
-    ET.SubElement(date_range, "begin").text = str(int(begin_at.timestamp()))
-    ET.SubElement(date_range, "end").text = str(int(end_at.timestamp()))
-
-    policy = ET.SubElement(root, "policy_published")
-    ET.SubElement(policy, "domain").text = domain_name
-    ET.SubElement(policy, "adkim").text = "r"
-    ET.SubElement(policy, "aspf").text = "r"
-    ET.SubElement(policy, "p").text = "none"
-    ET.SubElement(policy, "sp").text = "none"
-    ET.SubElement(policy, "pct").text = "100"
-
-    for evaluation in evaluations:
-        record = ET.SubElement(root, "record")
-        row = ET.SubElement(record, "row")
-        ET.SubElement(row, "source_ip").text = evaluation.get("source_ip_address", "")
-        ET.SubElement(row, "count").text = "1"
-        policy_eval = ET.SubElement(row, "policy_evaluated")
-        ET.SubElement(policy_eval, "disposition").text = evaluation.get(
-            "disposition", "none"
-        )
-        ET.SubElement(policy_eval, "dkim").text = evaluation.get(
-            "dkim_alignment", "fail"
-        )
-        ET.SubElement(policy_eval, "spf").text = evaluation.get("spf_alignment", "fail")
-
-        identifiers = ET.SubElement(record, "identifiers")
-        ET.SubElement(identifiers, "header_from").text = evaluation.get(
-            "header_from", ""
-        )
-
-        auth_results = ET.SubElement(record, "auth_results")
-        dkim_result = ET.SubElement(auth_results, "dkim")
-        ET.SubElement(dkim_result, "domain").text = evaluation.get("dkim_domain", "")
-        ET.SubElement(dkim_result, "result").text = evaluation.get(
-            "dkim_result", "none"
-        )
-        spf_result = ET.SubElement(auth_results, "spf")
-        ET.SubElement(spf_result, "domain").text = evaluation.get("spf_domain", "")
-        ET.SubElement(spf_result, "result").text = evaluation.get("spf_result", "none")
-
-    xml_bytes = ET.tostring(root, encoding="UTF-8", xml_declaration=True)
-    return xml_bytes, report_id
+    return xml.encode("UTF-8"), report_id
 
 
 def send_rua_report(recipient, domain_name, xml_bytes, report_id):
