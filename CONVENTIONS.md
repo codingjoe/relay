@@ -38,13 +38,24 @@ Update it based on review feedback.
 - Use `db_default` with a PostgreSQL database function (e.g. `UuidV7()`) for
   database-side UUIDv7 generation, alongside the Python `default=uuid.uuid7`
   for ORM-level defaults.
-- Objects with a FK to `Message` (e.g. `Transmission`) should use UUIDv7 PK too.
+- Models with a FK to a message model (e.g. `DmarcRecord`, `TlsFailure`,
+  `WebhookDelivery`) should use UUIDv7 PK too. A Django system check
+  (`abstract.W001`) warns if a model with a FK to a UUID-PK model uses a
+  non-UUID primary key.
 
 ## Model Fields
 
 - All fields should have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
 - Drop `class Meta` entirely if it only inherits without overriding anything.
+- Use `TextField` instead of `CharField` for all fields unless you
+  specifically want Django's `max_length` validation. In PostgreSQL there
+  is no performance advantage to `varchar` over `text` — both use the same
+  storage. Choice fields use `TextField` with `choices=`; Django's choice
+  validation works without `max_length`. Only use `CharField(max_length=N)`
+  when the standard defines a fixed maximum length and you want the DB-level
+  check constraint (e.g. `EmailField` which is `CharField(max_length=254)`
+  per RFC 5321).
 
 ## Model.save()
 

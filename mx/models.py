@@ -37,15 +37,13 @@ class IncomingMessage(MessageMixin, TimeStamped):
         related_name="incoming_messages",
         help_text=_("Owning organization."),
     )
-    receiving_domain = models.CharField(
+    receiving_domain = models.TextField(
         _("receiving domain"),
-        max_length=255,
         blank=True,
         help_text=_("Domain part of the recipient address, e.g. app.acme.com."),
     )
-    status = models.CharField(
+    status = models.TextField(
         _("status"),
-        max_length=14,
         choices=Status,
         default=Status.RECEIVED,
         help_text=_("Ingress and webhook delivery lifecycle state."),
@@ -86,15 +84,13 @@ class Webhook(OrganizationOwned):
         ],
         help_text=_("HTTPS endpoint to receive incoming-mail webhook deliveries."),
     )
-    name = models.CharField(
+    name = models.TextField(
         _("name"),
-        max_length=255,
         blank=True,
         help_text=_("Human-readable label."),
     )
-    address_pattern = models.CharField(
+    address_pattern = models.TextField(
         _("address pattern"),
-        max_length=255,
         help_text=_(
             "Glob pattern for recipient addresses, e.g. *@app.acme.com "
             "or support@acme.com."
@@ -106,9 +102,8 @@ class Webhook(OrganizationOwned):
         related_name="webhooks",
         help_text=_("Ed25519 keypair used to sign webhook payloads."),
     )
-    mx_status = models.CharField(
+    mx_status = models.TextField(
         _("MX status"),
-        max_length=9,
         choices=MxStatus,
         default=MxStatus.UNCHECKED,
         help_text=_("MX record verification result for the receiving domain."),
@@ -207,9 +202,8 @@ class WebhookDelivery(TimeStamped):
         default=False,
         help_text=_("Whether this was a test delivery."),
     )
-    status = models.CharField(
+    status = models.TextField(
         _("status"),
-        max_length=7,
         choices=Status,
         help_text=_("Outcome of this webhook delivery attempt."),
     )
@@ -258,9 +252,8 @@ class TlsReport(IncomingMessage):
         blank=True,
         help_text=_("Contact email from the report metadata."),
     )
-    report_id = models.CharField(
+    report_id = models.TextField(
         _("report ID"),
-        max_length=255,
         help_text=_("Unique report identifier."),
     )
     begin_at = models.DateTimeField(
@@ -275,9 +268,8 @@ class TlsReport(IncomingMessage):
         blank=True,
         help_text=_("End of the report period."),
     )
-    report_status = models.CharField(
+    report_status = models.TextField(
         _("report status"),
-        max_length=8,
         choices=Status,
         default=Status.RECEIVED,
         help_text=_("Report processing lifecycle state."),
@@ -347,6 +339,12 @@ class TlsReport(IncomingMessage):
 class TlsFailure(TimeStamped):
     """A single TLS failure record within a TLS-RPT report."""
 
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+
     class PolicyType(models.TextChoices):
         STS = "sts", _("STS")
         TLSA = "tlsa", _("TLSA")
@@ -374,9 +372,8 @@ class TlsFailure(TimeStamped):
         on_delete=models.CASCADE,
         related_name="failures",
     )
-    policy_type = models.CharField(
+    policy_type = models.TextField(
         _("policy type"),
-        max_length=4,
         choices=PolicyType,
         help_text=_("Policy that was applied."),
     )
@@ -385,9 +382,8 @@ class TlsFailure(TimeStamped):
         blank=True,
         help_text=_("Domain the policy applies to."),
     )
-    result_type = models.CharField(
+    result_type = models.TextField(
         _("result type"),
-        max_length=28,
         choices=ResultType,
         help_text=_("TLS failure type."),
     )

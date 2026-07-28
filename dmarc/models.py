@@ -1,5 +1,7 @@
 """DMARC aggregate report and forensic report models."""
 
+import uuid
+
 from django.db import connection, models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -10,7 +12,6 @@ from mx.models import IncomingMessage
 
 def adopt_incoming_message(cls, message, **extra):
     """Promote an existing IncomingMessage to a child report type via MTI.
-
     Inserts only the child table row — the parent (IncomingMessage) row
     already exists and is linked via the parent_ptr.
     """
@@ -65,9 +66,8 @@ class DmarcReport(IncomingMessage):
         blank=True,
         help_text=_("Contact email from the report metadata."),
     )
-    report_id = models.CharField(
+    report_id = models.TextField(
         _("report ID"),
-        max_length=255,
         help_text=_("Unique report identifier from the reporting organization."),
     )
     begin_at = models.DateTimeField(
@@ -82,9 +82,8 @@ class DmarcReport(IncomingMessage):
         blank=True,
         help_text=_("End of the report period."),
     )
-    report_status = models.CharField(
+    report_status = models.TextField(
         _("report status"),
-        max_length=8,
         choices=Status,
         default=Status.RECEIVED,
         help_text=_("Report processing lifecycle state."),
@@ -124,6 +123,12 @@ class DmarcReport(IncomingMessage):
 class DmarcRecord(TimeStamped):
     """A single source-IP record within a DMARC aggregate report."""
 
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+
     class Alignment(models.TextChoices):
         PASS = "pass", _("pass")
         FAIL = "fail", _("fail")
@@ -150,21 +155,18 @@ class DmarcRecord(TimeStamped):
         default=0,
         help_text=_("Number of messages from this source IP."),
     )
-    disposition = models.CharField(
+    disposition = models.TextField(
         _("disposition"),
-        max_length=10,
         choices=DmarcReport.Disposition,
         help_text=_("DMARC policy outcome for this source."),
     )
-    dkim_alignment = models.CharField(
+    dkim_alignment = models.TextField(
         _("DKIM alignment"),
-        max_length=4,
         choices=Alignment,
         help_text=_("DKIM alignment result."),
     )
-    spf_alignment = models.CharField(
+    spf_alignment = models.TextField(
         _("SPF alignment"),
-        max_length=4,
         choices=Alignment,
         help_text=_("SPF alignment result."),
     )
@@ -183,9 +185,8 @@ class DmarcRecord(TimeStamped):
         blank=True,
         help_text=_("DKIM signing domain."),
     )
-    dkim_result = models.CharField(
+    dkim_result = models.TextField(
         _("DKIM result"),
-        max_length=9,
         choices=AuthResult,
         blank=True,
         help_text=_("DKIM authentication result."),
@@ -195,9 +196,8 @@ class DmarcRecord(TimeStamped):
         blank=True,
         help_text=_("SPF checked domain."),
     )
-    spf_result = models.CharField(
+    spf_result = models.TextField(
         _("SPF result"),
-        max_length=9,
         choices=AuthResult,
         blank=True,
         help_text=_("SPF authentication result."),
@@ -272,9 +272,8 @@ class DmarcFailureReport(IncomingMessage):
         blank=True,
         help_text=_("SPF and DKIM authentication results from the report."),
     )
-    delivery_result = models.CharField(
+    delivery_result = models.TextField(
         _("delivery result"),
-        max_length=9,
         choices=DeliveryResult,
         default=DeliveryResult.OTHER,
         help_text=_("What the reporting MTA did with the message."),
@@ -284,9 +283,8 @@ class DmarcFailureReport(IncomingMessage):
         blank=True,
         help_text=_("Headers of the original message from the report."),
     )
-    report_status = models.CharField(
+    report_status = models.TextField(
         _("report status"),
-        max_length=8,
         choices=Status,
         default=Status.RECEIVED,
         help_text=_("Report processing lifecycle state."),
