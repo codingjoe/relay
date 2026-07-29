@@ -120,9 +120,11 @@ class DmarcReport(IncomingMessage):
 
         Raises ``ValueError`` if no XML attachment is found.
         """
-        from .parser import first_attachment, parse_dmarc_xml
+        from abstract.email_utils import iter_attachments
 
-        data = first_attachment(raw_bytes)
+        from .parser import parse_dmarc_xml
+
+        data = next(iter_attachments(raw_bytes), None)
         if data is None:
             raise ValueError("No attachment found in DMARC report email.")
         parsed = parse_dmarc_xml(data)
