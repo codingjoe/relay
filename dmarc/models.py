@@ -78,7 +78,7 @@ class DmarcReport(IncomingMessage):
     def parse_from_email(cls, raw_bytes):
         """Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
 
-        Raises ``ValueError`` if no XML attachment is found.
+        Raises `ValueError` if no XML attachment is found.
         """
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
@@ -312,7 +312,7 @@ class DmarcFailureReport(IncomingMessage):
     def parse_from_email(cls, raw_bytes):
         """Return a DmarcFailureReport instance parsed from a raw ARF email.
 
-        Raises ``ValueError`` if no ARF feedback-report content is found.
+        Raises `ValueError` if no ARF feedback-report content is found.
         """
         parsed = parse_arf(raw_bytes)
         return cls(

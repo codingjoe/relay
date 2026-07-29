@@ -299,7 +299,7 @@ class TlsReport(IncomingMessage):
     def parse_from_email(cls, raw_bytes):
         """Return a TlsReport instance and TlsFailure list parsed from a raw email.
 
-        Raises ``ValueError`` if no JSON attachment is found.
+        Raises `ValueError` if no JSON attachment is found.
         """
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
