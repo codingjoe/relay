@@ -182,12 +182,14 @@ class DmarcEvaluation:
                 )
                 if not text.startswith("v=spf1"):
                     continue
-                if "a" in text or "mx" in text or f"ip4:{source_ip}" in text:
-                    return AuthResult.PASS, domain
-                if "~all" in text or "-all" in text:
-                    return AuthResult.FAIL, domain
-                if "+all" in text or "?all" in text:
-                    return AuthResult.NEUTRAL, domain
+                mechanisms = text.split()
+                for mech in mechanisms:
+                    if mech == "a" or mech == "mx" or mech == f"ip4:{source_ip}":
+                        return AuthResult.PASS, domain
+                    if mech in ("~all", "-all"):
+                        return AuthResult.FAIL, domain
+                    if mech in ("+all", "?all"):
+                        return AuthResult.NEUTRAL, domain
                 return AuthResult.NEUTRAL, domain
             return AuthResult.NONE, domain
         return AuthResult.NONE, domain

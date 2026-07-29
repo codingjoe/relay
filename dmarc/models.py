@@ -350,7 +350,7 @@ class DmarcFailureReport(IncomingMessage):
             subject=f"DMARC failure report for {domain.name}",
             body=body,
             from_email=f"{settings.RELAY_DMARC_RUF_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
-            to=[domain.dmarc_reporting_address],
+            to=[domain.dmarc_ruf_reporting_address],
         )
         email.send()
 
