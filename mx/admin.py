@@ -58,9 +58,7 @@ class TlsReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "end_at",
         "successful_session_count",
         "failed_session_count",
-        "report_status",
     ]
-    list_filter = ["report_status", "domain"]
     search_fields = ["reporting_org", "report_id", "domain__name"]
 
 

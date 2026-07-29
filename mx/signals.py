@@ -27,6 +27,5 @@ def handle_incoming_message(sender, instance, created, **kwargs):
                 instance,
                 domain=domain,
                 report_id=str(uuid.uuid7()),
-                report_status=TlsReport.Status.RECEIVED,
             )
             transaction.on_commit(lambda: parse_tls_report.enqueue(report_pk=report.pk))

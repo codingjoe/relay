@@ -13,9 +13,7 @@ class DmarcReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "report_id",
         "begin_at",
         "end_at",
-        "report_status",
     ]
-    list_filter = ["report_status", "domain"]
     search_fields = ["reporting_org", "report_id", "domain__name"]
     readonly_fields = ["id", "begin_at", "end_at", "reporting_org", "reporting_email"]
 
@@ -43,9 +41,7 @@ class DmarcFailureReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "source_ip_address",
         "original_mail_from",
         "delivery_result",
-        "report_status",
     ]
-    list_filter = ["report_status", "delivery_result", "domain"]
     search_fields = [
         "reporting_org",
         "original_mail_from",

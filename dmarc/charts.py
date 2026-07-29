@@ -21,7 +21,6 @@ def build_dmarc_chart(org):
     rows = (
         DmarcRecord.objects.filter(
             report__org=org,
-            report__report_status=DmarcReport.Status.PARSED,
             report__begin_at__date__gte=start,
         )
         .annotate(day=TruncDate("report__begin_at"))

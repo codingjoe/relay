@@ -27,7 +27,6 @@ def handle_incoming_message(sender, instance, created, **kwargs):
                 instance,
                 domain=domain,
                 report_id=str(uuid.uuid7()),
-                report_status=DmarcReport.Status.RECEIVED,
             )
             transaction.on_commit(
                 lambda: parse_dmarc_report.enqueue(report_pk=report.pk)
@@ -37,7 +36,6 @@ def handle_incoming_message(sender, instance, created, **kwargs):
             report = DmarcFailureReport.adopt(
                 instance,
                 domain=domain,
-                report_status=DmarcFailureReport.Status.RECEIVED,
             )
             transaction.on_commit(
                 lambda: parse_dmarc_failure_report.enqueue(report_pk=report.pk)

@@ -4,7 +4,7 @@ from fnmatch import fnmatch
 
 from django.conf import settings
 from django.core.validators import RegexValidator
-from django.db import models
+from django.db import connection, models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -227,11 +227,6 @@ class WebhookDelivery(TimeStamped):
 class TlsReport(IncomingMessage):
     """TLS-RPT report received from a sending organization."""
 
-    class Status(models.TextChoices):
-        RECEIVED = "received", _("received")
-        PARSED = "parsed", _("parsed")
-        FAILED = "failed", _("failed")
-
     domain = models.ForeignKey(
         "domains.Domain",
         on_delete=models.SET_NULL,
@@ -266,17 +261,6 @@ class TlsReport(IncomingMessage):
         blank=True,
         help_text=_("End of the report period."),
     )
-    report_status = models.TextField(
-        _("report status"),
-        choices=Status,
-        default=Status.RECEIVED,
-        help_text=_("Report processing lifecycle state."),
-    )
-    error = models.TextField(
-        _("error"),
-        blank=True,
-        help_text=_("Parse error detail if processing failed."),
-    )
     successful_session_count = models.PositiveIntegerField(
         _("successful session count"),
         default=0,
@@ -296,7 +280,6 @@ class TlsReport(IncomingMessage):
             ),
         ]
         indexes = [
-            models.Index(fields=["report_status"]),
             models.Index(fields=["begin_at"]),
         ]
 
@@ -312,8 +295,6 @@ class TlsReport(IncomingMessage):
     @classmethod
     def adopt(cls, message, **extra):
         """Promote an existing IncomingMessage to a TlsReport via multi-table inheritance."""
-        from django.db import connection
-
         instance = cls(**extra)
         parent_ptr = instance._meta.parents[IncomingMessage]
         setattr(instance, parent_ptr.attname, message.pk)
@@ -353,7 +334,6 @@ class TlsReport(IncomingMessage):
             report_id=meta["report_id"],
             begin_at=meta["begin_at"],
             end_at=meta["end_at"],
-            report_status=cls.Status.PARSED,
         )
         failures = []
         total_successful = 0

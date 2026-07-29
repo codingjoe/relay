@@ -184,53 +184,42 @@ def deliver_to_webhook(message, webhook, is_test=False):
 
 @task
 def parse_tls_report(report_pk):
-    """Process a received TLS-RPT report and store its failures."""
+    """Parse a received TLS-RPT report and store its failures."""
     report = TlsReport.objects.get(pk=report_pk)
-    try:
-        raw_bytes = report.raw_body.read()
-        parsed_report, failures = TlsReport.parse_from_email(raw_bytes)
+    raw_bytes = report.raw_body.read()
+    parsed_report, failures = TlsReport.parse_from_email(raw_bytes)
 
-        if (
-            parsed_report.report_id
-            and TlsReport.objects.filter(
-                domain=report.domain, report_id=parsed_report.report_id
-            )
-            .exclude(pk=report.pk)
-            .exists()
-        ):
-            logger.info(f"Duplicate TLS-RPT report {report_pk}, discarding.")
-            report.delete()
-            return
+    if (
+        parsed_report.report_id
+        and TlsReport.objects.filter(
+            domain=report.domain, report_id=parsed_report.report_id
+        )
+        .exclude(pk=report.pk)
+        .exists()
+    ):
+        logger.info(f"Duplicate TLS-RPT report {report_pk}, discarding.")
+        report.delete()
+        return
 
-        report.reporting_org = parsed_report.reporting_org
-        report.reporting_email = parsed_report.reporting_email
-        report.report_id = parsed_report.report_id
-        report.begin_at = parsed_report.begin_at
-        report.end_at = parsed_report.end_at
-        report.successful_session_count = parsed_report.successful_session_count
-        report.failed_session_count = parsed_report.failed_session_count
+    report.reporting_org = parsed_report.reporting_org
+    report.reporting_email = parsed_report.reporting_email
+    report.report_id = parsed_report.report_id
+    report.begin_at = parsed_report.begin_at
+    report.end_at = parsed_report.end_at
+    report.successful_session_count = parsed_report.successful_session_count
+    report.failed_session_count = parsed_report.failed_session_count
+    report.save(
+        update_fields=[
+            "reporting_org",
+            "reporting_email",
+            "report_id",
+            "begin_at",
+            "end_at",
+            "successful_session_count",
+            "failed_session_count",
+        ]
+    )
 
-        for failure in failures:
-            failure.report = report
-        TlsFailure.objects.bulk_create(failures)
-        report.report_status = TlsReport.Status.PARSED
-        report.error = ""
-    except (OSError, ValueError) as e:
-        logger.error(f"Failed to parse TLS-RPT report {report_pk}: {e}")
-        report.report_status = TlsReport.Status.FAILED
-        report.error = str(e)
-    finally:
-        if report.pk:
-            report.save(
-                update_fields=[
-                    "reporting_org",
-                    "reporting_email",
-                    "report_id",
-                    "begin_at",
-                    "end_at",
-                    "successful_session_count",
-                    "failed_session_count",
-                    "report_status",
-                    "error",
-                ]
-            )
+    for failure in failures:
+        failure.report = report
+    TlsFailure.objects.bulk_create(failures)

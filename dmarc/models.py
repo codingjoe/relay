@@ -33,11 +33,6 @@ def adopt_incoming_message(cls, message, **extra):
 class DmarcReport(IncomingMessage):
     """Aggregate DMARC report received from a reporting organization."""
 
-    class Status(models.TextChoices):
-        RECEIVED = "received", _("received")
-        PARSED = "parsed", _("parsed")
-        FAILED = "failed", _("failed")
-
     class Disposition(models.TextChoices):
         NONE = "none", _("none")
         QUARANTINE = "quarantine", _("quarantine")
@@ -77,17 +72,6 @@ class DmarcReport(IncomingMessage):
         blank=True,
         help_text=_("End of the report period."),
     )
-    report_status = models.TextField(
-        _("report status"),
-        choices=Status,
-        default=Status.RECEIVED,
-        help_text=_("Report processing lifecycle state."),
-    )
-    error = models.TextField(
-        _("error"),
-        blank=True,
-        help_text=_("Parse error detail if processing failed."),
-    )
 
     class Meta:
         constraints = [
@@ -97,7 +81,6 @@ class DmarcReport(IncomingMessage):
             ),
         ]
         indexes = [
-            models.Index(fields=["report_status"]),
             models.Index(fields=["begin_at"]),
         ]
 
@@ -135,7 +118,6 @@ class DmarcReport(IncomingMessage):
             report_id=meta["report_id"],
             begin_at=meta["begin_at"],
             end_at=meta["end_at"],
-            report_status=cls.Status.PARSED,
         )
         records = [
             DmarcRecord(report=report, **record_data)
@@ -239,11 +221,6 @@ class DmarcRecord(TimeStamped):
 class DmarcFailureReport(IncomingMessage):
     """DMARC forensic (RUF) report received from a reporting organization."""
 
-    class Status(models.TextChoices):
-        RECEIVED = "received", _("received")
-        PARSED = "parsed", _("parsed")
-        FAILED = "failed", _("failed")
-
     class DeliveryResult(models.TextChoices):
         DELIVERED = "delivered", _("delivered")
         SPAM = "spam", _("spam")
@@ -307,21 +284,9 @@ class DmarcFailureReport(IncomingMessage):
         blank=True,
         help_text=_("Headers of the original message from the report."),
     )
-    report_status = models.TextField(
-        _("report status"),
-        choices=Status,
-        default=Status.RECEIVED,
-        help_text=_("Report processing lifecycle state."),
-    )
-    error = models.TextField(
-        _("error"),
-        blank=True,
-        help_text=_("Parse error detail if processing failed."),
-    )
 
     class Meta:
         indexes = [
-            models.Index(fields=["report_status"]),
             models.Index(fields=["arrival_at"]),
         ]
 
@@ -359,5 +324,4 @@ class DmarcFailureReport(IncomingMessage):
             authentication_results=parsed["authentication_results"],
             delivery_result=parsed["delivery_result"],
             original_headers=parsed["original_headers"],
-            report_status=cls.Status.PARSED,
         )

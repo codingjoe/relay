@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from abstract.charts import CHART_DAYS, build_chart_data
 
-from .models import IncomingMessage, TlsFailure, TlsReport
+from .models import IncomingMessage, TlsFailure
 
 CHART_COLORS = {
     "delivered": "var(--color-success)",
@@ -55,7 +55,6 @@ def build_tls_chart(org):
     rows = (
         TlsFailure.objects.filter(
             report__org=org,
-            report__report_status=TlsReport.Status.PARSED,
             report__begin_at__date__gte=start,
         )
         .annotate(day=TruncDate("report__begin_at"))
