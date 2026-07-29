@@ -6,13 +6,14 @@ CHART_DAYS = 30
 def build_chart_data(rows, choices, colors, start, group_field):
     """Return chart series and rows for a stacked line chart.
 
-    - **rows**: pre-aggregated queryset rows with keys `day`, `group_field`
-      and `count`.
-    - **choices**: list of choice enum values (e.g. `list(Model.Status)`).
-    - **colors**: dict mapping choice value to a CSS color string.
-    - **start**: start `date` for the chart range.
-    - **group_field**: key in each row dict that holds the group value
-      (e.g. `status`, `disposition`).
+    Args:
+        rows: pre-aggregated queryset rows with keys `day`, `group_field`
+            and `count`.
+        choices: list of choice enum values (e.g. `list(Model.Status)`).
+        colors: dict mapping choice value to a CSS color string.
+        start: start `date` for the chart range.
+        group_field: key in each row dict that holds the group value
+            (e.g. `status`, `disposition`).
     """
     counts = {}
     for row in rows:

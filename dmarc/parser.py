@@ -2,8 +2,6 @@ import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
 from email import message_from_bytes
 
-from abstract.email_utils import iter_attachments
-
 ARF_FIELD_MAP = {
     "source-ip": "source_ip_address",
     "original-mail-from": "original_mail_from",
@@ -12,13 +10,6 @@ ARF_FIELD_MAP = {
     "authentication-results": "authentication_results",
 }
 VALID_DELIVERY_RESULTS = frozenset({"delivered", "spam", "policy", "rejected", "other"})
-
-
-def first_attachment(raw_bytes):
-    """Return the first decompressed attachment from a raw email, or None."""
-    for data in iter_attachments(raw_bytes):
-        return data
-    return None
 
 
 def parse_dmarc_xml(data):

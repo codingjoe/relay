@@ -339,7 +339,8 @@ class TlsReport(IncomingMessage):
 
         Raises ``ValueError`` if no JSON attachment is found.
         """
-        from .parser import first_attachment
+        from abstract.email_utils import first_attachment
+
         from .serializers import TlsReportSerializer
 
         data = first_attachment(raw_bytes)

@@ -22,3 +22,8 @@ def iter_attachments(raw_bytes):
                     with zipfile.ZipFile(io.BytesIO(data)) as zf:
                         data = zf.read(zf.namelist()[0])
                 yield data
+
+
+def first_attachment(raw_bytes):
+    """Return the first decompressed attachment from a raw email, or None."""
+    return next(iter_attachments(raw_bytes), None)
