@@ -4,10 +4,11 @@ from fnmatch import fnmatch
 
 from django.conf import settings
 from django.core.validators import RegexValidator
-from django.db import connection, models
+from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.email_utils import iter_attachments
 from abstract.messages import MessageMixin
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
@@ -293,35 +294,11 @@ class TlsReport(IncomingMessage):
         )
 
     @classmethod
-    def adopt(cls, message, **extra):
-        """Promote an existing IncomingMessage to a TlsReport via multi-table inheritance."""
-        instance = cls(**extra)
-        parent_ptr = instance._meta.parents[IncomingMessage]
-        setattr(instance, parent_ptr.attname, message.pk)
-        for field in message._meta.concrete_fields:
-            setattr(instance, field.attname, getattr(message, field.attname))
-        local_fields = instance._meta.local_fields
-        columns = [f.column for f in local_fields]
-        values = [
-            f.get_db_prep_save(f.value_from_object(instance), connection)
-            for f in local_fields
-        ]
-        with connection.cursor() as cursor:
-            cursor.execute(
-                f"INSERT INTO {instance._meta.db_table}"
-                f" ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})",
-                values,
-            )
-        return instance
-
-    @classmethod
     def parse_from_email(cls, raw_bytes):
         """Return a TlsReport instance and TlsFailure list parsed from a raw email.
 
         Raises ``ValueError`` if no JSON attachment is found.
         """
-        from abstract.email_utils import iter_attachments
-
         from .serializers import TlsReportSerializer
 
         data = next(iter_attachments(raw_bytes), None)

@@ -8,7 +8,7 @@ import dns.resolver
 from django.core.files.base import ContentFile
 from django.tasks import task
 
-from mx.mta_sts import check_mta_sts
+from mx.mta_sts import MtaStsPolicy
 
 from .models import OutgoingMessage, Transmission
 
@@ -53,7 +53,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
             return
 
         for mx_host in mx_hosts:
-            allowed, reason = check_mta_sts(rcpt_domain, mx_host)
+            allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
             if not allowed:
                 logger.warning(
                     "MTA-STS blocked delivery to %s via %s: %s",

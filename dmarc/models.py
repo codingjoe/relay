@@ -1,33 +1,12 @@
 import uuid
 
-from django.db import connection, models
+from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.email_utils import iter_attachments
 from abstract.models import TimeStamped
 from mx.models import IncomingMessage
-
-
-def adopt_incoming_message(cls, message, **extra):
-    """Promote an existing IncomingMessage to a report type via multi-table inheritance."""
-    instance = cls(**extra)
-    parent_ptr = instance._meta.parents[IncomingMessage]
-    setattr(instance, parent_ptr.attname, message.pk)
-    for field in message._meta.concrete_fields:
-        setattr(instance, field.attname, getattr(message, field.attname))
-    local_fields = instance._meta.local_fields
-    columns = [f.column for f in local_fields]
-    values = [
-        f.get_db_prep_save(f.value_from_object(instance), connection)
-        for f in local_fields
-    ]
-    with connection.cursor() as cursor:
-        cursor.execute(
-            f"INSERT INTO {instance._meta.db_table}"
-            f" ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})",
-            values,
-        )
-    return instance
 
 
 class DmarcReport(IncomingMessage):
@@ -94,17 +73,11 @@ class DmarcReport(IncomingMessage):
         )
 
     @classmethod
-    def adopt(cls, message, **extra):
-        return adopt_incoming_message(cls, message, **extra)
-
-    @classmethod
     def parse_from_email(cls, raw_bytes):
         """Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
 
         Raises ``ValueError`` if no XML attachment is found.
         """
-        from abstract.email_utils import iter_attachments
-
         from .parser import parse_dmarc_xml
 
         data = next(iter_attachments(raw_bytes), None)
@@ -300,10 +273,6 @@ class DmarcFailureReport(IncomingMessage):
             "dmarc:failure-report-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
-
-    @classmethod
-    def adopt(cls, message, **extra):
-        return adopt_incoming_message(cls, message, **extra)
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
