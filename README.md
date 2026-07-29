@@ -27,16 +27,21 @@ before delegating a real sender domain.
 
 ### DNS served automatically
 
-The built-in nameserver serves the following records at the free domain apex.
+The built-in nameserver serves the following records at the free domain.
 No user action is required.
 
-| Record | Location                                             | Value                                            |
-| ------ | ---------------------------------------------------- | ------------------------------------------------ |
-| A      | `open.{platform_domain}`                             | SMTP server IP(s)                                |
-| MX     | `open.{platform_domain}`                             | `open.{platform_domain}` (priority 10)           |
-| SPF    | `open.{platform_domain}` (TXT)                       | `v=spf1 a mx include:spf.{platform_domain} ~all` |
-| DKIM   | `{selector}._domainkey.open.{platform_domain}` (TXT) | DKIM public key                                  |
-| DMARC  | `_dmarc.open.{platform_domain}` (TXT)                | `v=DMARC1; p=none`                               |
+| Record  | Location                                                | Value                                              |
+| ------- | ------------------------------------------------------- | -------------------------------------------------- |
+| A       | `open.{platform_domain}`                                | SMTP server IP(s)                                  |
+| MX      | `open.{platform_domain}`                                | `open.{platform_domain}` (priority 10)             |
+| NS      | `open.{platform_domain}`                                | `ns1.{platform_domain}`, `ns2.{platform_domain}`   |
+| PTR     | `<reverse-IP>.in-addr.arpa`                             | `mail.relay.{platform_domain}`                     |
+| SPF     | `open.{platform_domain}` (TXT)                          | `v=spf1 a mx ~all`                                 |
+| DKIM    | `{selector}._domainkey.open.{platform_domain}` (TXT)    | DKIM public key (RSA-2048, RSA-1024, Ed25519)      |
+| DMARC   | `_dmarc.open.{platform_domain}` (TXT)                   | `v=DMARC1; p=none`                                 |
+| TLS-RPT | `_smtp._tls.open.{platform_domain}` (TXT)               | `v=TLSRPTv1;rua=mailto:tls@open.{platform_domain}` |
+| Verify  | `relay-verification.mail.relay.{platform_domain}` (TXT) | `relay-verification {token}`                       |
+| CNAME   | `rp.mail.relay.{platform_domain}`                       | `rp.{platform_domain}` (Return-Path)               |
 
 ### Operator setup
 
