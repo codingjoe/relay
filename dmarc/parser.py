@@ -66,6 +66,45 @@ def parse_timestamp(parent, path):
     return datetime.fromtimestamp(int(value), tz=UTC) if value else None
 
 
+def _extract_part_text(part):
+    """Extract text content from a MIME part, handling sub-messages and base64."""
+    import base64
+
+    if not part.is_multipart():
+        payload = part.get_payload(decode=True)
+        if payload is not None:
+            return payload.decode("utf-8", errors="replace")
+        raw = part.get_payload()
+        if isinstance(raw, str):
+            return raw
+        return ""
+    # Handle message/* parts parsed as multipart by Python's email parser
+    sub_parts = part.get_payload()
+    if isinstance(sub_parts, list):
+        for sub in sub_parts:
+            payload = sub.get_payload(decode=True)
+            if payload is None:
+                raw = sub.get_payload()
+                if isinstance(raw, str):
+                    try:
+                        payload = base64.b64decode(raw)
+                    except ValueError, TypeError:
+                        payload = raw.encode("utf-8", errors="replace")
+            if payload is not None:
+                # Python's email parser may return base64 bytes when CTE is set
+                # but the sub-message structure doesn't honor it
+                try:
+                    stripped = bytes(payload).strip()
+                    decoded = base64.b64decode(stripped)
+                    re_encoded = base64.b64encode(decoded)
+                    if re_encoded == stripped.replace(b"\n", b"").replace(b"\r", b""):
+                        payload = decoded
+                except ValueError, TypeError:
+                    pass  # payload is not base64-encoded, use as-is
+                return payload.decode("utf-8", errors="replace")
+    return ""
+
+
 def parse_arf(raw_bytes):
     """Return the parsed ARF (Abuse Reporting Format) DMARC RUF report as a dict."""
     msg = message_from_bytes(raw_bytes)
@@ -82,30 +121,29 @@ def parse_arf(raw_bytes):
     }
 
     for part in msg.walk():
-        if not part.is_multipart():
-            payload = part.get_payload(decode=True)
-            if payload is not None:
-                match part.get_content_type():
-                    case "message/feedback-report":
-                        body = payload.decode("utf-8", errors="replace")
-                        for line in body.splitlines():
-                            if ":" in line:
-                                key, value = (s.strip() for s in line.split(":", 1))
-                                key_lower = key.lower()
-                                if key_lower in ARF_FIELD_MAP:
-                                    report_data[ARF_FIELD_MAP[key_lower]] = value
-                                elif key_lower == "arrival-date":
-                                    report_data["arrival_at"] = datetime.fromisoformat(
-                                        value
-                                    )
-                                elif key_lower == "delivery-result":
-                                    result = value.lower().replace(" ", "-")
-                                    if result in VALID_DELIVERY_RESULTS:
-                                        report_data["delivery_result"] = result
-                    case "text/rfc822-headers" | "message/rfc822":
-                        report_data["original_headers"] = payload.decode(
-                            "utf-8", errors="replace"
-                        )
+        ct = part.get_content_type()
+        match ct:
+            case "message/feedback-report":
+                body = _extract_part_text(part)
+                if body:
+                    for line in body.splitlines():
+                        if ":" in line:
+                            key, value = (s.strip() for s in line.split(":", 1))
+                            key_lower = key.lower()
+                            if key_lower in ARF_FIELD_MAP:
+                                report_data[ARF_FIELD_MAP[key_lower]] = value
+                            elif key_lower == "arrival-date":
+                                report_data["arrival_at"] = datetime.fromisoformat(
+                                    value
+                                )
+                            elif key_lower == "delivery-result":
+                                result = value.lower().replace(" ", "-")
+                                if result in VALID_DELIVERY_RESULTS:
+                                    report_data["delivery_result"] = result
+            case "text/rfc822-headers" | "message/rfc822":
+                body = _extract_part_text(part)
+                if body:
+                    report_data["original_headers"] = body
 
     if not report_data["source_ip_address"] and not report_data["original_mail_from"]:
         raise ValueError("No ARF feedback-report content found.")
