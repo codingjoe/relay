@@ -189,18 +189,6 @@ def parse_tls_report(report_pk):
     raw_bytes = report.raw_body.read()
     parsed_report, failures = TlsReport.parse_from_email(raw_bytes)
 
-    if (
-        parsed_report.report_id
-        and TlsReport.objects.filter(
-            domain=report.domain, report_id=parsed_report.report_id
-        )
-        .exclude(pk=report.pk)
-        .exists()
-    ):
-        logger.info(f"Duplicate TLS-RPT report {report_pk}, discarding.")
-        report.delete()
-        return
-
     report.reporting_org = parsed_report.reporting_org
     report.reporting_email = parsed_report.reporting_email
     report.report_id = parsed_report.report_id
