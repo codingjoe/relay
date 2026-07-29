@@ -1,5 +1,14 @@
+import ipaddress
+import re
 from dataclasses import dataclass
+from email import message_from_bytes
 from enum import StrEnum
+
+import dkim
+import dns.resolver
+
+RECEIVED_IP_PATTERN = re.compile(r"\[(\d+\.\d+\.\d+\.\d+)\]|\[([0-9a-fA-F:]+)\]")
+EMAIL_DOMAIN_PATTERN = re.compile(r"@([\w.-]+)")
 
 
 class Alignment(StrEnum):
@@ -34,8 +43,6 @@ class DmarcPolicy:
 
     @classmethod
     def lookup(cls, domain):
-        import dns.resolver
-
         try:
             records = dns.resolver.resolve(f"_dmarc.{domain}", "TXT")
         except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
@@ -99,28 +106,18 @@ class DmarcEvaluation:
     @classmethod
     def from_message(cls, incoming_message):
         """Return DMARC evaluation results for an incoming message."""
-        from .evaluation import (
-            check_alignment,
-            check_spf,
-            extract_domain,
-            extract_source_ip,
-            verify_dkim,
-        )
-
         raw_bytes = incoming_message.raw_body.read()
-        from email import message_from_bytes
-
         msg = message_from_bytes(raw_bytes)
-        header_from_domain = extract_domain(msg.get("From", ""))
-        envelope_from_domain = extract_domain(incoming_message.mail_from)
-        source_ip = extract_source_ip(msg)
-        dmarc_policy = DmarcPolicy.lookup(header_from_domain)
-        dkim_result, dkim_domain = verify_dkim(raw_bytes)
-        spf_result, spf_domain = check_spf(source_ip, envelope_from_domain)
-        dkim_aligned = check_alignment(
-            dkim_domain, header_from_domain, dmarc_policy.adkim
+        header_from_domain = cls._extract_domain(msg.get("From", ""))
+        envelope_from_domain = cls._extract_domain(incoming_message.mail_from)
+        source_ip = cls._extract_source_ip(msg)
+        policy = DmarcPolicy.lookup(header_from_domain)
+        dkim_result, dkim_domain = cls._verify_dkim(raw_bytes)
+        spf_result, spf_domain = cls._check_spf(source_ip, envelope_from_domain)
+        dkim_aligned = cls._check_alignment(
+            dkim_domain, header_from_domain, policy.adkim
         )
-        spf_aligned = check_alignment(spf_domain, header_from_domain, dmarc_policy.aspf)
+        spf_aligned = cls._check_alignment(spf_domain, header_from_domain, policy.aspf)
 
         return cls(
             source_ip_address=source_ip,
@@ -132,5 +129,82 @@ class DmarcEvaluation:
             spf_domain=spf_domain,
             spf_result=spf_result,
             spf_alignment=Alignment.PASS if spf_aligned else Alignment.FAIL,
-            disposition=dmarc_policy.disposition(dkim_aligned, spf_aligned),
+            disposition=policy.disposition(dkim_aligned, spf_aligned),
         )
+
+    @staticmethod
+    def _extract_domain(email_or_header):
+        if match := EMAIL_DOMAIN_PATTERN.search(email_or_header):
+            return match.group(1).lower()
+        return email_or_header.lower().strip()
+
+    @staticmethod
+    def _extract_source_ip(msg):
+        for header in msg.get_all("Received", []):
+            if match := RECEIVED_IP_PATTERN.search(header):
+                ip_str = match.group(1) or match.group(2)
+                try:
+                    ipaddress.ip_address(ip_str)
+                    return ip_str
+                except ValueError:
+                    continue
+        return None
+
+    @staticmethod
+    def _verify_dkim(raw_bytes):
+        try:
+            verified = dkim.verify(raw_bytes)
+        except dkim.DKIMException:
+            return AuthResult.PERMERROR, ""
+        if verified:
+            msg = message_from_bytes(raw_bytes)
+            for key, value in msg.items():
+                if key.lower() == "dkim-signature":
+                    params = dict(
+                        s.strip().split("=", 1)
+                        for s in value.split(";")
+                        if "=" in s.strip()
+                    )
+                    return AuthResult.PASS, params.get("d", "")
+            return AuthResult.PASS, ""
+        return AuthResult.FAIL, ""
+
+    @staticmethod
+    def _check_spf(source_ip, domain):
+        if source_ip and domain:
+            try:
+                records = dns.resolver.resolve(domain, "TXT")
+            except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
+                return AuthResult.NONE, domain
+            for record in records:
+                text = "".join(
+                    s.decode() if isinstance(s, bytes) else s for s in record.strings
+                )
+                if not text.startswith("v=spf1"):
+                    continue
+                if "a" in text or "mx" in text or f"ip4:{source_ip}" in text:
+                    return AuthResult.PASS, domain
+                if "~all" in text or "-all" in text:
+                    return AuthResult.FAIL, domain
+                if "+all" in text or "?all" in text:
+                    return AuthResult.NEUTRAL, domain
+                return AuthResult.NEUTRAL, domain
+            return AuthResult.NONE, domain
+        return AuthResult.NONE, domain
+
+    @staticmethod
+    def _check_alignment(auth_domain, header_from_domain, policy):
+        if auth_domain and header_from_domain:
+            mode = policy if isinstance(policy, str) else "r"
+            auth = auth_domain.lower()
+            header = header_from_domain.lower()
+            match mode:
+                case "s":
+                    return auth == header
+                case _:
+                    return (
+                        auth == header
+                        or auth.endswith(f".{header}")
+                        or header.endswith(f".{auth}")
+                    )
+        return False

@@ -15,6 +15,8 @@ from accounts.models import OrganizationOwned
 from domains.models import Domain
 from kms.models import SigningKey
 
+from .serializers import TlsReportSerializer
+
 
 class IncomingMessage(MessageMixin, TimeStamped):
     """An email captured by the MX server, awaiting webhook dispatch."""
@@ -299,8 +301,6 @@ class TlsReport(IncomingMessage):
 
         Raises ``ValueError`` if no JSON attachment is found.
         """
-        from .serializers import TlsReportSerializer
-
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
             raise ValueError("No attachment found in TLS-RPT report email.")

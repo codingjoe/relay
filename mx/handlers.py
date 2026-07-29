@@ -119,4 +119,11 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls):
     message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
     message.save(force_insert=True)
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
+    transaction.on_commit(lambda: _enqueue_dmarc_evaluation(message))
     return "250 OK"
+
+
+def _enqueue_dmarc_evaluation(message):
+    from dmarc.tasks import evaluate_incoming_message
+
+    evaluate_incoming_message.enqueue(message_pk=str(message.id))

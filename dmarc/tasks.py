@@ -1,8 +1,11 @@
 import logging
+from datetime import timedelta
 
 from django.tasks import task
+from django.utils import timezone
 
 from .models import DmarcFailureReport, DmarcReport
+from .types import DmarcEvaluation
 
 logger = logging.getLogger(__name__)
 
@@ -61,3 +64,40 @@ def parse_dmarc_failure_report(report_pk):
             "original_headers",
         ]
     )
+
+
+@task
+def evaluate_incoming_message(message_pk):
+    """Evaluate DMARC for an incoming message and generate RUF if failed."""
+    from domains.models import Domain
+    from mx.models import IncomingMessage
+
+    message = IncomingMessage.objects.get(pk=message_pk)
+    evaluation = DmarcEvaluation.from_message(message)
+
+    if evaluation.disposition != "none":
+        domain = Domain.objects.root_for(message.receiving_domain).first()
+        if domain and domain.dmarc_ruf_reporting_address:
+            DmarcFailureReport.send_ruf_report(message, evaluation)
+
+
+@task
+def generate_daily_rua_reports():
+    """Generate and send daily DMARC RUA reports for all verified domains."""
+    from domains.models import Domain
+    from mx.models import IncomingMessage
+
+    end_at = timezone.now()
+    begin_at = end_at - timedelta(days=1)
+
+    for domain in Domain.objects.filter(verified_at__isnull=False):
+        if not domain.dmarc_reporting_address:
+            continue
+        messages = IncomingMessage.objects.filter(
+            receiving_domain__iexact=domain.name,
+            received_at__gte=begin_at,
+            received_at__lte=end_at,
+        )
+        evaluations = [DmarcEvaluation.from_message(msg) for msg in messages]
+        if evaluations:
+            DmarcReport.send_rua_report(domain, evaluations, begin_at, end_at)
