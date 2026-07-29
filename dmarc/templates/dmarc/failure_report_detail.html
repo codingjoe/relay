@@ -35,10 +35,6 @@
         <dt class="text-sm text-muted-foreground">{% translate "original to"|capfirst %}</dt>
         <dd class="m-0">{{ report.original_rcpt_to|default:"—" }}</dd>
       </div>
-      <div>
-        <dt class="text-sm text-muted-foreground">{% translate "status"|capfirst context "noun" %}</dt>
-        <dd class="m-0">{{ report.get_report_status_display }}</dd>
-      </div>
     </dl>
   </div>
 
@@ -57,12 +53,6 @@
         <h3 class="m-0">{% translate "original headers"|capfirst %}</h3>
       </header>
       <pre class="text-sm whitespace-pre-wrap">{{ report.original_headers|truncatechars:2000 }}</pre>
-    </div>
-  {% endif %}
-
-  {% if report.error %}
-    <div class="card mb-6 border-destructive">
-      <p class="m-0 text-destructive">{{ report.error }}</p>
     </div>
   {% endif %}
 {% endblock %}

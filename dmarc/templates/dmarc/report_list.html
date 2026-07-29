@@ -22,6 +22,17 @@
         </select>
       </div>
       <div role="group" class="field">
+        <label for="filter-source-ip">{% translate "source IP"|capfirst %}</label>
+        <input
+          id="filter-source-ip"
+          type="text"
+          name="source_ip"
+          value="{{ filters.source_ip }}"
+          placeholder="{% translate 'e.g. 192.168.1.1' %}"
+          class="input"
+        >
+      </div>
+      <div role="group" class="field">
         <label>&nbsp;</label>
         <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
       </div>
@@ -48,19 +59,9 @@
             <td>{{ report.domain|default:"—" }}</td>
             <td>{{ report.reporting_org|truncatechars:30 }}</td>
             <td>{{ report.report_id|truncatechars:40 }}</td>
-            <td>
-              {% if report.report_status == 'parsed' %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% elif report.report_status == 'failed' %}
-                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% endif %}
-              {{ report.get_report_status_display }}
-            </td>
           </tr>
         {% empty %}
-          <tr><td colspan="5">{% translate "no reports received yet." %}</td></tr>
+          <tr><td colspan="4">{% translate "no reports received yet." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -24,10 +24,6 @@
         <dd class="m-0">{{ report.report_id }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "status"|capfirst context "noun" %}</dt>
-        <dd class="m-0">{{ report.get_report_status_display }}</dd>
-      </div>
-      <div>
         <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
         <dd class="m-0">{{ report.begin_at|naturaltime }}</dd>
       </div>
@@ -38,9 +34,14 @@
     </dl>
   </div>
 
-  {% if report.error %}
-    <div class="card mb-6 border-destructive">
-      <p class="m-0 text-destructive">{{ report.error }}</p>
+  {% if source_ip_filter %}
+    <div class="card mb-6">
+      <p class="m-0">
+        {% translate "filtered by source IP"|capfirst %}: <code>{{ source_ip_filter }}</code>
+        <a href="{% url 'dmarc:report-detail' org.slug report.pk %}" class="btn" data-variant="ghost" data-size="sm">
+          {% translate "clear"|capfirst %}
+        </a>
+      </p>
     </div>
   {% endif %}
 
@@ -61,7 +62,9 @@
       <tbody>
         {% for record in records %}
           <tr>
-            <td>{{ record.source_ip_address }}</td>
+            <td>
+              <a href="?source_ip={{ record.source_ip_address }}">{{ record.source_ip_address }}</a>
+            </td>
             <td>{{ record.count }}</td>
             <td>{{ record.get_disposition_display }}</td>
             <td>{{ record.get_dkim_alignment_display }}</td>

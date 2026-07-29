@@ -24,10 +24,6 @@
         <dd class="m-0">{{ report.report_id }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "status"|capfirst context "noun" %}</dt>
-        <dd class="m-0">{{ report.get_report_status_display }}</dd>
-      </div>
-      <div>
         <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
         <dd class="m-0">{{ report.begin_at|naturaltime }}</dd>
       </div>
@@ -45,12 +41,6 @@
       </div>
     </dl>
   </div>
-
-  {% if report.error %}
-    <div class="card mb-6 border-destructive">
-      <p class="m-0 text-destructive">{{ report.error }}</p>
-    </div>
-  {% endif %}
 
   <div class="table-container">
     <table class="table">

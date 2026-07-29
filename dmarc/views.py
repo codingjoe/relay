@@ -19,6 +19,8 @@ class DmarcReportListView(OrganizationScopedView, ListView):
         qs = DmarcReport.objects.filter(org=self.org)
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
+        if source_ip := self.request.GET.get("source_ip"):
+            qs = qs.filter(records__source_ip_address=source_ip).distinct()
         return qs
 
     def get_context_data(self, **kwargs):
@@ -26,6 +28,7 @@ class DmarcReportListView(OrganizationScopedView, ListView):
             "domains": Domain.objects.filter(org=self.org),
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
+                "source_ip": self.request.GET.get("source_ip", ""),
             },
             "chart": build_dmarc_chart(self.org),
         }
@@ -40,8 +43,12 @@ class DmarcReportDetailView(OrganizationScopedView, DetailView):
         return DmarcReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
+        records = self.object.records.select_related("report")
+        if source_ip := self.request.GET.get("source_ip"):
+            records = records.filter(source_ip_address=source_ip)
         return super().get_context_data(**kwargs) | {
-            "records": self.object.records.select_related("report"),
+            "records": records,
+            "source_ip_filter": self.request.GET.get("source_ip", ""),
         }
 
 
@@ -56,6 +63,8 @@ class DmarcFailureReportListView(OrganizationScopedView, ListView):
         qs = DmarcFailureReport.objects.filter(org=self.org)
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
+        if source_ip := self.request.GET.get("source_ip"):
+            qs = qs.filter(source_ip_address=source_ip)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -63,6 +72,7 @@ class DmarcFailureReportListView(OrganizationScopedView, ListView):
             "domains": Domain.objects.filter(org=self.org),
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
+                "source_ip": self.request.GET.get("source_ip", ""),
             },
         }
 
@@ -74,8 +84,3 @@ class DmarcFailureReportDetailView(OrganizationScopedView, DetailView):
 
     def get_queryset(self):
         return DmarcFailureReport.objects.filter(org=self.org)
-
-    def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {
-            "incoming_message": self.object.incoming_message,
-        }
