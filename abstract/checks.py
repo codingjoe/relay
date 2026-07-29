@@ -1,5 +1,3 @@
-"""Django system checks for model field conventions."""
-
 from django.apps import apps
 from django.core.checks import Warning, register
 from django.db.models import CharField, UUIDField
