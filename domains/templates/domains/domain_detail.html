@@ -33,7 +33,6 @@
   </p>
 
   <div class="flex flex-col gap-4">
-    {# Nameserver #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.nameserver_status == 'ok' %}
@@ -80,7 +79,6 @@
       {% endfor %}
     </div>
 
-    {# SPF #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.spf_status == 'ok' %}
@@ -125,7 +123,6 @@
       </div>
     </div>
 
-    {# DKIM — one CNAME per cipher #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.dkim_status == 'ok' %}
@@ -172,7 +169,6 @@
       {% endfor %}
     </div>
 
-    {# DMARC #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.dmarc_status == 'ok' %}
@@ -222,7 +218,6 @@
       </div>
     </div>
 
-    {# TLS-RPT #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>

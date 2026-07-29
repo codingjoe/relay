@@ -1,11 +1,8 @@
-"""Parse DMARC aggregate (XML) and ARF (RUF) report emails."""
-
-import gzip
-import io
 import xml.etree.ElementTree as ET
-import zipfile
 from datetime import UTC, datetime
 from email import message_from_bytes
+
+from abstract.email_utils import iter_attachments
 
 ARF_FIELD_MAP = {
     "source-ip": "source_ip_address",
@@ -17,21 +14,10 @@ ARF_FIELD_MAP = {
 VALID_DELIVERY_RESULTS = frozenset({"delivered", "spam", "policy", "rejected", "other"})
 
 
-def extract_attachment(raw_bytes):
-    """Return the decompressed report attachment from a raw email, or None."""
-    msg = message_from_bytes(raw_bytes)
-    for part in msg.walk():
-        if part.get_content_disposition() == "attachment":
-            data = part.get_payload(decode=True)
-            if data is not None:
-                filename = part.get_filename() or ""
-                content_type = part.get_content_type()
-                if filename.endswith(".gz") or content_type == "application/gzip":
-                    data = gzip.decompress(data)
-                elif filename.endswith(".zip") or content_type == "application/zip":
-                    with zipfile.ZipFile(io.BytesIO(data)) as zf:
-                        data = zf.read(zf.namelist()[0])
-                return data
+def first_attachment(raw_bytes):
+    """Return the first decompressed attachment from a raw email, or None."""
+    for data in iter_attachments(raw_bytes):
+        return data
     return None
 
 

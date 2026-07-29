@@ -12,14 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_rua_xml(domain_name, evaluations, begin_at, end_at):
-    """Render a DMARC aggregate report XML string using a Django template.
-
-    - **domain_name**: the monitored domain.
-    - **evaluations**: list of dicts with source_ip_address, disposition,
-      dkim_alignment, spf_alignment, header_from, dkim_domain, dkim_result,
-      spf_domain, spf_result.
-    - **begin_at** / **end_at**: the report period.
-    """
+    """Render a DMARC aggregate report XML string using a Django template."""
     report_id = str(uuid.uuid7())
     xml = render_to_string(
         "dmarc/rua_report.xml",

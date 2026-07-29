@@ -339,13 +339,13 @@ class TlsReport(IncomingMessage):
 
         Raises ``ValueError`` if no JSON attachment is found.
         """
-        from .parser import extract_attachment, parse_tls_json
+        from .parser import first_attachment
+        from .serializers import TlsReportSerializer
 
-        data = extract_attachment(raw_bytes)
+        data = first_attachment(raw_bytes)
         if data is None:
             raise ValueError("No attachment found in TLS-RPT report email.")
-        parsed = parse_tls_json(data)
-        meta = parsed["metadata"]
+        meta, policies = TlsReportSerializer.parse_json(data)
         report = cls(
             reporting_org=meta["reporting_org"],
             reporting_email=meta["reporting_email"],
@@ -357,7 +357,7 @@ class TlsReport(IncomingMessage):
         failures = []
         total_successful = 0
         total_failed = 0
-        for policy in parsed["policies"]:
+        for policy in policies:
             total_successful += policy["successful_session_count"]
             total_failed += policy["failed_session_count"]
             for failure_data in policy["failures"]:

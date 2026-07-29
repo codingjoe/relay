@@ -19,9 +19,9 @@ CHART_COLORS = {
 }
 
 
-def build_outgoing_chart(org, days=CHART_DAYS):
+def build_outgoing_chart(org):
     """Return chart data for outgoing messages grouped by status."""
-    start = timezone.localdate() - timedelta(days=days - 1)
+    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
     rows = (
         OutgoingMessage.objects.filter(org=org, received_at__date__gte=start)
         .annotate(day=TruncDate("received_at"))
@@ -34,5 +34,4 @@ def build_outgoing_chart(org, days=CHART_DAYS):
         CHART_COLORS,
         start,
         "status",
-        days=days,
     )

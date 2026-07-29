@@ -117,3 +117,12 @@ class TlsReportSerializer(serializers.Serializer):
                 }
             )
         return policies
+
+    @classmethod
+    def parse_json(cls, data):
+        """Return metadata and policies from a TLS-RPT JSON byte string."""
+        import json
+
+        serializer = cls(data=json.loads(data))
+        serializer.is_valid(raise_exception=True)
+        return serializer.metadata, serializer.parsed_policies
