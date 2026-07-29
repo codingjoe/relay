@@ -8,6 +8,8 @@ from email import message_from_bytes
 import dkim
 import dns.resolver
 
+from .types import DmarcEvaluation, DmarcPolicy
+
 logger = logging.getLogger(__name__)
 
 RECEIVED_IP_PATTERN = re.compile(r"\[(\d+\.\d+\.\d+\.\d+)\]|\[([0-9a-fA-F:]+)\]")
@@ -23,32 +25,28 @@ def evaluate_dmarc(incoming_message):
     envelope_from_domain = extract_domain(incoming_message.mail_from)
     source_ip = extract_source_ip(msg)
 
-    dmarc_policy = lookup_dmarc_policy(header_from_domain)
+    dmarc_policy = DmarcPolicy.lookup(header_from_domain)
 
     dkim_result, dkim_domain = verify_dkim(raw_bytes)
     spf_result, spf_domain = check_spf(source_ip, envelope_from_domain)
 
-    dkim_aligned = check_alignment(
-        dkim_domain, header_from_domain, dmarc_policy.get("adkim", "r")
-    )
-    spf_aligned = check_alignment(
-        spf_domain, header_from_domain, dmarc_policy.get("aspf", "r")
-    )
+    dkim_aligned = check_alignment(dkim_domain, header_from_domain, dmarc_policy.adkim)
+    spf_aligned = check_alignment(spf_domain, header_from_domain, dmarc_policy.aspf)
 
-    disposition = determine_disposition(dmarc_policy, dkim_aligned, spf_aligned)
+    disposition = dmarc_policy.disposition(dkim_aligned, spf_aligned)
 
-    return {
-        "source_ip_address": source_ip,
-        "header_from": header_from_domain,
-        "envelope_from": envelope_from_domain,
-        "dkim_domain": dkim_domain,
-        "dkim_result": dkim_result,
-        "dkim_alignment": "pass" if dkim_aligned else "fail",
-        "spf_domain": spf_domain,
-        "spf_result": spf_result,
-        "spf_alignment": "pass" if spf_aligned else "fail",
-        "disposition": disposition,
-    }
+    return DmarcEvaluation(
+        source_ip_address=source_ip,
+        header_from=header_from_domain,
+        envelope_from=envelope_from_domain,
+        dkim_domain=dkim_domain,
+        dkim_result=dkim_result,
+        dkim_alignment="pass" if dkim_aligned else "fail",
+        spf_domain=spf_domain,
+        spf_result=spf_result,
+        spf_alignment="pass" if spf_aligned else "fail",
+        disposition=disposition,
+    )
 
 
 def extract_domain(email_or_header):
@@ -69,33 +67,6 @@ def extract_source_ip(msg):
             except ValueError:
                 continue
     return None
-
-
-def lookup_dmarc_policy(domain):
-    """Return the DMARC TXT record parsed as a policy dict for a domain."""
-    try:
-        records = dns.resolver.resolve(f"_dmarc.{domain}", "TXT")
-    except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
-        return {}
-
-    for record in records:
-        text = "".join(
-            s.decode() if isinstance(s, bytes) else s for s in record.strings
-        )
-        if not text.startswith("v=DMARC1"):
-            continue
-        policy = {}
-        for part in text.split(";"):
-            part = part.strip()
-            if "=" not in part:
-                continue
-            key, value = (s.strip() for s in part.split("=", 1))
-            if key in {"p", "sp", "adkim", "aspf", "rua", "ruf"}:
-                policy[key] = value
-            elif key == "pct":
-                policy[key] = int(value)
-        return policy
-    return {}
 
 
 def verify_dkim(raw_bytes):
@@ -163,10 +134,3 @@ def check_alignment(auth_domain, header_from_domain, policy):
                 or auth.endswith(f".{header}")
                 or header.endswith(f".{auth}")
             )
-
-
-def determine_disposition(policy, dkim_aligned, spf_aligned):
-    """Return the DMARC disposition based on policy and alignment."""
-    if dkim_aligned or spf_aligned:
-        return "none"
-    return policy.get("p", "none")

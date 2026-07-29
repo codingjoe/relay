@@ -1,12 +1,9 @@
-"""Tasks for parsing DMARC reports."""
-
 import logging
 import xml.etree.ElementTree as ET
 
 from django.tasks import task
 
-from .models import DmarcFailureReport, DmarcRecord, DmarcReport
-from .parser import extract_attachment, parse_arf, parse_dmarc_xml
+from .models import DmarcFailureReport, DmarcReport
 
 logger = logging.getLogger(__name__)
 
@@ -17,17 +14,12 @@ def parse_dmarc_report(report_pk):
     report = DmarcReport.objects.get(pk=report_pk)
     try:
         raw_bytes = report.raw_body.read()
-        data = extract_attachment(raw_bytes)
-        if data is None:
-            raise ValueError("No attachment found in DMARC report email.")
-        parsed = parse_dmarc_xml(data)
-        meta = parsed["metadata"]
+        parsed_report, records = DmarcReport.parse_from_email(raw_bytes)
 
-        # Check for a duplicate (already-parsed report with same domain + report_id).
         if (
-            meta["report_id"]
+            parsed_report.report_id
             and DmarcReport.objects.filter(
-                domain=report.domain, report_id=meta["report_id"]
+                domain=report.domain, report_id=parsed_report.report_id
             )
             .exclude(pk=report.pk)
             .exists()
@@ -36,17 +28,17 @@ def parse_dmarc_report(report_pk):
             report.delete()
             return
 
-        report.reporting_org = meta["reporting_org"]
-        report.reporting_email = meta["reporting_email"]
-        report.report_id = meta["report_id"]
-        report.begin_at = meta["begin_at"]
-        report.end_at = meta["end_at"]
+        report.reporting_org = parsed_report.reporting_org
+        report.reporting_email = parsed_report.reporting_email
+        report.report_id = parsed_report.report_id
+        report.begin_at = parsed_report.begin_at
+        report.end_at = parsed_report.end_at
+        for record in records:
+            record.report = report
+        if records:
+            from .models import DmarcRecord
 
-        records = [
-            DmarcRecord(report=report, **record_data)
-            for record_data in parsed["records"]
-        ]
-        DmarcRecord.objects.bulk_create(records)
+            DmarcRecord.objects.bulk_create(records)
         report.report_status = DmarcReport.Status.PARSED
         report.error = ""
     except (OSError, ValueError, ET.ParseError) as e:
@@ -74,15 +66,15 @@ def parse_dmarc_failure_report(report_pk):
     report = DmarcFailureReport.objects.get(pk=report_pk)
     try:
         raw_bytes = report.raw_body.read()
-        parsed = parse_arf(raw_bytes)
+        parsed = DmarcFailureReport.parse_from_email(raw_bytes)
 
-        report.source_ip_address = parsed["source_ip_address"] or None
-        report.arrival_at = parsed["arrival_at"]
-        report.original_mail_from = parsed["original_mail_from"]
-        report.original_rcpt_to = parsed["original_rcpt_to"]
-        report.authentication_results = parsed["authentication_results"]
-        report.delivery_result = parsed["delivery_result"]
-        report.original_headers = parsed["original_headers"]
+        report.source_ip_address = parsed.source_ip_address
+        report.arrival_at = parsed.arrival_at
+        report.original_mail_from = parsed.original_mail_from
+        report.original_rcpt_to = parsed.original_rcpt_to
+        report.authentication_results = parsed.authentication_results
+        report.delivery_result = parsed.delivery_result
+        report.original_headers = parsed.original_headers
         report.report_status = DmarcFailureReport.Status.PARSED
         report.error = ""
     except (OSError, ValueError) as e:

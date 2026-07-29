@@ -1,5 +1,3 @@
-"""MX ingress models — incoming messages, webhooks, and deliveries."""
-
 import base64
 import uuid
 from fnmatch import fnmatch
@@ -334,6 +332,41 @@ class TlsReport(IncomingMessage):
                 values,
             )
         return instance
+
+    @classmethod
+    def parse_from_email(cls, raw_bytes):
+        """Return a TlsReport instance and TlsFailure list parsed from a raw email.
+
+        Raises ``ValueError`` if no JSON attachment is found.
+        """
+        from .parser import extract_attachment, parse_tls_json
+
+        data = extract_attachment(raw_bytes)
+        if data is None:
+            raise ValueError("No attachment found in TLS-RPT report email.")
+        parsed = parse_tls_json(data)
+        meta = parsed["metadata"]
+        report = cls(
+            reporting_org=meta["reporting_org"],
+            reporting_email=meta["reporting_email"],
+            report_id=meta["report_id"],
+            begin_at=meta["begin_at"],
+            end_at=meta["end_at"],
+            report_status=cls.Status.PARSED,
+        )
+        failures = []
+        total_successful = 0
+        total_failed = 0
+        for policy in parsed["policies"]:
+            total_successful += policy["successful_session_count"]
+            total_failed += policy["failed_session_count"]
+            for failure_data in policy["failures"]:
+                failure_data["policy_type"] = policy["policy_type"]
+                failure_data["policy_domain"] = policy["policy_domain"]
+                failures.append(TlsFailure(report=report, **failure_data))
+        report.successful_session_count = total_successful
+        report.failed_session_count = total_failed
+        return report, failures
 
 
 class TlsFailure(TimeStamped):

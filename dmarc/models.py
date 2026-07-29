@@ -114,6 +114,33 @@ class DmarcReport(IncomingMessage):
     def adopt(cls, message, **extra):
         return adopt_incoming_message(cls, message, **extra)
 
+    @classmethod
+    def parse_from_email(cls, raw_bytes):
+        """Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
+
+        Raises ``ValueError`` if no XML attachment is found.
+        """
+        from .parser import extract_attachment, parse_dmarc_xml
+
+        data = extract_attachment(raw_bytes)
+        if data is None:
+            raise ValueError("No attachment found in DMARC report email.")
+        parsed = parse_dmarc_xml(data)
+        meta = parsed["metadata"]
+        report = cls(
+            reporting_org=meta["reporting_org"],
+            reporting_email=meta["reporting_email"],
+            report_id=meta["report_id"],
+            begin_at=meta["begin_at"],
+            end_at=meta["end_at"],
+            report_status=cls.Status.PARSED,
+        )
+        records = [
+            DmarcRecord(report=report, **record_data)
+            for record_data in parsed["records"]
+        ]
+        return report, records
+
 
 class DmarcRecord(TimeStamped):
     """Source-IP record within a DMARC aggregate report."""
@@ -310,3 +337,25 @@ class DmarcFailureReport(IncomingMessage):
     @classmethod
     def adopt(cls, message, **extra):
         return adopt_incoming_message(cls, message, **extra)
+
+    @classmethod
+    def parse_from_email(cls, raw_bytes):
+        """Return a DmarcFailureReport instance parsed from a raw ARF email.
+
+        Raises ``ValueError`` if no ARF feedback-report content is found.
+        """
+        from .parser import parse_arf
+
+        parsed = parse_arf(raw_bytes)
+        return cls(
+            reporting_org=parsed["reporting_org"],
+            reporting_email=parsed["reporting_email"],
+            source_ip_address=parsed["source_ip_address"] or None,
+            arrival_at=parsed["arrival_at"],
+            original_mail_from=parsed["original_mail_from"],
+            original_rcpt_to=parsed["original_rcpt_to"],
+            authentication_results=parsed["authentication_results"],
+            delivery_result=parsed["delivery_result"],
+            original_headers=parsed["original_headers"],
+            report_status=cls.Status.PARSED,
+        )

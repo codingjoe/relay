@@ -52,17 +52,6 @@ def send_rua_report(recipient, domain_name, xml_bytes, report_id):
     email.send()
 
 
-def extract_rua_address(rua_value):
-    """Return the first mailto: address from a DMARC rua/ruf tag value."""
-    if not rua_value:
-        return ""
-    for part in rua_value.split(","):
-        part = part.strip()
-        if part.startswith("mailto:"):
-            return part.removeprefix("mailto:").strip()
-    return ""
-
-
 def build_arf_report(**fields):
     """Return an ARF (Abuse Reporting Format) report body as a string."""
     lines = [

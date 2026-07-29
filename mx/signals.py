@@ -1,5 +1,3 @@
-"""Signal handlers for TLS-RPT report ingestion."""
-
 import uuid
 
 from django.conf import settings

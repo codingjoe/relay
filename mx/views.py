@@ -1,5 +1,3 @@
-"""MX ingress views — inbox, webhook management, and TLS-RPT reports."""
-
 from email import message_from_bytes
 
 from django.conf import settings

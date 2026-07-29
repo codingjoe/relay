@@ -1,5 +1,3 @@
-"""Webhook dispatch and TLS-RPT report parsing tasks."""
-
 import json
 import logging
 import secrets
@@ -14,7 +12,6 @@ from django.tasks import task
 from django.utils import timezone
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
-from .parser import extract_attachment, parse_tls_json
 
 logger = logging.getLogger(__name__)
 
@@ -191,17 +188,12 @@ def parse_tls_report(report_pk):
     report = TlsReport.objects.get(pk=report_pk)
     try:
         raw_bytes = report.raw_body.read()
-        data = extract_attachment(raw_bytes)
-        if data is None:
-            raise ValueError("No attachment found in TLS-RPT report email.")
-        parsed = parse_tls_json(data)
-        meta = parsed["metadata"]
+        parsed_report, failures = TlsReport.parse_from_email(raw_bytes)
 
-        # Check for a duplicate (already-parsed report with same domain + report_id).
         if (
-            meta["report_id"]
+            parsed_report.report_id
             and TlsReport.objects.filter(
-                domain=report.domain, report_id=meta["report_id"]
+                domain=report.domain, report_id=parsed_report.report_id
             )
             .exclude(pk=report.pk)
             .exists()
@@ -210,26 +202,16 @@ def parse_tls_report(report_pk):
             report.delete()
             return
 
-        report.reporting_org = meta["reporting_org"]
-        report.reporting_email = meta["reporting_email"]
-        report.report_id = meta["report_id"]
-        report.begin_at = meta["begin_at"]
-        report.end_at = meta["end_at"]
+        report.reporting_org = parsed_report.reporting_org
+        report.reporting_email = parsed_report.reporting_email
+        report.report_id = parsed_report.report_id
+        report.begin_at = parsed_report.begin_at
+        report.end_at = parsed_report.end_at
+        report.successful_session_count = parsed_report.successful_session_count
+        report.failed_session_count = parsed_report.failed_session_count
 
-        failures = []
-        total_successful = 0
-        total_failed = 0
-        for policy in parsed["policies"]:
-            total_successful += policy["successful_session_count"]
-            total_failed += policy["failed_session_count"]
-            for failure_data in policy["failures"]:
-                failure_data["policy_type"] = policy["policy_type"]
-                failure_data["policy_domain"] = policy["policy_domain"]
-                failures.append(TlsFailure(report=report, **failure_data))
-
-        report.successful_session_count = total_successful
-        report.failed_session_count = total_failed
-
+        for failure in failures:
+            failure.report = report
         TlsFailure.objects.bulk_create(failures)
         report.report_status = TlsReport.Status.PARSED
         report.error = ""
