@@ -77,7 +77,13 @@ class DmarcPolicy:
     def disposition(self, dkim_aligned, spf_aligned):
         if dkim_aligned or spf_aligned:
             return Disposition.NONE
-        return self.p
+        match self.p:
+            case Disposition.QUARANTINE:
+                return Disposition.QUARANTINE
+            case Disposition.REJECT:
+                return Disposition.REJECT
+            case _:
+                return Disposition.NONE
 
     @staticmethod
     def extract_mailto(value):
