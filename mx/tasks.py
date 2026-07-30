@@ -1,9 +1,3 @@
-"""Webhook dispatch tasks for incoming mail.
-
-Retry schedule and delivery semantics follow the Standard Webhooks spec:
-https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md#deliverability-and-reliability
-"""
-
 import json
 import logging
 import secrets
@@ -17,7 +11,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
 from django.utils import timezone
 
-from .models import IncomingMessage, Webhook, WebhookDelivery
+from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
 logger = logging.getLogger(__name__)
 
@@ -186,3 +180,34 @@ def deliver_to_webhook(message, webhook, is_test=False):
         return False, 0
 
     return ok, status_code
+
+
+@task
+def parse_tls_report(report_pk):
+    """Parse a received TLS-RPT report and store its failures."""
+    report = TlsReport.objects.get(pk=report_pk)
+    raw_bytes = report.raw_body.read()
+    parsed_report, failures = TlsReport.parse_from_email(raw_bytes)
+
+    report.reporting_org = parsed_report.reporting_org
+    report.reporting_email = parsed_report.reporting_email
+    report.report_id = parsed_report.report_id
+    report.begin_at = parsed_report.begin_at
+    report.end_at = parsed_report.end_at
+    report.successful_session_count = parsed_report.successful_session_count
+    report.failed_session_count = parsed_report.failed_session_count
+    report.save(
+        update_fields=[
+            "reporting_org",
+            "reporting_email",
+            "report_id",
+            "begin_at",
+            "end_at",
+            "successful_session_count",
+            "failed_session_count",
+        ]
+    )
+
+    for failure in failures:
+        failure.report = report
+    TlsFailure.objects.bulk_create(failures)

@@ -6,6 +6,8 @@
     <h2 class="m-0">{% translate "inbox"|capfirst %}</h2>
   </header>
 
+  {% include "abstract/chart_card.html" with id="chart-incoming" data_id="chart-incoming-data" title=_("messages by status")|capfirst chart=chart class="mb-6" %}
+
   <form method="get" class="fieldset mb-6">
     <div class="grid gap-4">
       <div role="group" class="field">

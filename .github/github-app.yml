@@ -1,0 +1,6 @@
+scripts:
+  - name: Dev server
+    command: uv run --env-file .env manage.py runserver
+automation:
+  auto_issue_session: true
+  remote_control: false

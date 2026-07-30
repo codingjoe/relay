@@ -1,5 +1,3 @@
-"""MX ingress views — inbox and webhook management."""
-
 from email import message_from_bytes
 
 from django.conf import settings
@@ -15,6 +13,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
 
+from .charts import build_incoming_chart
 from .models import IncomingMessage, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
 
@@ -37,6 +36,7 @@ class IncomingMessageListView(OrganizationScopedView, ListView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "receiving_domains": Domain.objects.filter(org=self.org),
+            "chart": build_incoming_chart(self.org),
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
                 "search": self.request.GET.get("search", ""),
@@ -169,3 +169,46 @@ class WebhookTestView(OrganizationScopedView, View):
         else:
             messages.error(request, _("Test webhook failed."))
         return redirect("mx:webhook-list", org_slug=org_slug)
+
+
+class TlsReportListView(OrganizationScopedView, ListView):
+    template_name = "mx/tls_report_list.html"
+    context_object_name = "reports"
+    paginate_by = 50
+    title = _("TLS reports")
+    parent = "tx_email:dashboard"
+
+    def get_queryset(self):
+        from .models import TlsReport
+
+        qs = TlsReport.objects.filter(org=self.org)
+        if domain := self.request.GET.get("domain"):
+            qs = qs.filter(domain__name=domain)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        from .charts import build_tls_chart
+
+        return super().get_context_data(**kwargs) | {
+            "domains": Domain.objects.filter(org=self.org),
+            "filters": {
+                "domain": self.request.GET.get("domain", ""),
+            },
+            "chart": build_tls_chart(self.org),
+        }
+
+
+class TlsReportDetailView(OrganizationScopedView, DetailView):
+    template_name = "mx/tls_report_detail.html"
+    context_object_name = "report"
+    parent = "mx:tls-report-list"
+
+    def get_queryset(self):
+        from .models import TlsReport
+
+        return TlsReport.objects.filter(org=self.org)
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "failures": self.object.failures.select_related("report"),
+        }

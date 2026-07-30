@@ -239,3 +239,39 @@ class Domain(TimeStamped):
     @property
     def verification_record(self):
         return f"{settings.RELAY_DNS_DOMAIN_VERIFY_PREFIX} {self.verification_token}"
+
+    @property
+    def dmarc_reporting_address(self):
+        return f"{settings.RELAY_DMARC_REPORT_LOCAL_PART}@{self.sender_domain}"
+
+    @property
+    def dmarc_ruf_reporting_address(self):
+        return f"{settings.RELAY_DMARC_RUF_LOCAL_PART}@{self.sender_domain}"
+
+    @property
+    def tls_reporting_address(self):
+        return f"{settings.RELAY_TLS_REPORT_LOCAL_PART}@{self.sender_domain}"
+
+    @property
+    def dmarc_record(self):
+        """Return the DMARC record for the root domain, with rua/ruf pointing to the sender subdomain."""
+        return (
+            f"v=DMARC1; p=none; sp=none; adkim=r; aspf=r;"
+            f" rua=mailto:{self.dmarc_reporting_address};"
+            f" ruf=mailto:{self.dmarc_ruf_reporting_address};"
+        )
+
+    @property
+    def tls_rpt_record(self):
+        """Return the TLS-RPT record for the root domain, with rua pointing to the sender subdomain."""
+        return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"
+
+    @property
+    def sender_dmarc_record(self):
+        """Return the DMARC record served at _dmarc.{sender_subdomain} for external reporting authorization."""
+        return "v=DMARC1; p=none"
+
+    @property
+    def sender_tls_rpt_record(self):
+        """Return the TLS-RPT record served at _smtp._tls.{sender_subdomain}."""
+        return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"

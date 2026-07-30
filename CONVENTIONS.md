@@ -12,9 +12,14 @@ Update it based on review feedback.
 - Use nested `include()` for cascaded paths:
 
   ```python
-  path("credentials/", include([
-      path("new", …),
-  ]))
+  path(
+      "credentials/",
+      include(
+          [
+              path("new", ...),
+          ]
+      ),
+  )
   ```
 
 - CRUD actions on objects should **not** end with a trailing slash.
@@ -38,13 +43,24 @@ Update it based on review feedback.
 - Use `db_default` with a PostgreSQL database function (e.g. `UuidV7()`) for
   database-side UUIDv7 generation, alongside the Python `default=uuid.uuid7`
   for ORM-level defaults.
-- Objects with a FK to `Message` (e.g. `Transmission`) should use UUIDv7 PK too.
+- Models with a FK to a message model (e.g. `DmarcRecord`, `TlsFailure`,
+  `WebhookDelivery`) should use UUIDv7 PK too. A Django system check
+  (`abstract.W001`) warns if a model with a FK to a UUID-PK model uses a
+  non-UUID primary key.
 
 ## Model Fields
 
 - All fields should have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
 - Drop `class Meta` entirely if it only inherits without overriding anything.
+- Use `TextField` instead of `CharField` for all fields unless you
+  specifically want Django's `max_length` validation. In PostgreSQL there
+  is no performance advantage to `varchar` over `text` — both use the same
+  storage. Choice fields use `TextField` with `choices=`; Django's choice
+  validation works without `max_length`. Only use `CharField(max_length=N)`
+  when the standard defines a fixed maximum length and you want the DB-level
+  check constraint (e.g. `EmailField` which is `CharField(max_length=254)`
+  per RFC 5321).
 
 ## Model.save()
 
@@ -55,6 +71,23 @@ Update it based on review feedback.
 
 - No private functions (underscore prefix) — this project is not for redistribution.
 - Function names should be descriptive, not ambiguous.
+
+## Docstrings
+
+- Use Google-style Markdown docstrings (Napoleon). Not RST.
+- Start with a verb describing the external behavior (e.g. "Return",
+  "Send", "Validate", "Determine").
+- Keep docstrings concise — one sentence for simple functions.
+- Never repeat the function/method name in the docstring.
+- Never describe implementation details — describe what, not how.
+- Use bullet lists for parameters only when the function has 3+ non-obvious
+  parameters. Otherwise the signature is self-documenting.
+- Do NOT use double backticks (` ` `) for inline code — use single backticks (` \` \`\`). Double backticks are RST syntax, not Markdown.
+- Do not write docstrings for inherited methods or properties — the
+  base class already documents them.
+- Do not write module docstrings for common Django/Python files
+  (`models.py`, `admin.py`, `views.py`, `urls.py`, `apps.py`, `tasks.py`,
+  `signals.py`, `tests.py`). The file name is self-documenting.
 
 ## Control Flow
 

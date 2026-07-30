@@ -14,6 +14,8 @@
     </button>
   </header>
 
+  {% include "abstract/chart_card.html" with id="chart-outgoing" data_id="chart-outgoing-data" title=_("messages by status")|capfirst chart=chart class="mb-6" %}
+
   <dialog class="dialog" id="dlg-test-email">
     <div>
       <header>

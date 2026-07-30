@@ -27,16 +27,21 @@ before delegating a real sender domain.
 
 ### DNS served automatically
 
-The built-in nameserver serves the following records at the free domain apex.
+The built-in nameserver serves the following records at the free domain.
 No user action is required.
 
-| Record | Location                                             | Value                                            |
-| ------ | ---------------------------------------------------- | ------------------------------------------------ |
-| A      | `open.{platform_domain}`                             | SMTP server IP(s)                                |
-| MX     | `open.{platform_domain}`                             | `open.{platform_domain}` (priority 10)           |
-| SPF    | `open.{platform_domain}` (TXT)                       | `v=spf1 a mx include:spf.{platform_domain} ~all` |
-| DKIM   | `{selector}._domainkey.open.{platform_domain}` (TXT) | DKIM public key                                  |
-| DMARC  | `_dmarc.open.{platform_domain}` (TXT)                | `v=DMARC1; p=none`                               |
+| Record  | Location                                                | Value                                              |
+| ------- | ------------------------------------------------------- | -------------------------------------------------- |
+| A       | `open.{platform_domain}`                                | SMTP server IP(s)                                  |
+| MX      | `open.{platform_domain}`                                | `open.{platform_domain}` (priority 10)             |
+| NS      | `open.{platform_domain}`                                | `ns1.{platform_domain}`, `ns2.{platform_domain}`   |
+| PTR     | `<reverse-IP>.in-addr.arpa`                             | `mail.relay.{platform_domain}`                     |
+| SPF     | `open.{platform_domain}` (TXT)                          | `v=spf1 a mx ~all`                                 |
+| DKIM    | `{selector}._domainkey.open.{platform_domain}` (TXT)    | DKIM public key (RSA-2048, RSA-1024, Ed25519)      |
+| DMARC   | `_dmarc.open.{platform_domain}` (TXT)                   | `v=DMARC1; p=none`                                 |
+| TLS-RPT | `_smtp._tls.open.{platform_domain}` (TXT)               | `v=TLSRPTv1;rua=mailto:tls@open.{platform_domain}` |
+| Verify  | `relay-verification.mail.relay.{platform_domain}` (TXT) | `relay-verification {token}`                       |
+| CNAME   | `rp.mail.relay.{platform_domain}`                       | `rp.{platform_domain}` (Return-Path)               |
 
 ### Operator setup
 
@@ -67,6 +72,12 @@ Organization → Domain, SmtpCredential
 - **ReceivingDomain** — Receiving domain with MX record pointing to the root domain's sender subdomain
 - **SmtpCredential** — Per-org API key used to authenticate outgoing SMTP submissions
 - **Webhook** — Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
+- **DmarcReport** — Aggregate DMARC report (RUA) received from external organizations, parsed from XML
+- **DmarcFailureReport** — Forensic DMARC report (RUF) received from external organizations, parsed from ARF
+- **TlsReport** — TLS-RPT report received from external organizations, parsed from JSON via DRF serializers
+
+All report models use multi-table inheritance with `IncomingMessage` so they
+inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
@@ -101,7 +112,7 @@ address glob pattern.
 - **PostgreSQL** — primary database
 - **Redis** — caching and rate limiting
 - **S3** — raw message body storage via django-storages
-- **Pico CSS** — classless CSS framework for the web UI
+- **basecoat CSS** — component-based CSS framework for the web UI
 - **Granian** — Rust-based ASGI server
 
 ## App dependencies
@@ -137,13 +148,19 @@ graph BT
  tx_email[tx_email]
  smtp
  mx
+ dmarc
  smtp --> accounts
  smtp --> domains
+ smtp --> mx
  mx --> accounts
  mx --> domains
  mx --> kms
+ dmarc --> accounts
+ dmarc --> domains
+ dmarc --> mx
  tx_email --> smtp
  tx_email --> mx
+ tx_email --> dmarc
  end
  subgraph voip
  direction BT

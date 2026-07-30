@@ -33,7 +33,6 @@
   </p>
 
   <div class="flex flex-col gap-4">
-    {# Nameserver #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.nameserver_status == 'ok' %}
@@ -80,7 +79,6 @@
       {% endfor %}
     </div>
 
-    {# SPF #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.spf_status == 'ok' %}
@@ -125,7 +123,6 @@
       </div>
     </div>
 
-    {# DKIM — one CNAME per cipher #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.dkim_status == 'ok' %}
@@ -172,7 +169,6 @@
       {% endfor %}
     </div>
 
-    {# DMARC #}
     <div role="group" class="field">
       <div class="flex items-center gap-2">
         {% if domain.dmarc_status == 'ok' %}
@@ -206,7 +202,7 @@
         <input
           type="text"
           readonly
-          value="&quot;v=DMARC1; p=none; sp=none; adkim=r; aspf=r; rua=mailto:dmarc@{{ domain.name }};&quot;"
+          value="&quot;{{ domain.dmarc_record }}&quot;"
           onfocus="this.select()"
         >
         <button
@@ -214,7 +210,47 @@
           class="btn"
           data-variant="ghost"
           data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('v=DMARC1; p=none; sp=none; adkim=r; aspf=r; rua=mailto:dmarc@{{ domain.name }};')"
+          onclick="navigator.clipboard.writeText('{{ domain.dmarc_record }}')"
+          aria-label='{% translate "copy value"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <div role="group" class="field">
+      <div class="flex items-center gap-2">
+        <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+        <label>TLS-RPT</label>
+      </div>
+      <p class="text-sm text-muted-foreground">
+        {% translate "receive TLS failure reports from senders. add this record at your DNS provider for the root domain."|capfirst %}
+      </p>
+      <div class="input-group">
+        <input type="text" readonly value="_smtp._tls.{{ domain.name }}" onfocus="this.select()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('_smtp._tls.{{ domain.name }}')"
+          aria-label='{% translate "copy name"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+        <span>TXT</span>
+        <input
+          type="text"
+          readonly
+          value="&quot;{{ domain.tls_rpt_record }}&quot;"
+          onfocus="this.select()"
+        >
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('{{ domain.tls_rpt_record }}')"
           aria-label='{% translate "copy value"|capfirst %}'
         >
           <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>

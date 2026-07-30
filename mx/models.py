@@ -1,5 +1,3 @@
-"""MX ingress models — incoming messages, webhooks, and deliveries."""
-
 import base64
 import uuid
 from fnmatch import fnmatch
@@ -10,11 +8,14 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.email_utils import iter_attachments
 from abstract.messages import MessageMixin
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
 from domains.models import Domain
 from kms.models import SigningKey
+
+from .serializers import TlsReportSerializer
 
 
 class IncomingMessage(MessageMixin, TimeStamped):
@@ -37,15 +38,13 @@ class IncomingMessage(MessageMixin, TimeStamped):
         related_name="incoming_messages",
         help_text=_("Owning organization."),
     )
-    receiving_domain = models.CharField(
+    receiving_domain = models.TextField(
         _("receiving domain"),
-        max_length=255,
         blank=True,
         help_text=_("Domain part of the recipient address, e.g. app.acme.com."),
     )
-    status = models.CharField(
+    status = models.TextField(
         _("status"),
-        max_length=14,
         choices=Status,
         default=Status.RECEIVED,
         help_text=_("Ingress and webhook delivery lifecycle state."),
@@ -86,15 +85,13 @@ class Webhook(OrganizationOwned):
         ],
         help_text=_("HTTPS endpoint to receive incoming-mail webhook deliveries."),
     )
-    name = models.CharField(
+    name = models.TextField(
         _("name"),
-        max_length=255,
         blank=True,
         help_text=_("Human-readable label."),
     )
-    address_pattern = models.CharField(
+    address_pattern = models.TextField(
         _("address pattern"),
-        max_length=255,
         help_text=_(
             "Glob pattern for recipient addresses, e.g. *@app.acme.com "
             "or support@acme.com."
@@ -106,9 +103,8 @@ class Webhook(OrganizationOwned):
         related_name="webhooks",
         help_text=_("Ed25519 keypair used to sign webhook payloads."),
     )
-    mx_status = models.CharField(
+    mx_status = models.TextField(
         _("MX status"),
-        max_length=9,
         choices=MxStatus,
         default=MxStatus.UNCHECKED,
         help_text=_("MX record verification result for the receiving domain."),
@@ -207,9 +203,8 @@ class WebhookDelivery(TimeStamped):
         default=False,
         help_text=_("Whether this was a test delivery."),
     )
-    status = models.CharField(
+    status = models.TextField(
         _("status"),
-        max_length=7,
         choices=Status,
         help_text=_("Outcome of this webhook delivery attempt."),
     )
@@ -230,3 +225,189 @@ class WebhookDelivery(TimeStamped):
 
     def __str__(self):
         return f"{self.webhook} ({self.status})"
+
+
+class TlsReport(IncomingMessage):
+    """TLS-RPT report received from a sending organization."""
+
+    domain = models.ForeignKey(
+        "domains.Domain",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tls_reports",
+        help_text=_("Domain the report covers."),
+    )
+    reporting_org = models.TextField(
+        _("reporting organization"),
+        blank=True,
+        help_text=_("Organization that generated the report."),
+    )
+    reporting_email = models.EmailField(
+        _("reporting email"),
+        blank=True,
+        help_text=_("Contact email from the report metadata."),
+    )
+    report_id = models.TextField(
+        _("report ID"),
+        help_text=_("Unique report identifier."),
+    )
+    begin_at = models.DateTimeField(
+        _("begin at"),
+        null=True,
+        blank=True,
+        help_text=_("Start of the report period."),
+    )
+    end_at = models.DateTimeField(
+        _("end at"),
+        null=True,
+        blank=True,
+        help_text=_("End of the report period."),
+    )
+    successful_session_count = models.PositiveIntegerField(
+        _("successful session count"),
+        default=0,
+        help_text=_("Total successful TLS sessions."),
+    )
+    failed_session_count = models.PositiveIntegerField(
+        _("failed session count"),
+        default=0,
+        help_text=_("Total failed TLS sessions."),
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["domain", "report_id"],
+                name="unique_tls_report",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["begin_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.reporting_org} → {self.domain or '?'} ({self.report_id})"
+
+    def get_absolute_url(self):
+        return reverse(
+            "mx:tls-report-detail",
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
+
+    @classmethod
+    def parse_from_email(cls, raw_bytes):
+        """Return a TlsReport instance and TlsFailure list parsed from a raw email.
+
+        Raises `ValueError` if no JSON attachment is found.
+        """
+        data = next(iter_attachments(raw_bytes), None)
+        if data is None:
+            raise ValueError("No attachment found in TLS-RPT report email.")
+        meta, policies = TlsReportSerializer.parse_json(data)
+        report = cls(
+            reporting_org=meta["reporting_org"],
+            reporting_email=meta["reporting_email"],
+            report_id=meta["report_id"],
+            begin_at=meta["begin_at"],
+            end_at=meta["end_at"],
+        )
+        failures = []
+        total_successful = 0
+        total_failed = 0
+        for policy in policies:
+            total_successful += policy["successful_session_count"]
+            total_failed += policy["failed_session_count"]
+            for failure_data in policy["failures"]:
+                failure_data["policy_type"] = policy["policy_type"]
+                failure_data["policy_domain"] = policy["policy_domain"]
+                failures.append(TlsFailure(report=report, **failure_data))
+        report.successful_session_count = total_successful
+        report.failed_session_count = total_failed
+        return report, failures
+
+
+class TlsFailure(TimeStamped):
+    """TLS failure record within a TLS-RPT report."""
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+
+    class PolicyType(models.TextChoices):
+        STS = "sts", _("STS")
+        TLSA = "tlsa", _("TLSA")
+
+    class ResultType(models.TextChoices):
+        STARTTLS_NOT_SUPPORTED = "starttls-not-supported", _("STARTTLS not supported")
+        CERTIFICATE_EXPIRED = "certificate-expired", _("certificate expired")
+        CERTIFICATE_NOT_TRUSTED = (
+            "certificate-not-trusted",
+            _("certificate not trusted"),
+        )
+        CERTIFICATE_NAME_MISMATCH = (
+            "certificate-name-mismatch",
+            _("certificate name mismatch"),
+        )
+        TLS_VERSION_INVALID = "tls-version-invalid", _("TLS version invalid")
+        TLSA_INVALID = "tlsa-invalid", _("TLSA invalid")
+        DANE_REQUIRED = "dane-required", _("DANE required")
+        STS_POLICY_INVALID = "sts-policy-invalid", _("STS policy invalid")
+        STS_WEBPKI_INVALID = "sts-webpki-invalid", _("STS WebPKI invalid")
+        OTHER = "other", _("other")
+
+    report = models.ForeignKey(
+        TlsReport,
+        on_delete=models.CASCADE,
+        related_name="failures",
+    )
+    policy_type = models.TextField(
+        _("policy type"),
+        choices=PolicyType,
+        help_text=_("Policy that was applied."),
+    )
+    policy_domain = models.TextField(
+        _("policy domain"),
+        blank=True,
+        help_text=_("Domain the policy applies to."),
+    )
+    result_type = models.TextField(
+        _("result type"),
+        choices=ResultType,
+        help_text=_("TLS failure type."),
+    )
+    sending_mta_ip_address = models.GenericIPAddressField(
+        _("sending MTA IP address"),
+        help_text=_("IP address of the sending MTA."),
+    )
+    receiving_mx_hostname = models.TextField(
+        _("receiving MX hostname"),
+        blank=True,
+        help_text=_("Hostname of the receiving MX."),
+    )
+    receiving_mx_ip_address = models.GenericIPAddressField(
+        _("receiving MX IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address of the receiving MX."),
+    )
+    count = models.PositiveIntegerField(
+        _("count"),
+        default=0,
+        help_text=_("Number of failed sessions with this configuration."),
+    )
+    additional_info = models.TextField(
+        _("additional info"),
+        blank=True,
+        help_text=_("Extra failure details from the report."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        indexes = [
+            models.Index(fields=["report", "result_type"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_result_type_display()} ×{self.count} ({self.receiving_mx_hostname})"
