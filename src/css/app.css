@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "basecoat-css/maia";
+
+:root {
+  --color-primary: hsl(268, 100%, 41%);
+  --color-primary-foreground: hsl(0, 0%, 100%);
+}
+
+.bg-background {
+  background-color: var(--color-background);
+}
