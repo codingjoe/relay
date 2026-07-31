@@ -1,3 +1,9 @@
+---
+name: Return-Path
+description: The Return-Path is the email address that receives bounce messages and delivery status notifications.
+author: Johannes Maron
+---
+
 # Return-Path
 
 > **TL;DR** — The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address. relay configures the Return-Path for you.

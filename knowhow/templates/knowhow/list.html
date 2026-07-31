@@ -12,8 +12,13 @@
       {% for article in articles %}
         {% url 'knowhow:detail' article.slug as article_url %}
         <a class="item" data-variant="outline" href="{{ article_url }}">
-          <span class="font-medium">{{ article.title }}</span>
-          <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto" aria-hidden="true"></i>
+          <div class="flex flex-col gap-1">
+            <span class="font-medium">{{ article.title }}</span>
+            {% if article.description %}
+              <span class="text-sm text-muted-foreground">{{ article.description }}</span>
+            {% endif %}
+          </div>
+          <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto shrink-0" aria-hidden="true"></i>
         </a>
       {% endfor %}
     </div>

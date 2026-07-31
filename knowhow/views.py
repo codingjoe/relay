@@ -19,29 +19,55 @@ LICENSE_MARKDOWN = (
 )
 
 
+def parse_frontmatter(markdown_text):
+    """Parse YAML frontmatter from the start of a Markdown file.
+
+    Returns a tuple of (metadata dict, content without frontmatter).
+    If the file has no frontmatter, returns ({}, full_text).
+    """
+    stripped = markdown_text.lstrip()
+    if not stripped.startswith("---"):
+        return {}, markdown_text
+    parts = stripped.split("---", 2)
+    if len(parts) < 3:
+        return {}, markdown_text
+    metadata = {}
+    for line in parts[1].strip().splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            metadata[key.strip()] = value.strip()
+    return metadata, parts[2].lstrip("\n")
+
+
 def list_articles():
-    """Return a list of articles as dicts with slug and title.
+    """Return a list of articles as dicts with slug, title, and description.
 
     Each Markdown file in the know-how directory becomes one article.
-    The title comes from the first H1 heading in the file.
+    Title and description come from the YAML frontmatter.
     """
     articles = []
     if not KNOW_HOW_DIR.exists():
         return articles
     for path in sorted(KNOW_HOW_DIR.glob("*.md")):
-        title = extract_title(path.read_text())
+        metadata, _ = parse_frontmatter(path.read_text())
+        title = metadata.get("name") or extract_title(path.read_text())
         if not title:
             continue
-        articles.append({"slug": path.stem, "title": title})
+        articles.append(
+            {
+                "slug": path.stem,
+                "title": title,
+                "description": metadata.get("description", ""),
+                "author": metadata.get("author", ""),
+            }
+        )
     return articles
 
 
 def extract_title(markdown_text):
-    """Return the text of the first H1 heading in the given Markdown.
-
-    If the Markdown has no H1 heading, return an empty string.
-    """
-    for line in markdown_text.splitlines():
+    """Return the text of the first H1 heading in the given Markdown."""
+    _, content = parse_frontmatter(markdown_text)
+    for line in content.splitlines():
         if line.startswith("# "):
             return line[2:].strip()
     return ""
@@ -71,7 +97,8 @@ class KnowHowDetailView(MarkdownView):
         slug = request.resolver_match.kwargs.get("slug", "")
         path = KNOW_HOW_DIR / f"{slug}.md"
         if path.exists():
-            return extract_title(path.read_text())
+            metadata, _ = parse_frontmatter(path.read_text())
+            return metadata.get("name") or extract_title(path.read_text())
         return slug
 
     def get_markdown_template(self):
@@ -82,8 +109,11 @@ class KnowHowDetailView(MarkdownView):
         path = KNOW_HOW_DIR / f"{slug}.md"
         if not path.exists():
             raise Http404("Article not found")
+        metadata, _ = parse_frontmatter(path.read_text())
         context = super().get_context_data(**kwargs)
         context["license"] = md_2_html(LICENSE_MARKDOWN)
+        context["meta_description"] = metadata.get("description", "")
+        context["author"] = metadata.get("author", "")
         return context
 
     def render_markdown(self, request, **kwargs):

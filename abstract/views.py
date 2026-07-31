@@ -4,6 +4,8 @@ from django.urls import resolve, reverse
 from django.utils.cache import patch_vary_headers
 from django.views import generic
 
+from .utils import strip_frontmatter
+
 
 class BreadcrumbViewMixin:
     """Build breadcrumbs by traversing parent references.
@@ -101,7 +103,7 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
             context=context, request=request
         )
         return HttpResponse(
-            markdown_text,
+            strip_frontmatter(markdown_text),
             content_type="text/markdown; charset=utf-8",
         )
 

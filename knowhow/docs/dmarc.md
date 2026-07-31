@@ -1,3 +1,9 @@
+---
+name: DMARC
+description: DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication.
+author: Johannes Maron
+---
+
 # DMARC
 
 > **TL;DR** — DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication. You set one DNS record on your root domain. relay handles the rest.

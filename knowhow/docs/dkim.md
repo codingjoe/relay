@@ -1,3 +1,9 @@
+---
+name: DKIM
+description: DKIM adds a cryptographic signature to each outgoing email. Receiving servers verify the signature with a public key from DNS.
+author: Johannes Maron
+---
+
 # DKIM
 
 > **TL;DR** — DKIM adds a cryptographic signature to each outgoing email. Receiving servers verify the signature with a public key from DNS. relay generates and manages all keys for you.

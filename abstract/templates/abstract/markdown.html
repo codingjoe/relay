@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
 {% block title %}{{ title }}{% endblock %}
+{% if meta_description %}
+  {% block meta_description %}{{ meta_description }}{% endblock %}
+{% endif %}
 
 {% block content %}
   <div class="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-8 max-w-5xl mx-auto py-8">

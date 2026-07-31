@@ -1,3 +1,9 @@
+---
+name: MX
+description: MX records tell senders which mail server receives email for a domain.
+author: Johannes Maron
+---
+
 # MX
 
 > **TL;DR** — MX records tell senders which mail server receives email for a domain. relay points your MX record to the relay server and dispatches incoming mail to your webhooks.

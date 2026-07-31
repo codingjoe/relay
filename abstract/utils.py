@@ -11,6 +11,17 @@ from markdown.extensions.toc import TocExtension
 logger = logging.getLogger(__name__)
 
 
+def strip_frontmatter(text):
+    """Remove YAML frontmatter (--- delimited block) from the start of text."""
+    stripped = text.lstrip()
+    if not stripped.startswith("---"):
+        return text
+    parts = stripped.split("---", 2)
+    if len(parts) < 3:
+        return text
+    return parts[2].lstrip("\n")
+
+
 def future(now=None, min_offset=1, max_offset=999):
     """
     Return random datetime in the near future.
