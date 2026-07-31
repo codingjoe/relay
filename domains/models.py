@@ -5,7 +5,7 @@ from operator import or_
 
 from django.conf import settings
 from django.db import models
-from django.db.models.functions import Lower
+from django.db.models.functions import Length, Lower
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -15,12 +15,28 @@ from kms.models import SigningKey
 
 class DomainQuerySet(models.QuerySet):
     def root_for(self, name):
+        """Return the closest registered parent domain for *name*.
+
+        If more than one ancestor domain exists, the most specific
+        name has priority.
+
+        Raises:
+            DoesNotExist: If no matching domain is found.
+        """
         parts = name.lower().split(".")
         candidates = [".".join(parts[i:]) for i in range(len(parts))]
-        return self.filter(
-            reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
-            org__isnull=False,
+        qs = (
+            self.filter(
+                reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
+                org__isnull=False,
+            )
+            .select_related("org")
+            .order_by(Length("name").desc())
         )
+        try:
+            return qs.get()
+        except self.model.MultipleObjectsReturned:
+            return qs.first()
 
 
 def generate_verification_token():
@@ -275,3 +291,8 @@ class Domain(TimeStamped):
     def sender_tls_rpt_record(self):
         """Return the TLS-RPT record served at _smtp._tls.{sender_subdomain}."""
         return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"
+
+    @property
+    def mta_sts_record(self):
+        """Return the MTA-STS DNS record for _mta-sts.{domain}."""
+        return f"v=STSv1; id={settings.RELAY_MTA_STS_POLICY_ID}"

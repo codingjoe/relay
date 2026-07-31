@@ -151,9 +151,10 @@ class Webhook(OrganizationOwned):
     @property
     def mx_target(self) -> str:
         receiving = self.receiving_domain_name.lower()
-        if domain := Domain.objects.root_for(receiving).first():
-            return domain.sender_domain
-        return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{receiving}"
+        try:
+            return Domain.objects.root_for(receiving).sender_domain
+        except Domain.DoesNotExist:
+            return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{receiving}"
 
     @property
     def mx_record(self) -> str:

@@ -1,4 +1,5 @@
 import gzip
+import logging
 import uuid
 
 from django.conf import settings
@@ -13,6 +14,8 @@ from abstract.models import TimeStamped
 from mx.models import IncomingMessage
 
 from .parser import parse_arf, parse_dmarc_xml
+
+logger = logging.getLogger(__name__)
 
 
 class DmarcReport(IncomingMessage):
@@ -332,27 +335,34 @@ class DmarcFailureReport(IncomingMessage):
 
         from domains.models import Domain
 
-        domain = Domain.objects.root_for(incoming_message.receiving_domain).first()
-        body = cls.build_arf_body(
-            source_ip=evaluation.source_ip_address or "unknown",
-            arrival_date=incoming_message.received_at.isoformat(),
-            envelope_from=incoming_message.mail_from,
-            rcpt_to=incoming_message.rcpt_to,
-            auth_results=str(evaluation.dkim_result),
-            delivery_result="policy",
-            original_headers=incoming_message.raw_body.read().decode(
-                "utf-8", errors="replace"
-            )[:2000]
-            if incoming_message.raw_body
-            else "",
-        )
-        email = EmailMessage(
-            subject=f"DMARC failure report for {domain.name}",
-            body=body,
-            from_email=f"{settings.RELAY_DMARC_RUF_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
-            to=[domain.dmarc_ruf_reporting_address],
-        )
-        email.send()
+        try:
+            domain = Domain.objects.root_for(incoming_message.receiving_domain)
+        except Domain.DoesNotExist:
+            logger.warning(
+                "No domain was found for the RUF report: %s",
+                incoming_message.receiving_domain,
+            )
+        else:
+            body = cls.build_arf_body(
+                source_ip=evaluation.source_ip_address or "unknown",
+                arrival_date=incoming_message.received_at.isoformat(),
+                envelope_from=incoming_message.mail_from,
+                rcpt_to=incoming_message.rcpt_to,
+                auth_results=str(evaluation.dkim_result),
+                delivery_result="policy",
+                original_headers=incoming_message.raw_body.read().decode(
+                    "utf-8", errors="replace"
+                )[:2000]
+                if incoming_message.raw_body
+                else "",
+            )
+            email = EmailMessage(
+                subject=f"DMARC failure report for {domain.name}",
+                body=body,
+                from_email=f"{settings.RELAY_DMARC_RUF_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
+                to=[domain.dmarc_ruf_reporting_address],
+            )
+            email.send()
 
     @staticmethod
     def build_arf_body(**fields):

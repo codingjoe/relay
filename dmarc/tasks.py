@@ -76,9 +76,15 @@ def evaluate_incoming_message(message_pk):
     evaluation = DmarcEvaluation.from_message(message)
 
     if evaluation.disposition != "none":
-        domain = Domain.objects.root_for(message.receiving_domain).first()
-        if domain and domain.dmarc_ruf_reporting_address:
-            DmarcFailureReport.send_ruf_report(message, evaluation)
+        try:
+            domain = Domain.objects.root_for(message.receiving_domain)
+        except Domain.DoesNotExist:
+            logger.warning(
+                "No domain was found for the RUF report: %s", message.receiving_domain
+            )
+        else:
+            if domain.dmarc_ruf_reporting_address:
+                DmarcFailureReport.send_ruf_report(message, evaluation)
 
 
 @task

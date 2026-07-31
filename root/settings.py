@@ -89,6 +89,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "domains.middleware.MtaStsHostMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -263,6 +264,10 @@ RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dmarc")
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
+
+RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
+RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
+RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
 RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)

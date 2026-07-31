@@ -92,6 +92,9 @@ Update it based on review feedback.
 ## Control Flow
 
 - Prefer `match`/`case` statements over if-chains where applicable.
+- Use `.get()` with EAFP (try/except) instead of `.first()` with a `None`
+  check. Use `get_object_or_404()` in views to convert `DoesNotExist` to
+  `Http404` automatically.
 
 ## Imports
 

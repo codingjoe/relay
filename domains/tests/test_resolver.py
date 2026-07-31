@@ -92,3 +92,27 @@ class TestResolvePtr:
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve(DNSLabel("1.1.1.255.in-addr.arpa"), "PTR")
         assert records == []
+
+
+@pytest.mark.django_db
+class TestResolveMtaStsCname:
+    def test_resolve__mta_sts_cname(self):
+        org = Organization.objects.create(slug="o")
+        Domain.objects.create(name="example.com", org=org)
+        records = DNSResolver().resolve(
+            DNSLabel("mta-sts.mail.relay.example.com"), "CNAME"
+        )
+        assert len(records) == 1
+        assert "mta-sts." in str(records[0].rdata)
+
+    def test_resolve__mta_sts_cname_system_domain(self):
+        Domain.objects.create(name="open.localhost", org=None)
+        records = DNSResolver().resolve(DNSLabel("mta-sts.open.localhost"), "CNAME")
+        assert len(records) == 1
+        assert "mta-sts." in str(records[0].rdata)
+
+    def test_resolve__mta_sts_no_cname_for_other_subdomains(self):
+        org = Organization.objects.create(slug="o")
+        Domain.objects.create(name="example.com", org=org)
+        records = DNSResolver().resolve(DNSLabel("mta-sts.other.example.com"), "CNAME")
+        assert records == []
