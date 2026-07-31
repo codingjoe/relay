@@ -1,5 +1,6 @@
 """Know-how article views — list and detail."""
 
+import os
 import pathlib
 import re
 
@@ -92,6 +93,7 @@ def article_path(slug):
     Validates that the slug only contains safe characters to prevent
     path traversal.
     """
+    slug = os.path.basename(slug)
     if not SLUG_PATTERN.match(slug):
         raise Http404("Article not found")
     path = (KNOW_HOW_DIR / f"{slug}.md").resolve()
@@ -133,7 +135,7 @@ class KnowHowDetailView(MarkdownView):
         return metadata.get("name") or extract_title(text)
 
     def get_markdown_template(self):
-        slug = self.kwargs["slug"]
+        slug = os.path.basename(self.kwargs["slug"])
         if not SLUG_PATTERN.match(slug):
             raise Http404("Article not found")
         return f"{slug}.md"
