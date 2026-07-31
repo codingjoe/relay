@@ -223,5 +223,5 @@ backups/
 staticfiles/
 storage/
 
-# Playwrite
+# Playwright
 .playwright-mcp/

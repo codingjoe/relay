@@ -81,6 +81,28 @@ Before you finish, always:
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
 
+## Browser automation
+
+The Playwright MCP server (configured in `.mcp.json`) gives agents a
+browser for visual testing of the web UI. The MCP server itself needs no
+port — it runs as a subprocess. The agent only needs to know the dev web
+server port to navigate to.
+
+### Finding the dev server port
+
+The dev web server listens on `0.0.0.0:${PORT:-8000}`. The default port is
+**8000**, but it can be overridden via the `PORT` environment variable (see
+`compose.yml` and `compose.production.yml`).
+
+To determine the actual port at runtime:
+
+1. Check the `PORT` environment variable: `echo $PORT` (falls back to 8000).
+1. If unsure, list listening TCP ports: `lsof -iTCP -sTCP:LISTEN -P | grep -E '8000|python|granian'`.
+1. Or probe the health endpoint: `curl -s http://localhost:8000/health/`.
+
+Always navigate to `http://localhost:<port>` when using Playwright MCP tools.
+Never guess — verify the port first.
+
 ## Pointers to further documentation
 
 - `CONVENTIONS.md` — authoritative coding conventions (URLs, PKs, model fields,
