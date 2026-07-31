@@ -41,6 +41,9 @@ FERNET = Fernet(base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).dig
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
+# True when running under pytest (see pyproject.toml TEST env var).
+TEST = env.bool("TEST", default=False)
+
 ALLOWED_HOSTS = [
     h.strip()
     for h in env.list(
@@ -277,7 +280,7 @@ RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
 # Django task framework
 # Production uses Threadmill with a Redis backend and a worker process.
 # Tests use ImmediateRetryBackend, which runs tasks synchronously.
-if env.bool("TEST", default=False):
+if TEST:
     TASKS = {
         "default": {
             "BACKEND": "root.backends.ImmediateRetryBackend",
@@ -337,3 +340,25 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+
+# Error monitoring (Sentry)
+if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DEBUG:
+    import sentry_sdk
+    from sentry_sdk.integrations.asyncio import AsyncioIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.threading import ThreadingIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=env("SENTRY_ENVIRONMENT", default="").strip() or "production",
+        integrations=[
+            DjangoIntegration(),
+            AsyncioIntegration(),
+            ThreadingIntegration(),
+        ],
+        send_default_pii=False,
+        traces_sample_rate=float(
+            env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "0.0"
+        ),
+    )
