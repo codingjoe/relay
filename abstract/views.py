@@ -75,15 +75,24 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
         """Return the markdown template name for this view."""
         return self.markdown_template
 
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+        patch_vary_headers(response, ["Accept"])
+        return response
+
     def get(self, request, *args, **kwargs):
         if request.GET.get("md") or "text/markdown" in request.headers.get(
             "Accept", ""
         ):
-            response = self.render_markdown(request, **kwargs)
-        else:
-            response = super().get(request, *args, **kwargs)
-        patch_vary_headers(response, ["Accept"])
-        return response
+            return self.render_markdown(request, **kwargs)
+        return super().get(request, *args, **kwargs)
+
+    async def aget(self, request, *args, **kwargs):
+        if request.GET.get("md") or "text/markdown" in request.headers.get(
+            "Accept", ""
+        ):
+            return self.render_markdown(request, **kwargs)
+        return await super().aget(request, *args, **kwargs)
 
     def render_markdown(self, request, **kwargs):
         """Return the raw Markdown source as a text/markdown response."""
