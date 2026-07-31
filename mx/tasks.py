@@ -34,16 +34,10 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 )
 
 
-class WebhookDeliveryError(Exception):
-    """Raised when a webhook delivery fails with a retryable error."""
+class WebhookDeliveryError(Exception): ...
 
 
 def webhook_retry(context):
-    """Retry webhook delivery per the Standard Webhooks schedule.
-
-    Returns the delay before the next attempt, or None when retries are
-    exhausted — in that case, mark the message as failed.
-    """
     if context.attempt >= len(WEBHOOK_RETRY_DELAYS) - 1:
         message_id = context.task_result.kwargs.get("message_id")
         if message_id:

@@ -1,7 +1,7 @@
 # Relay — B2B SaaS Communication Platform
 
-A B2B SaaS communication platform built on Django 6.1 and Python 3.14,
-for AI applications. The platform has a **built-in authoritative nameserver**
+A B2B SaaS communication platform for AI applications.
+The platform has a **built-in authoritative nameserver**
 that removes manual DNS configuration.
 
 ## How It Works
@@ -110,8 +110,7 @@ address glob pattern.
 
 ### Tech Stack
 
-- **Django 6.1** with the task framework for async message delivery
-- **Threadmill** — durable Redis-backed task queue for the Django task framework
+- **Django** with the task framework for async message delivery
 - **PostgreSQL** — primary database
 - **Redis** — caching and rate limiting
 - **S3** — raw message body storage via django-storages
