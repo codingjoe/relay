@@ -18,7 +18,7 @@ class MXHandler:
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
-            domain = await get_recipient_domain(rcpt_domain)
+            domain = await sync_to_async(Domain.objects.root_for)(rcpt_domain)
         except Domain.DoesNotExist:
             return "550 Relay not authorised for this recipient"
         envelope.rcpt_tos.append(address)
@@ -43,19 +43,10 @@ class MXHandler:
 
 
 @sync_to_async
-def get_recipient_domain(rcpt_domain):
-    """Return the registered root domain for a recipient address domain."""
-    return Domain.objects.root_for(rcpt_domain)
-
-
-@sync_to_async
 def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
-
-    if domain is None:
-        return "550 Relay not authorised for this recipient"
 
     match local_part:
         case settings.RELAY_DMARC_REPORT_LOCAL_PART:
