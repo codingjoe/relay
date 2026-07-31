@@ -1,6 +1,6 @@
 ---
 name: SMTP
-description: SMTP is the standard protocol for sending email between mail servers.
+description: Protocol for sending email between mail servers
 author: Johannes Maron
 ---
 

@@ -85,7 +85,7 @@ def include_md(template_name, **context):
 
 @register.simple_tag
 def include_md_toc(template_name, depth=None, **context):
-    """Render a table of contents for a Markdown template.
+    """Render a table of contents for a Markdown template, stripping frontmatter.
 
     Args:
         template_name: The template to render and extract headings from.

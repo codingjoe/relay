@@ -1,6 +1,6 @@
 ---
 name: MX
-description: MX records tell senders which mail server receives email for a domain.
+description: Mail exchange records for domain email routing
 author: Johannes Maron
 ---
 

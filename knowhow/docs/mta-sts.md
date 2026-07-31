@@ -1,6 +1,6 @@
 ---
 name: MTA-STS
-description: MTA-STS tells sending mail servers to use TLS when they connect to your mail server.
+description: Enforce TLS for incoming mail connections
 author: Johannes Maron
 ---
 

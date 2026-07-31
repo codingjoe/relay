@@ -1,6 +1,6 @@
 ---
 name: TLS-RPT
-description: TLS-RPT lets mail servers send you reports about TLS connection failures.
+description: Reports about TLS connection failures
 author: Johannes Maron
 ---
 

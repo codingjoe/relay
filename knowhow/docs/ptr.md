@@ -1,6 +1,6 @@
 ---
 name: PTR
-description: A PTR record maps an IP address back to a hostname. Mail servers use it to verify the sending server.
+description: Reverse DNS lookup for IP verification
 author: Johannes Maron
 ---
 

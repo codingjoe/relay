@@ -1,6 +1,6 @@
 ---
 name: SPF
-description: SPF is a DNS record that lists the mail servers authorized to send email for your domain.
+description: DNS record listing authorized sending servers
 author: Johannes Maron
 ---
 

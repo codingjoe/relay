@@ -1,6 +1,6 @@
 ---
 name: DMARC
-description: DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication.
+description: Email authentication policy for SPF and DKIM
 author: Johannes Maron
 ---
 

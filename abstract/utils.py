@@ -11,15 +11,18 @@ from markdown.extensions.toc import TocExtension
 logger = logging.getLogger(__name__)
 
 
-def strip_frontmatter(text):
-    """Remove YAML frontmatter (--- delimited block) from the start of text."""
-    stripped = text.lstrip()
-    if not stripped.startswith("---"):
+def strip_frontmatter(text: str) -> str:
+    """Strip YAML frontmatter (``---`` delimited) from the start of a Markdown document.
+
+    If the document does not start with a frontmatter block, return it unchanged.
+    """
+    if not text.startswith("---\n"):
         return text
-    parts = stripped.split("---", 2)
-    if len(parts) < 3:
-        return text
-    return parts[2].lstrip("\n")
+    lines = text.splitlines(keepends=True)
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return "".join(lines[i + 1 :]).lstrip("\n")
+    return text
 
 
 def future(now=None, min_offset=1, max_offset=999):

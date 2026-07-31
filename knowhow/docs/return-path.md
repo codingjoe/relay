@@ -1,6 +1,6 @@
 ---
 name: Return-Path
-description: The Return-Path is the email address that receives bounce messages and delivery status notifications.
+description: Bounce address for email delivery notifications
 author: Johannes Maron
 ---
 

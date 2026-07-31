@@ -1,6 +1,11 @@
 from django.urls import reverse
 
-from knowhow.views import KnowHowDetailView, extract_title, list_articles
+from knowhow.views import (
+    KnowHowDetailView,
+    extract_title,
+    list_articles,
+    parse_frontmatter,
+)
 
 
 class TestListArticles:
@@ -26,6 +31,24 @@ class TestExtractTitle:
     def test_extract_title__returns_empty_for_no_h1(self):
         markdown_text = "Some content without a heading."
         assert extract_title(markdown_text) == ""
+
+    def test_extract_title__ignores_frontmatter(self):
+        markdown_text = "---\nname: DMARC\n---\n\n# DMARC\n\nContent."
+        assert extract_title(markdown_text) == "DMARC"
+
+
+class TestParseFrontmatter:
+    def test_parse_frontmatter__returns_metadata_and_content(self):
+        text = "---\nname: DMARC\ndescription: Test\n---\n\n# DMARC\n\nBody."
+        metadata, content = parse_frontmatter(text)
+        assert metadata == {"name": "DMARC", "description": "Test"}
+        assert content == "# DMARC\n\nBody."
+
+    def test_parse_frontmatter__no_frontmatter(self):
+        text = "# DMARC\n\nBody."
+        metadata, content = parse_frontmatter(text)
+        assert metadata == {}
+        assert content == text
 
 
 class TestKnowHowListView:
@@ -91,8 +114,27 @@ class TestKnowHowDetailView:
             HTTP_ACCEPT="text/markdown",
         )
         body = response.content.decode()
-        assert "Creative Commons" in body
-        assert "by-sa/4.0" in body
+        assert "CC-BY-SA 4.0" in body
+        assert "creativecommons.org/licenses/by-sa/4.0/" in body
+
+    def test_get__markdown_includes_frontmatter(self, client):
+        response = client.get(
+            reverse("knowhow:detail", args=["dmarc"]),
+            HTTP_ACCEPT="text/markdown",
+        )
+        body = response.content.decode()
+        assert body.startswith("---\n")
+
+    def test_get__markdown_frontmatter_has_metadata_fields(self, client):
+        response = client.get(
+            reverse("knowhow:detail", args=["dmarc"]),
+            HTTP_ACCEPT="text/markdown",
+        )
+        body = response.content.decode()
+        assert "name:" in body
+        assert "description:" in body
+        assert "author:" in body
+        assert "license:" in body
 
     def test_get__list_includes_license(self, client):
         response = client.get(reverse("knowhow:list"))
