@@ -110,8 +110,10 @@ class KnowHowDetailView(MarkdownView):
         path = KNOW_HOW_DIR / f"{slug}.md"
         if not path.exists():
             raise Http404("Article not found")
+        metadata, _ = parse_frontmatter(path.read_text())
         context = super().get_context_data(**kwargs)
         context["license"] = md_2_html(LICENSE_MARKDOWN)
+        context["meta_description"] = metadata.get("description", "")
         return context
 
     def render_markdown(self, request, **kwargs):
