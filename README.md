@@ -1,7 +1,7 @@
 # Relay — B2B SaaS Communication Platform
 
-A B2B SaaS communication platform built on Django 6.0 and Python 3.14,
-for AI applications. The platform has a **built-in authoritative nameserver**
+A B2B SaaS communication platform for AI applications.
+The platform has a **built-in authoritative nameserver**
 that removes manual DNS configuration.
 
 ## How It Works
@@ -88,6 +88,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
 | SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
 | MX      | 25           | Incoming MX delivery (aiosmtpd)      |
+| Worker  | —            | Threadmill task worker               |
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
@@ -109,7 +110,7 @@ address glob pattern.
 
 ### Tech Stack
 
-- **Django 6.0** with the task framework for async message delivery
+- **Django** with the task framework for async message delivery
 - **PostgreSQL** — primary database
 - **Redis** — caching and rate limiting
 - **S3** — raw message body storage via django-storages

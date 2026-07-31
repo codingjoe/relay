@@ -1,8 +1,3 @@
-import os
-
-os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "1")
-os.environ.setdefault("TEST", "1")
-
 import pytest
 from django.contrib.auth.models import User
 
