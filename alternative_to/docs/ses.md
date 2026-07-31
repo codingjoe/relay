@@ -9,20 +9,31 @@ author: Johannes Maron
 > Amazon SES is a solid choice for high-volume outbound email. relay adds inbound mail, reputation monitoring, and EU hosting in one service.
 
 <div class="not-prose my-6 rounded-lg border border-border bg-card p-4 text-sm">
-  <p class="m-0 mb-2"><strong>Best for high-volume outbound only:</strong> Amazon SES</p>
-  <p class="m-0"><strong>Best for sending, receiving, and monitoring in one EU-hosted service:</strong> relay</p>
+  <p class="m-0 mb-2">
+    <i data-lucide="circle-check" class="size-4 text-success align-middle" aria-hidden="true"></i>
+    <strong>Best for high-volume outbound only:</strong> Amazon SES
+  </p>
+  <p class="m-0">
+    <i data-lucide="circle-check" class="size-4 text-success align-middle" aria-hidden="true"></i>
+    <strong>Best for sending, receiving, and monitoring in one EU-hosted service:</strong> relay
+  </p>
 </div>
 
 ## Quick comparison
 
-|                       | relay                                                             | Amazon SES                                           |
-| --------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
-| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown                        | Forwarded to an address, no dashboard                |
-| Security and delivery | DMARC, MTA-STS, TLS-RPT served. DKIM: RSA-1024, RSA-2048, Ed25519 | DKIM: RSA only. DMARC record and MTA-STS self-hosted |
-| Incoming mail         | Built-in MX server with webhooks                                  | Not available                                        |
-| EU data sovereignty   | Hosted in the EU under the GDPR                                   | US-owned (US law applies)                            |
-| Free test domain      | Yes                                                               | No                                                   |
-| Pricing               | Flat per message                                                  | Per message, plus AWS infrastructure costs           |
+| Feature                                                                                                                                                                                                                 | relay                                                                                                         | Amazon SES                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| SPF <a href="{% url 'know_how:detail' slug='spf' %}" target="_blank" rel="noopener" aria-label="SPF — know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                         | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> Auto-served                 | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record    |
+| DKIM <a href="{% url 'know_how:detail' slug='dkim' %}" target="_blank" rel="noopener" aria-label="DKIM — know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                      | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> RSA-1024, RSA-2048, Ed25519 | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> RSA only         |
+| DMARC <a href="{% url 'know_how:detail' slug='dmarc' %}" target="_blank" rel="noopener" aria-label="DMARC — know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                   | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> Auto-served                 | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record    |
+| MTA-STS <a href="{% url 'know_how:detail' slug='mta-sts' %}" target="_blank" rel="noopener" aria-label="MTA-STS — know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>             | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> Auto-served                 | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Self-hosted      |
+| TLS-RPT <a href="{% url 'know_how:detail' slug='tls-rpt' %}" target="_blank" rel="noopener" aria-label="TLS-RPT — know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>             | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> Auto-served                 | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record    |
+| Return-Path <a href="{% url 'know_how:detail' slug='return-path' %}" target="_blank" rel="noopener" aria-label="Return-Path — know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a> | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> Auto-served                 | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual CNAME     |
+| Reputation monitoring                                                                                                                                                                                                   | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> DMARC + TLS-RPT parsed      | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Forwarded, no UI |
+| Incoming mail                                                                                                                                                                                                           | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> MX + webhooks               | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> Not available              |
+| EU data sovereignty                                                                                                                                                                                                     | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> EU, GDPR                    | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> US-owned                   |
+| Free test domain                                                                                                                                                                                                        | <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i> Yes                         | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> No                         |
+| Pricing                                                                                                                                                                                                                 | Flat per message                                                                                              | Per message + AWS infra                                                                                      |
 
 ## What Amazon SES does well
 
