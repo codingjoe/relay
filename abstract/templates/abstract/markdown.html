@@ -2,6 +2,10 @@
 {% load i18n abstract %}
 {% block title %}{{ title }}{% endblock %}
 {% block meta_description %}{{ meta_description|default:"relay — know how articles about email terms and technologies." }}{% endblock %}
+{% block og_title %}{{ title }}{% endblock %}
+{% block og_description %}{{ meta_description|default:"relay — know how articles about email terms and technologies." }}{% endblock %}
+{% block twitter_title %}{{ title }}{% endblock %}
+{% block twitter_description %}{{ meta_description|default:"relay — know how articles about email terms and technologies." }}{% endblock %}
 
 {% block content %}
   <div class="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-8 max-w-5xl mx-auto py-8">

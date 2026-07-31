@@ -132,6 +132,7 @@ class KnowHowDetailView(MarkdownView):
         path = article_path(slug)
         metadata, _ = parse_frontmatter(path.read_text())
         context = super().get_context_data(**kwargs)
+        context["title"] = metadata.get("name") or extract_title(path.read_text())
         context["license"] = md_2_html(LICENSE_MARKDOWN)
         context["meta_description"] = metadata.get("description", "")
         return context
