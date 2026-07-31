@@ -1,22 +1,81 @@
 # TLS-RPT
 
-TLS-RPT (TLS Reporting) is a standard that lets mail servers send reports about TLS connection failures. It works with \[MTA-STS\]({% url 'know_how:detail' slug='mta-sts' %}) to help you monitor and fix delivery problems.
+> **TL;DR** — TLS-RPT lets mail servers send you reports about TLS connection failures. It works with MTA-STS to help you monitor and fix delivery problems. relay collects these reports for you.
+
+## What is TLS-RPT?
+
+TLS-RPT (SMTP TLS Reporting) is a standard that lets sending mail servers send reports about TLS connection failures to the receiving domain. The reports contain details about failed connections, the reason for the failure, and the sending server that experienced the problem.
+
+TLS-RPT is defined in [RFC 8460](https://datatracker.ietf.org/doc/html/rfc8460).
+
+## Why TLS-RPT matters
+
+TLS encryption protects email in transit, but it can fail for many reasons:
+
+- The receiving server has an expired or misconfigured TLS certificate.
+- A network device blocks the `STARTTLS` command (a downgrade attack).
+- The receiving server does not support TLS at all.
+- The TLS version or cipher suite is too weak.
+
+Without TLS-RPT, you have no visibility into these failures. Sending servers silently fall back to plain text or queue messages for later delivery. You only learn about the problem when recipients complain that they did not receive an email.
+
+TLS-RPT gives you this visibility. Sending servers send you structured reports about every TLS failure. You can use these reports to fix problems before they affect your users.
+
+TLS-RPT works with <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>. MTA-STS enforces TLS for incoming mail. TLS-RPT tells you when a sender cannot connect with TLS.
 
 ## How TLS-RPT works
 
-When a sending mail server fails to establish a TLS connection to your mail server, it sends a report. The report contains the failed connection details and the reason for the failure. You receive these reports by email or HTTPS POST.
+The TLS-RPT process has three steps:
 
-## DNS record
+1. The receiving domain publishes a TLS-RPT DNS record. The record tells senders where to send reports.
+1. When a sending server fails to establish a TLS connection, it generates a report.
+1. The sending server sends the report to the destination in the DNS record.
+
+### The DNS record
 
 TLS-RPT uses a TXT record at `_smtp._tls.<domain>`. The record contains:
 
-- `v=TLSRPTv1` — the protocol version.
-- `rua=` — the destination for reports, either `mailto:` or `https:`.
+| Tag   | Purpose            | Example                                                              |
+| ----- | ------------------ | -------------------------------------------------------------------- |
+| `v`   | Protocol version   | `v=TLSRPTv1`                                                         |
+| `rua` | Report destination | `rua=mailto:tls@example.com` or `rua=https://example.com/tls-report` |
+
+The `rua` destination can be an email address or an HTTPS URL. When the destination is an HTTPS URL, the sending server POSTs the report as a JSON document.
+
+### Report format
+
+TLS-RPT reports are JSON documents. Each report contains:
+
+| Field               | Description                                         |
+| ------------------- | --------------------------------------------------- |
+| `organization-name` | The receiving domain name                           |
+| `date-range`        | The reporting period (start and end timestamps)     |
+| `contact-info`      | How to contact the report sender                    |
+| `report-id`         | Unique report identifier                            |
+| `policy`            | The TLS policy that was in effect (MTA-STS or none) |
+| `summary`           | Count of successful and failed sessions             |
+| `failure-details`   | Per-failure breakdown with reason and MX host       |
+
+### Failure reasons
+
+The report specifies one of these failure reasons:
+
+- `starttls-not-supported` — The receiving server does not support STARTTLS.
+- `certificate-host-mismatch` — The certificate hostname does not match the MX host.
+- `certificate-expired` — The certificate has expired.
+- `certificate-not-trusted` — The certificate is not issued by a trusted authority.
+- `tls-version-unsupported` — The TLS version is too old or not supported.
+- `cipher-suite-unsupported` — The cipher suite is not acceptable.
 
 ## How relay uses TLS-RPT
 
-relay collects TLS-RPT reports for you. You add the TXT record at your DNS provider. relay provides the reporting endpoint automatically. You can view the reports in the TLS reports dashboard.
+relay collects TLS-RPT reports for you. You add one TXT record at your DNS provider at `_smtp._tls.<domain>`. The record points to the relay reporting endpoint. relay provides the HTTPS endpoint automatically.
 
-## Related
+You can view the collected reports in the TLS reports dashboard in your organization. The reports show which senders had TLS failures and the reason for each failure.
 
-TLS-RPT works with \[MTA-STS\]({% url 'know_how:detail' slug='mta-sts' %}). MTA-STS enforces TLS for incoming mail. TLS-RPT tells you when a sender cannot connect with TLS.
+## Further reading
+
+- [RFC 8460 — SMTP TLS Reporting](https://datatracker.ietf.org/doc/html/rfc8460)
+- [RFC 8460 Section 4 — Report format](https://datatracker.ietf.org/doc/html/rfc8460#section-4)
+- <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> — SMTP MTA Strict Transport Security
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol

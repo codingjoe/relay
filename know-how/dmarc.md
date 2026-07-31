@@ -1,26 +1,98 @@
 # DMARC
 
-DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an email authentication protocol. It tells receiving mail servers what to do when an email fails \[SPF\]({% url 'know_how:detail' slug='spf' %}) or \[DKIM\]({% url 'know_how:detail' slug='dkim' %}) checks.
+> **TL;DR** — DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication. You set one DNS record on your root domain. relay handles the rest.
 
-DMARC uses the DNS record `_dmarc.<domain>`. The record contains a policy tag `p=` with one of three values:
+## What is DMARC?
 
-- `none` — monitor only, deliver all mail.
-- `quarantine` — send failing mail to the spam folder.
-- `reject` — reject failing mail at the SMTP server.
+DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an email authentication policy protocol. It builds on <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> and <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> to give domain owners control over how receiving mail servers handle messages that fail authentication.
 
-## Alignment
+Without DMARC, a receiving mail server has no instructions from the domain owner. It decides on its own whether to deliver, quarantine, or reject a message that fails SPF or DKIM. DMARC solves this problem. The domain owner publishes a policy in DNS, and receivers follow that policy.
 
-DMARC checks that the domain in the visible From address matches the domain that \[SPF\]({% url 'know_how:detail' slug='spf' %}) or \[DKIM\]({% url 'know_how:detail' slug='dkim' %}) verified. This process is called alignment. Without alignment, a spammer can pass SPF on their own domain and spoof yours.
+DMARC is defined in [RFC 7489](https://datatracker.ietf.org/doc/html/rfc7489).
 
-## Reports
+## Why DMARC matters
 
-DMARC can send two types of reports:
+Email spoofing is one of the most common attack vectors in phishing and spam. An attacker can send a message that appears to come from your domain because SMTP does not verify the sender by default. DMARC gives you three tools to fight this:
 
-- **Aggregate reports (RUA)** — daily XML summaries of all mail that used your domain. These reports show which messages passed and which failed authentication.
-- **Forensic reports (RUF)** — copies of individual failed messages. These reports help you identify the source of spoofing.
+1. **Policy enforcement** — You tell receivers to reject or quarantine messages that fail authentication.
+1. **Alignment** — DMARC checks that the domain in the visible From address matches the domain that SPF or DKIM verified.
+1. **Reporting** — Receivers send you reports about messages that use your domain, so you can monitor for abuse.
 
-relay collects aggregate and forensic reports for you. You can view them in the DMARC reports dashboard in your organization.
+## How DMARC works
+
+When a receiving mail server gets a message, it performs these steps:
+
+1. The server runs the SPF check on the envelope sender domain.
+1. The server runs the DKIM check on the message signature.
+1. The server checks DMARC alignment. The domain in the visible From header must match the domain that SPF or DKIM verified.
+1. The server reads the DMARC policy from DNS and applies it to the result.
+
+### The DMARC DNS record
+
+The DMARC record is a TXT record at `_dmarc.<domain>`. It contains tags that control the policy:
+
+| Tag     | Purpose                                       | Example                                   |
+| ------- | --------------------------------------------- | ----------------------------------------- |
+| `v`     | Protocol version                              | `v=DMARC1`                                |
+| `p`     | Policy for the root domain                    | `p=none`, `p=quarantine`, or `p=reject`   |
+| `sp`    | Policy for subdomains                         | `sp=none`                                 |
+| `pct`   | Percentage of messages to apply the policy to | `pct=100`                                 |
+| `rua`   | Aggregate report destination                  | `rua=mailto:dmarc@example.com`            |
+| `ruf`   | Forensic report destination                   | `ruf=mailto:dmarc@example.com`            |
+| `adkim` | DKIM alignment mode                           | `adkim=r` (relaxed) or `adkim=s` (strict) |
+| `aspf`  | SPF alignment mode                            | `aspf=r` (relaxed) or `aspf=s` (strict)   |
+
+### Policy values
+
+The `p=` tag has three values:
+
+- **`none`** — The receiver delivers all mail but still sends reports. Use this mode to monitor your authentication status before you enforce a policy.
+- **`quarantine`** — The receiver sends failing messages to the spam folder. This mode reduces the impact of spoofing without blocking legitimate mail that has configuration problems.
+- **`reject`** — The receiver rejects failing messages at the SMTP level. This mode gives the strongest protection but requires that all legitimate senders pass authentication.
+
+### Alignment
+
+Alignment is the key concept that DMARC adds on top of SPF and DKIM. A message can pass SPF on the envelope sender domain but show a different domain in the visible From header. Without alignment, an attacker can pass SPF on their own domain while spoofing yours in the From header.
+
+DMARC alignment has two modes:
+
+- **Relaxed alignment** — The organizational domains must match. For example, `mail.example.com` aligns with `example.com`.
+- **Strict alignment** — The exact domains must match. For example, `mail.example.com` does not align with `example.com`.
+
+## DMARC reports
+
+DMARC specifies two report types:
+
+### Aggregate reports (RUA)
+
+Aggregate reports are daily XML summaries. They contain statistics about all messages that used your domain during the reporting period. Each report includes:
+
+- The source IP address of the sending server.
+- The number of messages from that source.
+- Whether the messages passed or failed SPF and DKIM.
+- The DMARC policy result (pass, fail, or none).
+
+Aggregate reports help you identify all senders that use your domain. You can use this data to find unauthorized senders and to verify that your legitimate senders pass authentication.
+
+The aggregate report format is defined in [Section 8.3 of RFC 7489](https://datatracker.ietf.org/doc/html/rfc7489#section-8.3).
+
+### Forensic reports (RUF)
+
+Forensic reports are copies of individual messages that failed authentication. Each report includes the message headers and, in some cases, the message body. Forensic reports help you identify the source of a specific spoofing attempt.
+
+Not all mail servers send forensic reports because of privacy concerns. Some servers redact or omit the message content.
 
 ## How relay uses DMARC
 
-You set one DMARC record on your root domain. relay serves all other DNS records automatically. The DMARC record uses relaxed alignment, so it covers all subdomains.
+You set one DMARC TXT record on your root domain. relay serves all other DNS records (SPF, DKIM, MX, and more) automatically through the built-in nameserver.
+
+relay uses relaxed alignment for both SPF and DKIM. This means the policy covers all subdomains of your root domain. You do not need separate DMARC records for each subdomain.
+
+relay collects aggregate and forensic reports for you. You can view them in the DMARC reports dashboard in your organization.
+
+## Further reading
+
+- [RFC 7489 — Domain-based Message Authentication, Reporting, and Conformance](https://datatracker.ietf.org/doc/html/rfc7489)
+- [DMARC.org — Official DMARC website](https://dmarc.org/)
+- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
+- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail

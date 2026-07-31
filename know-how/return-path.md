@@ -1,19 +1,82 @@
 # Return-Path
 
-The Return-Path is the email address that receives bounce messages and delivery status notifications. It is also called the envelope sender or bounce address.
+> **TL;DR** — The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address. relay configures the Return-Path for you.
+
+## What is Return-Path?
+
+The Return-Path is the email address that receives bounce messages and delivery status notifications. It is also called the envelope sender, bounce address, or MAIL FROM address.
+
+The Return-Path is part of the SMTP specification in [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321) and the message format in [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322).
+
+## Why Return-Path matters
+
+The Return-Path serves two critical functions in email delivery:
+
+### Bounce handling
+
+When a message cannot be delivered, the receiving server sends a bounce message (a delivery status notification) to the Return-Path address. Without a valid Return-Path, bounces go nowhere, and the sender never learns about delivery failures.
+
+Bounce messages are important for list hygiene. If you send mail to an address that no longer exists, the bounce tells you to stop sending to that address. Sending to invalid addresses repeatedly damages your sender reputation.
+
+### SPF alignment
+
+The Return-Path domain is the domain that <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> checks. The <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> alignment check compares the Return-Path domain with the visible From domain. If they do not match (in relaxed mode, at the organizational domain level), the message fails DMARC alignment for SPF.
 
 ## How Return-Path works
 
-The SMTP envelope contains a MAIL FROM address. This address is not the same as the visible From header in the email. When a message bounces, the receiving server sends the bounce notification to the Return-Path address.
+### The envelope vs. the header
+
+The Return-Path exists in two places:
+
+1. **The SMTP envelope** — The `MAIL FROM` command sets the envelope sender address. This address is not visible to the recipient. It is used for bounce delivery and SPF checks.
+1. **The Return-Path header** — The receiving mail server adds a `Return-Path` header to the message when it accepts the message. The header contains the envelope sender address from the `MAIL FROM` command.
+
+The sender does not set the `Return-Path` header. The receiving server adds it. The sender only sets the envelope sender through the `MAIL FROM` command.
+
+### Example
+
+A message might have these fields:
+
+```text
+MAIL FROM: <bounce@mail.relay.example.com>   (envelope sender)
+From: billing@example.com                     (visible header)
+Return-Path: bounce@mail.relay.example.com    (added by receiver)
+```
+
+The recipient sees `billing@example.com` in their mail client. Bounce messages go to `bounce@mail.relay.example.com`. The <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check runs against `mail.relay.example.com`.
+
+### Bounce address tag verification (BATV)
+
+Some senders use BATV (Bounce Address Tag Verification) to detect bounce forgery. BATV adds a cryptographic tag to the envelope sender address. When a bounce comes back, the sender verifies the tag. If the tag is missing or invalid, the bounce is forged and is discarded.
+
+BATV is defined in [IETF draft draft-levine-smtp-batv](https://datatracker.ietf.org/doc/html/draft-levine-smtp-batv).
 
 ## DNS configuration
 
-The Return-Path subdomain uses a CNAME record. The CNAME points from `rp.<domain>` to the relay Return-Path host. This lets relay receive and process bounce messages.
+The Return-Path subdomain needs DNS records for two purposes:
+
+1. **MX or A record** — So that bounce messages can be delivered to the mail server that processes bounces.
+1. **SPF record** — So that the <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check passes for the envelope sender domain.
+
+relay uses a CNAME record for the Return-Path subdomain. The CNAME points from `rp.<domain>` to the relay Return-Path host. This lets relay receive and process bounce messages.
 
 ## How relay uses Return-Path
 
-relay sets the Return-Path to a subdomain of your sender domain. The CNAME record points to the relay server. relay processes bounces and updates the delivery status. You do not need to configure the Return-Path manually.
+relay sets the envelope sender (the `MAIL FROM` address) to a subdomain of your sender domain. The format is:
 
-## Related
+```text
+bounce@mail.relay.<your-domain>
+```
 
-The Return-Path domain is part of the \[SPF\]({% url 'know_how:detail' slug='spf' %}) setup. The envelope sender domain must match the SPF record for \[DMARC\]({% url 'know_how:detail' slug='dmarc' %}) alignment to pass.
+The CNAME record for the Return-Path subdomain points to the relay server. relay processes bounces and updates the delivery status of each message. You do not need to configure the Return-Path manually.
+
+The Return-Path domain is part of the <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> setup. The envelope sender domain must match the SPF record for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> alignment to pass.
+
+## Further reading
+
+- [RFC 5321 — Simple Mail Transfer Protocol (Section 4.4: Trace information)](https://datatracker.ietf.org/doc/html/rfc5321#section-4.4)
+- [RFC 5322 — Internet Message Format (Section 3.6.7: Return-Path)](https://datatracker.ietf.org/doc/html/rfc5322#section-3.6.7)
+- [RFC 3464 — An Extensible Message Format for Delivery Status Notifications](https://datatracker.ietf.org/doc/html/rfc3464)
+- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
+- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
