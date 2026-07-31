@@ -68,6 +68,26 @@ S3 via django-storages, social-auth-app-django, Pico CSS.
 - **Follow `CONVENTIONS.md`** for all coding patterns (URLs, PKs, fields,
   control flow, imports, naming).
 
+## Output style
+
+Use the [i-have-adhd](https://github.com/ayghri/i-have-adhd) skill. Shape every
+response so it can be acted on:
+
+1. Lead with the answer or next action: command, path, or snippet first.
+1. Number multi-step work; one bounded action per step.
+1. End with one next action doable in under two minutes.
+1. Finish the current issue before raising a new one.
+1. Restate progress each turn ("step 3 of 5 done").
+1. Give time estimates in concrete units, never "a bit".
+1. After a change, show what now works.
+1. Errors: state location, cause, and fix. No drama.
+1. Cap lists at 5 items.
+1. No preamble, no recaps, no closers.
+
+Exceptions: explain fully when asked to explain. Confirm before destructive
+actions. After three failed fixes, stop and name the doubtful assumption. If
+the request is ambiguous, ask one short question.
+
 ## Quality, testing & definition of done
 
 Before you finish, always:
