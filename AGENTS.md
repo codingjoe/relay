@@ -83,12 +83,9 @@ Before you finish, always:
 
 ## Browser automation
 
-The Playwright MCP server (configured in `.mcp.json`) gives agents a
-headless browser for visual testing of the web UI.
-
-In development the web server runs on a random port bound to localhost
-(see `.github/github-app.yml`). Read the port from the `runserver` startup
-output, then navigate Playwright MCP to `http://localhost:<port>`.
+Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
+`.playwright-mcp/`. The dev server binds to a random localhost port — read
+it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
 ## Pointers to further documentation
 
