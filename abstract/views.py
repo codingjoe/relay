@@ -76,7 +76,9 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
         return self.markdown_template
 
     def get(self, request, *args, **kwargs):
-        if "text/markdown" in request.headers.get("Accept", ""):
+        if request.GET.get("md") or "text/markdown" in request.headers.get(
+            "Accept", ""
+        ):
             response = self.render_markdown(request, **kwargs)
         else:
             response = super().get(request, *args, **kwargs)

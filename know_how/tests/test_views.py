@@ -67,6 +67,13 @@ class TestKnowHowDetailView:
         assert "# DMARC" in body
         assert "TL;DR" in body
 
+    def test_get__returns_markdown_with_url_param(self, client):
+        response = client.get(reverse("know_how:detail", args=["dmarc"]) + "?md=1")
+        assert response.status_code == 200
+        assert "text/markdown" in response["Content-Type"]
+        body = response.content.decode()
+        assert "# DMARC" in body
+
     def test_get__returns_html_without_accept_header(self, client):
         response = client.get(reverse("know_how:detail", args=["dmarc"]))
         assert response.status_code == 200
