@@ -2,7 +2,6 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
-from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 
 from domains.models import Domain
@@ -74,43 +73,20 @@ def webhook_server():
 
 @pytest.mark.django_db
 class TestIncomingMessageListView:
+    """Legacy /email/inbox/ redirects to the merged contact timeline."""
+
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/email/inbox/")
         assert response.status_code == 302
         assert "/account/login" in response.url
 
-    def test_get__ok_for_member(self, admin_client, org):
+    def test_get__redirects_to_contact_timeline(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/inbox/")
-        assert response.status_code == 200
-
-    def test_get__filters_by_org(self, admin_client, org, write_org, user):
-        User.objects.create_user(username="z", email="z@example.com")
-        make_incoming(org)
-        make_incoming(write_org)
-        response = admin_client.get(f"/org/{org.slug}/email/inbox/")
-        assert response.status_code == 200
-        messages = list(response.context["messages"])
-        assert len(messages) == 1
-        assert messages[0].org == org
-
-    def test_get__search_by_mail_from(self, admin_client, org):
-        make_incoming(org)
-        IncomingMessage.objects.filter(org=org).update(
-            mail_from="alice@example.com", rcpt_to="bob@example.com"
+        assert response.status_code == 302
+        assert (
+            response.url
+            == f"/org/{org.slug}/email/contacts/messages/?direction=received"
         )
-        IncomingMessage.objects.create(
-            org=org,
-            receiving_domain="example.com",
-            mail_from="carol@example.com",
-            rcpt_to="dave@example.com",
-            subject="hi",
-            message_id="<x@example.com>",
-        )
-        response = admin_client.get(f"/org/{org.slug}/email/inbox/?search=carol")
-        assert response.status_code == 200
-        messages = list(response.context["messages"])
-        assert len(messages) == 1
-        assert "carol" in messages[0].mail_from
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/inbox/")

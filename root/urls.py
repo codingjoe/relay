@@ -58,6 +58,7 @@ urlpatterns = [
         "org/<slug:org_slug>/email/",
         include(
             [
+                path("", include("tx_mail.urls")),
                 path("", include("tx_email.urls")),
                 path("", include("smtp.urls")),
                 path("", include("mx.urls")),

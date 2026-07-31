@@ -14,7 +14,7 @@ from domains.models import Domain
 from kms.models import SigningKey
 
 from .charts import build_incoming_chart
-from .models import IncomingMessage, Webhook, WebhookDelivery
+from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
 
 
@@ -47,7 +47,7 @@ class IncomingMessageListView(OrganizationScopedView, ListView):
 class IncomingMessageDetailView(OrganizationScopedView, DetailView):
     template_name = "mx/message_detail.html"
     context_object_name = "message"
-    parent = "mx:inbox"
+    parent = "tx_mail:contact-messages"
 
     def get_queryset(self):
         return IncomingMessage.objects.filter(org=self.org)
@@ -57,37 +57,9 @@ class IncomingMessageDetailView(OrganizationScopedView, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        raw_bytes = self.object.raw_body.read()
-        parsed = message_from_bytes(raw_bytes)
+        parsed = message_from_bytes(self.object.raw_body.read())
         headers = list(parsed.items())
-        parts: list[dict] = []
-        if parsed.is_multipart():
-            for part in parsed.walk():
-                if part.is_multipart():
-                    continue
-                charset = part.get_content_charset() or "utf-8"
-                payload = part.get_payload(decode=True)
-                parts.append(
-                    {
-                        "content_type": part.get_content_type(),
-                        "body": payload.decode(charset, errors="replace")
-                        if payload
-                        else "",
-                        "headers": list(part.items()),
-                    }
-                )
-        else:
-            charset = parsed.get_content_charset() or "utf-8"
-            payload = parsed.get_payload(decode=True)
-            parts.append(
-                {
-                    "content_type": parsed.get_content_type(),
-                    "body": payload.decode(charset, errors="replace")
-                    if payload
-                    else parsed.get_payload(),
-                    "headers": [],
-                }
-            )
+        parts = list(parsed.walk()) if parsed.is_multipart() else [parsed]
         return context | {
             "headers": headers,
             "parts": parts,
@@ -179,8 +151,6 @@ class TlsReportListView(OrganizationScopedView, ListView):
     parent = "tx_email:dashboard"
 
     def get_queryset(self):
-        from .models import TlsReport
-
         qs = TlsReport.objects.filter(org=self.org)
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
@@ -201,11 +171,9 @@ class TlsReportListView(OrganizationScopedView, ListView):
 class TlsReportDetailView(OrganizationScopedView, DetailView):
     template_name = "mx/tls_report_detail.html"
     context_object_name = "report"
-    parent = "mx:tls-report-list"
+    parent = "tx_mail:contact-reports"
 
     def get_queryset(self):
-        from .models import TlsReport
-
         return TlsReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):

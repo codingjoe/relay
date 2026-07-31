@@ -164,18 +164,23 @@ graph BT
  subgraph email
  direction BT
  tx_email[tx_email]
+ tx_mail[tx_mail]
  smtp
  mx
  dmarc
+ tx_mail --> accounts
+ smtp --> tx_mail
  smtp --> accounts
  smtp --> domains
- smtp --> mx
+ smtp --> kms
+ mx --> tx_mail
  mx --> accounts
  mx --> domains
  mx --> kms
  dmarc --> accounts
  dmarc --> domains
  dmarc --> mx
+ tx_email --> tx_mail
  tx_email --> smtp
  tx_email --> mx
  tx_email --> dmarc

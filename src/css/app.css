@@ -10,3 +10,97 @@
 .bg-background {
   background-color: var(--color-background);
 }
+
+.link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link:hover {
+  text-decoration: none;
+}
+
+/* Make the whole table row clickable while keeping inner anchors working.
+   The anchor is stretched over the cell so the row navigates to the
+   detail page; other cells can still hold their own links (e.g.
+   entity-link filters) because they are not inside the stretched
+   anchor. */
+.table tr.row-link,
+.table tbody tr.row-link {
+  position: relative;
+}
+
+.row-link-anchor::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.row-link-anchor {
+  position: relative;
+  z-index: 1;
+}
+
+/* RFC 822 email header syntax highlighting via Pygments EmailLexer.
+   Pygments emits spans with these token classes:
+     nt — name.tag    (header name, e.g. "From:")
+     nl — name.label  (email/labeled value, e.g. "alice@example.com")
+     nf — name.function (hostnames / domain literals)
+     mi — number.integer (IPs)
+     nd — name.decorator (RFC 5322 dates)
+     k  — keyword    (protocol names like ESMTPS, ESMTP)
+     o  — operator   (semicolons, commas)
+     w  — whitespace
+   Unknown tokens (header bodies, plain text) inherit the default color. */
+.highlight-email {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.highlight-email pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+}
+
+.highlight-email .nt {
+  color: hsl(268, 100%, 60%);
+  font-weight: 600;
+}
+
+.highlight-email .nl {
+  color: hsl(199, 89%, 48%);
+}
+
+.highlight-email .nf {
+  color: hsl(199, 89%, 48%);
+}
+
+.highlight-email .mi {
+  color: hsl(28, 90%, 55%);
+}
+
+.highlight-email .nd {
+  color: hsl(28, 90%, 55%);
+  font-style: italic;
+}
+
+.highlight-email .k {
+  color: hsl(340, 82%, 52%);
+}
+
+.highlight-email .o {
+  color: var(--color-muted-foreground);
+}
+
+.highlight-email .w {
+  color: var(--color-muted-foreground);
+}

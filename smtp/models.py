@@ -7,12 +7,12 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from abstract.messages import MessageMixin
 from abstract.models import TimeStamped
 from accounts.models import Credential
+from tx_mail.models import Message
 
 
-class OutgoingMessage(MessageMixin, TimeStamped):
+class OutgoingMessage(Message):
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
         SENT = "sent", _("sent")
@@ -22,21 +22,10 @@ class OutgoingMessage(MessageMixin, TimeStamped):
         DROPPED = "dropped", _("dropped")
         FAILED = "failed", _("failed")
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="outgoing_messages",
-    )
-    org = models.ForeignKey(
-        "accounts.Organization",
-        on_delete=models.CASCADE,
-        related_name="outgoing_messages",
-        help_text=_("Owning organization."),
     )
     domain = models.ForeignKey(
         "domains.Domain",
@@ -52,9 +41,8 @@ class OutgoingMessage(MessageMixin, TimeStamped):
         blank=True,
         related_name="outgoing_messages",
     )
-    status = models.CharField(
+    status = models.TextField(
         _("status"),
-        max_length=10,
         choices=Status,
         default=Status.PENDING,
         help_text=_("Send/deliver lifecycle state."),
@@ -64,9 +52,13 @@ class OutgoingMessage(MessageMixin, TimeStamped):
         ordering = ["-id"]
         indexes = [
             models.Index(fields=["sender", "status"]),
-            models.Index(fields=["sender", "received_at"]),
             models.Index(fields=["domain", "status"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.kind:
+            self.kind = Message.Kind.OUTGOING
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
@@ -101,9 +93,8 @@ class Transmission(TimeStamped):
         on_delete=models.CASCADE,
         related_name="transmissions",
     )
-    status = models.CharField(
+    status = models.TextField(
         _("status"),
-        max_length=10,
         choices=Status,
         help_text=_("Outcome of this delivery attempt."),
     )
@@ -128,9 +119,8 @@ class Transmission(TimeStamped):
         default=False,
         help_text=_("Delivered over TLS."),
     )
-    log_id = models.CharField(
+    log_id = models.TextField(
         _("log ID"),
-        max_length=255,
         blank=True,
         help_text=_("Remote server log identifier."),
     )
@@ -149,9 +139,8 @@ class SmtpCredential(Credential):
         SMTP = "smtp", _("SMTP")
         SMTP_IP = "smtp-ip", _("SMTP-IP")
 
-    type = models.CharField(
+    type = models.TextField(
         _("type"),
-        max_length=7,
         choices=Type,
         default=Type.SMTP,
         help_text=_("SMTP authentication method."),

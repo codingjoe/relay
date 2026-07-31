@@ -87,27 +87,29 @@ def dmarc_report(org):
 
 @pytest.mark.django_db
 class TestDmarcReportListView:
+    """Legacy /email/dmarc/ redirects to the merged contact timeline."""
+
     def test_get__shows_reports(self, client, org, dmarc_report):
         client.force_login(org.members.first())
         response = client.get(f"/org/{org.slug}/email/dmarc/")
-        assert response.status_code == 200
-        assert dmarc_report.report_id in response.content.decode()
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/contacts/reports/?type=dmarc"
 
     def test_get__filters_by_domain(self, client, org, dmarc_report):
         client.force_login(org.members.first())
         response = client.get(
             f"/org/{org.slug}/email/dmarc/", {"domain": "example.com"}
         )
-        assert response.status_code == 200
-        assert dmarc_report.report_id in response.content.decode()
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/contacts/reports/?type=dmarc"
 
     def test_get__filters_by_source_ip(self, client, org, dmarc_report):
         client.force_login(org.members.first())
         response = client.get(
             f"/org/{org.slug}/email/dmarc/", {"source_ip": "192.168.1.1"}
         )
-        assert response.status_code == 200
-        assert dmarc_report.report_id in response.content.decode()
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/contacts/reports/?type=dmarc"
 
     def test_get__source_ip_filter_excludes_non_matching(
         self, client, org, dmarc_report
@@ -116,8 +118,8 @@ class TestDmarcReportListView:
         response = client.get(
             f"/org/{org.slug}/email/dmarc/", {"source_ip": "10.0.0.1"}
         )
-        assert response.status_code == 200
-        assert dmarc_report.report_id not in response.content.decode()
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/contacts/reports/?type=dmarc"
 
     def test_get__unauthenticated_redirects(self, client, org):
         response = client.get(f"/org/{org.slug}/email/dmarc/")

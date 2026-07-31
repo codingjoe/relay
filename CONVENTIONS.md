@@ -126,11 +126,14 @@ Update it based on review feedback.
 
 - Use [basecoat-css](https://basecoatui.com/) (maia style) for all UI styling.
   Do **not** use pico.css or any other CSS framework.
+
 - Use Django template inheritance: define the shell once in
   `root/templates/base.html` and have every page template `{% extends "base.html" %}`.
   Pages only override `{% block title %}` and `{% block content %}`.
+
 - For interactive widgets, prefer off-the-shelf basecoat components over custom
   CSS or custom JS:
+
   - Buttons: `<button class="btn" data-variant="secondary|ghost|destructive" data-size="sm|icon|default">`.
     Use `data-variant="secondary"` for most non-primary buttons. Reserve
     `data-variant="outline"` for `item` elements (outlined cards), never for
@@ -159,6 +162,7 @@ Update it based on review feedback.
   - Brand name: write `relay` in lowercase everywhere — it is a brand name,
     not a translatable string. Do not wrap it in `{% translate %}` or
     apply `|capfirst`/`|title`.
+
 - Icons use [Lucide](https://lucide.dev/) via vanilla JS — load the UMD
   bundle from a CDN with `defer` and call `lucide.createIcons()` on
   `DOMContentLoaded`. Render icons with `<i data-lucide="name" class="size-4|size-5|size-3.5" aria-hidden="true">`
@@ -168,6 +172,7 @@ Update it based on review feedback.
   use Lucide icons with semantic color classes instead (for example,
   `circle-check` with `text-success`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
+
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css` — it imports Tailwind CSS v4 and
   basecoat-css (maia style), plus any custom CSS variables and layout glue.
@@ -180,6 +185,7 @@ Update it based on review feedback.
   container's background, marketing-page accent highlights). Do not use it
   for component styling — use basecoat classes instead. If a utility is
   missing, prefer a Tailwind utility before adding a custom rule.
+
 - Django form widgets are styled by overriding templates under
   `abstract/templates/django/forms/widgets/{input,checkbox,select,textarea}.html`.
   Each override adds the matching basecoat class
@@ -188,11 +194,13 @@ Update it based on review feedback.
   `{{ form }}` / `{{ form.field }}` so the overrides apply automatically.
   Only fall back to hand-written inputs when a widget truly needs custom
   markup.
+
 - Sidebar and main-nav links: assign each URL to a variable with
   `{% url '...' as var %}`, then use exact `request.path == var` to set
   `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
   a substring check highlights parent links on every child page.
   Hide main-nav links entirely when no org is selected.
+
 - Breadcrumbs: use `BreadcrumbViewMixin` from `abstract.views`. Each view
   sets `title` (the breadcrumb title) and `parent` (the URL name of the
   parent page). The mixin builds the chain by traversing parents via
@@ -203,6 +211,14 @@ Update it based on review feedback.
   For detail views with no `title`, the breadcrumb falls back to
   `str(self.object)`. Context variable is `breadcrumbs`, dict keys are
   `{"title": ..., "url": ...}`.
+
+- Tailwind v4's preflight resets `a { color: inherit; text-decoration: inherit; }`, so a bare anchor inherits color from
+  its parent and visually disappears. Entity-link filters wrap
+  recognized values in `<a class="link">`. The `.link` rule in
+  `src/css/app.css` sets `color: var(--color-primary)` and
+  `text-decoration: underline` so linked entities stand out from
+  surrounding text. Always set `class="link"` on entity anchors —
+  without it, they look identical to plain text.
 
 ## Testing
 
@@ -246,3 +262,125 @@ Update it based on review feedback.
 
 - Use `pytest.mark.asyncio` for async test methods (pytest-asyncio is
   installed).
+
+## Multi-table inheritance (MTI)
+
+- When two sibling models share most of their columns and are queried
+  together (for example, inbound vs. outbound messages), promote the
+  shared columns to a concrete parent model and let the children
+  inherit via multi-table inheritance. The parent table holds the
+  shared columns; per-kind fields stay on the children. MTI
+  auto-promotes parent attributes onto child rows, so call sites
+  read and write the same column names regardless of which side
+  they query.
+
+- After MTI unification, indexes (and `unique_together`) on the
+  parent must live on the parent's `Meta.indexes`. Per-kind
+  indexes stay on the child. Indexes that reference parent
+  columns in the child `Meta` raise Django E016.
+
+- A `Message.kind` enum (or equivalent) on the parent distinguishes
+  rows. Each child sets `kind` in `save()` before delegating to
+  `super().save()` so MTI-managed columns stay in sync.
+
+- The migration to convert an abstract mixin to a concrete MTI
+  parent is multi-step: add the parent table, add a nullable
+  `message_ptr` OneToOne on the child, `RunPython(atomic=True)`
+  to copy child PKs into the parent table (so child PKs are
+  preserved as the parent's PK, and existing FKs to the child
+  keep resolving), then drop the duplicated columns and the now
+  redundant indexes. The data migration must be atomic — a
+  half-copied state would orphan rows.
+
+## Merged list views across sibling apps
+
+- When the same list view fans out across multiple sibling apps
+  (for example, messages across `smtp` and `mx`, or reports
+  across `dmarc` and `mx`), place the merged view in the parent
+  app (for example, `tx_email`) that depends on all the siblings.
+  Sibling apps must not import from each other — only the parent
+  app can import both.
+
+- The merged view usually toggles between sibling querysets with
+  a query-string parameter (for example, `?direction=sent` or
+  `?type=tls`). The toggle links use `{% param_replace %}` so
+  filter and pagination state survives the toggle.
+
+- Legacy list URLs stay registered under their original names
+  but route to a `RedirectView` subclass that 302s to the merged
+  view with the appropriate query-string parameter. This keeps
+  bookmarks and external links working.
+
+- Place the redirect view classes in `abstract/views.py` (or
+  another dependency-free app) so each sibling app can import
+  them without creating a circular dependency between the sibling
+  and the parent app. The redirect view receives the org slug
+  from the URL kwargs and passes it to `reverse()` of the merged
+  view's URL name.
+
+- Detail-view URL names are unchanged. Their `parent` breadcrumb
+  repoints to the merged list view so the breadcrumb chain still
+  terminates at the org-scoped list.
+
+## Entity-link template filters
+
+- Email addresses, domain names, and IP addresses on list and
+  detail templates are wrapped in template filters that turn
+  them into anchor tags pointing to the merged views with the
+  appropriate filter (`email`, `domain`, `ip`). The filters live
+  in `tx_mail/templatetags/tx_mail.py` and are loaded with
+  `{% load tx_mail %}`. The filters compose the URL via
+  `reverse("tx_mail:contact-messages" | "tx_mail:contact-reports")`.
+
+- Empty values render as plain text (no anchor). Do not chain
+  `|default:"—"` before the filter — the default value would
+  become the filter's input and generate a link to `—`. Use a
+  `{% if value %}{{ value|filter:org }}{% else %}—{% endif %}`
+  block instead.
+
+- The filter takes the org slug (or an `Organization` instance)
+  as its argument so the resulting URL is org-scoped.
+
+- List rows in the merged views navigate to the detail page via
+  the model's `get_absolute_url()` (no modal, no preview). The
+  `<tr>` carries `class="row-link"`, and the first cell's anchor
+  is stretched over the row via the `.row-link-anchor::after`
+  technique in `src/css/app.css` so the whole row is clickable
+  while inner entity links (e.g. `|email_link:org`) remain
+  individually clickable.
+
+- Templates render the row's anchor in the first cell only. Do not
+  wrap the entire row in an `<a>` — that is invalid HTML and
+  triggers re-parsing in browsers.
+
+## Header values become entity links
+
+- Header cell values in detail templates render through the
+  `header_value` filter (`{{ value|header_value:org }}`), which
+  scans the raw header value for emails, domain names, IPv4
+  addresses, and bracketed IPv6 addresses, and emits each as
+  a `<a class="link">` pointing to the merged views with the
+  appropriate filter. Plain text spans between hits are
+  auto-escaped.
+
+- The detail template does not render the message body. The
+  preview is header-only; body access (if needed) is a future
+  separate view. Detail views parse `raw_body` for headers
+  only and skip multipart payload decoding.
+
+## App structure: shared model + merged views
+
+- When a concrete model is shared between sibling apps (e.g. the
+  `Message` parent table used by both `smtp` and `mx`), the model
+  belongs in a dedicated app — not in `abstract`. The `abstract`
+  app must remain non-materialized: only abstract models, template
+  tags, helpers, and views that compose other apps.
+
+- The shared app also owns the merged list views
+  (`ContactMessagesView`, `ContactReportsView`) and the
+  template-tag library that links into them. Siblings
+  (`smtp`, `mx`, `dmarc`) keep their own detail views and
+  redirect their legacy list URLs into the merged views.
+
+- The app dependency graph flows: `smtp`, `mx` → `tx_mail` → platform,
+  and `tx_email` (dashboard/charts) → `tx_mail`, `smtp`, `mx`, `dmarc`.

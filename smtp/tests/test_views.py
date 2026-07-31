@@ -28,43 +28,19 @@ def make_message(org, user, **kwargs):
 
 @pytest.mark.django_db
 class TestMessageLogView:
+    """Legacy /email/messages/ redirects to the merged contact timeline."""
+
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/email/messages/")
         assert response.status_code == 302
         assert "/account/login" in response.url
 
-    def test_get__ok_for_member(self, admin_client, org):
+    def test_get__redirects_to_contact_timeline(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/messages/")
-        assert response.status_code == 200
-
-    def test_get__filters_by_org(self, admin_client, org, user, write_org):
-        make_message(org, user)
-        make_message(
-            write_org, User.objects.create_user(username="z", email="z@example.com")
+        assert response.status_code == 302
+        assert (
+            response.url == f"/org/{org.slug}/email/contacts/messages/?direction=sent"
         )
-        response = admin_client.get(f"/org/{org.slug}/email/messages/")
-        assert response.status_code == 200
-        messages = list(response.context["messages"])
-        assert len(messages) == 1
-        assert messages[0].org == org
-
-    def test_get__filter_by_status(self, admin_client, org, user):
-        make_message(org, user, status=OutgoingMessage.Status.PENDING)
-        make_message(org, user, status=OutgoingMessage.Status.SENT)
-        response = admin_client.get(f"/org/{org.slug}/email/messages/?status=sent")
-        assert response.status_code == 200
-        messages = list(response.context["messages"])
-        assert len(messages) == 1
-        assert messages[0].status == OutgoingMessage.Status.SENT
-
-    def test_get__filter_by_search(self, admin_client, org, user):
-        make_message(org, user, rcpt_to="alice@example.com")
-        make_message(org, user, rcpt_to="bob@example.com")
-        response = admin_client.get(f"/org/{org.slug}/email/messages/?search=alice")
-        assert response.status_code == 200
-        messages = list(response.context["messages"])
-        assert len(messages) == 1
-        assert "alice" in messages[0].rcpt_to
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/messages/")
@@ -92,26 +68,7 @@ class TestMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
         assert "headers" in response.context
-        assert "parts" in response.context
         assert "transmissions" in response.context
-
-
-@pytest.mark.django_db
-class TestMessageModalView:
-    def test_get__returns_json(self, admin_client, org, user):
-        msg = make_message(org, user)
-        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}/modal")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["mail_from"] == msg.mail_from
-        assert data["rcpt_to"] == msg.rcpt_to
-        assert data["id"] == str(msg.id)
-
-    def test_get__not_found_for_other_org(self, admin_client, org, write_org):
-        other_user = User.objects.create_user(username="z", email="z@example.com")
-        msg = make_message(write_org, other_user)
-        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}/modal")
-        assert response.status_code == 404
 
 
 @pytest.mark.django_db

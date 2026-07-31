@@ -93,9 +93,8 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("When DNS verification completed."),
     )
-    nameserver_status = models.CharField(
+    nameserver_status = models.TextField(
         _("nameserver status"),
-        max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
         help_text=_("NS delegation check result for the sender subdomain."),
@@ -105,9 +104,8 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if NS delegation is incorrect."),
     )
-    spf_status = models.CharField(
+    spf_status = models.TextField(
         _("SPF status"),
-        max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
         help_text=_("SPF record check result on the root domain."),
@@ -117,9 +115,8 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if the SPF record is incorrect."),
     )
-    dkim_status = models.CharField(
+    dkim_status = models.TextField(
         _("DKIM status"),
-        max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
         help_text=_("DKIM CNAME check result on the root domain."),
@@ -129,9 +126,8 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if the DKIM CNAME is incorrect."),
     )
-    dmarc_status = models.CharField(
+    dmarc_status = models.TextField(
         _("DMARC status"),
-        max_length=9,
         choices=Status,
         default=Status.UNCHECKED,
         help_text=_("DMARC record check result on the root domain."),

@@ -1,5 +1,7 @@
 from django.urls import include, path
 
+from tx_mail.views import MergedReportsRedirectView
+
 from . import views
 
 app_name = "dmarc"
@@ -9,7 +11,11 @@ urlpatterns = [
         "dmarc/",
         include(
             [
-                path("", views.DmarcReportListView.as_view(), name="report-list"),
+                path(
+                    "",
+                    MergedReportsRedirectView.as_view(report_type="dmarc"),
+                    name="report-list",
+                ),
                 path(
                     "<uuid:pk>",
                     views.DmarcReportDetailView.as_view(),
@@ -24,7 +30,7 @@ urlpatterns = [
             [
                 path(
                     "",
-                    views.DmarcFailureReportListView.as_view(),
+                    MergedReportsRedirectView.as_view(report_type="failures"),
                     name="failure-report-list",
                 ),
                 path(

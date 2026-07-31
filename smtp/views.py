@@ -7,7 +7,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -55,7 +54,7 @@ class OutgoingMessageLogView(OrganizationScopedView, ListView):
 class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
     template_name = "smtp/message_detail.html"
     context_object_name = "message"
-    parent = "smtp:message-list"
+    parent = "tx_mail:contact-messages"
 
     def get_queryset(self):
         return OutgoingMessage.objects.filter(org=self.org).select_related(
@@ -68,8 +67,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
-        raw_bytes = message.raw_body.read()
-        parsed = message_from_bytes(raw_bytes)
+        parsed = message_from_bytes(message.raw_body.read())
         headers = list(parsed.items())
         dkim_signatures = [
             dict(
@@ -81,82 +79,12 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
             if k.lower() == "dkim-signature"
         ]
         received = [v for k, v in headers if k.lower() == "received"]
-        parts: list[dict] = []
-        if parsed.is_multipart():
-            for part in parsed.walk():
-                if part.is_multipart():
-                    continue
-                charset = part.get_content_charset() or "utf-8"
-                payload = part.get_payload(decode=True)
-                parts.append(
-                    {
-                        "content_type": part.get_content_type(),
-                        "body": payload.decode(charset, errors="replace")
-                        if payload
-                        else "",
-                        "headers": list(part.items()),
-                    }
-                )
-        else:
-            charset = parsed.get_content_charset() or "utf-8"
-            payload = parsed.get_payload(decode=True)
-            parts.append(
-                {
-                    "content_type": parsed.get_content_type(),
-                    "body": payload.decode(charset, errors="replace")
-                    if payload
-                    else parsed.get_payload(),
-                    "headers": [],
-                }
-            )
         return context | {
             "headers": headers,
             "dkim_signatures": dkim_signatures,
             "received": received,
-            "parts": parts,
             "transmissions": Transmission.objects.filter(message=message),
         }
-
-
-class OutgoingMessageModalView(OrganizationScopedView, View):
-    def get(self, request, org_slug, pk, *args, **kwargs):
-        message = get_object_or_404(
-            OutgoingMessage.objects.filter(org=self.org).select_related(
-                "domain", "credential"
-            ),
-            pk=pk,
-        )
-        transmissions = Transmission.objects.filter(message=message).values(
-            "status",
-            "code",
-            "created_at",
-            "sent_with_ssl",
-            "log_id",
-            "output",
-            "details",
-        )
-        return JsonResponse(
-            {
-                "id": str(message.id),
-                "mail_from": message.mail_from,
-                "rcpt_to": message.rcpt_to,
-                "subject": message.subject,
-                "status": message.get_status_display(),
-                "received_at": message.received_at.isoformat(),
-                "message_id": message.message_id,
-                "domain": message.domain.name if message.domain else None,
-                "credential": message.credential.key_prefix
-                if message.credential
-                else None,
-                "credential_type": (
-                    message.credential.get_type_display()
-                    if message.credential
-                    else None
-                ),
-                "detail_url": message.get_absolute_url(),
-                "transmissions": list(transmissions),
-            }
-        )
 
 
 class TestEmailView(OrganizationScopedView, View):

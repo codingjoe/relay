@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load i18n tx_mail %}
 {% block title %}{% translate "DMARC report"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -17,7 +17,7 @@
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "reporting email"|capfirst %}</dt>
-        <dd class="m-0">{{ report.reporting_email }}</dd>
+        <dd class="m-0"><code>{{ report.reporting_email }}</code></dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "report ID"|capfirst %}</dt>
@@ -25,11 +25,15 @@
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
-        <dd class="m-0">{{ report.begin_at|naturaltime }}</dd>
+        <dd class="m-0">
+          <time datetime="{{ report.begin_at|date:'c' }}">{{ report.begin_at|naturaltime }}</time>
+        </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
-        <dd class="m-0">{{ report.end_at|naturaltime }}</dd>
+        <dd class="m-0">
+          <time datetime="{{ report.end_at|date:'c' }}">{{ report.end_at|naturaltime }}</time>
+        </dd>
       </div>
     </dl>
   </div>
@@ -62,14 +66,12 @@
       <tbody>
         {% for record in records %}
           <tr>
-            <td>
-              <a href="?source_ip={{ record.source_ip_address }}">{{ record.source_ip_address }}</a>
-            </td>
+            <td>{{ record.source_ip_address|ip_link:org }}</td>
             <td>{{ record.count }}</td>
             <td>{{ record.get_disposition_display }}</td>
             <td>{{ record.get_dkim_alignment_display }}</td>
             <td>{{ record.get_spf_alignment_display }}</td>
-            <td>{{ record.header_from|truncatechars:30 }}</td>
+            <td>{{ record.header_from|truncatechars:30|domain_link:org }}</td>
             <td>{{ record.get_dkim_result_display }}</td>
             <td>{{ record.get_spf_result_display }}</td>
           </tr>

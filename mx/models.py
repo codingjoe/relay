@@ -9,16 +9,16 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import iter_attachments
-from abstract.messages import MessageMixin
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
 from domains.models import Domain
 from kms.models import SigningKey
+from tx_mail.models import Message
 
 from .serializers import TlsReportSerializer
 
 
-class IncomingMessage(MessageMixin, TimeStamped):
+class IncomingMessage(Message):
     """An email captured by the MX server that waits for webhook dispatch."""
 
     class Status(models.TextChoices):
@@ -27,17 +27,6 @@ class IncomingMessage(MessageMixin, TimeStamped):
         WEBHOOK_FAILED = "webhook_failed", _("webhook failed")
         DROPPED = "dropped", _("dropped")
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
-    org = models.ForeignKey(
-        "accounts.Organization",
-        on_delete=models.CASCADE,
-        related_name="incoming_messages",
-        help_text=_("Owning organization."),
-    )
     receiving_domain = models.TextField(
         _("receiving domain"),
         blank=True,
@@ -53,9 +42,13 @@ class IncomingMessage(MessageMixin, TimeStamped):
     class Meta(TimeStamped.Meta):
         ordering = ["-received_at"]
         indexes = [
-            models.Index(fields=["org", "status"]),
-            models.Index(fields=["org", "received_at"]),
+            models.Index(fields=["status"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.kind:
+            self.kind = Message.Kind.INCOMING
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"

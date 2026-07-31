@@ -37,7 +37,7 @@ class DmarcReportListView(OrganizationScopedView, ListView):
 class DmarcReportDetailView(OrganizationScopedView, DetailView):
     template_name = "dmarc/report_detail.html"
     context_object_name = "report"
-    parent = "dmarc:report-list"
+    parent = "tx_mail:contact-reports"
 
     def get_queryset(self):
         return DmarcReport.objects.filter(org=self.org)
@@ -80,7 +80,7 @@ class DmarcFailureReportListView(OrganizationScopedView, ListView):
 class DmarcFailureReportDetailView(OrganizationScopedView, DetailView):
     template_name = "dmarc/failure_report_detail.html"
     context_object_name = "report"
-    parent = "dmarc:failure-report-list"
+    parent = "tx_mail:contact-reports"
 
     def get_queryset(self):
         return DmarcFailureReport.objects.filter(org=self.org)
