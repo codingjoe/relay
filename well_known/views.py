@@ -9,7 +9,7 @@ from know_how.views import list_articles
 
 
 class RobotsTxtView(TemplateView):
-    """Serve robots.txt with the sitemap URL."""
+    """Serve robots.txt with a sitemap reference."""
 
     template_name = "well_known/robots.txt"
     content_type = "text/plain; charset=utf-8"
@@ -23,7 +23,7 @@ class RobotsTxtView(TemplateView):
 
 
 class LlmsTxtView(TemplateView):
-    """Serve llms.txt following the spec at llmstxt.org."""
+    """Serve llms.txt following the llmstxt.org spec."""
 
     template_name = "well_known/llms.txt"
     content_type = "text/plain; charset=utf-8"

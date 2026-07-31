@@ -29,11 +29,7 @@ LICENSE_YAML = "CC-BY-SA-4.0"
 
 
 def parse_frontmatter(text):
-    """Parse YAML frontmatter from a Markdown document.
-
-    Returns a tuple of ``(metadata_dict, content_without_frontmatter)``.
-    If the document has no frontmatter block, returns ``({}, text)``.
-    """
+    """Extract YAML frontmatter and content from a Markdown document."""
     if not text.startswith("---\n"):
         return {}, text
     lines = text.splitlines(keepends=True)
@@ -51,11 +47,7 @@ def parse_frontmatter(text):
 
 
 def list_articles():
-    """Return a list of articles as dicts with slug, title, and description.
-
-    Each Markdown file in the know-how directory becomes one article.
-    Title and description come from the YAML frontmatter.
-    """
+    """Return all know-how articles with slug, title, and rendered description."""
     articles = []
     for slug in sorted(ARTICLE_SLUGS):
         text = (KNOW_HOW_DIR / f"{slug}.md").read_text()
@@ -74,12 +66,7 @@ def list_articles():
 
 
 def extract_title(markdown_text):
-    """Return the text of the first H1 heading in the given Markdown.
-
-    If the Markdown has no H1 heading, return an empty string.
-    Frontmatter is stripped before searching so metadata is not confused
-    with content.
-    """
+    """Return the first H1 heading text from the given Markdown."""
     markdown_text = strip_frontmatter(markdown_text)
     for line in markdown_text.splitlines():
         if line.startswith("# "):
@@ -88,14 +75,14 @@ def extract_title(markdown_text):
 
 
 def article_path(slug):
-    """Return the filesystem path for a know-how article, or raise Http404."""
+    """Resolve the filesystem path for a know-how article or raise Http404."""
     if slug not in ARTICLE_SLUGS:
         raise Http404("Article not found")
     return KNOW_HOW_DIR / f"{slug}.md"
 
 
 class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
-    """List all know-how articles."""
+    """Display all know-how articles."""
 
     template_name = "know_how/list.html"
     title = _("know how")
@@ -109,7 +96,7 @@ class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
 
 
 class KnowHowDetailView(MarkdownView):
-    """Render a single know-how article by slug."""
+    """Render a single know-how article."""
 
     parent = "know_how:list"
 
@@ -139,11 +126,7 @@ class KnowHowDetailView(MarkdownView):
         return context
 
     def render_markdown(self, request, **kwargs):
-        """Return the article as ``text/markdown`` with frontmatter intact.
-
-        The ``license`` field is injected into the frontmatter at render time
-        so the source files stay free of license metadata.
-        """
+        """Return the article as ``text/markdown`` with license injected into frontmatter."""
         context = self.get_context_data(**kwargs)
         markdown_text = loader.get_template(self.get_markdown_template()).render(
             context=context, request=request

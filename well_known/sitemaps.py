@@ -7,7 +7,7 @@ from know_how.views import list_articles
 
 
 class HomeSitemap(Sitemap):
-    """The marketing landing page."""
+    """Marketing landing page."""
 
     changefreq = "weekly"
     priority = 1.0
@@ -20,7 +20,7 @@ class HomeSitemap(Sitemap):
 
 
 class LegalSitemap(Sitemap):
-    """Static legal pages — imprint, terms, privacy."""
+    """Imprint, terms, and privacy pages."""
 
     changefreq = "monthly"
     priority = 0.3
@@ -33,7 +33,7 @@ class LegalSitemap(Sitemap):
 
 
 class KnowHowSitemap(Sitemap):
-    """Know-how articles — one entry per Markdown file."""
+    """One entry per know-how article."""
 
     changefreq = "monthly"
     priority = 0.6
