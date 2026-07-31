@@ -2,19 +2,11 @@
 
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 from health_check.views import HealthCheckView
 from redis.asyncio import Redis
 
 from . import views
-from .sitemaps import HomeSitemap, KnowHowSitemap, LegalSitemap
-
-sitemaps = {
-    "home": HomeSitemap,
-    "legal": LegalSitemap,
-    "know-how": KnowHowSitemap,
-}
 
 urlpatterns = [
     path(
@@ -59,16 +51,8 @@ urlpatterns = [
     path("", include("accounts.urls")),
     path("legal/", include("legal.urls")),
     path("know-how/", include("know_how.urls")),
-    # SEO and agent discovery
-    path("robots.txt", views.RobotsTxtView.as_view(), name="robots-txt"),
-    path("llms.txt", views.LlmsTxtView.as_view(), name="llms-txt"),
-    path("llms-full.txt", views.LlmsFullTxtView.as_view(), name="llms-full-txt"),
-    path(
-        "sitemap.xml",
-        sitemap,
-        {"sitemaps": sitemaps},
-        name="sitemap",
-    ),
+    # Well-known endpoints — robots.txt, llms.txt, sitemap.xml
+    path("", include("well_known.urls")),
     # Org-scoped email
     path(
         "org/<slug:org_slug>/email/",

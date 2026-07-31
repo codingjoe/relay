@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "domains",
     "legal",
     "know_how",
+    "well_known",
     "root",
     "smtp",
     "tx_email",

@@ -1,0 +1,25 @@
+from django.contrib.sitemaps.views import sitemap
+from django.urls import path
+
+from . import views
+from .sitemaps import HomeSitemap, KnowHowSitemap, LegalSitemap
+
+app_name = "well_known"
+
+sitemaps = {
+    "home": HomeSitemap,
+    "legal": LegalSitemap,
+    "know-how": KnowHowSitemap,
+}
+
+urlpatterns = [
+    path("robots.txt", views.RobotsTxtView.as_view(), name="robots-txt"),
+    path("llms.txt", views.LlmsTxtView.as_view(), name="llms-txt"),
+    path("llms-full.txt", views.LlmsFullTxtView.as_view(), name="llms-full-txt"),
+    path(
+        "sitemap.xml",
+        sitemap,
+        {"sitemaps": sitemaps},
+        name="sitemap",
+    ),
+]
