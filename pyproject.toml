@@ -32,6 +32,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   { include-group = "test" },
+  "threadmill[inspector]>=0.1",
 ]
 test = [
     "pytest>=7.4.0",
