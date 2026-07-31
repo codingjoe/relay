@@ -11,6 +11,20 @@ from markdown.extensions.toc import TocExtension
 logger = logging.getLogger(__name__)
 
 
+def strip_frontmatter(text: str) -> str:
+    """Strip YAML frontmatter (``---`` delimited) from the start of a Markdown document.
+
+    If the document does not start with a frontmatter block, return it unchanged.
+    """
+    if not text.startswith("---\n"):
+        return text
+    lines = text.splitlines(keepends=True)
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return "".join(lines[i + 1 :]).lstrip("\n")
+    return text
+
+
 def future(now=None, min_offset=1, max_offset=999):
     """
     Return random datetime in the near future.

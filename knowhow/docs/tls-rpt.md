@@ -1,3 +1,9 @@
+---
+name: TLS-RPT
+description: Reports about TLS connection failures
+author: Johannes Maron
+---
+
 # TLS-RPT
 
 > **TL;DR** — TLS-RPT lets mail servers send you reports about TLS connection failures. It works with MTA-STS to help you monitor and fix delivery problems. relay collects these reports for you.

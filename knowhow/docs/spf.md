@@ -1,3 +1,9 @@
+---
+name: SPF
+description: DNS record listing authorized sending servers
+author: Johannes Maron
+---
+
 # SPF
 
 > **TL;DR** — SPF is a DNS record that lists the mail servers authorized to send email for your domain. Receiving servers check this record to verify the sender. relay publishes the SPF record for you automatically.

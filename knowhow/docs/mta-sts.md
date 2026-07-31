@@ -1,3 +1,9 @@
+---
+name: MTA-STS
+description: Enforce TLS for incoming mail connections
+author: Johannes Maron
+---
+
 # MTA-STS
 
 > **TL;DR** — MTA-STS tells sending mail servers to use TLS when they connect to your mail server. It prevents downgrade attacks and man-in-the-middle interception. relay serves the policy file automatically.

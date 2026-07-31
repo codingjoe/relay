@@ -3,11 +3,12 @@
 import pathlib
 
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, HttpResponse
+from django.template import loader
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.utils import md_2_html
+from abstract.utils import md_2_html, strip_frontmatter
 from abstract.views import BreadcrumbViewMixin, MarkdownView
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "knowhow" / "docs"
@@ -17,6 +18,30 @@ LICENSE_MARKDOWN = (
     "[Creative Commons Attribution-ShareAlike 4.0 International License]"
     "(https://creativecommons.org/licenses/by-sa/4.0/)."
 )
+
+LICENSE_YAML = "CC-BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)"
+
+
+def parse_frontmatter(text):
+    """Parse YAML frontmatter from a Markdown document.
+
+    Returns a tuple of ``(metadata_dict, content_without_frontmatter)``.
+    If the document has no frontmatter block, returns ``({}, text)``.
+    """
+    if not text.startswith("---\n"):
+        return {}, text
+    lines = text.splitlines(keepends=True)
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            frontmatter = "".join(lines[1:i])
+            content = "".join(lines[i + 1 :]).lstrip("\n")
+            metadata = {}
+            for fm_line in frontmatter.splitlines():
+                if ":" in fm_line:
+                    key, value = fm_line.split(":", 1)
+                    metadata[key.strip()] = value.strip().strip("\"'")
+            return metadata, content
+    return {}, text
 
 
 def list_articles():
@@ -40,7 +65,10 @@ def extract_title(markdown_text):
     """Return the text of the first H1 heading in the given Markdown.
 
     If the Markdown has no H1 heading, return an empty string.
+    Frontmatter is stripped before searching so metadata is not confused
+    with content.
     """
+    markdown_text = strip_frontmatter(markdown_text)
     for line in markdown_text.splitlines():
         if line.startswith("# "):
             return line[2:].strip()
@@ -87,7 +115,22 @@ class KnowHowDetailView(MarkdownView):
         return context
 
     def render_markdown(self, request, **kwargs):
-        response = super().render_markdown(request, **kwargs)
-        license_md = f"\n\n---\n\n{LICENSE_MARKDOWN}\n"
-        response.content = (response.content.decode() + license_md).encode()
-        return response
+        """Return the article as ``text/markdown`` with frontmatter intact.
+
+        The ``license`` field is injected into the frontmatter at render time
+        so the source files stay free of license metadata.
+        """
+        context = self.get_context_data(**kwargs)
+        markdown_text = loader.get_template(self.get_markdown_template()).render(
+            context=context, request=request
+        )
+        metadata, content = parse_frontmatter(markdown_text)
+        metadata["license"] = LICENSE_YAML
+        frontmatter = "---\n"
+        for key, value in metadata.items():
+            frontmatter += f"{key}: {value}\n"
+        frontmatter += "---\n\n"
+        return HttpResponse(
+            frontmatter + content,
+            content_type="text/markdown; charset=utf-8",
+        )

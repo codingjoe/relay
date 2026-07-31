@@ -1,3 +1,9 @@
+---
+name: SMTP
+description: Protocol for sending email between mail servers
+author: Johannes Maron
+---
+
 # SMTP
 
 > **TL;DR** — SMTP is the standard protocol for sending email between mail servers. relay accepts outgoing mail on port 587 with STARTTLS and authenticates each request with an API key.

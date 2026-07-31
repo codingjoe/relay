@@ -1,3 +1,9 @@
+---
+name: PTR
+description: Reverse DNS lookup for IP verification
+author: Johannes Maron
+---
+
 # PTR
 
 > **TL;DR** — A PTR record maps an IP address back to a hostname. Mail servers use it to verify the sending server. relay publishes the PTR record for the SMTP server automatically.

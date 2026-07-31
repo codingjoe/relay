@@ -4,6 +4,8 @@ from django.urls import resolve, reverse
 from django.utils.cache import patch_vary_headers
 from django.views import generic
 
+from abstract.utils import strip_frontmatter
+
 
 class BreadcrumbViewMixin:
     """Build breadcrumbs by traversing parent references.
@@ -95,13 +97,17 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
         return await super().aget(request, *args, **kwargs)
 
     def render_markdown(self, request, **kwargs):
-        """Return the raw Markdown source as a text/markdown response."""
+        """Return the raw Markdown source as a text/markdown response.
+
+        Frontmatter is stripped so metadata is not exposed in the raw
+        Markdown endpoint of generic views.
+        """
         context = self.get_context_data(**kwargs)
         markdown_text = loader.get_template(self.get_markdown_template()).render(
             context=context, request=request
         )
         return HttpResponse(
-            markdown_text,
+            strip_frontmatter(markdown_text),
             content_type="text/markdown; charset=utf-8",
         )
 
