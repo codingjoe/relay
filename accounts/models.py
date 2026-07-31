@@ -69,7 +69,7 @@ class Membership(TimeStamped):
         choices=Role,
         default=Role.WRITE,
         help_text=_(
-            "Write members can use services; admin members can also manage users."
+            "Write members can use services. Admin members can also manage users."
         ),
     )
 
@@ -131,7 +131,7 @@ class Credential(OrganizationOwned):
         _("key hash"),
         max_length=128,
         editable=False,
-        help_text=_("Hashed key — plaintext is shown only once at creation."),
+        help_text=_("Hashed key. The plaintext appears only once at creation."),
     )
     key_prefix = models.CharField(
         _("key prefix"),
