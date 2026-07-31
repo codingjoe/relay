@@ -150,3 +150,12 @@ class TestDomainGetAbsoluteUrl:
     def test_get_absolute_url__none_for_system_domain(self):
         domain = Domain.objects.create(name="system.com", org=None)
         assert domain.get_absolute_url() is None
+
+
+class TestMtaStsRecord:
+    def test_mta_sts_record__includes_sts_version(self):
+        assert Domain(name="example.com").mta_sts_record.startswith("v=STSv1;")
+
+    def test_mta_sts_record__includes_policy_id(self):
+        record = Domain(name="example.com").mta_sts_record
+        assert "id=" in record

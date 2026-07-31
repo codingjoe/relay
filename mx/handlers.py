@@ -41,7 +41,7 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls):
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
 
     try:
-        domain = Domain.objects.root_for(rcpt_domain).select_related("org").get()
+        domain = Domain.objects.root_for(rcpt_domain)
     except Domain.DoesNotExist:
         return "550 Relay not authorised for this recipient"
 

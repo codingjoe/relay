@@ -59,6 +59,17 @@ class DNSResolver:
             case "TXT" | "ANY":
                 records.extend(self.resolve_txt(qname, qname_str, base, domain))
             case "CNAME" | "ANY":
+                if qname_str.lower() == f"mta-sts.{base}".rstrip(".").lower():
+                    records.append(
+                        RR(
+                            qname,
+                            QTYPE.CNAME,
+                            rdata=CNAME(
+                                DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
+                            ),
+                            ttl=self.RECORD_TTL,
+                        )
+                    )
                 rp_name = domain.return_path_domain
                 if qname_str.lower() == rp_name.rstrip(".").lower():
                     records.append(

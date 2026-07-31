@@ -257,5 +257,69 @@
         </button>
       </div>
     </div>
+    <div role="group" class="field">
+      <div class="flex items-center gap-2">
+        <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+        <label>MTA-STS</label>
+      </div>
+      <p class="text-sm text-muted-foreground">
+        {% translate "enforce TLS for incoming mail. add the TXT record and the CNAME record at your DNS provider."|capfirst %}
+      </p>
+      <div class="input-group">
+        <input type="text" readonly value="_mta-sts.{{ domain.name }}" onfocus="this.select()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('_mta-sts.{{ domain.name }}')"
+          aria-label='{% translate "copy name"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+        <span>TXT</span>
+        <input
+          type="text"
+          readonly
+          value="&quot;{{ domain.mta_sts_record }}&quot;"
+          onfocus="this.select()"
+        >
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('{{ domain.mta_sts_record }}')"
+          aria-label='{% translate "copy value"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="input-group mt-2">
+        <input type="text" readonly value="mta-sts.{{ domain.name }}" onfocus="this.select()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('mta-sts.{{ domain.name }}')"
+          aria-label='{% translate "copy name"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+        <span>CNAME</span>
+        <input type="text" readonly value="mta-sts.{{ domain.sender_domain }}." onfocus="this.select()">
+        <button
+          type="button"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon-sm"
+          onclick="navigator.clipboard.writeText('mta-sts.{{ domain.sender_domain }}.')"
+          aria-label='{% translate "copy value"|capfirst %}'
+        >
+          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
   </div>
 {% endblock %}

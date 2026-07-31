@@ -1,10 +1,18 @@
 """Domain management views."""
 
+from django.conf import settings
 from django.contrib import messages
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    View,
+)
 
 from accounts.views import OrganizationScopedView
 
@@ -94,3 +102,29 @@ class DomainDeleteView(OrganizationScopedView, DeleteView):
             _("Domain “%(name)s” deleted.") % {"name": self.object.name},
         )
         return super().form_valid(form)
+
+
+class MtaStsPolicyView(DetailView):
+    model = Domain
+    template_name = "domains/mta_sts.txt"
+    content_type = "text/plain"
+
+    def get_object(self, queryset=None):
+        host = self.request.META.get("HTTP_HOST", "").split(":")[0].lower()
+        name = host.removeprefix("mta-sts.")
+        try:
+            return Domain.objects.root_for(name)
+        except Domain.DoesNotExist:
+            raise Http404
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "mta_sts_mode": settings.RELAY_MTA_STS_MODE,
+            "mta_sts_max_age": settings.RELAY_MTA_STS_MAX_AGE,
+        }
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        response["Cache-Control"] = f"public, max-age={settings.RELAY_MTA_STS_MAX_AGE}"
+        response["Vary"] = "Host"
+        return response
