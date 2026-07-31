@@ -1,8 +1,6 @@
 """Know-how article views — list and detail."""
 
-import os
 import pathlib
-import re
 
 from django.conf import settings
 from django.http import Http404, HttpResponse
@@ -14,8 +12,6 @@ from abstract.utils import md_2_html, strip_frontmatter
 from abstract.views import BreadcrumbViewMixin, MarkdownView
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
-
-SLUG_PATTERN = re.compile(r"^[a-z0-9-]+$")
 
 LICENSE_MARKDOWN = (
     "This work is licensed under a "
@@ -88,18 +84,9 @@ def extract_title(markdown_text):
 
 
 def article_path(slug):
-    """Return the filesystem path for a know-how article, or raise Http404.
-
-    Validates that the slug only contains safe characters to prevent
-    path traversal.
-    """
-    slug = os.path.basename(slug)
-    if not SLUG_PATTERN.match(slug):
-        raise Http404("Article not found")
+    """Return the filesystem path for a know-how article, or raise Http404."""
     path = (KNOW_HOW_DIR / f"{slug}.md").resolve()
-    if not path.is_relative_to(KNOW_HOW_DIR.resolve()):
-        raise Http404("Article not found")
-    if not path.exists():
+    if not path.is_relative_to(KNOW_HOW_DIR.resolve()) or not path.exists():
         raise Http404("Article not found")
     return path
 
@@ -135,10 +122,7 @@ class KnowHowDetailView(MarkdownView):
         return metadata.get("name") or extract_title(text)
 
     def get_markdown_template(self):
-        slug = os.path.basename(self.kwargs["slug"])
-        if not SLUG_PATTERN.match(slug):
-            raise Http404("Article not found")
-        return f"{slug}.md"
+        return f"{self.kwargs['slug']}.md"
 
     def get_context_data(self, **kwargs):
         slug = self.kwargs["slug"]
