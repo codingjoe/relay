@@ -50,6 +50,9 @@ urlpatterns = [
     # Platform (not org-scoped)
     path("", include("accounts.urls")),
     path("legal/", include("legal.urls")),
+    path("know-how/", include("know_how.urls")),
+    # Well-known endpoints — robots.txt, llms.txt, sitemap.xml
+    path("", include("well_known.urls")),
     # Org-scoped email
     path(
         "org/<slug:org_slug>/email/",

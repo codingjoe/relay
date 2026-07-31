@@ -312,15 +312,15 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.0.6"
+version = "4.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/92/fe/718725c58fd177cff0cfb8abe3010f2cad582713f2bc52eaf7120b750dec/django_health_check-4.0.6.tar.gz", hash = "sha256:03837041ba8a235e810e16218f2ef3feb372c4af72776fa3676c16435c72171c", size = 20763, upload-time = "2026-02-23T17:11:40.625Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/d5/34eac70f0df0d67351692d77f46995ced3d55be09a842802e93d26abceaa/django_health_check-4.4.4.tar.gz", hash = "sha256:4d84f3b0e3015568023f111bc8b3ef5e5094556637e1e0f6202b2eca80c07b9b", size = 21923, upload-time = "2026-07-28T17:33:52.816Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/44/2fa6ec47c1c18159c094f7d00397a208b6311e8b26d603dd22ba6e79b99d/django_health_check-4.0.6-py3-none-any.whl", hash = "sha256:efba106bc4f92b1b084f3af751e9eeb0b5c1af77d0af212e432ede2ba8f1e94f", size = 25813, upload-time = "2026-02-23T17:11:39.419Z" },
+    { url = "https://files.pythonhosted.org/packages/76/e8/3bc8e4045c026d3496040dceb06265da3d049de1ad4fa082f9414b62ae73/django_health_check-4.4.4-py3-none-any.whl", hash = "sha256:22a4807e06bb60ba98bb35c7c5a625db1a845fc373de3cad6e9d675939dbfe4d", size = 27027, upload-time = "2026-07-28T17:33:51.477Z" },
 ]
 
 [package.optional-dependencies]
@@ -927,10 +927,10 @@ requires-dist = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "aiosmtplib", specifier = ">=5.1.2" },
     { name = "boto3", specifier = ">=1.40.0" },
-    { name = "cryptography", specifier = ">=45.0.0" },
+    { name = "cryptography", specifier = ">=49.0.0" },
     { name = "django", specifier = ">=6.1rc1,<6.2" },
     { name = "django-environ", specifier = ">=0.13.0" },
-    { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.0.4" },
+    { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.4.3" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "djangorestframework", url = "https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz" },
     { name = "dkimpy", specifier = ">=1.1.8" },
@@ -940,10 +940,10 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "markdown", specifier = ">=3.10.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
-    { name = "pynacl", specifier = ">=1.5.0" },
+    { name = "pynacl", specifier = ">=1.6.2" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "redis", specifier = ">=7.2.0" },
-    { name = "sentry-sdk", specifier = ">=2.18" },
+    { name = "sentry-sdk", specifier = ">=2.66.1" },
     { name = "social-auth-app-django", specifier = ">=6.0.1" },
     { name = "threadmill", extras = ["redis"], specifier = ">=0.5" },
     { name = "validators", specifier = ">=0.34.0" },
@@ -956,7 +956,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "pytest-django", specifier = ">=4.5.2" },
-    { name = "pytest-env", specifier = ">=1.1.0" },
+    { name = "pytest-env", specifier = ">=1.7.0" },
     { name = "pytest-randomly", specifier = ">=4.1.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "threadmill", extras = ["inspector"], specifier = ">=0.5" },
@@ -966,7 +966,7 @@ test = [
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "pytest-django", specifier = ">=4.5.2" },
-    { name = "pytest-env", specifier = ">=1.1.0" },
+    { name = "pytest-env", specifier = ">=1.7.0" },
     { name = "pytest-randomly", specifier = ">=4.1.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
 ]

@@ -6,6 +6,17 @@
     <title>{% block title %}relay{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
+    {% block meta_tags %}
+      <meta
+        name="description"
+        content="{% block meta_description %}relay — infrastructure as a service. Email sending, receiving, and reputation monitoring with a built-in authoritative nameserver.{% endblock %}"
+      >
+      <link rel="canonical" href="{{ request.build_absolute_uri }}">
+      <meta property="og:site_name" content="relay">
+      <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+      <meta property="og:url" content="{{ request.build_absolute_uri }}">
+      <meta name="twitter:card" content="summary">
+    {% endblock meta_tags %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>

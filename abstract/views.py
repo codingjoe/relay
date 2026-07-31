@@ -1,5 +1,10 @@
+from django.http import HttpResponse
+from django.template import loader
 from django.urls import resolve, reverse
+from django.utils.cache import patch_vary_headers
 from django.views import generic
+
+from abstract.utils import strip_frontmatter
 
 
 class BreadcrumbViewMixin:
@@ -68,9 +73,47 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
     """Template name of the markdown file to render."""
     toc_levels: str = "2-3"
 
+    def get_markdown_template(self):
+        """Return the markdown template name for this view."""
+        return self.markdown_template
+
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+        patch_vary_headers(response, ["Accept"])
+        return response
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("md") or "text/markdown" in request.headers.get(
+            "Accept", ""
+        ):
+            return self.render_markdown(request, **kwargs)
+        return super().get(request, *args, **kwargs)
+
+    async def aget(self, request, *args, **kwargs):
+        if request.GET.get("md") or "text/markdown" in request.headers.get(
+            "Accept", ""
+        ):
+            return self.render_markdown(request, **kwargs)
+        return await super().aget(request, *args, **kwargs)
+
+    def render_markdown(self, request, **kwargs):
+        """Return the raw Markdown source as a text/markdown response.
+
+        Frontmatter is stripped so metadata is not exposed in the raw
+        Markdown endpoint of generic views.
+        """
+        context = self.get_context_data(**kwargs)
+        markdown_text = loader.get_template(self.get_markdown_template()).render(
+            context=context, request=request
+        )
+        return HttpResponse(
+            strip_frontmatter(markdown_text),
+            content_type="text/markdown; charset=utf-8",
+        )
+
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "title": self.title,
-            "markdown_template": self.markdown_template,
+            "markdown_template": self.get_markdown_template(),
             "toc_levels": self.toc_levels,
         }

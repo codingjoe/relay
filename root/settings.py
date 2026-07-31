@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
     # Third-party apps
     "health_check",
     "social_django",
@@ -82,6 +83,8 @@ INSTALLED_APPS = [
     "kms",
     "domains",
     "legal",
+    "know_how",
+    "well_known",
     "root",
     "smtp",
     "tx_email",
@@ -113,6 +116,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "legal" / "docs",
+            BASE_DIR / "know_how" / "docs",
         ],
         "OPTIONS": {
             "context_processors": (

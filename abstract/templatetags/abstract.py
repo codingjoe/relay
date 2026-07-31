@@ -78,23 +78,13 @@ def param_replace(context, **kwargs):
 
 @register.simple_tag
 def include_md(template_name, **context):
-    """Render a Markdown template to HTML."""
-    return utils.md_2_html(loader.get_template(template_name).render(context=context))
+    """Render a Markdown template to HTML, stripping any YAML frontmatter."""
+    rendered = loader.get_template(template_name).render(context=context)
+    return utils.md_2_html(utils.strip_frontmatter(rendered))
 
 
 @register.simple_tag
 def include_md_toc(template_name, depth=None, **context):
-    """Render a table of contents for a Markdown template.
-
-    Args:
-        template_name: The template to render and extract headings from.
-        depth: The heading depth range (for example, `"2-3"`). Defaults to 6.
-        **context: Extra context passed to the template.
-
-    Returns:
-        HTML for the table of contents.
-    """
-    return utils.md_toc(
-        loader.get_template(template_name).render(context=context),
-        depth=depth,
-    )
+    """Render a table of contents for a Markdown template, stripping frontmatter."""
+    rendered = loader.get_template(template_name).render(context=context)
+    return utils.md_toc(utils.strip_frontmatter(rendered), depth=depth)
