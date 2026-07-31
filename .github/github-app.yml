@@ -1,6 +1,8 @@
 scripts:
   - name: Dev server
-    command: uv run --env-file .env manage.py runserver "localhost:$(python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()")"
+    command: |
+      uv run --env-file .env manage.py migrate --noinput
+      uv run --env-file .env manage.py runserver "localhost:$(python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()")"
 automation:
   auto_issue_session: true
   remote_control: false
