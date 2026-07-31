@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
+from django.utils.cache import patch_vary_headers
 from django.views import generic
 
 
@@ -76,8 +77,11 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
 
     def get(self, request, *args, **kwargs):
         if "text/markdown" in request.headers.get("Accept", ""):
-            return self.render_markdown(request, **kwargs)
-        return super().get(request, *args, **kwargs)
+            response = self.render_markdown(request, **kwargs)
+        else:
+            response = super().get(request, *args, **kwargs)
+        patch_vary_headers(response, ["Accept"])
+        return response
 
     def render_markdown(self, request, **kwargs):
         """Return the raw Markdown source as a text/markdown response."""
