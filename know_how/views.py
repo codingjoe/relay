@@ -13,6 +13,12 @@ from abstract.views import BreadcrumbViewMixin, MarkdownView
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
 
+ARTICLE_SLUGS = (
+    frozenset(p.stem for p in KNOW_HOW_DIR.glob("*.md"))
+    if KNOW_HOW_DIR.exists()
+    else frozenset()
+)
+
 LICENSE_MARKDOWN = (
     "This work is licensed under a "
     "[Creative Commons Attribution-ShareAlike 4.0 International License]"
@@ -51,17 +57,15 @@ def list_articles():
     Title and description come from the YAML frontmatter.
     """
     articles = []
-    if not KNOW_HOW_DIR.exists():
-        return articles
-    for path in sorted(KNOW_HOW_DIR.glob("*.md")):
-        text = path.read_text()
+    for slug in sorted(ARTICLE_SLUGS):
+        text = (KNOW_HOW_DIR / f"{slug}.md").read_text()
         metadata, _ = parse_frontmatter(text)
         title = metadata.get("name") or extract_title(text)
         if not title:
             continue
         articles.append(
             {
-                "slug": path.stem,
+                "slug": slug,
                 "title": title,
                 "description": md_2_html(metadata.get("description", "")),
             }
@@ -85,10 +89,9 @@ def extract_title(markdown_text):
 
 def article_path(slug):
     """Return the filesystem path for a know-how article, or raise Http404."""
-    path = (KNOW_HOW_DIR / f"{slug}.md").resolve()
-    if not path.is_relative_to(KNOW_HOW_DIR.resolve()) or not path.exists():
+    if slug not in ARTICLE_SLUGS:
         raise Http404("Article not found")
-    return path
+    return KNOW_HOW_DIR / f"{slug}.md"
 
 
 class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
