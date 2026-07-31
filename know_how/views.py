@@ -61,15 +61,7 @@ class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
         }
 
 
-class KnowHowMarkdownView(MarkdownView):
-    """MarkdownView with a CC-BY-SA 4.0 license notice.
-
-    The license appears in both the rendered HTML page and the raw
-    Markdown response (when content negotiation returns text/markdown).
-    The license text is not stored in the Markdown source files — it is
-    added by the view at render time.
-    """
-
+class KnowHowView(MarkdownView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["license"] = md_2_html(LICENSE_MARKDOWN)
@@ -82,7 +74,7 @@ class KnowHowMarkdownView(MarkdownView):
         return response
 
 
-class KnowHowDetailView(KnowHowMarkdownView):
+class KnowHowDetailView(KnowHowView):
     """Render a single know-how article by slug."""
 
     parent = "know_how:list"
