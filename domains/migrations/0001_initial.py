@@ -46,6 +46,7 @@ class Migration(migrations.Migration):
                         help_text="Root domain, for example acme.com.",
                         max_length=255,
                         unique=True,
+                        validators=[domains.models.validate_domain_name],
                         verbose_name="name",
                     ),
                 ),

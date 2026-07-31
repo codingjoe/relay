@@ -21,7 +21,16 @@
           <fieldset class="fieldset">
             <div role="group" class="field">
               <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
-              <input type="text" name="name" id="id_name" placeholder="example.com" required class="input">
+              <input
+                type="text"
+                name="name"
+                id="id_name"
+                placeholder="example.com"
+                pattern="^(?=.{1,253}$)([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z][a-zA-Z0-9-]{1,}$"
+                title="{% translate 'Enter a valid domain name, for example acme.com' %}"
+                required
+                class="input"
+              >
             </div>
           </fieldset>
         </form>
