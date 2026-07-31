@@ -91,6 +91,9 @@ services:
       args:
         UV_NO_DEV: 0
     command: ["-m", "manage", "threadmill", "worker"]
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - app
 #  migration:
