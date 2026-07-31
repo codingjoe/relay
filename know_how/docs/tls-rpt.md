@@ -27,7 +27,7 @@ Without TLS-RPT, you have no visibility into these failures. Sending servers sil
 
 TLS-RPT gives you this visibility. Sending servers send you structured reports about every TLS failure.[^report-interval] You can use these reports to fix problems before they affect your users.
 
-TLS-RPT works with <a href="{% url 'knowhow:detail' slug='mta-sts' %}">MTA-STS</a>. MTA-STS enforces TLS for incoming mail. TLS-RPT tells you when a sender cannot connect with TLS.
+TLS-RPT works with <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>. MTA-STS enforces TLS for incoming mail. TLS-RPT tells you when a sender cannot connect with TLS.
 
 ## How TLS-RPT works
 
@@ -83,8 +83,8 @@ You can view the collected reports in the TLS reports dashboard in your organiza
 
 - [RFC 8460 — SMTP TLS Reporting](https://datatracker.ietf.org/doc/html/rfc8460)
 - [RFC 8460 Section 4 — Report format](https://datatracker.ietf.org/doc/html/rfc8460#section-4)
-- <a href="{% url 'knowhow:detail' slug='mta-sts' %}">MTA-STS</a> — SMTP MTA Strict Transport Security
-- <a href="{% url 'knowhow:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
+- <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> — SMTP MTA Strict Transport Security
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
 
 [^report-interval]: Reports are typically sent once per day per sending domain. The report covers all TLS connection attempts during that 24-hour period, both successful and failed.
 

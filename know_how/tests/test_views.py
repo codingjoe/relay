@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from knowhow.views import (
+from know_how.views import (
     KnowHowDetailView,
     extract_title,
     list_articles,
@@ -53,7 +53,7 @@ class TestParseFrontmatter:
 
 class TestKnowHowListView:
     def test_get__renders_list(self, client):
-        response = client.get(reverse("knowhow:list"))
+        response = client.get(reverse("know_how:list"))
         assert response.status_code == 200
         assert "articles" in response.context
         assert len(response.context["articles"]) > 0
@@ -61,13 +61,13 @@ class TestKnowHowListView:
 
 class TestKnowHowDetailView:
     def test_get__renders_article(self, client):
-        response = client.get(reverse("knowhow:detail", args=["dmarc"]))
+        response = client.get(reverse("know_how:detail", args=["dmarc"]))
         assert response.status_code == 200
         assert "markdown_template" in response.context
         assert response.context["markdown_template"] == "dmarc.md"
 
     def test_get__not_found(self, client):
-        response = client.get(reverse("knowhow:detail", args=["nonexistent"]))
+        response = client.get(reverse("know_how:detail", args=["nonexistent"]))
         assert response.status_code == 404
 
     def test_get_title__returns_article_title(self, rf):
@@ -81,7 +81,7 @@ class TestKnowHowDetailView:
 
     def test_get__returns_markdown_when_accept_header(self, client):
         response = client.get(
-            reverse("knowhow:detail", args=["dmarc"]),
+            reverse("know_how:detail", args=["dmarc"]),
             HTTP_ACCEPT="text/markdown",
         )
         assert response.status_code == 200
@@ -91,26 +91,26 @@ class TestKnowHowDetailView:
         assert "TL;DR" in body
 
     def test_get__returns_markdown_with_url_param(self, client):
-        response = client.get(reverse("knowhow:detail", args=["dmarc"]) + "?md=1")
+        response = client.get(reverse("know_how:detail", args=["dmarc"]) + "?md=1")
         assert response.status_code == 200
         assert "text/markdown" in response["Content-Type"]
         body = response.content.decode()
         assert "# DMARC" in body
 
     def test_get__returns_html_without_accept_header(self, client):
-        response = client.get(reverse("knowhow:detail", args=["dmarc"]))
+        response = client.get(reverse("know_how:detail", args=["dmarc"]))
         assert response.status_code == 200
         assert "text/html" in response["Content-Type"]
 
     def test_get__html_includes_license(self, client):
-        response = client.get(reverse("knowhow:detail", args=["dmarc"]))
+        response = client.get(reverse("know_how:detail", args=["dmarc"]))
         body = response.content.decode()
         assert "Creative Commons" in body
         assert "by-sa/4.0" in body
 
     def test_get__markdown_includes_license(self, client):
         response = client.get(
-            reverse("knowhow:detail", args=["dmarc"]),
+            reverse("know_how:detail", args=["dmarc"]),
             HTTP_ACCEPT="text/markdown",
         )
         body = response.content.decode()
@@ -119,7 +119,7 @@ class TestKnowHowDetailView:
 
     def test_get__markdown_includes_frontmatter(self, client):
         response = client.get(
-            reverse("knowhow:detail", args=["dmarc"]),
+            reverse("know_how:detail", args=["dmarc"]),
             HTTP_ACCEPT="text/markdown",
         )
         body = response.content.decode()
@@ -127,7 +127,7 @@ class TestKnowHowDetailView:
 
     def test_get__markdown_frontmatter_has_metadata_fields(self, client):
         response = client.get(
-            reverse("knowhow:detail", args=["dmarc"]),
+            reverse("know_how:detail", args=["dmarc"]),
             HTTP_ACCEPT="text/markdown",
         )
         body = response.content.decode()
@@ -137,7 +137,7 @@ class TestKnowHowDetailView:
         assert "license:" in body
 
     def test_get__list_includes_license(self, client):
-        response = client.get(reverse("knowhow:list"))
+        response = client.get(reverse("know_how:list"))
         body = response.content.decode()
         assert "Creative Commons" in body
         assert "by-sa/4.0" in body

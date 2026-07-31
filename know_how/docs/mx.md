@@ -28,7 +28,7 @@ The MX lookup and delivery process follows these steps:
 1. The server queries DNS for the MX records of `example.com`.
 1. DNS returns a list of MX records, each with a priority and a hostname.
 1. The sending server sorts the records by priority (lowest number first).
-1. The server connects to the first MX host on <a href="{% url 'knowhow:detail' slug='smtp' %}">SMTP</a> port 25.
+1. The server connects to the first MX host on <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> port 25.
 1. If the connection fails, the server tries the next MX host in the sorted list.
 1. If all MX hosts fail, the server queues the message for later retry.[^retry-behavior]
 
@@ -65,14 +65,14 @@ The relay MX server receives the mail on port 25 and dispatches it to your confi
 
 ### Outgoing mail
 
-For outgoing mail, relay uses the <a href="{% url 'knowhow:detail' slug='smtp' %}">SMTP</a> server on port 587 for message submission. The MX record is not involved in outgoing mail. MX records are only for incoming delivery.
+For outgoing mail, relay uses the <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server on port 587 for message submission. The MX record is not involved in outgoing mail. MX records are only for incoming delivery.
 
 ## Further reading
 
 - [RFC 1035 — Domain Names: Implementation and Specification](https://datatracker.ietf.org/doc/html/rfc1035)
 - [RFC 5321 — Simple Mail Transfer Protocol (Section 5: MX lookup)](https://datatracker.ietf.org/doc/html/rfc5321#section-5)
-- <a href="{% url 'knowhow:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
-- <a href="{% url 'knowhow:detail' slug='ptr' %}">PTR</a> — Pointer records (reverse DNS)
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
+- <a href="{% url 'know_how:detail' slug='ptr' %}">PTR</a> — Pointer records (reverse DNS)
 
 [^retry-behavior]: The retry schedule is implementation-specific. RFC 5321 recommends at least 4 to 5 days of retries. The sending server typically waits longer between each retry attempt (for example, 15 minutes, 1 hour, 4 hours, 8 hours).
 

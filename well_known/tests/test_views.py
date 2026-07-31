@@ -66,7 +66,7 @@ class TestSitemap:
         assert "<url>" in body
         assert "</url>" in body
 
-    def test_get__contains_knowhow_articles(self, client):
+    def test_get__contains_know_how_articles(self, client):
         response = client.get(reverse("well_known:sitemap"))
         body = response.content.decode()
         assert "/know-how/dmarc/" in body
