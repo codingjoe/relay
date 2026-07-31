@@ -15,14 +15,14 @@ author: Johannes Maron
 
 ## Quick comparison
 
-|                       | relay                                      | SendGrid                                |
-| --------------------- | ------------------------------------------ | --------------------------------------- |
-| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown | Limited (separate product)              |
-| DNS setup             | NS delegation and one DMARC record         | Manual SPF, DKIM, and DMARC records     |
-| Incoming mail         | Built-in MX server with webhooks           | Inbound Parse (paid add-on)             |
-| EU data sovereignty   | Hosted in the EU under the GDPR            | US-owned (EU residency on higher tiers) |
-| Free test domain      | Yes                                        | No                                      |
-| Pricing               | Flat per message                           | Tiered plans, separate marketing        |
+|                       | relay                                                             | SendGrid                                             |
+| --------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
+| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown                        | Limited (separate product)                           |
+| Security and delivery | DMARC, MTA-STS, TLS-RPT served. DKIM: RSA-1024, RSA-2048, Ed25519 | DKIM: RSA only. DMARC record and MTA-STS self-hosted |
+| Incoming mail         | Built-in MX server with webhooks                                  | Inbound Parse (paid add-on)                          |
+| EU data sovereignty   | Hosted in the EU under the GDPR                                   | US-owned (EU residency on higher tiers)              |
+| Free test domain      | Yes                                                               | No                                                   |
+| Pricing               | Flat per message                                                  | Tiered plans, separate marketing                     |
 
 ## What SendGrid does well
 
@@ -38,7 +38,7 @@ The deliverability insights in SendGrid are limited. The DMARC analytics are in 
 
 ### Sending without DNS busywork
 
-SendGrid asks you to add SPF, DKIM, and DMARC records to your DNS provider. You rotate DKIM keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
+SendGrid asks you to add SPF, DKIM, and DMARC records to your DNS provider. You rotate DKIM keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. relay signs mail with DKIM keys in RSA-1024, RSA-2048, and Ed25519, and it serves the MTA-STS policy over HTTPS. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
 
 ### Incoming mail
 

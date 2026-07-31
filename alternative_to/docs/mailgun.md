@@ -15,14 +15,14 @@ author: Johannes Maron
 
 ## Quick comparison
 
-|                       | relay                                      | Mailgun                                         |
-| --------------------- | ------------------------------------------ | ----------------------------------------------- |
-| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown | Separate deliverability product                 |
-| DNS setup             | NS delegation and one DMARC record         | Manual SPF, DKIM, and tracking CNAME records    |
-| Incoming mail         | Built-in MX server with webhooks           | Routes (URL or storage)                         |
-| EU data sovereignty   | Hosted in Germany under the GDPR           | Hosted in the EU (Sinch, Sweden) under the GDPR |
-| Free test domain      | Yes                                        | Sandbox with restricted sending                 |
-| Pricing               | Flat per message                           | Tiered, feature-gated plans                     |
+|                       | relay                                                             | Mailgun                                              |
+| --------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
+| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown                        | Separate deliverability product                      |
+| Security and delivery | DMARC, MTA-STS, TLS-RPT served. DKIM: RSA-1024, RSA-2048, Ed25519 | DKIM: RSA only. DMARC record and MTA-STS self-hosted |
+| Incoming mail         | Built-in MX server with webhooks                                  | Routes (URL or storage)                              |
+| EU data sovereignty   | Hosted in Germany under the GDPR                                  | Hosted in the EU (Sinch, Sweden) under the GDPR      |
+| Free test domain      | Yes                                                               | Sandbox with restricted sending                      |
+| Pricing               | Flat per message                                                  | Tiered, feature-gated plans                          |
 
 ## What Mailgun does well
 
@@ -38,7 +38,7 @@ The DMARC analytics in Mailgun are a separate deliverability product. relay inge
 
 ### Sending without DNS busywork
 
-Mailgun generates SPF, DKIM, and tracking CNAME records for you to paste into your DNS provider. You rotate DKIM keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
+Mailgun generates SPF, DKIM, and tracking CNAME records for you to paste into your DNS provider. You rotate DKIM keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. relay signs mail with DKIM keys in RSA-1024, RSA-2048, and Ed25519, and it serves the MTA-STS policy over HTTPS. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
 
 ### Incoming mail
 

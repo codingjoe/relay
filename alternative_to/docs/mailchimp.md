@@ -15,14 +15,14 @@ author: Johannes Maron
 
 ## Quick comparison
 
-|                       | relay                                      | Mailchimp                           |
-| --------------------- | ------------------------------------------ | ----------------------------------- |
-| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown | Not available                       |
-| DNS setup             | NS delegation and one DMARC record         | Manual SPF, DKIM, and DMARC records |
-| Incoming mail         | Built-in MX server with webhooks           | Not available                       |
-| EU data sovereignty   | Hosted in the EU under the GDPR            | US-owned (US law applies)           |
-| Free test domain      | Yes                                        | No                                  |
-| Pricing               | Flat per message                           | Tiered, contact-based pricing       |
+|                       | relay                                                             | Mailchimp                                            |
+| --------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
+| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown                        | Not available                                        |
+| Security and delivery | DMARC, MTA-STS, TLS-RPT served. DKIM: RSA-1024, RSA-2048, Ed25519 | DKIM: RSA only. DMARC record and MTA-STS self-hosted |
+| Incoming mail         | Built-in MX server with webhooks                                  | Not available                                        |
+| EU data sovereignty   | Hosted in the EU under the GDPR                                   | US-owned (US law applies)                            |
+| Free test domain      | Yes                                                               | No                                                   |
+| Pricing               | Flat per message                                                  | Tiered, contact-based pricing                        |
 
 ## What Mailchimp does well
 
@@ -38,7 +38,7 @@ Mailchimp does not ingest DMARC or TLS-RPT reports. relay parses RUA, RUF, and T
 
 ### Sending without DNS busywork
 
-Mailchimp and Mandrill give you SPF, DKIM, and DMARC records to add to your DNS provider. You rotate keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
+Mailchimp and Mandrill give you SPF, DKIM, and DMARC records to add to your DNS provider. You rotate keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. relay signs mail with DKIM keys in RSA-1024, RSA-2048, and Ed25519, and it serves the MTA-STS policy over HTTPS. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
 
 ### Incoming mail
 

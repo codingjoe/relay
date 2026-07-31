@@ -15,14 +15,14 @@ author: Johannes Maron
 
 ## Quick comparison
 
-|                       | relay                                      | Brevo                           |
-| --------------------- | ------------------------------------------ | ------------------------------- |
-| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown | Not available                   |
-| DNS setup             | NS delegation and one DMARC record         | Manual SPF and DKIM records     |
-| Incoming mail         | Built-in MX server with webhooks           | Limited                         |
-| EU data sovereignty   | Hosted in Germany under the GDPR           | Hosted in France under the GDPR |
-| Free test domain      | Yes                                        | No                              |
-| Pricing               | Flat per message                           | Tiered, contact-based pricing   |
+|                       | relay                                                             | Brevo                                                |
+| --------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
+| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown                        | Not available                                        |
+| Security and delivery | DMARC, MTA-STS, TLS-RPT served. DKIM: RSA-1024, RSA-2048, Ed25519 | DKIM: RSA only. DMARC record and MTA-STS self-hosted |
+| Incoming mail         | Built-in MX server with webhooks                                  | Limited                                              |
+| EU data sovereignty   | Hosted in Germany under the GDPR                                  | Hosted in France under the GDPR                      |
+| Free test domain      | Yes                                                               | No                                                   |
+| Pricing               | Flat per message                                                  | Tiered, contact-based pricing                        |
 
 ## What Brevo does well
 
@@ -38,7 +38,7 @@ Brevo does not ingest DMARC or TLS-RPT reports. relay parses RUA, RUF, and TLS-R
 
 ### Sending without DNS busywork
 
-Brevo gives you SPF and DKIM records to add to your DNS provider. You rotate keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
+Brevo gives you SPF and DKIM records to add to your DNS provider. You rotate keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. relay signs mail with DKIM keys in RSA-1024, RSA-2048, and Ed25519, and it serves the MTA-STS policy over HTTPS. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
 
 ### Incoming mail
 
