@@ -289,16 +289,16 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "6.0.6"
+version = "6.1rc1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/29/ac41e16097af67066d97a7d5775c5d8e7efc5d0284f6b0a159e07b9adb92/django-6.0.6.tar.gz", hash = "sha256:ad03916ba59523d781ae5c3f631960c23d69a9d9c43cecda52fc23b47e953713", size = 10905525, upload-time = "2026-06-03T13:02:46.503Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/6e/250a009775787f4f83e2af2ee47f8722505722266907471c298863a1d42e/django-6.1rc1.tar.gz", hash = "sha256:3964a696caea6ccfcc22f9a31ae1e322546002e52ea46bc8fdfe85a518ef6394", size = 11209590, upload-time = "2026-07-22T20:07:51.603Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/50/23f9dc45483419a3cc2085b498b25adfbf10642b2941c73e6d2dfaffc9ab/django-6.0.6-py3-none-any.whl", hash = "sha256:25148b1194c47c2e685e5f5e9c5d59c78b075dfd282cb9618861ba6c1708f4d2", size = 8373354, upload-time = "2026-06-03T13:02:41.72Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/91/54c1548dd7fd14b1d63df33d6b085b7350695bdbd38d9ce5890cf8a2d8be/django-6.1rc1-py3-none-any.whl", hash = "sha256:f8a355d15fa6aa4cb65a71d692b55acfc84a1fe4ba5d375fa1164fe6b7a34ef5", size = 8411536, upload-time = "2026-07-22T20:07:43.766Z" },
 ]
 
 [[package]]
@@ -351,13 +351,9 @@ s3 = [
 [[package]]
 name = "djangorestframework"
 version = "3.17.1"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/encode/django-rest-framework.git#f0d95c2df066e163553f7d19b33d724e988744cc" }
 dependencies = [
     { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/d7/c016e69fac19ff8afdc89db9d31d9ae43ae031e4d1993b20aca179b8301a/djangorestframework-3.17.1.tar.gz", hash = "sha256:a6def5f447fe78ff853bff1d47a3c59bf38f5434b031780b351b0c73a62db1a5", size = 905742, upload-time = "2026-03-24T16:58:33.705Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/e1/2c516bdc83652b1a60c6119366ac2c0607b479ed05cd6093f916ca8928f8/djangorestframework-3.17.1-py3-none-any.whl", hash = "sha256:c3c74dd3e83a5a3efc37b3c18d92bd6f86a6791c7b7d4dff62bb068500e76457", size = 898844, upload-time = "2026-03-24T16:58:31.845Z" },
 ]
 
 [[package]]
@@ -814,6 +810,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "redis" },
     { name = "social-auth-app-django" },
+    { name = "threadmill", extra = ["redis"] },
     { name = "whitenoise" },
 ]
 
@@ -841,11 +838,11 @@ requires-dist = [
     { name = "aiosmtplib", specifier = ">=5.1.2" },
     { name = "boto3", specifier = ">=1.40.0" },
     { name = "cryptography", specifier = ">=45.0.0" },
-    { name = "django", specifier = ">=6.0.6" },
+    { name = "django", specifier = ">=6.1rc1,<6.2" },
     { name = "django-environ", specifier = ">=0.13.0" },
     { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.0.4" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
-    { name = "djangorestframework", specifier = ">=3.16.0" },
+    { name = "djangorestframework", git = "https://github.com/encode/django-rest-framework.git" },
     { name = "dkimpy", specifier = ">=1.1.8" },
     { name = "dnslib", specifier = ">=0.9.26" },
     { name = "dnspython", specifier = ">=2.7.0" },
@@ -857,6 +854,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "redis", specifier = ">=7.2.0" },
     { name = "social-auth-app-django", specifier = ">=6.0.1" },
+    { name = "threadmill", extras = ["redis"], specifier = ">=0.1" },
     { name = "whitenoise", specifier = ">=6.12.0" },
 ]
 
@@ -966,6 +964,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/90/76/437d71068094df0726366574cf3432a4ed754217b436eb7429415cf2d480/sqlparse-0.5.5.tar.gz", hash = "sha256:e20d4a9b0b8585fdf63b10d30066c7c94c5d7a7ec47c889a2d83a3caa93ff28e", size = 120815, upload-time = "2025-12-19T07:17:45.073Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl", hash = "sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba", size = 46138, upload-time = "2025-12-19T07:17:46.573Z" },
+]
+
+[[package]]
+name = "threadmill"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/36/ad/1adf19d448cf10ce05d989ad09b5fc114b79764990b3c2049cc85f686897/threadmill-0.5.1.tar.gz", hash = "sha256:54a14ce59e75c34a53c8ad164b389916d1e661bff1ee76068abca5acbde36237", size = 29603, upload-time = "2026-07-08T22:03:04.724Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/ea/c40e2124a6667e2a69f5eefb0d3721db2bba48343437d8ec4d622a99d3f7/threadmill-0.5.1-py3-none-any.whl", hash = "sha256:748731aa5bd455b403b743812c4a613862fd62f383c06dd41ce72e1a609ce236", size = 32903, upload-time = "2026-07-08T22:03:03.545Z" },
+]
+
+[package.optional-dependencies]
+redis = [
+    { name = "redis" },
 ]
 
 [[package]]

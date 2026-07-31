@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import secrets
@@ -33,6 +34,26 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 )
 
 
+class WebhookDeliveryError(Exception):
+    """Raised when a webhook delivery fails with a retryable error."""
+
+
+def webhook_retry(context):
+    """Retry webhook delivery per the Standard Webhooks schedule.
+
+    Returns the delay before the next attempt, or None when retries are
+    exhausted — in that case, mark the message as failed.
+    """
+    if context.attempt >= len(WEBHOOK_RETRY_DELAYS) - 1:
+        message_id = context.task_result.kwargs.get("message_id")
+        if message_id:
+            message = IncomingMessage.objects.get(pk=message_id)
+            mark_failed_if_pending(message)
+        return None
+    delay = WEBHOOK_RETRY_DELAYS[context.attempt + 1] + secrets.randbelow(30)
+    return datetime.timedelta(seconds=delay)
+
+
 @task
 def dispatch_webhook(message_id):
     """Distribute an incoming message to all matching active webhooks."""
@@ -53,8 +74,8 @@ def dispatch_webhook(message_id):
                 )
 
 
-@task
-def deliver_webhook(message_id, webhook_id, attempt=0):
+@task(retry=webhook_retry)
+def deliver_webhook(message_id, webhook_id):
     """Deliver to a single webhook and retry per the Standard Webhooks schedule."""
     message = IncomingMessage.objects.get(pk=message_id)
     webhook = Webhook.objects.get(pk=webhook_id)
@@ -71,13 +92,8 @@ def deliver_webhook(message_id, webhook_id, attempt=0):
         case (False, 410):
             Webhook.objects.filter(pk=webhook.pk).update(is_active=False)
             mark_failed_if_pending(message)
-        case (False, _) if attempt < len(WEBHOOK_RETRY_DELAYS) - 1:
-            delay = WEBHOOK_RETRY_DELAYS[attempt + 1] + secrets.randbelow(30)
-            deliver_webhook.using(run_after=time.time() + delay).enqueue(
-                message_id=message_id, webhook_id=webhook_id, attempt=attempt + 1
-            )
-        case _:
-            mark_failed_if_pending(message)
+        case (False, _):
+            raise WebhookDeliveryError(f"Webhook returned status {status_code}")
 
 
 def mark_failed_if_pending(message):
