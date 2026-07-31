@@ -81,6 +81,12 @@ Before you finish, always:
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
 
+## Browser automation
+
+Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
+`.playwright-mcp/`. The dev server binds to a random localhost port — read
+it from the `runserver` output, then navigate to `http://localhost:<port>`.
+
 ## Pointers to further documentation
 
 - `CONVENTIONS.md` — authoritative coding conventions (URLs, PKs, model fields,
