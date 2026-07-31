@@ -4,6 +4,7 @@ from django.template import loader
 from django.urls import reverse
 from django.views.generic import TemplateView
 
+from abstract.utils import strip_frontmatter
 from know_how.views import list_articles
 
 
@@ -64,8 +65,10 @@ class LlmsFullTxtView(TemplateView):
                 "url": self.request.build_absolute_uri(
                     reverse("know_how:detail", args=[article["slug"]])
                 ),
-                "content": loader.get_template(f"{article['slug']}.md").render(
-                    request=self.request
+                "content": strip_frontmatter(
+                    loader.get_template(f"{article['slug']}.md").render(
+                        request=self.request
+                    )
                 ),
             }
             for article in list_articles()

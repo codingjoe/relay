@@ -54,8 +54,9 @@ def list_articles():
     if not KNOW_HOW_DIR.exists():
         return articles
     for path in sorted(KNOW_HOW_DIR.glob("*.md")):
-        metadata, _ = parse_frontmatter(path.read_text())
-        title = metadata.get("name") or extract_title(path.read_text())
+        text = path.read_text()
+        metadata, _ = parse_frontmatter(text)
+        title = metadata.get("name") or extract_title(text)
         if not title:
             continue
         articles.append(
@@ -122,7 +123,9 @@ class KnowHowDetailView(MarkdownView):
             path = article_path(slug)
         except Http404:
             return slug
-        return extract_title(path.read_text())
+        text = path.read_text()
+        metadata, _ = parse_frontmatter(text)
+        return metadata.get("name") or extract_title(text)
 
     def get_markdown_template(self):
         return f"{self.kwargs['slug']}.md"
@@ -130,9 +133,10 @@ class KnowHowDetailView(MarkdownView):
     def get_context_data(self, **kwargs):
         slug = self.kwargs["slug"]
         path = article_path(slug)
-        metadata, _ = parse_frontmatter(path.read_text())
+        text = path.read_text()
+        metadata, _ = parse_frontmatter(text)
         context = super().get_context_data(**kwargs)
-        context["title"] = metadata.get("name") or extract_title(path.read_text())
+        context["title"] = metadata.get("name") or extract_title(text)
         context["license"] = md_2_html(LICENSE_MARKDOWN)
         context["meta_description"] = metadata.get("description", "")
         return context
