@@ -80,7 +80,7 @@ class TestAlternativeToDetailView:
         assert "text/markdown" in response["Content-Type"]
         body = response.content.decode()
         assert "# Alternative to Amazon SES" in body
-        assert "TL;DR" in body
+        assert "all-in-one" in body
 
     def test_get__returns_markdown_with_url_param(self, client):
         response = client.get(reverse("alternative_to:detail", args=["ses"]) + "?md=1")

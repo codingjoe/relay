@@ -32,7 +32,7 @@ class AlternativeToListView(BreadcrumbViewMixin, generic.TemplateView):
     """Display all alternative-to comparison articles."""
 
     template_name = "alternative_to/list.html"
-    title = _("alternative to")
+    title = _("Alternative to")
     parent = "home"
 
     def get_context_data(self, **kwargs):

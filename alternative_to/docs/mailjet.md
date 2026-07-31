@@ -1,28 +1,32 @@
 ---
 name: Alternative to Mailjet
-description: How relay compares to Mailjet (Sinch) for email sending and receiving
+description: How relay compares to Mailjet (Sinch) — all-in-one email sending, receiving, and monitoring, EU-hosted
 author: Johannes Maron
 ---
 
 # Alternative to Mailjet
 
-> **TL;DR** — Mailjet is a European email API with marketing features, but DNS setup is manual and inbound is limited. relay automates DNS with a built-in nameserver, includes an MX server with webhooks, and ingests DMARC and TLS-RPT reports.
+> relay is the all-in-one email platform — sending, receiving, and reputation monitoring in one EU-hosted service. Mailjet is a European email API with marketing features, but DNS setup is manual and inbound is limited.
 
 ## Why choose relay over Mailjet
 
 Mailjet (owned by Sinch, like Mailgun) is a Paris-based email service popular across Europe. It offers a templating API and marketing tools. For infrastructure-first email, relay automates the parts Mailjet leaves to you.
 
-### Built-in nameserver
+### All-in-one monitoring
 
-Mailjet provides SPF and DKIM records for you to add to your DNS provider. relay **serves those records itself** — delegate NS, set a DMARC record, and relay publishes MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically.
+Mailjet does not ingest DMARC or TLS-RPT reports. relay parses **RUA, RUF, and TLS-RPT reports** and displays reputation and failure trends in a dashboard — no extra tooling, no forwarding setup.
+
+### Sending reliability without DNS busywork
+
+Mailjet provides SPF and DKIM records for you to add to your DNS provider, and key rotation is on you. relay automates all of it: delegate NS and set one DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. The built-in nameserver is the mechanism — you never touch a DNS dashboard beyond the initial delegation.
 
 ### Incoming mail
 
 Mailjet's inbound parsing is available but routes to a webhook you provide; SPF/DKIM for inbound is managed by Mailjet. relay runs an **MX server you control**, stores raw bodies in your S3, and dispatches **Standard Webhooks** with Ed25519 signatures you verify yourself.
 
-### DMARC and TLS-RPT reports
+### EU data sovereignty
 
-Mailjet does not ingest DMARC or TLS-RPT reports. relay parses **RUA, RUF, and TLS-RPT reports** and displays them in a dashboard.
+Mailjet is owned by Sinch, a Swedish (EU) company, and is EU-hosted. Here relay and Mailjet are on equal footing — both EU-based and GDPR-aligned. relay adds a **Germany-hosted** stack with local support and no US data path.
 
 ### Free test domain
 
@@ -30,16 +34,14 @@ relay ships a **free sender domain** to test deliverability before delegating a 
 
 ## Side-by-side comparison
 
-| Feature                | relay                                        | Mailjet                       |
-| ---------------------- | -------------------------------------------- | ----------------------------- |
-| Built-in nameserver    | Yes — serves MX, SPF, DKIM, Return-Path, PTR | No — bring your own DNS       |
-| DNS setup              | NS delegation + DMARC record only            | Manual SPF, DKIM records      |
-| DKIM key management    | Automatic (RSA + Ed25519)                    | Manual rotation               |
-| Incoming mail (MX)     | Built-in MX server, webhook dispatch         | Inbound parse (webhook)       |
-| DMARC report ingestion | Built-in dashboard                           | Not available                 |
-| TLS-RPT ingestion      | Built-in dashboard                           | Not available                 |
-| Free test domain       | Yes                                          | No                            |
-| Pricing model          | Flat per-message                             | Tiered, contact-based pricing |
+| Feature               | relay                                         | Mailjet                             |
+| --------------------- | --------------------------------------------- | ----------------------------------- |
+| All-in-one monitoring | DMARC + TLS-RPT reports parsed and visualized | Not available                       |
+| Sending reliability   | Automated SPF, DKIM, DMARC, no DNS dashboard  | Manual DNS records, manual rotation |
+| Incoming mail (MX)    | Built-in MX server, webhook dispatch          | Inbound parse (webhook)             |
+| EU data sovereignty   | EU-hosted (Germany), GDPR                     | EU-hosted (Sinch/Sweden), GDPR      |
+| Free test domain      | Yes                                           | No                                  |
+| Pricing model         | Flat per-message                              | Tiered, contact-based pricing       |
 
 ## When Mailjet is the better fit
 

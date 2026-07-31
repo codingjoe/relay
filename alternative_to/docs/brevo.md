@@ -1,28 +1,32 @@
 ---
 name: Alternative to Brevo
-description: How relay compares to Brevo for email sending and receiving
+description: How relay compares to Brevo — all-in-one email sending, receiving, and monitoring, EU-hosted
 author: Johannes Maron
 ---
 
 # Alternative to Brevo
 
-> **TL;DR** — Brevo (formerly Sendinblue) bundles marketing, SMS, and transactional email, but DNS authentication is manual and inbound mail is limited. relay automates DNS with a built-in nameserver, includes an MX server with webhooks, and ingests DMARC reports natively.
+> relay is the all-in-one email platform — sending, receiving, and reputation monitoring in one EU-hosted service. Brevo bundles marketing, SMS, and transactional email, but DNS authentication is manual and inbound mail is limited.
 
 ## Why choose relay over Brevo
 
-Brevo is a European all-in-one marketing platform with strong adoption in Germany and France. It is a good choice for teams that want marketing automation alongside email. For developer-grade email infrastructure, relay removes the manual DNS and inbound-mail gaps.
+Brevo (formerly Sendinblue) is a European all-in-one marketing platform with strong adoption in Germany and France. It is a good choice for teams that want marketing automation alongside email. For developer-grade email infrastructure, relay removes the manual DNS and inbound-mail gaps.
 
-### Built-in nameserver
+### All-in-one monitoring
 
-Brevo gives you SPF and DKIM records to add to your DNS provider. relay **is the DNS provider** — delegate NS and set a DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. No DNS dashboard edits beyond the initial delegation.
+Brevo does not ingest DMARC or TLS-RPT reports. relay parses **RUA, RUF, and TLS-RPT reports** and surfaces reputation and failure trends in a dashboard so you can monitor abuse and deliverability without extra tooling.
+
+### Sending reliability without DNS busywork
+
+Brevo gives you SPF and DKIM records to add to your DNS provider, and key rotation is on you. relay automates all of it: delegate NS and set one DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. The built-in nameserver is the mechanism — you never touch a DNS dashboard beyond the initial delegation.
 
 ### Incoming mail
 
 Brevo's inbound handling is minimal — it focuses on outbound. relay runs an **MX server** that receives incoming email with STARTTLS and dispatches it to your webhooks via Standard Webhooks with Ed25519 signatures.
 
-### DMARC and TLS-RPT reports
+### EU data sovereignty
 
-Brevo does not ingest DMARC or TLS-RPT reports. relay parses **RUA, RUF, and TLS-RPT reports** and surfaces them in a dashboard so you can monitor abuse and deliverability.
+Brevo is a French company, EU-hosted and GDPR-aligned. Here relay and Brevo are on equal footing — both EU-based. relay adds a **Germany-hosted** stack with local support and no US data path.
 
 ### Free test domain
 
@@ -30,16 +34,14 @@ relay includes a **free sender domain** to test deliverability and integrations.
 
 ## Side-by-side comparison
 
-| Feature                | relay                                        | Brevo                         |
-| ---------------------- | -------------------------------------------- | ----------------------------- |
-| Built-in nameserver    | Yes — serves MX, SPF, DKIM, Return-Path, PTR | No — bring your own DNS       |
-| DNS setup              | NS delegation + DMARC record only            | Manual SPF, DKIM records      |
-| DKIM key management    | Automatic (RSA + Ed25519)                    | Manual rotation               |
-| Incoming mail (MX)     | Built-in MX server, webhook dispatch         | Limited                       |
-| DMARC report ingestion | Built-in dashboard                           | Not available                 |
-| TLS-RPT ingestion      | Built-in dashboard                           | Not available                 |
-| Free test domain       | Yes                                          | No                            |
-| Pricing model          | Flat per-message                             | Tiered, contact-based pricing |
+| Feature               | relay                                         | Brevo                               |
+| --------------------- | --------------------------------------------- | ----------------------------------- |
+| All-in-one monitoring | DMARC + TLS-RPT reports parsed and visualized | Not available                       |
+| Sending reliability   | Automated SPF, DKIM, DMARC, no DNS dashboard  | Manual DNS records, manual rotation |
+| Incoming mail (MX)    | Built-in MX server, webhook dispatch          | Limited                             |
+| EU data sovereignty   | EU-hosted (Germany), GDPR                     | EU-hosted (France), GDPR            |
+| Free test domain      | Yes                                           | No                                  |
+| Pricing model         | Flat per-message                              | Tiered, contact-based pricing       |
 
 ## When Brevo is the better fit
 

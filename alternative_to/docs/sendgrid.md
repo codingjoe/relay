@@ -1,28 +1,32 @@
 ---
 name: Alternative to SendGrid
-description: How relay compares to SendGrid (Twilio) for email sending and receiving
+description: How relay compares to SendGrid (Twilio) — all-in-one email sending, receiving, and monitoring, EU-hosted
 author: Johannes Maron
 ---
 
 # Alternative to SendGrid
 
-> **TL;DR** — SendGrid is a popular marketing + transactional API, but DNS authentication is manual, inbound mail is a paid add-on, and DKIM rotation is on you. relay automates DNS end-to-end with a built-in nameserver, includes inbound webhooks, and ingests DMARC reports.
+> relay is the all-in-one email platform — sending, receiving, and reputation monitoring in one EU-hosted service. SendGrid is a popular marketing + transactional API, but DNS authentication is manual, inbound mail is a paid add-on, and reputation tooling is limited.
 
 ## Why choose relay over SendGrid
 
-SendGrid (owned by Twilio) is one of the most widely used email APIs. It covers marketing campaigns and transactional mail. But like most providers, it leaves DNS configuration and authentication record management to you.
+SendGrid (owned by Twilio) is one of the most widely used email APIs, covering marketing campaigns and transactional mail. But like most providers, it leaves DNS configuration, key rotation, and reputation monitoring to you.
 
-### Built-in nameserver
+### All-in-one monitoring
 
-SendGrid asks you to add SPF, DKIM, and DMARC records to your DNS provider. relay **is the DNS provider** — delegate NS and set one DMARC record, and relay serves every authentication record automatically, including Return-Path and PTR.
+SendGrid's deliverability insights are limited and DMARC analytics live in a separate product. relay **ingests DMARC and TLS-RPT reports**, parses them, and shows reputation and failure trends in one dashboard — no add-on, no forwarding setup.
+
+### Sending reliability without DNS busywork
+
+SendGrid asks you to add SPF, DKIM, and DMARC records to your DNS provider and rotate DKIM keys yourself. relay automates all of it: delegate NS and set one DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. The built-in nameserver is the mechanism — you never touch a DNS dashboard beyond the initial delegation.
 
 ### Incoming mail
 
 SendGrid's Inbound Parse is available but routes to a webhook URL you provide; DKIM/SPF for inbound are your responsibility. relay runs its own **MX server** with STARTTLS, parses the message, stores the raw body in S3, and delivers signed webhook events with Ed25519 keys.
 
-### DKIM and DMARC automation
+### EU data sovereignty
 
-SendGrid supports DKIM but key rotation is manual and provider-specific. relay manages **RSA-2048, RSA-1024, and Ed25519** keypairs and rotates them for you. DMARC and TLS-RPT reports are ingested and shown in the dashboard — SendGrid only forwards RUA reports to an address you choose.
+SendGrid is a Twilio product, US-owned and primarily US-hosted. EU data residency is available only on higher tiers. relay is **hosted in the EU** under the GDPR, with no US data dependency.
 
 ### Free test domain
 
@@ -30,16 +34,14 @@ relay includes a **free sender domain** for deliverability testing before you de
 
 ## Side-by-side comparison
 
-| Feature                | relay                                        | SendGrid                         |
-| ---------------------- | -------------------------------------------- | -------------------------------- |
-| Built-in nameserver    | Yes — serves MX, SPF, DKIM, Return-Path, PTR | No — bring your own DNS          |
-| DNS setup              | NS delegation + DMARC record only            | Manual SPF, DKIM, DMARC records  |
-| DKIM key management    | Automatic (RSA + Ed25519)                    | Manual rotation                  |
-| Incoming mail (MX)     | Built-in MX server, webhook dispatch         | Inbound Parse (add-on)           |
-| DMARC report ingestion | Built-in dashboard                           | Forwarded, no UI                 |
-| TLS-RPT ingestion      | Built-in dashboard                           | Not available                    |
-| Free test domain       | Yes                                          | No                               |
-| Pricing model          | Flat per-message, no tiers                   | Tiered plans, separate marketing |
+| Feature               | relay                                         | SendGrid                                 |
+| --------------------- | --------------------------------------------- | ---------------------------------------- |
+| All-in-one monitoring | DMARC + TLS-RPT reports parsed and visualized | Limited; separate deliverability product |
+| Sending reliability   | Automated SPF, DKIM, DMARC, no DNS dashboard  | Manual DNS records, manual rotation      |
+| Incoming mail (MX)    | Built-in MX server, webhook dispatch          | Inbound Parse (add-on)                   |
+| EU data sovereignty   | EU-hosted, GDPR, no US dependency             | US-owned; EU residency on higher tiers   |
+| Free test domain      | Yes                                           | No                                       |
+| Pricing model         | Flat per-message, no tiers                    | Tiered plans, separate marketing         |
 
 ## When SendGrid is the better fit
 

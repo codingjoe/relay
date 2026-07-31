@@ -1,28 +1,32 @@
 ---
 name: Alternative to Amazon SES
-description: How relay compares to Amazon SES for email sending and receiving
+description: How relay compares to Amazon SES — all-in-one email sending, receiving, and monitoring, EU-hosted
 author: Johannes Maron
 ---
 
 # Alternative to Amazon SES
 
-> **TL;DR** — Amazon SES is a raw SMTP relay with no built-in DNS, no inbound mail, and no reputation dashboard. relay gives you a nameserver, automated DKIM/SPF/DMARC, incoming webhooks, and DMARC report ingestion — without an AWS account.
+> relay is the all-in-one email platform — sending, receiving, and reputation monitoring in one EU-hosted service. Amazon SES is a high-volume outbound relay that leaves DNS, inbound mail, and report analysis to you.
 
 ## Why choose relay over Amazon SES
 
-Amazon Simple Email Service (SES) is a high-volume outbound SMTP relay. It is reliable and cheap at scale, but it assumes you already run your own DNS, configure authentication records by hand, and handle inbound mail elsewhere. relay removes that overhead.
+Amazon Simple Email Service (SES) is a reliable, cheap-at-scale outbound SMTP relay. It assumes you already run your own DNS, configure authentication records by hand, and handle inbound mail and reputation monitoring elsewhere. relay puts all of that in one place.
 
-### Built-in nameserver
+### All-in-one monitoring
 
-With SES you delegate DNS to your existing provider and publish SPF, DKIM, and DMARC records yourself. relay ships an **authoritative nameserver** — you set NS delegation and a DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. No DNS dashboard edits beyond the initial delegation.
+SES sends aggregate (RUA) and forensic (RUF) DMARC reports to an address you configure, but parsing and visualization are on you. relay **ingests DMARC and TLS-RPT reports**, parses them, and surfaces reputation and failure trends in a dashboard — no extra tooling, no forwarding setup.
+
+### Sending reliability without DNS busywork
+
+With SES you delegate DNS to your existing provider and publish SPF, DKIM, and DMARC records yourself, then rotate DKIM keys by hand. relay automates all of it: you set NS delegation and one DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. The built-in nameserver is the mechanism — you never touch a DNS dashboard beyond the initial delegation.
 
 ### Incoming mail
 
 SES is outbound-only. For inbound mail you need a separate service or AWS Lambda + S3. relay runs an **MX server** that receives incoming email and dispatches it to your webhooks following the [Standard Webhooks](https://standardwebhooks.com) specification with Ed25519 signatures.
 
-### DMARC and TLS-RPT reports
+### EU data sovereignty
 
-SES sends aggregate (RUA) and forensic (RUF) reports to an address you configure, but parsing and visualization are on you. relay **ingests DMARC and TLS-RPT reports**, parses them, and surfaces them in a dashboard.
+SES is an AWS product, US-owned and subject to US law (CLOUD Act). AWS offers European regions, but the data is still governed by a US provider. relay is **hosted in the EU** under the GDPR, with no US data dependency.
 
 ### Free test domain
 
@@ -30,17 +34,14 @@ SES requires a verified domain before you can send. relay gives you a **free sen
 
 ## Side-by-side comparison
 
-| Feature                | relay                                        | Amazon SES                        |
-| ---------------------- | -------------------------------------------- | --------------------------------- |
-| Built-in nameserver    | Yes — serves MX, SPF, DKIM, Return-Path, PTR | No — bring your own DNS           |
-| DNS setup              | NS delegation + DMARC record only            | Manual SPF, DKIM, DMARC records   |
-| DKIM key management    | Automatic (RSA + Ed25519)                    | Manual key rotation               |
-| Incoming mail (MX)     | Built-in, webhook dispatch                   | Not available                     |
-| DMARC report ingestion | Built-in dashboard                           | Forwarded to an address, no UI    |
-| TLS-RPT ingestion      | Built-in dashboard                           | Not available                     |
-| Free test domain       | Yes                                          | No                                |
-| Account requirement    | GitHub OAuth                                 | AWS account                       |
-| Pricing model          | Flat per-message, no infrastructure overhead | Per-message, plus AWS infra costs |
+| Feature               | relay                                         | Amazon SES                              |
+| --------------------- | --------------------------------------------- | --------------------------------------- |
+| All-in-one monitoring | DMARC + TLS-RPT reports parsed and visualized | Forwarded to an address, no UI          |
+| Sending reliability   | Automated SPF, DKIM, DMARC, no DNS dashboard  | Manual DNS records, manual key rotation |
+| Incoming mail (MX)    | Built-in MX server, webhook dispatch          | Not available                           |
+| EU data sovereignty   | EU-hosted, GDPR, no US dependency             | US-owned, US law applies                |
+| Free test domain      | Yes                                           | No                                      |
+| Pricing model         | Flat per-message, no infrastructure overhead  | Per-message, plus AWS infra costs       |
 
 ## When Amazon SES is the better fit
 
