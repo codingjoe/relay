@@ -4,7 +4,9 @@
       "args": [
         "-y",
         "@playwright/mcp@latest",
-        "--headless"
+        "--headless",
+        "--output-dir",
+        ".playwright-mcp"
       ],
       "command": "npx",
       "tools": [
