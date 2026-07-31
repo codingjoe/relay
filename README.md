@@ -117,6 +117,18 @@ address glob pattern.
 - **basecoat CSS** — component-based CSS framework for the web UI
 - **Granian** — Rust-based ASGI server
 
+### Error monitoring (Sentry)
+
+All five processes report to a single Sentry project. Off by default; set
+`SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
+sent automatically.
+
+| Variable                    | Default         | Description                                |
+| --------------------------- | --------------- | ------------------------------------------ |
+| `SENTRY_DSN`                | _(empty — off)_ | Project DSN. Required to enable reporting. |
+| `SENTRY_ENVIRONMENT`        | `production`    | Sentry environment tag.                    |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`           | Tracing sample rate (0–1). Off by default. |
+
 ## App dependencies
 
 The graph shows a simplified representation of the app's dependencies.
