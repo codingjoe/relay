@@ -45,6 +45,21 @@ class TestDomainCreateView:
         assert response.status_code == 302
         assert response.url.endswith(f"/org/{org.slug}/email/domains/")
 
+    def test_post__rejects_dot(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/new", {"name": "."}
+        )
+        assert response.status_code == 302
+        assert response.url.endswith(f"/org/{org.slug}/email/domains/")
+        assert not Domain.objects.filter(name=".")
+
+    def test_post__rejects_single_label(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/new", {"name": "example"}
+        )
+        assert response.status_code == 302
+        assert not Domain.objects.filter(name="example")
+
 
 @pytest.mark.django_db
 class TestDomainDetailView:
