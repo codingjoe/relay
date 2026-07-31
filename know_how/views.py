@@ -61,20 +61,7 @@ class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
         }
 
 
-class KnowHowView(MarkdownView):
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["license"] = md_2_html(LICENSE_MARKDOWN)
-        return context
-
-    def render_markdown(self, request, **kwargs):
-        response = super().render_markdown(request, **kwargs)
-        license_md = f"\n\n---\n\n{LICENSE_MARKDOWN}\n"
-        response.content = (response.content.decode() + license_md).encode()
-        return response
-
-
-class KnowHowDetailView(KnowHowView):
+class KnowHowDetailView(MarkdownView):
     """Render a single know-how article by slug."""
 
     parent = "know_how:list"
@@ -95,6 +82,12 @@ class KnowHowDetailView(KnowHowView):
         path = KNOW_HOW_DIR / f"{slug}.md"
         if not path.exists():
             raise Http404("Article not found")
-        return super().get_context_data(**kwargs) | {
-            "markdown_template": f"{slug}.md",
-        }
+        context = super().get_context_data(**kwargs)
+        context["license"] = md_2_html(LICENSE_MARKDOWN)
+        return context
+
+    def render_markdown(self, request, **kwargs):
+        response = super().render_markdown(request, **kwargs)
+        license_md = f"\n\n---\n\n{LICENSE_MARKDOWN}\n"
+        response.content = (response.content.decode() + license_md).encode()
+        return response
