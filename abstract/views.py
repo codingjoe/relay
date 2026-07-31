@@ -60,13 +60,7 @@ class BreadcrumbViewMixin:
 
 
 class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
-    """Render Markdown files in a template.
-
-    Supports content negotiation: when the request Accept header
-    contains ``text/markdown``, the view returns the raw Markdown
-    source instead of rendered HTML. This makes the page friendly
-    to AI agents and API clients that prefer Markdown.
-    """
+    """Render Markdown files in a template."""
 
     template_name = "abstract/markdown.html"
 
