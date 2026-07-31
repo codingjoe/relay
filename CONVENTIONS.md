@@ -168,12 +168,18 @@ Update it based on review feedback.
   use Lucide icons with semantic color classes instead (for example,
   `circle-check` with `text-success`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
-- Custom CSS lives in `root/static/css/app.css` and is kept to the bare
-  minimum. Use it only for layout glue basecoat/Tailwind do not provide
-  directly (for example, the breadcrumb container's background, marketing-page
-  accent highlights). Do not use it for component styling — use basecoat
-  classes instead. If a utility is missing, prefer a Tailwind utility
-  before adding a custom rule.
+- CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
+  The source entry is `src/css/app.css` — it imports Tailwind CSS v4 and
+  basecoat-css (maia style), plus any custom CSS variables and layout glue.
+  Run `npm run build` to compile `src/css/app.css` → `root/static/css/app.css`
+  (a build artifact, gitignored — do not edit it directly). Run `npm run dev`
+  to watch for changes during development. The build output is served via
+  `{% static 'css/app.css' %}` in `base.html`.
+  Custom CSS is kept to the bare minimum — use it only for layout glue
+  basecoat/Tailwind do not provide directly (for example, the breadcrumb
+  container's background, marketing-page accent highlights). Do not use it
+  for component styling — use basecoat classes instead. If a utility is
+  missing, prefer a Tailwind utility before adding a custom rule.
 - Django form widgets are styled by overriding templates under
   `abstract/templates/django/forms/widgets/{input,checkbox,select,textarea}.html`.
   Each override adds the matching basecoat class

@@ -1,3 +1,10 @@
+FROM node:25-slim AS frontend
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY ./ /app
+RUN npm run build
+
 FROM ghcr.io/astral-sh/uv:0.12.0-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
@@ -50,6 +57,9 @@ COPY ./ /app
 
 # Compile message files
 RUN /app/.venv/bin/python -m manage compilemessages --ignore=.venv
+
+# Copy compiled CSS from the frontend build stage
+COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
 
 # Collect static files
 RUN /app/.venv/bin/python -m manage collectstatic --no-input

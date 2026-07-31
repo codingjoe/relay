@@ -1,4 +1,6 @@
 scripts:
+  - name: CSS watcher
+    command: npm run dev
   - name: Dev server
     command: |
       uv run --env-file .env manage.py migrate --noinput
