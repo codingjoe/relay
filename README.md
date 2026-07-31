@@ -150,6 +150,7 @@ graph BT
  accounts
  domains
  know_how[know_how]
+ alternative_to[alternative_to]
  legal
  well_known[well_known]
  domains --> accounts
@@ -157,7 +158,9 @@ graph BT
  domains --> kms
  legal --> abstract
  know_how --> abstract
+ alternative_to --> abstract
  well_known --> know_how
+ well_known --> alternative_to
  end
  subgraph services
  direction BT

@@ -6,6 +6,7 @@ from django.views.generic import TemplateView
 
 from abstract.utils import strip_frontmatter
 from abstract.views import CacheControlMixin
+from alternative_to.views import list_comparisons
 from know_how.views import list_articles
 
 
@@ -49,9 +50,19 @@ class LlmsTxtView(CacheControlMixin, TemplateView):
                 ("legal:privacy", "Privacy Policy"),
             ]
         ]
+        comparisons = [
+            {
+                "title": article["title"],
+                "url": self.request.build_absolute_uri(
+                    reverse("alternative_to:detail", args=[article["slug"]])
+                ),
+            }
+            for article in list_comparisons()
+        ]
         return super().get_context_data(**kwargs) | {
             "articles": articles,
             "legal_pages": legal_pages,
+            "comparisons": comparisons,
         }
 
 
@@ -79,4 +90,18 @@ class LlmsFullTxtView(CacheControlMixin, TemplateView):
         ]
         return super().get_context_data(**kwargs) | {
             "articles": articles,
+            "comparisons": [
+                {
+                    "title": article["title"],
+                    "url": self.request.build_absolute_uri(
+                        reverse("alternative_to:detail", args=[article["slug"]])
+                    ),
+                    "content": strip_frontmatter(
+                        loader.get_template(f"{article['slug']}.md").render(
+                            request=self.request
+                        )
+                    ),
+                }
+                for article in list_comparisons()
+            ],
         }

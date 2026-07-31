@@ -2,7 +2,7 @@ from django.contrib.sitemaps.views import sitemap
 from django.urls import path
 
 from . import views
-from .sitemaps import HomeSitemap, KnowHowSitemap, LegalSitemap
+from .sitemaps import AlternativeToSitemap, HomeSitemap, KnowHowSitemap, LegalSitemap
 
 app_name = "well_known"
 
@@ -10,6 +10,7 @@ sitemaps = {
     "home": HomeSitemap,
     "legal": LegalSitemap,
     "know-how": KnowHowSitemap,
+    "alternative-to": AlternativeToSitemap,
 }
 
 urlpatterns = [

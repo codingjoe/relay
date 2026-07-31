@@ -7,6 +7,10 @@
 
 {% for article in articles %}- [{{ article.title }}]({{ article.url }})
 {% endfor %}
+## Alternative to
+
+{% for article in comparisons %}- [{{ article.title }}]({{ article.url }})
+{% endfor %}
 ## Legal
 
 {% for page in legal_pages %}- [{{ page.title }}]({{ page.url }})

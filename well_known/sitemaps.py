@@ -3,6 +3,7 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 
+from alternative_to.views import list_comparisons
 from know_how.views import list_articles
 
 
@@ -43,3 +44,16 @@ class KnowHowSitemap(Sitemap):
 
     def location(self, slug):
         return reverse("know_how:detail", args=[slug])
+
+
+class AlternativeToSitemap(Sitemap):
+    """One entry per alternative-to comparison article."""
+
+    changefreq = "monthly"
+    priority = 0.6
+
+    def items(self):
+        return [article["slug"] for article in list_comparisons()]
+
+    def location(self, slug):
+        return reverse("alternative_to:detail", args=[slug])
