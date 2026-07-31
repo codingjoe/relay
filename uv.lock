@@ -938,7 +938,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "redis", specifier = ">=7.2.0" },
     { name = "social-auth-app-django", specifier = ">=6.0.1" },
-    { name = "threadmill", extras = ["redis"], specifier = ">=0.1" },
+    { name = "threadmill", extras = ["redis"], specifier = ">=0.5" },
     { name = "whitenoise", specifier = ">=6.12.0" },
 ]
 
@@ -951,7 +951,7 @@ dev = [
     { name = "pytest-env", specifier = ">=1.1.0" },
     { name = "pytest-randomly", specifier = ">=4.1.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
-    { name = "threadmill", extras = ["inspector"], specifier = ">=0.1" },
+    { name = "threadmill", extras = ["inspector"], specifier = ">=0.5" },
 ]
 test = [
     { name = "pytest", specifier = ">=7.4.0" },
