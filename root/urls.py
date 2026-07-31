@@ -50,6 +50,7 @@ urlpatterns = [
     # Platform (not org-scoped)
     path("", include("accounts.urls")),
     path("legal/", include("legal.urls")),
+    path("know-how/", include("know_how.urls")),
     # Org-scoped email
     path(
         "org/<slug:org_slug>/email/",

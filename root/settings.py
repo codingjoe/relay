@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     "kms",
     "domains",
     "legal",
+    "know_how",
     "root",
     "smtp",
     "tx_email",
@@ -109,6 +110,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "legal" / "docs",
+            BASE_DIR / "know-how",
         ],
         "OPTIONS": {
             "context_processors": (
