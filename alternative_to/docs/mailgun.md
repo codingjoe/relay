@@ -1,57 +1,70 @@
 ---
 name: Alternative to Mailgun
-description: How relay compares to Mailgun (Sinch) — all-in-one email sending, receiving, and monitoring, EU-hosted
+description: A fair 2025 comparison of relay and Mailgun (Sinch) for email sending, receiving, and monitoring
 author: Johannes Maron
 ---
 
 # Alternative to Mailgun
 
-> relay is the all-in-one email platform — sending, receiving, and reputation monitoring in one EU-hosted service. Mailgun is a developer-focused SMTP/API provider, but DNS records are manual, inbound routing is limited, and DMARC tooling is a separate product.
+> Mailgun is a developer-friendly SMTP and API provider with inbound routes. relay adds reputation monitoring and EU hosting, and it automates the DNS setup.
 
-## Why choose relay over Mailgun
+<div class="not-prose my-6 rounded-lg border border-border bg-card p-4 text-sm">
+  <p class="m-0 mb-2"><strong>Best for a developer SMTP/API relay with EU data residency:</strong> Mailgun</p>
+  <p class="m-0"><strong>Best for sending, receiving, and monitoring with automated DNS:</strong> relay</p>
+</div>
 
-Mailgun (now part of Sinch) is popular among developers for its API and SMTP relay. It handles outbound and offers inbound routes, but the DNS and reputation side still lands on your plate.
+## Quick comparison
+
+|                       | relay                                      | Mailgun                                         |
+| --------------------- | ------------------------------------------ | ----------------------------------------------- |
+| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown | Separate deliverability product                 |
+| DNS setup             | NS delegation and one DMARC record         | Manual SPF, DKIM, and tracking CNAME records    |
+| Incoming mail         | Built-in MX server with webhooks           | Routes (URL or storage)                         |
+| EU data sovereignty   | Hosted in Germany under the GDPR           | Hosted in the EU (Sinch, Sweden) under the GDPR |
+| Free test domain      | Yes                                        | Sandbox with restricted sending                 |
+| Pricing               | Flat per message                           | Tiered, feature-gated plans                     |
+
+## What Mailgun does well
+
+Mailgun (now part of Sinch) is popular with developers for its API and SMTP relay. As of 2025, it handles both outbound and inbound, and it offers an email validation API. Sinch is a Swedish company, so Mailgun is EU-owned and offers EU data residency.
+
+The trade-off is the manual side. DNS records are paste-it-yourself. DKIM key rotation is on you. DMARC analytics live in a separate deliverability product.
+
+## Where relay is different
 
 ### All-in-one monitoring
 
-Mailgun's DMARC analytics are part of a separate deliverability product. relay ingests **DMARC RUA/RUF and TLS-RPT reports** as first-class data, parsed and displayed in your dashboard — no separate product, no forwarding setup.
+The DMARC analytics in Mailgun are a separate deliverability product. relay ingests DMARC and TLS-RPT reports as first-class data. It parses them and shows reputation and failure trends in your dashboard.
 
-### Sending reliability without DNS busywork
+### Sending without DNS busywork
 
-Mailgun generates SPF, DKIM, and tracking CNAME records for you to paste into your DNS provider, and DKIM key rotation is on you. relay automates all of it: delegate NS and set one DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. The built-in nameserver is the mechanism — you never touch a DNS dashboard beyond the initial delegation.
+Mailgun generates SPF, DKIM, and tracking CNAME records for you to paste into your DNS provider. You rotate DKIM keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
 
 ### Incoming mail
 
-Mailgun Routes forward inbound mail to a URL or storage, but DKIM/SPF verification for inbound is managed by Mailgun's infrastructure, not yours. relay runs an **MX server you control**, stores raw bodies in your own S3, and dispatches **Standard Webhooks** with Ed25519 signatures you can verify with a public key you hold.
+Mailgun Routes forward inbound mail to a URL or storage. DKIM and SPF for inbound are managed by Mailgun, not by you. relay runs an MX server that you control. It stores raw bodies in your own S3 and dispatches Standard Webhooks with Ed25519 signatures. You verify each delivery with a public key you hold.
 
 ### EU data sovereignty
 
-Mailgun is owned by Sinch, a Swedish (EU) company, and offers EU data residency. Here relay and Mailgun are on equal footing — both EU-based and GDPR-aligned. relay adds a **Germany-hosted** stack with local support and no US data path.
+Mailgun is owned by Sinch, a Swedish (EU) company, and offers EU data residency. Here, relay and Mailgun are on equal footing. Both are EU-based and GDPR-aligned. relay adds a Germany-hosted stack with local support and no US data path.
 
 ### Free test domain
 
-relay ships a **free sender domain** to test deliverability before delegating a real domain. Mailgun requires a verified domain and offers a sandbox with restricted sending.
+relay ships a free sender domain to test deliverability before you delegate a real domain. Mailgun requires a verified domain and offers a sandbox with restricted sending.
 
-## Side-by-side comparison
+## When Mailgun makes sense
 
-| Feature               | relay                                         | Mailgun                             |
-| --------------------- | --------------------------------------------- | ----------------------------------- |
-| All-in-one monitoring | DMARC + TLS-RPT reports parsed and visualized | Separate deliverability product     |
-| Sending reliability   | Automated SPF, DKIM, DMARC, no DNS dashboard  | Manual DNS records, manual rotation |
-| Incoming mail (MX)    | Built-in MX server, webhook dispatch          | Routes (URL/storage)                |
-| EU data sovereignty   | EU-hosted (Germany), GDPR                     | EU-hosted (Sinch/Sweden), GDPR      |
-| Free test domain      | Yes                                           | Sandbox (restricted)                |
-| Pricing model         | Flat per-message                              | Tiered, feature-gated plans         |
+- You need a high-volume SMTP relay with EU data residency.
+- You rely on the Mailgun email validation API.
+- You want one Sinch account for SMS and email.
 
-## When Mailgun is the better fit
+## The bottom line
 
-- You need Mailgun's large-volume SMTP relay and EU data residency options.
-- You rely on Mailgun's email validation API.
-- You want a single Sinch account across SMS and email.
+Mailgun is a capable developer email API with inbound routes. relay is the better fit when you want reputation monitoring, automated DNS, and Germany hosting in one service.
 
 ## Migrating from Mailgun to relay
 
-1. Add your domain in relay and delegate NS to the relay nameservers.
-1. Set the DMARC record relay provides.
-1. Move SMTP/API credentials to relay's per-org keys.
+1. Add your domain in relay. Delegate NS to the relay nameservers.
+1. Set the DMARC record that relay gives you.
+1. Move your SMTP or API calls to relay with a per-org credential.
 1. Replace Mailgun Routes with relay webhook subscriptions.

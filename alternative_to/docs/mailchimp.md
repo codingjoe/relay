@@ -1,57 +1,70 @@
 ---
 name: Alternative to Mailchimp
-description: How relay compares to Mailchimp (Intuit) — all-in-one email sending, receiving, and monitoring, EU-hosted
+description: A fair 2025 comparison of relay and Mailchimp (Intuit) for email sending, receiving, and monitoring
 author: Johannes Maron
 ---
 
 # Alternative to Mailchimp
 
-> relay is the all-in-one email platform — sending, receiving, and reputation monitoring in one EU-hosted service. Mailchimp is a marketing-first platform with transactional email via Mandrill, but DNS authentication is manual and reputation tooling is limited.
+> Mailchimp is the best-known name in email marketing. relay is a developer email service for sending, receiving, and reputation monitoring, hosted in the EU.
 
-## Why choose relay over Mailchimp
+<div class="not-prose my-6 rounded-lg border border-border bg-card p-4 text-sm">
+  <p class="m-0 mb-2"><strong>Best for marketing campaigns and commerce integrations:</strong> Mailchimp</p>
+  <p class="m-0"><strong>Best for sending, receiving, and monitoring in one EU-hosted service:</strong> relay</p>
+</div>
 
-Mailchimp (Intuit) is the most recognized name in email marketing. For marketing campaigns with a drag-and-drop builder, it excels. For developer-grade transactional email infrastructure, relay automates the DNS, inbound, and reputation work Mailchimp does not.
+## Quick comparison
+
+|                       | relay                                      | Mailchimp                           |
+| --------------------- | ------------------------------------------ | ----------------------------------- |
+| Reputation monitoring | DMARC and TLS-RPT reports parsed and shown | Not available                       |
+| DNS setup             | NS delegation and one DMARC record         | Manual SPF, DKIM, and DMARC records |
+| Incoming mail         | Built-in MX server with webhooks           | Not available                       |
+| EU data sovereignty   | Hosted in the EU under the GDPR            | US-owned (US law applies)           |
+| Free test domain      | Yes                                        | No                                  |
+| Pricing               | Flat per message                           | Tiered, contact-based pricing       |
+
+## What Mailchimp does well
+
+Mailchimp (owned by Intuit) is the most recognized name in email marketing. As of 2025, its drag-and-drop campaign builder, audience segmentation, and commerce integrations are among the best. For marketing teams, it is hard to beat.
+
+The trade-off is transactional and infrastructure email. Mailchimp handles outbound only, through Mandrill. It does not receive mail. It does not ingest DMARC or TLS-RPT reports. DNS authentication is manual.
+
+## Where relay is different
 
 ### All-in-one monitoring
 
-Mailchimp does not ingest DMARC or TLS-RPT reports. relay parses **RUA, RUF, and TLS-RPT reports** and displays reputation and failure trends in a dashboard so you can monitor abuse and deliverability without extra tooling.
+Mailchimp does not ingest DMARC or TLS-RPT reports. relay parses RUA, RUF, and TLS-RPT reports and shows reputation and failure trends in a dashboard. You monitor abuse and deliverability without extra tooling.
 
-### Sending reliability without DNS busywork
+### Sending without DNS busywork
 
-Mailchimp/Mandrill gives you SPF, DKIM, and DMARC records to add to your DNS provider, and key rotation is on you. relay automates all of it: delegate NS and set one DMARC record, and relay serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT automatically. The built-in nameserver is the mechanism — you never touch a DNS dashboard beyond the initial delegation.
+Mailchimp and Mandrill give you SPF, DKIM, and DMARC records to add to your DNS provider. You rotate keys yourself. relay automates this. You delegate NS and set one DMARC record. relay then serves MX, SPF, DKIM, Return-Path, PTR, and TLS-RPT for you. The built-in nameserver is the mechanism. You do not touch a DNS dashboard after the initial delegation.
 
 ### Incoming mail
 
-Mailchimp does not handle inbound mail at all. relay runs an **MX server** that receives incoming email with STARTTLS and dispatches it to your webhooks via Standard Webhooks with Ed25519 signatures.
+Mailchimp does not handle inbound mail at all. relay runs an MX server that receives incoming email with STARTTLS. It dispatches each message to your webhooks with an Ed25519 signature, per the Standard Webhooks spec.
 
 ### EU data sovereignty
 
-Mailchimp is an Intuit product, US-owned and US-hosted, subject to US law. relay is **hosted in the EU** under the GDPR, with no US data dependency.
+Mailchimp is an Intuit product. Intuit is a US company, and it hosts data in the US. US law applies. relay is hosted in the EU under the GDPR, with no US data path.
 
 ### Free test domain
 
-relay includes a **free sender domain** to test deliverability and integrations. Mailchimp requires a verified domain before sending.
+relay includes a free sender domain to test deliverability and integrations. Mailchimp requires a verified domain before you send.
 
-## Side-by-side comparison
+## When Mailchimp makes sense
 
-| Feature               | relay                                         | Mailchimp                           |
-| --------------------- | --------------------------------------------- | ----------------------------------- |
-| All-in-one monitoring | DMARC + TLS-RPT reports parsed and visualized | Not available                       |
-| Sending reliability   | Automated SPF, DKIM, DMARC, no DNS dashboard  | Manual DNS records, manual rotation |
-| Incoming mail (MX)    | Built-in MX server, webhook dispatch          | Not available                       |
-| EU data sovereignty   | EU-hosted, GDPR, no US dependency             | US-owned, US law applies            |
-| Free test domain      | Yes                                           | No                                  |
-| Pricing model         | Flat per-message                              | Tiered, contact-based pricing       |
+- You need a full marketing-campaign builder with audience segmentation.
+- You rely on the Mailchimp commerce and landing-page integrations.
+- You want marketing and transactional email (Mandrill) under one brand.
 
-## When Mailchimp is the better fit
+## The bottom line
 
-- You need a full marketing-campaign builder with audience segmentation and automation.
-- You rely on Mailchimp's commerce and landing-page integrations.
-- You want marketing + transactional (Mandrill) under one brand.
+Mailchimp is a top marketing platform. relay is the better fit for developer email when you want inbound mail, reputation monitoring, and EU hosting, without manual DNS work.
 
 ## Migrating from Mailchimp to relay
 
-1. Add your domain in relay and delegate NS to the relay nameservers.
-1. Set the DMARC record relay provides.
-1. Move transactional SMTP/API calls from Mandrill to relay's per-org credentials.
+1. Add your domain in relay. Delegate NS to the relay nameservers.
+1. Set the DMARC record that relay gives you.
+1. Move transactional calls from Mandrill to relay with a per-org credential.
 1. Set up relay webhooks for any inbound mail you need.
