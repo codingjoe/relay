@@ -8,7 +8,7 @@ DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an em
 
 Without DMARC, a receiving mail server has no instructions from the domain owner. It decides on its own whether to deliver, quarantine, or reject a message that fails SPF or DKIM. DMARC solves this problem. The domain owner publishes a policy in DNS, and receivers follow that policy.
 
-DMARC is defined in [RFC 7489](https://datatracker.ietf.org/doc/html/rfc7489).
+DMARC is defined in [RFC 7489](https://datatracker.ietf.org/doc/html/rfc7489).[^rfc-status]
 
 ## Why DMARC matters
 
@@ -48,7 +48,7 @@ The `p=` tag has three values:
 
 - **`none`** — The receiver delivers all mail but still sends reports. Use this mode to monitor your authentication status before you enforce a policy.
 - **`quarantine`** — The receiver sends failing messages to the spam folder. This mode reduces the impact of spoofing without blocking legitimate mail that has configuration problems.
-- **`reject`** — The receiver rejects failing messages at the SMTP level. This mode gives the strongest protection but requires that all legitimate senders pass authentication.
+- **`reject`** — The receiver rejects failing messages at the SMTP level. This mode gives the strongest protection but requires that all legitimate senders pass authentication.[^pct-rollout]
 
 ### Alignment
 
@@ -56,7 +56,7 @@ Alignment is the key concept that DMARC adds on top of SPF and DKIM. A message c
 
 DMARC alignment has two modes:
 
-- **Relaxed alignment** — The organizational domains must match. For example, `mail.example.com` aligns with `example.com`.
+- **Relaxed alignment** — The organizational domains must match. For example, `mail.example.com` aligns with `example.com`.[^org-domain]
 - **Strict alignment** — The exact domains must match. For example, `mail.example.com` does not align with `example.com`.
 
 ## DMARC reports
@@ -96,3 +96,9 @@ relay collects aggregate and forensic reports for you. You can view them in the 
 - [DMARC.org — Official DMARC website](https://dmarc.org/)
 - <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
 - <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
+
+[^rfc-status]: RFC 7489 is classified as "Informational", not "Standards Track". Despite this, DMARC is widely adopted by major email providers and is the de facto standard for email authentication policy.
+
+[^pct-rollout]: The `pct` tag lets you apply the policy to a percentage of messages. Start with `pct=1` and `p=quarantine`, then increase the percentage as you gain confidence. This staged rollout prevents sudden delivery failures for legitimate senders.
+
+[^org-domain]: The organizational domain is extracted using the Public Suffix List. For `mail.example.com`, the organizational domain is `example.com`. For `mail.example.co.uk`, it is `example.co.uk`. See [RFC 7489 Appendix A](https://datatracker.ietf.org/doc/html/rfc7489#appendix-A) for the algorithm.

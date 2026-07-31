@@ -14,7 +14,7 @@ SMTP supports the `STARTTLS` command to upgrade a plain-text connection to TLS. 
 
 MTA-STS solves this problem. A sending server that has seen the MTA-STS policy knows that the receiving server supports TLS. If the sending server cannot establish a TLS connection, it refuses to deliver the message instead of falling back to plain text.
 
-MTA-STS is the email equivalent of HTTP Strict Transport Security (HSTS). HSTS tells browsers to always use HTTPS. MTA-STS tells mail servers to always use TLS.
+MTA-STS is the email equivalent of HTTP Strict Transport Security (HSTS).[^hsts] HSTS tells browsers to always use HTTPS. MTA-STS tells mail servers to always use TLS.
 
 ## How MTA-STS works
 
@@ -47,11 +47,11 @@ The `mode` field has three values:
 
 Sending servers cache the MTA-STS policy for the duration specified in `max_age`. When a sender first connects to your mail server, it fetches the policy file over HTTPS and stores it. On subsequent connections, the sender uses the cached policy without fetching the file again.
 
-When you change the policy, you update the `id=` tag in the DNS TXT record. The sender sees the new ID on the next DNS lookup and fetches the new policy file.
+When you change the policy, you update the `id=` tag in the DNS TXT record.[^policy-id] The sender sees the new ID on the next DNS lookup and fetches the new policy file.
 
 ### Certificate validation
 
-In `enforce` mode, the sending server validates the TLS certificate of the receiving mail server. The certificate must be issued by a trusted certificate authority, and the hostname must match the MX record. This prevents man-in-the-middle attacks where an attacker presents a self-signed certificate.
+In `enforce` mode, the sending server validates the TLS certificate of the receiving mail server. The certificate must be issued by a trusted certificate authority, and the hostname must match the MX record.[^dane-alternative] This prevents man-in-the-middle attacks where an attacker presents a self-signed certificate.
 
 ## How relay uses MTA-STS
 
@@ -68,3 +68,9 @@ relay handles the policy file, the HTTPS endpoint, and the TLS certificate. You 
 - [RFC 8461 Section 3.2 — Policy file format](https://datatracker.ietf.org/doc/html/rfc8461#section-3.2)
 - <a href="{% url 'know_how:detail' slug='tls-rpt' %}">TLS-RPT</a> — TLS Reporting
 - <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> — Mail Exchange records
+
+[^hsts]: HSTS is defined in [RFC 6797](https://datatracker.ietf.org/doc/html/rfc6797). The analogy is not exact because HSTS is enforced by browsers and MTA-STS is enforced by mail transfer agents.
+
+[^policy-id]: The policy ID can be any unique string. A common practice is to use a short random token or a version number. When relay updates the policy, it generates a new ID automatically.
+
+[^dane-alternative]: DANE (DNS-Based Authentication of Named Entities) is an alternative approach to SMTP TLS that uses DNSSEC instead of certificate authorities. DANE is defined in [RFC 7672](https://datatracker.ietf.org/doc/html/rfc7672). MTA-STS and DANE can coexist, but MTA-STS is simpler to deploy because it does not require DNSSEC.

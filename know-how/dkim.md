@@ -6,7 +6,7 @@
 
 DKIM (DomainKeys Identified Mail) is an email authentication standard that adds a digital signature to outgoing messages. The signature proves that the message came from the signing domain and that the message content was not changed in transit.
 
-DKIM is defined in [RFC 6376](https://datatracker.ietf.org/doc/html/rfc6376). It is an Internet Standard, which means it has passed the highest level of IETF review.
+DKIM is defined in [RFC 6376](https://datatracker.ietf.org/doc/html/rfc6376). It is an Internet Standard, which means it has passed the highest level of IETF review.[^internet-standard]
 
 ## Why DKIM matters
 
@@ -39,7 +39,7 @@ The DKIM signing and verification process has two sides:
 
 ### The selector
 
-The selector is a label that identifies which key to use. A domain can have multiple DKIM keys, each with a different selector. This design lets you rotate keys without downtime. You publish the new key under a new selector, update the signing configuration, and then remove the old key.
+The selector is a label that identifies which key to use. A domain can have multiple DKIM keys, each with a different selector. This design lets you rotate keys without downtime.[^key-rotation] You publish the new key under a new selector, update the signing configuration, and then remove the old key.
 
 For example, `relay._domainkey.example.com` contains the public key for the `relay` selector.
 
@@ -47,7 +47,7 @@ For example, `relay._domainkey.example.com` contains the public key for the `rel
 
 DKIM signs a selected set of headers, not the entire message. The `DKIM-Signature` header lists which headers are signed (the `h=` tag). Common headers to sign include `From`, `Subject`, `Date`, `Message-ID`, and `Reply-To`.
 
-The body hash (the `bh=` tag) covers the message body. If any byte of the body changes in transit, the body hash does not match, and verification fails.
+The body hash (the `bh=` tag) covers the message body. If any byte of the body changes in transit, the body hash does not match, and verification fails.[^body-length]
 
 ### Canonicalization
 
@@ -76,7 +76,7 @@ DKIM supports several key types:
 
 - **RSA-2048** — The most common key type. It provides strong security and is compatible with all receiving servers.
 - **RSA-1024** — An older key size. Some receivers no longer accept RSA-1024 keys because the security margin is too small.
-- **Ed25519** — A modern elliptic curve algorithm. It provides the same security as RSA-2048 with a much smaller key size. Not all receiving servers support Ed25519 yet.
+- **Ed25519** — A modern elliptic curve algorithm. It provides the same security as RSA-2048 with a much smaller key size.[^ed25519-support] Not all receiving servers support Ed25519 yet.
 
 relay supports all three key types. Each key type gets its own selector and DNS record.
 
@@ -93,3 +93,11 @@ Each cipher type gets its own selector and CNAME record. You add the CNAME recor
 - [RFC 8301 — DKIM Update](https://datatracker.ietf.org/doc/html/rfc8301)
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
 - <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
+
+[^internet-standard]: RFC 6376 has the status "Internet Standard" (STD 76). This is the highest maturity level in the IETF standards process. It means the protocol is stable, widely implemented, and has significant operational experience.
+
+[^key-rotation]: Key rotation is a security best practice. Rotate DKIM keys at least every 6 to 12 months. relay handles key rotation for you. You do not need to manage the rotation schedule.
+
+[^body-length]: The `l=` tag in the `DKIM-Signature` header limits the body hash to a specific number of bytes. This tag is rarely used and creates a security risk because an attacker can append content after the signed portion. Most implementations omit the `l=` tag entirely. See [RFC 6376 Section 5.4](https://datatracker.ietf.org/doc/html/rfc6376#section-5.4) for details.
+
+[^ed25519-support]: Ed25519 support was added in [RFC 8463](https://datatracker.ietf.org/doc/html/rfc8463). Adoption is growing but not universal. relay publishes Ed25519 keys alongside RSA keys, so receivers that support Ed25519 can use the smaller signature.

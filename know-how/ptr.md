@@ -28,7 +28,7 @@ For IPv4, PTR records live in the `in-addr.arpa` zone. The IP address is reverse
 
 ### IPv6 reverse DNS
 
-For IPv6, PTR records live in the `ip6.arpa` zone. The IPv6 address is expanded to its full hexadecimal form, reversed nibble by nibble, and appended to `ip6.arpa`. For example, the IPv6 address `2001:db8::1` has a PTR record at:
+For IPv6, PTR records live in the `ip6.arpa` zone.[^ipv6-ptr] The IPv6 address is expanded to its full hexadecimal form, reversed nibble by nibble, and appended to `ip6.arpa`. For example, the IPv6 address `2001:db8::1` has a PTR record at:
 
 ```text
 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.  PTR  mail.example.com.
@@ -41,11 +41,11 @@ A common verification technique is forward-confirmed reverse DNS (FCrDNS). The r
 1. **Reverse lookup** — The server looks up the PTR record for the sending IP address. The PTR record returns a hostname.
 1. **Forward lookup** — The server looks up the A or AAAA record for that hostname. The A record must return the original IP address.
 
-If both lookups match, the IP address has valid forward-confirmed reverse DNS. This check prevents a sender from publishing an arbitrary hostname in their PTR record.
+If both lookups match, the IP address has valid forward-confirmed reverse DNS.[^fcrdns-weakness] This check prevents a sender from publishing an arbitrary hostname in their PTR record.
 
 ### Who controls PTR records
 
-PTR records are controlled by the organization that owns the IP address range. This is usually the internet service provider (ISP) or the cloud hosting provider. You cannot set a PTR record in your domain's DNS zone. You must ask your ISP or hosting provider to set it for you.
+PTR records are controlled by the organization that owns the IP address range.[^ptr-ownership] This is usually the internet service provider (ISP) or the cloud hosting provider. You cannot set a PTR record in your domain's DNS zone. You must ask your ISP or hosting provider to set it for you.
 
 This is different from most other DNS records (A, MX, TXT), which you control through your DNS provider.
 
@@ -61,3 +61,9 @@ You do not need to configure PTR records. relay manages the IP address space and
 - [RFC 1912 — Common DNS Operational and Configuration Errors (Section 2.1: PTR)](https://datatracker.ietf.org/doc/html/rfc1912#section-2.1)
 - <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
 - <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> — Mail Exchange records
+
+[^ipv6-ptr]: IPv6 reverse DNS is often neglected. Many organizations set up IPv4 PTR records but forget IPv6. This causes delivery problems when the receiving server connects over IPv6 and the PTR check fails. relay publishes both IPv4 and IPv6 PTR records.
+
+[^fcrdns-weakness]: FCrDNS is a weak authentication check. An attacker who controls both the forward and reverse DNS zones for an IP address can set up valid FCrDNS. The check is useful as a spam signal, not as a security boundary.
+
+[^ptr-ownership]: The PTR record for an IP address is published in the reverse DNS zone. This zone is delegated to the IP address owner, not the domain owner. For cloud servers, the hosting provider (for example, AWS, GCP, or Hetzner) usually provides a control panel or API to set the PTR record.

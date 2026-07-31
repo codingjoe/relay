@@ -12,7 +12,7 @@ SMTP is defined in [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321). Th
 
 SMTP is the foundation of email delivery. Every email that travels across the internet uses SMTP. Without it, mail servers could not communicate with each other.
 
-SMTP was designed in 1982 and has evolved over time. The core protocol is simple, which makes it robust. However, the simplicity also means that SMTP by itself does not provide:
+SMTP was designed in 1982[^rfc821] and has evolved over time. The core protocol is simple, which makes it robust. However, the simplicity also means that SMTP by itself does not provide:
 
 - **Authentication** — The protocol does not verify who sent the message. This gap is filled by <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>, <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>, and <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
 - **Encryption** — The protocol starts in plain text. This gap is filled by STARTTLS and <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>.
@@ -24,7 +24,7 @@ An SMTP transaction has three phases:
 
 ### 1. Connection and greeting
 
-The client connects to the server on the SMTP port. The server responds with a `220` greeting that identifies the server. The client responds with `EHLO` (extended hello) or `HELO`. The server replies with a list of supported extensions.
+The client connects to the server on the SMTP port. The server responds with a `220` greeting that identifies the server. The client responds with `EHLO` (extended hello) or `HELO`.[^ehlo-vs-helo] The server replies with a list of supported extensions.
 
 ### 2. Envelope and data
 
@@ -53,7 +53,7 @@ The server responds to each command with a three-digit code:
 | `4xx`      | Temporary failure — the client should try again later |
 | `5xx`      | Permanent failure — the client should not retry       |
 
-A `4xx` response tells the client to queue the message and retry later. A `5xx` response tells the client to give up and return a bounce to the sender.
+A `4xx` response tells the client to queue the message and retry later.[^dsn-spec] A `5xx` response tells the client to give up and return a bounce to the sender.
 
 ## SMTP ports
 
@@ -65,7 +65,7 @@ SMTP uses different ports for different roles:
 | 587  | Client-to-server submission                | STARTTLS          |
 | 465  | Client-to-server submission (implicit TLS) | TLS               |
 
-Port 25 is for mail server to mail server communication. It is the port that <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> records point to. Many ISPs block port 25 on residential connections to prevent spam.
+Port 25 is for mail server to mail server communication.[^port25-blocked] It is the port that <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> records point to. Many ISPs block port 25 on residential connections to prevent spam.
 
 Port 587 is for mail clients to submit messages to a mail server. It requires authentication and uses STARTTLS for encryption.
 
@@ -108,3 +108,11 @@ When you submit a message:
 - <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
 - <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
+
+[^rfc821]: The original SMTP specification was [RFC 821](https://datatracker.ietf.org/doc/html/rfc821) (August 1982). It was obsoleted by [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321) in October 2008. The core command set is the same, but RFC 5321 added clarity, error handling, and security considerations.
+
+[^ehlo-vs-helo]: `EHLO` was introduced in [RFC 1869](https://datatracker.ietf.org/doc/html/rfc1869) (SMTP Service Extensions). It lets the server advertise supported extensions. `HELO` is the original greeting from RFC 821 and does not support extensions. Modern clients should use `EHLO` and fall back to `HELO` only if the server rejects it.
+
+[^dsn-spec]: Delivery Status Notifications (DSN) are defined in [RFC 3464](https://datatracker.ietf.org/doc/html/rfc3464). The bounce message format includes structured fields for the original recipient, the failure reason, and the diagnostic code.
+
+[^port25-blocked]: Port 25 blocking by ISPs started in the late 1990s to combat spam from compromised home computers. This practice is now standard among most consumer ISPs. The blocking is one reason that authenticated submission on port 587 was introduced in [RFC 4409](https://datatracker.ietf.org/doc/html/rfc4409).

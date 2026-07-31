@@ -36,7 +36,7 @@ This distinction matters for <a href="{% url 'know_how:detail' slug='dmarc' %}">
 
 ### The `HELO`/`EHLO` check
 
-SPF can also check the domain that the sending server gives in the `HELO` or `EHLO` command. This check happens before the `MAIL FROM` check. If the `HELO` domain fails SPF, some servers reject the connection before the message is sent.
+SPF can also check the domain that the sending server gives in the `HELO` or `EHLO` command. This check happens before the `MAIL FROM` check.[^helo-optional] If the `HELO` domain fails SPF, some servers reject the connection before the message is sent.
 
 ## SPF record format
 
@@ -66,13 +66,13 @@ The `all` mechanism is usually the last one in the record. It defines the defaul
 
 ### Lookup limits
 
-SPF has a DNS lookup limit of 10. Each `include`, `a`, `mx`, `exists`, or `redirect` mechanism counts as one lookup. If a record exceeds 10 lookups, the result is `permerror`. This limit prevents DNS-based denial-of-service attacks.
+SPF has a DNS lookup limit of 10. Each `include`, `a`, `mx`, `exists`, or `redirect` mechanism counts as one lookup. If a record exceeds 10 lookups, the result is `permerror`.[^lookup-limit] This limit prevents DNS-based denial-of-service attacks.
 
 ## How relay uses SPF
 
 relay publishes the SPF record on the sender subdomain automatically. The record includes the SMTP server IP addresses through the `a` and `mx` mechanisms. You do not need to configure SPF manually.
 
-The SPF record on the sender subdomain uses `~all` (soft fail) for all other senders. This means that unauthorized senders get a soft fail result, which most receivers treat as a spam signal but not a hard rejection.
+The SPF record on the sender subdomain uses `~all` (soft fail) for all other senders. This means that unauthorized senders get a soft fail result, which most receivers treat as a spam signal but not a hard rejection.[^softfail-vs-fail]
 
 ## Further reading
 
@@ -81,3 +81,9 @@ The SPF record on the sender subdomain uses `~all` (soft fail) for all other sen
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
 - <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
 - <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
+
+[^helo-optional]: The `HELO`/`EHLO` check is optional in the SPF specification. A server can publish a separate SPF record for its `HELO` hostname. This practice is recommended but not required. See [RFC 7208 Section 2.3](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3).
+
+[^lookup-limit]: The 10-lookup limit includes recursive `include` chains. If domain A includes domain B, and domain B includes domain C, each step counts toward the limit. Long include chains are a common cause of SPF `permerror` results.
+
+[^softfail-vs-fail]: The difference between `~all` (soft fail) and `-all` (hard fail) is in the receiver response. Soft fail is a recommendation to treat the message with suspicion. Hard fail is a recommendation to reject it. Some receivers ignore the distinction and treat both the same.
