@@ -22,6 +22,11 @@ class TestListArticles:
             assert article["title"]
             assert article["slug"]
 
+    def test_list_articles__includes_description(self):
+        articles = list_articles()
+        dmarc = next(a for a in articles if a["slug"] == "dmarc")
+        assert dmarc["description"]
+
 
 class TestExtractTitle:
     def test_extract_title__returns_h1_text(self):
@@ -114,8 +119,7 @@ class TestKnowHowDetailView:
             HTTP_ACCEPT="text/markdown",
         )
         body = response.content.decode()
-        assert "CC-BY-SA 4.0" in body
-        assert "creativecommons.org/licenses/by-sa/4.0/" in body
+        assert "CC-BY-SA-4.0" in body
 
     def test_get__markdown_includes_frontmatter(self, client):
         response = client.get(

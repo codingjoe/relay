@@ -19,7 +19,7 @@ LICENSE_MARKDOWN = (
     "(https://creativecommons.org/licenses/by-sa/4.0/)."
 )
 
-LICENSE_YAML = "CC-BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)"
+LICENSE_YAML = "CC-BY-SA-4.0"
 
 
 def parse_frontmatter(text):
@@ -45,19 +45,26 @@ def parse_frontmatter(text):
 
 
 def list_articles():
-    """Return a list of articles as dicts with slug and title.
+    """Return a list of articles as dicts with slug, title, and description.
 
     Each Markdown file in the know-how directory becomes one article.
-    The title comes from the first H1 heading in the file.
+    Title and description come from the YAML frontmatter.
     """
     articles = []
     if not KNOW_HOW_DIR.exists():
         return articles
     for path in sorted(KNOW_HOW_DIR.glob("*.md")):
-        title = extract_title(path.read_text())
+        metadata, _ = parse_frontmatter(path.read_text())
+        title = metadata.get("name") or extract_title(path.read_text())
         if not title:
             continue
-        articles.append({"slug": path.stem, "title": title})
+        articles.append(
+            {
+                "slug": path.stem,
+                "title": title,
+                "description": metadata.get("description", ""),
+            }
+        )
     return articles
 
 
