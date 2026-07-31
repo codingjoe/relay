@@ -14,8 +14,8 @@ SMTP is the foundation of email delivery. Every email that travels across the in
 
 SMTP was designed in 1982[^rfc821] and has evolved over time. The core protocol is simple, which makes it robust. However, the simplicity also means that SMTP by itself does not provide:
 
-- **Authentication** — The protocol does not verify who sent the message. This gap is filled by <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>, <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>, and <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
-- **Encryption** — The protocol starts in plain text. This gap is filled by STARTTLS and <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>.
+- **Authentication** — The protocol does not verify who sent the message. This gap is filled by <a href="{% url 'knowhow:detail' slug='spf' %}">SPF</a>, <a href="{% url 'knowhow:detail' slug='dkim' %}">DKIM</a>, and <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a>.
+- **Encryption** — The protocol starts in plain text. This gap is filled by STARTTLS and <a href="{% url 'knowhow:detail' slug='mta-sts' %}">MTA-STS</a>.
 - **Content verification** — The protocol does not check the message content. This gap is filled by spam filters and DKIM signatures.
 
 ## How SMTP works
@@ -30,11 +30,11 @@ The client connects to the server on the SMTP port. The server responds with a `
 
 The client sends these commands:
 
-| Command     | Purpose                                                                                                    |
-| ----------- | ---------------------------------------------------------------------------------------------------------- |
-| `MAIL FROM` | The envelope sender address (the <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a>) |
-| `RCPT TO`   | The recipient address (can be repeated for multiple recipients)                                            |
-| `DATA`      | Start of the message body                                                                                  |
+| Command     | Purpose                                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| `MAIL FROM` | The envelope sender address (the <a href="{% url 'knowhow:detail' slug='return-path' %}">Return-Path</a>) |
+| `RCPT TO`   | The recipient address (can be repeated for multiple recipients)                                           |
+| `DATA`      | Start of the message body                                                                                 |
 
 After the `DATA` command, the client sends the message headers and body. The message ends with a line that contains a single dot (`.`).
 
@@ -65,7 +65,7 @@ SMTP uses different ports for different roles:
 | 587  | Client-to-server submission                | STARTTLS          |
 | 465  | Client-to-server submission (implicit TLS) | TLS               |
 
-Port 25 is for mail server to mail server communication.[^port25-blocked] It is the port that <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> records point to. Many ISPs block port 25 on residential connections to prevent spam.
+Port 25 is for mail server to mail server communication.[^port25-blocked] It is the port that <a href="{% url 'knowhow:detail' slug='mx' %}">MX</a> records point to. Many ISPs block port 25 on residential connections to prevent spam.
 
 Port 587 is for mail clients to submit messages to a mail server. It requires authentication and uses STARTTLS for encryption.
 
@@ -83,7 +83,7 @@ STARTTLS is an SMTP extension that upgrades a plain-text connection to TLS. The 
 1. The client sends `EHLO` again over the encrypted connection.
 1. All subsequent commands, including authentication, are encrypted.
 
-STARTTLS is opportunistic by default. If the server does not advertise STARTTLS, or if the TLS handshake fails, the client can fall back to plain text. <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> solves this problem by requiring TLS.
+STARTTLS is opportunistic by default. If the server does not advertise STARTTLS, or if the TLS handshake fails, the client can fall back to plain text. <a href="{% url 'knowhow:detail' slug='mta-sts' %}">MTA-STS</a> solves this problem by requiring TLS.
 
 ## How relay uses SMTP
 
@@ -104,10 +104,10 @@ When you submit a message:
 - [RFC 5321 — Simple Mail Transfer Protocol](https://datatracker.ietf.org/doc/html/rfc5321)
 - [RFC 5322 — Internet Message Format](https://datatracker.ietf.org/doc/html/rfc5322)
 - [RFC 3207 — SMTP Service Extension for Secure SMTP over Transport Layer Security](https://datatracker.ietf.org/doc/html/rfc3207)
-- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
-- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
-- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
-- <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
+- <a href="{% url 'knowhow:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
+- <a href="{% url 'knowhow:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
+- <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'knowhow:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
 
 [^rfc821]: The original SMTP specification was [RFC 821](https://datatracker.ietf.org/doc/html/rfc821) (August 1982). It was obsoleted by [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321) in October 2008. The core command set is the same, but RFC 5321 added clarity, error handling, and security considerations.
 

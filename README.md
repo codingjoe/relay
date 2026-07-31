@@ -136,15 +136,15 @@ graph BT
  direction BT
  accounts
  domains
- know_how[know_how]
+ knowhow[knowhow]
  legal
  well_known[well_known]
  domains --> accounts
  accounts --> abstract
  domains --> kms
  legal --> abstract
- know_how --> abstract
- well_known --> know_how
+ knowhow --> abstract
+ well_known --> knowhow
  end
  subgraph services
  direction BT

@@ -10,7 +10,7 @@
     </p>
     <div class="item-group">
       {% for article in articles %}
-        {% url 'know_how:detail' article.slug as article_url %}
+        {% url 'knowhow:detail' article.slug as article_url %}
         <a class="item" data-variant="outline" href="{{ article_url }}">
           <span class="font-medium">{{ article.title }}</span>
           <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto" aria-hidden="true"></i>

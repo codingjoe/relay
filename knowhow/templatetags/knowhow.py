@@ -1,4 +1,4 @@
-"""Template tags for the know-how app."""
+"""Template tags for the knowhow app."""
 
 from django.template import Library
 from django.urls import reverse
@@ -8,8 +8,8 @@ register = Library()
 
 
 @register.simple_tag
-def know_how_badge(slug, label=None):
-    """Render a small info-icon badge that links to a know-how article.
+def knowhow_badge(slug, label=None):
+    """Render a small info-icon badge that links to a knowhow article.
 
     The link opens in a new tab (target="_blank") with rel="noopener".
 
@@ -20,7 +20,7 @@ def know_how_badge(slug, label=None):
     Returns:
         An HTML-safe anchor element with a Lucide info icon.
     """
-    url = reverse("know_how:detail", args=[slug])
+    url = reverse("knowhow:detail", args=[slug])
     aria_label = label or slug
     return mark_safe(
         f'<a href="{url}" target="_blank" rel="noopener" '

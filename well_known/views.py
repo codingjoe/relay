@@ -4,7 +4,7 @@ from django.template import loader
 from django.urls import reverse
 from django.views.generic import TemplateView
 
-from know_how.views import list_articles
+from knowhow.views import list_articles
 
 
 class RobotsTxtView(TemplateView):
@@ -32,7 +32,7 @@ class LlmsTxtView(TemplateView):
             {
                 "title": article["title"],
                 "url": self.request.build_absolute_uri(
-                    reverse("know_how:detail", args=[article["slug"]])
+                    reverse("knowhow:detail", args=[article["slug"]])
                 ),
             }
             for article in list_articles()
@@ -62,7 +62,7 @@ class LlmsFullTxtView(TemplateView):
             {
                 "title": article["title"],
                 "url": self.request.build_absolute_uri(
-                    reverse("know_how:detail", args=[article["slug"]])
+                    reverse("knowhow:detail", args=[article["slug"]])
                 ),
                 "content": loader.get_template(f"{article['slug']}.md").render(
                     request=self.request

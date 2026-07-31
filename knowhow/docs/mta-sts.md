@@ -66,8 +66,8 @@ relay handles the policy file, the HTTPS endpoint, and the TLS certificate. You 
 
 - [RFC 8461 — SMTP MTA Strict Transport Security (MTA-STS)](https://datatracker.ietf.org/doc/html/rfc8461)
 - [RFC 8461 Section 3.2 — Policy file format](https://datatracker.ietf.org/doc/html/rfc8461#section-3.2)
-- <a href="{% url 'know_how:detail' slug='tls-rpt' %}">TLS-RPT</a> — TLS Reporting
-- <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> — Mail Exchange records
+- <a href="{% url 'knowhow:detail' slug='tls-rpt' %}">TLS-RPT</a> — TLS Reporting
+- <a href="{% url 'knowhow:detail' slug='mx' %}">MX</a> — Mail Exchange records
 
 [^hsts]: HSTS is defined in [RFC 6797](https://datatracker.ietf.org/doc/html/rfc6797). The analogy is not exact because HSTS is enforced by browsers and MTA-STS is enforced by mail transfer agents.
 

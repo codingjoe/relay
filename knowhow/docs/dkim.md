@@ -15,9 +15,9 @@ SPF verifies the sending IP address, but it cannot verify the message content. A
 DKIM provides two guarantees that SPF cannot:
 
 1. **Content integrity** — The signature covers selected message headers and the message body. If an attacker changes the content, the signature verification fails.
-1. **Domain accountability** — The signature identifies the domain that signed the message. This domain does not have to be the same as the visible From domain, but <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> alignment checks that they match.
+1. **Domain accountability** — The signature identifies the domain that signed the message. This domain does not have to be the same as the visible From domain, but <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a> alignment checks that they match.
 
-DKIM is one of the two authentication methods that <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> uses. The other is <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>. DMARC requires at least one of the two to pass.
+DKIM is one of the two authentication methods that <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a> uses. The other is <a href="{% url 'knowhow:detail' slug='spf' %}">SPF</a>. DMARC requires at least one of the two to pass.
 
 ## How DKIM works
 
@@ -91,8 +91,8 @@ Each cipher type gets its own selector and CNAME record. You add the CNAME recor
 - [RFC 6376 — DomainKeys Identified Mail (DKIM) Signatures](https://datatracker.ietf.org/doc/html/rfc6376)
 - [RFC 6376 Section 3.5 — The DKIM-Signature header](https://datatracker.ietf.org/doc/html/rfc6376#section-3.5)
 - [RFC 8301 — DKIM Update](https://datatracker.ietf.org/doc/html/rfc8301)
-- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
-- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
+- <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'knowhow:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
 
 [^internet-standard]: RFC 6376 has the status "Internet Standard" (STD 76). This is the highest maturity level in the IETF standards process. It means the protocol is stable, widely implemented, and has significant operational experience.
 

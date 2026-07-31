@@ -14,7 +14,7 @@ The SMTP protocol does not verify the sender address. Any mail server can claim 
 
 SPF closes this gap. When a receiving mail server checks SPF, it compares the sending IP address against the authorized list in DNS. If the IP is not on the list, the receiving server can reject or flag the message.
 
-SPF is one of the two authentication methods that <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> uses. The other is <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>. DMARC requires at least one of the two to pass.
+SPF is one of the two authentication methods that <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a> uses. The other is <a href="{% url 'knowhow:detail' slug='dkim' %}">DKIM</a>. DMARC requires at least one of the two to pass.
 
 ## How SPF works
 
@@ -32,7 +32,7 @@ The check happens during the SMTP transaction, before the message body is accept
 
 SPF checks the envelope sender address (the `MAIL FROM` address), not the visible `From` header that the recipient sees. These two addresses can be different. A message can show `from: billing@example.com` in the headers but use `bounce@marketing.example.com` as the envelope sender. SPF checks the latter.
 
-This distinction matters for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> alignment, which verifies that the envelope sender domain and the visible From domain match.
+This distinction matters for <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a> alignment, which verifies that the envelope sender domain and the visible From domain match.
 
 ### The `HELO`/`EHLO` check
 
@@ -78,9 +78,9 @@ The SPF record on the sender subdomain uses `~all` (soft fail) for all other sen
 
 - [RFC 7208 — Sender Policy Framework](https://datatracker.ietf.org/doc/html/rfc7208)
 - [RFC 7208 Section 2.3 — SPF results](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3)
-- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
-- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
-- <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
+- <a href="{% url 'knowhow:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'knowhow:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
+- <a href="{% url 'knowhow:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
 
 [^helo-optional]: The `HELO`/`EHLO` check is optional in the SPF specification. A server can publish a separate SPF record for its `HELO` hostname. This practice is recommended but not required. See [RFC 7208 Section 2.3](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3).
 
