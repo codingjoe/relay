@@ -1,4 +1,4 @@
-"""Account views — auth, organization and member management."""
+"""Account views — authentication, organization and member management."""
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -23,12 +23,12 @@ from .models import Membership, Organization
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
-    """Base for org-scoped views: load the org from the URL and enforce membership.
+    """Base for org-scoped views. Loads the org from the URL and enforces membership.
 
-    Subclasses receive `self.org` and `org` is added to the template context.
+    Subclasses receive `self.org`, and `org` is added to the template context.
     The current org is also stashed on the request for the navbar context
-    processor. `self.org` is set in `setup()` so subclasses that override
-    `dispatch()` (e.g. for admin-only checks) see it before dispatch runs.
+    processor. `self.org` is set in `setup()`, so subclasses that override
+    `dispatch()` (for example, for admin-only checks) see it before dispatch runs.
     """
 
     org = None
@@ -92,7 +92,7 @@ class OrganizationListView(LoginRequiredMixin, ListView):
             user=request.user,
             role=Membership.Role.ADMIN,
         )
-        messages.success(request, _("Organization “%(org)s” created.") % {"org": org})
+        messages.success(request, _("Created organization “%(org)s”.") % {"org": org})
         return redirect("accounts:org-home", org_slug=org.slug)
 
 
@@ -164,7 +164,7 @@ class OrganizationUpdateView(OrganizationScopedView, UpdateView):
     def form_valid(self, form):
         messages.success(
             self.request,
-            _("Organization “%(org)s” updated.") % {"org": self.org},
+            _("Updated organization “%(org)s”.") % {"org": self.org},
         )
         return super().form_valid(form)
 
@@ -192,7 +192,7 @@ class OrganizationDeleteView(OrganizationScopedView, DeleteView):
     def form_valid(self, form):
         messages.success(
             self.request,
-            _("Organization “%(org)s” deleted.") % {"org": self.org},
+            _("Deleted organization “%(org)s”.") % {"org": self.org},
         )
         return super().form_valid(form)
 
@@ -243,7 +243,7 @@ class MembershipCreateView(OrganizationScopedView, DetailView):
         if created:
             messages.success(
                 request,
-                _("%(user)s added to “%(org)s”.")
+                _("Added %(user)s to “%(org)s”.")
                 % {"user": user.username, "org": self.org},
             )
         else:
@@ -275,7 +275,7 @@ class MembershipDeleteView(OrganizationScopedView, DeleteView):
         username = self.get_object().user.username
         messages.success(
             self.request,
-            _("%(user)s removed from “%(org)s”.") % {"user": username, "org": self.org},
+            _("Removed %(user)s from “%(org)s”.") % {"user": username, "org": self.org},
         )
         return super().form_valid(form)
 
@@ -302,7 +302,7 @@ class MembershipUpdateView(OrganizationScopedView, UpdateView):
     def form_valid(self, form):
         messages.success(
             self.request,
-            _("%(user)s role updated to %(role)s.")
+            _("Updated the role of %(user)s to %(role)s.")
             % {"user": self.object.user.username, "role": form.cleaned_data["role"]},
         )
         return super().form_valid(form)

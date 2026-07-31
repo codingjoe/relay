@@ -46,7 +46,8 @@ class MtaStsPolicy:
 
     @classmethod
     def get(cls, domain):
-        """Return the MTA-STS policy for *domain*, fetching and caching on miss."""
+        """Return the MTA-STS policy for *domain*. The method fetches and
+        caches the policy on a cache miss."""
         if cached := cache.get(f"mta-sts:{domain}"):
             return cached
         try:
@@ -57,7 +58,7 @@ class MtaStsPolicy:
         return policy
 
     def allows(self, mx_hostname):
-        """Determine if the MX hostname is allowed by this policy."""
+        """Return whether the policy allows the MX hostname."""
         if not self.loaded:
             return True, "No MTA-STS policy or fetch failed"
 

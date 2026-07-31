@@ -45,7 +45,7 @@ class Domain(TimeStamped):
         _("name"),
         max_length=255,
         unique=True,
-        help_text=_("Root domain, e.g. acme.com."),
+        help_text=_("Root domain, for example acme.com."),
     )
     org = models.ForeignKey(
         "accounts.Organization",
@@ -53,7 +53,7 @@ class Domain(TimeStamped):
         related_name="domains",
         null=True,
         blank=True,
-        help_text=_("Owning organization; null for system domains."),
+        help_text=_("Owning organization. Null for system domains."),
     )
     verification_token = models.CharField(
         _("verification token"),

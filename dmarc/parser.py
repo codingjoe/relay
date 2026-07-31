@@ -67,7 +67,7 @@ def parse_timestamp(parent, path):
 
 
 def _extract_part_text(part):
-    """Extract text content from a MIME part, handling sub-messages and base64."""
+    """Extract text content from a MIME part, including sub-messages and base64 data."""
     import base64
 
     if not part.is_multipart():

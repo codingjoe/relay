@@ -33,7 +33,7 @@ class DomainCreateView(OrganizationScopedView, CreateView):
         form.instance.org = self.org
         messages.success(
             self.request,
-            _("Domain “%(name)s” added.") % {"name": form.instance.name},
+            _("Added domain “%(name)s”.") % {"name": form.instance.name},
         )
         return super().form_valid(form)
 
@@ -67,7 +67,7 @@ class DomainVerifyView(OrganizationScopedView, View):
         ):
             messages.success(
                 request,
-                _("DNS records verified for “%(name)s”.") % {"name": domain.name},
+                _("Verified DNS records for “%(name)s”.") % {"name": domain.name},
             )
         else:
             messages.error(
@@ -91,6 +91,6 @@ class DomainDeleteView(OrganizationScopedView, DeleteView):
     def form_valid(self, form):
         messages.success(
             self.request,
-            _("Domain “%(name)s” deleted.") % {"name": self.object.name},
+            _("Deleted domain “%(name)s”.") % {"name": self.object.name},
         )
         return super().form_valid(form)

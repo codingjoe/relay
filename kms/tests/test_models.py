@@ -78,7 +78,7 @@ class TestSigningKeyPublicBytes:
         assert raw == from_pem
 
     def test_public_bytes_der__for_rsa(self):
-        """RSA public keys should encode to SPKI DER (used for DKIM p= tag)."""
+        """RSA public keys must encode to SPKI DER (used for the DKIM p= tag)."""
         from cryptography.hazmat.primitives import serialization
 
         key = SigningKey.generate("rsa-2048")

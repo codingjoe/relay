@@ -35,7 +35,7 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 
 @task
 def dispatch_webhook(message_id):
-    """Fan out an incoming message to all matching active webhooks."""
+    """Distribute an incoming message to all matching active webhooks."""
     message = IncomingMessage.objects.get(pk=message_id)
     webhooks = [
         webhook
@@ -55,7 +55,7 @@ def dispatch_webhook(message_id):
 
 @task
 def deliver_webhook(message_id, webhook_id, attempt=0):
-    """Deliver to a single webhook, retrying per the Standard Webhooks schedule."""
+    """Deliver to a single webhook and retry per the Standard Webhooks schedule."""
     message = IncomingMessage.objects.get(pk=message_id)
     webhook = Webhook.objects.get(pk=webhook_id)
     if not webhook.is_active:
@@ -81,7 +81,7 @@ def deliver_webhook(message_id, webhook_id, attempt=0):
 
 
 def mark_failed_if_pending(message):
-    """Set `WEBHOOK_FAILED` only if the message has not yet been delivered."""
+    """Set `WEBHOOK_FAILED` only if the message is not yet delivered."""
     IncomingMessage.objects.filter(
         pk=message.id, status=IncomingMessage.Status.RECEIVED
     ).update(status=IncomingMessage.Status.WEBHOOK_FAILED)
@@ -89,7 +89,7 @@ def mark_failed_if_pending(message):
 
 @dataclass
 class WebhookEvent:
-    """A flat webhook event payload, sans the raw message body."""
+    """A flat webhook event payload, without the raw message body."""
 
     type: str
     message_id: str

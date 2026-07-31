@@ -10,9 +10,9 @@ class BreadcrumbViewMixin:
     - `parent`: the URL name of the parent page, or "" for the root.
 
     Override `get_title(cls, request)` for dynamic titles that depend on
-    the request (e.g., the current org name from `request.current_org`).
+    the request (for example, the current org name from `request.current_org`).
     Override `get_url(cls, request)` for URL patterns that need kwargs
-    from the request (e.g., org-scoped views).
+    from the request (for example, org-scoped views).
     """
 
     title: str = ""

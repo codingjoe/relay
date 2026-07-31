@@ -30,7 +30,7 @@ Processing is based on Article 6(1)(b) GDPR (performance of a contract) and Arti
 
 ## 4. Data retention
 
-Message metadata is retained for 30 days. Raw message bodies are stored only for the duration needed for delivery and are deleted immediately after successful delivery.
+We retain message metadata for 30 days. We store raw message bodies only for the duration needed for delivery, and we delete them immediately after successful delivery.
 
 ## 5. Your rights
 

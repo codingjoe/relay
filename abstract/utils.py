@@ -16,7 +16,7 @@ def future(now=None, min_offset=1, max_offset=999):
     Return random datetime in the near future.
 
     Args:
-        now (datetime.datetime): Date on which to subtract the random offset.
+        now (datetime.datetime): Date on which to add the random offset.
         min_offset (int): Minimum number of days to add.
         max_offset (int): Maximum number of days to add.
 
@@ -33,7 +33,7 @@ def past(now=None):
     Return random datetime in the near past.
 
     Args:
-        now (datetime.datetime): Date on which to add the random offset.
+        now (datetime.datetime): Date on which to subtract the random offset.
 
     Returns:
         datetime.datetime: Random date in the past.
@@ -85,7 +85,7 @@ def md_toc(document: str, depth=None) -> str:
     Args:
         document (str): Markdown string.
         depth (str|int): The depth of which to create the table of contents.
-               This may be a number or a range, e.g. `1-3`.
+               This can be a number or a range, for example `1-3`.
                Default: 6.
     """
     md = markdown.Markdown(

@@ -140,7 +140,7 @@ class WebhookCreateView(OrganizationScopedView, View):
         except ValidationError as e:
             messages.error(request, "; ".join(e.messages))
         else:
-            messages.success(request, _("Webhook created."))
+            messages.success(request, _("Created webhook."))
         return redirect("mx:webhook-list", org_slug=org_slug)
 
 
@@ -156,7 +156,7 @@ class WebhookDeleteView(OrganizationScopedView, DeleteView):
         return reverse_lazy("mx:webhook-list", kwargs={"org_slug": self.org.slug})
 
     def form_valid(self, form):
-        messages.success(self.request, _("Webhook deleted."))
+        messages.success(self.request, _("Deleted webhook."))
         return super().form_valid(form)
 
 
@@ -165,7 +165,7 @@ class WebhookTestView(OrganizationScopedView, View):
         webhook = get_object_or_404(Webhook, pk=pk, org=self.org)
         ok, _status = deliver_to_webhook(message=None, webhook=webhook, is_test=True)
         if ok:
-            messages.success(request, _("Test webhook delivered."))
+            messages.success(request, _("Delivered test webhook."))
         else:
             messages.error(request, _("Test webhook failed."))
         return redirect("mx:webhook-list", org_slug=org_slug)

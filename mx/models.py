@@ -19,7 +19,7 @@ from .serializers import TlsReportSerializer
 
 
 class IncomingMessage(MessageMixin, TimeStamped):
-    """An email captured by the MX server, awaiting webhook dispatch."""
+    """An email captured by the MX server that waits for webhook dispatch."""
 
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
@@ -41,7 +41,7 @@ class IncomingMessage(MessageMixin, TimeStamped):
     receiving_domain = models.TextField(
         _("receiving domain"),
         blank=True,
-        help_text=_("Domain part of the recipient address, e.g. app.acme.com."),
+        help_text=_("Domain part of the recipient address, for example app.acme.com."),
     )
     status = models.TextField(
         _("status"),
@@ -93,7 +93,7 @@ class Webhook(OrganizationOwned):
     address_pattern = models.TextField(
         _("address pattern"),
         help_text=_(
-            "Glob pattern for recipient addresses, e.g. *@app.acme.com "
+            "Glob pattern for recipient addresses, for example *@app.acme.com "
             "or support@acme.com."
         ),
     )

@@ -3,15 +3,16 @@
 ## Project overview
 
 Relay is a B2B SaaS communication platform (email, VoIP, and more) on
-Django 6.0 / Python 3.14. The key feature: a **built-in authoritative
-nameserver** so users only set NS delegation + DMARC — MX, SPF, DKIM,
-and Return-Path are served automatically. GitHub OAuth for auth.
+Django 6.0 / Python 3.14. The key feature is a **built-in authoritative
+nameserver**. Users only set NS delegation and DMARC. The nameserver
+serves MX, SPF, DKIM, and Return-Path automatically. GitHub OAuth
+handles authentication.
 
 ## Architecture & tech stack
 
 Three services from one codebase, each a separate Docker container:
 
-- **Web** — Django web UI + admin (Granian ASGI in prod, `runserver` in dev).
+- **Web** — Django web UI + admin (Granian ASGI in production, `runserver` in development).
 - **DNS** — Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
   builds DNS records from `Domain` model properties — no zone files.
 - **SMTP** — Outgoing mail submissions (aiosmtpd). `smtp/handlers.py`
@@ -30,7 +31,7 @@ transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 
 App dependencies flow in one direction — see the graph in `README.md`:
 `tx_email → smtp, mx`, `smtp, mx → domains, accounts, kms`, `domains → accounts, kms`, `accounts → kms`. Apps
-must never import from their dependents.
+must not import from their dependents.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, social-auth-app-django, Pico CSS.
@@ -72,10 +73,10 @@ S3 via django-storages, social-auth-app-django, Pico CSS.
 Before you finish, always:
 
 - Run `uv run python manage.py check` — must pass with zero issues.
-- Run `uv run pre-commit run --all-files` — must pass (ruff, djangofmt, etc.).
+- Run `uv run pre-commit run --all-files` — must pass (ruff, djangofmt, and more).
 - Run `uv run python manage.py makemigrations --check --dry-run` — verify no
   missing migrations for model changes.
-- Verify URL reversals work for any changed/added routes.
+- Verify that URL reversals work for any changed or added routes.
 - Update `CONVENTIONS.md` if a review introduces a new convention.
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
@@ -83,19 +84,22 @@ Before you finish, always:
 ## Pointers to further documentation
 
 - `CONVENTIONS.md` — authoritative coding conventions (URLs, PKs, model fields,
-  save patterns, control flow, imports, auth, naming).
+  save patterns, control flow, imports, authentication, naming).
 - `README.md` — setup guide, architecture overview, app dependency graph,
   free sender domain docs.
 - `REVIEW.md` — the reviewer's standing rules (conventions, dependency
-  direction); `CLAUDE.md` and `.github/copilot-instructions.md` symlink to it.
+  direction). `CLAUDE.md` and `.github/copilot-instructions.md` symlink to it.
 - `root/settings.py` — all `RELAY_*` config and environment variables.
 - `legal/docs/` — legal page Markdown sources (imprint, privacy, terms).
 
 ## Examples
 
-**Good:** Add a field to `OutgoingMessage` with `verbose_name` and `help_text`,
-generate a migration, run `manage.py check` + `makemigrations --check`,
-verify `CONVENTIONS.md` doesn't need updating.
+**Good:** Add a field to `OutgoingMessage` with `verbose_name` and `help_text`.
+Then do the following steps:
+
+1. Generate a migration.
+1. Run `manage.py check` and `makemigrations --check`.
+1. Verify that `CONVENTIONS.md` does not need an update.
 
 **Bad:** Import a model from `domains` in `root/views.py`, use `pip install`
 for a dependency, or save a model without `update_fields=`.

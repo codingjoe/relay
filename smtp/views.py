@@ -198,7 +198,7 @@ class TestEmailView(OrganizationScopedView, View):
                 domain_id=domain.pk if domain else None,
             )
         )
-        messages.success(request, _("Test message queued for delivery."))
+        messages.success(request, _("Queued test message for delivery."))
         return redirect("smtp:message-list", org_slug=org_slug)
 
 
@@ -232,7 +232,7 @@ class SmtpCredentialCreateView(OrganizationScopedView, View):
         request.session["raw_key"] = raw_key
         messages.success(
             request,
-            _("SMTP credential “%(name)s” created.") % {"name": credential.name},
+            _("Created SMTP credential “%(name)s”.") % {"name": credential.name},
         )
         return redirect("smtp:credential-list", org_slug=org_slug)
 
@@ -249,5 +249,5 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
         return reverse_lazy("smtp:credential-list", kwargs={"org_slug": self.org.slug})
 
     def form_valid(self, form):
-        messages.success(self.request, _("SMTP credential deleted."))
+        messages.success(self.request, _("Deleted SMTP credential."))
         return super().form_valid(form)

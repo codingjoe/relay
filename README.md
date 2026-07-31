@@ -1,7 +1,8 @@
 # Relay — B2B SaaS Communication Platform
 
-A modern B2B SaaS communication platform built on Django 6.0 and Python 3.14, designed for AI applications,
-with a **built-in authoritative nameserver** that eliminates manual DNS configuration.
+A B2B SaaS communication platform built on Django 6.0 and Python 3.14,
+for AI applications. The platform has a **built-in authoritative nameserver**
+that removes manual DNS configuration.
 
 ## How It Works
 
@@ -11,19 +12,19 @@ Users only need to set **two DNS records**:
 1. **DMARC record** — On the root domain
 
 Everything else — MX, SPF, DKIM, Return-Path — is **served automatically**
-by the built-in nameserver. No more digging through DNS provider dashboards.
+by the built-in nameserver. You do not need to use the DNS provider dashboard.
 
 ## Free Sender Domain
 
 Every account gets a **free sender domain** it can send from without configuring
 any DNS of its own. The domain is set via `RELAY_FREE_SENDER_DOMAIN` (defaults
-to `open.{RELAY_PLATFORM_DOMAIN}`, e.g. `open.localhost` in development) and is
-backed by a system-owned `Domain` (`org=None`) that is auto-created by a
-migration and DKIM-signed automatically.
+to `open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
+A migration auto-creates a system-owned `Domain` (`org=None`) for it, and the
+domain is DKIM-signed automatically.
 
-The free domain is restricted: messages may only be sent to the user's own
+The free domain is restricted. You can send messages only to your own
 registered email address. Use it to verify deliverability and test integrations
-before delegating a real sender domain.
+before you delegate a real sender domain.
 
 ### DNS served automatically
 
@@ -50,13 +51,13 @@ For the free domain to resolve in production, the platform operator must:
 1. **Delegate the free domain zone to Relay's nameservers.** If
    `RELAY_FREE_SENDER_DOMAIN` is `open.example.com`, add NS records for the
    `open` subdomain pointing to the nameservers in
-   `RELAY_DNS_NS_NAMESERVERS` (e.g. `ns1.example.com`, `ns2.example.com`). If
+   `RELAY_DNS_NS_NAMESERVERS` (for example, `ns1.example.com`, `ns2.example.com`). If
    the platform domain's NS records already point at Relay's nameservers, the
    free domain is served automatically as a subdomain and no extra delegation
    is needed.
 1. **Make the SPF include resolve.** The free domain's SPF record includes
-   `spf.{platform_domain}`. Ensure that TXT record exists and lists the SMTP
-   server IPs.
+   `spf.{platform_domain}`. Make sure that the TXT record exists and lists the SMTP
+   server IP addresses.
 1. **Set `RELAY_FREE_SENDER_DOMAIN`** to a domain delegated to Relay's
    nameservers.
 
@@ -66,9 +67,9 @@ For the free domain to resolve in production, the platform operator must:
 Organization → Domain, SmtpCredential
 ```
 
-- **Organization** — Owns resources (domains, credentials); each user gets a personal org on signup
+- **Organization** — Owns resources (domains, credentials). Each user gets a personal org on signup.
 - **Domain** — Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
-- **SendingDomain** — Envelope-from domain (e.g. acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
+- **SendingDomain** — Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
 - **ReceivingDomain** — Receiving domain with MX record pointing to the root domain's sender subdomain
 - **SmtpCredential** — Per-org API key used to authenticate outgoing SMTP submissions
 - **Webhook** — Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
@@ -88,23 +89,23 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
 | MX      | 25           | Incoming MX delivery (aiosmtpd)      |
 
-Incoming email is received by the MX server (port 25, STARTTLS by default)
-and dispatched to configurable per-organization webhooks. Clients configure
-receiving domains (e.g. `app.acme.com`) by pointing an MX record to their
-sender subdomain (e.g. `MX app.acme.com → mail.relay.acme.com`). Webhooks
+The MX server receives incoming email (port 25, STARTTLS by default) and
+dispatches it to configurable per-organization webhooks. Clients configure
+receiving domains (for example, `app.acme.com`) by pointing an MX record to their
+sender subdomain (for example, `MX app.acme.com → mail.relay.acme.com`). Webhooks
 follow the [Standard Webhooks](https://standardwebhooks.com) specification —
 each delivery includes `webhook-id`, `webhook-timestamp`, and
 `webhook-signature` headers with an Ed25519 (`v1a`) signature. Each webhook
 has its own keypair, so clients verify with the webhook's public key
 (`whpk_` format) using any Standard Webhooks SDK. The payload is flat event
-data with a storage URL for the raw message body — the raw body is never
-included inline. Webhooks can be filtered by receiving domain and recipient
+data with a storage URL for the raw message body. The payload never includes
+the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
 
 > **STARTTLS cert provisioning**: in production, mount the same certificate
-> the Caddy reverse proxy uses into the MX container and point
-> `RELAY_MX_TLS_CERT_PATH` / `RELAY_MX_TLS_KEY_PATH` at it. The cert must
-> include the MX hostname (e.g. `mail.relay.acme.com`).
+> the Caddy reverse proxy uses into the MX container. Then point
+> `RELAY_MX_TLS_CERT_PATH` and `RELAY_MX_TLS_KEY_PATH` at the certificate. The cert must
+> include the MX hostname (for example, `mail.relay.acme.com`).
 
 ### Tech Stack
 
@@ -118,14 +119,14 @@ address glob pattern.
 ## App dependencies
 
 The graph shows a simplified representation of the app's dependencies.
-App dependencies should only exist in a single direction.
-Apps may access their parents or grandparents, but not their children.
+App dependencies must exist only in a single direction.
+Apps can access their parents or grandparents, but not their children.
 
 We have different types of apps:
 
-- **abstract**: Abstract apps are not meant to be used directly, but to be extended by other apps.
+- **abstract**: Abstract apps are not used directly. Other apps extend them.
 - **platform**: Shared infrastructure used across all communication services (email now, VoIP and more later).
-- **services**: Specific communication services. Email today, VoIP and more tomorrow.
+- **services**: Specific communication services. Email today, with VoIP and more planned.
 
 ```mermaid
 graph BT
