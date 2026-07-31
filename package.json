@@ -33,13 +33,18 @@
         "root/static/css/app.css"
       ]
     },
-    "dev": {
+    "css:watch": {
       "command": "postcss src/css/app.css -o root/static/css/app.css --watch",
       "files": [
         "src/css/**/*.css",
         "postcss.config.mjs"
       ],
       "service": true
+    },
+    "dev": {
+      "dependencies": [
+        "css:watch"
+      ]
     }
   }
 }
