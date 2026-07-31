@@ -16,6 +16,6 @@ Reference issues with one of:
 
 <!-- Why is this change needed? Link the issue it closes or relates to. -->
 
-### What changes
+### Changes
 
 <!-- What does this PR change? Add screenshot if helpful. -->
