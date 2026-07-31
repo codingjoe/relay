@@ -85,15 +85,6 @@ def include_md(template_name, **context):
 
 @register.simple_tag
 def include_md_toc(template_name, depth=None, **context):
-    """Render a table of contents for a Markdown template, stripping frontmatter.
-
-    Args:
-        template_name: The template to render and extract headings from.
-        depth: The heading depth range (for example, `"2-3"`). Defaults to 6.
-        **context: Extra context passed to the template.
-
-    Returns:
-        HTML for the table of contents.
-    """
+    """Render a table of contents for a Markdown template, stripping frontmatter."""
     rendered = loader.get_template(template_name).render(context=context)
     return utils.md_toc(utils.strip_frontmatter(rendered), depth=depth)

@@ -67,11 +67,14 @@ def list_articles():
 
 def extract_title(markdown_text):
     """Return the first H1 heading text from the given Markdown."""
-    markdown_text = strip_frontmatter(markdown_text)
-    for line in markdown_text.splitlines():
-        if line.startswith("# "):
-            return line[2:].strip()
-    return ""
+    return next(
+        (
+            line[2:].strip()
+            for line in strip_frontmatter(markdown_text).splitlines()
+            if line.startswith("# ")
+        ),
+        "",
+    )
 
 
 def article_path(slug):
@@ -133,10 +136,11 @@ class KnowHowDetailView(MarkdownView):
         )
         metadata, content = parse_frontmatter(markdown_text)
         metadata["license"] = LICENSE_YAML
-        frontmatter = "---\n"
-        for key, value in metadata.items():
-            frontmatter += f"{key}: {value}\n"
-        frontmatter += "---\n\n"
+        frontmatter = (
+            "---\n"
+            + "".join(f"{key}: {value}\n" for key, value in metadata.items())
+            + "---\n\n"
+        )
         return HttpResponse(
             frontmatter + content,
             content_type="text/markdown; charset=utf-8",
