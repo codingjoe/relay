@@ -84,9 +84,9 @@ Before you finish, always:
 ## Browser automation
 
 The Playwright MCP server (configured in `.mcp.json`) gives agents a
-browser for visual testing of the web UI. The MCP server itself needs no
-port — it runs as a subprocess. The agent only needs to know the dev web
-server port to navigate to.
+headless browser for visual testing of the web UI. The MCP server itself
+needs no port — it runs as a subprocess. The agent only needs to know the
+dev web server port to navigate to.
 
 ### Finding the dev server port
 

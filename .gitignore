@@ -222,6 +222,3 @@ backups/
 # Django
 staticfiles/
 storage/
-
-# Playwright
-.playwright-mcp/
