@@ -27,7 +27,8 @@
       "command": "postcss src/css/app.css -o root/static/css/app.css",
       "files": [
         "src/css/**/*.css",
-        "postcss.config.mjs"
+        "postcss.config.mjs",
+        "package-lock.json"
       ],
       "output": [
         "root/static/css/app.css"
@@ -37,7 +38,8 @@
       "command": "postcss src/css/app.css -o root/static/css/app.css --watch",
       "files": [
         "src/css/**/*.css",
-        "postcss.config.mjs"
+        "postcss.config.mjs",
+        "package-lock.json"
       ],
       "service": true
     },

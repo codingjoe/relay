@@ -2,8 +2,7 @@ FROM node:22-slim AS frontend
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY postcss.config.mjs ./
-COPY src/css/ ./src/css/
+COPY ./ /app
 RUN npm run build
 
 FROM ghcr.io/astral-sh/uv:0.12.0-trixie-slim AS build
