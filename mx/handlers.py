@@ -16,7 +16,14 @@ logger = logging.getLogger(__name__)
 
 class MXHandler:
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
+        rcpt_domain = address.split("@")[-1] if "@" in address else ""
+        try:
+            domain = await sync_to_async(Domain.objects.root_for)(rcpt_domain)
+        except Domain.DoesNotExist:
+            return "550 Relay not authorised for this recipient"
         envelope.rcpt_tos.append(address)
+        if not hasattr(envelope, "recipient_domain"):
+            envelope.recipient_domain = domain
         return "250 OK"
 
     async def handle_DATA(self, server, session, envelope):
@@ -29,21 +36,17 @@ class MXHandler:
             rcpt_to,
             raw_bytes,
             getattr(session, "ssl", False),
+            getattr(envelope, "recipient_domain", None),
         )
         logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
         return result
 
 
 @sync_to_async
-def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls):
+def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
-
-    try:
-        domain = Domain.objects.root_for(rcpt_domain)
-    except Domain.DoesNotExist:
-        return "550 Relay not authorised for this recipient"
 
     match local_part:
         case settings.RELAY_DMARC_REPORT_LOCAL_PART:
