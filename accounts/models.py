@@ -2,9 +2,11 @@
 
 Organizations own resources (domains, credentials) — not individual users.
 Each user gets a personal organization on signup. Members share access to
-all org resources. Credentials are hashed and shown only once at creation.
+all org resources. The system hashes credentials and shows them only once at
+creation.
 
-Concrete credential models live in service apps (e.g. smtp.SmtpCredential).
+Concrete credential models live in service apps (for example,
+smtp.SmtpCredential).
 """
 
 import secrets
@@ -86,9 +88,9 @@ class Membership(TimeStamped):
 class OrganizationOwned(TimeStamped):
     """Provide a required `org` foreign key for resources always owned by an organization.
 
-    Use this mixin for resources that always belong to an org (e.g.
-    credentials). Resources that can be system-owned (e.g. the free sender
-    domain) keep their own nullable `org` foreign key instead.
+    Use this mixin for resources that always belong to an org (for example,
+    credentials). Resources that can be system-owned (for example, the free
+    sender domain) keep their own nullable `org` foreign key instead.
     """
 
     org = models.ForeignKey(
@@ -106,7 +108,8 @@ class CredentialQuerySet(models.QuerySet):
     def create_with_key(self, *, org, name="", **kwargs):
         """Create and persist a credential with a generated key.
 
-        Returns (credential, raw_key); the raw key is shown to the caller once.
+        Return a `(credential, raw_key)` tuple. The caller sees the raw key
+        only once.
         """
         raw_key = generate_api_key()
         credential = self.model(org=org, name=name, **kwargs)
@@ -119,8 +122,9 @@ class Credential(OrganizationOwned):
     """Abstract base for per-service credentials.
 
     The plaintext key is never stored — only a hash (like Django passwords).
-    The key_prefix (first 8 chars) enables O(1) lookup before hash verification.
-    Concrete models live in service apps (e.g. smtp.SmtpCredential).
+    The key_prefix (the first 8 characters) makes an O(1) lookup possible
+    before hash verification. Concrete models live in service apps (for
+    example, smtp.SmtpCredential).
     """
 
     key_hash = models.CharField(
@@ -169,15 +173,16 @@ class Credential(OrganizationOwned):
     def set_key(self, raw_key):
         """Persist a one-way representation of the key.
 
-        The plaintext is shown to the caller once and never stored.
+        The caller sees the plaintext once. The plaintext is never stored.
         """
         self.key_hash = make_password(raw_key, self.salt)
         self.key_prefix = raw_key[:8]
 
     def verify_key(self, raw_key):
-        """Validate the provided key against the stored credential.
+        """Verify the provided key against the stored credential.
 
-        Records a successful check as the last use and returns whether it matched.
+        Records a successful verification as the last use, and returns whether
+        the key matched.
         """
         if check_password(raw_key, self.key_hash):
             self.last_used_at = timezone.now()

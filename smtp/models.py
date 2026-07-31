@@ -81,7 +81,7 @@ class OutgoingMessage(MessageMixin, TimeStamped):
 class Transmission(TimeStamped):
     """Track a single delivery attempt for an outgoing message.
 
-    Each message may have multiple transmissions (e.g. retry attempts).
+    Each message can have multiple transmissions (for example, retry attempts).
     """
 
     class Status(models.TextChoices):

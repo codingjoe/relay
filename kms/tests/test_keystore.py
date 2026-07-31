@@ -25,7 +25,7 @@ class TestEncryptDecrypt:
             keystore.decrypt("not-a-valid-fernet-token")
 
     def test_encrypt__produces_different_ciphertext_for_same_plaintext(self):
-        """Fernet uses a random IV; encryption is non-deterministic."""
+        """Fernet uses a random IV. Encryption is non-deterministic."""
         c1 = keystore.encrypt("hello")
         c2 = keystore.encrypt("hello")
         assert c1 != c2

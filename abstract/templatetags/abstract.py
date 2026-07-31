@@ -15,9 +15,9 @@ register.filter(is_safe=True)(humanize.apnumber)
 
 @register.filter(expects_localtime=True)
 def naturalday(value):
-    """Format a date as a human-readable day (e.g., "today", "yesterday", "Sep 13").
+    """Format a date as a human-readable day (for example, "today", "yesterday", "Sep 13").
 
-    Falls back to `SHORT_DATE_FORMAT` for dates in the current year and
+    Uses `SHORT_DATE_FORMAT` for dates in the current year and
     `DATE_FORMAT` for dates in other years.
     """
     if value and value.year != timezone.now().year:
@@ -30,7 +30,7 @@ def naturaltime(value: datetime.datetime):
     """Format a datetime as a human-readable relative time.
 
     Uses Django's `naturaltime` for recent values (within ±2 hours), then
-    falls back to progressively longer date/time formats for older values.
+    changes to longer date and time formats for older values.
 
     Args:
         value: The datetime to format.
@@ -88,7 +88,7 @@ def include_md_toc(template_name, depth=None, **context):
 
     Args:
         template_name: The template to render and extract headings from.
-        depth: The heading depth range (e.g., `"2-3"`). Defaults to 6.
+        depth: The heading depth range (for example, `"2-3"`). Defaults to 6.
         **context: Extra context passed to the template.
 
     Returns:

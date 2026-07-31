@@ -49,7 +49,7 @@ class SMTPHandler:
         return result
 
     async def handle_AUTH(self, server, session, envelope, arg):
-        """Handle SMTP AUTH — validate username + API key."""
+        """Handle SMTP AUTH. Verify the username and API key."""
         try:
             match arg[0].upper():
                 case "PLAIN":
@@ -81,7 +81,8 @@ def get_membership(credential, username):
 
 @sync_to_async
 def authenticate(username: str, key: str):
-    """Authenticate a user by their SMTP credential, returning it or None."""
+    """Authenticate a user by their SMTP credential. Return the credential,
+    or `None` if authentication fails."""
     api_keys = SmtpCredential.objects.select_related("org").filter(
         key_prefix=key[:8],
         org__memberships__user__username=username,

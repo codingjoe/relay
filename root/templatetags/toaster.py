@@ -10,8 +10,8 @@ register = template.Library()
 def render_toasts(context):
     """Render all framework messages as basecoat toast markup.
 
-    Uses `get_messages` to read messages directly from the request, avoiding
-    any name collision with a view that exposes a queryset as `context['messages']`.
+    Uses `get_messages` to read messages directly from the request. This avoids
+    a name collision with a view that exposes a queryset as `context['messages']`.
     """
     request = context["request"]
     toasts = [

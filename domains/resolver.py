@@ -10,7 +10,7 @@ from .models import Domain
 
 
 def txt(value):
-    """Create a TXT rdata, splitting values >255 chars into multiple strings."""
+    """Create a TXT rdata. If a value is longer than 255 characters, split it into multiple strings."""
     if len(value) <= 255:
         return TXT(value)
     return TXT([value[i : i + 255] for i in range(0, len(value), 255)])

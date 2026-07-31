@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 
 class ChartSeriesSerializer(serializers.Serializer):
-    """Single chart series (e.g. one status/disposition)."""
+    """Single chart series (for example, one status or disposition)."""
 
     key = serializers.CharField()
     label = serializers.CharField()

@@ -5,7 +5,7 @@ Update it based on review feedback.
 
 ## URLs
 
-- Use the `app:model-CRUD` naming pattern with hyphens (e.g. `org-list`,
+- Use the `app:model-CRUD` naming pattern with hyphens (for example, `org-list`,
   `org-detail`, `org-create`, `domain-verify`, `message-list`). This mirrors
   DRF's router convention.
 
@@ -22,8 +22,8 @@ Update it based on review feedback.
   )
   ```
 
-- CRUD actions on objects should **not** end with a trailing slash.
-  List/create views may use a trailing slash.
+- CRUD actions on objects must **not** end with a trailing slash.
+  List/create views can use a trailing slash.
 
 - Always reference URLs by name, never by hardcoded path — in settings
   (`LOGIN_URL`, `LOGIN_REDIRECT_URL`, `LOGOUT_REDIRECT_URL`), `redirect()`,
@@ -40,26 +40,26 @@ Update it based on review feedback.
 - Use slugs based on title for URL patterns, not UUIDs.
 - Exception: `Message` and `Transmission` use UUIDv7 as PK because IDs are
   used as SMTP message-ids and need to be unique/transferable outside Postgres.
-- Use `db_default` with a PostgreSQL database function (e.g. `UuidV7()`) for
+- Use `db_default` with a PostgreSQL database function (for example, `UuidV7()`) for
   database-side UUIDv7 generation, alongside the Python `default=uuid.uuid7`
   for ORM-level defaults.
-- Models with a FK to a message model (e.g. `DmarcRecord`, `TlsFailure`,
-  `WebhookDelivery`) should use UUIDv7 PK too. A Django system check
+- Models with a FK to a message model (for example, `DmarcRecord`, `TlsFailure`,
+  `WebhookDelivery`) must use UUIDv7 PK too. A Django system check
   (`abstract.W001`) warns if a model with a FK to a UUID-PK model uses a
   non-UUID primary key.
 
 ## Model Fields
 
-- All fields should have `verbose_name` and `help_text` (except FK and PK).
+- All fields must have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
 - Drop `class Meta` entirely if it only inherits without overriding anything.
 - Use `TextField` instead of `CharField` for all fields unless you
   specifically want Django's `max_length` validation. In PostgreSQL there
   is no performance advantage to `varchar` over `text` — both use the same
-  storage. Choice fields use `TextField` with `choices=`; Django's choice
+  storage. Choice fields use `TextField` with `choices=`. Django's choice
   validation works without `max_length`. Only use `CharField(max_length=N)`
   when the standard defines a fixed maximum length and you want the DB-level
-  check constraint (e.g. `EmailField` which is `CharField(max_length=254)`
+  check constraint (for example, `EmailField` which is `CharField(max_length=254)`
   per RFC 5321).
 
 ## Model.save()
@@ -70,12 +70,12 @@ Update it based on review feedback.
 ## Functions
 
 - No private functions (underscore prefix) — this project is not for redistribution.
-- Function names should be descriptive, not ambiguous.
+- Function names must be descriptive, not ambiguous.
 
 ## Docstrings
 
 - Use Google-style Markdown docstrings (Napoleon). Not RST.
-- Start with a verb describing the external behavior (e.g. "Return",
+- Start with a verb describing the external behavior (for example, "Return",
   "Send", "Validate", "Determine").
 - Keep docstrings concise — one sentence for simple functions.
 - Never repeat the function/method name in the docstring.
@@ -111,8 +111,8 @@ Update it based on review feedback.
 ## Naming
 
 - Use names that cover both ingress and egress when a model tracks
-  bidirectional events (e.g. `Transmission`, not `Delivery`).
-- Avoid abbreviations in general — write names out in full (e.g.
+  bidirectional events (for example, `Transmission`, not `Delivery`).
+- Avoid abbreviations in general — write names out in full (for example,
   `nameserver`, not `ns`). This includes field names, verbose names,
   and help text.
 - Email-specific abbreviations are OK since they are more common than
@@ -144,13 +144,13 @@ Update it based on review feedback.
     in `<fieldset class="fieldset">` and each field in
     `<div role="group" class="field">` with a native `<label for="id_x">…</label>`
     linked to the control via `id="id_x"`. The `.field` container provides
-    spacing and error styling; native controls auto-style. Do not nest inputs
+    spacing and error styling. Native controls auto-style. Do not nest inputs
     inside `<label>` or use `<span class="label">` for the label text.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
-    pages that show selectable entities (e.g. organizations). Prefer items
+    pages that show selectable entities (for example, organizations). Prefer items
     over tables when each row is a single clickable entity with a title and
     short metadata.
   - Brand name: write `relay` in lowercase everywhere — it is a brand name,
@@ -162,12 +162,12 @@ Update it based on review feedback.
   (Tailwind size scale: 3.5=14px, 4=16px, 5=20px). Never inline Lucide SVGs
   by hand — the library replaces the `<i>` element with the SVG at runtime.
   Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons —
-  use Lucide icons with semantic color classes instead (e.g.
+  use Lucide icons with semantic color classes instead (for example,
   `circle-check` with `text-success`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
 - Custom CSS lives in `root/static/css/app.css` and is kept to the bare
-  minimum. Use it only for layout glue basecoat/Tailwind don't provide
-  directly (e.g. the breadcrumb container's background, marketing-page
+  minimum. Use it only for layout glue basecoat/Tailwind do not provide
+  directly (for example, the breadcrumb container's background, marketing-page
   accent highlights). Do not use it for component styling — use basecoat
   classes instead. If a utility is missing, prefer a Tailwind utility
   before adding a custom rule.
@@ -176,21 +176,21 @@ Update it based on review feedback.
   Each override adds the matching basecoat class
   (`input`, `checkbox`, `select`, `textarea`) while preserving any custom
   `widget.attrs` the form supplies. Prefer rendering forms with
-  `{{ form }}` / `{{ form.field }}` so the overrides apply automatically;
-  only fall back to hand-written inputs when a widget truly needs custom
+  `{{ form }}` / `{{ form.field }}` so the overrides apply automatically.
+  Only fall back to hand-written inputs when a widget truly needs custom
   markup.
 - Sidebar and main-nav links: assign each URL to a variable with
   `{% url '...' as var %}`, then use exact `request.path == var` to set
   `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
-  a substring check would highlight parent links on every child page.
+  a substring check highlights parent links on every child page.
   Hide main-nav links entirely when no org is selected.
 - Breadcrumbs: use `BreadcrumbViewMixin` from `abstract.views`. Each view
   sets `title` (the breadcrumb title) and `parent` (the URL name of the
   parent page). The mixin builds the chain by traversing parents via
   `get_url(cls, request)` and `get_title(cls, request)` classmethods.
-  Override `get_title` for request-dependent titles (e.g., the org name
+  Override `get_title` for request-dependent titles (for example, the org name
   from `request.current_org`). Override `get_url` for URL patterns that
-  need request kwargs (e.g., `OrganizationScopedView` passes `org_slug`).
+  need request kwargs (for example, `OrganizationScopedView` passes `org_slug`).
   For detail views with no `title`, the breadcrumb falls back to
   `str(self.object)`. Context variable is `breadcrumbs`, dict keys are
   `{"title": ..., "url": ...}`.
@@ -204,28 +204,28 @@ Update it based on review feedback.
   uv run pytest -m "not django_db"
   ```
 
-- Tests that don't need the database carry no marker.
+- Tests that do not need the database carry no marker.
 
 - Prefer unit tests over integration tests — test model methods and
   utility functions without the DB where possible.
 
 - CRUD view tests use Django's test client via the pytest-django `client`
-  fixture; use `client.force_login(user)` for authenticated requests.
+  fixture. Use `client.force_login(user)` for authenticated requests.
 
 - Test names follow a double-underscore convention:
 
   - Unit tests mirror the function/property name:
-    `test_fn__arbitrary_suffix` (e.g. `test_verify_key__wrong_key`,
+    `test_fn__arbitrary_suffix` (for example, `test_verify_key__wrong_key`,
     `test_salt__returns_class_path`).
   - View tests include the HTTP method:
     `test_get__arbitrary_suffix` / `test_post__arbitrary_suffix`
-    (e.g. `test_get__not_found`, `test_post__creates_org`).
+    (for example, `test_get__not_found`, `test_post__creates_org`).
 
 - Group related tests in classes — no comment headlines (`# ── … ──`).
   Use plain `class TestSomething:` with no decorator unless a class-level
   `@pytest.mark.django_db` is needed.
 
-- One test per scenario; no parametrised mega-tests that obscure individual
+- One test per scenario. Do not write parametrised mega-tests that obscure individual
   assertions.
 
 - Avoid mocking and patching unless the code under test performs external I/O

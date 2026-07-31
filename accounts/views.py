@@ -1,4 +1,4 @@
-"""Account views — auth, organization and member management."""
+"""Account views — authentication, organization and member management."""
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -23,12 +23,12 @@ from .models import Membership, Organization
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
-    """Base for org-scoped views: load the org from the URL and enforce membership.
+    """Base for org-scoped views. Loads the org from the URL and enforces membership.
 
-    Subclasses receive `self.org` and `org` is added to the template context.
+    Subclasses receive `self.org`, and `org` is added to the template context.
     The current org is also stashed on the request for the navbar context
-    processor. `self.org` is set in `setup()` so subclasses that override
-    `dispatch()` (e.g. for admin-only checks) see it before dispatch runs.
+    processor. `self.org` is set in `setup()`, so subclasses that override
+    `dispatch()` (for example, for admin-only checks) see it before dispatch runs.
     """
 
     org = None

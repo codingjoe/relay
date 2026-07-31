@@ -19,7 +19,7 @@ from .serializers import TlsReportSerializer
 
 
 class IncomingMessage(MessageMixin, TimeStamped):
-    """An email captured by the MX server, awaiting webhook dispatch."""
+    """An email captured by the MX server that waits for webhook dispatch."""
 
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")

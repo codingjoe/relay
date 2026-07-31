@@ -4,8 +4,8 @@
 def organizations(request):
     """Expose the user's organizations and the current org to every template.
 
-    `current_org` is set on the request by `OrganizationScopedView`; on
-    non-org pages it is absent.
+    `OrganizationScopedView` sets `current_org` on the request. On non-org
+    pages, `current_org` is absent.
     """
     if not getattr(request, "user", None) or not request.user.is_authenticated:
         return {}

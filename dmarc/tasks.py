@@ -68,7 +68,7 @@ def parse_dmarc_failure_report(report_pk):
 
 @task
 def evaluate_incoming_message(message_pk):
-    """Evaluate DMARC for an incoming message and generate RUF if failed."""
+    """Evaluate DMARC for an incoming message. If the evaluation fails, generate a RUF report."""
     from domains.models import Domain
     from mx.models import IncomingMessage
 
