@@ -16,4 +16,9 @@
       {% include_md markdown_template %}
     </article>
   </div>
+  {% if license %}
+    <footer class="max-w-3xl mx-auto pb-8 prose prose-sm text-muted-foreground">
+      {{ license }}
+    </footer>
+  {% endif %}
 {% endblock %}

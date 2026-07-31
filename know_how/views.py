@@ -7,9 +7,16 @@ from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.utils import md_2_html
 from abstract.views import BreadcrumbViewMixin, MarkdownView
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know-how"
+
+LICENSE_MARKDOWN = (
+    "This work is licensed under a "
+    "[Creative Commons Attribution-ShareAlike 4.0 International License]"
+    "(https://creativecommons.org/licenses/by-sa/4.0/)."
+)
 
 
 def list_articles():
@@ -50,10 +57,32 @@ class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "articles": list_articles(),
+            "license": md_2_html(LICENSE_MARKDOWN),
         }
 
 
-class KnowHowDetailView(MarkdownView):
+class KnowHowMarkdownView(MarkdownView):
+    """MarkdownView with a CC-BY-SA 4.0 license notice.
+
+    The license appears in both the rendered HTML page and the raw
+    Markdown response (when content negotiation returns text/markdown).
+    The license text is not stored in the Markdown source files — it is
+    added by the view at render time.
+    """
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["license"] = md_2_html(LICENSE_MARKDOWN)
+        return context
+
+    def render_markdown(self, request, **kwargs):
+        response = super().render_markdown(request, **kwargs)
+        license_md = f"\n\n---\n\n{LICENSE_MARKDOWN}\n"
+        response.content = (response.content.decode() + license_md).encode()
+        return response
+
+
+class KnowHowDetailView(KnowHowMarkdownView):
     """Render a single know-how article by slug."""
 
     parent = "know_how:list"

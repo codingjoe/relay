@@ -71,3 +71,24 @@ class TestKnowHowDetailView:
         response = client.get(reverse("know_how:detail", args=["dmarc"]))
         assert response.status_code == 200
         assert "text/html" in response["Content-Type"]
+
+    def test_get__html_includes_license(self, client):
+        response = client.get(reverse("know_how:detail", args=["dmarc"]))
+        body = response.content.decode()
+        assert "Creative Commons" in body
+        assert "by-sa/4.0" in body
+
+    def test_get__markdown_includes_license(self, client):
+        response = client.get(
+            reverse("know_how:detail", args=["dmarc"]),
+            HTTP_ACCEPT="text/markdown",
+        )
+        body = response.content.decode()
+        assert "Creative Commons" in body
+        assert "by-sa/4.0" in body
+
+    def test_get__list_includes_license(self, client):
+        response = client.get(reverse("know_how:list"))
+        body = response.content.decode()
+        assert "Creative Commons" in body
+        assert "by-sa/4.0" in body
