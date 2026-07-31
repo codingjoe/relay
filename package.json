@@ -1,0 +1,52 @@
+{
+  "dependencies": {
+    "basecoat-css": "^1.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@tailwindcss/typography": "^0.5.20",
+    "postcss": "^8.5.0",
+    "postcss-cli": "^11.0.0",
+    "tailwindcss": "^4.1.0",
+    "wireit": "^0.14.0"
+  },
+  "name": "relay",
+  "private": true,
+  "scripts": {
+    "build": "wireit",
+    "dev": "wireit"
+  },
+  "version": "0.1.0",
+  "wireit": {
+    "build": {
+      "dependencies": [
+        "css:build"
+      ]
+    },
+    "css:build": {
+      "command": "postcss src/css/app.css -o root/static/css/app.css",
+      "files": [
+        "src/css/**/*.css",
+        "postcss.config.mjs",
+        "package-lock.json"
+      ],
+      "output": [
+        "root/static/css/app.css"
+      ]
+    },
+    "css:watch": {
+      "command": "postcss src/css/app.css -o root/static/css/app.css --watch",
+      "files": [
+        "src/css/**/*.css",
+        "postcss.config.mjs",
+        "package-lock.json"
+      ],
+      "service": true
+    },
+    "dev": {
+      "dependencies": [
+        "css:watch"
+      ]
+    }
+  }
+}

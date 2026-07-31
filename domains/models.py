@@ -3,7 +3,9 @@ import string
 from functools import reduce
 from operator import or_
 
+import validators as domain_validators
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Length, Lower
 from django.urls import reverse
@@ -11,6 +13,12 @@ from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
 from kms.models import SigningKey
+
+
+def validate_domain_name(value):
+    """Validate that *value* is a syntactically valid domain name."""
+    if domain_validators.domain(value) is not True:
+        raise ValidationError(_("Enter a valid domain name, for example acme.com"))
 
 
 class DomainQuerySet(models.QuerySet):
@@ -61,6 +69,7 @@ class Domain(TimeStamped):
         _("name"),
         max_length=255,
         unique=True,
+        validators=[validate_domain_name],
         help_text=_("Root domain, for example acme.com."),
     )
     org = models.ForeignKey(

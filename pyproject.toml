@@ -1,7 +1,7 @@
 [project]
 name = "relay"
 version = "0.1.0"
-description = "A digital infrastructure platform for email, VoIP, and more, built on Django 6.0"
+description = "A digital infrastructure platform for email, VoIP, and more"
 readme = "README.md"
 requires-python = "~=3.14.0"
 dependencies = [
@@ -9,7 +9,7 @@ dependencies = [
     "aiosmtpd>=1.4.6",
     "boto3>=1.40.0",
     "cryptography>=45.0.0",
-    "django>=6.0.6",
+    "django>=6.1rc1,<6.2",
     "django-environ>=0.13.0",
     "django-health-check[psutil,redis]>=4.0.4",
     "django-storages[s3]>=1.14.6",
@@ -23,18 +23,23 @@ dependencies = [
     "pyyaml>=6.0.3",
     "redis>=7.2.0",
     "social-auth-app-django>=6.0.1",
+    "sentry-sdk>=2.18",
+    "validators>=0.34.0",
     "whitenoise>=6.12.0",
     "markdown>=3.10.2",
-    "djangorestframework>=3.16.0",
+    "threadmill[redis]>=0.5",
+    "djangorestframework @ https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz",
 ]
 
 [dependency-groups]
 dev = [
   { include-group = "test" },
+  "threadmill[inspector]>=0.5",
 ]
 test = [
     "pytest>=7.4.0",
     "pytest-django>=4.5.2",
+    "pytest-env>=1.1.0",
     "pytest-cov>=4.1.0",
     "pytest-randomly>=4.1.0",
     "pytest-xdist>=3.8.0",
@@ -47,6 +52,10 @@ test = [
 addopts = ["--cov", "--tb=short", "--fail-on-template-vars", "--reuse-db", "-q"]
 asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "root.settings"
+env = [
+    "DJANGO_ALLOW_ASYNC_UNSAFE=1",
+    "TEST=1",
+]
 norecursedirs = ["storage", ".venv", "node_modules", ".direnv", ".git"]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 

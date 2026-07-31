@@ -2,4 +2,7 @@ README.md
 Dockerfile
 .venv/
 node_modules/
+.wireit/
 containers/
+staticfiles/
+storage/

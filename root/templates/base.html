@@ -17,17 +17,7 @@
       <meta property="og:url" content="{{ request.build_absolute_uri }}">
       <meta name="twitter:card" content="summary">
     {% endblock meta_tags %}
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/basecoat-maia.cdn.min.css">
-    <style>
-      :root {
-        --color-primary: hsl(268, 100%, 41%);
-        --color-primary-foreground: hsl(0, 0%, 100%);
-      }
-      .bg-background {
-        background-color: var(--color-background);
-      }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/chart.min.js" defer></script>

@@ -34,11 +34,15 @@ App dependencies flow in one direction — see the graph in `README.md`:
 must not import from their dependents.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
-S3 via django-storages, social-auth-app-django, Pico CSS.
+S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS
+with wireit).
 
 ## Core commands & workflows
 
 - `uv sync` — install dependencies. **Use `uv` only**, never `pip`.
+- `npm install` — install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit).
+- `npm run build` — compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`).
+- `npm run dev` — watch and recompile CSS on change.
 - `uv run python manage.py check` — Django system checks.
 - `uv run python manage.py makemigrations` — generate migrations.
 - `uv run python manage.py migrate` — apply migrations.
@@ -80,6 +84,12 @@ Before you finish, always:
 - Update `CONVENTIONS.md` if a review introduces a new convention.
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
+
+## Browser automation
+
+Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
+`.playwright-mcp/`. The dev server binds to a random localhost port — read
+it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
 ## Pointers to further documentation
 

@@ -1,8 +1,40 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
+from django.core.exceptions import ValidationError
 
-from domains.models import Domain, generate_verification_token
+from domains.models import Domain, generate_verification_token, validate_domain_name
 from kms import keys as kms_keys
+
+
+class TestValidateDomainName:
+    def test_validate_domain_name__accepts_valid_domain(self):
+        validate_domain_name("example.com")
+
+    def test_validate_domain_name__accepts_subdomain(self):
+        validate_domain_name("sub.example.com")
+
+    def test_validate_domain_name__accepts_system_domain(self):
+        validate_domain_name("open.localhost")
+
+    def test_validate_domain_name__rejects_dot(self):
+        with pytest.raises(ValidationError):
+            validate_domain_name(".")
+
+    def test_validate_domain_name__rejects_empty(self):
+        with pytest.raises(ValidationError):
+            validate_domain_name("")
+
+    def test_validate_domain_name__rejects_single_label(self):
+        with pytest.raises(ValidationError):
+            validate_domain_name("example")
+
+    def test_validate_domain_name__rejects_double_dot(self):
+        with pytest.raises(ValidationError):
+            validate_domain_name("example..com")
+
+    def test_validate_domain_name__rejects_leading_hyphen(self):
+        with pytest.raises(ValidationError):
+            validate_domain_name("-example.com")
 
 
 class TestGenerateVerificationToken:

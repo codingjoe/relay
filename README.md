@@ -1,7 +1,7 @@
 # Relay — B2B SaaS Communication Platform
 
-A B2B SaaS communication platform built on Django 6.0 and Python 3.14,
-for AI applications. The platform has a **built-in authoritative nameserver**
+A B2B SaaS communication platform for AI applications.
+The platform has a **built-in authoritative nameserver**
 that removes manual DNS configuration.
 
 ## How It Works
@@ -88,6 +88,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
 | SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
 | MX      | 25           | Incoming MX delivery (aiosmtpd)      |
+| Worker  | —            | Threadmill task worker               |
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
@@ -109,12 +110,24 @@ address glob pattern.
 
 ### Tech Stack
 
-- **Django 6.0** with the task framework for async message delivery
+- **Django** with the task framework for async message delivery
 - **PostgreSQL** — primary database
 - **Redis** — caching and rate limiting
 - **S3** — raw message body storage via django-storages
 - **basecoat CSS** — component-based CSS framework for the web UI
 - **Granian** — Rust-based ASGI server
+
+### Error monitoring (Sentry)
+
+All five processes report to a single Sentry project. Off by default; set
+`SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
+sent automatically.
+
+| Variable                    | Default         | Description                                |
+| --------------------------- | --------------- | ------------------------------------------ |
+| `SENTRY_DSN`                | _(empty — off)_ | Project DSN. Required to enable reporting. |
+| `SENTRY_ENVIRONMENT`        | `production`    | Sentry environment tag.                    |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`           | Tracing sample rate (0–1). Off by default. |
 
 ## App dependencies
 
