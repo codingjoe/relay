@@ -75,6 +75,20 @@ def extract_title(markdown_text):
     return ""
 
 
+def article_path(slug):
+    """Return the filesystem path for a know-how article, or raise Http404.
+
+    Validates that the slug only contains safe characters to prevent
+    path traversal.
+    """
+    path = (KNOW_HOW_DIR / f"{slug}.md").resolve()
+    if not str(path).startswith(str(KNOW_HOW_DIR.resolve()) + "/"):
+        raise Http404("Article not found")
+    if not path.exists():
+        raise Http404("Article not found")
+    return path
+
+
 class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
     """List all know-how articles."""
 
@@ -97,19 +111,18 @@ class KnowHowDetailView(MarkdownView):
     @classmethod
     def get_title(cls, request):
         slug = request.resolver_match.kwargs.get("slug", "")
-        path = KNOW_HOW_DIR / f"{slug}.md"
-        if path.exists():
-            return extract_title(path.read_text())
-        return slug
+        try:
+            path = article_path(slug)
+        except Http404:
+            return slug
+        return extract_title(path.read_text())
 
     def get_markdown_template(self):
         return f"{self.kwargs['slug']}.md"
 
     def get_context_data(self, **kwargs):
         slug = self.kwargs["slug"]
-        path = KNOW_HOW_DIR / f"{slug}.md"
-        if not path.exists():
-            raise Http404("Article not found")
+        path = article_path(slug)
         metadata, _ = parse_frontmatter(path.read_text())
         context = super().get_context_data(**kwargs)
         context["license"] = md_2_html(LICENSE_MARKDOWN)
