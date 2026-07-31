@@ -12,10 +12,10 @@ Reference issues with one of:
 - Ref #xxx       — for any issue this PR relates to but does not fully resolve
 -->
 
-## Why
+### Why
 
 <!-- Why is this change needed? Link the issue it closes or relates to. -->
 
-## What changes
+### What changes
 
-<!-- What does this PR change? Present tense, imperative mood. -->
+<!-- What does this PR change? Add screenshot if helpful. -->
