@@ -90,7 +90,7 @@ def article_path(slug):
     path traversal.
     """
     path = (KNOW_HOW_DIR / f"{slug}.md").resolve()
-    if not str(path).startswith(str(KNOW_HOW_DIR.resolve()) + "/"):
+    if not path.is_relative_to(KNOW_HOW_DIR.resolve()):
         raise Http404("Article not found")
     if not path.exists():
         raise Http404("Article not found")
@@ -128,6 +128,7 @@ class KnowHowDetailView(MarkdownView):
         return metadata.get("name") or extract_title(text)
 
     def get_markdown_template(self):
+        article_path(self.kwargs["slug"])
         return f"{self.kwargs['slug']}.md"
 
     def get_context_data(self, **kwargs):
