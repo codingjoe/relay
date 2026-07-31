@@ -10,7 +10,7 @@
     </p>
     <div class="item-group">
       {% for article in articles %}
-        {% url 'knowhow:detail' article.slug as article_url %}
+        {% url 'know_how:detail' article.slug as article_url %}
         <a class="item" data-variant="outline" href="{{ article_url }}">
           <div class="flex flex-col gap-1">
             <span class="font-medium">{{ article.title }}</span>

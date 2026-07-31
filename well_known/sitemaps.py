@@ -3,7 +3,7 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 
-from knowhow.views import list_articles
+from know_how.views import list_articles
 
 
 class HomeSitemap(Sitemap):
@@ -42,4 +42,4 @@ class KnowHowSitemap(Sitemap):
         return [article["slug"] for article in list_articles()]
 
     def location(self, slug):
-        return reverse("knowhow:detail", args=[slug])
+        return reverse("know_how:detail", args=[slug])

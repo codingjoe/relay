@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n knowhow %}
+{% load i18n know_how %}
 {% block title %}{{ domain.name }} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -89,7 +89,7 @@
           <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         {% endif %}
         <label>SPF</label>
-        {% knowhow_badge "spf" "SPF" %}
+        {% know_how_badge "spf" "SPF" %}
       </div>
       <p class="text-sm text-muted-foreground">
         {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
@@ -134,7 +134,7 @@
           <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         {% endif %}
         <label>DKIM</label>
-        {% knowhow_badge "dkim" "DKIM" %}
+        {% know_how_badge "dkim" "DKIM" %}
       </div>
       <p class="text-sm text-muted-foreground">
         {% translate "cryptographic email signing. one CNAME per cipher."|capfirst %}
@@ -181,7 +181,7 @@
           <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         {% endif %}
         <label>DMARC</label>
-        {% knowhow_badge "dmarc" "DMARC" %}
+        {% know_how_badge "dmarc" "DMARC" %}
       </div>
       <p class="text-sm text-muted-foreground">
         {% translate "email authentication policy. relaxed alignment covers subdomains."|capfirst %}
@@ -225,7 +225,7 @@
       <div class="flex items-center gap-2">
         <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         <label>TLS-RPT</label>
-        {% knowhow_badge "tls-rpt" "TLS-RPT" %}
+        {% know_how_badge "tls-rpt" "TLS-RPT" %}
       </div>
       <p class="text-sm text-muted-foreground">
         {% translate "receive TLS failure reports from senders. add this record at your DNS provider for the root domain."|capfirst %}
@@ -265,7 +265,7 @@
       <div class="flex items-center gap-2">
         <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
         <label>MTA-STS</label>
-        {% knowhow_badge "mta-sts" "MTA-STS" %}
+        {% know_how_badge "mta-sts" "MTA-STS" %}
       </div>
       <p class="text-sm text-muted-foreground">
         {% translate "enforce TLS for incoming mail. add the TXT record and the CNAME record at your DNS provider."|capfirst %}

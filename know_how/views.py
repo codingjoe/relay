@@ -11,7 +11,7 @@ from django.views import generic
 from abstract.utils import md_2_html, strip_frontmatter
 from abstract.views import BreadcrumbViewMixin, MarkdownView
 
-KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "knowhow" / "docs"
+KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
 
 LICENSE_MARKDOWN = (
     "This work is licensed under a "
@@ -78,7 +78,7 @@ def extract_title(markdown_text):
 class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
     """List all know-how articles."""
 
-    template_name = "knowhow/list.html"
+    template_name = "know_how/list.html"
     title = _("know how")
     parent = "home"
 
@@ -92,7 +92,7 @@ class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
 class KnowHowDetailView(MarkdownView):
     """Render a single know-how article by slug."""
 
-    parent = "knowhow:list"
+    parent = "know_how:list"
 
     @classmethod
     def get_title(cls, request):

@@ -57,7 +57,7 @@ This is different from most other DNS records (A, MX, TXT), which you control th
 
 ## How relay uses PTR
 
-relay publishes the PTR record for the <a href="{% url 'knowhow:detail' slug='smtp' %}">SMTP</a> server IP address automatically. The record points to the relay mail hostname. The forward A record also points back to the same IP, so the PTR record passes the FCrDNS check.
+relay publishes the PTR record for the <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server IP address automatically. The record points to the relay mail hostname. The forward A record also points back to the same IP, so the PTR record passes the FCrDNS check.
 
 You do not need to configure PTR records. relay manages the IP address space and the reverse DNS zone.
 
@@ -65,8 +65,8 @@ You do not need to configure PTR records. relay manages the IP address space and
 
 - [RFC 1035 — Domain Names: Implementation and Specification (Section 3.5: PTR)](https://datatracker.ietf.org/doc/html/rfc1035#section-3.5)
 - [RFC 1912 — Common DNS Operational and Configuration Errors (Section 2.1: PTR)](https://datatracker.ietf.org/doc/html/rfc1912#section-2.1)
-- <a href="{% url 'knowhow:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
-- <a href="{% url 'knowhow:detail' slug='mx' %}">MX</a> — Mail Exchange records
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
+- <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> — Mail Exchange records
 
 [^ipv6-ptr]: IPv6 reverse DNS is often neglected. Many organizations set up IPv4 PTR records but forget IPv6. This causes delivery problems when the receiving server connects over IPv6 and the PTR check fails. relay publishes both IPv4 and IPv6 PTR records.
 

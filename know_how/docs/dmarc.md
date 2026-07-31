@@ -10,7 +10,7 @@ author: Johannes Maron
 
 ## What is DMARC?
 
-DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an email authentication policy protocol. It builds on <a href="{% url 'knowhow:detail' slug='spf' %}">SPF</a> and <a href="{% url 'knowhow:detail' slug='dkim' %}">DKIM</a> to give domain owners control over how receiving mail servers handle messages that fail authentication.
+DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an email authentication policy protocol. It builds on <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> and <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> to give domain owners control over how receiving mail servers handle messages that fail authentication.
 
 Without DMARC, a receiving mail server has no instructions from the domain owner. It decides on its own whether to deliver, quarantine, or reject a message that fails SPF or DKIM. DMARC solves this problem. The domain owner publishes a policy in DNS, and receivers follow that policy.
 
@@ -100,8 +100,8 @@ relay collects aggregate and forensic reports for you. You can view them in the 
 
 - [RFC 7489 — Domain-based Message Authentication, Reporting, and Conformance](https://datatracker.ietf.org/doc/html/rfc7489)
 - [DMARC.org — Official DMARC website](https://dmarc.org/)
-- <a href="{% url 'knowhow:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
-- <a href="{% url 'knowhow:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
+- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
+- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
 
 [^rfc-status]: RFC 7489 is classified as "Informational", not "Standards Track". Despite this, DMARC is widely adopted by major email providers and is the de facto standard for email authentication policy.
 
