@@ -66,6 +66,9 @@ class KnowHowDetailView(MarkdownView):
             return extract_title(path.read_text())
         return slug
 
+    def get_markdown_template(self):
+        return f"{self.kwargs['slug']}.md"
+
     def get_context_data(self, **kwargs):
         slug = self.kwargs["slug"]
         path = KNOW_HOW_DIR / f"{slug}.md"

@@ -1,3 +1,5 @@
+from django.http import HttpResponse
+from django.template import loader
 from django.urls import resolve, reverse
 from django.views import generic
 
@@ -58,7 +60,13 @@ class BreadcrumbViewMixin:
 
 
 class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
-    """Render Markdown files in a template."""
+    """Render Markdown files in a template.
+
+    Supports content negotiation: when the request Accept header
+    contains ``text/markdown``, the view returns the raw Markdown
+    source instead of rendered HTML. This makes the page friendly
+    to AI agents and API clients that prefer Markdown.
+    """
 
     template_name = "abstract/markdown.html"
 
@@ -68,9 +76,29 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
     """Template name of the markdown file to render."""
     toc_levels: str = "2-3"
 
+    def get_markdown_template(self):
+        """Return the markdown template name for this view."""
+        return self.markdown_template
+
+    def get(self, request, *args, **kwargs):
+        if "text/markdown" in request.headers.get("Accept", ""):
+            return self.render_markdown(request, **kwargs)
+        return super().get(request, *args, **kwargs)
+
+    def render_markdown(self, request, **kwargs):
+        """Return the raw Markdown source as a text/markdown response."""
+        context = self.get_context_data(**kwargs)
+        markdown_text = loader.get_template(self.get_markdown_template()).render(
+            context=context, request=request
+        )
+        return HttpResponse(
+            markdown_text,
+            content_type="text/markdown; charset=utf-8",
+        )
+
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "title": self.title,
-            "markdown_template": self.markdown_template,
+            "markdown_template": self.get_markdown_template(),
             "toc_levels": self.toc_levels,
         }
