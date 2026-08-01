@@ -1,18 +1,10 @@
 - model: auth.user
   pk: 1
   fields:
-    password: pbkdf2_sha256$1500000$clgPsJm06vFNA47SHhFChf$/I1t6IiDMJOoWX7IbM4SuIn5qvS1f9gqpSP5f/gZxxM=
-    last_login: null
-    is_superuser: false
+    password: '!JS7bUqSW70yvspWcdGlMF3gqmzxRszioWF3hDxmY'
     username: test
-    first_name: ''
-    last_name: ''
     email: test@example.com
-    is_staff: false
-    is_active: true
     date_joined: 2026-08-01 18:21:34.533171+00:00
-    groups: []
-    user_permissions: []
 - model: accounts.organization
   pk: 1
   fields:
