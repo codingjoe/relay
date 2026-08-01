@@ -17,7 +17,7 @@
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "reporting email"|capfirst %}</dt>
-        <dd class="m-0">{% email_link report.reporting_email org %}</dd>
+        <dd class="m-0">{% contact_link email=report.reporting_email %}</dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "report ID"|capfirst %}</dt>
@@ -62,11 +62,11 @@
         {% for failure in failures %}
           <tr>
             <td>{{ failure.get_result_type_display }}</td>
-            <td>{% ip_link failure.sending_mta_ip_address org %}</td>
-            <td>{% domain_link failure.receiving_mx_hostname org %}</td>
+            <td>{% contact_link ip=failure.sending_mta_ip_address %}</td>
+            <td>{% contact_link domain=failure.receiving_mx_hostname %}</td>
             <td>
               {% if failure.receiving_mx_ip_address %}
-                {% ip_link failure.receiving_mx_ip_address org %}
+                {% contact_link ip=failure.receiving_mx_ip_address %}
               {% else %}
                 —
               {% endif %}
