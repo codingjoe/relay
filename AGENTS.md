@@ -99,9 +99,21 @@ requests are auto-authenticated as the bundled `test` superuser).
 
 Bundle: one user (`test`, password `test`), one org (`acme`), one domain
 (`acme.com`), one SMTP credential, three outgoing messages, three
-transmissions. Load with `manage.py loaddata fixtures/initial_data.json`;
-refresh with `manage.py dumpdata auth accounts kms domains smtp --output fixtures/initial_data.json`. Pre-commit's `pretty-format-json`
-hook formats the JSON on commit.
+transmissions, three SigningKeys. Load with
+`manage.py loaddata fixtures/initial_data.json`. Refresh with:
+
+1. Wipe the database and re-apply migrations:
+   `rm -f db.sqlite3 && uv run python manage.py migrate`
+1. Seed the rows via the ORM (see `accounts/management/commands/seed_test_data.py`):
+   `uv run python manage.py seed_test_data`
+1. Regenerate the fixture from the seeded DB:
+   `uv run python manage.py dumpdata auth accounts kms domains tx_mail smtp --output fixtures/initial_data.json`
+1. Format the JSON via the `pretty-format-json` pre-commit hook.
+
+The `tx_mail` app is included because `OutgoingMessage` inherits from
+`Message` via multi-table inheritance: the parent rows must be loaded
+before the child rows, otherwise `loaddata` fails on a missing
+`tx_mail_message.id` foreign key.
 
 ## Pointers to further documentation
 
