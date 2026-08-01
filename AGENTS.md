@@ -91,6 +91,18 @@ Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
 `.playwright-mcp/`. The dev server binds to a random localhost port — read
 it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
+The MCP server loads `.playwright-mcp-config.json` (via `--config`)
+for `headless` and `outputDir`; no request headers are required (dev
+requests are auto-authenticated as the bundled `test` superuser).
+
+## Test data
+
+Bundle: one user (`test`, password `test`), one org (`acme`), one domain
+(`acme.com`), one SMTP credential, three outgoing messages, three
+transmissions. Load with `manage.py loaddata fixtures/initial_data.json`;
+refresh with `manage.py dumpdata auth accounts kms domains smtp --output fixtures/initial_data.json`. Pre-commit's `pretty-format-json`
+hook formats the JSON on commit.
+
 ## Pointers to further documentation
 
 - `CONVENTIONS.md` — authoritative coding conventions (URLs, PKs, model fields,
