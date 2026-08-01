@@ -1,0 +1,6 @@
+{
+  "browser": {
+    "headless": true,
+    "outputDir": ".playwright-mcp"
+  }
+}
