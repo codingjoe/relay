@@ -8,9 +8,9 @@ from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, View
+from django.views.generic import DeleteView, DetailView, ListView, RedirectView, View
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -185,3 +185,15 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
     def form_valid(self, form):
         messages.success(self.request, _("Deleted SMTP credential."))
         return super().form_valid(form)
+
+
+class MessageListRedirectView(OrganizationScopedView, RedirectView):
+    """Redirect the legacy message-list URL to the merged Messages view."""
+
+    permanent = False
+    query_string = True
+    direction: str = "all"
+
+    def get_redirect_url(self, *args, **kwargs):
+        url = reverse("tx_mail:contact-messages", kwargs={"org_slug": self.org.slug})
+        return f"{url}?direction={self.direction}"

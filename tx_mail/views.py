@@ -1,9 +1,8 @@
 """Unified transactional email views — merged messages and reports timelines."""
 
 from django.db.models import Q
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import ListView, RedirectView
+from django.views.generic import ListView
 
 from accounts.views import OrganizationScopedView
 from dmarc.models import DmarcFailureReport, DmarcReport
@@ -94,38 +93,3 @@ class ContactReportsView(OrganizationScopedView, ListView):
             "domain": self.request.GET.get("domain", ""),
             "ip": self.request.GET.get("ip", ""),
         }
-
-
-class MergedMessagesRedirectView(OrganizationScopedView, RedirectView):
-    """Redirect legacy message-list URLs to the merged Messages view.
-
-    Subclasses set ``direction`` to one of "sent" or "received" to scope
-    the merged view to a particular direction. Inherits from
-    ``OrganizationScopedView`` so non-members are 404'd before the
-    redirect happens, and anonymous users are redirected to login.
-    """
-
-    permanent = False
-    query_string = True
-
-    direction: str = "all"
-
-    def get_redirect_url(self, *args, **kwargs):
-        url = reverse("tx_mail:contact-messages", kwargs={"org_slug": self.org.slug})
-        return f"{url}?direction={self.direction}"
-
-
-class MergedReportsRedirectView(OrganizationScopedView, RedirectView):
-    """Redirect legacy report-list URLs to the merged Reports view.
-
-    Subclasses set ``report_type`` to one of "dmarc", "failures", or "tls".
-    """
-
-    permanent = False
-    query_string = True
-
-    report_type: str = "dmarc"
-
-    def get_redirect_url(self, *args, **kwargs):
-        url = reverse("tx_mail:contact-reports", kwargs={"org_slug": self.org.slug})
-        return f"{url}?type={self.report_type}"

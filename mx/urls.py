@@ -1,7 +1,5 @@
 from django.urls import include, path
 
-from tx_mail.views import MergedMessagesRedirectView, MergedReportsRedirectView
-
 from . import views
 
 app_name = "mx"
@@ -13,7 +11,7 @@ urlpatterns = [
             [
                 path(
                     "",
-                    MergedMessagesRedirectView.as_view(direction="received"),
+                    views.InboxRedirectView.as_view(direction="received"),
                     name="inbox",
                 ),
                 path(
@@ -49,7 +47,7 @@ urlpatterns = [
             [
                 path(
                     "",
-                    MergedReportsRedirectView.as_view(report_type="tls"),
+                    views.TlsReportListRedirectView.as_view(report_type="tls"),
                     name="tls-report-list",
                 ),
                 path(
