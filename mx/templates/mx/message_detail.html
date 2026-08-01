@@ -38,7 +38,7 @@
           {% for key, value in headers %}
             <tr>
               <td>{{ key }}</td>
-              <td><code>{{ value|header_value:org }}</code></td>
+              <td><code>{% header_value value org %}</code></td>
             </tr>
           {% endfor %}
         </tbody>

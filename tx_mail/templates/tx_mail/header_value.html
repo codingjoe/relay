@@ -1,0 +1,4 @@
+{% for span in spans %}{% if span.url %}<a
+      class="link"
+      href="{{ span.url }}"
+    >{{ span.text }}</a>{% else %}{{ span.text }}{% endif %}{% endfor %}

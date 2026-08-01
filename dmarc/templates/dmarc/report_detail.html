@@ -66,12 +66,12 @@
       <tbody>
         {% for record in records %}
           <tr>
-            <td>{{ record.source_ip_address|ip_link:org }}</td>
+            <td>{% ip_link record.source_ip_address org %}</td>
             <td>{{ record.count }}</td>
             <td>{{ record.get_disposition_display }}</td>
             <td>{{ record.get_dkim_alignment_display }}</td>
             <td>{{ record.get_spf_alignment_display }}</td>
-            <td>{{ record.header_from|truncatechars:30|domain_link:org }}</td>
+            <td>{% domain_link record.header_from|truncatechars:30 org %}</td>
             <td>{{ record.get_dkim_result_display }}</td>
             <td>{{ record.get_spf_result_display }}</td>
           </tr>

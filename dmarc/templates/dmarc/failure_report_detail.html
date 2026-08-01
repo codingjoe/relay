@@ -19,7 +19,7 @@
         <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.source_ip_address %}
-            {{ report.source_ip_address|ip_link:org }}
+            {% ip_link report.source_ip_address org %}
           {% else %}
             —
           {% endif %}
@@ -42,7 +42,7 @@
         <dt class="text-sm text-muted-foreground">{% translate "original from"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_mail_from %}
-            {{ report.original_mail_from|email_link:org }}
+            {% email_link report.original_mail_from org %}
           {% else %}
             —
           {% endif %}
@@ -52,7 +52,7 @@
         <dt class="text-sm text-muted-foreground">{% translate "original to"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_rcpt_to %}
-            {{ report.original_rcpt_to|email_link:org }}
+            {% email_link report.original_rcpt_to org %}
           {% else %}
             —
           {% endif %}
