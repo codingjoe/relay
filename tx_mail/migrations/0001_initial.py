@@ -46,10 +46,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "kind",
-                    models.TextField(
-                        choices=[("incoming", "incoming"), ("outgoing", "outgoing")],
-                        verbose_name="kind",
+                    "content_type",
+                    models.ForeignKey(
+                        editable=False,
+                        on_delete=models.deletion.CASCADE,
+                        related_name="+",
+                        to="contenttypes.contenttype",
                     ),
                 ),
                 (

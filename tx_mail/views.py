@@ -32,13 +32,14 @@ class ContactMessagesView(OrganizationScopedView, ListView):
         qs = Message.objects.filter(org=self.org).select_related(
             "outgoingmessage",
             "incomingmessage",
+            "content_type",
         )
         direction = self.request.GET.get("direction", self.Direction.ALL)
         match direction:
             case self.Direction.SENT:
-                qs = qs.filter(kind=Message.Kind.OUTGOING)
+                qs = qs.filter(content_type__model="outgoingmessage")
             case self.Direction.RECEIVED:
-                qs = qs.filter(kind=Message.Kind.INCOMING)
+                qs = qs.filter(content_type__model="incomingmessage")
         if email := self.request.GET.get("email"):
             qs = qs.filter(Q(mail_from__icontains=email) | Q(rcpt_to__icontains=email))
         return qs

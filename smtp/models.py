@@ -3,6 +3,7 @@
 import uuid
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -56,8 +57,8 @@ class OutgoingMessage(Message):
         ]
 
     def save(self, *args, **kwargs):
-        if not self.kind:
-            self.kind = Message.Kind.OUTGOING
+        if not self.content_type_id:
+            self.content_type = ContentType.objects.get_for_model(type(self))
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -69,7 +69,7 @@
               </a>
             </td>
             <td>
-              {% if message.kind == 'outgoing' %}
+              {% if message.kind == 'outgoingmessage' %}
                 <i
                   data-lucide="send"
                   class="size-4 text-muted-foreground"
@@ -86,7 +86,7 @@
             <td><code>{{ message.mail_from }}</code></td>
             <td><code>{{ message.rcpt_to }}</code></td>
             <td>
-              {% if message.kind == 'outgoing' and message.outgoingmessage.domain %}
+              {% if message.kind == 'outgoingmessage' and message.outgoingmessage.domain %}
                 {{ message.outgoingmessage.domain.name }}
               {% elif message.incomingmessage.receiving_domain %}
                 {{ message.incomingmessage.receiving_domain }}

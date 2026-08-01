@@ -68,7 +68,7 @@
   pk: 019fbe28-073c-76fb-80a0-d9b492877052
   fields:
     org: 1
-    kind: outgoing
+    content_type: ['smtp', 'outgoingmessage']
     mail_from: sender1@acme.com
     rcpt_to: recipient1@example.com
     subject: Test message 1
@@ -78,7 +78,7 @@
   pk: 019fbe28-073e-76f9-a31e-fab0c51afa56
   fields:
     org: 1
-    kind: outgoing
+    content_type: ['smtp', 'outgoingmessage']
     mail_from: sender2@acme.com
     rcpt_to: recipient2@example.com
     subject: Test message 2
@@ -88,7 +88,7 @@
   pk: 019fbe28-0741-70e2-86df-6eedb5889e5e
   fields:
     org: 1
-    kind: outgoing
+    content_type: ['smtp', 'outgoingmessage']
     mail_from: sender3@acme.com
     rcpt_to: recipient3@example.com
     subject: Test message 3

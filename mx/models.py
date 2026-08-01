@@ -3,6 +3,7 @@ import uuid
 from fnmatch import fnmatch
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -46,8 +47,8 @@ class IncomingMessage(Message):
         ]
 
     def save(self, *args, **kwargs):
-        if not self.kind:
-            self.kind = Message.Kind.INCOMING
+        if not self.content_type_id:
+            self.content_type = ContentType.objects.get_for_model(type(self))
         super().save(*args, **kwargs)
 
     def __str__(self):
