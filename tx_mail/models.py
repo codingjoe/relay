@@ -4,6 +4,7 @@ import uuid
 
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -58,7 +59,7 @@ class Message(TimeStamped):
     )
     received_at = models.DateTimeField(
         _("received at"),
-        auto_now_add=True,
+        default=timezone.now,
         help_text=_("When the message was accepted."),
     )
     received_with_tls = models.BooleanField(

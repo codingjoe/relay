@@ -35,6 +35,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   { include-group = "test" },
+  "pyyaml>=6.0.3",
   "threadmill[inspector]>=0.5",
 ]
 test = [

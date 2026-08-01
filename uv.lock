@@ -911,6 +911,7 @@ dev = [
     { name = "pytest-env" },
     { name = "pytest-randomly" },
     { name = "pytest-xdist" },
+    { name = "pyyaml" },
     { name = "threadmill", extra = ["inspector"] },
 ]
 test = [
@@ -961,6 +962,7 @@ dev = [
     { name = "pytest-env", specifier = ">=1.7.0" },
     { name = "pytest-randomly", specifier = ">=4.1.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "threadmill", extras = ["inspector"], specifier = ">=0.5" },
 ]
 test = [
