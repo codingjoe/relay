@@ -104,7 +104,7 @@ transmissions, three SigningKeys. Load with
 
 1. Wipe the database and re-apply migrations:
    `rm -f db.sqlite3 && uv run python manage.py migrate`
-1. Seed the rows via the ORM (see `accounts/management/commands/seed_test_data.py`):
+1. Seed the rows via the ORM (see `tx_mail/management/commands/seed_test_data.py`):
    `uv run python manage.py seed_test_data`
 1. Regenerate the fixture from the seeded DB:
    `uv run python manage.py dumpdata auth accounts kms domains tx_mail smtp --output fixtures/initial_data.json`
