@@ -16,10 +16,12 @@ Usage::
 ``highlight_email`` remains a filter (Pygments output).
 """
 
+import ipaddress
 import re
 import urllib.parse
 from typing import NamedTuple
 
+import validators
 from django import template
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -29,14 +31,18 @@ from pygments.lexers.email import EmailLexer
 
 register = template.Library()
 
-# Match entities that should become links inside an RFC 5322 header value.
+# Broad patterns to find *candidate* entities in header text.  Each
+# candidate is then validated with the ``validators`` package or the
+# stdlib ``ipaddress`` module before it is turned into a link.
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 _DOMAIN_RE = re.compile(
     r"\b(?:[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)+"
     r"[A-Za-z]{2,63}\b"
 )
+# IPv4: dotted quads; IPv6: colon-separated hex groups, optionally
+# bracketed (as in Received headers).
 _IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-_BRACKETED_IPV6_RE = re.compile(r"\[([0-9A-Fa-f:]+)\]")
+_IPV6_RE = re.compile(r"\[?([0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7})\]?")
 
 # Map filter keys to the view name they link to.
 _FILTER_VIEWS = {
@@ -61,6 +67,22 @@ def _org_slug_from_context(context) -> str:
             "Ensure the view extends OrganizationScopedView."
         )
     return org.slug
+
+
+def _is_email(value: str) -> bool:
+    return validators.email(value) is True
+
+
+def _is_domain(value: str) -> bool:
+    return validators.domain(value) is True
+
+
+def _is_ip(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
 
 
 @register.inclusion_tag("tx_mail/link.html", takes_context=True)
@@ -112,23 +134,35 @@ class _Hit(NamedTuple):
 
 
 def _entity_spans(value: str, org_slug: str) -> list[dict]:
-    """Parse ``value`` into a list of span dicts for the header_value template."""
+    """Parse ``value`` into a list of span dicts for the header_value template.
+
+    Candidate entities are found with broad regexes, then validated
+    with ``validators`` (emails, domains) or ``ipaddress`` (IPs) before
+    being turned into links.
+    """
     hits: list[_Hit] = []
 
     for m in _EMAIL_RE.finditer(value):
-        hits.append(_Hit(m.start(), m.end(), "email", m.group(0)))
+        if _is_email(m.group(0)):
+            hits.append(_Hit(m.start(), m.end(), "email", m.group(0)))
     for m in _DOMAIN_RE.finditer(value):
         if any(h.start <= m.start() and m.end() <= h.end for h in hits):
             continue
-        hits.append(_Hit(m.start(), m.end(), "domain", m.group(0)))
+        if _is_domain(m.group(0)):
+            hits.append(_Hit(m.start(), m.end(), "domain", m.group(0)))
     for m in _IPV4_RE.finditer(value):
         if any(h.start <= m.start() and m.end() <= h.end for h in hits):
             continue
-        hits.append(_Hit(m.start(), m.end(), "ipv4", m.group(0)))
-    for m in _BRACKETED_IPV6_RE.finditer(value):
-        if any(h.start <= m.start() and m.end() <= h.end for h in hits):
+        if _is_ip(m.group(0)):
+            hits.append(_Hit(m.start(), m.end(), "ip", m.group(0)))
+    for m in _IPV6_RE.finditer(value):
+        ip_str = m.group(1)
+        start = m.start(1)
+        end = m.end(1)
+        if any(h.start <= start and end <= h.end for h in hits):
             continue
-        hits.append(_Hit(m.start() + 1, m.end() - 1, "ip", m.group(1)))
+        if _is_ip(ip_str):
+            hits.append(_Hit(start, end, "ip", ip_str))
 
     hits.sort(key=lambda h: (h.start, h.end))
     deduped: list[_Hit] = []
