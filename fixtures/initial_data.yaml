@@ -126,7 +126,6 @@
     subject: Test message 1
     message_id: <test1@acme.com>
     raw_body: messages/019fbe8f-5edc-75f9-a9ed-9c379741e432.eml
-    received_at: 2026-08-01 18:21:34.813599+00:00
     received_with_tls: false
 - model: tx_mail.message
   pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
@@ -142,7 +141,6 @@
     subject: Test message 2
     message_id: <test2@acme.com>
     raw_body: messages/019fbe8f-5edf-7553-8ee9-34e82e131c8f.eml
-    received_at: 2026-08-01 18:21:34.816268+00:00
     received_with_tls: false
 - model: tx_mail.message
   pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
@@ -158,7 +156,6 @@
     subject: Test message 3
     message_id: <test3@acme.com>
     raw_body: messages/019fbe8f-5ee1-7145-951c-cd8ae282af25.eml
-    received_at: 2026-08-01 18:21:34.817530+00:00
     received_with_tls: false
 - model: smtp.outgoingmessage
   pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25

@@ -345,7 +345,7 @@ class DmarcFailureReport(IncomingMessage):
         else:
             body = cls.build_arf_body(
                 source_ip=evaluation.source_ip_address or "unknown",
-                arrival_date=incoming_message.received_at.isoformat(),
+                arrival_date=incoming_message.created_at.isoformat(),
                 envelope_from=incoming_message.mail_from,
                 rcpt_to=incoming_message.rcpt_to,
                 auth_results=str(evaluation.dkim_result),

@@ -119,7 +119,7 @@
       <tbody>
         {% for message in messages %}
           <tr class="cursor-pointer" data-pk="{{ message.id }}">
-            <td>{% timestamp message.received_at %}</td>
+            <td>{% timestamp message.created_at %}</td>
             <td><code>{{ message.id|truncatechars:13 }}</code></td>
             <td>{{ message.mail_from|truncatechars:30 }}</td>
             <td>{{ message.rcpt_to|truncatechars:30 }}</td>
@@ -258,7 +258,7 @@
         document.getElementById('modal-uuid').textContent = pk;
         document.getElementById('modal-from').textContent = data.mail_from;
         document.getElementById('modal-to').textContent = data.rcpt_to;
-        document.getElementById('modal-timestamp').textContent = new Date(data.received_at).toLocaleString();
+        document.getElementById('modal-timestamp').textContent = new Date(data.created_at).toLocaleString();
         document.getElementById('modal-status').textContent = data.status;
         document.getElementById('modal-message-id').textContent = data.message_id || '—';
         document.getElementById('modal-domain').textContent = data.domain || '—';

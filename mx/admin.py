@@ -19,11 +19,11 @@ class IncomingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "receiving_domain",
         "status",
         "received_with_tls",
-        "received_at",
+        "created_at",
     ]
     list_filter = ["status", "received_with_tls"]
     search_fields = ["mail_from", "rcpt_to", "subject", "message_id"]
-    readonly_fields = ["id", "received_at"]
+    readonly_fields = ["id", "created_at"]
 
 
 @admin.register(Webhook)

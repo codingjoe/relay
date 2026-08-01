@@ -13,7 +13,7 @@ class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "rcpt_to",
         "credential",
         "status",
-        "received_at",
+        "created_at",
     ]
     list_filter = ["status", "credential__type"]
     search_fields = [
@@ -23,7 +23,7 @@ class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "message_id",
         "sender__username",
     ]
-    readonly_fields = ["id", "received_at"]
+    readonly_fields = ["id", "created_at"]
 
 
 @admin.register(Transmission)

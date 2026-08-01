@@ -13,7 +13,7 @@
       <dd><code>{{ message.receiving_domain }}</code></dd>
     {% endif %}
     <dt class="font-semibold">{% translate "received"|capfirst context "noun" %}</dt>
-    <dd>{% timestamp message.received_at %}</dd>
+    <dd>{% timestamp message.created_at %}</dd>
     <dt class="font-semibold">{% translate "TLS"|capfirst %}</dt>
     <dd>
       {% if message.received_with_tls %}

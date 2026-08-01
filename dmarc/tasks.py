@@ -101,8 +101,8 @@ def generate_daily_rua_reports():
             continue
         messages = IncomingMessage.objects.filter(
             receiving_domain__iexact=domain.name,
-            received_at__gte=begin_at,
-            received_at__lte=end_at,
+            created_at__gte=begin_at,
+            created_at__lte=end_at,
         )
         evaluations = [DmarcEvaluation.from_message(msg) for msg in messages]
         if evaluations:

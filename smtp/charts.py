@@ -23,8 +23,8 @@ def build_outgoing_chart(org):
     """Return chart data for outgoing messages grouped by status."""
     start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
     rows = (
-        OutgoingMessage.objects.filter(org=org, received_at__date__gte=start)
-        .annotate(day=TruncDate("received_at"))
+        OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
+        .annotate(day=TruncDate("created_at"))
         .values("day", "status")
         .annotate(count=Count("id"))
     )

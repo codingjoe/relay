@@ -60,11 +60,6 @@ class Message(TimeStamped):
         blank=True,
         help_text=_("Raw RFC 822 message bytes."),
     )
-    received_at = models.DateTimeField(
-        _("received at"),
-        auto_now_add=True,
-        help_text=_("When the message was accepted."),
-    )
     received_with_tls = models.BooleanField(
         _("received with TLS"),
         default=False,

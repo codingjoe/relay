@@ -41,7 +41,7 @@ class IncomingMessage(Message):
     )
 
     class Meta(TimeStamped.Meta):
-        ordering = ["-received_at"]
+        ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["status"]),
         ]

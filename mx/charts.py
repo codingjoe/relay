@@ -35,8 +35,8 @@ def build_incoming_chart(org):
     """Return chart data for incoming messages grouped by status."""
     start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
     rows = (
-        IncomingMessage.objects.filter(org=org, received_at__date__gte=start)
-        .annotate(day=TruncDate("received_at"))
+        IncomingMessage.objects.filter(org=org, created_at__date__gte=start)
+        .annotate(day=TruncDate("created_at"))
         .values("day", "status")
         .annotate(count=Count("id"))
     )
