@@ -23,7 +23,7 @@
 
   {% if current_org %}
     <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
-      {% url 'message:dashboard' current_org.slug as email_url %}
+      {% url 'dashboard:dashboard' current_org.slug as email_url %}
       <a
         href="{{ email_url }}"
         class="btn"

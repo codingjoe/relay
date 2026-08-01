@@ -2,7 +2,7 @@
 
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import TemplateView
+from django.views.generic import ListView, TemplateView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 
@@ -10,8 +10,10 @@ from abstract.serializers import ChartDataSerializer
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from services.email.dmarc.charts import build_dmarc_chart
+from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.message.models import Message
 from services.email.mx.charts import build_incoming_chart, build_tls_chart
+from services.email.mx.models import TlsReport
 from services.email.smtp.charts import build_outgoing_chart
 
 
@@ -53,12 +55,6 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
         data = builder(self.org)
         serializer = self.get_serializer(data)
         return Response(serializer.data)
-
-
-from django.views.generic import ListView
-
-from services.email.dmarc.models import DmarcFailureReport, DmarcReport
-from services.email.mx.models import TlsReport
 
 
 class ContactReportsView(OrganizationScopedView, ListView):
