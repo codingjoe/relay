@@ -100,6 +100,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    *(
+        ["accounts.middleware.HttpHeaderRemoteUserMiddleware"]
+        if DEBUG and not TEST
+        else []
+    ),
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -307,7 +312,9 @@ GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
 
 # python-social-auth
-AUTHENTICATION_BACKENDS = [
+AUTHENTICATION_BACKENDS = (
+    ["django.contrib.auth.backends.RemoteUserBackend"] if DEBUG and not TEST else []
+) + [
     "social_core.backends.github.GithubOAuth2",
     "django.contrib.auth.backends.ModelBackend",
 ]

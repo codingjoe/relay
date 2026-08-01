@@ -1,2 +1,3 @@
 *.lock binary
 *-lock binary
+fixtures/*.json linguist-generated

@@ -1,0 +1,1156 @@
+[
+  {
+    "fields": {
+      "codename": "add_logentry",
+      "content_type": 1,
+      "name": "Can add log entry"
+    },
+    "model": "auth.permission",
+    "pk": 1
+  },
+  {
+    "fields": {
+      "codename": "change_logentry",
+      "content_type": 1,
+      "name": "Can change log entry"
+    },
+    "model": "auth.permission",
+    "pk": 2
+  },
+  {
+    "fields": {
+      "codename": "delete_logentry",
+      "content_type": 1,
+      "name": "Can delete log entry"
+    },
+    "model": "auth.permission",
+    "pk": 3
+  },
+  {
+    "fields": {
+      "codename": "view_logentry",
+      "content_type": 1,
+      "name": "Can view log entry"
+    },
+    "model": "auth.permission",
+    "pk": 4
+  },
+  {
+    "fields": {
+      "codename": "add_permission",
+      "content_type": 3,
+      "name": "Can add permission"
+    },
+    "model": "auth.permission",
+    "pk": 5
+  },
+  {
+    "fields": {
+      "codename": "change_permission",
+      "content_type": 3,
+      "name": "Can change permission"
+    },
+    "model": "auth.permission",
+    "pk": 6
+  },
+  {
+    "fields": {
+      "codename": "delete_permission",
+      "content_type": 3,
+      "name": "Can delete permission"
+    },
+    "model": "auth.permission",
+    "pk": 7
+  },
+  {
+    "fields": {
+      "codename": "view_permission",
+      "content_type": 3,
+      "name": "Can view permission"
+    },
+    "model": "auth.permission",
+    "pk": 8
+  },
+  {
+    "fields": {
+      "codename": "add_group",
+      "content_type": 2,
+      "name": "Can add group"
+    },
+    "model": "auth.permission",
+    "pk": 9
+  },
+  {
+    "fields": {
+      "codename": "change_group",
+      "content_type": 2,
+      "name": "Can change group"
+    },
+    "model": "auth.permission",
+    "pk": 10
+  },
+  {
+    "fields": {
+      "codename": "delete_group",
+      "content_type": 2,
+      "name": "Can delete group"
+    },
+    "model": "auth.permission",
+    "pk": 11
+  },
+  {
+    "fields": {
+      "codename": "view_group",
+      "content_type": 2,
+      "name": "Can view group"
+    },
+    "model": "auth.permission",
+    "pk": 12
+  },
+  {
+    "fields": {
+      "codename": "add_user",
+      "content_type": 4,
+      "name": "Can add user"
+    },
+    "model": "auth.permission",
+    "pk": 13
+  },
+  {
+    "fields": {
+      "codename": "change_user",
+      "content_type": 4,
+      "name": "Can change user"
+    },
+    "model": "auth.permission",
+    "pk": 14
+  },
+  {
+    "fields": {
+      "codename": "delete_user",
+      "content_type": 4,
+      "name": "Can delete user"
+    },
+    "model": "auth.permission",
+    "pk": 15
+  },
+  {
+    "fields": {
+      "codename": "view_user",
+      "content_type": 4,
+      "name": "Can view user"
+    },
+    "model": "auth.permission",
+    "pk": 16
+  },
+  {
+    "fields": {
+      "codename": "add_contenttype",
+      "content_type": 5,
+      "name": "Can add content type"
+    },
+    "model": "auth.permission",
+    "pk": 17
+  },
+  {
+    "fields": {
+      "codename": "change_contenttype",
+      "content_type": 5,
+      "name": "Can change content type"
+    },
+    "model": "auth.permission",
+    "pk": 18
+  },
+  {
+    "fields": {
+      "codename": "delete_contenttype",
+      "content_type": 5,
+      "name": "Can delete content type"
+    },
+    "model": "auth.permission",
+    "pk": 19
+  },
+  {
+    "fields": {
+      "codename": "view_contenttype",
+      "content_type": 5,
+      "name": "Can view content type"
+    },
+    "model": "auth.permission",
+    "pk": 20
+  },
+  {
+    "fields": {
+      "codename": "add_session",
+      "content_type": 6,
+      "name": "Can add session"
+    },
+    "model": "auth.permission",
+    "pk": 21
+  },
+  {
+    "fields": {
+      "codename": "change_session",
+      "content_type": 6,
+      "name": "Can change session"
+    },
+    "model": "auth.permission",
+    "pk": 22
+  },
+  {
+    "fields": {
+      "codename": "delete_session",
+      "content_type": 6,
+      "name": "Can delete session"
+    },
+    "model": "auth.permission",
+    "pk": 23
+  },
+  {
+    "fields": {
+      "codename": "view_session",
+      "content_type": 6,
+      "name": "Can view session"
+    },
+    "model": "auth.permission",
+    "pk": 24
+  },
+  {
+    "fields": {
+      "codename": "add_usersocialauth",
+      "content_type": 11,
+      "name": "Can add user social auth"
+    },
+    "model": "auth.permission",
+    "pk": 25
+  },
+  {
+    "fields": {
+      "codename": "change_usersocialauth",
+      "content_type": 11,
+      "name": "Can change user social auth"
+    },
+    "model": "auth.permission",
+    "pk": 26
+  },
+  {
+    "fields": {
+      "codename": "delete_usersocialauth",
+      "content_type": 11,
+      "name": "Can delete user social auth"
+    },
+    "model": "auth.permission",
+    "pk": 27
+  },
+  {
+    "fields": {
+      "codename": "view_usersocialauth",
+      "content_type": 11,
+      "name": "Can view user social auth"
+    },
+    "model": "auth.permission",
+    "pk": 28
+  },
+  {
+    "fields": {
+      "codename": "add_nonce",
+      "content_type": 9,
+      "name": "Can add nonce"
+    },
+    "model": "auth.permission",
+    "pk": 29
+  },
+  {
+    "fields": {
+      "codename": "change_nonce",
+      "content_type": 9,
+      "name": "Can change nonce"
+    },
+    "model": "auth.permission",
+    "pk": 30
+  },
+  {
+    "fields": {
+      "codename": "delete_nonce",
+      "content_type": 9,
+      "name": "Can delete nonce"
+    },
+    "model": "auth.permission",
+    "pk": 31
+  },
+  {
+    "fields": {
+      "codename": "view_nonce",
+      "content_type": 9,
+      "name": "Can view nonce"
+    },
+    "model": "auth.permission",
+    "pk": 32
+  },
+  {
+    "fields": {
+      "codename": "add_association",
+      "content_type": 7,
+      "name": "Can add association"
+    },
+    "model": "auth.permission",
+    "pk": 33
+  },
+  {
+    "fields": {
+      "codename": "change_association",
+      "content_type": 7,
+      "name": "Can change association"
+    },
+    "model": "auth.permission",
+    "pk": 34
+  },
+  {
+    "fields": {
+      "codename": "delete_association",
+      "content_type": 7,
+      "name": "Can delete association"
+    },
+    "model": "auth.permission",
+    "pk": 35
+  },
+  {
+    "fields": {
+      "codename": "view_association",
+      "content_type": 7,
+      "name": "Can view association"
+    },
+    "model": "auth.permission",
+    "pk": 36
+  },
+  {
+    "fields": {
+      "codename": "add_code",
+      "content_type": 8,
+      "name": "Can add code"
+    },
+    "model": "auth.permission",
+    "pk": 37
+  },
+  {
+    "fields": {
+      "codename": "change_code",
+      "content_type": 8,
+      "name": "Can change code"
+    },
+    "model": "auth.permission",
+    "pk": 38
+  },
+  {
+    "fields": {
+      "codename": "delete_code",
+      "content_type": 8,
+      "name": "Can delete code"
+    },
+    "model": "auth.permission",
+    "pk": 39
+  },
+  {
+    "fields": {
+      "codename": "view_code",
+      "content_type": 8,
+      "name": "Can view code"
+    },
+    "model": "auth.permission",
+    "pk": 40
+  },
+  {
+    "fields": {
+      "codename": "add_partial",
+      "content_type": 10,
+      "name": "Can add partial"
+    },
+    "model": "auth.permission",
+    "pk": 41
+  },
+  {
+    "fields": {
+      "codename": "change_partial",
+      "content_type": 10,
+      "name": "Can change partial"
+    },
+    "model": "auth.permission",
+    "pk": 42
+  },
+  {
+    "fields": {
+      "codename": "delete_partial",
+      "content_type": 10,
+      "name": "Can delete partial"
+    },
+    "model": "auth.permission",
+    "pk": 43
+  },
+  {
+    "fields": {
+      "codename": "view_partial",
+      "content_type": 10,
+      "name": "Can view partial"
+    },
+    "model": "auth.permission",
+    "pk": 44
+  },
+  {
+    "fields": {
+      "codename": "add_organization",
+      "content_type": 13,
+      "name": "Can add organization"
+    },
+    "model": "auth.permission",
+    "pk": 45
+  },
+  {
+    "fields": {
+      "codename": "change_organization",
+      "content_type": 13,
+      "name": "Can change organization"
+    },
+    "model": "auth.permission",
+    "pk": 46
+  },
+  {
+    "fields": {
+      "codename": "delete_organization",
+      "content_type": 13,
+      "name": "Can delete organization"
+    },
+    "model": "auth.permission",
+    "pk": 47
+  },
+  {
+    "fields": {
+      "codename": "view_organization",
+      "content_type": 13,
+      "name": "Can view organization"
+    },
+    "model": "auth.permission",
+    "pk": 48
+  },
+  {
+    "fields": {
+      "codename": "add_membership",
+      "content_type": 12,
+      "name": "Can add membership"
+    },
+    "model": "auth.permission",
+    "pk": 49
+  },
+  {
+    "fields": {
+      "codename": "change_membership",
+      "content_type": 12,
+      "name": "Can change membership"
+    },
+    "model": "auth.permission",
+    "pk": 50
+  },
+  {
+    "fields": {
+      "codename": "delete_membership",
+      "content_type": 12,
+      "name": "Can delete membership"
+    },
+    "model": "auth.permission",
+    "pk": 51
+  },
+  {
+    "fields": {
+      "codename": "view_membership",
+      "content_type": 12,
+      "name": "Can view membership"
+    },
+    "model": "auth.permission",
+    "pk": 52
+  },
+  {
+    "fields": {
+      "codename": "add_signingkey",
+      "content_type": 14,
+      "name": "Can add signing key"
+    },
+    "model": "auth.permission",
+    "pk": 53
+  },
+  {
+    "fields": {
+      "codename": "change_signingkey",
+      "content_type": 14,
+      "name": "Can change signing key"
+    },
+    "model": "auth.permission",
+    "pk": 54
+  },
+  {
+    "fields": {
+      "codename": "delete_signingkey",
+      "content_type": 14,
+      "name": "Can delete signing key"
+    },
+    "model": "auth.permission",
+    "pk": 55
+  },
+  {
+    "fields": {
+      "codename": "view_signingkey",
+      "content_type": 14,
+      "name": "Can view signing key"
+    },
+    "model": "auth.permission",
+    "pk": 56
+  },
+  {
+    "fields": {
+      "codename": "add_domain",
+      "content_type": 15,
+      "name": "Can add domain"
+    },
+    "model": "auth.permission",
+    "pk": 57
+  },
+  {
+    "fields": {
+      "codename": "change_domain",
+      "content_type": 15,
+      "name": "Can change domain"
+    },
+    "model": "auth.permission",
+    "pk": 58
+  },
+  {
+    "fields": {
+      "codename": "delete_domain",
+      "content_type": 15,
+      "name": "Can delete domain"
+    },
+    "model": "auth.permission",
+    "pk": 59
+  },
+  {
+    "fields": {
+      "codename": "view_domain",
+      "content_type": 15,
+      "name": "Can view domain"
+    },
+    "model": "auth.permission",
+    "pk": 60
+  },
+  {
+    "fields": {
+      "codename": "add_outgoingmessage",
+      "content_type": 16,
+      "name": "Can add outgoing message"
+    },
+    "model": "auth.permission",
+    "pk": 61
+  },
+  {
+    "fields": {
+      "codename": "change_outgoingmessage",
+      "content_type": 16,
+      "name": "Can change outgoing message"
+    },
+    "model": "auth.permission",
+    "pk": 62
+  },
+  {
+    "fields": {
+      "codename": "delete_outgoingmessage",
+      "content_type": 16,
+      "name": "Can delete outgoing message"
+    },
+    "model": "auth.permission",
+    "pk": 63
+  },
+  {
+    "fields": {
+      "codename": "view_outgoingmessage",
+      "content_type": 16,
+      "name": "Can view outgoing message"
+    },
+    "model": "auth.permission",
+    "pk": 64
+  },
+  {
+    "fields": {
+      "codename": "add_transmission",
+      "content_type": 18,
+      "name": "Can add transmission"
+    },
+    "model": "auth.permission",
+    "pk": 65
+  },
+  {
+    "fields": {
+      "codename": "change_transmission",
+      "content_type": 18,
+      "name": "Can change transmission"
+    },
+    "model": "auth.permission",
+    "pk": 66
+  },
+  {
+    "fields": {
+      "codename": "delete_transmission",
+      "content_type": 18,
+      "name": "Can delete transmission"
+    },
+    "model": "auth.permission",
+    "pk": 67
+  },
+  {
+    "fields": {
+      "codename": "view_transmission",
+      "content_type": 18,
+      "name": "Can view transmission"
+    },
+    "model": "auth.permission",
+    "pk": 68
+  },
+  {
+    "fields": {
+      "codename": "add_smtpcredential",
+      "content_type": 17,
+      "name": "Can add smtp credential"
+    },
+    "model": "auth.permission",
+    "pk": 69
+  },
+  {
+    "fields": {
+      "codename": "change_smtpcredential",
+      "content_type": 17,
+      "name": "Can change smtp credential"
+    },
+    "model": "auth.permission",
+    "pk": 70
+  },
+  {
+    "fields": {
+      "codename": "delete_smtpcredential",
+      "content_type": 17,
+      "name": "Can delete smtp credential"
+    },
+    "model": "auth.permission",
+    "pk": 71
+  },
+  {
+    "fields": {
+      "codename": "view_smtpcredential",
+      "content_type": 17,
+      "name": "Can view smtp credential"
+    },
+    "model": "auth.permission",
+    "pk": 72
+  },
+  {
+    "fields": {
+      "codename": "add_incomingmessage",
+      "content_type": 19,
+      "name": "Can add incoming message"
+    },
+    "model": "auth.permission",
+    "pk": 73
+  },
+  {
+    "fields": {
+      "codename": "change_incomingmessage",
+      "content_type": 19,
+      "name": "Can change incoming message"
+    },
+    "model": "auth.permission",
+    "pk": 74
+  },
+  {
+    "fields": {
+      "codename": "delete_incomingmessage",
+      "content_type": 19,
+      "name": "Can delete incoming message"
+    },
+    "model": "auth.permission",
+    "pk": 75
+  },
+  {
+    "fields": {
+      "codename": "view_incomingmessage",
+      "content_type": 19,
+      "name": "Can view incoming message"
+    },
+    "model": "auth.permission",
+    "pk": 76
+  },
+  {
+    "fields": {
+      "codename": "add_webhook",
+      "content_type": 22,
+      "name": "Can add webhook"
+    },
+    "model": "auth.permission",
+    "pk": 77
+  },
+  {
+    "fields": {
+      "codename": "change_webhook",
+      "content_type": 22,
+      "name": "Can change webhook"
+    },
+    "model": "auth.permission",
+    "pk": 78
+  },
+  {
+    "fields": {
+      "codename": "delete_webhook",
+      "content_type": 22,
+      "name": "Can delete webhook"
+    },
+    "model": "auth.permission",
+    "pk": 79
+  },
+  {
+    "fields": {
+      "codename": "view_webhook",
+      "content_type": 22,
+      "name": "Can view webhook"
+    },
+    "model": "auth.permission",
+    "pk": 80
+  },
+  {
+    "fields": {
+      "codename": "add_webhookdelivery",
+      "content_type": 23,
+      "name": "Can add webhook delivery"
+    },
+    "model": "auth.permission",
+    "pk": 81
+  },
+  {
+    "fields": {
+      "codename": "change_webhookdelivery",
+      "content_type": 23,
+      "name": "Can change webhook delivery"
+    },
+    "model": "auth.permission",
+    "pk": 82
+  },
+  {
+    "fields": {
+      "codename": "delete_webhookdelivery",
+      "content_type": 23,
+      "name": "Can delete webhook delivery"
+    },
+    "model": "auth.permission",
+    "pk": 83
+  },
+  {
+    "fields": {
+      "codename": "view_webhookdelivery",
+      "content_type": 23,
+      "name": "Can view webhook delivery"
+    },
+    "model": "auth.permission",
+    "pk": 84
+  },
+  {
+    "fields": {
+      "codename": "add_tlsreport",
+      "content_type": 21,
+      "name": "Can add tls report"
+    },
+    "model": "auth.permission",
+    "pk": 85
+  },
+  {
+    "fields": {
+      "codename": "change_tlsreport",
+      "content_type": 21,
+      "name": "Can change tls report"
+    },
+    "model": "auth.permission",
+    "pk": 86
+  },
+  {
+    "fields": {
+      "codename": "delete_tlsreport",
+      "content_type": 21,
+      "name": "Can delete tls report"
+    },
+    "model": "auth.permission",
+    "pk": 87
+  },
+  {
+    "fields": {
+      "codename": "view_tlsreport",
+      "content_type": 21,
+      "name": "Can view tls report"
+    },
+    "model": "auth.permission",
+    "pk": 88
+  },
+  {
+    "fields": {
+      "codename": "add_tlsfailure",
+      "content_type": 20,
+      "name": "Can add tls failure"
+    },
+    "model": "auth.permission",
+    "pk": 89
+  },
+  {
+    "fields": {
+      "codename": "change_tlsfailure",
+      "content_type": 20,
+      "name": "Can change tls failure"
+    },
+    "model": "auth.permission",
+    "pk": 90
+  },
+  {
+    "fields": {
+      "codename": "delete_tlsfailure",
+      "content_type": 20,
+      "name": "Can delete tls failure"
+    },
+    "model": "auth.permission",
+    "pk": 91
+  },
+  {
+    "fields": {
+      "codename": "view_tlsfailure",
+      "content_type": 20,
+      "name": "Can view tls failure"
+    },
+    "model": "auth.permission",
+    "pk": 92
+  },
+  {
+    "fields": {
+      "codename": "add_dmarcreport",
+      "content_type": 26,
+      "name": "Can add dmarc report"
+    },
+    "model": "auth.permission",
+    "pk": 93
+  },
+  {
+    "fields": {
+      "codename": "change_dmarcreport",
+      "content_type": 26,
+      "name": "Can change dmarc report"
+    },
+    "model": "auth.permission",
+    "pk": 94
+  },
+  {
+    "fields": {
+      "codename": "delete_dmarcreport",
+      "content_type": 26,
+      "name": "Can delete dmarc report"
+    },
+    "model": "auth.permission",
+    "pk": 95
+  },
+  {
+    "fields": {
+      "codename": "view_dmarcreport",
+      "content_type": 26,
+      "name": "Can view dmarc report"
+    },
+    "model": "auth.permission",
+    "pk": 96
+  },
+  {
+    "fields": {
+      "codename": "add_dmarcrecord",
+      "content_type": 25,
+      "name": "Can add dmarc record"
+    },
+    "model": "auth.permission",
+    "pk": 97
+  },
+  {
+    "fields": {
+      "codename": "change_dmarcrecord",
+      "content_type": 25,
+      "name": "Can change dmarc record"
+    },
+    "model": "auth.permission",
+    "pk": 98
+  },
+  {
+    "fields": {
+      "codename": "delete_dmarcrecord",
+      "content_type": 25,
+      "name": "Can delete dmarc record"
+    },
+    "model": "auth.permission",
+    "pk": 99
+  },
+  {
+    "fields": {
+      "codename": "view_dmarcrecord",
+      "content_type": 25,
+      "name": "Can view dmarc record"
+    },
+    "model": "auth.permission",
+    "pk": 100
+  },
+  {
+    "fields": {
+      "codename": "add_dmarcfailurereport",
+      "content_type": 24,
+      "name": "Can add dmarc failure report"
+    },
+    "model": "auth.permission",
+    "pk": 101
+  },
+  {
+    "fields": {
+      "codename": "change_dmarcfailurereport",
+      "content_type": 24,
+      "name": "Can change dmarc failure report"
+    },
+    "model": "auth.permission",
+    "pk": 102
+  },
+  {
+    "fields": {
+      "codename": "delete_dmarcfailurereport",
+      "content_type": 24,
+      "name": "Can delete dmarc failure report"
+    },
+    "model": "auth.permission",
+    "pk": 103
+  },
+  {
+    "fields": {
+      "codename": "view_dmarcfailurereport",
+      "content_type": 24,
+      "name": "Can view dmarc failure report"
+    },
+    "model": "auth.permission",
+    "pk": 104
+  },
+  {
+    "fields": {
+      "date_joined": "2026-08-01T14:02:26.667Z",
+      "email": "test@example.com",
+      "first_name": "Test",
+      "groups": [],
+      "is_active": true,
+      "is_staff": true,
+      "is_superuser": true,
+      "last_login": null,
+      "last_name": "User",
+      "password": "pbkdf2_sha256$1500000$WzWKv32Fj82gyALhMCSmy1$iA/h7mDEAw/tJnCBfrjCkywLVcHhIKc2eef4lBt7Xkc=",
+      "user_permissions": [],
+      "username": "test"
+    },
+    "model": "auth.user",
+    "pk": 1
+  },
+  {
+    "fields": {
+      "created_at": "2026-08-01T14:02:26.763Z",
+      "modified_at": "2026-08-01T14:02:26.763Z",
+      "slug": "acme"
+    },
+    "model": "accounts.organization",
+    "pk": 1
+  },
+  {
+    "fields": {
+      "created_at": "2026-08-01T14:02:26.764Z",
+      "modified_at": "2026-08-01T14:02:26.764Z",
+      "org": 1,
+      "role": "admin",
+      "user": 1
+    },
+    "model": "accounts.membership",
+    "pk": 1
+  },
+  {
+    "fields": {
+      "algorithm": "rsa-2048",
+      "created_at": "2026-08-01T14:02:26.843Z",
+      "encrypted_private_key": "gAAAAABqbfxyegyD0IfH3Y-TtZV0D2PZl-gZA69E1TgM-KwB3bJ0yHoYggPuvdNP529ANCHSitxDflp3_W-zegtnviKwj6mHUyTEp0bYZs5W_nnB4n8b_CFQncEIMgWJflqTRQNZda29w3Q3I6RB4TDl70sIc2CAsGv3RzHxpS67CUf8nKngTUVy-bd9UUn-hh4XN_6lUr5DTUdG4fPPyjQnlmwnrucfouIVeT_XHhbp6ovpOmfS-TMUN9fKXkqgFRFHAzCy5q74iupxpxh_cU96oV6jtI59ph2rC24p6cKxqEbWEbMlTQqQ-8hHwCqDfoMaRaFDSWgXeKdO0T_09-3zCFDUdokUijaJSv9eccl5wIhfpqJZiXYN67fAtQou19qOLiGYpF9xfHk33Hitd2W46_ZcSk9eARSDrxrrPR1OBgw0tMhj0y_mslC908SbVVM3FMEsAM9UYR54X0umWH_zt2tKm2nfemNLJUaZDc-HusfccvKdGKSv6RQ8Wk5EZ5J4EXHCmRoLYml1gMkKs2Kks3sGlOB4OhNM209lZgL02dXpyIsCsMqcns6hva_vf4VrGkhicEcw7g-ibuas6U0kEgZbRsKSaJOTJZnSdqbWlIc45Kl-3n8DVxX-EpSthlDDrNHe8AGasWVl_XyQPRFLXOE66tQjUpCg1pR2AbulTuZPxFhz1rF4GEAFCypzgD-w67-X0UZJ0-e_wvl8RVZjvKTdmI1PKHaAAJSWaRRPnVGwhF597ppXvQVwN1HcdLm5_dihvUJIZt09vxBxa2a-E_W4JntO8qrGtMAozJYgg3q8r8j-w2dpd10_FCaqyfD6nuLLU79NfGBqMYkCPZzquTdLDPhBSTOqDlOXkPvVmPoDUXDjz4oyM5hJsDQjMVOXY7jHoCGunU57HAz-apKTJa4q8IsjMVWdzPieJUhHULvweWhEJTnmGkMuyJrD-ZwTz80ruY6wDLjeeb4K1yg6wzWZxFFGUNJYO8GyDxndBXH2iNPJp5uWecDnLO89CeM9XpRZQOnfjj_nBI-GzSkWiX5-64d52x2S4248v1Cb1oE_Metju529qDV2STj4AOFrumZqpfyqgzG_QFjJN2F8DPgprNt_giztgjbP0VaqiRbLe8biXPbgyiYkcuUKxaEkOmp81J7fY6sTnlTG0Ocprk1chEhkkWZzvrdnMwkcTdPMJqj2htadFeQwux-bEPZvYr58ytTVYh6T2Yc-AJheo03BtjzGR6aPCugUYDXrZzYNcBeczXVRPVg5JGHVZ3Xq1jlR3-nfm0PGdbKe4uJ4Ne2V6zOKp9latIUEpYem5zREmh1t9RaoD5RBx7T--IhPDFPZKXjS-aCk6raFJC8oqXcFarFOZX1QiNt5-zJMaSJ6qYUqbtBEftealGLHG4PPlCz2tTugBzqLEvvwCMwZyefN10h3uKQ_r2WqsStWLl1u1ChaoXl1pjWdyfiDrFmJ2ejMF_nGhAvShZJNj25m06MXlX5TDpUtPUf0lU51A55IopzpdQqTxtVlECKgst84MJc-C3RZ--sROov9u6GzkMQ0EYTMt-TrRfKF6RGkix6REcAfWRkmY-zRc1y5fYrQiKT7o0OtzjHE0bsA7QNTCeEnOuypFUbIa6dy3ginWxJ13SWzWPog2XJJ2Gl7UORVBK1YKbK4CuLoytW5vQKd1IZuLUTSJTNsUlr2U8EyaKFAa0-cwDl14ffJxYrjc5T3lBZiIkl8BV15gkNEbIKvTxMCSsAQG9QUw31vvo2YoXxxHt6zNWsoF4i1a0pXcVBE-aIjRpJ208zeGgkghjnVQVzwGmSeRLTMeMk7RnZCRvpIZ2z0oK_vyYSTNHbAOUPEMGJdE8wFONRhAlAY5jkIbw5H7zYhOky-LBZBHJ3zJ1rHn_hWzLmK2Ti6RTRCuKRqT0CY97atjhZP00eY6UqWCo-ECtDTX0btz9BwU576SFo5B-S21acqu6nznRsyq7XgE0GOaFWGdUJja7-lw24QcoKNEExVxbtDOep2je3ePd0MvwQBq1Hvs7Dme6JdZFKN0fRNppGBZNKpfib9LO0OqOUCiamxfRGusLiVoH1gQ4c-NmlGO3KNuuNk01DRy1K-FnZEBiAXtEXsP32h4gijoN7L_y2FzF0zZMr4ku3WYkkjvrk9qMgwCRFpmUoDWLIZgj2vYy4xH1QX31hOA3zN4_KzZ4O3T7akg9Rm3jL1aQp1jdEmUB36HqWNtGp8iUzq0N0ZtEvkTWtUH_2e02LSP1BMxN8z5_EzYazeG3hzsrm2KyUaaWCq9hvPwESxFSg7W0LiG9eDI0N-lFoySFT5x9isLv4E_swu8Yi5bYJAe8E3lI3IfPQ=",
+      "key_id": "c37ca1e7dff2b023",
+      "modified_at": "2026-08-01T14:02:26.843Z",
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxOyKT4Cgnuys6jkH6s6z\nouPiBDHTSklcruo5nj7UDcf05RumHvqa0ICBvdvk0hXbuFJy7B/eUWtI/IR56VIB\nzt+KI2VFoiQDUryrpjZkI9a2f4HS2twyNCc4txCEwWZTHUkUmxNmrIyFB42rtOED\nYEvqtlyaQP5ZUq6TmoVtQD6enbgmhhVC0mfaqDO0MlA/Nm9W0s1dey/TdXm63S4o\nCKN3n/hGUU+ozlKe5gnatBipX5x1U13/447T6G61bnmX9JiUYyNcGCb8LZFwBPY0\nz9MRIgtNN468IOnPlN1MfINKyTZfEDyK87MUlNqy9dL7U4gJYGg5RDsm+Xe+eAUy\nZwIDAQAB\n-----END PUBLIC KEY-----\n"
+    },
+    "model": "kms.signingkey",
+    "pk": 1
+  },
+  {
+    "fields": {
+      "algorithm": "rsa-1024",
+      "created_at": "2026-08-01T14:02:26.857Z",
+      "encrypted_private_key": "gAAAAABqbfxy22oZZ8CVCH-ND3U_Yi19koqjy5i-QYpmXgBNRgm1J6MzA5vE9XH28O5eBM00bWVgiLzK91uWnxEPlo3bHfBra4rUXr5_RarVcEgLYp_Bwhpv27k8yvc6vvoRGKP003LB1Lojt5ZhEtcrtNhqTQ87qHO4X0RjMzcaZacEwLZCb8dN-lHFIRFmmEBBw4Te05EHHq86D1OyhNtBKlBFKm3wf7vBI-BUMWzE9mLgf2muQgVj1mjUCI1bOjL3ZHkikqEhZZPHiPn5orbkA7gTLiNLAPWDpUBca6uSbck1NiinQVUDMPE-SNfz2zKiuVmZUYTHgmfbwznPvqeuRI5IUPQn8K_yBp4Om7-4b1r5bi93QdPnEfVo9-9BHknAOJx9BFyCP7j4RDBRS86jT2iQJuZP-tw7fUsHVOop_FrczbZBRgH--P-HAF7qxFs-9NF1Vv9q4j1u2Qpw92b4UzY2UNIsZdFyQj-AGnNI2huzk_Wo3qbcNadW7xzELDBu2kK0p1QreHqBfSRinQapWZdDGbG6ff2DtrfhpkY4kX2JYSt1rHVS9KfhnFKpDGUpu5kQUDWZUQps5YeEsi-cmg7jkP7g0It-NHICQvcJheAmiZjgYXNQnWT61V7GEm9T1JUHp-jGygjZp5F7TNGxMGb1_zxqyaTsccWJ0piftDfr4pWilj6INA6NS3Lpn6PVIqjuQhBCHf9FM752YL3VEMCtYQIr2qkhVyjzQrZVJt51q2U9e2CaydoFk3rsVEf3qcjDg0VGwD6nW-RyaZ64wLhsadZIp_XWjeTX1Kh1SQItpnanh-Yjgij1rhixoqOrVNngPymBmYSSdRzYtJ2REjMD-Cpz7Tt1OS8z8bjfPewAwNY_4I-pF2NhF77036cFVc6S-M4Y8xBS5qB1KywEmnVJf2LjGkUddEHIFonQl3JvruRz4iyO5w91x4NL4_c2fHgxe3LjP4lmDMGBEKMhMt0_Q3CsXT65Wi8pMi8-y7rhqkCxy40Fckp1uoK-GNgUlcenBnyF2DZZYRhd3x5dsp2p-ufN_0HkuBcfitO7N2GFp0uAbfBU5LaKPjyVUZx5GHTkfxeacbcdujx3lR0v-NoDJENDRC6C935pdoEPiUM65aWtvPgmMeyLcX3_wrAhLDi2QZ54oXXBq2qCUNoSYEPFMjOmWqcjEha_8sT82hNjasXc1ZLMAL17EgUEMfDz8jZB7Urkb9ryHf9lGgKrk3yth145Y-inE1u4GLWrsjzkBr81I_kF5GuzJZcsGStMU3CFI2KHzp6Z5N0mPHX1kPp52juflg==",
+      "key_id": "73845071315adf1f",
+      "modified_at": "2026-08-01T14:02:26.857Z",
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCiC4Htg/IOjcMpdPRAtcCt+gG\nY88rZhS336hlcQh7o5ZLQaLawklEABVsmxXxRAkqQFdyINBCuBIwjLBhFJhn5y8s\norsOxZeRqUvW91KvU/J1Y+nc8htxvgdRLc7PpnIoz+7div7iIhNmDl9hlacUscyj\nUyLfK1khhTpVoeanTwIDAQAB\n-----END PUBLIC KEY-----\n"
+    },
+    "model": "kms.signingkey",
+    "pk": 2
+  },
+  {
+    "fields": {
+      "algorithm": "ed25519",
+      "created_at": "2026-08-01T14:02:26.859Z",
+      "encrypted_private_key": "gAAAAABqbfxyWhnuNblhQb9ZVT544sVhX19-5o8XHms_BFNqbQfCZnoWPVjwyoWOKmVvIe-u-y3ID4kJ4N772nYnZwxzSBJuuD-jL6JpnmR7anwt42YMqw848NTVmnNkqjCwOLcr7tlR_blhNoqREogk-hDW3Oj-xHHab4ES7HExYNhxFu8uZNnKHMyIKN_efTNDylBI-paPYKjMWDUpNuChLZpKwqqQhyG_5eCt-Au6xFO6wje-3ec=",
+      "key_id": "99d8fe047070bb0e",
+      "modified_at": "2026-08-01T14:02:26.859Z",
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOz5LHEiklgnPMIBSTep7nSv+Ul6kvzHboNbcSWuo6Qc=\n-----END PUBLIC KEY-----\n"
+    },
+    "model": "kms.signingkey",
+    "pk": 3
+  },
+  {
+    "fields": {
+      "created_at": "2026-08-01T14:02:26.765Z",
+      "dkim_error": "",
+      "dkim_key_ed25519": 3,
+      "dkim_key_rsa1024": 2,
+      "dkim_key_rsa2048": 1,
+      "dkim_status": "unchecked",
+      "dmarc_error": "",
+      "dmarc_status": "unchecked",
+      "dns_checked_at": null,
+      "modified_at": "2026-08-01T14:02:26.765Z",
+      "name": "acme.com",
+      "nameserver_error": "",
+      "nameserver_status": "unchecked",
+      "org": 1,
+      "spf_error": "",
+      "spf_status": "unchecked",
+      "verification_token": "Zh1AlxuMvZdQoX1G",
+      "verified_at": null
+    },
+    "model": "domains.domain",
+    "pk": 1
+  },
+  {
+    "fields": {
+      "created_at": "2026-08-01T14:02:26.956Z",
+      "credential": 1,
+      "domain": 1,
+      "mail_from": "noreply@acme.com",
+      "message_id": "",
+      "modified_at": "2026-08-01T14:02:26.956Z",
+      "org": 1,
+      "raw_body": "",
+      "rcpt_to": "user@example.com",
+      "received_at": "2026-08-01T14:02:26.956Z",
+      "received_with_tls": false,
+      "sender": 1,
+      "status": "delivered",
+      "subject": "Test delivered"
+    },
+    "model": "smtp.outgoingmessage",
+    "pk": "019fbda2-210c-77b5-beef-266e71045c36"
+  },
+  {
+    "fields": {
+      "created_at": "2026-08-01T14:02:26.957Z",
+      "credential": 1,
+      "domain": 1,
+      "mail_from": "noreply@acme.com",
+      "message_id": "",
+      "modified_at": "2026-08-01T14:02:26.957Z",
+      "org": 1,
+      "raw_body": "",
+      "rcpt_to": "user@example.com",
+      "received_at": "2026-08-01T14:02:26.957Z",
+      "received_with_tls": false,
+      "sender": 1,
+      "status": "bounced",
+      "subject": "Test bounced"
+    },
+    "model": "smtp.outgoingmessage",
+    "pk": "019fbda2-210d-770c-8304-e91f3e6b1b50"
+  },
+  {
+    "fields": {
+      "created_at": "2026-08-01T14:02:26.958Z",
+      "credential": 1,
+      "domain": 1,
+      "mail_from": "noreply@acme.com",
+      "message_id": "",
+      "modified_at": "2026-08-01T14:02:26.958Z",
+      "org": 1,
+      "raw_body": "",
+      "rcpt_to": "user@example.com",
+      "received_at": "2026-08-01T14:02:26.958Z",
+      "received_with_tls": false,
+      "sender": 1,
+      "status": "sent",
+      "subject": "Test sent"
+    },
+    "model": "smtp.outgoingmessage",
+    "pk": "019fbda2-210e-77a1-8eee-45915cca2a42"
+  },
+  {
+    "fields": {
+      "code": 250,
+      "created_at": "2026-08-01T14:02:26.956Z",
+      "details": "",
+      "log_id": "",
+      "message": "019fbda2-210c-77b5-beef-266e71045c36",
+      "modified_at": "2026-08-01T14:02:26.956Z",
+      "output": "",
+      "sent_with_ssl": false,
+      "status": "delivered"
+    },
+    "model": "smtp.transmission",
+    "pk": "019fbda2-210c-77b5-beef-266f2241bee2"
+  },
+  {
+    "fields": {
+      "code": 250,
+      "created_at": "2026-08-01T14:02:26.957Z",
+      "details": "",
+      "log_id": "",
+      "message": "019fbda2-210d-770c-8304-e91f3e6b1b50",
+      "modified_at": "2026-08-01T14:02:26.957Z",
+      "output": "",
+      "sent_with_ssl": false,
+      "status": "bounced"
+    },
+    "model": "smtp.transmission",
+    "pk": "019fbda2-210d-770c-8304-e920574b0353"
+  },
+  {
+    "fields": {
+      "code": 250,
+      "created_at": "2026-08-01T14:02:26.959Z",
+      "details": "",
+      "log_id": "",
+      "message": "019fbda2-210e-77a1-8eee-45915cca2a42",
+      "modified_at": "2026-08-01T14:02:26.959Z",
+      "output": "",
+      "sent_with_ssl": false,
+      "status": "sent"
+    },
+    "model": "smtp.transmission",
+    "pk": "019fbda2-210f-72ae-9367-a66c977eadc5"
+  },
+  {
+    "fields": {
+      "created_at": "2026-08-01T14:02:26.955Z",
+      "hold": false,
+      "key_hash": "pbkdf2_sha256$1500000$smtp.models.SmtpCredential$Q7wxpmShrCWF4Z23Kfr5z2PretwnnLN/Ww0HHGNGDOU=",
+      "key_prefix": "FoXH2QhV",
+      "last_used_at": null,
+      "modified_at": "2026-08-01T14:02:26.955Z",
+      "name": "default",
+      "org": 1,
+      "type": "smtp"
+    },
+    "model": "smtp.smtpcredential",
+    "pk": 1
+  }
+]
