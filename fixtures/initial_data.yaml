@@ -112,7 +112,7 @@
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
     dkim_key_ed25519: 3
-- model: tx_mail.message
+- model: message.message
   pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
   fields:
     modified_at: 2026-08-01 18:21:34.813579+00:00
@@ -127,7 +127,7 @@
     message_id: <test1@acme.com>
     raw_body: messages/019fbe8f-5edc-75f9-a9ed-9c379741e432.eml
     received_with_tls: false
-- model: tx_mail.message
+- model: message.message
   pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
   fields:
     modified_at: 2026-08-01 18:21:34.816251+00:00
@@ -142,7 +142,7 @@
     message_id: <test2@acme.com>
     raw_body: messages/019fbe8f-5edf-7553-8ee9-34e82e131c8f.eml
     received_with_tls: false
-- model: tx_mail.message
+- model: message.message
   pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
   fields:
     modified_at: 2026-08-01 18:21:34.817515+00:00

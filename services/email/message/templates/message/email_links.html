@@ -1,0 +1,5 @@
+{% for addr in addresses %}{% if not forloop.first %},
+  {% endif %}<a
+    class="link"
+    href="{% url 'message:contact-messages' org_slug %}?email={{ addr|urlencode }}"
+  >{{ addr }}</a>{% endfor %}

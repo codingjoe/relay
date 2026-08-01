@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load i18n message %}
+{% block title %}{% translate "reports"|capfirst %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "reports"|capfirst %}</h2>
+  </header>
+
+  <nav
+    role="navigation"
+    aria-label='{% translate "type"|capfirst %}'
+    class="button-group mb-6"
+  >
+    <a
+      class="btn"
+      data-variant="{% if type == 'dmarc' %}default{% else %}secondary{% endif %}"
+      href="?{% param_replace type='dmarc' %}"
+      {% if type == 'dmarc' %}aria-current="page"{% endif %}
+    >DMARC</a>
+    <a
+      class="btn"
+      data-variant="{% if type == 'failures' %}default{% else %}secondary{% endif %}"
+      href="?{% param_replace type='failures' %}"
+      {% if type == 'failures' %}aria-current="page"{% endif %}
+    >{% translate "DMARC failures"|capfirst %}</a>
+    <a
+      class="btn"
+      data-variant="{% if type == 'tls' %}default{% else %}secondary{% endif %}"
+      href="?{% param_replace type='tls' %}"
+      {% if type == 'tls' %}aria-current="page"{% endif %}
+    >TLS</a>
+  </nav>
+
+  <form method="get" class="fieldset mb-6">
+    <input type="hidden" name="type" value="{{ type }}">
+    <div class="flex flex-wrap items-end gap-4">
+      {% if type == 'tls' %}
+        <div role="group" class="field flex-1 min-w-48">
+          <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
+          <input
+            id="filter-domain"
+            type="search"
+            name="domain"
+            value="{{ domain }}"
+            class="input"
+            placeholder='{% translate "search by domain" %}'
+          >
+        </div>
+      {% endif %}
+      {% if type != 'tls' %}
+        <div role="group" class="field flex-1 min-w-48">
+          <label for="filter-ip">{% translate "source IP"|capfirst %}</label>
+          <input
+            id="filter-ip"
+            type="search"
+            name="ip"
+            value="{{ ip }}"
+            class="input"
+            placeholder='{% translate "search by IP" %}'
+          >
+        </div>
+      {% endif %}
+      <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+    </div>
+  </form>
+
+  <div class="table-container mb-6">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{% translate "received at"|capfirst %}</th>
+          <th>{% translate "type"|capfirst context "noun" %}</th>
+          <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th>{% translate "from"|capfirst context "email" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+          <tr class="row-link hover:bg-muted/50">
+            <td>
+              <a class="row-link-anchor" href="{{ report.get_absolute_url }}">
+                {% timestamp report.created_at %}
+              </a>
+            </td>
+            <td>
+              {% if type == 'dmarc' %}
+                <i data-lucide="shield-check" class="size-4 text-muted-foreground" aria-label="DMARC"></i>
+              {% elif type == 'failures' %}
+                <i
+                  data-lucide="alert-triangle"
+                  class="size-4 text-muted-foreground"
+                  aria-label='{% translate "DMARC failures"|capfirst %}'
+                ></i>
+              {% else %}
+                <i data-lucide="lock" class="size-4 text-muted-foreground" aria-label="TLS"></i>
+              {% endif %}
+            </td>
+            <td>
+              {% if report.domain %}
+                {{ report.domain.name }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              <code
+              >{% if type == 'tls' %}{{ report.reporting_email|default:"—" }}{% else %}{{ report.mail_from }}{% endif %}</code>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">{% translate "no reports found." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <nav
+      role="navigation"
+      aria-label='{% translate "pagination"|capfirst %}'
+      class="mx-auto flex w-full justify-center"
+    >
+      <ul class="flex flex-row items-center gap-1">
+        {% if page_obj.has_previous %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% param_replace page=page_obj.previous_page_number %}"
+            >
+              <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
+              {% translate "previous"|capfirst %}
+            </a>
+          </li>
+        {% endif %}
+        <li>
+          <span class="btn" data-variant="secondary" data-size="sm" aria-current="page">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+          </span>
+        </li>
+        {% if page_obj.has_next %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% param_replace page=page_obj.next_page_number %}"
+            >
+              {% translate "next"|capfirst %}
+              <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+{% endblock %}

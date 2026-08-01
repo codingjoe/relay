@@ -87,11 +87,11 @@ INSTALLED_APPS = [
     "know_how",
     "well_known",
     "root",
-    "smtp",
-    "tx_mail",
-    "tx_email",
-    "mx",
-    "dmarc",
+    "services.email.smtp",
+    "services.email.message",
+    "services.email.dashboard",
+    "services.email.mx",
+    "services.email.dmarc",
 ]
 
 MIDDLEWARE = [

@@ -58,11 +58,11 @@ urlpatterns = [
         "org/<slug:org_slug>/email/",
         include(
             [
-                path("", include("tx_mail.urls")),
-                path("", include("tx_email.urls")),
-                path("", include("smtp.urls")),
-                path("", include("mx.urls")),
-                path("", include("dmarc.urls")),
+                path("", include("services.email.message.urls")),
+                path("", include("services.email.dashboard.urls")),
+                path("", include("services.email.smtp.urls")),
+                path("", include("services.email.mx.urls")),
+                path("", include("services.email.dmarc.urls")),
                 path("domains/", include("domains.urls")),
             ]
         ),

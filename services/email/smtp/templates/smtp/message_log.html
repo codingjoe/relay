@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% load i18n abstract message %}
+{% block title %}{% translate "message log"|title %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "message log"|title %}</h2>
+    <button
+      type="button"
+      class="btn"
+      data-variant="secondary"
+      onclick="document.getElementById('dlg-test-email').showModal()"
+    >
+      {% translate "send test email"|title %}
+    </button>
+  </header>
+
+  {% include "abstract/chart_card.html" with id="chart-outgoing" data_id="chart-outgoing-data" title=_("messages by status")|capfirst chart=chart class="mb-6" %}
+
+  <dialog class="dialog" id="dlg-test-email">
+    <div>
+      <header>
+        <h2>{% translate "send test email"|title %}</h2>
+        <p>{% translate "send a test message to verify your setup."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'smtp:message-test' org.slug %}" id="dlg-test-email-form">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="te-domain">{% translate "domain"|capfirst context "noun" %}</label>
+              <select id="te-domain" name="domain" class="select w-full" required>
+                <option value="free">{{ free_sender_domain }} ({% translate "free" %})</option>
+                {% for domain in domains %}
+                  <option value="{{ domain.pk }}">{{ domain.name }}</option>
+                {% empty %}
+                  <option disabled>{% translate "no domains." %}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div role="group" class="field">
+              <label for="te-subject">{% translate "subject"|capfirst context "email" %}</label>
+              <input type="text" id="te-subject" name="subject" class="input">
+            </div>
+            <div role="group" class="field">
+              <label for="te-body">{% translate "body"|capfirst context "noun" %}</label>
+              <textarea id="te-body" name="body" rows="10" class="textarea"></textarea>
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('dlg-test-email').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="dlg-test-email-form" class="btn">
+          {% translate "send"|capfirst context "verb" %}
+        </button>
+      </footer>
+    </div>
+  </dialog>
+
+  <form method="get" class="fieldset mb-6">
+    <div class="grid gap-4">
+      <div role="group" class="field">
+        <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
+        <select id="filter-domain" name="domain" class="select w-full">
+          <option value="">{% translate "all"|capfirst %}</option>
+          {% for domain in domains %}
+            <option value="{{ domain.pk }}" {% if filters.domain == domain.pk|stringformat:"s" %}selected{% endif %}>
+              {{ domain.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div role="group" class="field">
+        <label for="filter-status">{% translate "status"|capfirst context "noun" %}</label>
+        <select id="filter-status" name="status" class="select w-full">
+          <option value="">{% translate "all"|capfirst %}</option>
+          {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div role="group" class="field">
+        <label for="filter-search">{% translate "search"|capfirst context "verb" %}</label>
+        <input
+          id="filter-search"
+          type="search"
+          name="search"
+          value="{{ filters.search }}"
+          placeholder='{% translate "recipient" %}'
+          class="input"
+        >
+      </div>
+      <div role="group" class="field">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-container mb-6">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{% translate "timestamp"|capfirst context "noun" %}</th>
+          <th>UUID</th>
+          <th>{% translate "from"|capfirst context "email" %}</th>
+          <th>{% translate "to"|capfirst context "email" %}</th>
+          <th>{% translate "subject"|capfirst context "email" %}</th>
+          <th>{% translate "status"|capfirst context "noun" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for message in messages %}
+          <tr class="cursor-pointer" data-pk="{{ message.id }}">
+            <td>{% timestamp message.created_at %}</td>
+            <td><code>{{ message.id|truncatechars:13 }}</code></td>
+            <td>{{ message.mail_from|truncatechars:30 }}</td>
+            <td>{{ message.rcpt_to|truncatechars:30 }}</td>
+            <td>{{ message.subject|truncatechars:40 }}</td>
+            <td>{{ message.get_status_display }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">{% translate "no messages found." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <nav
+      role="navigation"
+      aria-label='{% translate "pagination"|capfirst %}'
+      class="mx-auto flex w-full justify-center"
+    >
+      <ul class="flex flex-row items-center gap-1">
+        {% if page_obj.has_previous %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% param_replace page=page_obj.previous_page_number %}"
+            >
+              <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
+              {% translate "previous"|capfirst %}
+            </a>
+          </li>
+        {% endif %}
+        <li>
+          <span class="btn" data-variant="secondary" data-size="sm" aria-current="page">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+          </span>
+        </li>
+        {% if page_obj.has_next %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% param_replace page=page_obj.next_page_number %}"
+            >
+              {% translate "next"|capfirst %}
+              <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+
+  <dialog class="dialog" id="msg-modal">
+    <div>
+      <header>
+        <h2 id="modal-subject"></h2>
+      </header>
+      <section>
+        <div class="table-container">
+          <table class="table">
+            <tbody>
+              <tr>
+                <th>{% translate "UUID"|capfirst %}</th>
+                <td><code id="modal-uuid"></code></td>
+              </tr>
+              <tr>
+                <th>{% translate "from"|capfirst context "email" %}</th>
+                <td id="modal-from"></td>
+              </tr>
+              <tr>
+                <th>{% translate "to"|capfirst context "email" %}</th>
+                <td id="modal-to"></td>
+              </tr>
+              <tr>
+                <th>{% translate "timestamp"|capfirst context "noun" %}</th>
+                <td id="modal-timestamp"></td>
+              </tr>
+              <tr>
+                <th>{% translate "status"|capfirst context "noun" %}</th>
+                <td id="modal-status"></td>
+              </tr>
+              <tr>
+                <th>{% translate "message ID"|capfirst %}</th>
+                <td><code id="modal-message-id"></code></td>
+              </tr>
+              <tr>
+                <th>{% translate "domain"|capfirst context "noun" %}</th>
+                <td id="modal-domain"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <details class="mt-4">
+          <summary class="cursor-pointer">{% translate "transmissions"|capfirst context "noun" %}</summary>
+          <div class="table-container mt-3">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{% translate "status"|capfirst context "noun" %}</th>
+                  <th>{% translate "code"|capfirst context "noun" %}</th>
+                  <th>{% translate "timestamp"|capfirst context "noun" %}</th>
+                  <th>{% translate "details"|capfirst context "noun" %}</th>
+                </tr>
+              </thead>
+              <tbody id="modal-transmissions"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('msg-modal').close()"
+        >
+          {% translate "close"|capfirst %}
+        </button>
+        <a id="modal-detail-link" class="btn" href="#">{% translate "view full detail"|capfirst %}</a>
+      </footer>
+    </div>
+  </dialog>
+
+  <script>
+    document.querySelectorAll('tr[data-pk]').forEach(row => {
+      row.addEventListener('click', async () => {
+        const pk = row.dataset.pk;
+        const modal = document.getElementById('msg-modal');
+        modal.showModal();
+        const resp = await fetch(`/org/{{ org.slug }}/messages/${pk}/modal`);
+        const data = await resp.json();
+        document.getElementById('modal-subject').textContent = data.subject || '—';
+        document.getElementById('modal-uuid').textContent = pk;
+        document.getElementById('modal-from').textContent = data.mail_from;
+        document.getElementById('modal-to').textContent = data.rcpt_to;
+        document.getElementById('modal-timestamp').textContent = new Date(data.created_at).toLocaleString();
+        document.getElementById('modal-status').textContent = data.status;
+        document.getElementById('modal-message-id').textContent = data.message_id || '—';
+        document.getElementById('modal-domain').textContent = data.domain || '—';
+        document.getElementById('modal-detail-link').href = `/org/{{ org.slug }}/messages/${pk}`;
+        const tbody = document.getElementById('modal-transmissions');
+        tbody.innerHTML = (data.transmissions || []).map(d =>
+          `<tr><td>${d.status}</td><td>${d.code || '—'}</td><td>${new Date(d.created_at).toLocaleString()}</td><td>${(d.details || d.output || '').slice(0, 80)}</td></tr>`
+        ).join('') || '<tr><td colspan="4">—</td></tr>';
+      });
+    });
+  </script>
+{% endblock %}

@@ -6,21 +6,21 @@
         <h3 id="app-sidebar-group-email">{% translate "email"|capfirst %}</h3>
         <ul>
           <li>
-            {% url 'tx_mail:dashboard' current_org.slug as dashboard_url %}
+            {% url 'message:dashboard' current_org.slug as dashboard_url %}
             <a href="{{ dashboard_url }}" {% if request.path == dashboard_url %}aria-current="page"{% endif %}>
               <i data-lucide="layout-dashboard" class="shrink-0" aria-hidden="true"></i>
               <span>{% translate "dashboard"|capfirst %}</span>
             </a>
           </li>
           <li>
-            {% url 'tx_mail:contact-messages' current_org.slug as messages_url %}
+            {% url 'message:contact-messages' current_org.slug as messages_url %}
             <a href="{{ messages_url }}" {% if request.path == messages_url %}aria-current="page"{% endif %}>
               <i data-lucide="messages-square" class="shrink-0" aria-hidden="true"></i>
               <span>{% translate "messages"|capfirst context "noun" %}</span>
             </a>
           </li>
           <li>
-            {% url 'tx_email:contact-reports' current_org.slug as reports_url %}
+            {% url 'dashboard:contact-reports' current_org.slug as reports_url %}
             <a href="{{ reports_url }}" {% if request.path == reports_url %}aria-current="page"{% endif %}>
               <i data-lucide="shield" class="shrink-0" aria-hidden="true"></i>
               <span>{% translate "reports"|capfirst %}</span>

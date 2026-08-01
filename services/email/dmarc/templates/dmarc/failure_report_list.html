@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load i18n message %}
+{% block title %}{% translate "DMARC failure reports"|capfirst %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "DMARC failure reports"|capfirst %}</h2>
+  </header>
+
+  <form method="get" class="fieldset mb-6">
+    <div class="grid gap-4">
+      <div role="group" class="field">
+        <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
+        <select id="filter-domain" name="domain" class="select w-full">
+          <option value="">{% translate "all"|capfirst %}</option>
+          {% for domain in domains %}
+            <option value="{{ domain.name }}" {% if filters.domain == domain.name %}selected{% endif %}>
+              {{ domain.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div role="group" class="field">
+        <label for="filter-source-ip">{% translate "source IP"|capfirst %}</label>
+        <input
+          id="filter-source-ip"
+          type="text"
+          name="source_ip"
+          value="{{ filters.source_ip }}"
+          placeholder="{% translate 'for example, 192.168.1.1' %}"
+          class="input"
+        >
+      </div>
+      <div role="group" class="field">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-container mb-6">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{% translate "arrived"|capfirst %}</th>
+          <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th>{% translate "source IP"|capfirst %}</th>
+          <th>{% translate "from"|capfirst context "email" %}</th>
+          <th>{% translate "result"|capfirst %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+          <tr
+            class="cursor-pointer"
+            onclick="window.location.href = '{% url 'dmarc:failure-report-detail' org.slug report.pk %}'"
+          >
+            <td>{{ report.arrival_at|naturalday|default:"—" }}</td>
+            <td>{{ report.domain|default:"—" }}</td>
+            <td>{{ report.source_ip_address|default:"—" }}</td>
+            <td>{{ report.original_mail_from|truncatechars:30 }}</td>
+            <td>{{ report.get_delivery_result_display }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">{% translate "no failure reports received yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <nav
+      role="navigation"
+      aria-label='{% translate "pagination"|capfirst %}'
+      class="mx-auto flex w-full justify-center"
+    >
+      <ul class="flex flex-row items-center gap-1">
+        {% if page_obj.has_previous %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% param_replace page=page_obj.previous_page_number %}"
+            >
+              <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
+              {% translate "previous"|capfirst %}
+            </a>
+          </li>
+        {% endif %}
+        <li>
+          <span class="btn" data-variant="secondary" data-size="sm" aria-current="page">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+          </span>
+        </li>
+        {% if page_obj.has_next %}
+          <li>
+            <a
+              class="btn"
+              data-variant="ghost"
+              data-size="sm"
+              href="?{% param_replace page=page_obj.next_page_number %}"
+            >
+              {% translate "next"|capfirst %}
+              <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+{% endblock %}
