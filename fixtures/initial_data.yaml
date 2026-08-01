@@ -1,0 +1,159 @@
+- fields:
+    date_joined: '2026-08-01T16:28:41.863Z'
+    email: test@example.com
+    first_name: ''
+    groups: []
+    is_active: true
+    last_login: '2026-08-01T16:29:42.634Z'
+    last_name: ''
+    password: pbkdf2_sha256$1500000$wF7xJJktqfXKo5bZIpD8uM$qIWtUt+TscHuCdUV7qHLmF36YOzuiC3NQNxs6NNeUlQ=
+    user_permissions: []
+    username: test
+  model: auth.user
+  pk: 1
+- fields:
+    created_at: '2026-08-01T16:28:41.968Z'
+    modified_at: '2026-08-01T16:28:41.968Z'
+    slug: acme
+  model: accounts.organization
+  pk: 1
+- fields:
+    created_at: '2026-08-01T16:28:41.969Z'
+    modified_at: '2026-08-01T16:28:41.969Z'
+    org: 1
+    role: write
+    user: 1
+  model: accounts.membership
+  pk: 1
+- fields:
+    created_at: '2026-08-01T16:28:42.074Z'
+    dkim_error: ''
+    dkim_key_ed25519: 3
+    dkim_key_rsa1024: 2
+    dkim_key_rsa2048: 1
+    dkim_status: ok
+    dmarc_error: ''
+    dmarc_status: ok
+    dns_checked_at: null
+    modified_at: '2026-08-01T16:28:42.074Z'
+    name: acme.com
+    nameserver_error: ''
+    nameserver_status: ok
+    org: 1
+    spf_error: ''
+    spf_status: ok
+    verification_token: safQuCWt94lxiv0j
+    verified_at: '2026-01-01T00:00:00Z'
+  model: domains.domain
+  pk: 1
+- fields:
+    created_at: '2026-08-01T16:28:42.173Z'
+    kind: outgoing
+    mail_from: sender1@acme.com
+    message_id: <test1@acme.com>
+    modified_at: '2026-08-01T16:28:42.173Z'
+    org: 1
+    raw_body: messages/019fbe28-073c-76fb-80a0-d9b492877052.eml
+    rcpt_to: recipient1@example.com
+    received_at: '2026-08-01T16:28:42.173Z'
+    received_with_tls: false
+    subject: Test message 1
+  model: tx_mail.message
+  pk: 019fbe28-073c-76fb-80a0-d9b492877052
+- fields:
+    created_at: '2026-08-01T16:28:42.176Z'
+    kind: outgoing
+    mail_from: sender2@acme.com
+    message_id: <test2@acme.com>
+    modified_at: '2026-08-01T16:28:42.176Z'
+    org: 1
+    raw_body: messages/019fbe28-073e-76f9-a31e-fab0c51afa56.eml
+    rcpt_to: recipient2@example.com
+    received_at: '2026-08-01T16:28:42.176Z'
+    received_with_tls: false
+    subject: Test message 2
+  model: tx_mail.message
+  pk: 019fbe28-073e-76f9-a31e-fab0c51afa56
+- fields:
+    created_at: '2026-08-01T16:28:42.178Z'
+    kind: outgoing
+    mail_from: sender3@acme.com
+    message_id: <test3@acme.com>
+    modified_at: '2026-08-01T16:28:42.178Z'
+    org: 1
+    raw_body: messages/019fbe28-0741-70e2-86df-6eedb5889e5e.eml
+    rcpt_to: recipient3@example.com
+    received_at: '2026-08-01T16:28:42.178Z'
+    received_with_tls: false
+    subject: Test message 3
+  model: tx_mail.message
+  pk: 019fbe28-0741-70e2-86df-6eedb5889e5e
+- fields:
+    credential: 1
+    domain: 1
+    sender: 1
+    status: sent
+  model: smtp.outgoingmessage
+  pk: 019fbe28-0741-70e2-86df-6eedb5889e5e
+- fields:
+    credential: 1
+    domain: 1
+    sender: 1
+    status: sent
+  model: smtp.outgoingmessage
+  pk: 019fbe28-073e-76f9-a31e-fab0c51afa56
+- fields:
+    credential: 1
+    domain: 1
+    sender: 1
+    status: sent
+  model: smtp.outgoingmessage
+  pk: 019fbe28-073c-76fb-80a0-d9b492877052
+- fields:
+    code: 250
+    created_at: '2026-08-01T16:28:42.174Z'
+    details: Test transmission 1
+    log_id: ''
+    message: 019fbe28-073c-76fb-80a0-d9b492877052
+    modified_at: '2026-08-01T16:28:42.174Z'
+    output: OK
+    sent_with_ssl: true
+    status: sent
+  model: smtp.transmission
+  pk: 019fbe28-073d-7003-a69c-24f5053a8d19
+- fields:
+    code: 250
+    created_at: '2026-08-01T16:28:42.176Z'
+    details: Test transmission 2
+    log_id: ''
+    message: 019fbe28-073e-76f9-a31e-fab0c51afa56
+    modified_at: '2026-08-01T16:28:42.176Z'
+    output: OK
+    sent_with_ssl: true
+    status: sent
+  model: smtp.transmission
+  pk: 019fbe28-0740-75c5-8ea5-eef119242ac6
+- fields:
+    code: 250
+    created_at: '2026-08-01T16:28:42.178Z'
+    details: Test transmission 3
+    log_id: ''
+    message: 019fbe28-0741-70e2-86df-6eedb5889e5e
+    modified_at: '2026-08-01T16:28:42.178Z'
+    output: OK
+    sent_with_ssl: true
+    status: sent
+  model: smtp.transmission
+  pk: 019fbe28-0742-74eb-ba62-d7a6af447b69
+- fields:
+    created_at: '2026-08-01T16:28:42.170Z'
+    hold: false
+    key_hash: pbkdf2_sha256$1500000$smtp.models.SmtpCredential$KQ3SVpB7Bx6kpWsaLlqfsXJKlF54M0B8a2Vi0blyhvk=
+    key_prefix: 6U2bbgHv
+    last_used_at: null
+    modified_at: '2026-08-01T16:28:42.170Z'
+    name: Default
+    org: 1
+    type: smtp
+  model: smtp.smtpcredential
+  pk: 1
