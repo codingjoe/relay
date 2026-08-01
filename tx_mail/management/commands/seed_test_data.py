@@ -4,7 +4,10 @@ Used to regenerate ``fixtures/initial_data.json``. See ``AGENTS.md``
 for the full workflow.
 """
 
+from email.message import EmailMessage
+
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 
 from accounts.models import Membership, Organization
@@ -84,7 +87,13 @@ class Command(BaseCommand):
         self.stdout.write(f"SmtpCredential: {smtp_cred.pk} raw_key={raw_key[:8]}…")
 
         for n in range(1, 4):
-            msg = OutgoingMessage.objects.create(
+            raw = EmailMessage()
+            raw["From"] = f"sender{n}@acme.com"
+            raw["To"] = f"recipient{n}@example.com"
+            raw["Subject"] = f"Test message {n}"
+            raw["Message-ID"] = f"<test{n}@acme.com>"
+            raw.set_content(f"Hello recipient {n}!\n")
+            msg = OutgoingMessage(
                 org=org,
                 kind=Message.Kind.OUTGOING,
                 mail_from=f"sender{n}@acme.com",
@@ -96,6 +105,8 @@ class Command(BaseCommand):
                 credential=smtp_cred,
                 status="sent",
             )
+            msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw.as_bytes()), save=False)
+            msg.save()
             self.stdout.write(f"OutgoingMessage {n}: {msg.pk}")
             Transmission.objects.create(
                 message=msg,

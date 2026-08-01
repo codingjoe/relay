@@ -67,18 +67,21 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
-        parsed = message_from_bytes(message.raw_body.read())
-        headers = list(parsed.items())
-        dkim_signatures = [
-            dict(
-                s.strip().split("=", 1)
-                for field in value.split(";")
-                if (s := field.strip())
-            )
-            for k, value in headers
-            if k.lower() == "dkim-signature"
-        ]
-        received = [v for k, v in headers if k.lower() == "received"]
+        if message.raw_body:
+            parsed = message_from_bytes(message.raw_body.read())
+            headers = list(parsed.items())
+            dkim_signatures = [
+                dict(
+                    s.strip().split("=", 1)
+                    for field in value.split(";")
+                    if (s := field.strip())
+                )
+                for k, value in headers
+                if k.lower() == "dkim-signature"
+            ]
+            received = [v for k, v in headers if k.lower() == "received"]
+        else:
+            headers = dkim_signatures = received = []
         return context | {
             "headers": headers,
             "dkim_signatures": dkim_signatures,
