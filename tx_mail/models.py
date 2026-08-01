@@ -1,5 +1,3 @@
-"""Common fields shared between inbound and outbound email messages."""
-
 import uuid
 
 from django.contrib.contenttypes.models import ContentType

@@ -1,5 +1,3 @@
-"""Merged messages and reports timeline views."""
-
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
