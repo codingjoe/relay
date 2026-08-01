@@ -28,7 +28,10 @@
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
         <dd class="m-0">
-          <time datetime="{{ report.arrival_at|date:'c' }}">{{ report.arrival_at|naturaltime|default:"—" }}</time>
+          <time
+            datetime="{{ report.arrival_at|date:'c' }}"
+            data-tooltip="{{ report.arrival_at|date:'c' }}"
+          >{{ report.arrival_at|naturaltime|default:"—" }}</time>
         </dd>
       </div>
       <div>
