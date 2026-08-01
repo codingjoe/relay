@@ -10,9 +10,4 @@ urlpatterns = [
         views.ContactMessagesView.as_view(),
         name="contact-messages",
     ),
-    path(
-        "contacts/reports/",
-        views.ContactReportsView.as_view(),
-        name="contact-reports",
-    ),
 ]

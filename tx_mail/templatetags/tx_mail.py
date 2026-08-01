@@ -32,7 +32,7 @@ _IPV6_RE = re.compile(r"\[?([0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7})\]?")
 _FILTER_VIEWS = {
     "email": "tx_mail:contact-messages",
     "domain": "tx_mail:contact-messages",
-    "ip": "tx_mail:contact-reports",
+    "ip": "tx_email:contact-reports",
 }
 
 
@@ -146,7 +146,7 @@ def _entity_spans(value: str, org_slug: str) -> list[dict]:
     for h in deduped:
         if cursor < h.start:
             spans.append({"text": value[cursor : h.start], "url": None})
-        view = _FILTER_VIEWS.get(h.kind, "tx_mail:contact-reports")
+        view = _FILTER_VIEWS.get(h.kind, "tx_email:contact-reports")
         url = _contact_url(view, org_slug, {h.kind: h.text})
         spans.append({"text": h.text, "url": url})
         cursor = h.end

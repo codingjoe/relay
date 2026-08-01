@@ -11,4 +11,9 @@ urlpatterns = [
         views.ChartDataView.as_view(),
         name="chart-data",
     ),
+    path(
+        "contacts/reports/",
+        views.ContactReportsView.as_view(),
+        name="contact-reports",
+    ),
 ]

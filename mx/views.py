@@ -171,7 +171,7 @@ class TlsReportListView(OrganizationScopedView, ListView):
 class TlsReportDetailView(OrganizationScopedView, DetailView):
     template_name = "mx/tls_report_detail.html"
     context_object_name = "report"
-    parent = "tx_mail:contact-reports"
+    parent = "tx_email:contact-reports"
 
     def get_queryset(self):
         return TlsReport.objects.filter(org=self.org)
@@ -202,5 +202,5 @@ class TlsReportListRedirectView(OrganizationScopedView, RedirectView):
     report_type: str = "dmarc"
 
     def get_redirect_url(self, *args, **kwargs):
-        url = reverse("tx_mail:contact-reports", kwargs={"org_slug": self.org.slug})
+        url = reverse("tx_email:contact-reports", kwargs={"org_slug": self.org.slug})
         return f"{url}?type={self.report_type}"

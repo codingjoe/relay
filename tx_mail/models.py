@@ -2,7 +2,6 @@ import uuid
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -68,12 +67,5 @@ class Message(TimeStamped):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
     def get_absolute_url(self) -> str:
-        match self.content_type.model:
-            case "outgoingmessage":
-                view = "smtp:message-detail"
-            case "incomingmessage":
-                view = "mx:message-detail"
-            case _:
-                msg = f"unknown message type: {self.content_type.model}"
-                raise ValueError(msg)
-        return reverse(view, kwargs={"org_slug": self.org.slug, "pk": self.pk})
+        child = self.content_type.get_object_for_this_type(pk=self.pk)
+        return child.get_absolute_url()
