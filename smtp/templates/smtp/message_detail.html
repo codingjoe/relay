@@ -58,9 +58,7 @@
                 <td>{{ transmission.get_status_display }}</td>
                 <td>{{ transmission.code|default:"—" }}</td>
                 <td>
-                  <time
-                    datetime="{{ transmission.created_at|date:'c' }}"
-                  >{{ transmission.created_at|date:"M d, H:i" }}</time>
+                  {% timestamp transmission.created_at %}
                 </td>
                 <td>{{ transmission.sent_with_ssl|yesno }}</td>
                 <td><code>{{ transmission.log_id|default:"—" }}</code></td>

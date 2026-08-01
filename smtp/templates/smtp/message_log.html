@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load i18n abstract tx_mail %}
 {% block title %}{% translate "message log"|title %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -119,7 +119,7 @@
       <tbody>
         {% for message in messages %}
           <tr class="cursor-pointer" data-pk="{{ message.id }}">
-            <td>{{ message.received_at|date:"M d, Y H:i" }}</td>
+            <td>{% timestamp message.received_at %}</td>
             <td><code>{{ message.id|truncatechars:13 }}</code></td>
             <td>{{ message.mail_from|truncatechars:30 }}</td>
             <td>{{ message.rcpt_to|truncatechars:30 }}</td>

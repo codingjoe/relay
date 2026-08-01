@@ -195,6 +195,31 @@ def header_value(context, value: str) -> dict:
     return {"spans": _entity_spans(value, _org_slug_from_context(context))}
 
 
+@register.inclusion_tag("tx_mail/timestamp.html")
+def timestamp(value) -> dict:
+    """Render a ``<time>`` element with naturaltime display and ISO tooltip.
+
+    Usage::
+
+        {% timestamp message.received_at %}
+        {% timestamp report.begin_at %}
+
+    Renders a ``<time>`` element whose visible text is the humanized
+    relative time (``naturaltime``) and whose ``data-tooltip`` shows the
+    full ISO 8601 timestamp on hover.  Falls back to ``—`` when the
+    value is empty/None.
+    """
+    from django.contrib.humanize.templatetags.humanize import naturaltime
+
+    if not value:
+        return {"value": None, "iso": "", "natural": ""}
+    return {
+        "value": value,
+        "iso": value.isoformat(),
+        "natural": naturaltime(value),
+    }
+
+
 _email_formatter = HtmlFormatter(cssclass="highlight-email")
 
 

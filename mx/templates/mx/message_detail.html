@@ -13,7 +13,7 @@
       <dd><code>{{ message.receiving_domain }}</code></dd>
     {% endif %}
     <dt class="font-semibold">{% translate "received"|capfirst context "noun" %}</dt>
-    <dd><time datetime="{{ message.received_at|date:'c' }}">{{ message.received_at|date:"M d, Y H:i" }}</time></dd>
+    <dd>{% timestamp message.received_at %}</dd>
     <dt class="font-semibold">{% translate "TLS"|capfirst %}</dt>
     <dd>
       {% if message.received_with_tls %}
@@ -66,7 +66,7 @@
                 <td>{{ delivery.get_status_display }}</td>
                 <td>{{ delivery.response_code|default:"—" }}</td>
                 <td>
-                  <time datetime="{{ delivery.created_at|date:'c' }}">{{ delivery.created_at|date:"M d, H:i" }}</time>
+                  {% timestamp delivery.created_at %}
                 </td>
                 <td>{{ delivery.response_body|truncatechars:120 }}</td>
               </tr>

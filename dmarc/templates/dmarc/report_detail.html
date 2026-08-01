@@ -26,13 +26,13 @@
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
         <dd class="m-0">
-          <time datetime="{{ report.begin_at|date:'c' }}">{{ report.begin_at|naturaltime }}</time>
+          {% timestamp report.begin_at %}
         </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
         <dd class="m-0">
-          <time datetime="{{ report.end_at|date:'c' }}">{{ report.end_at|naturaltime }}</time>
+          {% timestamp report.end_at %}
         </dd>
       </div>
     </dl>

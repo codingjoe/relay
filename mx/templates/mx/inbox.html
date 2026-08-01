@@ -57,7 +57,7 @@
             class="cursor-pointer"
             onclick="window.location.href = '{% url 'mx:message-detail' org.slug message.id %}'"
           >
-            <td>{{ message.received_at|date:"M d, Y H:i" }}</td>
+            <td>{% timestamp message.received_at %}</td>
             <td>{{ message.mail_from|truncatechars:30 }}</td>
             <td>{{ message.rcpt_to|truncatechars:30 }}</td>
             <td>{{ message.subject|truncatechars:40 }}</td>

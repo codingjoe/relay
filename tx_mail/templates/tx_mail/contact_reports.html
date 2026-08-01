@@ -79,7 +79,7 @@
           <tr class="row-link hover:bg-muted/50">
             <td>
               <a class="row-link-anchor" href="{{ report.get_absolute_url }}">
-                <time datetime="{{ report.received_at|date:'c' }}">{{ report.received_at|date:"M d, Y H:i" }}</time>
+                {% timestamp report.received_at %}
               </a>
             </td>
             <td>
