@@ -1,4 +1,4 @@
-"""Unified transactional email views — merged messages and reports timelines."""
+"""Merged messages and reports timeline views."""
 
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -12,7 +12,7 @@ from .models import Message
 
 
 class ContactMessagesView(OrganizationScopedView, ListView):
-    """Unified timeline of inbound and outbound messages for the current org."""
+    """Merged timeline of inbound and outbound messages."""
 
     template_name = "tx_mail/contact_messages.html"
     context_object_name = "messages"
@@ -51,7 +51,7 @@ class ContactMessagesView(OrganizationScopedView, ListView):
 
 
 class ContactReportsView(OrganizationScopedView, ListView):
-    """Unified timeline of DMARC and TLS reports for the current org."""
+    """Merged timeline of DMARC and TLS reports."""
 
     template_name = "tx_mail/contact_reports.html"
     context_object_name = "reports"

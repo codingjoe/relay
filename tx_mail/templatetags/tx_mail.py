@@ -1,20 +1,4 @@
-"""Contact-timeline link tags and email syntax highlighting.
-
-``contact_link`` is a single inclusion tag that accepts key-value
-filter pairs and renders a link to the merged contact-timeline view.
-The org is pulled from the request context (``current_org``), so
-call sites no longer pass ``org`` explicitly.
-
-Usage::
-
-    {% contact_link email="user@example.com" %}
-    {% contact_link domain="example.com" %}
-    {% contact_link ip="192.0.2.1" %}
-
-``email_links`` handles comma-separated address lists.
-``header_value`` renders an RFC 5322 header with every entity linked.
-``highlight_email`` remains a filter (Pygments output).
-"""
+"""Contact-timeline link tags and email syntax highlighting."""
 
 import ipaddress
 import re
@@ -53,13 +37,11 @@ _FILTER_VIEWS = {
 
 
 def _contact_url(view: str, org_slug: str, params: dict[str, str]) -> str:
-    """Return the merged-view URL with the given query parameters."""
     base = reverse(view, kwargs={"org_slug": org_slug})
     return f"{base}?{urllib.parse.urlencode(params)}"
 
 
 def _org_slug_from_context(context) -> str:
-    """Extract the org slug from the template rendering context."""
     org = context.get("current_org")
     if org is None:
         raise ValueError(
@@ -87,15 +69,7 @@ def _is_ip(value: str) -> bool:
 
 @register.inclusion_tag("tx_mail/link.html", takes_context=True)
 def contact_link(context, **filters) -> dict:
-    """Render a link to the contact-timeline view with the given filter pairs.
-
-    Accepts exactly one keyword argument whose name is the filter key
-    (``email``, ``domain``, or ``ip``) and whose value is the search term::
-
-        {% contact_link email="user@example.com" %}
-        {% contact_link domain="example.com" %}
-        {% contact_link ip="192.0.2.1" %}
-    """
+    """Render a link to the contact-timeline view with the given filter pairs."""
     if not filters:
         return {"url": "", "value": ""}
     key, value = next(iter(filters.items()))
@@ -134,12 +108,6 @@ class _Hit(NamedTuple):
 
 
 def _entity_spans(value: str, org_slug: str) -> list[dict]:
-    """Parse ``value`` into a list of span dicts for the header_value template.
-
-    Candidate entities are found with broad regexes, then validated
-    with ``validators`` (emails, domains) or ``ipaddress`` (IPs) before
-    being turned into links.
-    """
     hits: list[_Hit] = []
 
     for m in _EMAIL_RE.finditer(value):
@@ -189,7 +157,7 @@ def _entity_spans(value: str, org_slug: str) -> list[dict]:
 
 @register.inclusion_tag("tx_mail/header_value.html", takes_context=True)
 def header_value(context, value: str) -> dict:
-    """Render an RFC 5322 header value with every entity turned into a link."""
+    """Link every email, domain, and IP in an RFC 5322 header value."""
     if not value:
         return {"spans": []}
     return {"spans": _entity_spans(value, _org_slug_from_context(context))}
@@ -197,18 +165,7 @@ def header_value(context, value: str) -> dict:
 
 @register.inclusion_tag("tx_mail/timestamp.html")
 def timestamp(value) -> dict:
-    """Render a ``<time>`` element with naturaltime display and ISO tooltip.
-
-    Usage::
-
-        {% timestamp message.received_at %}
-        {% timestamp report.begin_at %}
-
-    Renders a ``<time>`` element whose visible text is the humanized
-    relative time (``naturaltime``) and whose ``data-tooltip`` shows the
-    full ISO 8601 timestamp on hover.  Falls back to ``—`` when the
-    value is empty/None.
-    """
+    """Render a ``<time>`` element with naturaltime and ISO 8601 tooltip."""
     from django.contrib.humanize.templatetags.humanize import naturaltime
 
     if not value:

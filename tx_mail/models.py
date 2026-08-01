@@ -11,14 +11,7 @@ from abstract.models import TimeStamped
 
 
 class Message(TimeStamped):
-    """Concrete parent of inbound and outbound email messages.
-
-    The shared RFC 5322 envelope and header fields live on this table.
-    Per-direction data (delivery state, sender, receiving domain, …) lives
-    on the concrete child models via multi-table inheritance.  The
-    ``content_type`` FK records which subclass each row belongs to so
-    the merged view can filter and route without a manual ``kind`` enum.
-    """
+    """Parent of inbound and outbound email messages."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -71,14 +64,12 @@ class Message(TimeStamped):
 
     @property
     def kind(self) -> str:
-        """Return ``"outgoing"`` or ``"incoming"`` based on ``content_type``."""
         return self.content_type.model
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
     def get_absolute_url(self) -> str:
-        """Return the per-direction detail URL based on ``content_type``."""
         match self.content_type.model:
             case "outgoingmessage":
                 view = "smtp:message-detail"
