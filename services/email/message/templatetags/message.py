@@ -1,11 +1,7 @@
 """Contact-timeline link tags and email syntax highlighting."""
 
-import ipaddress
-import re
 import urllib.parse
-from typing import NamedTuple
 
-import validators
 from django import template
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -15,20 +11,6 @@ from pygments.lexers.email import EmailLexer
 
 register = template.Library()
 
-# Broad patterns to find *candidate* entities in header text.  Each
-# candidate is then validated with the ``validators`` package or the
-# stdlib ``ipaddress`` module before it is turned into a link.
-_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
-_DOMAIN_RE = re.compile(
-    r"\b(?:[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)+"
-    r"[A-Za-z]{2,63}\b"
-)
-# IPv4: dotted quads; IPv6: colon-separated hex groups, optionally
-# bracketed (as in Received headers).
-_IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-_IPV6_RE = re.compile(r"\[?([0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7})\]?")
-
-# Map filter keys to the view name they link to.
 _FILTER_VIEWS = {
     "email": "message:contact-messages",
     "domain": "message:contact-messages",
@@ -49,22 +31,6 @@ def _org_slug_from_context(context) -> str:
             "Ensure the view extends OrganizationScopedView."
         )
     return org.slug
-
-
-def _is_email(value: str) -> bool:
-    return validators.email(value) is True
-
-
-def _is_domain(value: str) -> bool:
-    return validators.domain(value) is True
-
-
-def _is_ip(value: str) -> bool:
-    try:
-        ipaddress.ip_address(value)
-    except ValueError:
-        return False
-    return True
 
 
 @register.inclusion_tag("message/link.html", takes_context=True)
@@ -98,69 +64,6 @@ def email_links(context, value: str) -> dict:
         "addresses": addresses,
         "org_slug": _org_slug_from_context(context),
     }
-
-
-class _Hit(NamedTuple):
-    start: int
-    end: int
-    kind: str
-    text: str
-
-
-def _entity_spans(value: str, org_slug: str) -> list[dict]:
-    hits: list[_Hit] = []
-
-    for m in _EMAIL_RE.finditer(value):
-        if _is_email(m.group(0)):
-            hits.append(_Hit(m.start(), m.end(), "email", m.group(0)))
-    for m in _DOMAIN_RE.finditer(value):
-        if any(h.start <= m.start() and m.end() <= h.end for h in hits):
-            continue
-        if _is_domain(m.group(0)):
-            hits.append(_Hit(m.start(), m.end(), "domain", m.group(0)))
-    for m in _IPV4_RE.finditer(value):
-        if any(h.start <= m.start() and m.end() <= h.end for h in hits):
-            continue
-        if _is_ip(m.group(0)):
-            hits.append(_Hit(m.start(), m.end(), "ip", m.group(0)))
-    for m in _IPV6_RE.finditer(value):
-        ip_str = m.group(1)
-        start = m.start(1)
-        end = m.end(1)
-        if any(h.start <= start and end <= h.end for h in hits):
-            continue
-        if _is_ip(ip_str):
-            hits.append(_Hit(start, end, "ip", ip_str))
-
-    hits.sort(key=lambda h: (h.start, h.end))
-    deduped: list[_Hit] = []
-    last_end = -1
-    for h in hits:
-        if h.start < last_end:
-            continue
-        deduped.append(h)
-        last_end = h.end
-
-    spans: list[dict] = []
-    cursor = 0
-    for h in deduped:
-        if cursor < h.start:
-            spans.append({"text": value[cursor : h.start], "url": None})
-        view = _FILTER_VIEWS.get(h.kind, "dashboard:contact-reports")
-        url = _contact_url(view, org_slug, {h.kind: h.text})
-        spans.append({"text": h.text, "url": url})
-        cursor = h.end
-    if cursor < len(value):
-        spans.append({"text": value[cursor:], "url": None})
-    return spans
-
-
-@register.inclusion_tag("message/header_value.html", takes_context=True)
-def header_value(context, value: str) -> dict:
-    """Link every email, domain, and IP in an RFC 5322 header value."""
-    if not value:
-        return {"spans": []}
-    return {"spans": _entity_spans(value, _org_slug_from_context(context))}
 
 
 @register.inclusion_tag("message/timestamp.html")
