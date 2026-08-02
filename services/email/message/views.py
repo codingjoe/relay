@@ -26,19 +26,6 @@ class ContactMessagesView(OrganizationScopedView, ListView):
 
         CHOICES = (ALL, SENT, RECEIVED)
 
-    STATUS_BADGES = {
-        "pending": "outline",
-        "sent": "primary",
-        "delivered": "primary",
-        "held": "outline",
-        "bounced": "destructive",
-        "dropped": "destructive",
-        "failed": "destructive",
-        "received": "primary",
-        "webhook_sent": "outline",
-        "webhook_failed": "destructive",
-    }
-
     class StatusChoices(models.TextChoices):
         """Union of :class:`OutgoingMessage.Status` and :class:`IncomingMessage.Status`."""
 
@@ -52,6 +39,19 @@ class ContactMessagesView(OrganizationScopedView, ListView):
         RECEIVED = IncomingMessage.Status.RECEIVED, _("received")
         WEBHOOK_SENT = IncomingMessage.Status.WEBHOOK_SENT, _("webhook sent")
         WEBHOOK_FAILED = IncomingMessage.Status.WEBHOOK_FAILED, _("webhook failed")
+
+    STATUS_BADGES = {
+        StatusChoices.PENDING: "outline",
+        StatusChoices.SENT: "primary",
+        StatusChoices.DELIVERED: "primary",
+        StatusChoices.HELD: "outline",
+        StatusChoices.BOUNCED: "destructive",
+        StatusChoices.DROPPED: "destructive",
+        StatusChoices.FAILED: "destructive",
+        StatusChoices.RECEIVED: "primary",
+        StatusChoices.WEBHOOK_SENT: "outline",
+        StatusChoices.WEBHOOK_FAILED: "destructive",
+    }
 
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
