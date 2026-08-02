@@ -5,6 +5,8 @@
 :root {
   --color-primary: hsl(268, 100%, 41%);
   --color-primary-foreground: hsl(0, 0%, 100%);
+  --color-primary-text: light-dark(hsl(268, 100%, 41%), hsl(268, 100%, 75%));
+  --color-link: var(--color-primary-text);
 }
 
 .bg-background {
@@ -50,7 +52,7 @@
 }
 
 .highlight-email .nt {
-  color: hsl(268, 100%, 60%);
+  color: var(--color-primary-text);
   font-weight: 600;
 }
 
