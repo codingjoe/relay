@@ -26,13 +26,13 @@ class ContactMessagesView(OrganizationScopedView, ListView):
     STATUS_BADGES = {
         "pending": "outline",
         "sent": "default",
-        "delivered": "secondary",
+        "delivered": "default",
         "held": "outline",
         "bounced": "destructive",
         "dropped": "destructive",
         "failed": "destructive",
         "received": "default",
-        "webhook_sent": "secondary",
+        "webhook_sent": "outline",
         "webhook_failed": "destructive",
         "retry": "outline",
     }

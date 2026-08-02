@@ -154,6 +154,13 @@ Update it based on review feedback.
     inside `<label>` or use `<span class="label">` for the label text.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
+  - Badges: `<span class="badge" data-size="sm" data-variant="default|outline|destructive">`.
+    Map status semantics to variants consistently across the app:
+    successful states (`sent`, `delivered`, `received`) → `default`;
+    in-flight or neutral states (`pending`, `held`, `retry`,
+    `webhook_sent`) → `outline`;
+    failure states (`bounced`, `dropped`, `failed`,
+    `webhook_failed`) → `destructive`.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (for example, organizations). Prefer items
