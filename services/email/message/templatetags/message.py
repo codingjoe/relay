@@ -173,14 +173,3 @@ def get_item(mapping, key):
         return mapping[key]
     except KeyError, TypeError:
         return ""
-
-
-@register.filter
-def get_status_label(status, choices):
-    """Return the human label for ``status`` from a ``(value, label)`` iterable."""
-    if not status or not choices:
-        return ""
-    for value, label in choices:
-        if value == status:
-            return label
-    return status

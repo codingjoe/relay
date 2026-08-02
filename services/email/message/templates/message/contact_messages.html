@@ -76,77 +76,73 @@
       <tbody>
         {% for message in messages %}
           {% if message.kind == 'outgoingmessage' %}
-            {% with status=message.outgoingmessage.status %}
-              <tr class="hover:bg-muted/50">
-                <td>
-                  <i
-                    data-lucide="send"
-                    class="size-4 text-muted-foreground"
-                    aria-label='{% translate "sent"|capfirst %}'
-                  ></i>
-                </td>
-                <td>{% timestamp message.created_at %}</td>
-                <td>
-                  <span
-                    class="badge"
-                    data-size="sm"
-                    data-variant="{{ status_badges|get_item:status|default:'outline' }}"
-                  >
-                    {{ status|get_status_label:status_choices }}
-                  </span>
-                </td>
-                <td><code>{% email_links message.mail_from %}</code></td>
-                <td><code>{% email_links message.rcpt_to %}</code></td>
-                <td>
-                  {% if message.outgoingmessage.domain %}
-                    <code>{{ message.outgoingmessage.domain.name }}</code>
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td>
-                  <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
-                    {% translate "detail"|capfirst %}
-                  </a>
-                </td>
-              </tr>
-            {% endwith %}
+            <tr class="hover:bg-muted/50">
+              <td>
+                <i
+                  data-lucide="send"
+                  class="size-4 text-muted-foreground"
+                  aria-label='{% translate "sent"|capfirst %}'
+                ></i>
+              </td>
+              <td>{% timestamp message.created_at %}</td>
+              <td>
+                <span
+                  class="badge"
+                  data-size="sm"
+                  data-variant="{{ status_badges|get_item:message.outgoingmessage.status|default:'outline' }}"
+                >
+                  {{ message.outgoingmessage.get_status_display }}
+                </span>
+              </td>
+              <td><code>{% email_links message.mail_from %}</code></td>
+              <td><code>{% email_links message.rcpt_to %}</code></td>
+              <td>
+                {% if message.outgoingmessage.domain %}
+                  <code>{{ message.outgoingmessage.domain.name }}</code>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
+                  {% translate "detail"|capfirst %}
+                </a>
+              </td>
+            </tr>
           {% else %}
-            {% with status=message.incomingmessage.status %}
-              <tr class="hover:bg-muted/50">
-                <td>
-                  <i
-                    data-lucide="inbox"
-                    class="size-4 text-muted-foreground"
-                    aria-label='{% translate "received"|capfirst %}'
-                  ></i>
-                </td>
-                <td>{% timestamp message.created_at %}</td>
-                <td>
-                  <span
-                    class="badge"
-                    data-size="sm"
-                    data-variant="{{ status_badges|get_item:status|default:'outline' }}"
-                  >
-                    {{ status|get_status_label:status_choices }}
-                  </span>
-                </td>
-                <td><code>{% email_links message.mail_from %}</code></td>
-                <td><code>{% email_links message.rcpt_to %}</code></td>
-                <td>
-                  {% if message.incomingmessage.receiving_domain %}
-                    <code>{{ message.incomingmessage.receiving_domain }}</code>
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td>
-                  <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
-                    {% translate "detail"|capfirst %}
-                  </a>
-                </td>
-              </tr>
-            {% endwith %}
+            <tr class="hover:bg-muted/50">
+              <td>
+                <i
+                  data-lucide="inbox"
+                  class="size-4 text-muted-foreground"
+                  aria-label='{% translate "received"|capfirst %}'
+                ></i>
+              </td>
+              <td>{% timestamp message.created_at %}</td>
+              <td>
+                <span
+                  class="badge"
+                  data-size="sm"
+                  data-variant="{{ status_badges|get_item:message.incomingmessage.status|default:'outline' }}"
+                >
+                  {{ message.incomingmessage.get_status_display }}
+                </span>
+              </td>
+              <td><code>{% email_links message.mail_from %}</code></td>
+              <td><code>{% email_links message.rcpt_to %}</code></td>
+              <td>
+                {% if message.incomingmessage.receiving_domain %}
+                  <code>{{ message.incomingmessage.receiving_domain }}</code>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
+                  {% translate "detail"|capfirst %}
+                </a>
+              </td>
+            </tr>
           {% endif %}
         {% empty %}
           <tr><td colspan="7">{% translate "no messages found." %}</td></tr>
