@@ -12,6 +12,7 @@ from django.views.generic import DeleteView, DetailView, ListView, RedirectView,
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
+from services.email.message.views import ContactMessagesView
 
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
@@ -42,6 +43,7 @@ class IncomingMessageDetailView(OrganizationScopedView, DetailView):
             "webhook_deliveries": WebhookDelivery.objects.filter(
                 message=self.object
             ).select_related("webhook"),
+            "status_badges": ContactMessagesView.STATUS_BADGES,
         }
 
 
