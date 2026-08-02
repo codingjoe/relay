@@ -68,12 +68,14 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = dkim_signatures = received = []
+        body = ""
         if message.raw_body:
             try:
-                parsed = message_from_bytes(message.raw_body.read())
+                raw_bytes = message.raw_body.read()
             except FileNotFoundError:
-                pass
-            else:
+                raw_bytes = b""
+            if raw_bytes:
+                parsed = message_from_bytes(raw_bytes)
                 headers = list(parsed.items())
                 dkim_signatures = [
                     dict(
@@ -85,10 +87,12 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
                     if k.lower() == "dkim-signature"
                 ]
                 received = [v for k, v in headers if k.lower() == "received"]
+                body = raw_bytes.decode("utf-8", errors="replace")
         return context | {
             "headers": headers,
             "dkim_signatures": dkim_signatures,
             "received": received,
+            "body": body,
             "transmissions": Transmission.objects.filter(message=message),
         }
 

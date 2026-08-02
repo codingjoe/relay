@@ -23,6 +23,34 @@ class ContactMessagesView(OrganizationScopedView, ListView):
 
         CHOICES = (ALL, SENT, RECEIVED)
 
+    STATUS_BADGES = {
+        "pending": "outline",
+        "sent": "default",
+        "delivered": "secondary",
+        "held": "outline",
+        "bounced": "destructive",
+        "dropped": "destructive",
+        "failed": "destructive",
+        "received": "default",
+        "webhook_sent": "secondary",
+        "webhook_failed": "destructive",
+        "retry": "outline",
+    }
+
+    STATUS_CHOICES = (
+        ("pending", _("pending")),
+        ("sent", _("sent")),
+        ("delivered", _("delivered")),
+        ("held", _("held")),
+        ("bounced", _("bounced")),
+        ("dropped", _("dropped")),
+        ("failed", _("failed")),
+        ("received", _("received")),
+        ("webhook_sent", _("webhook sent")),
+        ("webhook_failed", _("webhook failed")),
+        ("retry", _("retry")),
+    )
+
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
             "outgoingmessage",
@@ -37,10 +65,17 @@ class ContactMessagesView(OrganizationScopedView, ListView):
                 qs = qs.filter(content_type__model="incomingmessage")
         if email := self.request.GET.get("email"):
             qs = qs.filter(Q(mail_from__icontains=email) | Q(rcpt_to__icontains=email))
+        if status := self.request.GET.get("status"):
+            qs = qs.filter(
+                Q(outgoingmessage__status=status) | Q(incomingmessage__status=status)
+            )
         return qs
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "direction": self.request.GET.get("direction", self.Direction.ALL),
             "email": self.request.GET.get("email", ""),
+            "status": self.request.GET.get("status", ""),
+            "status_badges": self.STATUS_BADGES,
+            "status_choices": self.STATUS_CHOICES,
         }

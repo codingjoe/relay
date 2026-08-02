@@ -57,12 +57,15 @@ class IncomingMessageDetailView(OrganizationScopedView, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        parsed = message_from_bytes(self.object.raw_body.read())
+        try:
+            raw_bytes = self.object.raw_body.read()
+        except FileNotFoundError:
+            raw_bytes = b""
+        parsed = message_from_bytes(raw_bytes)
         headers = list(parsed.items())
-        parts = list(parsed.walk()) if parsed.is_multipart() else [parsed]
         return context | {
             "headers": headers,
-            "parts": parts,
+            "body": raw_bytes.decode("utf-8", errors="replace") if raw_bytes else "",
             "webhook_deliveries": WebhookDelivery.objects.filter(
                 message=self.object
             ).select_related("webhook"),

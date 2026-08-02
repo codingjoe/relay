@@ -22,12 +22,13 @@
 }
 
 /* Make the whole table row clickable while keeping inner elements
-   (tooltips, links) working.  The anchor in the first cell is
-   stretched over the row via ::after so the entire row navigates
-   to the detail page.  Other cells are not inside the anchor, so
-   their tooltips and links work normally. */
-.table tr.row-link,
-.table tbody tr.row-link {
+   (tooltips, links) working. The anchor's ::after is stretched over
+   the row and sits above the row's content; clicks on the row body
+   reach the anchor. Inner cells opt out of pointer events so the
+   stretch is unobstructed. Interactive elements inside the cells
+   (anchors, buttons, tooltipped elements) re-enable pointer events
+   so they remain clickable. */
+.row-link {
   position: relative;
 }
 
@@ -35,19 +36,28 @@
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
 }
 
 .row-link-anchor {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
-/* Ensure tooltips and other interactive elements in non-anchor cells
-   render above the stretched ::after overlay. */
 .row-link > td {
   position: relative;
-  z-index: 1;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.row-link > td > *,
+.row-link > td a,
+.row-link > td button,
+.row-link > td [data-tooltip],
+.row-link > td time {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 /* RFC 822 email header syntax highlighting via Pygments EmailLexer.
