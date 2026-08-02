@@ -53,8 +53,8 @@
     <table class="table">
       <thead>
         <tr>
+          <th></th>
           <th>{% translate "timestamp"|capfirst context "noun" %}</th>
-          <th>{% translate "direction"|capfirst %}</th>
           <th>{% translate "from"|capfirst context "email" %}</th>
           <th>{% translate "to"|capfirst context "email" %}</th>
           <th>{% translate "domain"|capfirst context "noun" %}</th>
@@ -65,24 +65,22 @@
           <tr class="row-link hover:bg-muted/50">
             <td>
               <a class="row-link-anchor" href="{{ message.get_absolute_url }}">
-                {% timestamp message.created_at %}
+                {% if message.kind == 'outgoingmessage' %}
+                  <i
+                    data-lucide="send"
+                    class="size-4 text-muted-foreground"
+                    aria-label='{% translate "sent"|capfirst %}'
+                  ></i>
+                {% else %}
+                  <i
+                    data-lucide="inbox"
+                    class="size-4 text-muted-foreground"
+                    aria-label='{% translate "received"|capfirst %}'
+                  ></i>
+                {% endif %}
               </a>
             </td>
-            <td>
-              {% if message.kind == 'outgoingmessage' %}
-                <i
-                  data-lucide="send"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "sent"|capfirst %}'
-                ></i>
-              {% else %}
-                <i
-                  data-lucide="inbox"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "received"|capfirst %}'
-                ></i>
-              {% endif %}
-            </td>
+            <td>{% timestamp message.created_at %}</td>
             <td><code>{{ message.mail_from }}</code></td>
             <td><code>{{ message.rcpt_to }}</code></td>
             <td>

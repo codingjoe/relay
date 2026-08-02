@@ -21,11 +21,11 @@
   text-decoration: none;
 }
 
-/* Make the whole table row clickable while keeping inner anchors working.
-   The anchor is stretched over the cell so the row navigates to the
-   detail page; other cells can still hold their own links (e.g.
-   entity-link filters) because they are not inside the stretched
-   anchor. */
+/* Make the whole table row clickable while keeping inner elements
+   (tooltips, links) working.  The anchor in the first cell is
+   stretched over the row via ::after so the entire row navigates
+   to the detail page.  Other cells are not inside the anchor, so
+   their tooltips and links work normally. */
 .table tr.row-link,
 .table tbody tr.row-link {
   position: relative;
@@ -39,6 +39,13 @@
 }
 
 .row-link-anchor {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure tooltips and other interactive elements in non-anchor cells
+   render above the stretched ::after overlay. */
+.row-link > td {
   position: relative;
   z-index: 1;
 }
