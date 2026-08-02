@@ -7,10 +7,10 @@ requires-python = "~=3.14.0"
 dependencies = [
     "aiosmtplib>=5.1.2",
     "aiosmtpd>=1.4.6",
-    "boto3>=1.40.0",
+    "boto3>=1.43.59",
     "cryptography>=49.0.0",
     "django>=6.1rc1,<6.2",
-    "django-environ>=0.13.0",
+    "django-environ>=0.14.0",
     "django-health-check[psutil,redis]>=4.4.3",
     "django-storages[s3]>=1.14.6",
     "dkimpy>=1.1.8",
@@ -19,7 +19,7 @@ dependencies = [
     "dnspython>=2.7.0",
     "granian>=2.7.4",
     "httpx>=0.28.1",
-    "psycopg[binary]>=3.3.3",
+    "psycopg[binary]>=3.3.4",
     "pyyaml>=6.0.3",
     "redis>=7.2.0",
     "social-auth-app-django>=6.0.1",
@@ -28,7 +28,7 @@ dependencies = [
     "whitenoise>=6.12.0",
     "markdown>=3.10.2",
     "pygments>=2.20.0",
-    "threadmill[redis]>=0.5",
+    "threadmill[redis]>=0.5.1",
     "djangorestframework @ https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz",
 ]
 
@@ -36,10 +36,10 @@ dependencies = [
 dev = [
   { include-group = "test" },
   "pyyaml>=6.0.3",
-  "threadmill[inspector]>=0.5",
+  "threadmill[inspector]>=0.5.1",
 ]
 test = [
-    "pytest>=7.4.0",
+    "pytest>=9.1.1",
     "pytest-django>=4.5.2",
     "pytest-env>=1.7.0",
     "pytest-cov>=4.1.0",
