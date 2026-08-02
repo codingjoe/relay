@@ -72,7 +72,7 @@ def webhook_server():
 
 
 @pytest.mark.django_db
-class TestIncomingMessageListView:
+class TestInboxRedirect:
     """Legacy /email/inbox/ redirects to the merged contact timeline."""
 
     def test_get__requires_login(self, client, org):

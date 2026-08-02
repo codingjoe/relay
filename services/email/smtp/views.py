@@ -1,4 +1,4 @@
-"""SMTP views — outgoing message log, test email, and credential management."""
+"""SMTP views — outgoing message detail, test email, and credential management."""
 
 from email import message_from_bytes
 from email.message import EmailMessage
@@ -15,40 +15,8 @@ from django.views.generic import DeleteView, DetailView, ListView, RedirectView,
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .charts import build_outgoing_chart
 from .models import OutgoingMessage, SmtpCredential, Transmission
 from .tasks import deliver_message
-
-
-class OutgoingMessageLogView(OrganizationScopedView, ListView):
-    template_name = "smtp/message_log.html"
-    context_object_name = "messages"
-    paginate_by = 50
-    title = _("Message log")
-    parent = "dashboard:dashboard"
-
-    def get_queryset(self):
-        qs = OutgoingMessage.objects.filter(org=self.org).select_related("domain")
-        if domain := self.request.GET.get("domain"):
-            qs = qs.filter(domain_id=domain)
-        if status := self.request.GET.get("status"):
-            qs = qs.filter(status=status)
-        if search := self.request.GET.get("search"):
-            qs = qs.filter(rcpt_to__icontains=search)
-        return qs
-
-    def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {
-            "domains": Domain.objects.filter(org=self.org),
-            "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
-            "status_choices": OutgoingMessage.Status.choices,
-            "chart": build_outgoing_chart(self.org),
-            "filters": {
-                "domain": self.request.GET.get("domain", ""),
-                "status": self.request.GET.get("status", ""),
-                "search": self.request.GET.get("search", ""),
-            },
-        }
 
 
 class OutgoingMessageDetailView(OrganizationScopedView, DetailView):

@@ -13,35 +13,8 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
 
-from .charts import build_incoming_chart
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
-
-
-class IncomingMessageListView(OrganizationScopedView, ListView):
-    template_name = "mx/inbox.html"
-    context_object_name = "messages"
-    paginate_by = 50
-    title = _("Inbox")
-    parent = "dashboard:dashboard"
-
-    def get_queryset(self):
-        qs = IncomingMessage.objects.filter(org=self.org)
-        if domain := self.request.GET.get("domain"):
-            qs = qs.filter(receiving_domain=domain)
-        if search := self.request.GET.get("search"):
-            qs = qs.filter(mail_from__icontains=search)
-        return qs
-
-    def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {
-            "receiving_domains": Domain.objects.filter(org=self.org),
-            "chart": build_incoming_chart(self.org),
-            "filters": {
-                "domain": self.request.GET.get("domain", ""),
-                "search": self.request.GET.get("search", ""),
-            },
-        }
 
 
 class IncomingMessageDetailView(OrganizationScopedView, DetailView):
