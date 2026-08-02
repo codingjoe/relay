@@ -37,7 +37,7 @@ dev = [
   "threadmill[inspector]>=0.5",
 ]
 test = [
-    "pytest>=7.4.0",
+    "pytest>=9.1.1",
     "pytest-django>=4.5.2",
     "pytest-env>=1.7.0",
     "pytest-cov>=4.1.0",
