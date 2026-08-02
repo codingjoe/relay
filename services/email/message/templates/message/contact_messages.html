@@ -70,21 +70,20 @@
           <th>{% translate "from"|capfirst context "email" %}</th>
           <th>{% translate "to"|capfirst context "email" %}</th>
           <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for message in messages %}
           {% if message.kind == 'outgoingmessage' %}
             {% with status=message.outgoingmessage.status %}
-              <tr class="row-link hover:bg-muted/50">
+              <tr class="hover:bg-muted/50">
                 <td>
-                  <a class="row-link-anchor" href="{{ message.get_absolute_url }}">
-                    <i
-                      data-lucide="send"
-                      class="size-4 text-muted-foreground"
-                      aria-label='{% translate "sent"|capfirst %}'
-                    ></i>
-                  </a>
+                  <i
+                    data-lucide="send"
+                    class="size-4 text-muted-foreground"
+                    aria-label='{% translate "sent"|capfirst %}'
+                  ></i>
                 </td>
                 <td>{% timestamp message.created_at %}</td>
                 <td>
@@ -105,19 +104,22 @@
                     —
                   {% endif %}
                 </td>
+                <td>
+                  <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
+                    {% translate "detail"|capfirst %}
+                  </a>
+                </td>
               </tr>
             {% endwith %}
           {% else %}
             {% with status=message.incomingmessage.status %}
-              <tr class="row-link hover:bg-muted/50">
+              <tr class="hover:bg-muted/50">
                 <td>
-                  <a class="row-link-anchor" href="{{ message.get_absolute_url }}">
-                    <i
-                      data-lucide="inbox"
-                      class="size-4 text-muted-foreground"
-                      aria-label='{% translate "received"|capfirst %}'
-                    ></i>
-                  </a>
+                  <i
+                    data-lucide="inbox"
+                    class="size-4 text-muted-foreground"
+                    aria-label='{% translate "received"|capfirst %}'
+                  ></i>
                 </td>
                 <td>{% timestamp message.created_at %}</td>
                 <td>
@@ -138,11 +140,16 @@
                     —
                   {% endif %}
                 </td>
+                <td>
+                  <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
+                    {% translate "detail"|capfirst %}
+                  </a>
+                </td>
               </tr>
             {% endwith %}
           {% endif %}
         {% empty %}
-          <tr><td colspan="6">{% translate "no messages found." %}</td></tr>
+          <tr><td colspan="7">{% translate "no messages found." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

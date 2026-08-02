@@ -12,52 +12,13 @@
 }
 
 .link {
-  color: var(--color-primary);
+  color: var(--color-link);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .link:hover {
   text-decoration: none;
-}
-
-/* Make the whole table row clickable while keeping inner elements
-   (tooltips, links) working. The anchor's ::after is stretched over
-   the row and sits above the row's content; clicks on the row body
-   reach the anchor. Inner cells opt out of pointer events so the
-   stretch is unobstructed. Interactive elements inside the cells
-   (anchors, buttons, tooltipped elements) re-enable pointer events
-   so they remain clickable. */
-.row-link {
-  position: relative;
-}
-
-.row-link-anchor::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
-.row-link-anchor {
-  position: relative;
-  z-index: 2;
-}
-
-.row-link > td {
-  position: relative;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.row-link > td > *,
-.row-link > td a,
-.row-link > td button,
-.row-link > td [data-tooltip],
-.row-link > td time {
-  position: relative;
-  z-index: 2;
-  pointer-events: auto;
 }
 
 /* RFC 822 email header syntax highlighting via Pygments EmailLexer.
