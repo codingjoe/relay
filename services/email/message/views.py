@@ -19,12 +19,10 @@ class ContactMessagesView(OrganizationScopedView, ListView):
     title = _("Messages")
     parent = "accounts:org-home"
 
-    class Direction:
-        ALL = "all"
-        SENT = "sent"
-        RECEIVED = "received"
-
-        CHOICES = (ALL, SENT, RECEIVED)
+    class Direction(models.TextChoices):
+        ALL = "all", _("all")
+        SENT = "sent", _("sent")
+        RECEIVED = "received", _("received")
 
     class StatusChoices(models.TextChoices):
         """Union of :class:`OutgoingMessage.Status` and :class:`IncomingMessage.Status`."""
