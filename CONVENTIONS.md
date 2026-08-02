@@ -154,9 +154,9 @@ Update it based on review feedback.
     inside `<label>` or use `<span class="label">` for the label text.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
-  - Badges: `<span class="badge" data-size="sm" data-variant="default|outline|destructive">`.
+  - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
     Map status semantics to variants consistently across the app:
-    successful states (`sent`, `delivered`, `received`) → `default`;
+    successful states (`sent`, `delivered`, `received`) → `primary`;
     in-flight or neutral states (`pending`, `held`, `retry`,
     `webhook_sent`) → `outline`;
     failure states (`bounced`, `dropped`, `failed`,
