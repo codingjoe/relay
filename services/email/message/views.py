@@ -1,8 +1,11 @@
+from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 
 from accounts.views import OrganizationScopedView
+from services.email.mx.models import IncomingMessage
+from services.email.smtp.models import OutgoingMessage
 
 from .models import Message
 
@@ -34,22 +37,21 @@ class ContactMessagesView(OrganizationScopedView, ListView):
         "received": "primary",
         "webhook_sent": "outline",
         "webhook_failed": "destructive",
-        "retry": "outline",
     }
 
-    STATUS_CHOICES = (
-        ("pending", _("pending")),
-        ("sent", _("sent")),
-        ("delivered", _("delivered")),
-        ("held", _("held")),
-        ("bounced", _("bounced")),
-        ("dropped", _("dropped")),
-        ("failed", _("failed")),
-        ("received", _("received")),
-        ("webhook_sent", _("webhook sent")),
-        ("webhook_failed", _("webhook failed")),
-        ("retry", _("retry")),
-    )
+    class StatusChoices(models.TextChoices):
+        """Union of :class:`OutgoingMessage.Status` and :class:`IncomingMessage.Status`."""
+
+        PENDING = OutgoingMessage.Status.PENDING, _("pending")
+        SENT = OutgoingMessage.Status.SENT, _("sent")
+        DELIVERED = OutgoingMessage.Status.DELIVERED, _("delivered")
+        HELD = OutgoingMessage.Status.HELD, _("held")
+        BOUNCED = OutgoingMessage.Status.BOUNCED, _("bounced")
+        DROPPED = OutgoingMessage.Status.DROPPED, _("dropped")
+        FAILED = OutgoingMessage.Status.FAILED, _("failed")
+        RECEIVED = IncomingMessage.Status.RECEIVED, _("received")
+        WEBHOOK_SENT = IncomingMessage.Status.WEBHOOK_SENT, _("webhook sent")
+        WEBHOOK_FAILED = IncomingMessage.Status.WEBHOOK_FAILED, _("webhook failed")
 
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
@@ -77,5 +79,5 @@ class ContactMessagesView(OrganizationScopedView, ListView):
             "email": self.request.GET.get("email", ""),
             "status": self.request.GET.get("status", ""),
             "status_badges": self.STATUS_BADGES,
-            "status_choices": self.STATUS_CHOICES,
+            "status_choices": self.StatusChoices.choices,
         }

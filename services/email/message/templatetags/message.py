@@ -1,7 +1,5 @@
 """Contact-timeline link tags and email syntax highlighting."""
 
-import ipaddress
-import re
 import urllib.parse
 
 import validators
@@ -19,12 +17,6 @@ _FILTER_VIEWS = {
     "domain": "message:contact-messages",
     "ip": "dashboard:contact-reports",
 }
-
-_DOMAIN_RE = re.compile(
-    r"(?<![\w@.])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
-    r"[a-z]{2,}(?![\w.])",
-    re.IGNORECASE,
-)
 
 
 def _contact_url(view: str, org_slug: str, params: dict[str, str]) -> str:
@@ -75,68 +67,70 @@ def email_links(context, value: str) -> dict:
     }
 
 
-def _find_entities(text: str) -> list[tuple[int, int, str, str]]:
-    """Return (start, end, kind, value) tuples for every recognized entity.
-
-    ``kind`` is one of ``email``, ``ip``, ``domain``. ``value`` is the
-    matched substring. Positions are non-overlapping and sorted.
-    """
-    matches: list[tuple[int, int, str, str]] = []
-
-    for match in re.finditer(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}", text):
-        try:
-            if validators.email(match.group()):
-                matches.append((match.start(), match.end(), "email", match.group()))
-        except validators.ValidationError:
-            continue
-
-    for match in re.finditer(r"\b[0-9A-Fa-f:.]+\b", text):
-        try:
-            ipaddress.ip_address(match.group())
-        except ValueError:
-            continue
-        matches.append((match.start(), match.end(), "ip", match.group()))
-
-    for match in _DOMAIN_RE.finditer(text):
-        matches.append((match.start(), match.end(), "domain", match.group()))
-
-    matches.sort(key=lambda m: (m[0], -(m[1] - m[0])))
-    filtered: list[tuple[int, int, str, str]] = []
-    for m in matches:
-        if filtered and m[0] < filtered[-1][1]:
-            continue
-        filtered.append(m)
-    return filtered
+_ADDRESS_HEADERS = frozenset(
+    h.lower()
+    for h in (
+        "from",
+        "to",
+        "cc",
+        "bcc",
+        "reply-to",
+        "sender",
+        "return-path",
+        "resent-from",
+        "resent-to",
+        "resent-cc",
+        "resent-bcc",
+    )
+)
 
 
 @register.inclusion_tag("message/header_value.html", takes_context=True)
-def header_value(context, value: str) -> dict:
-    """Render a header value with emails, IPs, and domains as links.
+def header_value(context, key: str, value: str) -> dict:
+    """Render a header value, linking email addresses when the header carries them.
 
-    Text that does not match a known entity (e.g. a header name body,
-    free-form prose) is rendered as plain text. Only entities that
-    validate are linked — emails must be valid, IPs must parse, and
-    domains must have at least one dot.
+    Address-bearing headers (From, To, Cc, Bcc, Reply-To, Sender, Return-Path,
+    and the Resent-* variants) are split on commas and each candidate is
+    validated with the ``validators`` package before being linked. Every other
+    header is rendered as plain text.
     """
     if not value:
         return {"spans": []}
+    if key.lower() in _ADDRESS_HEADERS:
+        return _address_spans(context, value)
+    return {"spans": [{"text": value, "url": ""}]}
+
+
+def _address_spans(context, value: str) -> dict:
+    """Split an address header value into text and validated email spans."""
     org_slug = _org_slug_from_context(context)
     spans: list[dict[str, str]] = []
-    cursor = 0
-    for start, end, kind, matched in _find_entities(value):
-        if start > cursor:
-            spans.append({"text": value[cursor:start], "url": ""})
-        view = _FILTER_VIEWS[kind]
+    chunks = value.split(",")
+    for index, chunk in enumerate(chunks):
+        if index > 0:
+            spans.append({"text": ",", "url": ""})
+        address = chunk.strip()
         spans.append(
             {
-                "text": matched,
-                "url": _contact_url(view, org_slug, {kind: matched}),
+                "text": address,
+                "url": _contact_url(
+                    "message:contact-messages",
+                    org_slug,
+                    {"email": address},
+                )
+                if address and _is_valid_email(address)
+                else "",
             }
         )
-        cursor = end
-    if cursor < len(value):
-        spans.append({"text": value[cursor:], "url": ""})
     return {"spans": spans}
+
+
+def _is_valid_email(address: str) -> bool:
+    """Return whether ``address`` validates as an email via the ``validators`` package."""
+    try:
+        return bool(validators.email(address))
+    except validators.ValidationError:
+        return False
 
 
 @register.inclusion_tag("message/timestamp.html")
