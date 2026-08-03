@@ -29,6 +29,17 @@ class IncomingMessage(Message):
         DROPPED = "dropped", _("dropped")
         DEFAULT = nonmember("received")
 
+        @property
+        def badge_variant(self) -> str:
+            Status = type(self)
+            match self:
+                case Status.RECEIVED:
+                    return "primary"
+                case Status.WEBHOOK_FAILED | Status.DROPPED:
+                    return "destructive"
+                case _:
+                    return "outline"
+
     receiving_domain = models.TextField(
         _("receiving domain"),
         blank=True,
@@ -37,16 +48,6 @@ class IncomingMessage(Message):
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
-
-    @property
-    def status_badge_variant(self) -> str:
-        match self.status:
-            case self.Status.RECEIVED:
-                return "primary"
-            case self.Status.WEBHOOK_FAILED | self.Status.DROPPED:
-                return "destructive"
-            case _:
-                return "outline"
 
     @property
     def domain_name(self) -> str:

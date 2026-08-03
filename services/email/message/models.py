@@ -97,7 +97,7 @@ class Message(TimeStamped):
     @property
     def status_display(self) -> str:
         """Return a human-readable label for the status."""
-        return self.Status(self.status).label if self.status else ""
+        return self.content_type.model_class().Status(self.status).label
 
     @property
     def kind(self) -> str:
@@ -116,7 +116,8 @@ class Message(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        raise NotImplementedError
+        Status = self.content_type.model_class().Status
+        return Status(self.status).badge_variant
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"

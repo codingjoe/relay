@@ -119,6 +119,8 @@
     message_id: <test1@acme.com>
     raw_body: messages/019fbe8f-5edc-75f9-a9ed-9c379741e432.eml
     received_with_tls: false
+    status: sent
+    domain: 1
 - model: message.message
   pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
   fields:
@@ -134,6 +136,8 @@
     message_id: <test2@acme.com>
     raw_body: messages/019fbe8f-5edf-7553-8ee9-34e82e131c8f.eml
     received_with_tls: false
+    status: sent
+    domain: 1
 - model: message.message
   pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
   fields:
@@ -149,6 +153,8 @@
     message_id: <test3@acme.com>
     raw_body: messages/019fbe8f-5ee1-7145-951c-cd8ae282af25.eml
     received_with_tls: false
+    status: sent
+    domain: 1
 - model: smtp.outgoingmessage
   pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
   fields:
@@ -221,3 +227,416 @@
     last_used_at: null
     hold: false
     type: smtp
+- model: domains.domain
+  pk: 2
+  fields:
+    modified_at: 2026-08-01 18:21:34.820000+00:00
+    created_at: 2026-08-01 18:21:34.820000+00:00
+    name: acme.io
+    org: 1
+    verification_token: xK7eRfPX2nQwLm4a
+    verified_at: 2026-01-15 00:00:00+00:00
+    nameserver_status: ok
+    nameserver_error: ''
+    spf_status: ok
+    spf_error: ''
+    dkim_status: ok
+    dkim_error: ''
+    dmarc_status: ok
+    dmarc_error: ''
+    dns_checked_at: null
+    dkim_key_rsa2048: 1
+    dkim_key_rsa1024: 2
+    dkim_key_ed25519: 3
+- model: domains.domain
+  pk: 3
+  fields:
+    modified_at: 2026-08-01 18:21:34.825000+00:00
+    created_at: 2026-08-01 18:21:34.825000+00:00
+    name: example.net
+    org: 1
+    verification_token: aB3cD4eF5gH6iJ7k
+    verified_at: null
+    nameserver_status: unchecked
+    nameserver_error: ''
+    spf_status: unchecked
+    spf_error: ''
+    dkim_status: unchecked
+    dkim_error: ''
+    dmarc_status: unchecked
+    dmarc_error: ''
+    dns_checked_at: null
+    dkim_key_rsa2048: null
+    dkim_key_rsa1024: null
+    dkim_key_ed25519: null
+- model: mx.webhook
+  pk: 1
+  fields:
+    modified_at: 2026-08-01 18:21:34.830000+00:00
+    created_at: 2026-08-01 18:21:34.830000+00:00
+    org: 1
+    url: https://app.acme.com/webhooks/email
+    name: App webhook
+    address_pattern: '*@app.acme.com'
+    signing_key: 3
+    mx_status: ok
+    mx_error: ''
+    mx_checked_at: 2026-07-15 00:00:00+00:00
+    is_active: true
+    last_used_at: 2026-08-01 18:00:00+00:00
+- model: message.message
+  pk: 019fbe8f-5edc-71e1-c414-e1481852cc47
+  fields:
+    modified_at: 2026-08-01 18:21:34.835000+00:00
+    created_at: 2026-08-01 18:21:34.835000+00:00
+    org: 1
+    content_type:
+      - mx
+      - incomingmessage
+    mail_from: external@sender.com
+    rcpt_to: user@app.acme.com
+    subject: Inbound message 1
+    message_id: <inbound1@sender.com>
+    raw_body: ''
+    received_with_tls: true
+    status: webhook_sent
+    domain: 1
+- model: mx.incomingmessage
+  pk: 019fbe8f-5edc-71e1-c414-e1481852cc47
+  fields:
+    receiving_domain: app.acme.com
+- model: message.message
+  pk: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
+  fields:
+    modified_at: 2026-08-01 18:21:34.840000+00:00
+    created_at: 2026-08-01 18:21:34.840000+00:00
+    org: 1
+    content_type:
+      - mx
+      - incomingmessage
+    mail_from: newsletter@marketing.com
+    rcpt_to: billing@app.acme.com
+    subject: Inbound message 2
+    message_id: <inbound2@marketing.com>
+    raw_body: ''
+    received_with_tls: true
+    status: webhook_failed
+    domain: 1
+- model: mx.incomingmessage
+  pk: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
+  fields:
+    receiving_domain: app.acme.com
+- model: message.message
+  pk: 019fbe8f-5efc-70c3-995b-59556bf2aa13
+  fields:
+    modified_at: 2026-08-01 18:21:34.845000+00:00
+    created_at: 2026-08-01 18:21:34.845000+00:00
+    org: 1
+    content_type:
+      - dmarc
+      - dmarcreport
+    mail_from: dmarc-reports@google.com
+    rcpt_to: dmarc@acme.com
+    subject: 'Report Domain: acme.com Submitter: google.com Report-ID: google.com/1'
+    message_id: <dmarc-report-1@google.com>
+    raw_body: ''
+    received_with_tls: true
+    status: received
+    domain: 1
+- model: mx.incomingmessage
+  pk: 019fbe8f-5efc-70c3-995b-59556bf2aa13
+  fields:
+    receiving_domain: acme.com
+- model: dmarc.dmarcreport
+  pk: 019fbe8f-5efc-70c3-995b-59556bf2aa13
+  fields:
+    reporting_org: google.com
+    reporting_email: noreply-dmarc@google.com
+    report_id: google.com/1
+    begin_at: 2026-07-01 00:00:00+00:00
+    end_at: 2026-07-31 23:59:59+00:00
+- model: dmarc.dmarcrecord
+  pk: 019fbe8f-5f0c-715a-b692-0ed80047f252
+  fields:
+    modified_at: 2026-08-01 18:21:34.850000+00:00
+    created_at: 2026-08-01 18:21:34.850000+00:00
+    report: 019fbe8f-5efc-70c3-995b-59556bf2aa13
+    source_ip_address: 203.0.113.50
+    count: 42
+    disposition: none
+    dkim_alignment: pass
+    spf_alignment: pass
+    header_from: acme.com
+    envelope_from: acme.com
+    dkim_domain: acme.com
+    dkim_result: pass
+    spf_domain: acme.com
+    spf_result: pass
+- model: dmarc.dmarcrecord
+  pk: 019fbe8f-5f1c-70ce-e4d1-bb4867111846
+  fields:
+    modified_at: 2026-08-01 18:21:34.855000+00:00
+    created_at: 2026-08-01 18:21:34.855000+00:00
+    report: 019fbe8f-5efc-70c3-995b-59556bf2aa13
+    source_ip_address: 198.51.100.25
+    count: 3
+    disposition: reject
+    dkim_alignment: fail
+    spf_alignment: fail
+    header_from: acme.com
+    envelope_from: evil.com
+    dkim_domain: acme.com
+    dkim_result: fail
+    spf_domain: evil.com
+    spf_result: fail
+- model: message.message
+  pk: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
+  fields:
+    modified_at: 2026-08-01 18:21:34.860000+00:00
+    created_at: 2026-08-01 18:21:34.860000+00:00
+    org: 1
+    content_type:
+      - dmarc
+      - dmarcfailurereport
+    mail_from: feedback@arf.google.com
+    rcpt_to: dmarc@acme.com
+    subject: DMARC failure report for acme.com
+    message_id: <arf-1@arf.google.com>
+    raw_body: ''
+    received_with_tls: true
+    status: received
+    domain: 1
+- model: mx.incomingmessage
+  pk: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
+  fields:
+    receiving_domain: acme.com
+- model: dmarc.dmarcfailurereport
+  pk: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
+  fields:
+    reporting_org: google.com
+    reporting_email: noreply-dmarc@google.com
+    source_ip_address: 198.51.100.25
+    arrival_at: 2026-07-20 14:30:00+00:00
+    original_mail_from: spammer@evil.com
+    original_rcpt_to: user@acme.com
+    authentication_results: 'dmarc=fail; dkim=fail; spf=fail'
+    delivery_result: rejected
+    original_headers: |-
+      From: spammer@evil.com
+      To: user@acme.com
+      Subject: Urgent offer
+- model: message.message
+  pk: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
+  fields:
+    modified_at: 2026-08-01 18:21:34.865000+00:00
+    created_at: 2026-08-01 18:21:34.865000+00:00
+    org: 1
+    content_type:
+      - mx
+      - tlsreport
+    mail_from: tls-reports@google.com
+    rcpt_to: tls@acme.com
+    subject: TLS Report for acme.com
+    message_id: <tls-report-1@google.com>
+    raw_body: ''
+    received_with_tls: true
+    status: received
+    domain: 1
+- model: mx.incomingmessage
+  pk: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
+  fields:
+    receiving_domain: acme.com
+- model: mx.tlsreport
+  pk: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
+  fields:
+    reporting_org: google.com
+    reporting_email: noreply-tls@google.com
+    report_id: google.com/tls-1
+    begin_at: 2026-07-01 00:00:00+00:00
+    end_at: 2026-07-31 23:59:59+00:00
+    successful_session_count: 128
+    failed_session_count: 3
+- model: mx.tlsfailure
+  pk: 019fbe8f-5f4c-70a3-aad7-fddd78d8403d
+  fields:
+    modified_at: 2026-08-01 18:21:34.870000+00:00
+    created_at: 2026-08-01 18:21:34.870000+00:00
+    report: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
+    policy_type: sts
+    policy_domain: acme.com
+    result_type: starttls-not-supported
+    sending_mta_ip_address: 203.0.113.50
+    receiving_mx_hostname: mx.acme.com
+    receiving_mx_ip_address: null
+    count: 2
+    additional_info: ''
+- model: mx.tlsfailure
+  pk: 019fbe8f-5f5c-72aa-deba-628ccd9645cc
+  fields:
+    modified_at: 2026-08-01 18:21:34.875000+00:00
+    created_at: 2026-08-01 18:21:34.875000+00:00
+    report: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
+    policy_type: sts
+    policy_domain: acme.com
+    result_type: certificate-expired
+    sending_mta_ip_address: 198.51.100.25
+    receiving_mx_hostname: mx.acme.com
+    receiving_mx_ip_address: 203.0.113.1
+    count: 1
+    additional_info: Certificate expired 2026-07-01
+- model: message.message
+  pk: 019fbe8f-5f6c-7190-8625-4fb14169749e
+  fields:
+    modified_at: 2026-08-01 18:21:34.880000+00:00
+    created_at: 2026-08-01 18:21:34.880000+00:00
+    org: 1
+    content_type:
+      - smtp
+      - outgoingmessage
+    mail_from: sender4@acme.com
+    rcpt_to: recipient4@example.com
+    subject: Test message 4
+    message_id: <test4@acme.com>
+    raw_body: ''
+    received_with_tls: false
+    status: pending
+    domain: 1
+- model: smtp.outgoingmessage
+  pk: 019fbe8f-5f6c-7190-8625-4fb14169749e
+  fields:
+    sender:
+      - test
+    domain: 1
+    credential: 1
+    status: pending
+- model: message.message
+  pk: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+  fields:
+    modified_at: 2026-08-01 18:21:34.885000+00:00
+    created_at: 2026-08-01 18:21:34.885000+00:00
+    org: 1
+    content_type:
+      - smtp
+      - outgoingmessage
+    mail_from: sender5@acme.com
+    rcpt_to: no-reply@example.com
+    subject: Test message 5
+    message_id: <test5@acme.com>
+    raw_body: ''
+    received_with_tls: false
+    status: bounced
+    domain: 1
+- model: smtp.outgoingmessage
+  pk: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+  fields:
+    sender:
+      - test
+    domain: 1
+    credential: 1
+    status: bounced
+- model: message.message
+  pk: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
+  fields:
+    modified_at: 2026-08-01 18:21:34.890000+00:00
+    created_at: 2026-08-01 18:21:34.890000+00:00
+    org: 1
+    content_type:
+      - smtp
+      - outgoingmessage
+    mail_from: sender6@acme.io
+    rcpt_to: recipient6@example.com
+    subject: Test message 6
+    message_id: <test6@acme.io>
+    raw_body: ''
+    received_with_tls: true
+    status: failed
+    domain: 2
+- model: smtp.outgoingmessage
+  pk: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
+  fields:
+    sender:
+      - test
+    domain: 2
+    credential: 1
+    status: failed
+- model: mx.webhookdelivery
+  pk: 019fbe8f-5f9c-7328-8cc2-6ea752104818
+  fields:
+    modified_at: 2026-08-01 18:21:34.895000+00:00
+    created_at: 2026-08-01 18:21:34.895000+00:00
+    message: 019fbe8f-5edc-71e1-c414-e1481852cc47
+    webhook: 1
+    is_test: false
+    status: sent
+    response_code: 200
+    response_body: '{"status":"ok"}'
+- model: mx.webhookdelivery
+  pk: 019fbe8f-5fac-707a-f305-a5efec930ead
+  fields:
+    modified_at: 2026-08-01 18:21:34.900000+00:00
+    created_at: 2026-08-01 18:21:34.900000+00:00
+    message: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
+    webhook: 1
+    is_test: false
+    status: failed
+    response_code: 500
+    response_body: '{"error":"internal server error"}'
+- model: mx.webhookdelivery
+  pk: 019fbe8f-5fbc-700b-c97d-f8266050e60e
+  fields:
+    modified_at: 2026-08-01 18:21:34.905000+00:00
+    created_at: 2026-08-01 18:21:34.905000+00:00
+    message: null
+    webhook: 1
+    is_test: true
+    status: sent
+    response_code: 200
+    response_body: '{"status":"ok"}'
+- model: smtp.transmission
+  pk: 019fbe8f-5fcc-710b-a02b-fcc22eed5854
+  fields:
+    modified_at: 2026-08-01 18:21:34.910000+00:00
+    created_at: 2026-08-01 18:21:34.910000+00:00
+    message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
+    status: delivered
+    code: 250
+    output: OK
+    details: Delivered to recipient1@example.com
+    sent_with_ssl: true
+    log_id: ''
+- model: smtp.transmission
+  pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
+  fields:
+    modified_at: 2026-08-01 18:21:34.915000+00:00
+    created_at: 2026-08-01 18:21:34.915000+00:00
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    status: failed
+    code: 550
+    output: 5.1.1 User unknown
+    details: Recipient address rejected
+    sent_with_ssl: true
+    log_id: ''
+- model: smtp.transmission
+  pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
+  fields:
+    modified_at: 2026-08-01 18:21:34.920000+00:00
+    created_at: 2026-08-01 18:21:34.920000+00:00
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    status: bounced
+    code: 551
+    output: 5.4.4 Mailbox unavailable
+    details: Bounce received after retry
+    sent_with_ssl: false
+    log_id: ''
+- model: smtp.transmission
+  pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
+  fields:
+    modified_at: 2026-08-01 18:21:34.925000+00:00
+    created_at: 2026-08-01 18:21:34.925000+00:00
+    message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
+    status: retry
+    code: 451
+    output: 4.4.2 Connection timed out
+    details: Temporary failure, will retry
+    sent_with_ssl: false
+    log_id: ''
