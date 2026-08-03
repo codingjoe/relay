@@ -20,7 +20,7 @@
             </a>
           </li>
           <li>
-            {% url 'email-dashboard:contact-reports' current_org.slug as reports_url %}
+            {% url 'email-dashboard:report-list' current_org.slug as reports_url %}
             <a href="{{ reports_url }}" {% if request.path == reports_url %}aria-current="page"{% endif %}>
               <i data-lucide="shield" class="shrink-0" aria-hidden="true"></i>
               <span>{% translate "reports"|capfirst %}</span>

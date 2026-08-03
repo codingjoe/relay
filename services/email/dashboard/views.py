@@ -57,10 +57,10 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
         return Response(serializer.data)
 
 
-class ContactReportsView(OrganizationScopedView, ListView):
+class ReportListView(OrganizationScopedView, ListView):
     """Merged timeline of DMARC and TLS reports."""
 
-    template_name = "dashboard/contact_reports.html"
+    template_name = "dashboard/report_list.html"
     context_object_name = "reports"
     paginate_by = 50
     title = _("Reports")
