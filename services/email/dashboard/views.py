@@ -13,6 +13,8 @@ from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.message.models import Message
 from services.email.mx.charts import build_incoming_chart, build_tls_chart
 from services.email.mx.models import TlsReport
+from services.email.reputation.charts import build_reputation_chart
+from services.email.reputation.models import FblReport
 from services.email.smtp.charts import build_outgoing_chart
 
 
@@ -33,6 +35,7 @@ class DashboardView(OrganizationScopedView, TemplateView):
             "incoming_chart": build_incoming_chart(self.org),
             "dmarc_chart": build_dmarc_chart(self.org),
             "tls_chart": build_tls_chart(self.org),
+            "reputation_chart": build_reputation_chart(self.org),
         }
 
 
@@ -46,6 +49,7 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
         "incoming": build_incoming_chart,
         "dmarc": build_dmarc_chart,
         "tls": build_tls_chart,
+        "reputation": build_reputation_chart,
     }
 
     def retrieve(self, request, *args, **kwargs):
@@ -69,6 +73,7 @@ class ReportListView(OrganizationScopedView, ListView):
         DMARC = "dmarc", _("DMARC")
         FAILURES = "failures", _("DMARC failures")
         TLS = "tls", _("TLS")
+        FBL = "fbl", _("FBL")
 
     def get_queryset(self):
         report_type = self.request.GET.get("type", self.ReportType.DMARC)
@@ -87,6 +92,12 @@ class ReportListView(OrganizationScopedView, ListView):
                 qs = TlsReport.objects.filter(org=self.org).select_related("domain")
                 if domain:
                     qs = qs.filter(domain__name=domain)
+            case self.ReportType.FBL:
+                qs = FblReport.objects.filter(org=self.org)
+                if domain:
+                    qs = qs.filter(domain__name=domain)
+                if ip:
+                    qs = qs.filter(source_ip_address=ip)
             case _:
                 qs = DmarcReport.objects.filter(org=self.org)
         return qs

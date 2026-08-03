@@ -109,6 +109,25 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
             )
             return "250 OK"
 
+        case settings.RELAY_FBL_LOCAL_PART:
+            from services.email.reputation.models import FblReport
+            from services.email.reputation.tasks import parse_fbl_report
+
+            report = FblReport(
+                org=domain.org,
+                domain=domain,
+                receiving_domain=rcpt_domain,
+                mail_from=mail_from,
+                rcpt_to=rcpt_to,
+                subject=msg.get("Subject", ""),
+                message_id=msg.get("Message-ID", ""),
+                received_with_tls=bool(tls),
+            )
+            report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
+            report.save(force_insert=True)
+            transaction.on_commit(lambda: parse_fbl_report.enqueue(report_pk=report.pk))
+            return "250 OK"
+
     message = IncomingMessage(
         org=domain.org,
         receiving_domain=rcpt_domain,

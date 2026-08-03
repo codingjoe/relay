@@ -10,6 +10,7 @@
           <thead>
             <tr>
               <th>{% translate "status"|capfirst context "noun" %}</th>
+              <th>{% translate "bounce type"|capfirst %}</th>
               <th>{% translate "code"|capfirst context "noun" %}</th>
               <th>{% translate "sent"|capfirst %}</th>
               <th>{% translate "SSL"|capfirst %}</th>
@@ -30,6 +31,7 @@
                     {{ transmission.get_status_display }}
                   </span>
                 </td>
+                <td>{{ transmission.bounce_type|default:"—" }}</td>
                 <td>{{ transmission.code|default:"—" }}</td>
                 <td>
                   {% timestamp transmission.created_at %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{% translate "FBL reports"|capfirst %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "FBL reports"|capfirst %}</h2>
+  </header>
+
+  <form method="get" class="fieldset mb-6">
+    <div class="grid gap-4">
+      <div role="group" class="field">
+        <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
+        <select id="filter-domain" name="domain" class="select w-full">
+          <option value="">{% translate "all"|capfirst %}</option>
+          {% for domain in domains %}
+            <option value="{{ domain.name }}" {% if filters.domain == domain.name %}selected{% endif %}>
+              {{ domain.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div role="group" class="field">
+        <label for="filter-feedback-type">{% translate "feedback type"|capfirst %}</label>
+        <select id="filter-feedback-type" name="feedback_type" class="select w-full">
+          <option value="">{% translate "all"|capfirst %}</option>
+          {% for ftype in feedback_types %}
+            <option value="{{ ftype.value }}" {% if filters.feedback_type == ftype.value %}selected{% endif %}>
+              {{ ftype.label }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div role="group" class="field">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-container mb-6">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{% translate "arrived"|capfirst %}</th>
+          <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th>{% translate "feedback type"|capfirst %}</th>
+          <th>{% translate "from"|capfirst context "email" %}</th>
+          <th>{% translate "reporter"|capfirst %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+          <tr
+            class="cursor-pointer"
+            onclick="window.location.href = '{% url 'reputation:fbl-report-detail' org.slug report.pk %}'"
+          >
+            <td>{{ report.arrival_at|naturalday|default:"—" }}</td>
+            <td>{{ report.domain|default:"—" }}</td>
+            <td>
+              <span class="badge" data-size="sm" data-variant="destructive">
+                {{ report.get_feedback_type_display }}
+              </span>
+            </td>
+            <td>{{ report.original_mail_from|truncatechars:30 }}</td>
+            <td>{{ report.reporting_org|truncatechars:30 }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">{% translate "no FBL reports received yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% pagination %}
+{% endblock %}

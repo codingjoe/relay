@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{% translate "reputation"|capfirst %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "reputation"|capfirst %}</h2>
+  </header>
+
+  {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation — sent, bounces, and complaints")|capfirst chart=chart class="" %}
+
+  {% if domain_reputations %}
+    <div class="table-container mt-6">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{% translate "domain"|capfirst context "noun" %}</th>
+            <th>{% translate "sent"|capfirst %}</th>
+            <th>{% translate "hard bounces"|capfirst %}</th>
+            <th>{% translate "soft bounces"|capfirst %}</th>
+            <th>{% translate "complaints"|capfirst %}</th>
+            <th>{% translate "bounce rate"|capfirst %}</th>
+            <th>{% translate "complaint rate"|capfirst %}</th>
+            <th>{% translate "status"|capfirst %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for domain, stats in domain_reputations %}
+            <tr>
+              <td>{{ domain.name }}</td>
+              <td>{{ stats.total_sent }}</td>
+              <td>{{ stats.hard_bounces }}</td>
+              <td>{{ stats.soft_bounces }}</td>
+              <td>{{ stats.complaints }}</td>
+              <td>
+                {{ stats.bounce_rate|floatformat:4 }}
+                {% if stats.bounce_rate > bounce_threshold %}
+                  <i data-lucide="triangle-alert" class="size-3.5 text-destructive" aria-hidden="true"></i>
+                {% endif %}
+              </td>
+              <td>
+                {{ stats.complaint_rate|floatformat:5 }}
+                {% if stats.complaint_rate > complaint_threshold %}
+                  <i data-lucide="triangle-alert" class="size-3.5 text-destructive" aria-hidden="true"></i>
+                {% endif %}
+              </td>
+              <td>
+                {% if domain.reputation_hold %}
+                  <span class="badge" data-size="sm" data-variant="destructive">
+                    {% translate "suspended"|capfirst %}
+                  </span>
+                {% else %}
+                  <span class="badge" data-size="sm" data-variant="primary">
+                    {% translate "ok"|capfirst %}
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted-foreground">{% translate "no verified domains yet."|capfirst %}</p>
+  {% endif %}
+{% endblock %}

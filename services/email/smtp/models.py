@@ -128,6 +128,16 @@ class Transmission(TimeStamped):
             case _:
                 return "outline"
 
+    @property
+    def bounce_type(self) -> str:
+        """Return the bounce classification: 'hard' (5xx) or 'soft' (4xx).
+
+        Returns an empty string if the transmission is not a bounce.
+        """
+        if self.status != self.Status.BOUNCED or not self.code:
+            return ""
+        return "hard" if self.code >= 500 else "soft"
+
     def __str__(self):
         return f"{self.message} → {self.status}"
 

@@ -75,6 +75,7 @@ Organization → Domain, SmtpCredential
 - **Webhook** — Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
 - **DmarcReport** — Aggregate DMARC report (RUA) received from external organizations, parsed from XML
 - **DmarcFailureReport** — Forensic DMARC report (RUF) received from external organizations, parsed from ARF
+- **FblReport** — Feedback Loop complaint report received from email providers, parsed from ARF (RFC 5965)
 - **TlsReport** — TLS-RPT report received from external organizations, parsed from JSON via DRF serializers
 
 All report models use multi-table inheritance with `IncomingMessage` so they
@@ -171,6 +172,7 @@ graph BT
  smtp
  mx
  dmarc
+ reputation
  message --> accounts
  message --> domains
  smtp --> message
@@ -184,10 +186,15 @@ graph BT
  dmarc --> accounts
  dmarc --> domains
  dmarc --> mx
+ reputation --> mx
+ reputation --> message
+ reputation --> domains
+ reputation --> accounts
  dashboard --> message
  dashboard --> smtp
  dashboard --> mx
  dashboard --> dmarc
+ dashboard --> reputation
  end
  subgraph voip
  direction BT

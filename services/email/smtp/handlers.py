@@ -114,6 +114,9 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
     )
 
+    if domain and domain.reputation_hold:
+        return "550 Sender reputation suspended"
+
     message = OutgoingMessage(
         sender=sender,
         org=credential.org,
