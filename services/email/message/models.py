@@ -1,5 +1,3 @@
-"""Shared message model for inbound and outbound email."""
-
 import uuid
 from email import message_from_bytes
 

@@ -277,9 +277,6 @@ Update it based on review feedback.
 - Place merged views in the parent app that depends on all siblings.
   Siblings must not import from each other.
 
-- Legacy list URLs redirect to the merged view. Put the redirect
-  view in each sibling's own `views.py` to avoid circular imports.
-
 ## App structure
 
 - A concrete model shared between sibling apps belongs in a dedicated

@@ -8,7 +8,7 @@ from pygments.lexers.email import EmailLexer
 
 register = template.Library()
 
-_email_formatter = HtmlFormatter(cssclass="highlight-email")
+email_formatter = HtmlFormatter(cssclass="highlight-email")
 
 
 @register.filter
@@ -16,4 +16,4 @@ def highlight_email(value: str) -> str:
     """Render a raw RFC 822 message with Pygments' :class:`EmailLexer`."""
     if not value:
         return ""
-    return mark_safe(highlight(value, EmailLexer(), _email_formatter))
+    return mark_safe(highlight(value, EmailLexer(), email_formatter))
