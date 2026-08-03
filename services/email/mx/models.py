@@ -29,6 +29,17 @@ class IncomingMessage(Message):
         DROPPED = "dropped", _("dropped")
         DEFAULT = nonmember("received")
 
+        @property
+        def badge_variant(self) -> str:
+            Status = type(self)
+            match self:
+                case Status.RECEIVED:
+                    return "primary"
+                case Status.WEBHOOK_FAILED | Status.DROPPED:
+                    return "destructive"
+                case _:
+                    return "outline"
+
     receiving_domain = models.TextField(
         _("receiving domain"),
         blank=True,

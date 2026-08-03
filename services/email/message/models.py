@@ -116,13 +116,8 @@ class Message(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        match self.status:
-            case "sent" | "delivered" | "received":
-                return "primary"
-            case "bounced" | "dropped" | "failed" | "webhook_failed":
-                return "destructive"
-            case _:
-                return "outline"
+        Status = self.content_type.model_class().Status
+        return Status(self.status).badge_variant
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
