@@ -294,12 +294,14 @@ RELAY_BASE_URL = env("RELAY_BASE_URL", default=f"http://{RELAY_PLATFORM_DOMAIN}"
 
 
 # Email backend for transactional notifications (postmaster alerts, etc.)
-# Production sends through an SMTP relay; development/test use the console.
 # Configure via EMAIL_URL, e.g. smtp://user:pass@smtp.example.com:587?tls=True
-if DEBUG or TEST:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-else:
-    vars().update(env.email_url("EMAIL_URL", default="smtp://localhost:25"))
+# Defaults to consolemail in development/test, SMTP in production.
+vars().update(
+    env.email_url(
+        "EMAIL_URL",
+        default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
+    )
+)
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL", default=f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 )
