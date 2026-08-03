@@ -75,43 +75,58 @@
       </thead>
       <tbody>
         {% for message in messages %}
-          {% if message.kind == 'outgoingmessage' %}
-            <tr class="hover:bg-muted/50">
-              <td>
-                <i data-lucide="send" class="size-4 text-muted-foreground" aria-label='{% translate "sent"|capfirst %}'>
-                </i>
-              </td>
-              <td>
-                <span
-                  class="badge"
-                  data-size="sm"
-                  data-variant="{{ status_badges|get_item:message.outgoingmessage.status|default:'outline' }}"
-                >
+          <tr class="hover:bg-muted/50">
+            <td>
+              {% if message.kind == 'outgoingmessage' %}
+                <i
+                  data-lucide="send"
+                  class="size-4 text-muted-foreground"
+                  aria-label='{% translate "sent"|capfirst %}'
+                ></i>
+              {% else %}
+                <i
+                  data-lucide="inbox"
+                  class="size-4 text-muted-foreground"
+                  aria-label='{% translate "received"|capfirst %}'
+                ></i>
+              {% endif %}
+            </td>
+            <td>
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{% if message.kind == 'outgoingmessage' %}{{ status_badges|get_item:message.outgoingmessage.status|default:'outline' }}{% else %}{{ status_badges|get_item:message.incomingmessage.status|default:'outline' }}{% endif %}"
+              >
+                {% if message.kind == 'outgoingmessage' %}
                   {{ message.outgoingmessage.get_status_display }}
-                </span>
-              </td>
-              <td>
-                <time
-                  datetime="{{ message.created_at|date:'c' }}"
-                  data-tooltip="{{ message.created_at|date:'c' }}"
-                >{{ message.created_at|naturaltime }}</time>
-              </td>
-              <td>
-                <code>
-                  <a class="link" href="{{ request.path }}?email={{ message.mail_from|urlencode }}">
-                    {{ message.mail_from }}
-                  </a>
-                </code>
-              </td>
-              <td>
-                <code>
-                  <a class="link" href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}">
-                    {{ message.rcpt_to }}
-                  </a>
-                </code>
-              </td>
-              <td>
-                <code>
+                {% else %}
+                  {{ message.incomingmessage.get_status_display }}
+                {% endif %}
+              </span>
+            </td>
+            <td>
+              <time
+                datetime="{{ message.created_at|date:'c' }}"
+                data-tooltip="{{ message.created_at|date:'c' }}"
+              >{{ message.created_at|naturaltime }}</time>
+            </td>
+            <td>
+              <code>
+                <a class="link" href="{{ request.path }}?email={{ message.mail_from|urlencode }}">
+                  {{ message.mail_from }}
+                </a>
+              </code>
+            </td>
+            <td>
+              <code>
+                <a class="link" href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}">
+                  {{ message.rcpt_to }}
+                </a>
+              </code>
+            </td>
+            <td>
+              <code>
+                {% if message.kind == 'outgoingmessage' %}
                   {% if message.outgoingmessage.domain %}
                     <a class="link" href="{{ request.path }}?domain={{ message.outgoingmessage.domain|urlencode }}">
                       {{ message.outgoingmessage.domain }}
@@ -119,63 +134,22 @@
                   {% else %}
                     —
                   {% endif %}
-                </code>
-              </td>
-              <td>
-                <a class="btn" data-size="sm" data-variant="secondary" href="{{ message.get_absolute_url }}">
-                  {% translate "detail"|capfirst %}
-                </a>
-              </td>
-            </tr>
-          {% else %}
-            <tr class="hover:bg-muted/50">
-              <td>
-                <i
-                  data-lucide="inbox"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "received"|capfirst %}'
-                >
-                </i>
-              </td>
-              <td>
-                <time
-                  datetime="{{ message.created_at|date:'c' }}"
-                  data-tooltip="{{ message.created_at|date:'c' }}"
-                >{{ message.created_at|naturaltime }}</time>
-              </td>
-              <td>
-                <span
-                  class="badge"
-                  data-size="sm"
-                  data-variant="{{ status_badges|get_item:message.incomingmessage.status|default:'outline' }}"
-                >
-                  {{ message.incomingmessage.get_status_display }}
-                </span>
-              </td>
-              <td>
-                <code><a
-                    href="{{ request.path }}?email={{ message.mail_from|urlencode }}"
-                  >{{ message.mail_from }}</a></code>
-              </td>
-              <td>
-                <code><a
-                    href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}"
-                  >{{ message.rcpt_to }}</a></code>
-              </td>
-              <td>
-                {% if message.incomingmessage.receiving_domain %}
-                  <code>{{ message.incomingmessage.receiving_domain }}</code>
                 {% else %}
-                  —
+                  {{ message.incomingmessage.receiving_domain|default:"—" }}
                 {% endif %}
-              </td>
-              <td>
-                <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
-                  {% translate "detail"|capfirst %}
-                </a>
-              </td>
-            </tr>
-          {% endif %}
+              </code>
+            </td>
+            <td>
+              <a
+                class="btn"
+                data-size="sm"
+                data-variant="{% if message.kind == 'outgoingmessage' %}secondary{% else %}ghost{% endif %}"
+                href="{{ message.get_absolute_url }}"
+              >
+                {% translate "detail"|capfirst %}
+              </a>
+            </td>
+          </tr>
         {% empty %}
           <tr><td colspan="7">{% translate "no messages found." %}</td></tr>
         {% endfor %}
