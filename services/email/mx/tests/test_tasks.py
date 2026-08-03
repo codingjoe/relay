@@ -7,7 +7,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.files.base import ContentFile
-from django.test import override_settings
 
 from accounts.models import Membership
 from services.email.mx.models import IncomingMessage
@@ -17,8 +16,6 @@ from services.email.mx.tasks import (
     WebhookJSONEncoder,
     notify_postmaster_recipients,
 )
-
-LOCMEM = "django.core.mail.backends.locmem.EmailBackend"
 
 
 class TestWebhookEventFromTest:
@@ -125,8 +122,7 @@ class TestNotifyPostmasterRecipients:
             subject="Alert",
             message_id="<abc@example.org>",
         )
-        with override_settings(EMAIL_BACKEND=LOCMEM):
-            notify_postmaster_recipients.func(message_pk=str(msg.id))
+        notify_postmaster_recipients.func(message_pk=str(msg.id))
         recipients = sorted(m.to for m in mail.outbox)
         assert recipients == [
             ["alice@example.com"],
@@ -149,8 +145,7 @@ class TestNotifyPostmasterRecipients:
             subject="Alert",
             message_id="<abc@example.org>",
         )
-        with override_settings(EMAIL_BACKEND=LOCMEM):
-            notify_postmaster_recipients.func(message_pk=str(msg.id))
+        notify_postmaster_recipients.func(message_pk=str(msg.id))
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ["alice@example.com"]
 
@@ -164,8 +159,7 @@ class TestNotifyPostmasterRecipients:
             subject="Alert",
             message_id="<abc@example.org>",
         )
-        with override_settings(EMAIL_BACKEND=LOCMEM):
-            notify_postmaster_recipients.func(message_pk=str(msg.id))
+        notify_postmaster_recipients.func(message_pk=str(msg.id))
         expected_url = (
             f"http://{settings.RELAY_PLATFORM_DOMAIN}{msg.get_absolute_url()}"
         )

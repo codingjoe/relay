@@ -2,13 +2,10 @@ from email.message import EmailMessage
 
 import pytest
 from django.core import mail
-from django.test import override_settings
 
 from domains.models import Domain
 from services.email.mx.handlers import process_incoming_message
 from services.email.mx.models import IncomingMessage
-
-LOCMEM = "django.core.mail.backends.locmem.EmailBackend"
 
 
 def make_raw_email(subject="Postmaster alert"):
@@ -58,25 +55,23 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster__enqueues_notification(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        with override_settings(EMAIL_BACKEND=LOCMEM):
-            await process_incoming_message(
-                "external@example.org",
-                "postmaster@example.com",
-                make_raw_email(),
-                True,
-                domain,
-            )
+        await process_incoming_message(
+            "external@example.org",
+            "postmaster@example.com",
+            make_raw_email(),
+            True,
+            domain,
+        )
         assert any("postmaster" in m.subject.lower() for m in mail.outbox)
 
     @pytest.mark.django_db(transaction=True)
     async def test_non_postmaster__does_not_notify(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        with override_settings(EMAIL_BACKEND=LOCMEM):
-            await process_incoming_message(
-                "external@example.org",
-                "info@example.com",
-                make_raw_email(),
-                True,
-                domain,
-            )
+        await process_incoming_message(
+            "external@example.org",
+            "info@example.com",
+            make_raw_email(),
+            True,
+            domain,
+        )
         assert len(mail.outbox) == 0
