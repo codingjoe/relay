@@ -40,7 +40,7 @@ class KnowHowSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return [article["slug"] for article in KnowHowListView.get_articles()]
+        return [slug for slug, _ in KnowHowListView.get_articles()]
 
     def location(self, slug):
         return reverse("know_how:detail", args=[slug])
@@ -53,9 +53,7 @@ class AlternativeToSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return [
-            comparison["slug"] for comparison in AlternativeToListView.get_articles()
-        ]
+        return [slug for slug, _ in AlternativeToListView.get_articles()]
 
     def location(self, slug):
         return reverse("alternative_to:detail", args=[slug])

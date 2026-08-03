@@ -43,7 +43,14 @@ class KnowHowListView(
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "articles": self.get_articles(),
+            "articles": [
+                {
+                    "slug": slug,
+                    "title": metadata["name"],
+                    "description": md_2_html(metadata.get("description", "")),
+                }
+                for slug, metadata in self.get_articles()
+            ],
             "license": md_2_html(LICENSE_MARKDOWN),
         }
 

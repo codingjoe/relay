@@ -7,6 +7,7 @@ from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.utils import md_2_html
 from abstract.views import BreadcrumbViewMixin, MarkdownArticleMixin, MarkdownView
 
 ALTERNATIVE_TO_DIR = pathlib.Path(settings.BASE_DIR) / "alternative_to" / "docs"
@@ -26,7 +27,14 @@ class AlternativeToListView(
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "articles": self.get_articles(),
+            "articles": [
+                {
+                    "slug": slug,
+                    "title": metadata["name"],
+                    "description": md_2_html(metadata.get("description", "")),
+                }
+                for slug, metadata in self.get_articles()
+            ],
         }
 
 

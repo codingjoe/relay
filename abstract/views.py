@@ -7,7 +7,7 @@ from django.urls import resolve, reverse
 from django.utils.cache import patch_cache_control, patch_vary_headers
 from django.views import generic
 
-from abstract.utils import md_2_html, strip_frontmatter
+from abstract.utils import strip_frontmatter
 
 
 class CacheControlMixin:
@@ -33,19 +33,11 @@ class MarkdownArticleMixin:
     slugs: frozenset[str]
 
     @classmethod
-    def get_articles(cls) -> list[dict[str, str]]:
-        """Return all articles with slug, title, and description."""
-        return [
-            {
-                "slug": slug,
-                "title": metadata["name"],
-                "description": md_2_html(metadata.get("description", "")),
-            }
-            for slug in sorted(cls.slugs)
-            for metadata, _ in [
-                frontmatter.parse((cls.docs_dir / f"{slug}.md").read_text())
-            ]
-        ]
+    def get_articles(cls):
+        """Yield (slug, metadata) for each article in the docs directory."""
+        for slug in sorted(cls.slugs):
+            metadata, _ = frontmatter.parse((cls.docs_dir / f"{slug}.md").read_text())
+            yield slug, metadata
 
     @classmethod
     def get_article_path(cls, slug: str) -> pathlib.Path:

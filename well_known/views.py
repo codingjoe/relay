@@ -35,12 +35,12 @@ class LlmsTxtView(CacheControlMixin, TemplateView):
     def get_context_data(self, **kwargs):
         articles = [
             {
-                "title": article["title"],
+                "title": metadata["name"],
                 "url": self.request.build_absolute_uri(
-                    reverse("know_how:detail", args=[article["slug"]])
+                    reverse("know_how:detail", args=[slug])
                 ),
             }
-            for article in KnowHowListView.get_articles()
+            for slug, metadata in KnowHowListView.get_articles()
         ]
         legal_pages = [
             {"title": label, "url": self.request.build_absolute_uri(reverse(name))}
@@ -52,12 +52,12 @@ class LlmsTxtView(CacheControlMixin, TemplateView):
         ]
         comparisons = [
             {
-                "title": comparison["title"],
+                "title": metadata["name"],
                 "url": self.request.build_absolute_uri(
-                    reverse("alternative_to:detail", args=[comparison["slug"]])
+                    reverse("alternative_to:detail", args=[slug])
                 ),
             }
-            for comparison in AlternativeToListView.get_articles()
+            for slug, metadata in AlternativeToListView.get_articles()
         ]
         return super().get_context_data(**kwargs) | {
             "articles": articles,
@@ -76,32 +76,28 @@ class LlmsFullTxtView(CacheControlMixin, TemplateView):
     def get_context_data(self, **kwargs):
         articles = [
             {
-                "title": article["title"],
+                "title": metadata["name"],
                 "url": self.request.build_absolute_uri(
-                    reverse("know_how:detail", args=[article["slug"]])
+                    reverse("know_how:detail", args=[slug])
                 ),
                 "content": strip_frontmatter(
-                    loader.get_template(f"{article['slug']}.md").render(
-                        request=self.request
-                    )
+                    loader.get_template(f"{slug}.md").render(request=self.request)
                 ),
             }
-            for article in KnowHowListView.get_articles()
+            for slug, metadata in KnowHowListView.get_articles()
         ]
         return super().get_context_data(**kwargs) | {
             "articles": articles,
             "comparisons": [
                 {
-                    "title": comparison["title"],
+                    "title": metadata["name"],
                     "url": self.request.build_absolute_uri(
-                        reverse("alternative_to:detail", args=[comparison["slug"]])
+                        reverse("alternative_to:detail", args=[slug])
                     ),
                     "content": strip_frontmatter(
-                        loader.get_template(f"{comparison['slug']}.md").render(
-                            request=self.request
-                        )
+                        loader.get_template(f"{slug}.md").render(request=self.request)
                     ),
                 }
-                for comparison in AlternativeToListView.get_articles()
+                for slug, metadata in AlternativeToListView.get_articles()
             ],
         }
