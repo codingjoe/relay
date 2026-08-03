@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message %}
+{% load i18n humanize message %}
 {% block title %}{% translate "TLS report"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -17,7 +17,12 @@
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "reporting email"|capfirst %}</dt>
-        <dd class="m-0">{% contact_link email=report.reporting_email %}</dd>
+        <dd class="m-0">
+          <a
+            class="link"
+            href="{% url 'message:message-list' org.slug %}?email={{ report.reporting_email|urlencode }}"
+          >{{ report.reporting_email }}</a>
+        </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "report ID"|capfirst %}</dt>
@@ -26,13 +31,19 @@
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
         <dd class="m-0">
-          {% timestamp report.begin_at %}
+          <time
+            datetime="{{ report.begin_at|date:'c' }}"
+            data-tooltip="{{ report.begin_at|date:'c' }}"
+          >{{ report.begin_at|naturaltime }}</time>
         </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
         <dd class="m-0">
-          {% timestamp report.end_at %}
+          <time
+            datetime="{{ report.end_at|date:'c' }}"
+            data-tooltip="{{ report.end_at|date:'c' }}"
+          >{{ report.end_at|naturaltime }}</time>
         </dd>
       </div>
       <div>
@@ -62,11 +73,24 @@
         {% for failure in failures %}
           <tr>
             <td>{{ failure.get_result_type_display }}</td>
-            <td>{% contact_link ip=failure.sending_mta_ip_address %}</td>
-            <td>{% contact_link domain=failure.receiving_mx_hostname %}</td>
+            <td>
+              <a
+                class="link"
+                href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ failure.sending_mta_ip_address|urlencode }}"
+              >{{ failure.sending_mta_ip_address }}</a>
+            </td>
+            <td>
+              <a
+                class="link"
+                href="{% url 'message:message-list' org.slug %}?domain={{ failure.receiving_mx_hostname|urlencode }}"
+              >{{ failure.receiving_mx_hostname }}</a>
+            </td>
             <td>
               {% if failure.receiving_mx_ip_address %}
-                {% contact_link ip=failure.receiving_mx_ip_address %}
+                <a
+                  class="link"
+                  href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ failure.receiving_mx_ip_address|urlencode }}"
+                >{{ failure.receiving_mx_ip_address }}</a>
               {% else %}
                 —
               {% endif %}

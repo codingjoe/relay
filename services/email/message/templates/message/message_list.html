@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message %}
+{% load i18n humanize message %}
 {% block title %}{% translate "messages"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -90,7 +90,12 @@
                   {{ message.outgoingmessage.get_status_display }}
                 </span>
               </td>
-              <td>{% timestamp message.created_at %}</td>
+              <td>
+                <time
+                  datetime="{{ message.created_at|date:'c' }}"
+                  data-tooltip="{{ message.created_at|date:'c' }}"
+                >{{ message.created_at|naturaltime }}</time>
+              </td>
               <td>
                 <code>
                   <a class="link" href="{{ request.path }}?email={{ message.mail_from|urlencode }}">
@@ -132,7 +137,12 @@
                 >
                 </i>
               </td>
-              <td>{% timestamp message.created_at %}</td>
+              <td>
+                <time
+                  datetime="{{ message.created_at|date:'c' }}"
+                  data-tooltip="{{ message.created_at|date:'c' }}"
+                >{{ message.created_at|naturaltime }}</time>
+              </td>
               <td>
                 <span
                   class="badge"

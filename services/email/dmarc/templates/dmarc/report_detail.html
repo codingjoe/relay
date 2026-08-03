@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message %}
+{% load i18n humanize message %}
 {% block title %}{% translate "DMARC report"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -26,13 +26,19 @@
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
         <dd class="m-0">
-          {% timestamp report.begin_at %}
+          <time
+            datetime="{{ report.begin_at|date:'c' }}"
+            data-tooltip="{{ report.begin_at|date:'c' }}"
+          >{{ report.begin_at|naturaltime }}</time>
         </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
         <dd class="m-0">
-          {% timestamp report.end_at %}
+          <time
+            datetime="{{ report.end_at|date:'c' }}"
+            data-tooltip="{{ report.end_at|date:'c' }}"
+          >{{ report.end_at|naturaltime }}</time>
         </dd>
       </div>
     </dl>
@@ -66,12 +72,22 @@
       <tbody>
         {% for record in records %}
           <tr>
-            <td>{% contact_link ip=record.source_ip_address %}</td>
+            <td>
+              <a
+                class="link"
+                href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ record.source_ip_address|urlencode }}"
+              >{{ record.source_ip_address }}</a>
+            </td>
             <td>{{ record.count }}</td>
             <td>{{ record.get_disposition_display }}</td>
             <td>{{ record.get_dkim_alignment_display }}</td>
             <td>{{ record.get_spf_alignment_display }}</td>
-            <td>{% contact_link domain=record.header_from|truncatechars:30 %}</td>
+            <td>
+              <a
+                class="link"
+                href="{% url 'message:message-list' org.slug %}?domain={{ record.header_from|urlencode }}"
+              >{{ record.header_from|truncatechars:30 }}</a>
+            </td>
             <td>{{ record.get_dkim_result_display }}</td>
             <td>{{ record.get_spf_result_display }}</td>
           </tr>

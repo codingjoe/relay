@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message %}
+{% load i18n humanize message %}
 {% block title %}{{ message.subject|truncatechars:50 }} — relay{% endblock %}
 {% block content %}
   {% if webhook_deliveries %}
@@ -31,7 +31,10 @@
                 </td>
                 <td>{{ delivery.response_code|default:"—" }}</td>
                 <td>
-                  {% timestamp delivery.created_at %}
+                  <time
+                    datetime="{{ delivery.created_at|date:'c' }}"
+                    data-tooltip="{{ delivery.created_at|date:'c' }}"
+                  >{{ delivery.created_at|naturaltime }}</time>
                 </td>
                 <td>{{ delivery.response_body|truncatechars:120 }}</td>
               </tr>
@@ -56,7 +59,7 @@
           {% for key, value in headers %}
             <tr>
               <td>{{ key }}</td>
-              <td><code>{% header_value key value %}</code></td>
+              <td><code>{{ value }}</code></td>
             </tr>
           {% endfor %}
         </tbody>
@@ -70,7 +73,12 @@
       <dd><code>{{ message.receiving_domain }}</code></dd>
     {% endif %}
     <dt class="font-semibold">{% translate "received"|capfirst context "noun" %}</dt>
-    <dd>{% timestamp message.created_at %}</dd>
+    <dd>
+      <time
+        datetime="{{ message.created_at|date:'c' }}"
+        data-tooltip="{{ message.created_at|date:'c' }}"
+      >{{ message.created_at|naturaltime }}</time>
+    </dd>
     <dt class="font-semibold">{% translate "TLS"|capfirst %}</dt>
     <dd>
       {% if message.received_with_tls %}

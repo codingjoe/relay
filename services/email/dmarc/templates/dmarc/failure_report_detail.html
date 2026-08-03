@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n abstract message %}
+{% load i18n abstract humanize message %}
 {% block title %}{% translate "DMARC failure report"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -19,7 +19,10 @@
         <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.source_ip_address %}
-            {% contact_link ip=report.source_ip_address %}
+            <a
+              class="link"
+              href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ report.source_ip_address|urlencode }}"
+            >{{ report.source_ip_address }}</a>
           {% else %}
             —
           {% endif %}
@@ -28,7 +31,10 @@
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
         <dd class="m-0">
-          {% timestamp report.arrival_at %}
+          <time
+            datetime="{{ report.arrival_at|date:'c' }}"
+            data-tooltip="{{ report.arrival_at|date:'c' }}"
+          >{{ report.arrival_at|naturaltime }}</time>
         </dd>
       </div>
       <div>
@@ -39,7 +45,10 @@
         <dt class="text-sm text-muted-foreground">{% translate "original from"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_mail_from %}
-            {% contact_link email=report.original_mail_from %}
+            <a
+              class="link"
+              href="{% url 'message:message-list' org.slug %}?email={{ report.original_mail_from|urlencode }}"
+            >{{ report.original_mail_from }}</a>
           {% else %}
             —
           {% endif %}
@@ -49,7 +58,10 @@
         <dt class="text-sm text-muted-foreground">{% translate "original to"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_rcpt_to %}
-            {% contact_link email=report.original_rcpt_to %}
+            <a
+              class="link"
+              href="{% url 'message:message-list' org.slug %}?email={{ report.original_rcpt_to|urlencode }}"
+            >{{ report.original_rcpt_to }}</a>
           {% else %}
             —
           {% endif %}
