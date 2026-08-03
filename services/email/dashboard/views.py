@@ -1,6 +1,7 @@
 """Provide the unified transactional email dashboard and chart API."""
 
 from django.conf import settings
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView, TemplateView
 from rest_framework.generics import RetrieveAPIView
@@ -66,12 +67,10 @@ class ReportListView(OrganizationScopedView, ListView):
     title = _("Reports")
     parent = "accounts:org-home"
 
-    class ReportType:
-        DMARC = "dmarc"
-        FAILURES = "failures"
-        TLS = "tls"
-
-        CHOICES = (DMARC, FAILURES, TLS)
+    class ReportType(models.TextChoices):
+        DMARC = "dmarc", _("DMARC")
+        FAILURES = "failures", _("DMARC failures")
+        TLS = "tls", _("TLS")
 
     def get_queryset(self):
         report_type = self.request.GET.get("type", self.ReportType.DMARC)
