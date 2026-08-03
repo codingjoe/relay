@@ -226,7 +226,7 @@ def parse_tls_report(report_pk):
 
 @task
 def notify_postmaster_recipients(message_pk):
-    """Notify all org members by email when a postmaster message is received."""
+    """Email all org members with a link to the received message."""
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.exclude(user__email="").select_related("user")
 
