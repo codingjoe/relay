@@ -10,10 +10,9 @@ from services.email.smtp.models import OutgoingMessage
 from .models import Message
 
 
-class ContactMessagesView(OrganizationScopedView, ListView):
+class MessageListView(OrganizationScopedView, ListView):
     """Merged timeline of inbound and outbound messages."""
 
-    template_name = "message/contact_messages.html"
     context_object_name = "messages"
     paginate_by = 50
     title = _("Messages")

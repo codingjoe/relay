@@ -10,11 +10,6 @@ urlpatterns = [
         include(
             [
                 path(
-                    "",
-                    views.MessageListRedirectView.as_view(direction="sent"),
-                    name="message-list",
-                ),
-                path(
                     "<uuid:pk>",
                     views.OutgoingMessageDetailView.as_view(),
                     name="message-detail",

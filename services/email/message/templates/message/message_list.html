@@ -91,8 +91,16 @@
                 </span>
               </td>
               <td>{% timestamp message.created_at %}</td>
-              <td><code>{% email_links message.mail_from %}</code></td>
-              <td><code>{% email_links message.rcpt_to %}</code></td>
+              <td>
+                <code><a
+                    href="{{ request.path }}?email={{ message.mail_from|urlencode }}"
+                  >{{ message.mail_from }}</a></code>
+              </td>
+              <td>
+                <code><a
+                    href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}"
+                  >{{ message.rcpt_to }}</a></code>
+              </td>
               <td>
                 {% if message.outgoingmessage.domain %}
                   <code>{{ message.outgoingmessage.domain.name }}</code>
@@ -126,8 +134,16 @@
                   {{ message.incomingmessage.get_status_display }}
                 </span>
               </td>
-              <td><code>{% email_links message.mail_from %}</code></td>
-              <td><code>{% email_links message.rcpt_to %}</code></td>
+              <td>
+                <code><a
+                    href="{{ request.path }}?email={{ message.mail_from|urlencode }}"
+                  >{{ message.mail_from }}</a></code>
+              </td>
+              <td>
+                <code><a
+                    href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}"
+                  >{{ message.rcpt_to }}</a></code>
+              </td>
               <td>
                 {% if message.incomingmessage.receiving_domain %}
                   <code>{{ message.incomingmessage.receiving_domain }}</code>

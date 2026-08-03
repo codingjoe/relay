@@ -6,8 +6,8 @@ app_name = "message"
 
 urlpatterns = [
     path(
-        "contacts/messages/",
-        views.ContactMessagesView.as_view(),
-        name="contact-messages",
+        "messages/",
+        views.MessageListView.as_view(),
+        name="message-list",
     ),
 ]

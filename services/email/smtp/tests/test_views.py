@@ -27,26 +27,6 @@ def make_message(org, user, **kwargs):
 
 
 @pytest.mark.django_db
-class TestMessageLogView:
-    """Legacy /email/messages/ redirects to the merged contact timeline."""
-
-    def test_get__requires_login(self, client, org):
-        response = client.get(f"/org/{org.slug}/email/messages/")
-        assert response.status_code == 302
-        assert "/account/login" in response.url
-
-    def test_get__redirects_to_contact_timeline(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.slug}/email/messages/")
-        assert response.status_code == 302
-        assert (
-            response.url == f"/org/{org.slug}/email/contacts/messages/?direction=sent"
-        )
-
-    def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.slug}/email/messages/")
-        assert response.status_code == 404
-
-
 @pytest.mark.django_db
 class TestMessageDetailView:
     def test_get__ok_for_member(self, admin_client, org, user):

@@ -8,13 +8,13 @@ from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, RedirectView, View
+from django.views.generic import DeleteView, DetailView, ListView, View
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
-from services.email.message.views import ContactMessagesView
+from services.email.message.views import MessageListView
 
 from .models import OutgoingMessage, SmtpCredential, Transmission
 from .tasks import deliver_message
@@ -23,7 +23,7 @@ from .tasks import deliver_message
 class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
     template_name = "smtp/message_detail.html"
     context_object_name = "message"
-    parent = "message:contact-messages"
+    parent = "message:message-list"
 
     def get_queryset(self):
         return OutgoingMessage.objects.filter(org=self.org).select_related(
@@ -63,7 +63,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
             "received": received,
             "body": body,
             "transmissions": Transmission.objects.filter(message=message),
-            "status_badges": ContactMessagesView.STATUS_BADGES,
+            "status_badges": MessageListView.STATUS_BADGES,
         }
 
 
@@ -107,7 +107,7 @@ class TestEmailView(OrganizationScopedView, View):
             )
         )
         messages.success(request, _("Queued test message for delivery."))
-        return redirect("smtp:message-list", org_slug=org_slug)
+        return redirect("message:message-list", org_slug=org_slug)
 
 
 class SmtpCredentialListView(OrganizationScopedView, ListView):
@@ -159,15 +159,3 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
     def form_valid(self, form):
         messages.success(self.request, _("Deleted SMTP credential."))
         return super().form_valid(form)
-
-
-class MessageListRedirectView(OrganizationScopedView, RedirectView):
-    """Redirect the legacy message-list URL to the merged Messages view."""
-
-    permanent = False
-    query_string = True
-    direction: str = "all"
-
-    def get_redirect_url(self, *args, **kwargs):
-        url = reverse("message:contact-messages", kwargs={"org_slug": self.org.slug})
-        return f"{url}?direction={self.direction}"

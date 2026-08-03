@@ -83,10 +83,7 @@ class TestInboxRedirect:
     def test_get__redirects_to_contact_timeline(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/inbox/")
         assert response.status_code == 302
-        assert (
-            response.url
-            == f"/org/{org.slug}/email/contacts/messages/?direction=received"
-        )
+        assert response.url == f"/org/{org.slug}/email/messages/?direction=received"
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/inbox/")

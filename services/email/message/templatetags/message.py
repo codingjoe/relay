@@ -13,8 +13,8 @@ from pygments.lexers.email import EmailLexer
 register = template.Library()
 
 _FILTER_VIEWS = {
-    "email": "message:contact-messages",
-    "domain": "message:contact-messages",
+    "email": "message:message-list",
+    "domain": "message:message-list",
     "ip": "email-dashboard:report-list",
 }
 
@@ -114,7 +114,7 @@ def _address_spans(context, value: str) -> dict:
             {
                 "text": address,
                 "url": _contact_url(
-                    "message:contact-messages",
+                    "message:message-list",
                     org_slug,
                     {"email": address},
                 )

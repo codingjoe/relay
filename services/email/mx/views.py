@@ -12,7 +12,7 @@ from django.views.generic import DeleteView, DetailView, ListView, RedirectView,
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
-from services.email.message.views import ContactMessagesView
+from services.email.message.views import MessageListView
 
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
@@ -21,7 +21,7 @@ from .tasks import deliver_to_webhook
 class IncomingMessageDetailView(OrganizationScopedView, DetailView):
     template_name = "mx/message_detail.html"
     context_object_name = "message"
-    parent = "message:contact-messages"
+    parent = "message:message-list"
 
     def get_queryset(self):
         return IncomingMessage.objects.filter(org=self.org)
@@ -45,7 +45,7 @@ class IncomingMessageDetailView(OrganizationScopedView, DetailView):
             "webhook_deliveries": WebhookDelivery.objects.filter(
                 message=self.object
             ).select_related("webhook"),
-            "status_badges": ContactMessagesView.STATUS_BADGES,
+            "status_badges": MessageListView.STATUS_BADGES,
         }
 
 
@@ -170,7 +170,7 @@ class InboxRedirectView(OrganizationScopedView, RedirectView):
     direction: str = "all"
 
     def get_redirect_url(self, *args, **kwargs):
-        url = reverse("message:contact-messages", kwargs={"org_slug": self.org.slug})
+        url = reverse("message:message-list", kwargs={"org_slug": self.org.slug})
         return f"{url}?direction={self.direction}"
 
 
