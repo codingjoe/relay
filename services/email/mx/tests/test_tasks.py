@@ -186,7 +186,9 @@ class TestNotifyPostmasterRecipients:
         )
         with override_settings(EMAIL_BACKEND=LOCMEM):
             notify_postmaster_recipients.func(message_pk=str(msg.id))
-        expected_url = f"{settings.RELAY_BASE_URL}{msg.get_absolute_url()}"
+        expected_url = (
+            f"http://{settings.RELAY_PLATFORM_DOMAIN}{msg.get_absolute_url()}"
+        )
         assert expected_url in mail.outbox[0].body
 
     @pytest.mark.django_db(transaction=True)

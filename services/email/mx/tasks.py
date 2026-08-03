@@ -230,7 +230,10 @@ def notify_postmaster_recipients(message_pk):
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.exclude(user__email="").select_related("user")
 
-    detail_url = f"{settings.RELAY_BASE_URL}{message.get_absolute_url()}"
+    scheme = "http" if settings.DEBUG or settings.TEST else "https"
+    detail_url = (
+        f"{scheme}://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
+    )
     context = {
         "subject": message.subject or _("(no subject)"),
         "mail_from": message.mail_from,

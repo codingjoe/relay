@@ -290,8 +290,6 @@ RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T10000
 RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
 RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
 
-RELAY_BASE_URL = env("RELAY_BASE_URL", default=f"http://{RELAY_PLATFORM_DOMAIN}")
-
 
 vars().update(
     env.email_url(
