@@ -225,17 +225,12 @@ def parse_tls_report(report_pk):
 @task
 def notify_postmaster_recipients(message_pk):
     """Notify all org members by email when a postmaster message is received."""
-    from django.core.mail import send_mail
     from django.template.loader import render_to_string
     from django.utils.translation import gettext_lazy as _
 
     message = IncomingMessage.objects.get(pk=message_pk)
-    recipients = list(
-        message.org.memberships.exclude(user__email="")
-        .select_related("user")
-        .values_list("user__email", flat=True)
-    )
-    if not recipients:
+    memberships = message.org.memberships.exclude(user__email="").select_related("user")
+    if not memberships:
         return
 
     detail_url = f"{settings.RELAY_BASE_URL}{message.get_absolute_url()}"
@@ -245,11 +240,14 @@ def notify_postmaster_recipients(message_pk):
         "rcpt_to": message.rcpt_to,
         "detail_url": detail_url,
     }
-    send_mail(
-        subject=_("Postmaster message received: %(subject)s")
-        % {"subject": message.subject},
-        message=render_to_string("mx/postmaster_notification.txt", context),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
-        fail_silently=True,
-    )
+    body = render_to_string("mx/postmaster_notification.txt", context)
+    subject = _("Postmaster message received: %(subject)s") % {
+        "subject": message.subject
+    }
+    for membership in memberships:
+        membership.user.email_user(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            fail_silently=True,
+        )
