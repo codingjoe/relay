@@ -95,18 +95,12 @@ class Message(TimeStamped):
             )
 
     @property
-    def child(self):
-        """Return the polymorphic subclass instance (outgoing or incoming)."""
-        return (
-            self.outgoingmessage
-            if self.kind == "outgoingmessage"
-            else self.incomingmessage
-        )
-
-    @property
     def status_display(self) -> str:
         """Return a human-readable label for the status."""
-        return self.child.Status(self.status).label if self.status else ""
+        if not self.status:
+            return ""
+        child = self.content_type.get_object_for_this_type(pk=self.pk)
+        return child.Status(self.status).label
 
     @property
     def kind(self) -> str:
@@ -125,7 +119,8 @@ class Message(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        return self.child.status_badge_variant
+        child = self.content_type.get_object_for_this_type(pk=self.pk)
+        return child.status_badge_variant
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
