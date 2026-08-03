@@ -86,12 +86,7 @@ class KnowHowDetailView(MarkdownArticleMixin, MarkdownView):
         )
         metadata, content = frontmatter.parse(markdown_text)
         metadata["license"] = LICENSE_YAML
-        frontmatter_str = (
-            "---\n"
-            + "".join(f"{key}: {value}\n" for key, value in metadata.items())
-            + "---\n\n"
-        )
         return HttpResponse(
-            frontmatter_str + content,
+            frontmatter.dumps(frontmatter.Post(content, **metadata)),
             content_type="text/markdown; charset=utf-8",
         )
