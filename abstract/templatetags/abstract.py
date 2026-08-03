@@ -76,10 +76,14 @@ def param_replace(context, **kwargs):
     return d.urlencode()
 
 
-@register.inclusion_tag("abstract/pagination.html")
-def pagination(page_obj):
-    """Render a pagination nav for a Django Page object."""
-    return {"page_obj": page_obj}
+@register.inclusion_tag("abstract/pagination.html", takes_context=True)
+def pagination(context, page_obj=None):
+    """Render a pagination nav for a Django Page object.
+
+    Falls back to ``context['page_obj']`` when ``page_obj`` is omitted,
+    so most templates can call ``{% pagination %}`` without an argument.
+    """
+    return {"page_obj": page_obj or context.get("page_obj")}
 
 
 @register.simple_tag
