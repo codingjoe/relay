@@ -17,8 +17,8 @@ def make_email():
     return msg
 
 
-@pytest.mark.django_db
 class TestSignMessage:
+    @pytest.mark.django_db
     def test_sign_message__returns_signed_bytes(self):
         from domains.dkim import sign_message
 
@@ -27,6 +27,7 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"DKIM-Signature:" in signed
 
+    @pytest.mark.django_db
     def test_sign_message__signs_with_all_three_ciphers(self):
         from domains.dkim import sign_message
 
@@ -35,6 +36,7 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
         assert signed.count(b"DKIM-Signature:") == 3
 
+    @pytest.mark.django_db
     def test_sign_message__includes_all_selectors(self):
         from domains.dkim import sign_message
 
@@ -45,6 +47,7 @@ class TestSignMessage:
         assert b"s=relay-rsa1024" in signed
         assert b"s=relay-ed25519" in signed
 
+    @pytest.mark.django_db
     def test_sign_message__includes_domain(self):
         from domains.dkim import sign_message
 

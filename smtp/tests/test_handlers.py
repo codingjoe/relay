@@ -30,7 +30,6 @@ class TestHandleData:
         assert result == "530 Authentication required"
 
 
-@pytest.mark.django_db(transaction=True)
 class TestHandleAuth:
     async def test_handle_auth__unrecognized_type(self):
         from smtp.handlers import SMTPHandler
@@ -51,6 +50,7 @@ class TestHandleAuth:
         )
         assert result == "535 Authentication failed"
 
+    @pytest.mark.django_db(transaction=True)
     async def test_handle_auth__wrong_key(self, user, org):
         from smtp.handlers import SMTPHandler
 
@@ -63,6 +63,7 @@ class TestHandleAuth:
         )
         assert result == "535 Authentication failed"
 
+    @pytest.mark.django_db(transaction=True)
     async def test_handle_auth__success(self, user, org):
         from smtp.handlers import SMTPHandler
 

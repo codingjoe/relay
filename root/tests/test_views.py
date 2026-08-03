@@ -27,7 +27,6 @@ class TestHomeView:
 
 
 class TestHomeViewRender:
-    @pytest.mark.django_db
     def test_get__renders_for_anonymous(self, client):
         response = client.get("/")
         assert response.status_code == 200

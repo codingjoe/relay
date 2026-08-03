@@ -1,11 +1,9 @@
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.core.management import call_command
 
 
-@pytest.mark.django_db
 class TestDnsCommand:
     def test_dns_command__parses_host_and_port(self):
         with (

@@ -6,8 +6,8 @@ from django.test import RequestFactory
 from accounts.context_processors import organizations
 
 
-@pytest.mark.django_db
 class TestOrganizationsContextProcessor:
+    @pytest.mark.django_db
     def test_organizations__authenticated_user(self, user, org):
         factory = RequestFactory()
         request = factory.get("/")
@@ -20,6 +20,7 @@ class TestOrganizationsContextProcessor:
         assert context["current_org"] == org
         assert org in context["user_orgs"]
 
+    @pytest.mark.django_db
     def test_organizations__no_current_org(self, user):
         factory = RequestFactory()
         request = factory.get("/")
@@ -39,6 +40,7 @@ class TestOrganizationsContextProcessor:
         request = factory.get("/")
         assert organizations(request) == {}
 
+    @pytest.mark.django_db
     def test_organizations__no_session_cookie_returns_empty(self, user):
         factory = RequestFactory()
         request = factory.get("/")
