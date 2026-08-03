@@ -9,6 +9,7 @@ so each app can reuse them without duplication.
 import pathlib
 import re
 
+import yaml
 from django.http import Http404
 
 from abstract.utils import md_2_html, strip_frontmatter
@@ -20,20 +21,11 @@ SLUG_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
 
 def parse_frontmatter(text):
     """Extract YAML frontmatter and content from a Markdown document."""
-    if not text.startswith("---\n"):
-        return {}, text
-    lines = text.splitlines(keepends=True)
-    for i in range(1, len(lines)):
-        if lines[i].strip() == "---":
-            frontmatter = "".join(lines[1:i])
-            content = "".join(lines[i + 1 :]).lstrip("\n")
-            metadata = {}
-            for fm_line in frontmatter.splitlines():
-                if ":" in fm_line:
-                    key, value = fm_line.split(":", 1)
-                    metadata[key.strip()] = value.strip().strip("\"'")
-            return metadata, content
-    return {}, text
+    head, sep, tail = text.partition("\n---\n")
+    frontmatter = head.removeprefix("---\n") if sep else ""
+    metadata = yaml.safe_load(frontmatter) if sep and head.startswith("---\n") else None
+    content = text if metadata is None else tail.lstrip("\n")
+    return (metadata or {}), content
 
 
 def extract_title(markdown_text):
