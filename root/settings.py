@@ -294,11 +294,7 @@ RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
 vars().update(
     env.email_url(
         "EMAIL_URL",
-        default="memorymail://"
-        if TEST
-        else "consolemail://"
-        if DEBUG
-        else "smtp://localhost:25",
+        default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
     )
 )
 DEFAULT_FROM_EMAIL = env(
