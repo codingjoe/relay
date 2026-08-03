@@ -68,25 +68,4 @@
   </div>
 
   {% pagination page_obj %}
-  <li>
-    <span class="btn" data-variant="secondary" data-size="sm" aria-current="page">
-      {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-    </span>
-  </li>
-  {% if page_obj.has_next %}
-    <li>
-      <a
-        class="btn"
-        data-variant="ghost"
-        data-size="sm"
-        href="?{% param_replace page=page_obj.next_page_number %}"
-      >
-        {% translate "next"|capfirst %}
-        <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
-      </a>
-    </li>
-  {% endif %}
-  </ul>
-  </nav>
-  {% endif %}
 {% endblock %}
