@@ -42,9 +42,9 @@ class MarkdownArticleMixin:
     @classmethod
     def get_article_path(cls, slug: str) -> pathlib.Path:
         """Resolve the filesystem path for an article or raise Http404."""
-        if slug not in cls.slugs:
-            raise Http404("Article not found")
-        return cls.docs_dir / f"{slug}.md"
+        if slug in cls.slugs:
+            return cls.docs_dir / f"{slug}.md"
+        raise Http404("Article not found")
 
     @classmethod
     def get_article_metadata(cls, slug: str) -> dict[str, str]:
