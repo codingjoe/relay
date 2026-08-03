@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message %}
+{% load i18n message abstract %}
 {% block title %}{% translate "TLS reports"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -58,45 +58,26 @@
     </table>
   </div>
 
-  {% if page_obj.has_other_pages %}
-    <nav
-      role="navigation"
-      aria-label='{% translate "pagination"|capfirst %}'
-      class="mx-auto flex w-full justify-center"
-    >
-      <ul class="flex flex-row items-center gap-1">
-        {% if page_obj.has_previous %}
-          <li>
-            <a
-              class="btn"
-              data-variant="ghost"
-              data-size="sm"
-              href="?{% param_replace page=page_obj.previous_page_number %}"
-            >
-              <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
-              {% translate "previous"|capfirst %}
-            </a>
-          </li>
-        {% endif %}
-        <li>
-          <span class="btn" data-variant="secondary" data-size="sm" aria-current="page">
-            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-          </span>
-        </li>
-        {% if page_obj.has_next %}
-          <li>
-            <a
-              class="btn"
-              data-variant="ghost"
-              data-size="sm"
-              href="?{% param_replace page=page_obj.next_page_number %}"
-            >
-              {% translate "next"|capfirst %}
-              <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
-            </a>
-          </li>
-        {% endif %}
-      </ul>
-    </nav>
+  {% pagination page_obj %}
+  <li>
+    <span class="btn" data-variant="secondary" data-size="sm" aria-current="page">
+      {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    </span>
+  </li>
+  {% if page_obj.has_next %}
+    <li>
+      <a
+        class="btn"
+        data-variant="ghost"
+        data-size="sm"
+        href="?{% param_replace page=page_obj.next_page_number %}"
+      >
+        {% translate "next"|capfirst %}
+        <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
+      </a>
+    </li>
+  {% endif %}
+  </ul>
+  </nav>
   {% endif %}
 {% endblock %}

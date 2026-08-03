@@ -76,6 +76,12 @@ def param_replace(context, **kwargs):
     return d.urlencode()
 
 
+@register.inclusion_tag("abstract/pagination.html")
+def pagination(page_obj):
+    """Render a pagination nav for a Django Page object."""
+    return {"page_obj": page_obj}
+
+
 @register.simple_tag
 def include_md(template_name, **context):
     """Render a Markdown template to HTML, stripping any YAML frontmatter."""
