@@ -12,7 +12,6 @@ from django.views import generic
 
 from abstract.markdown_docs import (
     article_path,
-    extract_title,
     list_articles,
 )
 from abstract.utils import md_2_html
@@ -62,7 +61,7 @@ class KnowHowDetailView(MarkdownView):
             return slug
         text = path.read_text()
         metadata, _ = frontmatter.parse(text)
-        return metadata.get("name") or extract_title(text)
+        return metadata["name"]
 
     def get_markdown_template(self):
         return f"{self.kwargs['slug']}.md"
@@ -73,7 +72,7 @@ class KnowHowDetailView(MarkdownView):
         text = path.read_text()
         metadata, _ = frontmatter.parse(text)
         context = super().get_context_data(**kwargs)
-        context["title"] = metadata.get("name") or extract_title(text)
+        context["title"] = metadata["name"]
         context["license"] = md_2_html(LICENSE_MARKDOWN)
         context["meta_description"] = metadata.get("description", "")
         return context

@@ -57,8 +57,6 @@ class AlternativeToDetailView(MarkdownView):
         text = path.read_text()
         metadata, _ = frontmatter.parse(text)
         context = super().get_context_data(**kwargs)
-        context["title"] = metadata.get("name") or article_title(
-            ALTERNATIVE_TO_DIR, slug
-        )
+        context["title"] = metadata["name"]
         context["meta_description"] = metadata.get("description", "")
         return context

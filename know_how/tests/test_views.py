@@ -3,7 +3,6 @@ from django.urls import reverse
 
 from know_how.views import (
     KnowHowDetailView,
-    extract_title,
     list_articles,
 )
 
@@ -26,20 +25,6 @@ class TestListArticles:
         articles = list_articles()
         dmarc = next(a for a in articles if a["slug"] == "dmarc")
         assert dmarc["description"]
-
-
-class TestExtractTitle:
-    def test_extract_title__returns_h1_text(self):
-        markdown_text = "# DMARC\n\nSome content."
-        assert extract_title(markdown_text) == "DMARC"
-
-    def test_extract_title__returns_empty_for_no_h1(self):
-        markdown_text = "Some content without a heading."
-        assert extract_title(markdown_text) == ""
-
-    def test_extract_title__ignores_frontmatter(self):
-        markdown_text = "---\nname: DMARC\n---\n\n# DMARC\n\nContent."
-        assert extract_title(markdown_text) == "DMARC"
 
 
 class TestFrontmatterParse:
