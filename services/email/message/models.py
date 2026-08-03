@@ -4,6 +4,7 @@ import uuid
 from email import message_from_bytes
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -58,9 +59,11 @@ class Message(TimeStamped):
         default=False,
         help_text=_("Submission received over TLS."),
     )
+
+    class Status(models.TextChoices): ...
+
     status = models.TextField(
         _("status"),
-        default="",
         help_text=_("Delivery lifecycle state."),
     )
     domain = models.ForeignKey(
@@ -82,7 +85,14 @@ class Message(TimeStamped):
     def save(self, *args, **kwargs):
         if not self.content_type_id:
             self.content_type = ContentType.objects.get_for_model(type(self))
+        self.clean_status()
         super().save(*args, **kwargs)
+
+    def clean_status(self):
+        if self.status not in self.Status.values:
+            raise ValidationError(
+                _("Invalid status value: %(value)s"), params={"value": self.status}
+            )
 
     @property
     def kind(self) -> str:

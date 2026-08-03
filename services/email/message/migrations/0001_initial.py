@@ -91,7 +91,6 @@ class Migration(migrations.Migration):
                 (
                     "status",
                     models.TextField(
-                        default="",
                         help_text="Delivery lifecycle state.",
                         verbose_name="status",
                     ),
