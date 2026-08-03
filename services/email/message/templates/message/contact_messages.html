@@ -65,8 +65,8 @@
       <thead>
         <tr>
           <th></th>
-          <th>{% translate "sent"|capfirst %}</th>
           <th>{% translate "status"|capfirst context "noun" %}</th>
+          <th>{% translate "sent"|capfirst %}</th>
           <th>{% translate "from"|capfirst context "email" %}</th>
           <th>{% translate "to"|capfirst context "email" %}</th>
           <th>{% translate "domain"|capfirst context "noun" %}</th>
@@ -78,13 +78,9 @@
           {% if message.kind == 'outgoingmessage' %}
             <tr class="hover:bg-muted/50">
               <td>
-                <i
-                  data-lucide="send"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "sent"|capfirst %}'
-                ></i>
+                <i data-lucide="send" class="size-4 text-muted-foreground" aria-label='{% translate "sent"|capfirst %}'>
+                </i>
               </td>
-              <td>{% timestamp message.created_at %}</td>
               <td>
                 <span
                   class="badge"
@@ -94,6 +90,7 @@
                   {{ message.outgoingmessage.get_status_display }}
                 </span>
               </td>
+              <td>{% timestamp message.created_at %}</td>
               <td><code>{% email_links message.mail_from %}</code></td>
               <td><code>{% email_links message.rcpt_to %}</code></td>
               <td>
@@ -104,7 +101,7 @@
                 {% endif %}
               </td>
               <td>
-                <a class="btn" data-size="sm" data-variant="ghost" href="{{ message.get_absolute_url }}">
+                <a class="btn" data-size="sm" data-variant="secondary" href="{{ message.get_absolute_url }}">
                   {% translate "detail"|capfirst %}
                 </a>
               </td>
@@ -116,7 +113,8 @@
                   data-lucide="inbox"
                   class="size-4 text-muted-foreground"
                   aria-label='{% translate "received"|capfirst %}'
-                ></i>
+                >
+                </i>
               </td>
               <td>{% timestamp message.created_at %}</td>
               <td>
