@@ -220,3 +220,36 @@ def parse_tls_report(report_pk):
     for failure in failures:
         failure.report = report
     TlsFailure.objects.bulk_create(failures)
+
+
+@task
+def notify_postmaster_recipients(message_pk):
+    """Notify all org members by email when a postmaster message is received."""
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+    from django.utils.translation import gettext_lazy as _
+
+    message = IncomingMessage.objects.get(pk=message_pk)
+    recipients = list(
+        message.org.memberships.exclude(user__email="")
+        .select_related("user")
+        .values_list("user__email", flat=True)
+    )
+    if not recipients:
+        return
+
+    detail_url = f"{settings.RELAY_BASE_URL}{message.get_absolute_url()}"
+    context = {
+        "subject": message.subject or _("(no subject)"),
+        "mail_from": message.mail_from,
+        "rcpt_to": message.rcpt_to,
+        "detail_url": detail_url,
+    }
+    send_mail(
+        subject=_("Postmaster message received: %(subject)s")
+        % {"subject": message.subject},
+        message=render_to_string("mx/postmaster_notification.txt", context),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=recipients,
+        fail_silently=True,
+    )

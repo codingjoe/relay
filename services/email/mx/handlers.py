@@ -9,7 +9,7 @@ from django.db import transaction
 from domains.models import Domain
 
 from .models import IncomingMessage, TlsReport
-from .tasks import dispatch_webhook, parse_tls_report
+from .tasks import dispatch_webhook, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,31 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
             report.save(force_insert=True)
             transaction.on_commit(
                 lambda: parse_dmarc_failure_report.enqueue(report_pk=report.pk)
+            )
+            return "250 OK"
+
+        case lp if lp == settings.RELAY_POSTMASTER_LOCAL_PART or lp.startswith(
+            f"{settings.RELAY_POSTMASTER_LOCAL_PART}+"
+        ):
+            message = IncomingMessage(
+                org=domain.org,
+                receiving_domain=rcpt_domain,
+                mail_from=mail_from,
+                rcpt_to=rcpt_to,
+                subject=msg.get("Subject", ""),
+                message_id=msg.get("Message-ID", ""),
+                received_with_tls=bool(tls),
+                status=IncomingMessage.Status.RECEIVED,
+            )
+            message.raw_body.save(
+                f"{message.id}.eml", ContentFile(raw_bytes), save=False
+            )
+            message.save(force_insert=True)
+            transaction.on_commit(
+                lambda: dispatch_webhook.enqueue(message_id=str(message.id))
+            )
+            transaction.on_commit(
+                lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))
             )
             return "250 OK"
 

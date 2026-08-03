@@ -281,6 +281,7 @@ RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dmarc")
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
+RELAY_POSTMASTER_LOCAL_PART = env("RELAY_POSTMASTER_LOCAL_PART", default="postmaster")
 
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
@@ -288,6 +289,25 @@ RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T10000
 
 RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
 RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
+
+RELAY_BASE_URL = env("RELAY_BASE_URL", default=f"http://{RELAY_PLATFORM_DOMAIN}")
+
+
+# Email backend for transactional notifications (postmaster alerts, etc.)
+# Production sends through an SMTP relay; development/test use the console.
+EMAIL_BACKEND = (
+    "django.core.mail.backends.console.EmailBackend"
+    if DEBUG or TEST
+    else "django.core.mail.backends.smtp.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL", default=f"postmaster@{RELAY_PLATFORM_DOMAIN}"
+)
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=25)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
 
 # Django task framework
