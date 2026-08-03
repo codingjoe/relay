@@ -3,6 +3,7 @@
 import pathlib
 from functools import partial
 
+import frontmatter
 from django.conf import settings
 from django.http import Http404, HttpResponse
 from django.template import loader
@@ -13,7 +14,6 @@ from abstract.markdown_docs import (
     article_path,
     extract_title,
     list_articles,
-    parse_frontmatter,
 )
 from abstract.utils import md_2_html
 from abstract.views import BreadcrumbViewMixin, CacheControlMixin, MarkdownView
@@ -61,7 +61,7 @@ class KnowHowDetailView(MarkdownView):
         except Http404:
             return slug
         text = path.read_text()
-        metadata, _ = parse_frontmatter(text)
+        metadata, _ = frontmatter.parse(text)
         return metadata.get("name") or extract_title(text)
 
     def get_markdown_template(self):
@@ -71,7 +71,7 @@ class KnowHowDetailView(MarkdownView):
         slug = self.kwargs["slug"]
         path = article_path(slug)
         text = path.read_text()
-        metadata, _ = parse_frontmatter(text)
+        metadata, _ = frontmatter.parse(text)
         context = super().get_context_data(**kwargs)
         context["title"] = metadata.get("name") or extract_title(text)
         context["license"] = md_2_html(LICENSE_MARKDOWN)
@@ -84,14 +84,14 @@ class KnowHowDetailView(MarkdownView):
         markdown_text = loader.get_template(self.get_markdown_template()).render(
             context=context, request=request
         )
-        metadata, content = parse_frontmatter(markdown_text)
+        metadata, content = frontmatter.parse(markdown_text)
         metadata["license"] = LICENSE_YAML
-        frontmatter = (
+        frontmatter_str = (
             "---\n"
             + "".join(f"{key}: {value}\n" for key, value in metadata.items())
             + "---\n\n"
         )
         return HttpResponse(
-            frontmatter + content,
+            frontmatter_str + content,
             content_type="text/markdown; charset=utf-8",
         )

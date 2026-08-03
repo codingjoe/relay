@@ -14,12 +14,6 @@ from django.http import Http404
 from abstract.utils import md_2_html, strip_frontmatter
 
 
-def parse_frontmatter(text):
-    """Extract YAML frontmatter and content from a Markdown document."""
-    metadata, content = frontmatter.parse(text)
-    return metadata or {}, content
-
-
 def extract_title(markdown_text):
     """Return the first H1 heading text from the given Markdown."""
     return next(
@@ -52,7 +46,7 @@ def list_articles(docs_dir):
             "description": md_2_html(metadata.get("description", "")),
         }
         for slug in sorted(article_slugs(docs_dir))
-        for metadata, text in [parse_frontmatter((docs_dir / f"{slug}.md").read_text())]
+        for metadata, text in [frontmatter.parse((docs_dir / f"{slug}.md").read_text())]
         if (title := metadata.get("name") or extract_title(text))
     ]
 
@@ -72,5 +66,5 @@ def article_title(docs_dir, slug):
     # escape `docs_dir`.
     path = article_path(docs_dir, slug)
     text = path.read_text()  # codeql[py/path-injection]
-    metadata, _ = parse_frontmatter(text)
+    metadata, _ = frontmatter.parse(text)
     return metadata.get("name") or extract_title(text)

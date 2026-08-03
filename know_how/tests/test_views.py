@@ -1,10 +1,10 @@
+import frontmatter
 from django.urls import reverse
 
 from know_how.views import (
     KnowHowDetailView,
     extract_title,
     list_articles,
-    parse_frontmatter,
 )
 
 
@@ -42,16 +42,16 @@ class TestExtractTitle:
         assert extract_title(markdown_text) == "DMARC"
 
 
-class TestParseFrontmatter:
-    def test_parse_frontmatter__returns_metadata_and_content(self):
+class TestFrontmatterParse:
+    def test_frontmatter_parse__returns_metadata_and_content(self):
         text = "---\nname: DMARC\ndescription: Test\n---\n\n# DMARC\n\nBody."
-        metadata, content = parse_frontmatter(text)
+        metadata, content = frontmatter.parse(text)
         assert metadata == {"name": "DMARC", "description": "Test"}
         assert content == "# DMARC\n\nBody."
 
-    def test_parse_frontmatter__no_frontmatter(self):
+    def test_frontmatter_parse__no_frontmatter(self):
         text = "# DMARC\n\nBody."
-        metadata, content = parse_frontmatter(text)
+        metadata, content = frontmatter.parse(text)
         assert metadata == {}
         assert content == text
 

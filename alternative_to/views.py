@@ -3,6 +3,7 @@
 import pathlib
 from functools import partial
 
+import frontmatter
 from django.conf import settings
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
@@ -12,7 +13,6 @@ from abstract.markdown_docs import (
     article_path,
     article_title,
     list_articles,
-    parse_frontmatter,
 )
 from abstract.views import BreadcrumbViewMixin, MarkdownView
 
@@ -55,7 +55,7 @@ class AlternativeToDetailView(MarkdownView):
         slug = self.kwargs["slug"]
         path = comparison_path(slug)
         text = path.read_text()
-        metadata, _ = parse_frontmatter(text)
+        metadata, _ = frontmatter.parse(text)
         context = super().get_context_data(**kwargs)
         context["title"] = metadata.get("name") or article_title(
             ALTERNATIVE_TO_DIR, slug
