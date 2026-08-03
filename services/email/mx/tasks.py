@@ -230,8 +230,6 @@ def notify_postmaster_recipients(message_pk):
 
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.exclude(user__email="").select_related("user")
-    if not memberships:
-        return
 
     detail_url = f"{settings.RELAY_BASE_URL}{message.get_absolute_url()}"
     context = {
