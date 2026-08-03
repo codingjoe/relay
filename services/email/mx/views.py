@@ -16,7 +16,7 @@ from .tasks import deliver_to_webhook
 
 
 class IncomingMessageDetailView(OrganizationScopedView, DetailView):
-    template_name = "mx/message_detail.html"
+    template_name = "mx/incomingmessage_detail.html"
     context_object_name = "message"
     parent = "message:message-list"
 

@@ -155,12 +155,6 @@ Update it based on review feedback.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
-    Map status semantics to variants consistently across the app:
-    successful states (`sent`, `delivered`, `received`) → `primary`;
-    in-flight or neutral states (`pending`, `held`, `retry`,
-    `webhook_sent`) → `outline`;
-    failure states (`bounced`, `dropped`, `failed`,
-    `webhook_failed`) → `destructive`.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (for example, organizations). Prefer items
@@ -275,7 +269,7 @@ Update it based on review feedback.
   Per-kind indexes stay on the child.
 
 - A `content_type` FK to `ContentType` records the subclass for each
-  row. Each child sets it in `save()` via
+  row. The base `Message.save()` sets it via
   `ContentType.objects.get_for_model(type(self))`.
 
 ## Merged list views

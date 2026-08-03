@@ -75,13 +75,13 @@ def webhook_server():
 class TestIncomingMessageDetailView:
     def test_get__ok_for_member(self, admin_client, org):
         msg = make_incoming(org)
-        response = admin_client.get(f"/org/{org.slug}/email/inbox/{msg.id}")
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 200
         assert response.context["message"] == msg
 
     def test_get__not_found_for_other_org(self, admin_client, org, write_org):
         msg = make_incoming(write_org)
-        response = admin_client.get(f"/org/{org.slug}/email/inbox/{msg.id}")
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 404
 
     def test_get__context_has_headers_and_parts(self, admin_client, org):
@@ -94,7 +94,7 @@ class TestIncomingMessageDetailView:
             b"Hello body"
         )
         msg = make_incoming(org, raw_body=raw)
-        response = admin_client.get(f"/org/{org.slug}/email/inbox/{msg.id}")
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 200
         assert "headers" in response.context
         assert "parts" in response.context
@@ -116,7 +116,7 @@ class TestIncomingMessageDetailView:
             b"--BOUND--\r\n"
         )
         msg = make_incoming(org, raw_body=raw)
-        response = admin_client.get(f"/org/{org.slug}/email/inbox/{msg.id}")
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 200
         assert len(response.context["parts"]) >= 1
 

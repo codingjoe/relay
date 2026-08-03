@@ -3,7 +3,6 @@ import uuid
 from fnmatch import fnmatch
 
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -33,31 +32,13 @@ class IncomingMessage(Message):
         blank=True,
         help_text=_("Domain part of the recipient address, for example app.acme.com."),
     )
-    status = models.TextField(
-        _("status"),
-        choices=Status,
-        default=Status.RECEIVED,
-        help_text=_("Ingress and webhook delivery lifecycle state."),
-    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
-        indexes = [
-            models.Index(fields=["status"]),
-        ]
-
-    def save(self, *args, **kwargs):
-        if not self.content_type_id:
-            self.content_type = ContentType.objects.get_for_model(type(self))
-        super().save(*args, **kwargs)
-
-    @property
-    def status_display(self) -> str:
-        return self.get_status_display()
 
     @property
     def domain_name(self) -> str:
-        return self.receiving_domain
+        return self.receiving_domain or super().domain_name
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
@@ -243,14 +224,6 @@ class WebhookDelivery(TimeStamped):
 class TlsReport(IncomingMessage):
     """Receive TLS-RPT reports from sending organizations."""
 
-    domain = models.ForeignKey(
-        "domains.Domain",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="tls_reports",
-        help_text=_("Domain the report covers."),
-    )
     reporting_org = models.TextField(
         _("reporting organization"),
         blank=True,
@@ -289,12 +262,6 @@ class TlsReport(IncomingMessage):
     )
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["domain", "report_id"],
-                name="unique_tls_report",
-            ),
-        ]
         indexes = [
             models.Index(fields=["begin_at"]),
         ]

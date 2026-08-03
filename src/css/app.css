@@ -17,10 +17,10 @@
   color: var(--color-link);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
 
-.link:hover {
-  text-decoration: none;
+  &:hover {
+    text-decoration: none;
+  }
 }
 
 /* RFC 822 email header syntax highlighting via Pygments EmailLexer.
@@ -42,45 +42,45 @@
   overflow-x: auto;
   font-size: 0.875rem;
   line-height: 1.4;
-}
 
-.highlight-email pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
-}
+  & pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  }
 
-.highlight-email .nt {
-  color: var(--color-primary-text);
-  font-weight: 600;
-}
+  & .nt {
+    color: var(--color-primary-text);
+    font-weight: 600;
+  }
 
-.highlight-email .nl {
-  color: hsl(199, 89%, 48%);
-}
+  & .nl {
+    color: hsl(199, 89%, 48%);
+  }
 
-.highlight-email .nf {
-  color: hsl(199, 89%, 48%);
-}
+  & .nf {
+    color: hsl(199, 89%, 48%);
+  }
 
-.highlight-email .mi {
-  color: hsl(28, 90%, 55%);
-}
+  & .mi {
+    color: hsl(28, 90%, 55%);
+  }
 
-.highlight-email .nd {
-  color: hsl(28, 90%, 55%);
-  font-style: italic;
-}
+  & .nd {
+    color: hsl(28, 90%, 55%);
+    font-style: italic;
+  }
 
-.highlight-email .k {
-  color: hsl(340, 82%, 52%);
-}
+  & .k {
+    color: hsl(340, 82%, 52%);
+  }
 
-.highlight-email .o {
-  color: var(--color-muted-foreground);
-}
+  & .o {
+    color: var(--color-muted-foreground);
+  }
 
-.highlight-email .w {
-  color: var(--color-muted-foreground);
+  & .w {
+    color: var(--color-muted-foreground);
+  }
 }

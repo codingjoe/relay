@@ -6,7 +6,7 @@ app_name = "mx"
 
 urlpatterns = [
     path(
-        "inbox/",
+        "incoming/",
         include(
             [
                 path(

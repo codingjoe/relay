@@ -3,7 +3,6 @@
 import uuid
 
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -30,13 +29,6 @@ class OutgoingMessage(Message):
         on_delete=models.CASCADE,
         related_name="outgoing_messages",
     )
-    domain = models.ForeignKey(
-        "domains.Domain",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="outgoing_messages",
-    )
     credential = models.ForeignKey(
         "SmtpCredential",
         on_delete=models.SET_NULL,
@@ -44,32 +36,9 @@ class OutgoingMessage(Message):
         blank=True,
         related_name="outgoing_messages",
     )
-    status = models.TextField(
-        _("status"),
-        choices=Status,
-        default=Status.PENDING,
-        help_text=_("Send/deliver lifecycle state."),
-    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
-        indexes = [
-            models.Index(fields=["sender", "status"]),
-            models.Index(fields=["domain", "status"]),
-        ]
-
-    def save(self, *args, **kwargs):
-        if not self.content_type_id:
-            self.content_type = ContentType.objects.get_for_model(type(self))
-        super().save(*args, **kwargs)
-
-    @property
-    def status_display(self) -> str:
-        return self.get_status_display()
-
-    @property
-    def domain_name(self) -> str:
-        return str(self.domain) if self.domain_id else ""
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"

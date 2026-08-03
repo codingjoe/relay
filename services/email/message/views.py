@@ -6,8 +6,6 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 
 from accounts.views import OrganizationScopedView
-from services.email.mx.models import IncomingMessage
-from services.email.smtp.models import OutgoingMessage
 
 from .models import Message
 
@@ -24,20 +22,6 @@ class MessageListView(OrganizationScopedView, ListView):
         ALL = "all", _("all")
         SENT = "sent", _("sent")
         RECEIVED = "received", _("received")
-
-    class StatusChoices(models.TextChoices):
-        """Union of :class:`OutgoingMessage.Status` and :class:`IncomingMessage.Status`."""
-
-        PENDING = OutgoingMessage.Status.PENDING, _("pending")
-        SENT = OutgoingMessage.Status.SENT, _("sent")
-        DELIVERED = OutgoingMessage.Status.DELIVERED, _("delivered")
-        HELD = OutgoingMessage.Status.HELD, _("held")
-        BOUNCED = OutgoingMessage.Status.BOUNCED, _("bounced")
-        DROPPED = OutgoingMessage.Status.DROPPED, _("dropped")
-        FAILED = OutgoingMessage.Status.FAILED, _("failed")
-        RECEIVED = IncomingMessage.Status.RECEIVED, _("received")
-        WEBHOOK_SENT = IncomingMessage.Status.WEBHOOK_SENT, _("webhook sent")
-        WEBHOOK_FAILED = IncomingMessage.Status.WEBHOOK_FAILED, _("webhook failed")
 
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
@@ -64,5 +48,4 @@ class MessageListView(OrganizationScopedView, ListView):
             "direction": self.request.GET.get("direction", self.Direction.ALL),
             "email": self.request.GET.get("email", ""),
             "status": self.request.GET.get("status", ""),
-            "status_choices": self.StatusChoices.choices,
         }

@@ -26,14 +26,6 @@ class DmarcReport(IncomingMessage):
         QUARANTINE = "quarantine", _("quarantine")
         REJECT = "reject", _("reject")
 
-    domain = models.ForeignKey(
-        "domains.Domain",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="dmarc_reports",
-        help_text=_("Monitored domain."),
-    )
     reporting_org = models.TextField(
         _("reporting organization"),
         blank=True,
@@ -62,12 +54,6 @@ class DmarcReport(IncomingMessage):
     )
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["domain", "report_id"],
-                name="unique_dmarc_report",
-            ),
-        ]
         indexes = [
             models.Index(fields=["begin_at"]),
         ]
@@ -235,14 +221,6 @@ class DmarcFailureReport(IncomingMessage):
         REJECTED = "rejected", _("rejected")
         OTHER = "other", _("other")
 
-    domain = models.ForeignKey(
-        "domains.Domain",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="dmarc_failure_reports",
-        help_text=_("Monitored domain."),
-    )
     reporting_org = models.TextField(
         _("reporting organization"),
         blank=True,

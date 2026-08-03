@@ -115,11 +115,6 @@ three transmissions, three SigningKeys. Load with
 1. Validate that the YAML is well-formed via the `yamlfmt`
    pre-commit hook.
 
-The `services.email.message` app is included because `OutgoingMessage` inherits from
-`Message` via multi-table inheritance: the parent rows must be loaded
-before the child rows, otherwise `loaddata` fails on a missing
-`message_message.id` foreign key.
-
 The `test` user has no admin or staff access — only a `write`
 membership in `acme`. The dev server authenticates via the
 `RemoteUserBackend` middleware when `DEBUG=True`, so the bundle

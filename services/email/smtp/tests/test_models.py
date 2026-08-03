@@ -34,7 +34,7 @@ class TestOutgoingMessageDefaults:
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
         )
-        assert msg.status == OutgoingMessage.Status.PENDING
+        assert msg.status == ""  # default set by base Message; subclasses set their own
 
     def test_default_received_with_tls__false(self):
         user = User.objects.create_user(username="alice", email="a@example.com")

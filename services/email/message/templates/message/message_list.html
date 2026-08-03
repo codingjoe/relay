@@ -47,14 +47,14 @@
       </div>
       <div role="group" class="field flex-1 min-w-48">
         <label for="filter-status">{% translate "status"|capfirst context "noun" %}</label>
-        <select id="filter-status" name="status" class="select">
-          <option value="">{% translate "all"|capfirst %}</option>
-          {% for value, label in status_choices %}
-            <option value="{{ value }}" {% if status == value %}selected{% endif %}>
-              {{ label }}
-            </option>
-          {% endfor %}
-        </select>
+        <input
+          id="filter-status"
+          type="search"
+          name="status"
+          value="{{ status }}"
+          class="input"
+          placeholder='{% translate "search by status" %}'
+        >
       </div>
       <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
     </div>

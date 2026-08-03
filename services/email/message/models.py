@@ -1,6 +1,7 @@
 """Shared message model for inbound and outbound email."""
 
 import uuid
+from email import message_from_bytes
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -57,9 +58,31 @@ class Message(TimeStamped):
         default=False,
         help_text=_("Submission received over TLS."),
     )
+    status = models.TextField(
+        _("status"),
+        default="",
+        help_text=_("Delivery lifecycle state."),
+    )
+    domain = models.ForeignKey(
+        "domains.Domain",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text=_("Domain associated with this message."),
+    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["domain", "status"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.content_type_id:
+            self.content_type = ContentType.objects.get_for_model(type(self))
+        super().save(*args, **kwargs)
 
     @property
     def kind(self) -> str:
@@ -71,24 +94,14 @@ class Message(TimeStamped):
         return "send" if self.kind == "outgoingmessage" else "inbox"
 
     @property
-    def status(self) -> str:
-        """Return the delivery lifecycle status."""
-        raise NotImplementedError
-
-    @property
-    def status_display(self) -> str:
-        """Return a human-readable label for the status."""
-        raise NotImplementedError
-
-    @property
     def domain_name(self) -> str:
         """Return the associated domain name."""
-        raise NotImplementedError
+        return str(self.domain) if self.domain_id else ""
 
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        raise NotImplementedError
+        return "outline"
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
@@ -98,15 +111,8 @@ class Message(TimeStamped):
         return child.get_absolute_url()
 
     def parsed_email(self):
-        """Parse the raw body into an :class:`email.message.Message` object.
-
-        Return an empty message when the raw body is missing or unreadable.
-        """
-        from email import message_from_bytes
-
-        if not self.raw_body:
-            return message_from_bytes(b"")
+        """Parse the raw body into an :class:`email.message.Message` object."""
         try:
             return message_from_bytes(self.raw_body.read())
         except FileNotFoundError:
-            return message_from_bytes(b"")
+            return message_from_bytes(b"body pruned")
