@@ -89,17 +89,17 @@ class TestAlternativeToDetailView:
         body = response.content.decode()
         assert "# Alternative to Amazon SES" in body
 
-    def test_get__returns_html_without_accept_header(self, client):
+    def test_get__returns_html_for_browser_request(self, client):
         response = client.get(reverse("alternative_to:detail", args=["ses"]))
         assert response.status_code == 200
         assert "text/html" in response["Content-Type"]
 
-    def test_get__html_has_no_license(self, client):
+    def test_get__html_omits_license(self, client):
         response = client.get(reverse("alternative_to:detail", args=["ses"]))
         body = response.content.decode()
         assert "Creative Commons" not in body
 
-    def test_get__markdown_has_no_license(self, client):
+    def test_get__markdown_omits_license(self, client):
         response = client.get(
             reverse("alternative_to:detail", args=["ses"]),
             HTTP_ACCEPT="text/markdown",
