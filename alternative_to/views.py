@@ -2,7 +2,6 @@
 
 import pathlib
 
-import frontmatter
 from django.conf import settings
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
@@ -42,7 +41,7 @@ class AlternativeToDetailView(MarkdownArticleMixin, MarkdownView):
     def get_title(cls, request):
         slug = request.resolver_match.kwargs.get("slug", "")
         try:
-            return cls.get_article_title(slug)
+            return cls.get_article_metadata(slug)["name"]
         except Http404:
             return slug
 
@@ -50,11 +49,9 @@ class AlternativeToDetailView(MarkdownArticleMixin, MarkdownView):
         return f"{self.kwargs['slug']}.md"
 
     def get_context_data(self, **kwargs):
-        slug = self.kwargs["slug"]
-        path = self.get_article_path(slug)
-        text = path.read_text()
-        metadata, _ = frontmatter.parse(text)
-        context = super().get_context_data(**kwargs)
-        context["title"] = metadata["name"]
-        context["meta_description"] = metadata.get("description", "")
-        return context
+        metadata = self.get_article_metadata(self.kwargs["slug"])
+        return super().get_context_data(**kwargs) | {
+            "title": metadata["name"],
+            "meta_description": metadata.get("description", ""),
+            "metadata": metadata,
+        }

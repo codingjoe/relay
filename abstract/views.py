@@ -55,12 +55,12 @@ class MarkdownArticleMixin:
         return cls.docs_dir / f"{slug}.md"
 
     @classmethod
-    def get_article_title(cls, slug: str) -> str:
-        """Return the display title (frontmatter name) for an article."""
+    def get_article_metadata(cls, slug: str) -> dict[str, str]:
+        """Return the frontmatter metadata for an article."""
         path = cls.get_article_path(slug)
         text = path.read_text()
         metadata, _ = frontmatter.parse(text)
-        return metadata["name"]
+        return metadata
 
 
 class BreadcrumbViewMixin:

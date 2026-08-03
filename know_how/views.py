@@ -59,26 +59,21 @@ class KnowHowDetailView(MarkdownArticleMixin, MarkdownView):
     def get_title(cls, request):
         slug = request.resolver_match.kwargs.get("slug", "")
         try:
-            path = cls.get_article_path(slug)
+            return cls.get_article_metadata(slug)["name"]
         except Http404:
             return slug
-        text = path.read_text()
-        metadata, _ = frontmatter.parse(text)
-        return metadata["name"]
 
     def get_markdown_template(self):
         return f"{self.kwargs['slug']}.md"
 
     def get_context_data(self, **kwargs):
-        slug = self.kwargs["slug"]
-        path = self.get_article_path(slug)
-        text = path.read_text()
-        metadata, _ = frontmatter.parse(text)
-        context = super().get_context_data(**kwargs)
-        context["title"] = metadata["name"]
-        context["license"] = md_2_html(LICENSE_MARKDOWN)
-        context["meta_description"] = metadata.get("description", "")
-        return context
+        metadata = self.get_article_metadata(self.kwargs["slug"])
+        return super().get_context_data(**kwargs) | {
+            "title": metadata["name"],
+            "license": md_2_html(LICENSE_MARKDOWN),
+            "meta_description": metadata.get("description", ""),
+            "metadata": metadata,
+        }
 
     def render_markdown(self, request, **kwargs):
         """Return the article as text/markdown with license injected into frontmatter."""
