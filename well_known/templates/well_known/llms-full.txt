@@ -10,11 +10,11 @@ Source: {{ article.url }}
 
 {{ article.content }}
 {% endfor %}
-{% for article in comparisons %}---
+{% for comparison in comparisons %}---
 
-# {{ article.title }}
+# {{ comparison.title }}
 
-Source: {{ article.url }}
+Source: {{ comparison.url }}
 
-{{ article.content }}
+{{ comparison.content }}
 {% endfor %}

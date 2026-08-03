@@ -9,7 +9,7 @@
 {% endfor %}
 ## Alternative to
 
-{% for article in comparisons %}- [{{ article.title }}]({{ article.url }})
+{% for comparison in comparisons %}- [{{ comparison.title }}]({{ comparison.url }})
 {% endfor %}
 ## Legal
 

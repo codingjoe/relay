@@ -53,7 +53,7 @@ class AlternativeToSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return [article["slug"] for article in list_comparisons()]
+        return [comparison["slug"] for comparison in list_comparisons()]
 
     def location(self, slug):
         return reverse("alternative_to:detail", args=[slug])

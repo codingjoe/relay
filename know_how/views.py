@@ -79,7 +79,7 @@ class KnowHowDetailView(MarkdownView):
         return context
 
     def render_markdown(self, request, **kwargs):
-        """Return the article as ``text/markdown`` with license injected into frontmatter."""
+        """Return the article as `text/markdown` with license injected into frontmatter."""
         context = self.get_context_data(**kwargs)
         markdown_text = loader.get_template(self.get_markdown_template()).render(
             context=context, request=request

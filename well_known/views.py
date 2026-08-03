@@ -52,12 +52,12 @@ class LlmsTxtView(CacheControlMixin, TemplateView):
         ]
         comparisons = [
             {
-                "title": article["title"],
+                "title": comparison["title"],
                 "url": self.request.build_absolute_uri(
-                    reverse("alternative_to:detail", args=[article["slug"]])
+                    reverse("alternative_to:detail", args=[comparison["slug"]])
                 ),
             }
-            for article in list_comparisons()
+            for comparison in list_comparisons()
         ]
         return super().get_context_data(**kwargs) | {
             "articles": articles,
@@ -92,16 +92,16 @@ class LlmsFullTxtView(CacheControlMixin, TemplateView):
             "articles": articles,
             "comparisons": [
                 {
-                    "title": article["title"],
+                    "title": comparison["title"],
                     "url": self.request.build_absolute_uri(
-                        reverse("alternative_to:detail", args=[article["slug"]])
+                        reverse("alternative_to:detail", args=[comparison["slug"]])
                     ),
                     "content": strip_frontmatter(
-                        loader.get_template(f"{article['slug']}.md").render(
+                        loader.get_template(f"{comparison['slug']}.md").render(
                             request=self.request
                         )
                     ),
                 }
-                for article in list_comparisons()
+                for comparison in list_comparisons()
             ],
         }

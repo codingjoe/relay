@@ -1,4 +1,4 @@
-"""Generic helpers for Markdown-document apps.
+"""Markdown article parsing and listing for know-how and alternative-to.
 
 Apps that serve Markdown articles from a docs directory (know-how,
 alternative-to) share the same frontmatter parsing, title extraction, and
