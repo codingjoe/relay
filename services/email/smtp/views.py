@@ -114,7 +114,7 @@ class SmtpCredentialListView(OrganizationScopedView, ListView):
     template_name = "smtp/credential_list.html"
     context_object_name = "credentials"
     title = _("SMTP credentials")
-    parent = "dashboard:dashboard"
+    parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
         return SmtpCredential.objects.filter(org=self.org)

@@ -53,7 +53,7 @@ class WebhookListView(OrganizationScopedView, ListView):
     template_name = "mx/webhook_list.html"
     context_object_name = "webhooks"
     title = _("Webhooks")
-    parent = "dashboard:dashboard"
+    parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
         return Webhook.objects.filter(org=self.org)
@@ -128,7 +128,7 @@ class TlsReportListView(OrganizationScopedView, ListView):
     context_object_name = "reports"
     paginate_by = 50
     title = _("TLS reports")
-    parent = "dashboard:dashboard"
+    parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
         qs = TlsReport.objects.filter(org=self.org)
@@ -151,7 +151,7 @@ class TlsReportListView(OrganizationScopedView, ListView):
 class TlsReportDetailView(OrganizationScopedView, DetailView):
     template_name = "mx/tls_report_detail.html"
     context_object_name = "report"
-    parent = "dashboard:contact-reports"
+    parent = "email-dashboard:contact-reports"
 
     def get_queryset(self):
         return TlsReport.objects.filter(org=self.org)
@@ -182,5 +182,7 @@ class TlsReportListRedirectView(OrganizationScopedView, RedirectView):
     report_type: str = "dmarc"
 
     def get_redirect_url(self, *args, **kwargs):
-        url = reverse("dashboard:contact-reports", kwargs={"org_slug": self.org.slug})
+        url = reverse(
+            "email-dashboard:contact-reports", kwargs={"org_slug": self.org.slug}
+        )
         return f"{url}?type={self.report_type}"

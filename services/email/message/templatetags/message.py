@@ -15,7 +15,7 @@ register = template.Library()
 _FILTER_VIEWS = {
     "email": "message:contact-messages",
     "domain": "message:contact-messages",
-    "ip": "dashboard:contact-reports",
+    "ip": "email-dashboard:contact-reports",
 }
 
 

@@ -14,7 +14,7 @@ class DmarcReportListView(OrganizationScopedView, ListView):
     context_object_name = "reports"
     paginate_by = 50
     title = _("DMARC reports")
-    parent = "dashboard:dashboard"
+    parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
         qs = DmarcReport.objects.filter(org=self.org)
@@ -38,7 +38,7 @@ class DmarcReportListView(OrganizationScopedView, ListView):
 class DmarcReportDetailView(OrganizationScopedView, DetailView):
     template_name = "dmarc/report_detail.html"
     context_object_name = "report"
-    parent = "dashboard:contact-reports"
+    parent = "email-dashboard:contact-reports"
 
     def get_queryset(self):
         return DmarcReport.objects.filter(org=self.org)
@@ -58,7 +58,7 @@ class DmarcFailureReportListView(OrganizationScopedView, ListView):
     context_object_name = "reports"
     paginate_by = 50
     title = _("DMARC failure reports")
-    parent = "dashboard:dashboard"
+    parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
         qs = DmarcFailureReport.objects.filter(org=self.org)
@@ -81,7 +81,7 @@ class DmarcFailureReportListView(OrganizationScopedView, ListView):
 class DmarcFailureReportDetailView(OrganizationScopedView, DetailView):
     template_name = "dmarc/failure_report_detail.html"
     context_object_name = "report"
-    parent = "dashboard:contact-reports"
+    parent = "email-dashboard:contact-reports"
 
     def get_queryset(self):
         return DmarcFailureReport.objects.filter(org=self.org)
@@ -95,5 +95,7 @@ class DmarcReportListRedirectView(OrganizationScopedView, RedirectView):
     report_type: str = "dmarc"
 
     def get_redirect_url(self, *args, **kwargs):
-        url = reverse("dashboard:contact-reports", kwargs={"org_slug": self.org.slug})
+        url = reverse(
+            "email-dashboard:contact-reports", kwargs={"org_slug": self.org.slug}
+        )
         return f"{url}?type={self.report_type}"
