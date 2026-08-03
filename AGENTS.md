@@ -30,7 +30,7 @@ transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
 App dependencies flow in one direction — see the graph in `README.md`:
-`dashboard → smtp, mx`, `smtp, mx → domains, accounts, kms`, `domains → accounts, kms`, `accounts → kms`. Apps
+`dashboard → smtp, mx, dmarc, message`, `smtp, mx, dmarc → message, domains, accounts, kms`, `message → domains, accounts`, `domains → accounts, kms`, `accounts → kms`. Apps
 must not import from their dependents.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,

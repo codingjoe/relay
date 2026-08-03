@@ -169,6 +169,7 @@ graph BT
  mx
  dmarc
  message --> accounts
+ message --> domains
  smtp --> message
  smtp --> accounts
  smtp --> domains
