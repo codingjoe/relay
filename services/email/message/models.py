@@ -97,10 +97,7 @@ class Message(TimeStamped):
     @property
     def status_display(self) -> str:
         """Return a human-readable label for the status."""
-        if not self.status:
-            return ""
-        child = self.content_type.get_object_for_this_type(pk=self.pk)
-        return child.Status(self.status).label
+        return self.content_type.model_class().Status(self.status).label
 
     @property
     def kind(self) -> str:
