@@ -293,9 +293,6 @@ RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
 RELAY_BASE_URL = env("RELAY_BASE_URL", default=f"http://{RELAY_PLATFORM_DOMAIN}")
 
 
-# Email backend for transactional notifications (postmaster alerts, etc.)
-# Configure via EMAIL_URL, e.g. smtp://user:pass@smtp.example.com:587?tls=True
-# Defaults to consolemail in development/test, SMTP in production.
 vars().update(
     env.email_url(
         "EMAIL_URL",
