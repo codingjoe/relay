@@ -3,14 +3,15 @@
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
-from abstract.views import BreadcrumbViewMixin
+from abstract.views import BreadcrumbViewMixin, CacheControlMixin
 
 
-class HomeView(BreadcrumbViewMixin, TemplateView):
-    """Marketing landing page for unauthenticated visitors."""
+class HomeView(CacheControlMixin, BreadcrumbViewMixin, TemplateView):
+    """Render the marketing landing page."""
 
     template_name = "start.html"
     title = _("Home")
+    cache_control = {"public": True, "max_age": 300}
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
