@@ -6,7 +6,7 @@ from accounts.models import Membership, Organization
 
 @pytest.fixture(name="db")
 def _db(request, db):
-    """Test if the test was marked for DB usage."""
+    """Fail if the requesting test lacks the `django_db` marker."""
     if not request.node.get_closest_marker("django_db"):
         pytest.fail("Test requires a database. Use the django_db marker.")
     yield db
@@ -14,12 +14,7 @@ def _db(request, db):
 
 @pytest.fixture(autouse=True)
 def assert_django_db_used(request, _django_db_marker):
-    """Complain if @pytest.mark.django_db is present but the DB wasn't accessed.
-
-    Depends on ``_django_db_marker`` so the query counter starts after
-    pytest-django's internal transaction setup — only user and fixture
-    queries are counted, not pytest-django's own bookkeeping.
-    """
+    """Fail if a test carries the `django_db` marker but executes no database queries."""
     if not request.node.get_closest_marker("django_db"):
         yield
         return

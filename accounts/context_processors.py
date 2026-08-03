@@ -8,9 +8,6 @@ def organizations(request):
 
     `OrganizationScopedView` sets `current_org` on the request. On non-org
     pages, `current_org` is absent.
-
-    Checks the session cookie before touching ``request.user`` so anonymous
-    visitors never trigger session access or DB I/O.
     """
     if not request.COOKIES.get(settings.SESSION_COOKIE_NAME):
         return {}

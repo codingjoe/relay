@@ -38,20 +38,10 @@ class TestHomeViewRender:
 
 
 class TestNoIO:
-    """
-    Middleware and context processors MUST NOT perform eager I/O or attribute access.
-
-    Eager database access or attribute lookups in middleware or context processors
-    causes performance issues on every request.
-
-    Common culprits:
-    - Eagerly accessing request.user or request.company
-    - Accessing related objects without lazy evaluation
-    - Making database queries during context processor execution
-    """
+    """Guard against eager database access in middleware and context processors."""
 
     def build_middleware_chain(self, get_response):
-        """Build middleware chain in correct order (reversed, nested)."""
+        """Wrap `get_response` with every configured middleware in settings order."""
         handler = get_response
         for middleware_path in reversed(settings.MIDDLEWARE):
             middleware_cls = import_string(middleware_path)
