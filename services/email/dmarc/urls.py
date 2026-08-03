@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
@@ -6,13 +6,27 @@ app_name = "dmarc"
 
 urlpatterns = [
     path(
-        "dmarc/<uuid:pk>",
-        views.DmarcReportDetailView.as_view(),
-        name="report-detail",
+        "dmarc/",
+        include(
+            [
+                path(
+                    "<uuid:pk>",
+                    views.DmarcReportDetailView.as_view(),
+                    name="report-detail",
+                ),
+            ]
+        ),
     ),
     path(
-        "dmarc/failures/<uuid:pk>",
-        views.DmarcFailureReportDetailView.as_view(),
-        name="failure-report-detail",
+        "dmarc/failures/",
+        include(
+            [
+                path(
+                    "<uuid:pk>",
+                    views.DmarcFailureReportDetailView.as_view(),
+                    name="failure-report-detail",
+                ),
+            ]
+        ),
     ),
 ]

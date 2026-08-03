@@ -17,7 +17,7 @@ class MessageListView(OrganizationScopedView, ListView):
 
     context_object_name = "messages"
     paginate_by = 50
-    title = _("Messages")
+    title = _("Email messages")
     parent = "accounts:org-home"
 
     class Direction(models.TextChoices):

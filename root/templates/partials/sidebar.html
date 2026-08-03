@@ -16,7 +16,7 @@
             {% url 'message:message-list' current_org.slug as messages_url %}
             <a href="{{ messages_url }}" {% if request.path == messages_url %}aria-current="page"{% endif %}>
               <i data-lucide="messages-square" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "messages"|capfirst context "noun" %}</span>
+              <span>{% translate "email messages"|capfirst %}</span>
             </a>
           </li>
           <li>
