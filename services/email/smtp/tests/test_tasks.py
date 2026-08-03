@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.files.base import ContentFile
 
+from domains.models import Domain
 from services.email.smtp.models import OutgoingMessage, Transmission
 
 
@@ -34,11 +35,13 @@ class TestDeliverMessage:
     def test_deliver_message__no_mx_records(self, user, org, dns_resolver):
         from services.email.smtp.tasks import deliver_message
 
+        domain = Domain.objects.filter(org=org).first()
         msg = OutgoingMessage.objects.create(
             sender=user,
             org=org,
             rcpt_to="bob@nowhere.invalid",
             mail_from="alice@example.com",
+            domain=domain,
         )
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
@@ -60,7 +63,6 @@ class TestDeliverMessage:
     def test_deliver_message__with_domain_signs_and_sends(
         self, user, org, dns_resolver
     ):
-        from domains.models import Domain
         from services.email.smtp.tasks import deliver_message
 
         domain = Domain.objects.create(name="example.com", org=org)
@@ -105,11 +107,13 @@ class TestDeliverMessage:
 
         from services.email.smtp.tasks import deliver_message
 
+        domain = Domain.objects.filter(org=org).first()
         msg = OutgoingMessage.objects.create(
             sender=user,
             org=org,
             rcpt_to="reject@example.com",
             mail_from="alice@example.com",
+            domain=domain,
         )
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()

@@ -39,6 +39,15 @@ class DomainCreateView(OrganizationScopedView, CreateView):
 
     def form_valid(self, form):
         form.instance.org = self.org
+        if form.instance.is_managed:
+            form.add_error(
+                "name",
+                _(
+                    "Cannot add a subdomain of %(base)s — relay manages these automatically."
+                )
+                % {"base": settings.RELAY_FREE_SENDER_DOMAIN},
+            )
+            return self.form_invalid(form)
         messages.success(
             self.request,
             _("Added domain “%(name)s”.") % {"name": form.instance.name},
@@ -102,6 +111,12 @@ class DomainDeleteView(OrganizationScopedView, DeleteView):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
 
     def form_valid(self, form):
+        if self.object.is_managed:
+            messages.error(
+                self.request,
+                _("Cannot delete a relay-managed domain."),
+            )
+            return redirect(self.object.get_absolute_url())
         messages.success(
             self.request,
             _("Deleted domain “%(name)s”.") % {"name": self.object.name},

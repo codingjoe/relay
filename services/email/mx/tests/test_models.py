@@ -56,9 +56,9 @@ class TestReceivingDomainName:
         assert webhook.receiving_domain_name == "app.acme.com"
 
 
-class TestIsFreeDomain:
+class TestIsManagedDomain:
     @pytest.mark.django_db
-    def test_is_free_domain__true_when_matches_free(self, org):
+    def test_is_managed_domain__true_when_matches_managed(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
             org=org,
@@ -66,10 +66,21 @@ class TestIsFreeDomain:
             address_pattern=f"*@{settings.RELAY_FREE_SENDER_DOMAIN}",
             signing_key=signing_key,
         )
-        assert webhook.is_free_domain is True
+        assert webhook.is_managed_domain is True
 
     @pytest.mark.django_db
-    def test_is_free_domain__case_insensitive(self, org):
+    def test_is_managed_domain__true_for_subdomain(self, org):
+        signing_key = SigningKey.generate("ed25519")
+        webhook = Webhook.objects.create(
+            org=org,
+            url="https://example.com/hook",
+            address_pattern=f"*@{org.slug}.{settings.RELAY_FREE_SENDER_DOMAIN}",
+            signing_key=signing_key,
+        )
+        assert webhook.is_managed_domain is True
+
+    @pytest.mark.django_db
+    def test_is_managed_domain__case_insensitive(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
             org=org,
@@ -77,11 +88,11 @@ class TestIsFreeDomain:
             address_pattern=f"*@{settings.RELAY_FREE_SENDER_DOMAIN.upper()}",
             signing_key=signing_key,
         )
-        assert webhook.is_free_domain is True
+        assert webhook.is_managed_domain is True
 
     @pytest.mark.django_db
-    def test_is_free_domain__false_for_custom_domain(self, webhook):
-        assert webhook.is_free_domain is False
+    def test_is_managed_domain__false_for_custom_domain(self, webhook):
+        assert webhook.is_managed_domain is False
 
 
 class TestMatches:
@@ -113,7 +124,7 @@ class TestMatches:
 
 class TestMxRecord:
     @pytest.mark.django_db
-    def test_mx_record__empty_for_free_domain(self, org):
+    def test_mx_record__empty_for_managed_domain(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
             org=org,

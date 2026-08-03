@@ -11,6 +11,7 @@
     modified_at: 2026-08-01 18:21:34.638562+00:00
     created_at: 2026-08-01 18:21:34.638576+00:00
     slug: acme
+    billing_is_active: false
 - model: accounts.membership
   pk: 1
   fields:
@@ -91,6 +92,27 @@
     name: acme.com
     org: 1
     verification_token: zYJeoEEHsNJgwg2t
+    verified_at: 2026-01-01 00:00:00+00:00
+    nameserver_status: ok
+    nameserver_error: ''
+    spf_status: ok
+    spf_error: ''
+    dkim_status: ok
+    dkim_error: ''
+    dmarc_status: ok
+    dmarc_error: ''
+    dns_checked_at: null
+    dkim_key_rsa2048: 1
+    dkim_key_rsa1024: 2
+    dkim_key_ed25519: 3
+- model: domains.domain
+  pk: 2
+  fields:
+    modified_at: 2026-08-01 18:21:34.810329+00:00
+    created_at: 2026-08-01 18:21:34.810335+00:00
+    name: acme.open.localhost
+    org: 1
+    verification_token: xKZfpFFItOkhxhu1
     verified_at: 2026-01-01 00:00:00+00:00
     nameserver_status: ok
     nameserver_error: ''

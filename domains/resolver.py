@@ -154,21 +154,7 @@ class DNSResolver:
 
     def find_domain(self, qname_str):
         """Return the Domain whose zone owns a query name, or None."""
-        for domain in Domain.objects.filter(org=None):
-            name = domain.name.lower()
-            if qname_str.lower() == name or qname_str.lower().endswith(f".{name}"):
-                return domain
-
-        prefix_labels = settings.RELAY_SENDER_SUBDOMAIN_PREFIX.lower().split(".")
-        parts = qname_str.split(".")
-
-        for i in range(len(parts) - len(prefix_labels) + 1):
-            if [p.lower() for p in parts[i : i + len(prefix_labels)]] == prefix_labels:
-                if root := ".".join(parts[i + len(prefix_labels) :]):
-                    return Domain.objects.filter(name__iexact=root).first()
-                break
-
-        return None
+        return Domain.objects.zone_for(qname_str)
 
     def resolve_ptr(self, qname, qname_str):
         """Return PTR records for the sender subdomain of the queried SMTP IP."""

@@ -56,14 +56,8 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
 
 class TestEmailView(OrganizationScopedView, View):
     def post(self, request, org_slug, *args, **kwargs):
-        free_domain = settings.RELAY_FREE_SENDER_DOMAIN
-        domain_pk = request.POST["domain"]
-        if domain_pk == "free":
-            mail_from = f"{request.user.username}@{free_domain}"
-            domain = None
-        else:
-            domain = Domain.objects.get(pk=domain_pk, org=self.org)
-            mail_from = f"postmaster@{domain.name}"
+        domain = Domain.objects.get(pk=request.POST["domain"], org=self.org)
+        mail_from = f"postmaster@{domain.name}"
 
         msg = EmailMessage()
         msg["From"] = mail_from
@@ -90,7 +84,7 @@ class TestEmailView(OrganizationScopedView, View):
                 message_id=str(message.id),
                 rcpt_to=request.user.email,
                 mail_from=mail_from,
-                domain_id=domain.pk if domain else None,
+                domain_id=domain.pk,
             )
         )
         messages.success(request, _("Queued test message for delivery."))

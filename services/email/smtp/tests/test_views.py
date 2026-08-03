@@ -4,13 +4,16 @@ import pytest
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 
+from domains.models import Domain
 from services.email.smtp.models import OutgoingMessage, SmtpCredential
 
 
 def make_message(org, user, **kwargs):
+    domain = kwargs.pop("domain", None) or Domain.objects.filter(org=org).first()
     msg = OutgoingMessage(
         sender=user,
         org=org,
+        domain=domain,
         rcpt_to=kwargs.get("rcpt_to", "bob@example.com"),
         mail_from=kwargs.get("mail_from", "alice@example.com"),
         subject=kwargs.get("subject", "Test"),
@@ -26,7 +29,6 @@ def make_message(org, user, **kwargs):
     return msg
 
 
-@pytest.mark.django_db
 @pytest.mark.django_db
 class TestMessageDetailView:
     def test_get__ok_for_member(self, admin_client, org, user):
@@ -54,26 +56,28 @@ class TestMessageDetailView:
 @pytest.mark.django_db
 class TestTestEmailView:
     def test_post__creates_message_and_redirects(self, admin_client, org, user):
+        domain = Domain.objects.filter(org=org).first()
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
-            {"domain": "free", "subject": "Test", "body": "Hello"},
+            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(org=org).first()
+        msg = OutgoingMessage.objects.filter(
+            org=org, sender=user, subject="Test"
+        ).first()
         assert msg is not None
         assert msg.sender == user
         assert msg.subject == "Test"
+        assert msg.domain == domain
 
     def test_post__with_real_domain(self, admin_client, org, user):
-        from domains.models import Domain
-
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
             {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(org=org).first()
+        msg = OutgoingMessage.objects.filter(org=org, sender=user, subject="Hi").first()
         assert msg is not None
         assert msg.domain == domain
 

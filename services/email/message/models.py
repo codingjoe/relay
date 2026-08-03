@@ -67,9 +67,7 @@ class Message(TimeStamped):
     )
     domain = models.ForeignKey(
         "domains.Domain",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.CASCADE,
         related_name="+",
         help_text=_("Domain associated with this message."),
     )

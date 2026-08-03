@@ -48,6 +48,11 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
 
+    if not domain.org.billing_is_active:
+        is_member = domain.org.members.filter(email__iexact=mail_from).exists()
+        if not is_member:
+            return "550 Sender not allowed without active billing"
+
     match local_part:
         case settings.RELAY_DMARC_REPORT_LOCAL_PART:
             from services.email.dmarc.models import DmarcReport

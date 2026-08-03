@@ -10,8 +10,10 @@ from services.email.mx.models import IncomingMessage, Webhook, WebhookDelivery
 
 
 def make_incoming(org, raw_body=b"From: a@b\r\nTo: c@d\r\nSubject: hi\r\n\r\nbody"):
+    domain = Domain.objects.filter(org=org).first()
     msg = IncomingMessage(
         org=org,
+        domain=domain,
         receiving_domain="example.com",
         mail_from="alice@example.com",
         rcpt_to="bob@example.com",

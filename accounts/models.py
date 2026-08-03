@@ -40,6 +40,14 @@ class Organization(TimeStamped):
         through="Membership",
         related_name="organizations",
     )
+    billing_is_active = models.BooleanField(
+        _("billing active"),
+        default=False,
+        help_text=_(
+            "Whether the organization has active billing. When inactive, "
+            "sending and receiving is restricted to organization members."
+        ),
+    )
 
     def __str__(self):
         return self.slug

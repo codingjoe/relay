@@ -15,15 +15,17 @@
         >
           {% translate "verify DNS"|title %}
         </button>
-        <button
-          type="submit"
-          class="btn"
-          data-variant="destructive"
-          formaction="{% url 'domains:domain-delete' org.slug domain.pk %}"
-          onclick="return confirm('{% translate "delete this domain?"|capfirst context "verb" %}')"
-        >
-          {% translate "delete"|capfirst context "verb" %}
-        </button>
+        {% if not domain.is_managed %}
+          <button
+            type="submit"
+            class="btn"
+            data-variant="destructive"
+            formaction="{% url 'domains:domain-delete' org.slug domain.pk %}"
+            onclick="return confirm('{% translate "delete this domain?"|capfirst context "verb" %}')"
+          >
+            {% translate "delete"|capfirst context "verb" %}
+          </button>
+        {% endif %}
       </div>
     </form>
   </header>

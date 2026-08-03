@@ -36,10 +36,13 @@ class TestWebhookEventFromMessage:
     def test_from_message__populates_all_fields(self, org):
         from django.core.files.base import ContentFile
 
+        from domains.models import Domain
         from services.email.mx.models import IncomingMessage
 
+        domain = Domain.objects.filter(org=org).first()
         msg = IncomingMessage(
             org=org,
+            domain=domain,
             receiving_domain="example.com",
             mail_from="alice@example.com",
             rcpt_to="bob@example.com",
@@ -63,10 +66,13 @@ class TestWebhookEventFromMessage:
         assert event.body_url.endswith(".eml")
 
     def test_from_message__body_url_is_none_when_no_raw_body(self, org):
+        from domains.models import Domain
         from services.email.mx.models import IncomingMessage
 
+        domain = Domain.objects.filter(org=org).first()
         msg = IncomingMessage.objects.create(
             org=org,
+            domain=domain,
             receiving_domain="example.com",
             mail_from="alice@example.com",
             rcpt_to="bob@example.com",

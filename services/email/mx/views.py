@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -50,8 +49,6 @@ class WebhookListView(OrganizationScopedView, ListView):
 
     def get_context_data(self, **kwargs):
         domain_choices = [(d.name, d.name) for d in Domain.objects.filter(org=self.org)]
-        free_domain = settings.RELAY_FREE_SENDER_DOMAIN
-        domain_choices.append((free_domain, f"{free_domain} ({_('free')})"))
         return super().get_context_data(**kwargs) | {
             "domain_choices": domain_choices,
         }

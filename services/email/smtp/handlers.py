@@ -5,7 +5,6 @@ import logging
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
-from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import DatabaseError, transaction
 
@@ -102,17 +101,17 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     message_id = msg.get("Message-ID", "")
 
     from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
-    free_domain = settings.RELAY_FREE_SENDER_DOMAIN.lower()
-
-    if (
-        from_domain.lower() == free_domain
-        and rcpt_to.lower() != (sender.email or "").lower()
-    ):
-        return "550 Recipient not allowed for free sender domain"
 
     domain = (
         Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
     )
+    if domain is None:
+        return "550 Sender domain not registered"
+
+    if not credential.org.billing_is_active:
+        is_member = credential.org.members.filter(email__iexact=rcpt_to).exists()
+        if not is_member:
+            return "550 Recipient not allowed without active billing"
 
     message = OutgoingMessage(
         sender=sender,

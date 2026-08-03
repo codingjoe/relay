@@ -46,6 +46,19 @@ class DomainQuerySet(models.QuerySet):
         except self.model.MultipleObjectsReturned:
             return qs.first()
 
+    def zone_for(self, name):
+        """Return the closest registered parent domain for *name* across all domains.
+
+        Unlike `root_for`, this includes system domains (org=None). The most
+        specific name has priority. Returns None if no matching domain is found.
+        """
+        parts = name.lower().split(".")
+        candidates = [".".join(parts[i:]) for i in range(len(parts))]
+        qs = self.filter(
+            reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
+        ).order_by(Length("name").desc())
+        return qs.first()
+
 
 def generate_verification_token():
     alphabet = string.ascii_letters + string.digits
@@ -211,6 +224,28 @@ class Domain(TimeStamped):
     @property
     def is_system(self):
         return self.org is None
+
+    @property
+    def is_managed(self):
+        """Return True if relay manages this domain's DNS automatically."""
+        return self.name.lower().endswith(
+            f".{settings.RELAY_FREE_SENDER_DOMAIN.lower()}"
+        )
+
+    @classmethod
+    def free_domain_name(cls, org):
+        """Return the managed subdomain name for *org*."""
+        return f"{org.slug}.{settings.RELAY_FREE_SENDER_DOMAIN}"
+
+    def clean(self):
+        """Validate that user-added domains are not subdomains of the free sender domain."""
+        if self.org is not None and self.is_managed and not self.pk:
+            raise ValidationError(
+                _(
+                    "Cannot add a subdomain of %(base)s — relay manages these automatically."
+                )
+                % {"base": settings.RELAY_FREE_SENDER_DOMAIN}
+            )
 
     @property
     def dkim_ciphers(self):

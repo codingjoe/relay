@@ -137,11 +137,10 @@ class Webhook(OrganizationOwned):
         return self.address_pattern
 
     @property
-    def is_free_domain(self) -> bool:
-        return (
-            self.receiving_domain_name.lower()
-            == settings.RELAY_FREE_SENDER_DOMAIN.lower()
-        )
+    def is_managed_domain(self) -> bool:
+        receiving = self.receiving_domain_name.lower()
+        managed = settings.RELAY_FREE_SENDER_DOMAIN.lower()
+        return receiving == managed or receiving.endswith(f".{managed}")
 
     @property
     def mx_target(self) -> str:
@@ -153,7 +152,7 @@ class Webhook(OrganizationOwned):
 
     @property
     def mx_record(self) -> str:
-        if self.is_free_domain:
+        if self.is_managed_domain:
             return ""
         return f"MX {self.receiving_domain_name} → {self.mx_target}"
 

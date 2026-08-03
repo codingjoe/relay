@@ -14,39 +14,45 @@ Users only need to set **two DNS records**:
 Everything else — MX, SPF, DKIM, Return-Path — is **served automatically**
 by the built-in nameserver. You do not need to use the DNS provider dashboard.
 
-## Free Sender Domain
+## Managed Sender Domain
 
-Every account gets a **free sender domain** it can send from without configuring
-any DNS of its own. The domain is set via `RELAY_FREE_SENDER_DOMAIN` (defaults
-to `open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
-A migration auto-creates a system-owned `Domain` (`org=None`) for it, and the
-domain is DKIM-signed automatically.
+Every organization gets a **managed sender domain** — a subdomain of the
+platform's free sender domain that Relay manages automatically. The domain is
+set via `RELAY_FREE_SENDER_DOMAIN` (defaults to
+`open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
+When an organization is created, a `Domain` is auto-created with the name
+`{org.slug}.{RELAY_FREE_SENDER_DOMAIN}` (for example `acme.open.localhost`).
+The domain is DKIM-signed and pre-verified — no user DNS configuration needed.
 
-The free domain is restricted. You can send messages only to your own
-registered email address. Use it to verify deliverability and test integrations
-before you delegate a real sender domain.
+When the organization's `billing_is_active` flag is `False` (the default),
+sending is restricted to organization members and incoming mail is only
+accepted from organization members. Once billing is activated, the
+organization can send to and receive from anyone.
+
+The managed domain cannot be deleted from the dashboard. Users can still add
+their own delegated domains alongside it.
 
 ### DNS served automatically
 
-The built-in nameserver serves the following records at the free domain.
+The built-in nameserver serves the following records at the managed domain.
 No user action is required.
 
-| Record  | Location                                                | Value                                              |
-| ------- | ------------------------------------------------------- | -------------------------------------------------- |
-| A       | `open.{platform_domain}`                                | SMTP server IP(s)                                  |
-| MX      | `open.{platform_domain}`                                | `open.{platform_domain}` (priority 10)             |
-| NS      | `open.{platform_domain}`                                | `ns1.{platform_domain}`, `ns2.{platform_domain}`   |
-| PTR     | `<reverse-IP>.in-addr.arpa`                             | `mail.relay.{platform_domain}`                     |
-| SPF     | `open.{platform_domain}` (TXT)                          | `v=spf1 a mx ~all`                                 |
-| DKIM    | `{selector}._domainkey.open.{platform_domain}` (TXT)    | DKIM public key (RSA-2048, RSA-1024, Ed25519)      |
-| DMARC   | `_dmarc.open.{platform_domain}` (TXT)                   | `v=DMARC1; p=none`                                 |
-| TLS-RPT | `_smtp._tls.open.{platform_domain}` (TXT)               | `v=TLSRPTv1;rua=mailto:tls@open.{platform_domain}` |
-| Verify  | `relay-verification.mail.relay.{platform_domain}` (TXT) | `relay-verification {token}`                       |
-| CNAME   | `rp.mail.relay.{platform_domain}`                       | `rp.{platform_domain}` (Return-Path)               |
+| Record  | Location                                                     | Value                                                      |
+| ------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| A       | `mail.relay.{org}.{free_domain}`                             | SMTP server IP(s)                                          |
+| MX      | `mail.relay.{org}.{free_domain}`                             | `mail.relay.{org}.{free_domain}` (priority 10)             |
+| NS      | `{org}.{free_domain}`                                        | `ns1.{platform_domain}`, `ns2.{platform_domain}`           |
+| PTR     | `<reverse-IP>.in-addr.arpa`                                  | `mail.relay.{org}.{free_domain}`                           |
+| SPF     | `mail.relay.{org}.{free_domain}` (TXT)                       | `v=spf1 a mx ~all`                                         |
+| DKIM    | `{selector}._domainkey.mail.relay.{org}.{free_domain}` (TXT) | DKIM public key (RSA-2048, RSA-1024, Ed25519)              |
+| DMARC   | `_dmarc.mail.relay.{org}.{free_domain}` (TXT)                | `v=DMARC1; p=none`                                         |
+| TLS-RPT | `_smtp._tls.mail.relay.{org}.{free_domain}` (TXT)            | `v=TLSRPTv1;rua=mailto:tls@mail.relay.{org}.{free_domain}` |
+| Verify  | `relay-verification.mail.relay.{org}.{free_domain}` (TXT)    | `relay-verification {token}`                               |
+| CNAME   | `rp.mail.relay.{org}.{free_domain}`                          | `rp.{platform_domain}` (Return-Path)                       |
 
 ### Operator setup
 
-For the free domain to resolve in production, the platform operator must:
+For the managed domain to resolve in production, the platform operator must:
 
 1. **Delegate the free domain zone to Relay's nameservers.** If
    `RELAY_FREE_SENDER_DOMAIN` is `open.example.com`, add NS records for the

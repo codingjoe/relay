@@ -109,7 +109,7 @@
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
             </p>
-            {% if not webhook.is_free_domain %}
+            {% if not webhook.is_managed_domain %}
               <details class="mt-2">
                 <summary class="cursor-pointer text-sm">
                   {% translate "MX record"|capfirst %}
@@ -126,7 +126,7 @@
             {% else %}
               <p class="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-                {% translate "free domain — MX managed by relay, no setup needed."|capfirst %}
+                {% translate "managed domain — MX served by relay, no setup needed."|capfirst %}
               </p>
             {% endif %}
             <details class="mt-2">

@@ -20,8 +20,10 @@ class TestDomainListView:
         response = admin_client.get(f"/org/{org.slug}/email/domains/")
         assert response.status_code == 200
         domains = list(response.context["domains"])
-        assert len(domains) == 1
-        assert domains[0].name == "mine.com"
+        assert len(domains) == 2
+        names = {d.name for d in domains}
+        assert "mine.com" in names
+        assert Domain.free_domain_name(org) in names
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/domains/")
