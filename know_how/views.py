@@ -15,7 +15,7 @@ from abstract.markdown_docs import (
     list_articles,
     parse_frontmatter,
 )
-from abstract.utils import md_2_html, strip_frontmatter
+from abstract.utils import md_2_html
 from abstract.views import BreadcrumbViewMixin, CacheControlMixin, MarkdownView
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
