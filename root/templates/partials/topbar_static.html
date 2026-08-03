@@ -1,0 +1,16 @@
+{% load i18n %}
+<header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0">
+  <a
+    href="{% url 'home' %}"
+    class="font-bold text-lg tracking-tight"
+    aria-label="relay"
+  >
+    relay
+  </a>
+  <div class="grow"></div>
+  <div class="flex items-center gap-2 ms-auto">
+    <a href="{% url 'accounts:org-list' %}" class="btn" data-size="sm">
+      {% translate "get started free"|capfirst %}
+    </a>
+  </div>
+</header>

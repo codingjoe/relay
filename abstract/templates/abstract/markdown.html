@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
+{% block topbar %}{% include "partials/topbar_static.html" %}{% endblock %}
 {% block title %}{{ title }}{% endblock %}
 {% block meta_description %}{{ meta_description|default:"relay — know how articles about email terms and technologies." }}{% endblock %}
 {% block meta_tags %}
