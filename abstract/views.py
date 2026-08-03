@@ -1,10 +1,21 @@
 from django.http import HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
-from django.utils.cache import patch_vary_headers
+from django.utils.cache import patch_cache_control, patch_vary_headers
 from django.views import generic
 
 from abstract.utils import strip_frontmatter
+
+
+class CacheControlMixin:
+    """Set cache control headers on the response of a class based view."""
+
+    cache_control: dict = {}
+
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+        patch_cache_control(response, **self.cache_control)
+        return response
 
 
 class BreadcrumbViewMixin:
@@ -62,7 +73,7 @@ class BreadcrumbViewMixin:
         }
 
 
-class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
+class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
     """Render Markdown files in a template."""
 
     template_name = "abstract/markdown.html"
@@ -72,6 +83,7 @@ class MarkdownView(BreadcrumbViewMixin, generic.TemplateView):
     markdown_template: str = ""
     """Template name of the markdown file to render."""
     toc_levels: str = "2-3"
+    cache_control = {"public": True, "max_age": 3600}
 
     def get_markdown_template(self):
         """Return the markdown template name for this view."""

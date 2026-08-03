@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
 from abstract.utils import md_2_html, strip_frontmatter
-from abstract.views import BreadcrumbViewMixin, MarkdownView
+from abstract.views import BreadcrumbViewMixin, CacheControlMixin, MarkdownView
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
 
@@ -84,12 +84,13 @@ def article_path(slug):
     return KNOW_HOW_DIR / f"{slug}.md"
 
 
-class KnowHowListView(BreadcrumbViewMixin, generic.TemplateView):
+class KnowHowListView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
     """Display all know-how articles."""
 
     template_name = "know_how/list.html"
     title = _("know how")
     parent = "home"
+    cache_control = {"public": True, "max_age": 3600}
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

@@ -5,14 +5,16 @@ from django.urls import reverse
 from django.views.generic import TemplateView
 
 from abstract.utils import strip_frontmatter
+from abstract.views import CacheControlMixin
 from know_how.views import list_articles
 
 
-class RobotsTxtView(TemplateView):
+class RobotsTxtView(CacheControlMixin, TemplateView):
     """Serve robots.txt with a sitemap reference."""
 
     template_name = "well_known/robots.txt"
     content_type = "text/plain; charset=utf-8"
+    cache_control = {"public": True, "max_age": 3600}
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -22,11 +24,12 @@ class RobotsTxtView(TemplateView):
         }
 
 
-class LlmsTxtView(TemplateView):
+class LlmsTxtView(CacheControlMixin, TemplateView):
     """Serve llms.txt following the llmstxt.org spec."""
 
     template_name = "well_known/llms.txt"
     content_type = "text/plain; charset=utf-8"
+    cache_control = {"public": True, "max_age": 3600}
 
     def get_context_data(self, **kwargs):
         articles = [
@@ -52,11 +55,12 @@ class LlmsTxtView(TemplateView):
         }
 
 
-class LlmsFullTxtView(TemplateView):
+class LlmsFullTxtView(CacheControlMixin, TemplateView):
     """Serve llms-full.txt with the full content of all know-how articles."""
 
     template_name = "well_known/llms-full.txt"
     content_type = "text/plain; charset=utf-8"
+    cache_control = {"public": True, "max_age": 3600}
 
     def get_context_data(self, **kwargs):
         articles = [
