@@ -13,7 +13,7 @@ email_formatter = HtmlFormatter(cssclass="highlight-email")
 
 @register.filter
 def highlight_email(value: str) -> str:
-    """Render a raw RFC 822 message with Pygments' :class:`EmailLexer`."""
+    """Render a raw RFC 822 message with Pygments' `EmailLexer`."""
     if not value:
         return ""
     return mark_safe(highlight(value, EmailLexer(), email_formatter))

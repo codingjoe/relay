@@ -105,7 +105,7 @@ class Message(TimeStamped):
 
     @property
     def kind_icon(self) -> str:
-        """Return the Lucide icon name for this message kind."""
+        """Return the matching Lucide icon name."""
         return "send" if self.kind == "outgoingmessage" else "inbox"
 
     @property
@@ -126,7 +126,7 @@ class Message(TimeStamped):
         return child.get_absolute_url()
 
     def parsed_email(self):
-        """Parse the raw body into an :class:`email.message.Message` object."""
+        """Parse the raw body into an `email.message.Message` object."""
         try:
             return message_from_bytes(self.raw_body.read())
         except FileNotFoundError:

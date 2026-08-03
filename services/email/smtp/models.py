@@ -1,5 +1,3 @@
-"""SMTP sending models — outgoing messages, transmissions, and credentials."""
-
 import uuid
 from enum import nonmember
 

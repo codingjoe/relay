@@ -78,7 +78,7 @@ def param_replace(context, **kwargs):
 
 @register.inclusion_tag("abstract/timestamp.html")
 def timestamp(value):
-    """Render a ``<time>`` element with naturaltime and ISO 8601 tooltip."""
+    """Render a `<time>` element with naturaltime and ISO 8601 tooltip."""
     return {
         "value": value,
         "iso": value.isoformat(),

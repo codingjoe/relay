@@ -320,7 +320,7 @@ class TlsReport(IncomingMessage):
 
 
 class TlsFailure(TimeStamped):
-    """TLS failure record within a TLS-RPT report."""
+    """Track a TLS failure within a TLS-RPT report."""
 
     id = models.UUIDField(
         primary_key=True,
