@@ -8,7 +8,7 @@ so each app can reuse them without duplication.
 
 import pathlib
 
-import yaml
+import frontmatter
 from django.http import Http404
 
 from abstract.utils import md_2_html, strip_frontmatter
@@ -16,11 +16,8 @@ from abstract.utils import md_2_html, strip_frontmatter
 
 def parse_frontmatter(text):
     """Extract YAML frontmatter and content from a Markdown document."""
-    head, sep, tail = text.partition("\n---\n")
-    frontmatter = head.removeprefix("---\n") if sep else ""
-    metadata = yaml.safe_load(frontmatter) if sep and head.startswith("---\n") else None
-    content = text if metadata is None else tail.lstrip("\n")
-    return (metadata or {}), content
+    metadata, content = frontmatter.parse(text)
+    return metadata or {}, content
 
 
 def extract_title(markdown_text):
@@ -50,13 +47,11 @@ def list_articles(docs_dir):
         {
             "slug": slug,
             "title": title,
-            "description": md_2_html(frontmatter.get("description", "")),
+            "description": md_2_html(metadata.get("description", "")),
         }
         for slug in sorted(article_slugs(docs_dir))
-        for frontmatter, text in [
-            parse_frontmatter((docs_dir / f"{slug}.md").read_text())
-        ]
-        if (title := frontmatter.get("name") or extract_title(text))
+        for metadata, text in [parse_frontmatter((docs_dir / f"{slug}.md").read_text())]
+        if (title := metadata.get("name") or extract_title(text))
     ]
 
 
