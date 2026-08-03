@@ -4,6 +4,14 @@ from django.contrib.auth.models import User
 from accounts.models import Membership, Organization
 
 
+@pytest.fixture(name="db")
+def _db(request, db):
+    """Test if the test was marked for DB usage."""
+    if not request.node.get_closest_marker("django_db"):
+        pytest.fail("Test requires a database. Use the django_db marker.")
+    yield db
+
+
 @pytest.fixture
 def user(db):
     return User.objects.create_user(

@@ -31,20 +31,10 @@
           sign up.{% endblocktranslate %}
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-        {% if user.is_authenticated %}
-          <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
-            {% translate "go to dashboard"|capfirst %}
-            <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
-          </a>
-        {% else %}
-          <form method="post" action="{% url 'social:begin' 'github' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn" data-size="lg">
-              <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
-              {% translate "get started free"|capfirst %}
-            </button>
-          </form>
-        {% endif %}
+        <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
+          <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
+          {% translate "get started free"|capfirst %}
+        </a>
       </div>
       <p class="text-sm text-muted-foreground flex items-center gap-3 m-0 font-mono">
         <span class="inline-flex items-center gap-1.5">
@@ -183,20 +173,10 @@
           </ul>
         </section>
         <footer class="m-0 mt-6">
-          {% if user.is_authenticated %}
-            <a href="{% url 'accounts:org-list' %}" class="btn w-full" data-size="lg">
-              {% translate "go to dashboard"|capfirst %}
-              <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
-            </a>
-          {% else %}
-            <form method="post" action="{% url 'social:begin' 'github' %}">
-              {% csrf_token %}
-              <button type="submit" class="btn w-full" data-size="lg">
-                <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
-                {% translate "get started free"|capfirst %}
-              </button>
-            </form>
-          {% endif %}
+          <a href="{% url 'accounts:org-list' %}" class="btn w-full" data-size="lg">
+            <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
+            {% translate "get started free"|capfirst %}
+          </a>
         </footer>
       </div>
     </section>
