@@ -66,6 +66,11 @@ class Message(TimeStamped):
         return self.content_type.model
 
     @property
+    def kind_icon(self) -> str:
+        """Return the Lucide icon name for this message kind."""
+        return "send" if self.kind == "outgoingmessage" else "inbox"
+
+    @property
     def status(self) -> str:
         """Return the delivery lifecycle status."""
         raise NotImplementedError
@@ -91,3 +96,17 @@ class Message(TimeStamped):
     def get_absolute_url(self) -> str:
         child = self.content_type.get_object_for_this_type(pk=self.pk)
         return child.get_absolute_url()
+
+    def parsed_email(self):
+        """Parse the raw body into an :class:`email.message.Message` object.
+
+        Return an empty message when the raw body is missing or unreadable.
+        """
+        from email import message_from_bytes
+
+        if not self.raw_body:
+            return message_from_bytes(b"")
+        try:
+            return message_from_bytes(self.raw_body.read())
+        except FileNotFoundError:
+            return message_from_bytes(b"")

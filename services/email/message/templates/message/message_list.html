@@ -77,19 +77,11 @@
         {% for message in messages %}
           <tr class="hover:bg-muted/50">
             <td>
-              {% if message.kind == 'outgoingmessage' %}
-                <i
-                  data-lucide="send"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "sent"|capfirst %}'
-                ></i>
-              {% else %}
-                <i
-                  data-lucide="inbox"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "received"|capfirst %}'
-                ></i>
-              {% endif %}
+              <i
+                data-lucide="{{ message.kind_icon }}"
+                class="size-4 text-muted-foreground"
+                aria-label="{{ message.kind|capfirst }}"
+              ></i>
             </td>
             <td>
               <span

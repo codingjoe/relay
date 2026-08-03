@@ -1,6 +1,5 @@
 """SMTP views — outgoing message detail, test email, and credential management."""
 
-from email import message_from_bytes
 from email.message import EmailMessage
 
 from django.conf import settings
@@ -35,32 +34,22 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
-        headers = dkim_signatures = received = []
-        body = ""
-        if message.raw_body:
-            try:
-                raw_bytes = message.raw_body.read()
-            except FileNotFoundError:
-                raw_bytes = b""
-            if raw_bytes:
-                parsed = message_from_bytes(raw_bytes)
-                headers = list(parsed.items())
-                dkim_signatures = [
-                    dict(
-                        s.strip().split("=", 1)
-                        for field in value.split(";")
-                        if (s := field.strip())
-                    )
-                    for k, value in headers
-                    if k.lower() == "dkim-signature"
-                ]
-                received = [v for k, v in headers if k.lower() == "received"]
-                body = raw_bytes.decode("utf-8", errors="replace")
+        parsed = message.parsed_email()
+        headers = list(parsed.items())
+        dkim_signatures = [
+            dict(
+                s.strip().split("=", 1)
+                for field in value.split(";")
+                if (s := field.strip())
+            )
+            for k, value in headers
+            if k.lower() == "dkim-signature"
+        ]
         return context | {
             "headers": headers,
             "dkim_signatures": dkim_signatures,
-            "received": received,
-            "body": body,
+            "received": [v for k, v in headers if k.lower() == "received"],
+            "body": parsed.get_payload(decode=True) or "",
             "transmissions": Transmission.objects.filter(message=message),
         }
 

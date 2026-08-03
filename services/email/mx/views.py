@@ -1,5 +1,3 @@
-from email import message_from_bytes
-
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -30,17 +28,11 @@ class IncomingMessageDetailView(OrganizationScopedView, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            raw_bytes = self.object.raw_body.read()
-        except FileNotFoundError:
-            raw_bytes = b""
-        parsed = message_from_bytes(raw_bytes)
-        headers = list(parsed.items())
-        parts = list(parsed.walk()) if parsed.is_multipart() else [parsed]
+        parsed = self.object.parsed_email()
         return context | {
-            "headers": headers,
-            "parts": parts,
-            "body": raw_bytes.decode("utf-8", errors="replace") if raw_bytes else "",
+            "headers": list(parsed.items()),
+            "parts": list(parsed.walk()) if parsed.is_multipart() else [parsed],
+            "body": parsed.get_payload(decode=True) or "",
             "webhook_deliveries": WebhookDelivery.objects.filter(
                 message=self.object
             ).select_related("webhook"),
