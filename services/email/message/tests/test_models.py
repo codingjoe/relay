@@ -32,134 +32,125 @@ def create_incoming(org, status=None):
 
 
 class TestOutgoingStatusBadgeVariant:
-    @pytest.mark.parametrize(
-        "status, expected",
-        [
-            (OutgoingMessage.Status.SENT, "primary"),
-            (OutgoingMessage.Status.DELIVERED, "primary"),
-            (OutgoingMessage.Status.BOUNCED, "destructive"),
-            (OutgoingMessage.Status.DROPPED, "destructive"),
-            (OutgoingMessage.Status.FAILED, "destructive"),
-            (OutgoingMessage.Status.PENDING, "outline"),
-            (OutgoingMessage.Status.HELD, "outline"),
-        ],
-    )
-    def test_badge_variant__matches_expected(self, status, expected):
-        assert status.badge_variant == expected
+    def test_badge_variant__sent(self):
+        assert OutgoingMessage.Status.SENT.badge_variant == "primary"
+
+    def test_badge_variant__delivered(self):
+        assert OutgoingMessage.Status.DELIVERED.badge_variant == "primary"
+
+    def test_badge_variant__bounced(self):
+        assert OutgoingMessage.Status.BOUNCED.badge_variant == "destructive"
+
+    def test_badge_variant__dropped(self):
+        assert OutgoingMessage.Status.DROPPED.badge_variant == "destructive"
+
+    def test_badge_variant__failed(self):
+        assert OutgoingMessage.Status.FAILED.badge_variant == "destructive"
+
+    def test_badge_variant__pending(self):
+        assert OutgoingMessage.Status.PENDING.badge_variant == "outline"
+
+    def test_badge_variant__held(self):
+        assert OutgoingMessage.Status.HELD.badge_variant == "outline"
 
 
 class TestIncomingStatusBadgeVariant:
-    @pytest.mark.parametrize(
-        "status, expected",
-        [
-            (IncomingMessage.Status.RECEIVED, "primary"),
-            (IncomingMessage.Status.WEBHOOK_FAILED, "destructive"),
-            (IncomingMessage.Status.DROPPED, "destructive"),
-            (IncomingMessage.Status.WEBHOOK_SENT, "outline"),
-        ],
-    )
-    def test_badge_variant__matches_expected(self, status, expected):
-        assert status.badge_variant == expected
+    def test_badge_variant__received(self):
+        assert IncomingMessage.Status.RECEIVED.badge_variant == "primary"
+
+    def test_badge_variant__webhook_failed(self):
+        assert IncomingMessage.Status.WEBHOOK_FAILED.badge_variant == "destructive"
+
+    def test_badge_variant__dropped(self):
+        assert IncomingMessage.Status.DROPPED.badge_variant == "destructive"
+
+    def test_badge_variant__webhook_sent(self):
+        assert IncomingMessage.Status.WEBHOOK_SENT.badge_variant == "outline"
 
 
 class TestMessageStatusDisplay:
     @pytest.mark.django_db
     def test_status_display__outgoing_sent(self, user, org):
         msg = create_outgoing(user, org, OutgoingMessage.Status.SENT)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_display == "sent"
+        assert Message.objects.get(pk=msg.pk).status_display == "sent"
 
     @pytest.mark.django_db
     def test_status_display__outgoing_pending(self, user, org):
         msg = create_outgoing(user, org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_display == "pending"
+        assert Message.objects.get(pk=msg.pk).status_display == "pending"
 
     @pytest.mark.django_db
     def test_status_display__incoming_received(self, org):
         msg = create_incoming(org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_display == "received"
+        assert Message.objects.get(pk=msg.pk).status_display == "received"
 
     @pytest.mark.django_db
     def test_status_display__incoming_webhook_sent(self, org):
         msg = create_incoming(org, IncomingMessage.Status.WEBHOOK_SENT)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_display == "webhook sent"
+        assert Message.objects.get(pk=msg.pk).status_display == "webhook sent"
 
 
 class TestMessageStatusBadgeVariant:
     @pytest.mark.django_db
     def test_badge_variant__outgoing_sent(self, user, org):
         msg = create_outgoing(user, org, OutgoingMessage.Status.SENT)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_badge_variant == "primary"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "primary"
 
     @pytest.mark.django_db
     def test_badge_variant__outgoing_bounced(self, user, org):
         msg = create_outgoing(user, org, OutgoingMessage.Status.BOUNCED)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_badge_variant == "destructive"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "destructive"
 
     @pytest.mark.django_db
     def test_badge_variant__outgoing_pending(self, user, org):
         msg = create_outgoing(user, org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_badge_variant == "outline"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "outline"
 
     @pytest.mark.django_db
     def test_badge_variant__incoming_received(self, org):
         msg = create_incoming(org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_badge_variant == "primary"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "primary"
 
     @pytest.mark.django_db
     def test_badge_variant__incoming_webhook_failed(self, org):
         msg = create_incoming(org, IncomingMessage.Status.WEBHOOK_FAILED)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_badge_variant == "destructive"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "destructive"
 
     @pytest.mark.django_db
     def test_badge_variant__incoming_webhook_sent(self, org):
         msg = create_incoming(org, IncomingMessage.Status.WEBHOOK_SENT)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.status_badge_variant == "outline"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "outline"
 
 
 class TestMessageKind:
     @pytest.mark.django_db
     def test_kind__outgoing(self, user, org):
         msg = create_outgoing(user, org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.kind == "outgoingmessage"
+        assert Message.objects.get(pk=msg.pk).kind == "outgoingmessage"
 
     @pytest.mark.django_db
     def test_kind__incoming(self, org):
         msg = create_incoming(org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.kind == "incomingmessage"
+        assert Message.objects.get(pk=msg.pk).kind == "incomingmessage"
 
 
 class TestMessageKindIcon:
     @pytest.mark.django_db
-    def test_kind_icon__outgoing_is_send(self, user, org):
+    def test_kind_icon__outgoing(self, user, org):
         msg = create_outgoing(user, org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.kind_icon == "send"
+        assert Message.objects.get(pk=msg.pk).kind_icon == "send"
 
     @pytest.mark.django_db
-    def test_kind_icon__incoming_is_inbox(self, org):
+    def test_kind_icon__incoming(self, org):
         msg = create_incoming(org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.kind_icon == "inbox"
+        assert Message.objects.get(pk=msg.pk).kind_icon == "inbox"
 
 
 class TestMessageDomainName:
     @pytest.mark.django_db
     def test_domain_name__empty_when_no_domain(self, user, org):
         msg = create_outgoing(user, org)
-        base = Message.objects.get(pk=msg.pk)
-        assert base.domain_name == ""
+        assert Message.objects.get(pk=msg.pk).domain_name == ""
 
     @pytest.mark.django_db
     def test_domain_name__incoming_uses_receiving_domain(self, org):
@@ -171,8 +162,7 @@ class TestMessageStr:
     @pytest.mark.django_db
     def test_str__includes_from_to_and_kind(self, user, org):
         msg = create_outgoing(user, org)
-        base = Message.objects.get(pk=msg.pk)
-        rendered = str(base)
+        rendered = str(Message.objects.get(pk=msg.pk))
         assert "alice@example.com" in rendered
         assert "bob@example.com" in rendered
         assert "outgoingmessage" in rendered
@@ -182,13 +172,9 @@ class TestMessageGetAbsoluteUrl:
     @pytest.mark.django_db
     def test_get_absolute_url__outgoing(self, user, org):
         msg = create_outgoing(user, org)
-        base = Message.objects.get(pk=msg.pk)
-        url = base.get_absolute_url()
-        assert str(msg.pk) in url
+        assert str(msg.pk) in Message.objects.get(pk=msg.pk).get_absolute_url()
 
     @pytest.mark.django_db
     def test_get_absolute_url__incoming(self, org):
         msg = create_incoming(org)
-        base = Message.objects.get(pk=msg.pk)
-        url = base.get_absolute_url()
-        assert str(msg.pk) in url
+        assert str(msg.pk) in Message.objects.get(pk=msg.pk).get_absolute_url()
