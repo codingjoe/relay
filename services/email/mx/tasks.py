@@ -242,9 +242,13 @@ def notify_postmaster_recipients(message_pk):
         "subject": message.subject
     }
     for membership in memberships:
-        membership.user.email_user(
-            subject=subject,
-            message=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            fail_silently=True,
-        )
+        try:
+            membership.user.email_user(
+                subject=subject,
+                message=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+            )
+        except OSError as e:
+            logger.error(
+                f"Postmaster notification to {membership.user.email} failed: {e}"
+            )
