@@ -109,31 +109,6 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
             )
             return "250 OK"
 
-        case lp if lp == settings.RELAY_POSTMASTER_LOCAL_PART or lp.startswith(
-            f"{settings.RELAY_POSTMASTER_LOCAL_PART}+"
-        ):
-            message = IncomingMessage(
-                org=domain.org,
-                receiving_domain=rcpt_domain,
-                mail_from=mail_from,
-                rcpt_to=rcpt_to,
-                subject=msg.get("Subject", ""),
-                message_id=msg.get("Message-ID", ""),
-                received_with_tls=bool(tls),
-                status=IncomingMessage.Status.RECEIVED,
-            )
-            message.raw_body.save(
-                f"{message.id}.eml", ContentFile(raw_bytes), save=False
-            )
-            message.save(force_insert=True)
-            transaction.on_commit(
-                lambda: dispatch_webhook.enqueue(message_id=str(message.id))
-            )
-            transaction.on_commit(
-                lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))
-            )
-            return "250 OK"
-
     message = IncomingMessage(
         org=domain.org,
         receiving_domain=rcpt_domain,
@@ -148,6 +123,12 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
     message.save(force_insert=True)
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
     transaction.on_commit(lambda: enqueue_dmarc_evaluation(message))
+    if local_part == settings.RELAY_POSTMASTER_LOCAL_PART or local_part.startswith(
+        f"{settings.RELAY_POSTMASTER_LOCAL_PART}+"
+    ):
+        transaction.on_commit(
+            lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))
+        )
     return "250 OK"
 
 
