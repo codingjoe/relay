@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     "domains",
     "legal",
     "know_how",
+    "alternative_to",
     "well_known",
     "root",
     "smtp",
@@ -122,6 +123,7 @@ TEMPLATES = [
         "DIRS": [
             BASE_DIR / "legal" / "docs",
             BASE_DIR / "know_how" / "docs",
+            BASE_DIR / "alternative_to" / "docs",
         ],
         "OPTIONS": {
             "context_processors": (

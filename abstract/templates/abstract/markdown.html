@@ -22,17 +22,17 @@
     <aside class="hidden lg:block">
       <nav aria-label='{% translate "table of contents"|capfirst %}' class="sticky top-4">
         <p class="text-sm font-medium text-muted-foreground m-0 mb-2">{% translate "on this page"|capfirst %}</p>
-        <div class="prose prose-sm max-w-none [&_a]:no-underline [&_a]:text-muted-foreground hover:[&_a]:text-foreground">
+        <div class="prose prose-sm dark:prose-invert max-w-none [&_a]:no-underline [&_a]:text-muted-foreground hover:[&_a]:text-foreground">
           {% include_md_toc markdown_template toc_levels %}
         </div>
       </nav>
     </aside>
-    <article class="prose max-w-3xl">
+    <article class="prose dark:prose-invert max-w-3xl">
       {% include_md markdown_template %}
     </article>
   </div>
   {% if license %}
-    <footer class="max-w-3xl mx-auto pb-8 prose prose-sm text-muted-foreground">
+    <footer class="max-w-3xl mx-auto pb-8 prose prose-sm dark:prose-invert text-muted-foreground">
       {{ license }}
     </footer>
   {% endif %}

@@ -1,57 +1,40 @@
+import frontmatter
 from django.urls import reverse
 
-from know_how.views import (
-    KnowHowDetailView,
-    extract_title,
-    list_articles,
-    parse_frontmatter,
-)
+from know_how.views import KnowHowDetailView, KnowHowListView
 
 
 class TestListArticles:
     def test_list_articles__returns_sorted_articles(self):
-        articles = list_articles()
-        slugs = [a["slug"] for a in articles]
+        slugs = [slug for slug, _ in KnowHowListView.get_articles()]
         assert slugs == sorted(slugs)
         assert "dmarc" in slugs
         assert "spf" in slugs
 
     def test_list_articles__each_has_title(self):
-        articles = list_articles()
-        for article in articles:
-            assert article["title"]
-            assert article["slug"]
+        for slug, metadata in KnowHowListView.get_articles():
+            assert metadata["name"]
+            assert slug
 
     def test_list_articles__includes_description(self):
-        articles = list_articles()
-        dmarc = next(a for a in articles if a["slug"] == "dmarc")
-        assert dmarc["description"]
+        dmarc = next(
+            metadata
+            for slug, metadata in KnowHowListView.get_articles()
+            if slug == "dmarc"
+        )
+        assert dmarc.get("description")
 
 
-class TestExtractTitle:
-    def test_extract_title__returns_h1_text(self):
-        markdown_text = "# DMARC\n\nSome content."
-        assert extract_title(markdown_text) == "DMARC"
-
-    def test_extract_title__returns_empty_for_no_h1(self):
-        markdown_text = "Some content without a heading."
-        assert extract_title(markdown_text) == ""
-
-    def test_extract_title__ignores_frontmatter(self):
-        markdown_text = "---\nname: DMARC\n---\n\n# DMARC\n\nContent."
-        assert extract_title(markdown_text) == "DMARC"
-
-
-class TestParseFrontmatter:
-    def test_parse_frontmatter__returns_metadata_and_content(self):
+class TestFrontmatterParse:
+    def test_frontmatter_parse__returns_metadata_and_content(self):
         text = "---\nname: DMARC\ndescription: Test\n---\n\n# DMARC\n\nBody."
-        metadata, content = parse_frontmatter(text)
+        metadata, content = frontmatter.parse(text)
         assert metadata == {"name": "DMARC", "description": "Test"}
         assert content == "# DMARC\n\nBody."
 
-    def test_parse_frontmatter__no_frontmatter(self):
+    def test_frontmatter_parse__no_frontmatter(self):
         text = "# DMARC\n\nBody."
-        metadata, content = parse_frontmatter(text)
+        metadata, content = frontmatter.parse(text)
         assert metadata == {}
         assert content == text
 

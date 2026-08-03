@@ -1,4 +1,7 @@
-from django.http import HttpResponse
+import pathlib
+
+import frontmatter
+from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
 from django.utils.cache import patch_cache_control, patch_vary_headers
@@ -16,6 +19,40 @@ class CacheControlMixin:
         response = super().dispatch(request, *args, **kwargs)
         patch_cache_control(response, **self.cache_control)
         return response
+
+
+class MarkdownArticleMixin:
+    """Mixin for views that serve Markdown articles from a docs directory.
+
+    Subclasses must set:
+    - `docs_dir`: pathlib.Path to the docs directory.
+    - `slugs`: frozenset of allowed article slugs (filenames without .md).
+    """
+
+    docs_dir: pathlib.Path
+    slugs: frozenset[str]
+
+    @classmethod
+    def get_articles(cls):
+        """Yield (slug, metadata) for each article in the docs directory."""
+        for slug in sorted(cls.slugs):
+            metadata, _ = frontmatter.parse((cls.docs_dir / f"{slug}.md").read_text())
+            yield slug, metadata
+
+    @classmethod
+    def get_article_path(cls, slug: str) -> pathlib.Path:
+        """Resolve the filesystem path for an article or raise Http404."""
+        if slug in cls.slugs:
+            return cls.docs_dir / f"{slug}.md"
+        raise Http404("Article not found")
+
+    @classmethod
+    def get_article_metadata(cls, slug: str) -> dict[str, str]:
+        """Return the frontmatter metadata for an article."""
+        path = cls.get_article_path(slug)
+        text = path.read_text()
+        metadata, _ = frontmatter.parse(text)
+        return metadata
 
 
 class BreadcrumbViewMixin:

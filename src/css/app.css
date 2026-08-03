@@ -7,6 +7,12 @@
   --color-primary-foreground: hsl(0, 0%, 100%);
 }
 
+/* Lucide icons must sit inline with their label; Tailwind preflight forces
+   display: block on every svg, which adds a line break after each icon. */
+svg.lucide {
+  display: inline-block;
+}
+
 .bg-background {
   background-color: var(--color-background);
 }

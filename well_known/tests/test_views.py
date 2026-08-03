@@ -38,6 +38,13 @@ class TestLlmsTxt:
         assert "/legal/terms/" in body
         assert "/legal/privacy/" in body
 
+    def test_get__contains_alternative_to_section(self, client):
+        response = client.get(reverse("well_known:llms-txt"))
+        body = response.content.decode()
+        assert "## Alternative to" in body
+        assert "/alternative-to/ses/" in body
+        assert "/alternative-to/sendgrid/" in body
+
 
 class TestLlmsFullTxt:
     def test_get__returns_full_text(self, client):
@@ -54,6 +61,12 @@ class TestLlmsFullTxt:
         body = response.content.decode()
         assert "TL;DR" in body
         assert "RFC 7489" in body
+
+    def test_get__includes_comparison_content(self, client):
+        response = client.get(reverse("well_known:llms-full-txt"))
+        body = response.content.decode()
+        assert "Alternative to Amazon SES" in body
+        assert "/alternative-to/ses/" in body
 
 
 class TestSitemap:
@@ -78,3 +91,9 @@ class TestSitemap:
         assert "/legal/imprint/" in body
         assert "/legal/terms/" in body
         assert "/legal/privacy/" in body
+
+    def test_get__contains_alternative_to_articles(self, client):
+        response = client.get(reverse("well_known:sitemap"))
+        body = response.content.decode()
+        assert "/alternative-to/ses/" in body
+        assert "/alternative-to/sendgrid/" in body

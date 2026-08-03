@@ -166,7 +166,7 @@ Update it based on review feedback.
   by hand — the library replaces the `<i>` element with the SVG at runtime.
   Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons —
   use Lucide icons with semantic color classes instead (for example,
-  `circle-check` with `text-success`, `circle-x` with `text-destructive`,
+  `circle-check` with `text-primary`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css` — it imports Tailwind CSS v4 and
