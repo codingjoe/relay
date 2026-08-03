@@ -14,6 +14,8 @@ from services.email.message.models import Message
 
 
 class OutgoingMessage(Message):
+    """Deliver outbound email submitted via the SMTP server."""
+
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
         SENT = "sent", _("sent")

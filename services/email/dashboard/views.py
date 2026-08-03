@@ -19,7 +19,7 @@ from services.email.smtp.charts import build_outgoing_chart
 
 
 class DashboardView(OrganizationScopedView, TemplateView):
-    """Unified transactional email dashboard for an organization."""
+    """Display the unified transactional email dashboard for an organization."""
 
     template_name = "dashboard/dashboard.html"
     title = _("Email")
@@ -39,7 +39,7 @@ class DashboardView(OrganizationScopedView, TemplateView):
 
 
 class ChartDataView(OrganizationScopedView, RetrieveAPIView):
-    """API endpoint returning chart data as JSON for interactive charts."""
+    """Return chart data as JSON for interactive charts."""
 
     serializer_class = ChartDataSerializer
 
@@ -59,7 +59,7 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
 
 
 class ReportListView(OrganizationScopedView, ListView):
-    """Merged timeline of DMARC and TLS reports."""
+    """Display a merged timeline of DMARC and TLS reports."""
 
     template_name = "dashboard/report_list.html"
     context_object_name = "reports"

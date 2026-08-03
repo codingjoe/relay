@@ -1,3 +1,5 @@
+"""Shared message model for inbound and outbound email."""
+
 import uuid
 
 from django.contrib.contenttypes.models import ContentType
@@ -8,7 +10,7 @@ from abstract.models import TimeStamped
 
 
 class Message(TimeStamped):
-    """Parent of inbound and outbound email messages."""
+    """Base class for inbound and outbound email messages."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -65,22 +67,22 @@ class Message(TimeStamped):
 
     @property
     def status(self) -> str:
-        """Return the delivery lifecycle status of this message."""
+        """Return the delivery lifecycle status."""
         raise NotImplementedError
 
     @property
     def status_display(self) -> str:
-        """Return a human-readable label for this message's status."""
+        """Return a human-readable label for the status."""
         raise NotImplementedError
 
     @property
     def domain_name(self) -> str:
-        """Return the domain name associated with this message."""
+        """Return the associated domain name."""
         raise NotImplementedError
 
     @property
     def status_badge_variant(self) -> str:
-        """Return the basecoat badge variant for this message's status."""
+        """Return the basecoat badge variant for the status."""
         raise NotImplementedError
 
     def __str__(self):

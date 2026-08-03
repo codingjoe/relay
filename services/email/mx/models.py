@@ -20,7 +20,7 @@ from .serializers import TlsReportSerializer
 
 
 class IncomingMessage(Message):
-    """An email captured by the MX server that waits for webhook dispatch."""
+    """Capture inbound mail from the MX server and track webhook dispatch."""
 
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
@@ -70,7 +70,7 @@ class IncomingMessage(Message):
 
 
 class Webhook(OrganizationOwned):
-    """An HTTPS endpoint that receives webhook deliveries for matching addresses."""
+    """Receive webhook deliveries for matching recipient addresses at an HTTPS endpoint."""
 
     class MxStatus(models.TextChoices):
         OK = "ok", _("ok")
@@ -177,7 +177,7 @@ class Webhook(OrganizationOwned):
 
 
 class WebhookDelivery(TimeStamped):
-    """A record of one webhook POST attempt and its outcome."""
+    """Track one webhook POST attempt and its outcome."""
 
     class Status(models.TextChoices):
         SENT = "sent", _("sent")
@@ -241,7 +241,7 @@ class WebhookDelivery(TimeStamped):
 
 
 class TlsReport(IncomingMessage):
-    """TLS-RPT report received from a sending organization."""
+    """Receive TLS-RPT reports from sending organizations."""
 
     domain = models.ForeignKey(
         "domains.Domain",

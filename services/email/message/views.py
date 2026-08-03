@@ -1,3 +1,5 @@
+"""Merged contact timeline view for inbound and outbound messages."""
+
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -11,7 +13,7 @@ from .models import Message
 
 
 class MessageListView(OrganizationScopedView, ListView):
-    """Merged timeline of inbound and outbound messages."""
+    """Display a merged timeline of inbound and outbound messages."""
 
     context_object_name = "messages"
     paginate_by = 50

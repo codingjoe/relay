@@ -15,10 +15,10 @@ register.filter(is_safe=True)(humanize.apnumber)
 
 @register.filter(expects_localtime=True)
 def naturalday(value):
-    """Format a date as a human-readable day (for example, "today", "yesterday", "Sep 13").
+    """Format a date as a human-readable day.
 
-    Uses `SHORT_DATE_FORMAT` for dates in the current year and
-    `DATE_FORMAT` for dates in other years.
+    Use ``SHORT_DATE_FORMAT`` for dates in the current year and
+    ``DATE_FORMAT`` for dates in other years.
     """
     if value and value.year != timezone.now().year:
         return f"{humanize.naturalday(value, 'DATE_FORMAT')}"
@@ -29,15 +29,8 @@ def naturalday(value):
 def naturaltime(value: datetime.datetime):
     """Format a datetime as a human-readable relative time.
 
-    Uses Django's `naturaltime` for recent values (within ±2 hours), then
-    changes to longer date and time formats for older values.
-
-    Args:
-        value: The datetime to format.
-
-    Returns:
-        A human-readable time string, or the input unchanged if it is not
-        a datetime.
+    Switches from a relative format for recent values to absolute
+    date and time formats for older values.
     """
     if not isinstance(value, datetime.datetime):
         return value
@@ -58,15 +51,8 @@ def naturaltime(value: datetime.datetime):
 def param_replace(context, **kwargs):
     """Replace query parameters in the current URL.
 
-    Preserves existing GET parameters and overrides the ones passed as kwargs.
-    Empty values are removed.
-
-    Args:
-        context: The template context (must contain `request`).
-        **kwargs: Query parameters to set or override.
-
-    Returns:
-        A URL-encoded query string with the updated parameters.
+    Preserve existing GET parameters and override the ones passed as kwargs.
+    Remove empty values.
     """
     d = context["request"].GET.copy()
     for k, v in kwargs.items():
