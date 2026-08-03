@@ -1,10 +1,13 @@
-from django.http import HttpResponse
+import pathlib
+
+import frontmatter
+from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
 from django.utils.cache import patch_cache_control, patch_vary_headers
 from django.views import generic
 
-from abstract.utils import strip_frontmatter
+from abstract.utils import md_2_html, strip_frontmatter
 
 
 class CacheControlMixin:
@@ -16,6 +19,48 @@ class CacheControlMixin:
         response = super().dispatch(request, *args, **kwargs)
         patch_cache_control(response, **self.cache_control)
         return response
+
+
+class MarkdownArticleMixin:
+    """Mixin for views that serve Markdown articles from a docs directory.
+
+    Subclasses must set:
+    - `docs_dir`: pathlib.Path to the docs directory.
+    - `slugs`: frozenset of allowed article slugs (filenames without .md).
+    """
+
+    docs_dir: pathlib.Path
+    slugs: frozenset[str]
+
+    @classmethod
+    def get_articles(cls) -> list[dict[str, str]]:
+        """Return all articles with slug, title, and description."""
+        return [
+            {
+                "slug": slug,
+                "title": metadata["name"],
+                "description": md_2_html(metadata.get("description", "")),
+            }
+            for slug in sorted(cls.slugs)
+            for metadata, _ in [
+                frontmatter.parse((cls.docs_dir / f"{slug}.md").read_text())
+            ]
+        ]
+
+    @classmethod
+    def get_article_path(cls, slug: str) -> pathlib.Path:
+        """Resolve the filesystem path for an article or raise Http404."""
+        if slug not in cls.slugs:
+            raise Http404("Article not found")
+        return cls.docs_dir / f"{slug}.md"
+
+    @classmethod
+    def get_article_title(cls, slug: str) -> str:
+        """Return the display title (frontmatter name) for an article."""
+        path = cls.get_article_path(slug)
+        text = path.read_text()
+        metadata, _ = frontmatter.parse(text)
+        return metadata["name"]
 
 
 class BreadcrumbViewMixin:

@@ -1,7 +1,6 @@
 """Alternative-to comparison article views — list and detail."""
 
 import pathlib
-from functools import partial
 
 import frontmatter
 from django.conf import settings
@@ -9,42 +8,41 @@ from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.markdown_docs import (
-    article_path,
-    article_title,
-    list_articles,
-)
-from abstract.views import BreadcrumbViewMixin, MarkdownView
+from abstract.views import BreadcrumbViewMixin, MarkdownArticleMixin, MarkdownView
 
 ALTERNATIVE_TO_DIR = pathlib.Path(settings.BASE_DIR) / "alternative_to" / "docs"
-
-list_comparisons = partial(list_articles, ALTERNATIVE_TO_DIR)
-comparison_path = partial(article_path, ALTERNATIVE_TO_DIR)
+SLUGS = frozenset(p.stem for p in ALTERNATIVE_TO_DIR.glob("*.md"))
 
 
-class AlternativeToListView(BreadcrumbViewMixin, generic.TemplateView):
+class AlternativeToListView(
+    MarkdownArticleMixin, BreadcrumbViewMixin, generic.TemplateView
+):
     """Display all alternative-to comparison articles."""
 
     template_name = "alternative_to/list.html"
     title = _("Alternative to")
     parent = "home"
+    docs_dir = ALTERNATIVE_TO_DIR
+    slugs = SLUGS
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "articles": list_comparisons(),
+            "articles": self.get_articles(),
         }
 
 
-class AlternativeToDetailView(MarkdownView):
+class AlternativeToDetailView(MarkdownArticleMixin, MarkdownView):
     """Render a single alternative-to comparison article."""
 
     parent = "alternative_to:list"
+    docs_dir = ALTERNATIVE_TO_DIR
+    slugs = SLUGS
 
     @classmethod
     def get_title(cls, request):
         slug = request.resolver_match.kwargs.get("slug", "")
         try:
-            return article_title(ALTERNATIVE_TO_DIR, slug)
+            return cls.get_article_title(slug)
         except Http404:
             return slug
 
@@ -53,7 +51,7 @@ class AlternativeToDetailView(MarkdownView):
 
     def get_context_data(self, **kwargs):
         slug = self.kwargs["slug"]
-        path = comparison_path(slug)
+        path = self.get_article_path(slug)
         text = path.read_text()
         metadata, _ = frontmatter.parse(text)
         context = super().get_context_data(**kwargs)

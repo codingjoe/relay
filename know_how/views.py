@@ -1,7 +1,6 @@
 """Know-how article views — list and detail."""
 
 import pathlib
-from functools import partial
 
 import frontmatter
 from django.conf import settings
@@ -10,14 +9,16 @@ from django.template import loader
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.markdown_docs import (
-    article_path,
-    list_articles,
-)
 from abstract.utils import md_2_html
-from abstract.views import BreadcrumbViewMixin, CacheControlMixin, MarkdownView
+from abstract.views import (
+    BreadcrumbViewMixin,
+    CacheControlMixin,
+    MarkdownArticleMixin,
+    MarkdownView,
+)
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
+SLUGS = frozenset(p.stem for p in KNOW_HOW_DIR.glob("*.md"))
 
 LICENSE_MARKDOWN = (
     "This work is licensed under a "
@@ -28,35 +29,37 @@ LICENSE_MARKDOWN = (
 LICENSE_YAML = "CC-BY-SA-4.0"
 
 
-list_articles = partial(list_articles, KNOW_HOW_DIR)
-article_path = partial(article_path, KNOW_HOW_DIR)
-
-
-class KnowHowListView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
+class KnowHowListView(
+    MarkdownArticleMixin, CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView
+):
     """Display all know-how articles."""
 
     template_name = "know_how/list.html"
     title = _("know how")
     parent = "home"
     cache_control = {"public": True, "max_age": 3600}
+    docs_dir = KNOW_HOW_DIR
+    slugs = SLUGS
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "articles": list_articles(),
+            "articles": self.get_articles(),
             "license": md_2_html(LICENSE_MARKDOWN),
         }
 
 
-class KnowHowDetailView(MarkdownView):
+class KnowHowDetailView(MarkdownArticleMixin, MarkdownView):
     """Render a single know-how article."""
 
     parent = "know_how:list"
+    docs_dir = KNOW_HOW_DIR
+    slugs = SLUGS
 
     @classmethod
     def get_title(cls, request):
         slug = request.resolver_match.kwargs.get("slug", "")
         try:
-            path = article_path(slug)
+            path = cls.get_article_path(slug)
         except Http404:
             return slug
         text = path.read_text()
@@ -68,7 +71,7 @@ class KnowHowDetailView(MarkdownView):
 
     def get_context_data(self, **kwargs):
         slug = self.kwargs["slug"]
-        path = article_path(slug)
+        path = self.get_article_path(slug)
         text = path.read_text()
         metadata, _ = frontmatter.parse(text)
         context = super().get_context_data(**kwargs)
@@ -78,7 +81,7 @@ class KnowHowDetailView(MarkdownView):
         return context
 
     def render_markdown(self, request, **kwargs):
-        """Return the article as `text/markdown` with license injected into frontmatter."""
+        """Return the article as text/markdown with license injected into frontmatter."""
         context = self.get_context_data(**kwargs)
         markdown_text = loader.get_template(self.get_markdown_template()).render(
             context=context, request=request

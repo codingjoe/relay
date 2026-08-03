@@ -6,8 +6,8 @@ from django.views.generic import TemplateView
 
 from abstract.utils import strip_frontmatter
 from abstract.views import CacheControlMixin
-from alternative_to.views import list_comparisons
-from know_how.views import list_articles
+from alternative_to.views import AlternativeToListView
+from know_how.views import KnowHowListView
 
 
 class RobotsTxtView(CacheControlMixin, TemplateView):
@@ -40,7 +40,7 @@ class LlmsTxtView(CacheControlMixin, TemplateView):
                     reverse("know_how:detail", args=[article["slug"]])
                 ),
             }
-            for article in list_articles()
+            for article in KnowHowListView.get_articles()
         ]
         legal_pages = [
             {"title": label, "url": self.request.build_absolute_uri(reverse(name))}
@@ -57,7 +57,7 @@ class LlmsTxtView(CacheControlMixin, TemplateView):
                     reverse("alternative_to:detail", args=[comparison["slug"]])
                 ),
             }
-            for comparison in list_comparisons()
+            for comparison in AlternativeToListView.get_articles()
         ]
         return super().get_context_data(**kwargs) | {
             "articles": articles,
@@ -86,7 +86,7 @@ class LlmsFullTxtView(CacheControlMixin, TemplateView):
                     )
                 ),
             }
-            for article in list_articles()
+            for article in KnowHowListView.get_articles()
         ]
         return super().get_context_data(**kwargs) | {
             "articles": articles,
@@ -102,6 +102,6 @@ class LlmsFullTxtView(CacheControlMixin, TemplateView):
                         )
                     ),
                 }
-                for comparison in list_comparisons()
+                for comparison in AlternativeToListView.get_articles()
             ],
         }
