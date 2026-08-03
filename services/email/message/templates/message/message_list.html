@@ -92,21 +92,29 @@
               </td>
               <td>{% timestamp message.created_at %}</td>
               <td>
-                <code><a
-                    href="{{ request.path }}?email={{ message.mail_from|urlencode }}"
-                  >{{ message.mail_from }}</a></code>
+                <code>
+                  <a class="link" href="{{ request.path }}?email={{ message.mail_from|urlencode }}">
+                    {{ message.mail_from }}
+                  </a>
+                </code>
               </td>
               <td>
-                <code><a
-                    href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}"
-                  >{{ message.rcpt_to }}</a></code>
+                <code>
+                  <a class="link" href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}">
+                    {{ message.rcpt_to }}
+                  </a>
+                </code>
               </td>
               <td>
-                {% if message.outgoingmessage.domain %}
-                  <code>{{ message.outgoingmessage.domain.name }}</code>
-                {% else %}
-                  —
-                {% endif %}
+                <code>
+                  {% if message.outgoingmessage.domain %}
+                    <a class="link" href="{{ request.path }}?domain={{ message.outgoingmessage.domain|urlencode }}">
+                      {{ message.outgoingmessage.domain }}
+                    </a>
+                  {% else %}
+                    —
+                  {% endif %}
+                </code>
               </td>
               <td>
                 <a class="btn" data-size="sm" data-variant="secondary" href="{{ message.get_absolute_url }}">
