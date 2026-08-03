@@ -85,6 +85,8 @@ class Message(TimeStamped):
     def save(self, *args, **kwargs):
         if not self.content_type_id:
             self.content_type = ContentType.objects.get_for_model(type(self))
+        if not self.status:
+            self.status = self.Status.values[0]
         self.clean_status()
         super().save(*args, **kwargs)
 
@@ -93,6 +95,11 @@ class Message(TimeStamped):
             raise ValidationError(
                 _("Invalid status value: %(value)s"), params={"value": self.status}
             )
+
+    @property
+    def status_display(self) -> str:
+        """Return a human-readable label for the status."""
+        return self.Status(self.status).label if self.status else ""
 
     @property
     def kind(self) -> str:
@@ -111,7 +118,7 @@ class Message(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        return "outline"
+        raise NotImplementedError
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"

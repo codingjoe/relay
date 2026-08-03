@@ -40,6 +40,16 @@ class OutgoingMessage(Message):
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
 
+    @property
+    def status_badge_variant(self) -> str:
+        match self.status:
+            case self.Status.SENT | self.Status.DELIVERED:
+                return "primary"
+            case self.Status.BOUNCED | self.Status.DROPPED | self.Status.FAILED:
+                return "destructive"
+            case _:
+                return "outline"
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 

@@ -37,6 +37,16 @@ class IncomingMessage(Message):
         ordering = ["-created_at"]
 
     @property
+    def status_badge_variant(self) -> str:
+        match self.status:
+            case self.Status.RECEIVED:
+                return "primary"
+            case self.Status.WEBHOOK_FAILED | self.Status.DROPPED:
+                return "destructive"
+            case _:
+                return "outline"
+
+    @property
     def domain_name(self) -> str:
         return self.receiving_domain or super().domain_name
 
