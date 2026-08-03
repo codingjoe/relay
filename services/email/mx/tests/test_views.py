@@ -72,25 +72,6 @@ def webhook_server():
 
 
 @pytest.mark.django_db
-class TestInboxRedirect:
-    """Legacy /email/inbox/ redirects to the merged contact timeline."""
-
-    def test_get__requires_login(self, client, org):
-        response = client.get(f"/org/{org.slug}/email/inbox/")
-        assert response.status_code == 302
-        assert "/account/login" in response.url
-
-    def test_get__redirects_to_contact_timeline(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.slug}/email/inbox/")
-        assert response.status_code == 302
-        assert response.url == f"/org/{org.slug}/email/messages/?direction=received"
-
-    def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.slug}/email/inbox/")
-        assert response.status_code == 404
-
-
-@pytest.mark.django_db
 class TestIncomingMessageDetailView:
     def test_get__ok_for_member(self, admin_client, org):
         msg = make_incoming(org)

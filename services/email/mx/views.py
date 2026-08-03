@@ -5,9 +5,9 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, RedirectView, View
+from django.views.generic import DeleteView, DetailView, ListView, View
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -158,27 +158,3 @@ class TlsReportDetailView(OrganizationScopedView, DetailView):
         return super().get_context_data(**kwargs) | {
             "failures": self.object.failures.select_related("report"),
         }
-
-
-class InboxRedirectView(OrganizationScopedView, RedirectView):
-    """Redirect the legacy inbox URL to the merged Messages view."""
-
-    permanent = False
-    query_string = True
-    direction: str = "all"
-
-    def get_redirect_url(self, *args, **kwargs):
-        url = reverse("message:message-list", kwargs={"org_slug": self.org.slug})
-        return f"{url}?direction={self.direction}"
-
-
-class TlsReportListRedirectView(OrganizationScopedView, RedirectView):
-    """Redirect the legacy TLS report list URL to the merged Reports view."""
-
-    permanent = False
-    query_string = True
-    report_type: str = "dmarc"
-
-    def get_redirect_url(self, *args, **kwargs):
-        url = reverse("email-dashboard:report-list", kwargs={"org_slug": self.org.slug})
-        return f"{url}?type={self.report_type}"

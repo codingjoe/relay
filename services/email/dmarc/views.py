@@ -1,6 +1,5 @@
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DetailView, ListView, RedirectView
+from django.views.generic import DetailView, ListView
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -85,15 +84,3 @@ class DmarcFailureReportDetailView(OrganizationScopedView, DetailView):
 
     def get_queryset(self):
         return DmarcFailureReport.objects.filter(org=self.org)
-
-
-class DmarcReportListRedirectView(OrganizationScopedView, RedirectView):
-    """Redirect the legacy DMARC report list URL to the merged Reports view."""
-
-    permanent = False
-    query_string = True
-    report_type: str = "dmarc"
-
-    def get_redirect_url(self, *args, **kwargs):
-        url = reverse("email-dashboard:report-list", kwargs={"org_slug": self.org.slug})
-        return f"{url}?type={self.report_type}"

@@ -6,21 +6,9 @@ app_name = "mx"
 
 urlpatterns = [
     path(
-        "inbox/",
-        include(
-            [
-                path(
-                    "",
-                    views.InboxRedirectView.as_view(direction="received"),
-                    name="inbox",
-                ),
-                path(
-                    "<uuid:pk>",
-                    views.IncomingMessageDetailView.as_view(),
-                    name="message-detail",
-                ),
-            ]
-        ),
+        "inbox/<uuid:pk>",
+        views.IncomingMessageDetailView.as_view(),
+        name="message-detail",
     ),
     path(
         "webhooks/",
@@ -42,20 +30,8 @@ urlpatterns = [
         ),
     ),
     path(
-        "tls/",
-        include(
-            [
-                path(
-                    "",
-                    views.TlsReportListRedirectView.as_view(report_type="tls"),
-                    name="tls-report-list",
-                ),
-                path(
-                    "<uuid:pk>",
-                    views.TlsReportDetailView.as_view(),
-                    name="tls-report-detail",
-                ),
-            ]
-        ),
+        "tls/<uuid:pk>",
+        views.TlsReportDetailView.as_view(),
+        name="tls-report-detail",
     ),
 ]
