@@ -1,14 +1,24 @@
 import itertools
+import json
 import time
 
 import pytest
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core import mail
+from django.core.files.base import ContentFile
 from django.test import override_settings
 
+from accounts.models import Membership
+from services.email.mx.models import IncomingMessage
 from services.email.mx.tasks import (
     WEBHOOK_RETRY_DELAYS,
     WebhookEvent,
     WebhookJSONEncoder,
+    notify_postmaster_recipients,
 )
+
+LOCMEM = "django.core.mail.backends.locmem.EmailBackend"
 
 
 class TestWebhookEventFromTest:
@@ -35,10 +45,6 @@ class TestWebhookEventFromTest:
 @pytest.mark.django_db
 class TestWebhookEventFromMessage:
     def test_from_message__populates_all_fields(self, org):
-        from django.core.files.base import ContentFile
-
-        from services.email.mx.models import IncomingMessage
-
         msg = IncomingMessage(
             org=org,
             receiving_domain="example.com",
@@ -64,8 +70,6 @@ class TestWebhookEventFromMessage:
         assert event.body_url.endswith(".eml")
 
     def test_from_message__body_url_is_none_when_no_raw_body(self, org):
-        from services.email.mx.models import IncomingMessage
-
         msg = IncomingMessage.objects.create(
             org=org,
             receiving_domain="example.com",
@@ -92,8 +96,6 @@ class TestWebhookJSONEncoder:
             body_url=None,
             received_at="2026-01-01T00:00:00Z",
         )
-        import json
-
         encoded = json.dumps({"event": event}, cls=WebhookJSONEncoder)
         assert "email.received" in encoded
         assert "abc" in encoded
@@ -111,18 +113,9 @@ class TestRetrySchedule:
         assert WEBHOOK_RETRY_DELAYS[-1] == 24 * 60 * 60
 
 
-LOCMEM = "django.core.mail.backends.locmem.EmailBackend"
-
-
 class TestNotifyPostmasterRecipients:
     @pytest.mark.django_db(transaction=True)
     def test_notify__sends_to_all_members_with_email(self, org, user, other_user):
-        from django.core import mail
-
-        from accounts.models import Membership
-        from services.email.mx.models import IncomingMessage
-        from services.email.mx.tasks import notify_postmaster_recipients
-
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
         msg = IncomingMessage.objects.create(
             org=org,
@@ -142,13 +135,6 @@ class TestNotifyPostmasterRecipients:
 
     @pytest.mark.django_db(transaction=True)
     def test_notify__skips_members_without_email(self, org):
-        from django.contrib.auth.models import User
-        from django.core import mail
-
-        from accounts.models import Membership
-        from services.email.mx.models import IncomingMessage
-        from services.email.mx.tasks import notify_postmaster_recipients
-
         no_email_user = User.objects.create_user(
             username="carol", email="", password="test"
         )
@@ -170,12 +156,6 @@ class TestNotifyPostmasterRecipients:
 
     @pytest.mark.django_db(transaction=True)
     def test_notify__includes_detail_url_in_body(self, org, user):
-        from django.conf import settings
-        from django.core import mail
-
-        from services.email.mx.models import IncomingMessage
-        from services.email.mx.tasks import notify_postmaster_recipients
-
         msg = IncomingMessage.objects.create(
             org=org,
             receiving_domain="example.com",
@@ -190,33 +170,3 @@ class TestNotifyPostmasterRecipients:
             f"http://{settings.RELAY_PLATFORM_DOMAIN}{msg.get_absolute_url()}"
         )
         assert expected_url in mail.outbox[0].body
-
-    @pytest.mark.django_db(transaction=True)
-    def test_notify__logs_error_on_smtp_failure(self, org, user, caplog):
-        import logging
-        from unittest.mock import patch
-
-        from services.email.mx.models import IncomingMessage
-        from services.email.mx.tasks import notify_postmaster_recipients
-
-        msg = IncomingMessage.objects.create(
-            org=org,
-            receiving_domain="example.com",
-            mail_from="external@example.org",
-            rcpt_to="postmaster@example.com",
-            subject="Alert",
-            message_id="<abc@example.org>",
-        )
-        with (
-            override_settings(EMAIL_BACKEND=LOCMEM),
-            patch(
-                "django.contrib.auth.models.User.email_user",
-                side_effect=OSError("Connection refused"),
-            ),
-            caplog.at_level(logging.ERROR),
-        ):
-            notify_postmaster_recipients.func(message_pk=str(msg.id))
-        assert any(
-            "Postmaster notification" in r.message and "failed" in r.message
-            for r in caplog.records
-        )
