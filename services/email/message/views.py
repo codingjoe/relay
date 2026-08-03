@@ -37,19 +37,6 @@ class MessageListView(OrganizationScopedView, ListView):
         WEBHOOK_SENT = IncomingMessage.Status.WEBHOOK_SENT, _("webhook sent")
         WEBHOOK_FAILED = IncomingMessage.Status.WEBHOOK_FAILED, _("webhook failed")
 
-    STATUS_BADGES = {
-        StatusChoices.PENDING: "outline",
-        StatusChoices.SENT: "primary",
-        StatusChoices.DELIVERED: "primary",
-        StatusChoices.HELD: "outline",
-        StatusChoices.BOUNCED: "destructive",
-        StatusChoices.DROPPED: "destructive",
-        StatusChoices.FAILED: "destructive",
-        StatusChoices.RECEIVED: "primary",
-        StatusChoices.WEBHOOK_SENT: "outline",
-        StatusChoices.WEBHOOK_FAILED: "destructive",
-    }
-
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
             "outgoingmessage",
@@ -75,6 +62,5 @@ class MessageListView(OrganizationScopedView, ListView):
             "direction": self.request.GET.get("direction", self.Direction.ALL),
             "email": self.request.GET.get("email", ""),
             "status": self.request.GET.get("status", ""),
-            "status_badges": self.STATUS_BADGES,
             "status_choices": self.StatusChoices.choices,
         }

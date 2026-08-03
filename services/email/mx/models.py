@@ -226,6 +226,16 @@ class WebhookDelivery(TimeStamped):
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
 
+    @property
+    def status_badge_variant(self) -> str:
+        match self.status:
+            case self.Status.SENT:
+                return "primary"
+            case self.Status.FAILED:
+                return "destructive"
+            case _:
+                return "outline"
+
     def __str__(self):
         return f"{self.webhook} ({self.status})"
 

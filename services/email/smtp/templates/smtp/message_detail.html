@@ -25,7 +25,7 @@
                   <span
                     class="badge"
                     data-size="sm"
-                    data-variant="{{ status_badges|get_item:transmission.status|default:'outline' }}"
+                    data-variant="{{ transmission.status_badge_variant }}"
                   >
                     {{ transmission.get_status_display }}
                   </span>

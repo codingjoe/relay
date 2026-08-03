@@ -137,6 +137,16 @@ class Transmission(TimeStamped):
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
 
+    @property
+    def status_badge_variant(self) -> str:
+        match self.status:
+            case self.Status.SENT | self.Status.DELIVERED:
+                return "primary"
+            case self.Status.FAILED | self.Status.BOUNCED:
+                return "destructive"
+            case _:
+                return "outline"
+
     def __str__(self):
         return f"{self.message} → {self.status}"
 

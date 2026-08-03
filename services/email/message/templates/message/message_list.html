@@ -95,7 +95,7 @@
               <span
                 class="badge"
                 data-size="sm"
-                data-variant="{{ status_badges|get_item:message.status|default:'outline' }}"
+                data-variant="{{ message.status_badge_variant }}"
               >
                 {{ message.status_display }}
               </span>

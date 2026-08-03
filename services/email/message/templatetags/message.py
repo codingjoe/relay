@@ -1,4 +1,4 @@
-"""Email syntax highlighting and dict lookup template filters."""
+"""Email syntax highlighting template filter."""
 
 from django import template
 from django.utils.safestring import mark_safe
@@ -17,14 +17,3 @@ def highlight_email(value: str) -> str:
     if not value:
         return ""
     return mark_safe(highlight(value, EmailLexer(), _email_formatter))
-
-
-@register.filter
-def get_item(mapping, key):
-    """Look up ``key`` in ``mapping``, returning ``""`` when missing."""
-    if not mapping:
-        return ""
-    try:
-        return mapping[key]
-    except KeyError, TypeError:
-        return ""

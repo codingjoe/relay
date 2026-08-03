@@ -78,6 +78,11 @@ class Message(TimeStamped):
         """Return the domain name associated with this message."""
         raise NotImplementedError
 
+    @property
+    def status_badge_variant(self) -> str:
+        """Return the basecoat badge variant for this message's status."""
+        raise NotImplementedError
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 

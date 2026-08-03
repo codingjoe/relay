@@ -14,7 +14,6 @@ from django.views.generic import DeleteView, DetailView, ListView, View
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
-from services.email.message.views import MessageListView
 
 from .models import OutgoingMessage, SmtpCredential, Transmission
 from .tasks import deliver_message
@@ -63,7 +62,6 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
             "received": received,
             "body": body,
             "transmissions": Transmission.objects.filter(message=message),
-            "status_badges": MessageListView.STATUS_BADGES,
         }
 
 

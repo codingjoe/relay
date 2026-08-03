@@ -24,7 +24,7 @@
                   <span
                     class="badge"
                     data-size="sm"
-                    data-variant="{{ status_badges|get_item:delivery.status|default:'outline' }}"
+                    data-variant="{{ delivery.status_badge_variant }}"
                   >
                     {{ delivery.get_status_display }}
                   </span>
