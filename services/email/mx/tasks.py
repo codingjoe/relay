@@ -10,7 +10,9 @@ import httpx
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
+from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -225,9 +227,6 @@ def parse_tls_report(report_pk):
 @task
 def notify_postmaster_recipients(message_pk):
     """Notify all org members by email when a postmaster message is received."""
-    from django.template.loader import render_to_string
-    from django.utils.translation import gettext_lazy as _
-
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.exclude(user__email="").select_related("user")
 
