@@ -11,7 +11,6 @@
    display: block on every svg, which adds a line break after each icon. */
 svg.lucide {
   display: inline-block;
-  vertical-align: middle;
 }
 
 .bg-background {
