@@ -7,16 +7,11 @@ so each app can reuse them without duplication.
 """
 
 import pathlib
-import re
 
 import yaml
 from django.http import Http404
 
 from abstract.utils import md_2_html, strip_frontmatter
-
-# Slugs are filesystem stems: letters, digits, hyphens, underscores. Reject
-# anything else so `docs_dir / f"{slug}.md"` cannot escape the docs dir.
-SLUG_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
 
 
 def parse_frontmatter(text):
@@ -68,7 +63,7 @@ def list_articles(docs_dir):
 def article_path(docs_dir, slug):
     """Resolve the filesystem path for an article or raise Http404."""
     docs_dir = pathlib.Path(docs_dir)
-    if not SLUG_RE.fullmatch(slug) or slug not in article_slugs(docs_dir):
+    if slug not in article_slugs(docs_dir):
         raise Http404("Article not found")
     return docs_dir / f"{slug}.md"
 
