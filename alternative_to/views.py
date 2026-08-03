@@ -1,5 +1,3 @@
-"""Alternative-to comparison article views — list and detail."""
-
 import pathlib
 
 from django.conf import settings
