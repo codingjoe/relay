@@ -60,7 +60,8 @@ class Message(TimeStamped):
         help_text=_("Submission received over TLS."),
     )
 
-    class Status(models.TextChoices): ...
+    class Status(models.TextChoices):
+        """Base status choices — subclasses must override and set DEFAULT."""
 
     status = models.TextField(
         _("status"),
@@ -86,7 +87,7 @@ class Message(TimeStamped):
         if not self.content_type_id:
             self.content_type = ContentType.objects.get_for_model(type(self))
         if not self.status:
-            self.status = self.Status.values[0]
+            self.status = self.Status.DEFAULT
         self.clean_status()
         super().save(*args, **kwargs)
 

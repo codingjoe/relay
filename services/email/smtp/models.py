@@ -1,6 +1,7 @@
 """SMTP sending models — outgoing messages, transmissions, and credentials."""
 
 import uuid
+from enum import nonmember
 
 from django.conf import settings
 from django.db import models
@@ -23,6 +24,7 @@ class OutgoingMessage(Message):
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
         FAILED = "failed", _("failed")
+        DEFAULT = nonmember("pending")
 
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,

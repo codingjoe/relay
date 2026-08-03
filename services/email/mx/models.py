@@ -1,5 +1,6 @@
 import base64
 import uuid
+from enum import nonmember
 from fnmatch import fnmatch
 
 from django.conf import settings
@@ -26,6 +27,7 @@ class IncomingMessage(Message):
         WEBHOOK_SENT = "webhook_sent", _("webhook sent")
         WEBHOOK_FAILED = "webhook_failed", _("webhook failed")
         DROPPED = "dropped", _("dropped")
+        DEFAULT = nonmember("received")
 
     receiving_domain = models.TextField(
         _("receiving domain"),
