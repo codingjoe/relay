@@ -1,6 +1,7 @@
 """Alternative-to comparison article views — list and detail."""
 
 import pathlib
+from functools import partial
 
 from django.conf import settings
 from django.http import Http404
@@ -17,15 +18,8 @@ from abstract.views import BreadcrumbViewMixin, MarkdownView
 
 ALTERNATIVE_TO_DIR = pathlib.Path(settings.BASE_DIR) / "alternative_to" / "docs"
 
-
-def list_comparisons():
-    """Return all alternative-to comparison articles with slug, title, and description."""
-    return list_articles(ALTERNATIVE_TO_DIR)
-
-
-def comparison_path(slug):
-    """Resolve the filesystem path for a comparison article or raise Http404."""
-    return article_path(ALTERNATIVE_TO_DIR, slug)
+list_comparisons = partial(list_articles, ALTERNATIVE_TO_DIR)
+comparison_path = partial(article_path, ALTERNATIVE_TO_DIR)
 
 
 class AlternativeToListView(BreadcrumbViewMixin, generic.TemplateView):
