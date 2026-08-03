@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sitemaps",
+    "django.contrib.humanize",
     # Third-party apps
     "health_check",
     "social_django",
@@ -87,10 +88,11 @@ INSTALLED_APPS = [
     "alternative_to",
     "well_known",
     "root",
-    "smtp",
-    "tx_email",
-    "mx",
-    "dmarc",
+    "services.email.smtp",
+    "services.email.message",
+    "services.email.dashboard",
+    "services.email.mx",
+    "services.email.dmarc",
 ]
 
 MIDDLEWARE = [

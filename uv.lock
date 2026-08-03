@@ -903,6 +903,7 @@ dependencies = [
     { name = "httpx" },
     { name = "markdown" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "pygments" },
     { name = "pynacl" },
     { name = "python-frontmatter" },
     { name = "pyyaml" },
@@ -923,6 +924,7 @@ dev = [
     { name = "pytest-env" },
     { name = "pytest-randomly" },
     { name = "pytest-xdist" },
+    { name = "pyyaml" },
     { name = "threadmill", extra = ["inspector"] },
 ]
 test = [
@@ -953,6 +955,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "markdown", specifier = ">=3.10.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4" },
+    { name = "pygments", specifier = ">=2.20.0" },
     { name = "pynacl", specifier = ">=1.6.2" },
     { name = "python-frontmatter", specifier = ">=1.3.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
@@ -973,6 +976,7 @@ dev = [
     { name = "pytest-env", specifier = ">=1.7.0" },
     { name = "pytest-randomly", specifier = ">=4.1.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "threadmill", extras = ["inspector"], specifier = ">=0.5.1" },
 ]
 test = [

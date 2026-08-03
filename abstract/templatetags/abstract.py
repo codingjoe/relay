@@ -76,6 +76,26 @@ def param_replace(context, **kwargs):
     return d.urlencode()
 
 
+@register.inclusion_tag("abstract/timestamp.html")
+def timestamp(value):
+    """Render a `<time>` element with naturaltime and ISO 8601 tooltip."""
+    return {
+        "value": value,
+        "iso": value.isoformat(),
+        "natural": naturaltime(value),
+    }
+
+
+@register.inclusion_tag("abstract/pagination.html", takes_context=True)
+def pagination(context, page_obj=None):
+    """Render a pagination nav for a Django Page object.
+
+    Falls back to ``context['page_obj']`` when ``page_obj`` is omitted,
+    so most templates can call ``{% pagination %}`` without an argument.
+    """
+    return {"page_obj": page_obj or context.get("page_obj")}
+
+
 @register.simple_tag
 def include_md(template_name, **context):
     """Render a Markdown template to HTML, stripping any YAML frontmatter."""

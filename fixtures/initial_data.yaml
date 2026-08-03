@@ -1,0 +1,223 @@
+- model: auth.user
+  pk: 1
+  fields:
+    password: '!JS7bUqSW70yvspWcdGlMF3gqmzxRszioWF3hDxmY'
+    username: test
+    email: test@example.com
+    date_joined: 2026-08-01 18:21:34.533171+00:00
+- model: accounts.organization
+  pk: 1
+  fields:
+    modified_at: 2026-08-01 18:21:34.638562+00:00
+    created_at: 2026-08-01 18:21:34.638576+00:00
+    slug: acme
+- model: accounts.membership
+  pk: 1
+  fields:
+    modified_at: 2026-08-01 18:21:34.640380+00:00
+    created_at: 2026-08-01 18:21:34.640388+00:00
+    org: 1
+    user:
+      - test
+    role: write
+- model: kms.signingkey
+  pk: 1
+  fields:
+    modified_at: 2026-08-01 18:21:34.787904+00:00
+    created_at: 2026-08-01 18:21:34.787913+00:00
+    algorithm: rsa-2048
+    encrypted_private_key: gAAAAABqbjkuQjY9KJ324s5lZn_muhs5Lj3aF5BuoZ2Eyc2q7cmxFKMHZ4BSKOZz4mIWY4PWt3btQUfe26CGfCSm-Q55_hHiYIuR37kG_yIQMO5u6Yv3q7TMqA8To5I1dBsQas5JgrtWdGn4JpPzSOeoj6Lf6HTWPt8_RvyNS75M8vYD06OOJlPFPlpswBZNmERtz6f97-iSG2sdZ2g0mtVo9FwaMmYQuXbTrawbaYdr5jh2VqRMs5jjWBeVLe-qH_Bpo0Xur7SBYTstixwx7HARBVxhMN4KyqnWuTYz1j0i1TUDkOeIxqPIanmHq18Xnc_j_HDC0PHGlfm3uOv0q1AcUyVrPBoV4IJMgAhxI0y5misPWnBMG4kDkLK7d183vkvuwVwPigYzZxJ-mMW-ekxYBkCSLar-35ixU-X0EBTSGOstKOaPCsavJP92NuDHelVlRoIS9MNR7Dm5JTEexL6U73FTx7YzyrTMSfVd6tOQjmq-jmLMAGy_gQ5lQVTPde2X2Ogto0ZqrgWiv3uX7MVJDdeK412j_E9RQNAyjj1VKDsIucYT-ckLqhEIiPU29Fw82574XvZyYxYeFIFpbcegPhPf4NysjrZySC9tubuUyyWRhuDM7KbEGd1SwBrwDHzggxHE0j_c8hwacorIhcsJdqtqK06A9WngAlgWPfutiDHRSW_xu-HzZk8yCYYv9D7ZjfreXtKIMX3FG6IUcvdsuGficYhAwb8VLIUG-VicHxKfMsoidtLqiFc7BeHfY6Zcl3gW7a1ozRP8b21x-Lu6FKo1LNUxEEy39p-manQtiZiaeRl1kSFyMLWPcxXp8e7msQg0jZMdfl3qqAAPh7wA7OWhEU7SfkF_DzFOskr4MpfJ154Y0yD-w7GkYtWgdtRZX48HkcjuLwll-qDdTspyg09WOJ9tfKyXF2kPZw9Jn-d-holRcrUYFf_rvYdh7MGklBQ4QRlbgSTg3ZhNQGiNZgvm4UDuwHcFJHYL_6Ip7KxlfdjdAGnMkjkz1qr4_l9j2mwxqBENF_ecvBHobxGSZC29BrpRCMMz8uGYAqG7ecS6IxuEzugx9dU-UnvdDGkJYiUGzLDx17AZwSZa_Dwgojdwq-bbpkW3qPfT3LxIAuWVUVOy7Yv9ZKBVeDlKnnw7KiYJ6VvX2vdzaN3ursFCwIHRhcsGT6Pm-O2TghTR0XRnKPbYEHdfLWcEV_zFAKdjgmVi4HsnQxkO4g_3N2GK8yi0SSde5Yw0H1D21-z1C-Iey4IfRf78suqAMFF1RGLFKaWEMN0ZHHOiq11rSHg5ihhuFMksqwlss8EPLd8-OxB11LRk95lV-AG2pLll-7qMzEjj-av1F-jmI8v0d72GEN4GkhbMAGGP90IpbK4JSykXDXS7us9QqVgVJY_wtwCWDinggApTbHldUELPkXeaSRzVnUD32Oykk6RMrLn8O6QFsmlu8cVEK1gZMtJukzKOHJen0faVsMD4XASYzLMq6cJy_qE3IHl7zGd7n_2eJmRJqdnOmps54c9g860OtvOEwE3TzLbnzFONs2LqcEQCwsN1alMYWxulAK-uLDopa-L4kHlyCJCbZw_Su-55PxmrhFOGcfmv5DOftFygrhECi5LzP4m1vtRb3NVmSqC_MochXrSFB4Z5s2lpxD2UGn76CQbuDyi3wQf448wmjIX_kjQo61xY0RRyDXtv2ttVwgjQwXq2yDyvWRYqN0MVVAN2trTu7IGRW0lNpHqmBRCOsjtCW0Fv725WLB4O9D9iKHVcaDKUOX6dJAs7h6Q-NuCIP15X2HWGuY8zQSXddoTqDaQV-bjE6qx_cyn7XKDK7aKjsyM6njkAX226jZplgttiJcYU1dJvVi3NYC45jOakYxI-KEYb1Z8xruQMMVxclb4PXJqc1rdMwrzKgC4stlptJtzJeJV-ERs079_sIsjGrb38NJX6zwrljafRj59EvS_WQ53SqcjnlXLEKu9Lqkngy8-Bv9_5-jNNV6JMZJSdcwsm0kxaHcEgJdnXR3L9TybfS8vrD7S40AjlexxsQabqW0-NnpexLqA8RcdaGJ-GWX8bimvYZTwI1vnawZ74cMVCne0oIwH0Gzz2JBUYQKtAQRwwDVthcODkI-kjw0lHZDgduXZreRft9mqFkgBYKcv7eYknJUcJKTsn1Bi5Gucxt1qrOj_hOB4ikYD00Qq1vURZnLr0goGU9_Hs4Kgvbd3tddYP6WbqTNBtcLufy_RtG-Kjk7nwmnvWVnLU0k6OKO3b7yTJyOEwEmshrEnAEKL1BhGshHwMm8pQOSMx7vkzqBj-nyJRhAJnhdds3bg73kBwpW9tIJ_ArDWdXqrLzLtWyWQ-Mu0=
+    public_key: '-----BEGIN PUBLIC KEY-----
+
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsLTC+TxPHseWxXZhlwz+
+
+      0pwlu+Zz43qoXVRYmtXh4tDi97G15nka+mLZA9lQ3n4OxEgPZwdBvuuFy5JqFjl2
+
+      vv8X423QbtQdfhD+lpbA7pG0WrCAb2uDLkSMIaR8Ba2z5kDZZAlI5xJdxZx3HQ5V
+
+      B+Wh9A2OZbivO8ijHk4fiS13qKVefGi2gESy12E30o6KMj6IPWz35r2W/boQkEJ8
+
+      soGpjBkpWOmVSXDmor25oWlRBdgbUUwLUlAUULgHcoEJ58WpE/BzevM05u8jWMBv
+
+      hm3jyqtfyuSHYG0zHCH5XotOe/GiOqiGl/V4hMjuZbZVHezFlegmUknewyO2VXcG
+
+      swIDAQAB
+
+      -----END PUBLIC KEY-----
+
+'
+    key_id: 8a2831719d612373
+- model: kms.signingkey
+  pk: 2
+  fields:
+    modified_at: 2026-08-01 18:21:34.805840+00:00
+    created_at: 2026-08-01 18:21:34.805849+00:00
+    algorithm: rsa-1024
+    encrypted_private_key: gAAAAABqbjkusdcPLXdSl7zpx4_oOmZgJyUHaUN5McfAXOwcYrU0aCSPhiEWPzYwYJ4zrPffadwDQ5XPpYCHr-DUPBAiFOWno93drq8W98rK3OL2oE5ZHtXR8jPCyPMeq5bs4DKX1krkvybAi232FiNMheoagBEwdprXmNrj6rXKyPsm5nlbKJLLyEIar99pjTdvLxcHMf-3XNakkxn8PeMUU1uHTbrzJ_CXgADArcN-9IsQVL4hLOLyAOqMdy8vlyBFoIlDkXLssP99v3EfYXfZLKMpRw8suw3bcPcN7UGXPF9lZT55OlMTE7doGJMxLEkp-9BA3kuqsAdTzYd9l8LkdfniU4Za866XStXgCTsSYyN5A8VyPuRUHLtQ6RtN6mrJ5c2HejJg1_NlZprsbI60wMTFtoTEOZ0o5g0YkF2FQmkKC8rblI3XfO2q033cJ2zfcRH4eXbHW3We9aERDGNw9k8qXCFy_yd7683dkKMoK0HgIRd1CiZXeIhlDWH9vRuccA1BKI0qoGgkY3BlOSL8Fe2VpOcspm2Phizim_Sjw3JbiDXV7-QdNlO5xCTZX4jFRhuhvC0JnsTfZS9SfYeAMHsQEa90BapY-_7FzSDA1sDL37WnWXe_rIBIxr3mI7ysqWddQliieRPqhzNwptItOTrJjIc_vVB93pBlsXHLY3PbEjbl8TjjJMGLNuIql6RdAndBuDkpV-0jxA--CwoYjsKirpO53ji3FEjDy3ME1w_W3vPZ_3RHvWXyWTDUyLtaXKhyRVOvnSauieNENu44j9grm8BA8rA0qNBONHdgyEqTwVedA34KjM1C_PNt9nlVklpnx_Op6OWkxzO1Jya2GEhFukOhbB0cYFvJBjwmWJ7Pvoz0Dh8IFWffnDCm5zoPpmd0cEWK0ejSv7pX_9Vsv_CyOWxZR9nQHcKGYpfmzmgD5tzbaHTwrbW5wL2siirDa5P8omYmRns6_vTM-mGJ61KbAHJQ6M5X_EGSZj_AEdloRgOroU9wakRhYOLCsD9mMpDw4gsx3JplU1S_9e3x_u6tl5C9Qrdl8PlKvl2pv1OhETwuQlbDrjwvwBWWp_-AJ6o9etlk2i9Pd_A1AbFwau7OxCF2a-jzlO_t8qWMHcauicr_Cd2nRw6Wm5KsCz1f0s0BFvJ8tUclHSGoQ9oIcv7VDeWucqS52gpW5CrIGeSoJBIf3FrY5wkdOQ-ToAIwSj0adiNUWcn6xggJf117CHpZZCkZGT29DE4-QJwdliwU4qAahoY64saqk106L4vMUPeboXxC8T9IyePVOek0yx2_ojTJBg==
+    public_key: '-----BEGIN PUBLIC KEY-----
+
+      MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDPW4+Ada53XAxd8AEPSz9AJIKz
+
+      nU7PUaHixJRoW/o94cja7BNvp6MR6f1frKAC1qiorCTvHMSNIGZIIUyCtgB0r/GL
+
+      YDM3YUuEc/zcmIkgclK2/ZU7QSRHD1K4DHUrh13sqfMm8XxwP1/tJtWehn49Tr9l
+
+      uusBNQ0VPsS2p41QNwIDAQAB
+
+      -----END PUBLIC KEY-----
+
+'
+    key_id: 7da0737728c594b3
+- model: kms.signingkey
+  pk: 3
+  fields:
+    modified_at: 2026-08-01 18:21:34.807064+00:00
+    created_at: 2026-08-01 18:21:34.807069+00:00
+    algorithm: ed25519
+    encrypted_private_key: gAAAAABqbjkuIzbEqeMuo0Z-WufB30h6nU6SW7fJ455ZVBSQCWj1lS5qEM-3fZbihNswvzH3j6Xjri4DBXQ4U9ChdicKYVY1jJwuChTuUx2ywjtSK8e6JBSQK0i0sbC-wJXFXwDESn3kQ7RZzkt_cIq_C6tjdhdALPMdAwbAr4LoisVQXIazc8t1isvHsOc_k0cWWrlx69XMqAs7BiVDRNN0j21sC-kGXtqMoRQkxk4EEUUUduUyitg=
+    public_key: '-----BEGIN PUBLIC KEY-----
+
+      MCowBQYDK2VwAyEAFGBnaOkqV3s01hnSTFaxYqv2AwcegaBgQi67L81T5RQ=
+
+      -----END PUBLIC KEY-----
+
+'
+    key_id: c9c8cf6b9ad9aa8a
+- model: domains.domain
+  pk: 1
+  fields:
+    modified_at: 2026-08-01 18:21:34.810329+00:00
+    created_at: 2026-08-01 18:21:34.810335+00:00
+    name: acme.com
+    org: 1
+    verification_token: zYJeoEEHsNJgwg2t
+    verified_at: 2026-01-01 00:00:00+00:00
+    nameserver_status: ok
+    nameserver_error: ''
+    spf_status: ok
+    spf_error: ''
+    dkim_status: ok
+    dkim_error: ''
+    dmarc_status: ok
+    dmarc_error: ''
+    dns_checked_at: null
+    dkim_key_rsa2048: 1
+    dkim_key_rsa1024: 2
+    dkim_key_ed25519: 3
+- model: message.message
+  pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
+  fields:
+    modified_at: 2026-08-01 18:21:34.813579+00:00
+    created_at: 2026-08-01 18:21:34.813584+00:00
+    org: 1
+    content_type:
+      - smtp
+      - outgoingmessage
+    mail_from: sender1@acme.com
+    rcpt_to: recipient1@example.com
+    subject: Test message 1
+    message_id: <test1@acme.com>
+    raw_body: messages/019fbe8f-5edc-75f9-a9ed-9c379741e432.eml
+    received_with_tls: false
+- model: message.message
+  pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
+  fields:
+    modified_at: 2026-08-01 18:21:34.816251+00:00
+    created_at: 2026-08-01 18:21:34.816255+00:00
+    org: 1
+    content_type:
+      - smtp
+      - outgoingmessage
+    mail_from: sender2@acme.com
+    rcpt_to: recipient2@example.com
+    subject: Test message 2
+    message_id: <test2@acme.com>
+    raw_body: messages/019fbe8f-5edf-7553-8ee9-34e82e131c8f.eml
+    received_with_tls: false
+- model: message.message
+  pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
+  fields:
+    modified_at: 2026-08-01 18:21:34.817515+00:00
+    created_at: 2026-08-01 18:21:34.817520+00:00
+    org: 1
+    content_type:
+      - smtp
+      - outgoingmessage
+    mail_from: sender3@acme.com
+    rcpt_to: recipient3@example.com
+    subject: Test message 3
+    message_id: <test3@acme.com>
+    raw_body: messages/019fbe8f-5ee1-7145-951c-cd8ae282af25.eml
+    received_with_tls: false
+- model: smtp.outgoingmessage
+  pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
+  fields:
+    sender:
+      - test
+    domain: 1
+    credential: 1
+    status: sent
+- model: smtp.outgoingmessage
+  pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
+  fields:
+    sender:
+      - test
+    domain: 1
+    credential: 1
+    status: sent
+- model: smtp.outgoingmessage
+  pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
+  fields:
+    sender:
+      - test
+    domain: 1
+    credential: 1
+    status: sent
+- model: smtp.transmission
+  pk: 019fbe8f-5ede-773a-8790-f0386847a6ac
+  fields:
+    modified_at: 2026-08-01 18:21:34.814544+00:00
+    created_at: 2026-08-01 18:21:34.814549+00:00
+    message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
+    status: sent
+    code: 250
+    output: OK
+    details: Test transmission 1
+    sent_with_ssl: true
+    log_id: ''
+- model: smtp.transmission
+  pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
+  fields:
+    modified_at: 2026-08-01 18:21:34.816771+00:00
+    created_at: 2026-08-01 18:21:34.816775+00:00
+    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
+    status: sent
+    code: 250
+    output: OK
+    details: Test transmission 2
+    sent_with_ssl: true
+    log_id: ''
+- model: smtp.transmission
+  pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
+  fields:
+    modified_at: 2026-08-01 18:21:34.818656+00:00
+    created_at: 2026-08-01 18:21:34.818660+00:00
+    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
+    status: sent
+    code: 250
+    output: OK
+    details: Test transmission 3
+    sent_with_ssl: true
+    log_id: ''
+- model: smtp.smtpcredential
+  pk: 1
+  fields:
+    modified_at: 2026-08-01 18:21:34.811298+00:00
+    created_at: 2026-08-01 18:21:34.811303+00:00
+    org: 1
+    key_hash: ''
+    key_prefix: ''
+    name: Default
+    last_used_at: null
+    hold: false
+    type: smtp

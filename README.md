@@ -166,22 +166,28 @@ graph BT
  direction BT
  subgraph email
  direction BT
- tx_email[tx_email]
+ dashboard[dashboard]
+ message[message]
  smtp
  mx
  dmarc
+ message --> accounts
+ message --> domains
+ smtp --> message
  smtp --> accounts
  smtp --> domains
- smtp --> mx
+ smtp --> kms
+ mx --> message
  mx --> accounts
  mx --> domains
  mx --> kms
  dmarc --> accounts
  dmarc --> domains
  dmarc --> mx
- tx_email --> smtp
- tx_email --> mx
- tx_email --> dmarc
+ dashboard --> message
+ dashboard --> smtp
+ dashboard --> mx
+ dashboard --> dmarc
  end
  subgraph voip
  direction BT

@@ -18,9 +18,8 @@ class SigningKey(TimeStamped):
         RSA_1024 = "rsa-1024", "RSA 1024"
         ED25519 = "ed25519", "Ed25519"
 
-    algorithm = models.CharField(
+    algorithm = models.TextField(
         _("algorithm"),
-        max_length=8,
         choices=Algorithm,
         help_text=_("Public-key algorithm and size used to sign."),
     )

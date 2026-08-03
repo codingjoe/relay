@@ -24,7 +24,7 @@ class DomainListView(OrganizationScopedView, ListView):
     template_name = "domains/domain_list.html"
     context_object_name = "domains"
     title = _("Domains")
-    parent = "tx_email:dashboard"
+    parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
         return Domain.objects.filter(org=self.org)

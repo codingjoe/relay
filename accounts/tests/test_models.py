@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.db import IntegrityError
 
 from accounts.models import Membership, Organization, generate_api_key
+from services.email.smtp.models import SmtpCredential
 
 
 class TestGenerateApiKey:
@@ -19,17 +20,13 @@ class TestGenerateApiKey:
 @pytest.mark.django_db
 class TestCredentialSalt:
     def test_salt__returns_class_path(self):
-        from smtp.models import SmtpCredential
-
         cred = SmtpCredential(org=Organization.objects.create(slug="o"))
-        assert cred.salt == "smtp.models.SmtpCredential"
+        assert cred.salt == "services.email.smtp.models.SmtpCredential"
 
 
 @pytest.mark.django_db
 class TestSetKey:
     def test_set_key__stores_hash_and_prefix(self):
-        from smtp.models import SmtpCredential
-
         cred = SmtpCredential(org=Organization.objects.create(slug="o"))
         raw_key = generate_api_key()
         cred.set_key(raw_key)
@@ -40,8 +37,6 @@ class TestSetKey:
 @pytest.mark.django_db
 class TestVerifyKey:
     def test_verify_key__correct_key(self):
-        from smtp.models import SmtpCredential
-
         org = Organization.objects.create(slug="o")
         cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         assert cred.last_used_at is None
@@ -50,15 +45,11 @@ class TestVerifyKey:
         assert cred.last_used_at is not None
 
     def test_verify_key__wrong_key(self):
-        from smtp.models import SmtpCredential
-
         org = Organization.objects.create(slug="o")
         cred, _raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         assert cred.verify_key("wrong-key-12345678") is False
 
     def test_verify_key__does_not_update_last_used_on_failure(self):
-        from smtp.models import SmtpCredential
-
         org = Organization.objects.create(slug="o")
         cred, _raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         cred.verify_key("wrong-key-12345678")
@@ -69,8 +60,6 @@ class TestVerifyKey:
 @pytest.mark.django_db
 class TestCreateWithKey:
     def test_create_with_key__returns_credential_and_raw_key(self):
-        from smtp.models import SmtpCredential
-
         org = Organization.objects.create(slug="o")
         cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="prod")
         assert cred.pk is not None
@@ -83,8 +72,6 @@ class TestCreateWithKey:
 @pytest.mark.django_db
 class TestCredentialHold:
     def test_hold__excluded_from_query(self, user, org):
-        from smtp.models import SmtpCredential
-
         cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         cred.hold = True
         cred.save(update_fields=["hold"])
@@ -97,8 +84,6 @@ class TestCredentialHold:
         assert not qs.exists()
 
     def test_not_hold__included_in_query(self, user, org):
-        from smtp.models import SmtpCredential
-
         _cred, raw_key = SmtpCredential.objects.create_with_key(org=org, name="test")
         qs = SmtpCredential.objects.select_related("org").filter(
             key_prefix=raw_key[:8],

@@ -126,11 +126,14 @@ Update it based on review feedback.
 
 - Use [basecoat-css](https://basecoatui.com/) (maia style) for all UI styling.
   Do **not** use pico.css or any other CSS framework.
+
 - Use Django template inheritance: define the shell once in
   `root/templates/base.html` and have every page template `{% extends "base.html" %}`.
   Pages only override `{% block title %}` and `{% block content %}`.
+
 - For interactive widgets, prefer off-the-shelf basecoat components over custom
   CSS or custom JS:
+
   - Buttons: `<button class="btn" data-variant="secondary|ghost|destructive" data-size="sm|icon|default">`.
     Use `data-variant="secondary"` for most non-primary buttons. Reserve
     `data-variant="outline"` for `item` elements (outlined cards), never for
@@ -151,6 +154,7 @@ Update it based on review feedback.
     inside `<label>` or use `<span class="label">` for the label text.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
+  - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (for example, organizations). Prefer items
@@ -159,6 +163,7 @@ Update it based on review feedback.
   - Brand name: write `relay` in lowercase everywhere — it is a brand name,
     not a translatable string. Do not wrap it in `{% translate %}` or
     apply `|capfirst`/`|title`.
+
 - Icons use [Lucide](https://lucide.dev/) via vanilla JS — load the UMD
   bundle from a CDN with `defer` and call `lucide.createIcons()` on
   `DOMContentLoaded`. Render icons with `<i data-lucide="name" class="size-4|size-5|size-3.5" aria-hidden="true">`
@@ -168,6 +173,7 @@ Update it based on review feedback.
   use Lucide icons with semantic color classes instead (for example,
   `circle-check` with `text-primary`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
+
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css` — it imports Tailwind CSS v4 and
   basecoat-css (maia style), plus any custom CSS variables and layout glue.
@@ -180,6 +186,7 @@ Update it based on review feedback.
   container's background, marketing-page accent highlights). Do not use it
   for component styling — use basecoat classes instead. If a utility is
   missing, prefer a Tailwind utility before adding a custom rule.
+
 - Django form widgets are styled by overriding templates under
   `abstract/templates/django/forms/widgets/{input,checkbox,select,textarea}.html`.
   Each override adds the matching basecoat class
@@ -188,11 +195,13 @@ Update it based on review feedback.
   `{{ form }}` / `{{ form.field }}` so the overrides apply automatically.
   Only fall back to hand-written inputs when a widget truly needs custom
   markup.
+
 - Sidebar and main-nav links: assign each URL to a variable with
   `{% url '...' as var %}`, then use exact `request.path == var` to set
   `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
   a substring check highlights parent links on every child page.
   Hide main-nav links entirely when no org is selected.
+
 - Breadcrumbs: use `BreadcrumbViewMixin` from `abstract.views`. Each view
   sets `title` (the breadcrumb title) and `parent` (the URL name of the
   parent page). The mixin builds the chain by traversing parents via
@@ -203,6 +212,10 @@ Update it based on review feedback.
   For detail views with no `title`, the breadcrumb falls back to
   `str(self.object)`. Context variable is `breadcrumbs`, dict keys are
   `{"title": ..., "url": ...}`.
+
+- Tailwind v4's preflight resets `a { color: inherit }`. Add
+  `class="link"` to entity anchors so they get primary color and
+  underline from `src/css/app.css`.
 
 ## Testing
 
@@ -246,3 +259,28 @@ Update it based on review feedback.
 
 - Use `pytest.mark.asyncio` for async test methods (pytest-asyncio is
   installed).
+
+## Multi-table inheritance
+
+- When sibling models share most columns, promote the shared columns
+  to a concrete parent. Per-kind fields stay on the children.
+
+- Indexes on shared columns live on the parent's `Meta.indexes`.
+  Per-kind indexes stay on the child.
+
+- A `content_type` FK to `ContentType` records the subclass for each
+  row. The base `Message.save()` sets it via
+  `ContentType.objects.get_for_model(type(self))`.
+
+## Merged list views
+
+- Place merged views in the parent app that depends on all siblings.
+  Siblings must not import from each other.
+
+## App structure
+
+- A concrete model shared between sibling apps belongs in a dedicated
+  app, not in `abstract`. The `abstract` app stays non-materialized.
+
+- The shared app owns the merged list views and the template-tag
+  library. Siblings keep their own detail views.

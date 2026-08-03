@@ -63,9 +63,8 @@ class Membership(TimeStamped):
         on_delete=models.CASCADE,
         related_name="memberships",
     )
-    role = models.CharField(
+    role = models.TextField(
         _("role"),
-        max_length=5,
         choices=Role,
         default=Role.WRITE,
         help_text=_(

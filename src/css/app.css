@@ -5,6 +5,8 @@
 :root {
   --color-primary: hsl(268, 100%, 41%);
   --color-primary-foreground: hsl(0, 0%, 100%);
+  --color-primary-text: light-dark(hsl(268, 100%, 41%), hsl(268, 100%, 75%));
+  --color-link: var(--color-primary-text);
 }
 
 /* Lucide icons must sit inline with their label; Tailwind preflight forces
@@ -15,4 +17,76 @@ svg.lucide {
 
 .bg-background {
   background-color: var(--color-background);
+}
+
+.link {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+/* RFC 822 email header syntax highlighting via Pygments EmailLexer.
+   Pygments emits spans with these token classes:
+     nt — name.tag    (header name, e.g. "From:")
+     nl — name.label  (email/labeled value, e.g. "alice@example.com")
+     nf — name.function (hostnames / domain literals)
+     mi — number.integer (IPs)
+     nd — name.decorator (RFC 5322 dates)
+     k  — keyword    (protocol names like ESMTPS, ESMTP)
+     o  — operator   (semicolons, commas)
+     w  — whitespace
+   Unknown tokens (header bodies, plain text) inherit the default color. */
+.highlight-email {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.4;
+
+  & pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  }
+
+  & .nt {
+    color: var(--color-primary-text);
+    font-weight: 600;
+  }
+
+  & .nl {
+    color: hsl(199, 89%, 48%);
+  }
+
+  & .nf {
+    color: hsl(199, 89%, 48%);
+  }
+
+  & .mi {
+    color: hsl(28, 90%, 55%);
+  }
+
+  & .nd {
+    color: hsl(28, 90%, 55%);
+    font-style: italic;
+  }
+
+  & .k {
+    color: hsl(340, 82%, 52%);
+  }
+
+  & .o {
+    color: var(--color-muted-foreground);
+  }
+
+  & .w {
+    color: var(--color-muted-foreground);
+  }
 }

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load i18n message abstract %}
+{% block title %}{% translate "email messages"|capfirst %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "email messages"|capfirst %}</h2>
+  </header>
+
+  <nav
+    role="navigation"
+    aria-label='{% translate "direction"|capfirst %}'
+    class="button-group mb-6"
+  >
+    <a
+      class="btn"
+      data-variant="{% if direction == 'all' %}default{% else %}secondary{% endif %}"
+      href="?{% param_replace direction='all' %}"
+      {% if direction == 'all' %}aria-current="page"{% endif %}
+    >{% translate "all"|capfirst %}</a>
+    <a
+      class="btn"
+      data-variant="{% if direction == 'sent' %}default{% else %}secondary{% endif %}"
+      href="?{% param_replace direction='sent' %}"
+      {% if direction == 'sent' %}aria-current="page"{% endif %}
+    >{% translate "sent"|capfirst %}</a>
+    <a
+      class="btn"
+      data-variant="{% if direction == 'received' %}default{% else %}secondary{% endif %}"
+      href="?{% param_replace direction='received' %}"
+      {% if direction == 'received' %}aria-current="page"{% endif %}
+    >{% translate "received"|capfirst %}</a>
+  </nav>
+
+  <form method="get" class="fieldset mb-6">
+    <input type="hidden" name="direction" value="{{ direction }}">
+    <div class="flex flex-wrap items-end gap-4">
+      <div role="group" class="field flex-1 min-w-48">
+        <label for="filter-email">{% translate "email"|capfirst %}</label>
+        <input
+          id="filter-email"
+          type="search"
+          name="email"
+          value="{{ email }}"
+          class="input"
+          placeholder='{% translate "search by address" %}'
+        >
+      </div>
+      <div role="group" class="field flex-1 min-w-48">
+        <label for="filter-status">{% translate "status"|capfirst context "noun" %}</label>
+        <input
+          id="filter-status"
+          type="search"
+          name="status"
+          value="{{ status }}"
+          class="input"
+          placeholder='{% translate "search by status" %}'
+        >
+      </div>
+      <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+    </div>
+  </form>
+
+  <div class="table-container mb-6">
+    <table class="table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>{% translate "status"|capfirst context "noun" %}</th>
+          <th>{% translate "sent"|capfirst %}</th>
+          <th>{% translate "from"|capfirst context "email" %}</th>
+          <th>{% translate "to"|capfirst context "email" %}</th>
+          <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for message in messages %}
+          <tr class="hover:bg-muted/50">
+            <td>
+              <i
+                data-lucide="{{ message.kind_icon }}"
+                class="size-4 text-muted-foreground"
+                aria-label="{{ message.kind|capfirst }}"
+              ></i>
+            </td>
+            <td>
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ message.status_badge_variant }}"
+              >
+                {{ message.status_display }}
+              </span>
+            </td>
+            <td>
+              {% timestamp message.created_at %}
+            </td>
+            <td>
+              <code>
+                <a class="link" href="{{ request.path }}?email={{ message.mail_from|urlencode }}">
+                  {{ message.mail_from }}
+                </a>
+              </code>
+            </td>
+            <td>
+              <code>
+                <a class="link" href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}">
+                  {{ message.rcpt_to }}
+                </a>
+              </code>
+            </td>
+            <td>
+              <code>
+                {% if message.domain_name %}
+                  <a class="link" href="{{ request.path }}?domain={{ message.domain_name|urlencode }}">
+                    {{ message.domain_name }}
+                  </a>
+                {% else %}
+                  —
+                {% endif %}
+              </code>
+            </td>
+            <td>
+              <a
+                class="btn"
+                data-size="sm"
+                data-variant="secondary"
+                href="{{ message.get_absolute_url }}"
+              >
+                {% translate "detail"|capfirst %}
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">{% translate "no messages found." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% pagination %}
+{% endblock %}
