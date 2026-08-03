@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from enum import nonmember
 
@@ -7,7 +8,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
-from accounts.models import Credential
+from accounts.models import Credential, OrganizationOwned
 from services.email.message.models import Message
 
 
@@ -145,3 +146,65 @@ class SmtpCredential(Credential):
         default=Type.SMTP,
         help_text=_("SMTP authentication method."),
     )
+
+
+class SuppressionEntry(OrganizationOwned):
+    """Store a salted hash of an email address that should not receive mail.
+
+    The plain email address is never stored. Bounces are added automatically;
+    users can add or remove entries manually.
+    """
+
+    class Reason(models.TextChoices):
+        BOUNCE = "bounce", _("bounce")
+        MANUAL = "manual", _("manual")
+
+    address_hash = models.TextField(
+        _("address hash"),
+        help_text=_("Salted SHA-256 of the lowercased email address."),
+    )
+    reason = models.TextField(
+        _("reason"),
+        choices=Reason,
+        default=Reason.MANUAL,
+        help_text=_("How the entry was added."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org", "address_hash"],
+                name="unique_suppression_per_org",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.org} / {self.address_hash[:12]}… ({self.reason})"
+
+    @classmethod
+    def salt(cls) -> str:
+        """Return a stable salt unique to this model class."""
+        return f"{cls.__module__}.{cls.__name__}"
+
+    @classmethod
+    def hash_address(cls, email) -> str:
+        """Return the salted SHA-256 hex digest of a lowercased email address."""
+        return hashlib.sha256((cls.salt() + email.lower()).encode()).hexdigest()
+
+    @classmethod
+    def add(cls, org, email, reason=Reason.MANUAL):
+        """Add an email address to the suppression list if not already present."""
+        entry, created = cls.objects.get_or_create(
+            org=org,
+            address_hash=cls.hash_address(email),
+            defaults={"reason": reason},
+        )
+        return entry, created
+
+    @classmethod
+    def is_suppressed(cls, org, email) -> bool:
+        """Check whether an email address is on the org's suppression list."""
+        return cls.objects.filter(
+            org=org,
+            address_hash=cls.hash_address(email),
+        ).exists()

@@ -11,7 +11,7 @@ from django.db import DatabaseError, transaction
 
 from domains.models import Domain
 
-from .models import OutgoingMessage, SmtpCredential
+from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
 from .tasks import deliver_message
 
 logger = logging.getLogger(__name__)
@@ -109,6 +109,9 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         and rcpt_to.lower() != (sender.email or "").lower()
     ):
         return "550 Recipient not allowed for free sender domain"
+
+    if SuppressionEntry.is_suppressed(credential.org, rcpt_to):
+        return "550 Recipient suppressed"
 
     domain = (
         Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None

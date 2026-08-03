@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{% translate "suppression list"|capfirst %} — relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
+    <button
+      type="button"
+      class="btn"
+      data-variant="secondary"
+      onclick="document.getElementById('dlg-suppression').showModal()"
+    >
+      {% translate "add address"|title %}
+    </button>
+  </header>
+
+  <p class="text-muted-foreground mb-6">
+    {% blocktranslate %}addresses on this list will not receive email. bounces are added automatically. only a salted
+      hash is stored — the plain address is never kept.{% endblocktranslate %}
+  </p>
+
+  <dialog class="dialog" id="dlg-suppression">
+    <div>
+      <header>
+        <h2>{% translate "add address"|title %}</h2>
+        <p>{% translate "add an email address to the suppression list."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'smtp:suppression-create' org.slug %}" id="dlg-suppression-form">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_suppression_email">{% translate "email address"|capfirst %}</label>
+              <input
+                type="email"
+                name="email"
+                id="id_suppression_email"
+                placeholder="user@example.com"
+                class="input"
+                required
+              >
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('dlg-suppression').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="dlg-suppression-form" class="btn">
+          {% translate "add"|capfirst context "verb" %}
+        </button>
+      </footer>
+    </div>
+  </dialog>
+
+  {% if suppressions %}
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{% translate "hash"|capfirst %}</th>
+            <th>{% translate "reason"|capfirst %}</th>
+            <th>{% translate "added"|capfirst %}</th>
+            <th aria-hidden="true"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in suppressions %}
+            <tr>
+              <td><code>{{ s.address_hash|truncatechars:16 }}</code></td>
+              <td>
+                <span
+                  class="badge"
+                  data-size="sm"
+                  data-variant="{% if s.reason == s.Reason.BOUNCE %}destructive{% else %}outline{% endif %}"
+                >
+                  {{ s.get_reason_display }}
+                </span>
+              </td>
+              <td>{{ s.created_at|naturaltime }}</td>
+              <td>
+                <form method="post" action="{% url 'smtp:suppression-delete' org.slug s.pk %}">
+                  {% csrf_token %}
+                  <button
+                    type="submit"
+                    class="btn"
+                    data-variant="destructive"
+                    data-size="sm"
+                    onclick="return confirm('{% translate "remove this entry?"|capfirst context "verb" %}')"
+                  >
+                    {% translate "remove"|capfirst context "verb" %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      {% include "abstract/pagination.html" %}
+    {% endif %}
+  {% else %}
+    <p class="text-muted-foreground">
+      {% blocktranslate %}no suppressed addresses yet.{% endblocktranslate %}
+    </p>
+  {% endif %}
+{% endblock %}
