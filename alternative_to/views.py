@@ -3,7 +3,6 @@
 import pathlib
 
 from django.conf import settings
-from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -47,11 +46,7 @@ class AlternativeToDetailView(MarkdownArticleMixin, MarkdownView):
 
     @classmethod
     def get_title(cls, request):
-        slug = request.resolver_match.kwargs.get("slug", "")
-        try:
-            return cls.get_article_metadata(slug)["name"]
-        except Http404:
-            return slug
+        return cls.get_article_metadata(request.resolver_match.kwargs["slug"])["name"]
 
     def get_markdown_template(self):
         return f"{self.kwargs['slug']}.md"
