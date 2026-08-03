@@ -63,6 +63,21 @@ class Message(TimeStamped):
     def kind(self) -> str:
         return self.content_type.model
 
+    @property
+    def status(self) -> str:
+        """Return the delivery lifecycle status of this message."""
+        raise NotImplementedError
+
+    @property
+    def status_display(self) -> str:
+        """Return a human-readable label for this message's status."""
+        raise NotImplementedError
+
+    @property
+    def domain_name(self) -> str:
+        """Return the domain name associated with this message."""
+        raise NotImplementedError
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 

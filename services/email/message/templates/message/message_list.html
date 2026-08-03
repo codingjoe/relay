@@ -95,13 +95,9 @@
               <span
                 class="badge"
                 data-size="sm"
-                data-variant="{% if message.kind == 'outgoingmessage' %}{{ status_badges|get_item:message.outgoingmessage.status|default:'outline' }}{% else %}{{ status_badges|get_item:message.incomingmessage.status|default:'outline' }}{% endif %}"
+                data-variant="{{ status_badges|get_item:message.status|default:'outline' }}"
               >
-                {% if message.kind == 'outgoingmessage' %}
-                  {{ message.outgoingmessage.get_status_display }}
-                {% else %}
-                  {{ message.incomingmessage.get_status_display }}
-                {% endif %}
+                {{ message.status_display }}
               </span>
             </td>
             <td>
@@ -126,16 +122,12 @@
             </td>
             <td>
               <code>
-                {% if message.kind == 'outgoingmessage' %}
-                  {% if message.outgoingmessage.domain %}
-                    <a class="link" href="{{ request.path }}?domain={{ message.outgoingmessage.domain|urlencode }}">
-                      {{ message.outgoingmessage.domain }}
-                    </a>
-                  {% else %}
-                    —
-                  {% endif %}
+                {% if message.domain_name %}
+                  <a class="link" href="{{ request.path }}?domain={{ message.domain_name|urlencode }}">
+                    {{ message.domain_name }}
+                  </a>
                 {% else %}
-                  {{ message.incomingmessage.receiving_domain|default:"—" }}
+                  —
                 {% endif %}
               </code>
             </td>

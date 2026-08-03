@@ -51,6 +51,14 @@ class IncomingMessage(Message):
             self.content_type = ContentType.objects.get_for_model(type(self))
         super().save(*args, **kwargs)
 
+    @property
+    def status_display(self) -> str:
+        return self.get_status_display()
+
+    @property
+    def domain_name(self) -> str:
+        return self.receiving_domain
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
