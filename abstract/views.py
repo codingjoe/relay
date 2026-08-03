@@ -10,7 +10,7 @@ from abstract.utils import strip_frontmatter
 class CacheControlMixin:
     """Set cache control headers on the response of a class based view."""
 
-    cache_control: dict = {}
+    cache_control: dict[str, bool | int] = {}
 
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
