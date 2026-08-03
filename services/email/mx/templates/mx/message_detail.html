@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize message %}
+{% load i18n message abstract %}
 {% block title %}{{ message.subject|truncatechars:50 }} — relay{% endblock %}
 {% block content %}
   {% if webhook_deliveries %}
@@ -31,10 +31,7 @@
                 </td>
                 <td>{{ delivery.response_code|default:"—" }}</td>
                 <td>
-                  <time
-                    datetime="{{ delivery.created_at|date:'c' }}"
-                    data-tooltip="{{ delivery.created_at|date:'c' }}"
-                  >{{ delivery.created_at|naturaltime }}</time>
+                  {% timestamp delivery.created_at %}
                 </td>
                 <td>{{ delivery.response_body|truncatechars:120 }}</td>
               </tr>
@@ -74,10 +71,7 @@
     {% endif %}
     <dt class="font-semibold">{% translate "received"|capfirst context "noun" %}</dt>
     <dd>
-      <time
-        datetime="{{ message.created_at|date:'c' }}"
-        data-tooltip="{{ message.created_at|date:'c' }}"
-      >{{ message.created_at|naturaltime }}</time>
+      {% timestamp message.created_at %}
     </dd>
     <dt class="font-semibold">{% translate "TLS"|capfirst %}</dt>
     <dd>

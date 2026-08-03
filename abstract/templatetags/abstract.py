@@ -76,6 +76,18 @@ def param_replace(context, **kwargs):
     return d.urlencode()
 
 
+@register.inclusion_tag("abstract/timestamp.html")
+def timestamp(value):
+    """Render a ``<time>`` element with naturaltime and ISO 8601 tooltip."""
+    if not value:
+        return {"value": None, "iso": "", "natural": ""}
+    return {
+        "value": value,
+        "iso": value.isoformat(),
+        "natural": naturaltime(value),
+    }
+
+
 @register.inclusion_tag("abstract/pagination.html", takes_context=True)
 def pagination(context, page_obj=None):
     """Render a pagination nav for a Django Page object.

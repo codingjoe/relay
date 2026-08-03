@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n abstract humanize message %}
+{% load i18n abstract message %}
 {% block title %}{% translate "DMARC failure report"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -31,10 +31,7 @@
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
         <dd class="m-0">
-          <time
-            datetime="{{ report.arrival_at|date:'c' }}"
-            data-tooltip="{{ report.arrival_at|date:'c' }}"
-          >{{ report.arrival_at|naturaltime }}</time>
+          {% timestamp report.arrival_at %}
         </dd>
       </div>
       <div>

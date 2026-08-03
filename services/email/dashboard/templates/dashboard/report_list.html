@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize message abstract %}
+{% load i18n message abstract %}
 {% block title %}{% translate "reports"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -79,10 +79,7 @@
           <tr class="row-link hover:bg-muted/50">
             <td>
               <a class="row-link-anchor" href="{{ report.get_absolute_url }}">
-                <time
-                  datetime="{{ report.created_at|date:'c' }}"
-                  data-tooltip="{{ report.created_at|date:'c' }}"
-                >{{ report.created_at|naturaltime }}</time>
+                {% timestamp report.created_at %}
               </a>
             </td>
             <td>

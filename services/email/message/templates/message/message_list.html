@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize message abstract %}
+{% load i18n message abstract %}
 {% block title %}{% translate "messages"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -101,10 +101,7 @@
               </span>
             </td>
             <td>
-              <time
-                datetime="{{ message.created_at|date:'c' }}"
-                data-tooltip="{{ message.created_at|date:'c' }}"
-              >{{ message.created_at|naturaltime }}</time>
+              {% timestamp message.created_at %}
             </td>
             <td>
               <code>

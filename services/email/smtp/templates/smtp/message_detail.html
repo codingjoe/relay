@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize message %}
+{% load i18n message abstract %}
 {% block title %}{{ message.subject|truncatechars:50 }} — relay{% endblock %}
 {% block content %}
   {% if transmissions %}
@@ -32,10 +32,7 @@
                 </td>
                 <td>{{ transmission.code|default:"—" }}</td>
                 <td>
-                  <time
-                    datetime="{{ transmission.created_at|date:'c' }}"
-                    data-tooltip="{{ transmission.created_at|date:'c' }}"
-                  >{{ transmission.created_at|naturaltime }}</time>
+                  {% timestamp transmission.created_at %}
                 </td>
                 <td>{{ transmission.sent_with_ssl|yesno }}</td>
                 <td><code>{{ transmission.log_id|default:"—" }}</code></td>
