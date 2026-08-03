@@ -95,7 +95,6 @@ class TestDmarcReportStr:
         assert "12345" in str(report)
 
 
-@pytest.mark.django_db
 class TestDmarcRecordStr:
     def test_str__shows_ip_count_disposition(self):
         from dmarc.models import DmarcRecord

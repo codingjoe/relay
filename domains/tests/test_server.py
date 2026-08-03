@@ -23,8 +23,8 @@ class TestDnsServerInit:
         assert server.port == 5353
 
 
-@pytest.mark.django_db
 class TestHandleRequest:
+    @pytest.mark.django_db
     def test_handle_request__unknown_domain(self):
         from domains.server import DNSServer
 
@@ -39,6 +39,7 @@ class TestHandleRequest:
         assert reply.header.rcode == dnslib.RCODE.NOERROR
         assert len(reply.rr) == 0
 
+    @pytest.mark.django_db
     def test_handle_request__known_domain(self):
         from domains.models import Domain
         from domains.server import DNSServer
@@ -64,7 +65,6 @@ class TestHandleRequest:
         sock.sendto.assert_not_called()
 
 
-@pytest.mark.django_db
 class TestDnsServerLifecycle:
     def test_start_stop__running_flag(self):
         from domains.server import DNSServer

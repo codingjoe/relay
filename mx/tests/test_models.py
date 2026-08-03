@@ -21,10 +21,12 @@ def webhook(org):
 
 
 class TestWebhookStr:
+    @pytest.mark.django_db
     def test_str__shows_org_and_name(self, org, webhook):
         assert str(org) in str(webhook)
         assert "My hook" in str(webhook)
 
+    @pytest.mark.django_db
     def test_str__falls_back_to_url_when_no_name(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
@@ -38,9 +40,11 @@ class TestWebhookStr:
 
 
 class TestReceivingDomainName:
+    @pytest.mark.django_db
     def test_receiving_domain_name__strips_user_part(self, webhook):
         assert webhook.receiving_domain_name == "app.acme.com"
 
+    @pytest.mark.django_db
     def test_receiving_domain_name__works_without_user_part(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
@@ -53,6 +57,7 @@ class TestReceivingDomainName:
 
 
 class TestIsFreeDomain:
+    @pytest.mark.django_db
     def test_is_free_domain__true_when_matches_free(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
@@ -63,6 +68,7 @@ class TestIsFreeDomain:
         )
         assert webhook.is_free_domain is True
 
+    @pytest.mark.django_db
     def test_is_free_domain__case_insensitive(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
@@ -73,11 +79,13 @@ class TestIsFreeDomain:
         )
         assert webhook.is_free_domain is True
 
+    @pytest.mark.django_db
     def test_is_free_domain__false_for_custom_domain(self, webhook):
         assert webhook.is_free_domain is False
 
 
 class TestMatches:
+    @pytest.mark.django_db
     def test_matches__exact(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
@@ -89,18 +97,22 @@ class TestMatches:
         assert webhook.matches("support@acme.com") is True
         assert webhook.matches("info@acme.com") is False
 
+    @pytest.mark.django_db
     def test_matches__wildcard_prefix(self, webhook):
         assert webhook.matches("alice@app.acme.com") is True
         assert webhook.matches("bob@app.acme.com") is True
 
+    @pytest.mark.django_db
     def test_matches__rejects_other_domains(self, webhook):
         assert webhook.matches("alice@other.com") is False
 
+    @pytest.mark.django_db
     def test_matches__case_insensitive(self, webhook):
         assert webhook.matches("Alice@APP.ACME.COM") is True
 
 
 class TestMxRecord:
+    @pytest.mark.django_db
     def test_mx_record__empty_for_free_domain(self, org):
         signing_key = SigningKey.generate("ed25519")
         webhook = Webhook.objects.create(
@@ -111,19 +123,23 @@ class TestMxRecord:
         )
         assert webhook.mx_record == ""
 
+    @pytest.mark.django_db
     def test_mx_record__shows_mx_record_for_custom_domain(self, webhook):
         assert webhook.mx_record == "MX app.acme.com → mail.relay.app.acme.com"
 
 
 class TestMxTarget:
+    @pytest.mark.django_db
     def test_mx_target__uses_sender_subdomain_prefix_for_custom_domain(self, webhook):
         assert webhook.mx_target == "mail.relay.app.acme.com"
 
 
 class TestPublicKeySerialized:
+    @pytest.mark.django_db
     def test_public_key_serialized__starts_with_whpk(self, webhook):
         assert webhook.public_key_serialized.startswith("whpk_")
 
+    @pytest.mark.django_db
     def test_public_key_serialized__decodes_to_valid_ed25519_public_key(self, webhook):
         decoded = base64.b64decode(webhook.public_key_serialized.removeprefix("whpk_"))
         assert len(decoded) == 32  # Ed25519 raw public key is 32 bytes
@@ -131,35 +147,42 @@ class TestPublicKeySerialized:
 
 
 class TestSign:
+    @pytest.mark.django_db
     def test_sign__produces_standard_webhooks_signature(self, webhook):
         signature = webhook.sign("msg_abc", 1234567890, b'{"foo":"bar"}')
         assert signature.startswith("v1a,")
 
+    @pytest.mark.django_db
     def test_sign__decodes_to_64_byte_ed25519_signature(self, webhook):
         signature = webhook.sign("msg_abc", 1234567890, b'{"foo":"bar"}')
         decoded = base64.b64decode(signature.removeprefix("v1a,"))
         assert len(decoded) == 64  # Ed25519 signatures are 64 bytes
 
+    @pytest.mark.django_db
     def test_sign__is_deterministic_for_same_inputs(self, webhook):
         sig1 = webhook.sign("msg_abc", 1234567890, b'{"foo":"bar"}')
         sig2 = webhook.sign("msg_abc", 1234567890, b'{"foo":"bar"}')
         assert sig1 == sig2
 
+    @pytest.mark.django_db
     def test_sign__differs_for_different_payloads(self, webhook):
         sig1 = webhook.sign("msg_abc", 1234567890, b'{"foo":"bar"}')
         sig2 = webhook.sign("msg_abc", 1234567890, b'{"foo":"baz"}')
         assert sig1 != sig2
 
+    @pytest.mark.django_db
     def test_sign__differs_for_different_msg_ids(self, webhook):
         sig1 = webhook.sign("msg_abc", 1234567890, b'{"foo":"bar"}')
         sig2 = webhook.sign("msg_def", 1234567890, b'{"foo":"bar"}')
         assert sig1 != sig2
 
+    @pytest.mark.django_db
     def test_sign__differs_for_different_timestamps(self, webhook):
         sig1 = webhook.sign("msg_abc", 1234567890, b'{"foo":"bar"}')
         sig2 = webhook.sign("msg_abc", 1234567891, b'{"foo":"bar"}')
         assert sig1 != sig2
 
+    @pytest.mark.django_db
     def test_sign__verifiable_with_public_key(self, webhook):
         """The signature must verify using the webhook's public key."""
         msg_id = "msg_abc"

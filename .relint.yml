@@ -1,0 +1,4 @@
+- name: Do not use the "django_db" marker on entire test classes
+  pattern: \@pytest\.mark\.django_db[^\n]*\n\w*class
+  hint: Please use the "django_db" marker on individual tests only.
+  filePattern: .*\.py

@@ -72,6 +72,10 @@ repos:
     rev: v6.4.3
     hooks:
       - id: beautysh
+  - repo: https://github.com/codingjoe/relint
+    rev: 3.5.0
+    hooks:
+      - id: relint
 ci:
   skip:
     - no-commit-to-branch
