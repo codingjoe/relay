@@ -59,21 +59,18 @@ def article_slugs(docs_dir):
 def list_articles(docs_dir):
     """Return all articles in the docs directory with slug, title, and description."""
     docs_dir = pathlib.Path(docs_dir)
-    articles = []
-    for slug in sorted(article_slugs(docs_dir)):
-        text = (docs_dir / f"{slug}.md").read_text()
-        metadata, _ = parse_frontmatter(text)
-        title = metadata.get("name") or extract_title(text)
-        if not title:
-            continue
-        articles.append(
-            {
-                "slug": slug,
-                "title": title,
-                "description": md_2_html(metadata.get("description", "")),
-            }
-        )
-    return articles
+    return [
+        {
+            "slug": slug,
+            "title": title,
+            "description": md_2_html(frontmatter.get("description", "")),
+        }
+        for slug in sorted(article_slugs(docs_dir))
+        for frontmatter, text in [
+            parse_frontmatter((docs_dir / f"{slug}.md").read_text())
+        ]
+        if (title := frontmatter.get("name") or extract_title(text))
+    ]
 
 
 def article_path(docs_dir, slug):
