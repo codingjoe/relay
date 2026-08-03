@@ -7,6 +7,7 @@ from domains.models import Domain
 
 from .charts import build_reputation_chart
 from .models import FblReport
+from .reputation import compute_domain_reputation
 
 
 class FblReportListView(OrganizationScopedView, ListView):
@@ -65,7 +66,7 @@ class ReputationOverviewView(OrganizationScopedView, ListView):
     def get_context_data(self, **kwargs):
         domains = list(self.get_queryset())
         domain_reputations = [
-            (domain, domain.compute_reputation()) for domain in domains
+            (domain, compute_domain_reputation(domain)) for domain in domains
         ]
         return super().get_context_data(**kwargs) | {
             "domain_reputations": domain_reputations,

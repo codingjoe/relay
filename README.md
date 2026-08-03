@@ -190,6 +190,7 @@ graph BT
  reputation --> message
  reputation --> domains
  reputation --> accounts
+ reputation --> smtp
  dashboard --> message
  dashboard --> smtp
  dashboard --> mx

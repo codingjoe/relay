@@ -19,6 +19,7 @@ class FblReport(IncomingMessage):
         FRAUD = "fraud", _("fraud")
         VIRUS = "virus", _("virus")
         NOT_SPAM = "not-spam", _("not-spam")
+        OPT_OUT = "opt-out", _("opt-out")
         OTHER = "other", _("other")
 
     feedback_type = models.TextField(
