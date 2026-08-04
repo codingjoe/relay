@@ -33,8 +33,9 @@ class DNSResolver:
             case "PTR" | "ANY" if qname_str.endswith(".in-addr.arpa"):
                 return self.resolve_ptr(qname, qname_str)
             case _:
-                domain = Domain.objects.root_for(qname_str, include_system=True)
-                if domain is None:
+                try:
+                    domain = Domain.objects.root_for(qname_str, include_managed=True)
+                except Domain.DoesNotExist:
                     return []
                 return self.resolve_domain_records(qname, qtype, qname_str, domain)
 

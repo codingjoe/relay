@@ -140,7 +140,7 @@ class Webhook(OrganizationOwned):
     @property
     def is_managed_domain(self) -> bool:
         receiving = self.receiving_domain_name.lower()
-        managed = settings.RELAY_FREE_SENDER_DOMAIN.lower()
+        managed = settings.RELAY_MANAGED_SENDER_DOMAIN.lower()
         return receiving == managed or receiving.endswith(f".{managed}")
 
     @property

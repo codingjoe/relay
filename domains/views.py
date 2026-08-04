@@ -62,7 +62,9 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
 class DomainVerifyView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(
-            Domain.objects.filter(org=self.org, is_managed=False),
+            Domain,
+            org=self.org,
+            is_managed=False,
             pk=pk,
         )
         verify_domain_dns(domain)

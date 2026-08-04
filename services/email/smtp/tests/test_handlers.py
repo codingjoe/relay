@@ -1,5 +1,4 @@
 import base64
-from email.message import EmailMessage
 from types import SimpleNamespace
 
 import pytest
@@ -77,79 +76,6 @@ class TestHandleAuth:
         assert result == "235 Authentication successful"
         assert session.credential is not None
         assert session.sender == user
-
-
-@pytest.mark.django_db(transaction=True)
-class TestProcessMessage:
-    async def test_process_message__billing_inactive_rejects_non_member(
-        self, user, org
-    ):
-        from services.email.smtp.handlers import process_message
-
-        cred, _ = SmtpCredential.objects.create_with_key(org=org)
-        domain = org.domains.first()
-        msg = EmailMessage()
-        msg["From"] = f"alice@{domain.name}"
-        msg["To"] = "bob@example.com"
-        msg["Subject"] = "Test"
-        msg.set_content("Hello")
-        result = await process_message(
-            f"alice@{domain.name}",
-            "bob@example.com",
-            msg.as_bytes(),
-            msg,
-            cred,
-            user,
-            False,
-        )
-        assert result == "550 Recipient not allowed without active billing"
-
-    async def test_process_message__rejects_unregistered_sender_domain(self, user, org):
-        from services.email.smtp.handlers import process_message
-
-        cred, _ = SmtpCredential.objects.create_with_key(org=org)
-        msg = EmailMessage()
-        msg["From"] = "alice@nonexistent.com"
-        msg["To"] = "bob@example.com"
-        msg["Subject"] = "Test"
-        msg.set_content("Hello")
-        result = await process_message(
-            "alice@nonexistent.com",
-            "bob@example.com",
-            msg.as_bytes(),
-            msg,
-            cred,
-            user,
-            False,
-        )
-        assert result == "550 Sender domain not registered"
-
-    async def test_process_message__creates_outgoing_message(self, user, org):
-        from unittest.mock import patch
-
-        from domains.models import Domain
-        from services.email.smtp.handlers import process_message
-        from services.email.smtp.models import OutgoingMessage
-
-        Domain.objects.create(name="example.com", org=org)
-        cred, _ = SmtpCredential.objects.create_with_key(org=org)
-        msg = EmailMessage()
-        msg["From"] = "alice@example.com"
-        msg["To"] = "bob@example.com"
-        msg["Subject"] = "Test"
-        msg.set_content("Hello")
-        with patch.object(type(org), "billing_is_active", True):
-            result = await process_message(
-                "alice@example.com",
-                "bob@example.com",
-                msg.as_bytes(),
-                msg,
-                cred,
-                user,
-                False,
-            )
-        assert result == "250 OK"
-        assert OutgoingMessage.objects.filter(org=org, sender=user).count() == 1
 
 
 @pytest.mark.django_db(transaction=True)

@@ -18,13 +18,13 @@ class TestTxt:
 class TestDomainQuerySet:
     def test_root_for__system_domain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        domain = Domain.objects.root_for("open.localhost", include_system=True)
+        domain = Domain.objects.root_for("open.localhost", include_managed=True)
         assert domain is not None
         assert domain.name == "open.localhost"
 
     def test_root_for__system_subdomain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        domain = Domain.objects.root_for("mail.open.localhost", include_system=True)
+        domain = Domain.objects.root_for("mail.open.localhost", include_managed=True)
         assert domain is not None
         assert domain.name == "open.localhost"
 
@@ -34,9 +34,6 @@ class TestDomainQuerySet:
         domain = Domain.objects.root_for("mail.relay.example.com")
         assert domain is not None
         assert domain.name == "example.com"
-
-    def test_root_for__unknown_returns_none_with_include_system(self):
-        assert Domain.objects.root_for("nonexistent.com", include_system=True) is None
 
     def test_root_for__unknown_raises_does_not_exist(self):
         with pytest.raises(Domain.DoesNotExist):

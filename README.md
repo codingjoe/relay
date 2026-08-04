@@ -18,10 +18,10 @@ by the built-in nameserver. You do not need to use the DNS provider dashboard.
 
 Every organization gets a **managed sender domain** — a subdomain of the
 platform's managed sender domain that Relay manages automatically. The domain is
-set via `RELAY_FREE_SENDER_DOMAIN` (defaults to
+set via `RELAY_MANAGED_SENDER_DOMAIN` (defaults to
 `open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
 When an organization is created, a `Domain` is auto-created with the name
-`{org.slug}.{RELAY_FREE_SENDER_DOMAIN}` (for example `acme.open.localhost`).
+`{org.slug}.{RELAY_MANAGED_SENDER_DOMAIN}` (for example `acme.open.localhost`).
 The domain is DKIM-signed and pre-verified — no user DNS configuration needed.
 
 Billing is not yet implemented — sending and receiving is currently
@@ -53,7 +53,7 @@ No user action is required.
 For the managed domain to resolve in production, the platform operator must:
 
 1. **Delegate the managed domain zone to Relay's nameservers.** If
-   `RELAY_FREE_SENDER_DOMAIN` is `open.example.com`, add NS records for the
+   `RELAY_MANAGED_SENDER_DOMAIN` is `open.example.com`, add NS records for the
    `open` subdomain pointing to the nameservers in
    `RELAY_DNS_NS_NAMESERVERS` (for example, `ns1.example.com`, `ns2.example.com`). If
    the platform domain's NS records already point at Relay's nameservers, the
@@ -62,7 +62,7 @@ For the managed domain to resolve in production, the platform operator must:
 1. **Make the SPF include resolve.** The managed domain's SPF record includes
    `spf.{platform_domain}`. Make sure that the TXT record exists and lists the SMTP
    server IP addresses.
-1. **Set `RELAY_FREE_SENDER_DOMAIN`** to a domain delegated to Relay's
+1. **Set `RELAY_MANAGED_SENDER_DOMAIN`** to a domain delegated to Relay's
    nameservers.
 
 ## Architecture

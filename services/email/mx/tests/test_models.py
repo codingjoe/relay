@@ -63,7 +63,7 @@ class TestIsManagedDomain:
         webhook = Webhook.objects.create(
             org=org,
             url="https://example.com/hook",
-            address_pattern=f"*@{settings.RELAY_FREE_SENDER_DOMAIN}",
+            address_pattern=f"*@{settings.RELAY_MANAGED_SENDER_DOMAIN}",
             signing_key=signing_key,
         )
         assert webhook.is_managed_domain is True
@@ -74,7 +74,7 @@ class TestIsManagedDomain:
         webhook = Webhook.objects.create(
             org=org,
             url="https://example.com/hook",
-            address_pattern=f"*@{org.slug}.{settings.RELAY_FREE_SENDER_DOMAIN}",
+            address_pattern=f"*@{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}",
             signing_key=signing_key,
         )
         assert webhook.is_managed_domain is True
@@ -85,7 +85,7 @@ class TestIsManagedDomain:
         webhook = Webhook.objects.create(
             org=org,
             url="https://example.com/hook",
-            address_pattern=f"*@{settings.RELAY_FREE_SENDER_DOMAIN.upper()}",
+            address_pattern=f"*@{settings.RELAY_MANAGED_SENDER_DOMAIN.upper()}",
             signing_key=signing_key,
         )
         assert webhook.is_managed_domain is True
@@ -129,7 +129,7 @@ class TestMxRecord:
         webhook = Webhook.objects.create(
             org=org,
             url="https://example.com/hook",
-            address_pattern=f"*@{settings.RELAY_FREE_SENDER_DOMAIN}",
+            address_pattern=f"*@{settings.RELAY_MANAGED_SENDER_DOMAIN}",
             signing_key=signing_key,
         )
         assert webhook.mx_record == ""

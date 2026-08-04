@@ -22,7 +22,7 @@ def validate_domain_name(value):
 
 
 class DomainQuerySet(models.QuerySet):
-    def root_for(self, name, include_system=False):
+    def root_for(self, name, include_managed=False):
         """Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific
@@ -36,17 +36,13 @@ class DomainQuerySet(models.QuerySet):
         qs = self.filter(
             reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
         )
-        if not include_system:
+        if not include_managed:
             qs = qs.filter(org__isnull=False)
         qs = qs.select_related("org").order_by(Length("name").desc())
         try:
             return qs.get()
         except self.model.MultipleObjectsReturned:
             return qs.first()
-        except self.model.DoesNotExist:
-            if include_system:
-                return None
-            raise
 
 
 def generate_verification_token():
@@ -220,18 +216,13 @@ class Domain(TimeStamped):
         help_text=_("Whether relay manages this domain's DNS automatically."),
     )
 
-    @classmethod
-    def managed_domain_name(cls, org):
-        """Return the managed subdomain name for *org*."""
-        return f"{org.slug}.{settings.RELAY_FREE_SENDER_DOMAIN}"
-
     def clean(self):
         """Validate that user-added domains are not subdomains of relay's root domains."""
         if not self.is_managed and not self.pk:
             name = self.name.lower()
             root_domains = [
                 settings.RELAY_PLATFORM_DOMAIN.lower(),
-                settings.RELAY_FREE_SENDER_DOMAIN.lower(),
+                settings.RELAY_MANAGED_SENDER_DOMAIN.lower(),
             ]
             for root in root_domains:
                 if name == root or name.endswith(f".{root}"):

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -11,7 +12,7 @@ from .models import Domain
 def create_managed_domain(sender, instance, created, **kwargs):
     """Create a relay-managed subdomain for a new organization."""
     if created and not kwargs.get("raw"):
-        name = Domain.managed_domain_name(instance)
+        name = f"{instance.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
         Domain.objects.get_or_create(
             name=name,
             defaults={
