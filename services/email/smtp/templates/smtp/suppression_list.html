@@ -5,7 +5,10 @@
   <header class="flex items-center justify-between mb-6">
     <div class="flex items-center gap-3">
       <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
-      <span class="badge" data-size="sm" data-variant="outline">{{ total_suppressed }}</span>
+      <span class="badge" data-size="sm" data-variant="outline">
+        {% blocktranslate count counter=total_suppressed %}{{ counter }} address{% plural %}{{ counter }}
+          addresses{% endblocktranslate %}
+      </span>
     </div>
     <div role="group" class="button-group">
       <button
@@ -19,17 +22,17 @@
         type="button"
         class="btn"
         data-variant="secondary"
-        onclick="document.getElementById('dlg-remove').showModal()"
+        onclick="document.getElementById('dlg-check').showModal()"
       >
-        {% translate "remove address"|title %}
+        {% translate "check address"|title %}
       </button>
       <button
         type="button"
         class="btn"
-        data-variant="secondary"
-        onclick="document.getElementById('dlg-check').showModal()"
+        data-variant="destructive"
+        onclick="document.getElementById('dlg-remove').showModal()"
       >
-        {% translate "check address"|title %}
+        {% translate "remove address"|title %}
       </button>
     </div>
   </header>
