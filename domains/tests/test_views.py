@@ -23,7 +23,7 @@ class TestDomainListView:
         assert len(domains) == 2
         names = {d.name for d in domains}
         assert "mine.com" in names
-        assert Domain.free_domain_name(org) in names
+        assert Domain.managed_domain_name(org) in names
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/domains/")

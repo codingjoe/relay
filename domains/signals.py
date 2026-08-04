@@ -12,7 +12,7 @@ def create_managed_domain(sender, instance, created, **kwargs):
     """Create a relay-managed subdomain for a new organization."""
     if not created or kwargs.get("raw"):
         return
-    name = Domain.free_domain_name(instance)
+    name = Domain.managed_domain_name(instance)
     Domain.objects.get_or_create(
         name=name,
         defaults={

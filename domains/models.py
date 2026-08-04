@@ -233,7 +233,7 @@ class Domain(TimeStamped):
         )
 
     @classmethod
-    def free_domain_name(cls, org):
+    def managed_domain_name(cls, org):
         """Return the managed subdomain name for *org*."""
         return f"{org.slug}.{settings.RELAY_FREE_SENDER_DOMAIN}"
 
