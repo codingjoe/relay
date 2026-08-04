@@ -170,11 +170,37 @@ HashedEmailField.register_lookup(EmailLookup)
 
 class SuppressionQuerySet(models.QuerySet):
     def add(self, org, email, reason=None):
-        """Add an email address to the suppression list if not already present."""
-        return self.get_or_create(
+        """Upsert a suppression entry. If the address already exists for this
+        org, update the reason and bump `modified_at`."""
+        return self.update_or_create(
             org=org,
             address_hash=self.model.hash_address(email),
             defaults={"reason": reason or self.model.Reason.MANUAL},
+        )
+
+    def is_suppressed(self, org, email) -> bool:
+        """Check whether an email is suppressed for the given org.
+
+        All entries for the current org suppress regardless of age or reason.
+        Bounce entries from any other org suppress for 30 days after creation.
+        """
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        bounce_cutoff = timezone.now() - timedelta(days=30)
+        return (
+            self.filter(
+                address_hash=self.model.hash_address(email),
+            )
+            .filter(
+                models.Q(org=org)
+                | models.Q(
+                    reason=self.model.Reason.BOUNCE,
+                    created_at__gte=bounce_cutoff,
+                ),
+            )
+            .exists()
         )
 
 

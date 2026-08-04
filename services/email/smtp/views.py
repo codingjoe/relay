@@ -67,9 +67,7 @@ class TestEmailView(OrganizationScopedView, View):
             mail_from = f"postmaster@{domain.name}"
 
         recipient = request.user.email
-        if SuppressionEntry.objects.filter(
-            org=self.org, address_hash__email=recipient
-        ).exists():
+        if SuppressionEntry.objects.is_suppressed(self.org, recipient):
             messages.error(request, _("Recipient is on the suppression list."))
             return redirect("message:message-list", org_slug=org_slug)
 
@@ -206,9 +204,7 @@ class SuppressionCheckView(OrganizationScopedView, View):
         if not email:
             messages.error(request, _("Email address is required."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
-        if SuppressionEntry.objects.filter(
-            org=self.org, address_hash__email=email
-        ).exists():
+        if SuppressionEntry.objects.is_suppressed(self.org, email):
             messages.warning(request, _("Address is on the suppression list."))
         else:
             messages.success(request, _("Address is not on the suppression list."))
