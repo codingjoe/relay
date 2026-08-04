@@ -53,7 +53,11 @@
 
   <div class="item-group">
     {% for domain in domains %}
-      <a href="{% url 'domains:domain-detail' org.slug domain.pk %}" class="item" data-variant="outline">
+      <a
+        {% if not domain.is_managed %}href="{% url 'domains:domain-detail' org.slug domain.pk %}"{% endif %}
+        class="item"
+        data-variant="outline"
+      >
         <section>
           <h3>
             {% if domain.verified_at %}

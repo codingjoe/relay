@@ -12,13 +12,15 @@ from .models import Domain
 def create_managed_domain(sender, instance, created, **kwargs):
     """Create a relay-managed subdomain for a new organization."""
     if created and not kwargs.get("raw"):
+        now = timezone.now()
         name = f"{instance.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
         Domain.objects.get_or_create(
             name=name,
             defaults={
                 "org": instance,
                 "is_managed": True,
-                "verified_at": timezone.now(),
+                "verified_at": now,
+                "dns_checked_at": now,
                 "nameserver_status": Domain.Status.OK,
                 "spf_status": Domain.Status.OK,
                 "dkim_status": Domain.Status.OK,
