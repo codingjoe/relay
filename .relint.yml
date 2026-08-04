@@ -13,7 +13,7 @@
 - name: No private functions (single underscore prefix)
   pattern: 'def _[a-zA-Z]'
   hint: 'Do not use private functions (underscore prefix). This project is not for redistribution.'
-  filePattern: .*\.py
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
 - name: Use "..." instead of "pass" in empty classes
   pattern: 'class \w+[^\n:]*:\n[ \t]+pass\b'
   hint: 'Use `...` instead of `pass` in empty classes.'
