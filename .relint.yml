@@ -2,3 +2,11 @@
   pattern: \@pytest\.mark\.django_db[^\n]*\n\w*class
   hint: Please use the "django_db" marker on individual tests only.
   filePattern: .*\.py
+- name: Import generic views via the "generic" module
+  pattern: from django\.views\.generic
+  hint: 'Use `from django.views import generic` and reference `generic.View`, `generic.CreateView`, etc. to clearly identify generic views.'
+  filePattern: .*\.py
+- name: Do not override "template_name" on object-based generic views
+  pattern: 'class \w+\([^)]*(?:DetailView|ListView|CreateView|UpdateView|DeleteView)[^)]*\):\n(?:[ \t]+[^\n]*\n)*?[ \t]+template_name\s*='
+  hint: 'Object-based generic views have default template names like `<app_label>/<model_name>_detail.html`. Do not override "template_name".'
+  filePattern: .*\.py

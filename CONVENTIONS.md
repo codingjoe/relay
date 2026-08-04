@@ -104,6 +104,13 @@ Update it based on review feedback.
   `views.MyView.as_view()`.
 - Do not import with different names (no `import x as y`) unless necessary.
 - Do not import per-property — import the module directly.
+- Import generic views via `from django.views import generic` and reference
+  `generic.View`, `generic.CreateView`, etc. Do not import individual classes
+  from `django.views.generic`.
+- Do not override `template_name` on object-based generic views (DetailView,
+  ListView, CreateView, UpdateView, DeleteView). They have default template
+  names (`<app_label>/<model_name>_<suffix>.html`). Only `TemplateView` and
+  other non-object-based views require `template_name`.
 
 ## Authentication
 
