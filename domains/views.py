@@ -72,15 +72,9 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
             getattr(domain, f"{field}_status") == Domain.Status.OK
             for field in ("nameserver", "spf", "dkim", "dmarc")
         ):
-            messages.success(
-                request,
-                _("Verified DNS records for “%(name)s”.") % {"name": domain.name},
-            )
+            messages.success(request, _("DNS verification passed."))
         else:
-            messages.error(
-                request,
-                _("DNS verification failed for “%(name)s”.") % {"name": domain.name},
-            )
+            messages.error(request, _("DNS verification failed."))
         return redirect(domain.get_absolute_url())
 
 
