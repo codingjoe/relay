@@ -10,3 +10,15 @@
   pattern: 'class \w+\([^)]*(?:DetailView|ListView|CreateView|UpdateView|DeleteView)[^)]*\):\n(?:[ \t]+[^\n]*\n)*?[ \t]+template_name\s*='
   hint: 'Object-based generic views have default template names like `<app_label>/<model_name>_detail.html`. Do not override "template_name".'
   filePattern: .*\.py
+- name: No private functions (single underscore prefix)
+  pattern: 'def _[a-zA-Z]'
+  hint: 'Do not use private functions (underscore prefix). This project is not for redistribution.'
+  filePattern: .*\.py
+- name: Use "..." instead of "pass" in empty classes
+  pattern: 'class \w+[^\n:]*:\n[ \t]+pass\b'
+  hint: 'Use `...` instead of `pass` in empty classes.'
+  filePattern: .*\.py
+- name: No module docstrings on common Django files
+  pattern: "^[\"']{3}"
+  hint: 'Do not write module docstrings for common Django/Python files. The file name is self-documenting.'
+  filePattern: '.*/(models|admin|views|urls|apps|tasks|signals|tests)\.py$'
