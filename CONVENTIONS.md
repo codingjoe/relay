@@ -69,7 +69,6 @@ Update it based on review feedback.
 
 ## Functions
 
-- No private functions (underscore prefix) — this project is not for redistribution.
 - Function names must be descriptive, not ambiguous.
 
 ## Docstrings
@@ -85,9 +84,6 @@ Update it based on review feedback.
 - Do NOT use double backticks (` ` `) for inline code — use single backticks (` \` \`\`). Double backticks are RST syntax, not Markdown.
 - Do not write docstrings for inherited methods or properties — the
   base class already documents them.
-- Do not write module docstrings for common Django/Python files
-  (`models.py`, `admin.py`, `views.py`, `urls.py`, `apps.py`, `tasks.py`,
-  `signals.py`, `tests.py`). The file name is self-documenting.
 
 ## Control Flow
 
@@ -120,7 +116,6 @@ Update it based on review feedback.
   and help text.
 - Email-specific abbreviations are OK since they are more common than
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
-- Use `...` instead of `pass` in empty classes.
 
 ## Templates & UI
 
