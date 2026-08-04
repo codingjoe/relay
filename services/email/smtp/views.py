@@ -172,7 +172,7 @@ class SuppressionCreateView(OrganizationScopedView, View):
         if not email:
             messages.error(request, _("Email address is required."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
-        _entry, created = SuppressionEntry.objects.add(
+        _entry, created = SuppressionEntry.objects.create_or_update(
             self.org, email, reason=SuppressionEntry.Reason.MANUAL
         )
         if created:

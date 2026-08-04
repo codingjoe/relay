@@ -169,13 +169,11 @@ HashedEmailField.register_lookup(EmailLookup)
 
 
 class SuppressionQuerySet(models.QuerySet):
-    def add(self, org, email, reason=None):
-        """Upsert a suppression entry. If the address already exists for this
-        org, update the reason and bump `modified_at`."""
+    def create_or_update(self, org, email, reason):
         return self.update_or_create(
             org=org,
             address_hash=self.model.hash_address(email),
-            defaults={"reason": reason or self.model.Reason.MANUAL},
+            defaults={"reason": reason},
         )
 
     def is_suppressed(self, org, email) -> bool:
