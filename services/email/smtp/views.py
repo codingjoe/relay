@@ -178,10 +178,9 @@ class SuppressionCreateView(OrganizationScopedView, View):
         except ValidationError:
             messages.error(request, _("Enter a valid email address."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
-        _entry, created = SuppressionEntry.objects.create_or_update(
+        if SuppressionEntry.objects.create_or_update(
             self.org, email, reason=SuppressionEntry.Reason.MANUAL
-        )
-        if created:
+        )[1]:
             messages.success(request, _("Added address to suppression list."))
         else:
             messages.info(request, _("Address is already on the suppression list."))
@@ -199,10 +198,9 @@ class SuppressionRemoveView(OrganizationScopedView, View):
         except ValidationError:
             messages.error(request, _("Enter a valid email address."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
-        deleted, _count = SuppressionEntry.objects.filter(
+        if SuppressionEntry.objects.filter(
             org=self.org, address_hash__email=email
-        ).delete()
-        if deleted:
+        ).delete()[0]:
             messages.success(request, _("Removed address from suppression list."))
         else:
             messages.info(request, _("Address was not on the suppression list."))
