@@ -69,9 +69,7 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
 class DomainVerifyView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(
-            Domain.objects.filter(org=self.org).exclude(
-                name__endswith=f".{settings.RELAY_FREE_SENDER_DOMAIN}"
-            ),
+            Domain.objects.filter(org=self.org, is_managed=False),
             pk=pk,
         )
         verify_domain_dns(domain)
@@ -97,9 +95,7 @@ class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org).exclude(
-            name__endswith=f".{settings.RELAY_FREE_SENDER_DOMAIN}"
-        )
+        return Domain.objects.filter(org=self.org, is_managed=False)
 
     def get_success_url(self):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})

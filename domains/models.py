@@ -22,7 +22,7 @@ def validate_domain_name(value):
 
 
 class DomainQuerySet(models.QuerySet):
-    def root_for(self, name):
+    def root_for(self, name, include_system=False):
         """Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific
@@ -33,31 +33,20 @@ class DomainQuerySet(models.QuerySet):
         """
         parts = name.lower().split(".")
         candidates = [".".join(parts[i:]) for i in range(len(parts))]
-        qs = (
-            self.filter(
-                reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
-                org__isnull=False,
-            )
-            .select_related("org")
-            .order_by(Length("name").desc())
+        qs = self.filter(
+            reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
         )
+        if not include_system:
+            qs = qs.filter(org__isnull=False)
+        qs = qs.select_related("org").order_by(Length("name").desc())
         try:
             return qs.get()
         except self.model.MultipleObjectsReturned:
             return qs.first()
-
-    def zone_for(self, name):
-        """Return the closest registered parent domain for *name* across all domains.
-
-        Unlike `root_for`, this includes system domains (org=None). The most
-        specific name has priority. Returns None if no matching domain is found.
-        """
-        parts = name.lower().split(".")
-        candidates = [".".join(parts[i:]) for i in range(len(parts))]
-        qs = self.filter(
-            reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
-        ).order_by(Length("name").desc())
-        return qs.first()
+        except self.model.DoesNotExist:
+            if include_system:
+                return None
+            raise
 
 
 def generate_verification_token():
@@ -225,12 +214,11 @@ class Domain(TimeStamped):
     def is_system(self):
         return self.org is None
 
-    @property
-    def is_managed(self):
-        """Return True if relay manages this domain's DNS automatically."""
-        return self.name.lower().endswith(
-            f".{settings.RELAY_FREE_SENDER_DOMAIN.lower()}"
-        )
+    is_managed = models.BooleanField(
+        _("managed"),
+        default=False,
+        help_text=_("Whether relay manages this domain's DNS automatically."),
+    )
 
     @classmethod
     def managed_domain_name(cls, org):
@@ -239,13 +227,15 @@ class Domain(TimeStamped):
 
     def clean(self):
         """Validate that user-added domains are not subdomains of the managed sender domain."""
-        if self.org is not None and self.is_managed and not self.pk:
-            raise ValidationError(
-                _(
-                    "Cannot add a subdomain of %(base)s — relay manages these automatically."
+        if self.org is not None and not self.is_managed and not self.pk:
+            managed_base = settings.RELAY_FREE_SENDER_DOMAIN.lower()
+            if self.name.lower().endswith(f".{managed_base}"):
+                raise ValidationError(
+                    _(
+                        "Cannot add a subdomain of %(base)s — relay manages these automatically."
+                    )
+                    % {"base": settings.RELAY_FREE_SENDER_DOMAIN}
                 )
-                % {"base": settings.RELAY_FREE_SENDER_DOMAIN}
-            )
 
     @property
     def dkim_ciphers(self):

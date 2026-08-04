@@ -16,27 +16,31 @@ class TestTxt:
 
 @pytest.mark.django_db
 class TestDomainQuerySet:
-    def test_zone_for__system_domain(self):
+    def test_root_for__system_domain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        domain = Domain.objects.zone_for("open.localhost")
+        domain = Domain.objects.root_for("open.localhost", include_system=True)
         assert domain is not None
         assert domain.name == "open.localhost"
 
-    def test_zone_for__system_subdomain(self):
+    def test_root_for__system_subdomain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        domain = Domain.objects.zone_for("mail.open.localhost")
+        domain = Domain.objects.root_for("mail.open.localhost", include_system=True)
         assert domain is not None
         assert domain.name == "open.localhost"
 
-    def test_zone_for__user_domain(self):
+    def test_root_for__user_domain(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        domain = Domain.objects.zone_for("mail.relay.example.com")
+        domain = Domain.objects.root_for("mail.relay.example.com")
         assert domain is not None
         assert domain.name == "example.com"
 
-    def test_zone_for__unknown_returns_none(self):
-        assert Domain.objects.zone_for("nonexistent.com") is None
+    def test_root_for__unknown_returns_none_with_include_system(self):
+        assert Domain.objects.root_for("nonexistent.com", include_system=True) is None
+
+    def test_root_for__unknown_raises_does_not_exist(self):
+        with pytest.raises(Domain.DoesNotExist):
+            Domain.objects.root_for("nonexistent.com")
 
 
 @pytest.mark.django_db

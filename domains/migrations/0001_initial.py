@@ -210,6 +210,14 @@ class Migration(migrations.Migration):
                         to="accounts.organization",
                     ),
                 ),
+                (
+                    "is_managed",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Whether relay manages this domain's DNS automatically.",
+                        verbose_name="managed",
+                    ),
+                ),
             ],
             options={
                 "ordering": ("-modified_at", "-created_at"),

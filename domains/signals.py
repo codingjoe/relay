@@ -16,6 +16,7 @@ def create_managed_domain(sender, instance, created, **kwargs):
             name=name,
             defaults={
                 "org": instance,
+                "is_managed": True,
                 "verified_at": timezone.now(),
                 "nameserver_status": Domain.Status.OK,
                 "spf_status": Domain.Status.OK,
