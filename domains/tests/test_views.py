@@ -16,14 +16,14 @@ class TestDomainListView:
         assert response.status_code == 200
 
     def test_get__filters_by_org(self, admin_client, org, write_org):
-        Domain.objects.create(name="mine.com", org=org)
-        Domain.objects.create(name="theirs.com", org=write_org)
+        Domain.objects.create(name="acme.com", org=org)
+        Domain.objects.create(name="other.com", org=write_org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/")
         assert response.status_code == 200
         domains = list(response.context["domains"])
         assert len(domains) == 2
         names = {d.name for d in domains}
-        assert "mine.com" in names
+        assert "acme.com" in names
         assert Domain.managed_domain_name(org) in names
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):

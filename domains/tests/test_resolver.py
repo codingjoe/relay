@@ -15,7 +15,7 @@ class TestTxt:
 
 
 @pytest.mark.django_db
-class TestZoneFor:
+class TestDomainQuerySet:
     def test_zone_for__system_domain(self):
         Domain.objects.create(name="open.localhost", org=None)
         domain = Domain.objects.zone_for("open.localhost")
