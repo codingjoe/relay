@@ -5,7 +5,6 @@ from email.message import EmailMessage
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import BadRequest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
@@ -212,11 +211,8 @@ class SuppressionRemoveView(OrganizationScopedView, DeleteView):
         return self.model.objects.filter(org=self.org)
 
     def get_object(self, queryset=None):
-        form = SuppressionEntryForm(self.request.POST)
-        if not form.is_valid():
-            raise BadRequest
         qs = (queryset or self.get_queryset()).filter(
-            address_hash__email=form.cleaned_data["email"]
+            address_hash__email=self.request.POST.get("email", "")
         )
         return get_object_or_404(qs)
 
