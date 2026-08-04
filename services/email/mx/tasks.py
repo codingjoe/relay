@@ -10,7 +10,9 @@ import httpx
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
+from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -220,3 +222,36 @@ def parse_tls_report(report_pk):
     for failure in failures:
         failure.report = report
     TlsFailure.objects.bulk_create(failures)
+
+
+@task
+def notify_postmaster_recipients(message_pk):
+    """Email all org members with a link to the received message."""
+    message = IncomingMessage.objects.get(pk=message_pk)
+    memberships = message.org.memberships.exclude(user__email="").select_related("user")
+
+    scheme = "http" if settings.DEBUG or settings.TEST else "https"
+    detail_url = (
+        f"{scheme}://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
+    )
+    context = {
+        "subject": message.subject or _("(no subject)"),
+        "mail_from": message.mail_from,
+        "rcpt_to": message.rcpt_to,
+        "detail_url": detail_url,
+    }
+    body = render_to_string("mx/postmaster_notification.txt", context)
+    subject = _("Postmaster message received: %(subject)s") % {
+        "subject": message.subject
+    }
+    for membership in memberships:
+        try:
+            membership.user.email_user(
+                subject=subject,
+                message=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+            )
+        except OSError as e:
+            logger.error(
+                f"Postmaster notification to {membership.user.email} failed: {e}"
+            )

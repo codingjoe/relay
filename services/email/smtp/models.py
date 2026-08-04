@@ -24,6 +24,17 @@ class OutgoingMessage(Message):
         FAILED = "failed", _("failed")
         DEFAULT = nonmember("pending")
 
+        @property
+        def badge_variant(self) -> str:
+            Status = type(self)
+            match self:
+                case Status.SENT | Status.DELIVERED:
+                    return "primary"
+                case Status.BOUNCED | Status.DROPPED | Status.FAILED:
+                    return "destructive"
+                case _:
+                    return "outline"
+
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -39,16 +50,6 @@ class OutgoingMessage(Message):
 
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
-
-    @property
-    def status_badge_variant(self) -> str:
-        match self.status:
-            case self.Status.SENT | self.Status.DELIVERED:
-                return "primary"
-            case self.Status.BOUNCED | self.Status.DROPPED | self.Status.FAILED:
-                return "destructive"
-            case _:
-                return "outline"
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
