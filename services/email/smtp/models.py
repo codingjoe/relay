@@ -152,8 +152,7 @@ class SmtpCredential(Credential):
 
 
 class EmailLookup(Lookup):
-    """Lookup that hashes an email address before comparing against
-    `address_hash`."""
+    """Hash an email address before comparing against `address_hash`."""
 
     lookup_name = "email"
 
@@ -164,7 +163,7 @@ class EmailLookup(Lookup):
 
 
 class HashedEmailField(models.TextField):
-    """TextField that supports the `__email` lookup for address hashing."""
+    """Provide the `__email` lookup for address hashing."""
 
 
 HashedEmailField.register_lookup(EmailLookup)
