@@ -188,7 +188,10 @@ class SuppressionRemoveView(OrganizationScopedView, View):
         if not email:
             messages.error(request, _("Email address is required."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
-        if SuppressionEntry.objects.remove(self.org, email):
+        deleted, _count = SuppressionEntry.objects.filter(
+            org=self.org, address_hash__email=email
+        ).delete()
+        if deleted:
             messages.success(request, _("Removed address from suppression list."))
         else:
             messages.info(request, _("Address was not on the suppression list."))
@@ -201,7 +204,9 @@ class SuppressionCheckView(OrganizationScopedView, View):
         if not email:
             messages.error(request, _("Email address is required."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
-        if SuppressionEntry.objects.is_suppressed(self.org, email):
+        if SuppressionEntry.objects.filter(
+            org=self.org, address_hash__email=email
+        ).exists():
             messages.warning(request, _("Address is on the suppression list."))
         else:
             messages.success(request, _("Address is not on the suppression list."))

@@ -4,6 +4,7 @@ from enum import nonmember
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Lookup
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -148,6 +149,25 @@ class SmtpCredential(Credential):
     )
 
 
+class EmailLookup(Lookup):
+    """Lookup that hashes an email address before comparing against
+    `address_hash`."""
+
+    lookup_name = "email"
+
+    def as_sql(self, compiler, connection):
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        model = self.lhs.output_field.model
+        return f"{lhs} = %s", [*lhs_params, model.hash_address(self.rhs)]
+
+
+class HashedEmailField(models.TextField):
+    """TextField that supports the `__email` lookup for address hashing."""
+
+
+HashedEmailField.register_lookup(EmailLookup)
+
+
 class SuppressionQuerySet(models.QuerySet):
     def add(self, org, email, reason=None):
         """Add an email address to the suppression list if not already present."""
@@ -157,37 +177,22 @@ class SuppressionQuerySet(models.QuerySet):
             defaults={"reason": reason or self.model.Reason.MANUAL},
         )
 
-    def is_suppressed(self, org, email) -> bool:
-        """Check whether an email address is on the org's suppression list."""
-        return self.filter(
-            org=org,
-            address_hash=self.model.hash_address(email),
-        ).exists()
-
-    def remove(self, org, email) -> bool:
-        """Remove an email address from the suppression list. Return whether
-        an entry was deleted."""
-        return (
-            self.filter(
-                org=org,
-                address_hash=self.model.hash_address(email),
-            ).delete()[0]
-            > 0
-        )
-
 
 class SuppressionEntry(OrganizationOwned):
     """Store a salted hash of an email address that should not receive mail.
 
     The plain email address is never stored. Bounces are added automatically;
-    users can add or remove entries manually.
+    users can add or remove entries manually. Use the `__email` lookup to
+    filter by email address:
+
+        SuppressionEntry.objects.filter(org=org, address_hash__email=email)
     """
 
     class Reason(models.TextChoices):
         BOUNCE = "bounce", _("bounce")
         MANUAL = "manual", _("manual")
 
-    address_hash = models.TextField(
+    address_hash = HashedEmailField(
         _("address hash"),
         help_text=_("Salted SHA-256 of the lowercased email address."),
     )
