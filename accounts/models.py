@@ -30,14 +30,7 @@ class Organization(TimeStamped):
         related_name="organizations",
     )
 
-    @property
-    def billing_is_active(self):
-        """Return whether the organization has active billing.
-
-        Billing is not yet implemented — always returns False, which
-        restricts sending and receiving to organization members.
-        """
-        return False
+    billing_is_active = False
 
     def __str__(self):
         return self.slug
