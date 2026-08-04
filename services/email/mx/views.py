@@ -46,7 +46,10 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
         return Webhook.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
-        domain_choices = [(d.pk, d.name) for d in Domain.objects.filter(org=self.org)]
+        domain_choices = [
+            (d.pk, d.name)
+            for d in Domain.objects.filter(org=self.org, is_managed=False)
+        ]
         return super().get_context_data(**kwargs) | {
             "domain_choices": domain_choices,
         }
