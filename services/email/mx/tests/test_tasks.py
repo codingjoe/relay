@@ -1,12 +1,20 @@
 import itertools
+import json
 import time
 
 import pytest
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core import mail
+from django.core.files.base import ContentFile
 
+from accounts.models import Membership
+from services.email.mx.models import IncomingMessage
 from services.email.mx.tasks import (
     WEBHOOK_RETRY_DELAYS,
     WebhookEvent,
     WebhookJSONEncoder,
+    notify_postmaster_recipients,
 )
 
 
@@ -34,10 +42,6 @@ class TestWebhookEventFromTest:
 @pytest.mark.django_db
 class TestWebhookEventFromMessage:
     def test_from_message__populates_all_fields(self, org):
-        from django.core.files.base import ContentFile
-
-        from services.email.mx.models import IncomingMessage
-
         msg = IncomingMessage(
             org=org,
             receiving_domain="example.com",
@@ -63,8 +67,6 @@ class TestWebhookEventFromMessage:
         assert event.body_url.endswith(".eml")
 
     def test_from_message__body_url_is_none_when_no_raw_body(self, org):
-        from services.email.mx.models import IncomingMessage
-
         msg = IncomingMessage.objects.create(
             org=org,
             receiving_domain="example.com",
@@ -91,8 +93,6 @@ class TestWebhookJSONEncoder:
             body_url=None,
             received_at="2026-01-01T00:00:00Z",
         )
-        import json
-
         encoded = json.dumps({"event": event}, cls=WebhookJSONEncoder)
         assert "email.received" in encoded
         assert "abc" in encoded
@@ -108,3 +108,59 @@ class TestRetrySchedule:
 
     def test_retry_delays__ends_after_24h(self):
         assert WEBHOOK_RETRY_DELAYS[-1] == 24 * 60 * 60
+
+
+class TestNotifyPostmasterRecipients:
+    @pytest.mark.django_db(transaction=True)
+    def test_notify__sends_to_all_members_with_email(self, org, user, other_user):
+        Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
+        msg = IncomingMessage.objects.create(
+            org=org,
+            receiving_domain="example.com",
+            mail_from="external@example.org",
+            rcpt_to="postmaster@example.com",
+            subject="Alert",
+            message_id="<abc@example.org>",
+        )
+        notify_postmaster_recipients.func(message_pk=str(msg.id))
+        recipients = sorted(m.to for m in mail.outbox)
+        assert recipients == [
+            ["alice@example.com"],
+            ["bob@example.com"],
+        ]
+
+    @pytest.mark.django_db(transaction=True)
+    def test_notify__skips_members_without_email(self, org):
+        no_email_user = User.objects.create_user(
+            username="carol", email="", password="test"
+        )
+        Membership.objects.create(
+            org=org, user=no_email_user, role=Membership.Role.WRITE
+        )
+        msg = IncomingMessage.objects.create(
+            org=org,
+            receiving_domain="example.com",
+            mail_from="external@example.org",
+            rcpt_to="postmaster@example.com",
+            subject="Alert",
+            message_id="<abc@example.org>",
+        )
+        notify_postmaster_recipients.func(message_pk=str(msg.id))
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == ["alice@example.com"]
+
+    @pytest.mark.django_db(transaction=True)
+    def test_notify__includes_detail_url_in_body(self, org, user):
+        msg = IncomingMessage.objects.create(
+            org=org,
+            receiving_domain="example.com",
+            mail_from="external@example.org",
+            rcpt_to="postmaster@example.com",
+            subject="Alert",
+            message_id="<abc@example.org>",
+        )
+        notify_postmaster_recipients.func(message_pk=str(msg.id))
+        expected_url = (
+            f"http://{settings.RELAY_PLATFORM_DOMAIN}{msg.get_absolute_url()}"
+        )
+        assert expected_url in mail.outbox[0].body

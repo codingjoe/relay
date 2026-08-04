@@ -1,0 +1,8 @@
+{% load i18n %}{% blocktranslate with subject=subject sender=mail_from recipient=rcpt_to %}A postmaster message was received for your organization.
+
+From: {{ sender }}
+To: {{ recipient }}
+Subject: {{ subject }}{% endblocktranslate %}
+
+{% translate "View the full message in the relay dashboard:" %}
+{{ detail_url }}
