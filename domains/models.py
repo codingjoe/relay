@@ -226,16 +226,21 @@ class Domain(TimeStamped):
         return f"{org.slug}.{settings.RELAY_FREE_SENDER_DOMAIN}"
 
     def clean(self):
-        """Validate that user-added domains are not subdomains of the managed sender domain."""
-        if self.org is not None and not self.is_managed and not self.pk:
-            managed_base = settings.RELAY_FREE_SENDER_DOMAIN.lower()
-            if self.name.lower().endswith(f".{managed_base}"):
-                raise ValidationError(
-                    _(
-                        "Cannot add a subdomain of %(base)s — relay manages these automatically."
+        """Validate that user-added domains are not subdomains of relay's root domains."""
+        if not self.is_managed and not self.pk:
+            name = self.name.lower()
+            root_domains = [
+                settings.RELAY_PLATFORM_DOMAIN.lower(),
+                settings.RELAY_FREE_SENDER_DOMAIN.lower(),
+            ]
+            for root in root_domains:
+                if name == root or name.endswith(f".{root}"):
+                    raise ValidationError(
+                        _(
+                            "Cannot add a subdomain of %(base)s — relay manages these automatically."
+                        )
+                        % {"base": root}
                     )
-                    % {"base": settings.RELAY_FREE_SENDER_DOMAIN}
-                )
 
     @property
     def dkim_ciphers(self):

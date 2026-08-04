@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import ValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -30,12 +29,6 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
 
     def form_valid(self, form):
         form.instance.org = self.org
-        try:
-            form.instance.full_clean(exclude=["org"])
-        except ValidationError as e:
-            for error in e.messages:
-                form.add_error("name", error)
-            return self.form_invalid(form)
         messages.success(
             self.request,
             _("Added domain “%(name)s”.") % {"name": form.instance.name},
