@@ -66,14 +66,13 @@ class TestEmailView(OrganizationScopedView, View):
             domain = Domain.objects.get(pk=domain_pk, org=self.org)
             mail_from = f"postmaster@{domain.name}"
 
-        recipient = request.user.email
-        if SuppressionEntry.objects.is_suppressed(self.org, recipient):
+        if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
             messages.error(request, _("Recipient is on the suppression list."))
             return redirect("message:message-list", org_slug=org_slug)
 
         msg = EmailMessage()
         msg["From"] = mail_from
-        msg["To"] = recipient
+        msg["To"] = request.user.email
         msg["Subject"] = request.POST.get("subject", "")
         msg.set_content(request.POST.get("body", ""))
         raw_bytes = msg.as_bytes()
@@ -81,7 +80,7 @@ class TestEmailView(OrganizationScopedView, View):
         message = OutgoingMessage(
             sender=request.user,
             org=self.org,
-            rcpt_to=recipient,
+            rcpt_to=request.user.email,
             mail_from=mail_from,
             subject=request.POST.get("subject", ""),
             message_id=msg.get("Message-ID", ""),
@@ -94,7 +93,7 @@ class TestEmailView(OrganizationScopedView, View):
         transaction.on_commit(
             lambda: deliver_message.enqueue(
                 message_id=str(message.id),
-                rcpt_to=recipient,
+                rcpt_to=request.user.email,
                 mail_from=mail_from,
                 domain_id=domain.pk if domain else None,
             )
