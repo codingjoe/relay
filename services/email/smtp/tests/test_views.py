@@ -217,7 +217,6 @@ class TestSuppressionCreateView:
         assert SuppressionEntry.objects.filter(org=org).count() == 1
 
     @pytest.mark.django_db
-    @pytest.mark.django_db
     def test_post__invalid_email_returns_400(self, admin_client, org):
         response = admin_client.post(
             f"/org/{org.slug}/email/suppression/add",
