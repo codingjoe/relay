@@ -52,7 +52,7 @@
                 id="id_domain"
                 class="select w-full"
                 required
-                onchange="document.getElementById('id-pattern-suffix').textContent = '@' + this.value"
+                onchange="document.getElementById('id-pattern-suffix').textContent = '@' + this.options[this.selectedIndex].text"
               >
                 {% for value, label in domain_choices %}
                   <option value="{{ value }}">{{ label }}</option>
@@ -61,7 +61,6 @@
             </div>
             <div role="group" class="field">
               <label for="id_pattern_prefix">{% translate "address pattern"|capfirst %}</label>
-              <input type="hidden" name="domain_part" id="id_domain_part" value="">
               <div class="input-group">
                 <input
                   type="text"
@@ -71,7 +70,7 @@
                   placeholder="*"
                   required
                 >
-                <span data-align="end" id="id-pattern-suffix">@{{ domain_choices.0.0 }}</span>
+                <span data-align="end" id="id-pattern-suffix">@{{ domain_choices.0.1 }}</span>
               </div>
             </div>
           </fieldset>

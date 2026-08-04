@@ -46,7 +46,7 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
         return Webhook.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
-        domain_choices = [(d.name, d.name) for d in Domain.objects.filter(org=self.org)]
+        domain_choices = [(d.pk, d.name) for d in Domain.objects.filter(org=self.org)]
         return super().get_context_data(**kwargs) | {
             "domain_choices": domain_choices,
         }
@@ -57,10 +57,8 @@ class WebhookCreateView(OrganizationScopedView, generic.View):
         url = request.POST.get("url", "")
         name = request.POST.get("name", "")
         pattern_prefix = request.POST.get("pattern_prefix", "*")
-        domain_part = request.POST.get("domain_part", "") or request.POST.get(
-            "domain", ""
-        )
-        address_pattern = f"{pattern_prefix}@{domain_part}"
+        domain = get_object_or_404(Domain, org=self.org, pk=request.POST.get("domain"))
+        address_pattern = f"{pattern_prefix}@{domain.name}"
 
         try:
             with transaction.atomic():
@@ -70,6 +68,7 @@ class WebhookCreateView(OrganizationScopedView, generic.View):
                     url=url,
                     name=name,
                     address_pattern=address_pattern,
+                    domain=domain,
                     signing_key=signing_key,
                 )
                 webhook.full_clean()

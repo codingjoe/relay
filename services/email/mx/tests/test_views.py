@@ -27,11 +27,13 @@ def make_incoming(org, raw_body=b"From: a@b\r\nTo: c@d\r\nSubject: hi\r\n\r\nbod
 
 def make_webhook(org, url, pattern="*@example.com"):
     signing_key = SigningKey.generate("ed25519")
+    domain = Domain.objects.create(name=f"hook-{org.slug}.com", org=org)
     return Webhook.objects.create(
         org=org,
         url=url,
         name="",
-        address_pattern=pattern,
+        address_pattern=f"*@{domain.name}",
+        domain=domain,
         signing_key=signing_key,
     )
 
@@ -144,11 +146,11 @@ class TestWebhookListView:
         assert webhooks[0].org == org
 
     def test_get__context_has_domain_choices(self, admin_client, org):
-        Domain.objects.create(name="example.com", org=org)
+        domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert "domain_choices" in response.context
-        names = [d[0] for d in response.context["domain_choices"]]
-        assert "example.com" in names
+        pks = [d[0] for d in response.context["domain_choices"]]
+        assert domain.pk in pks
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/webhooks/")
@@ -158,13 +160,14 @@ class TestWebhookListView:
 @pytest.mark.django_db
 class TestWebhookCreateView:
     def test_post__creates_webhook(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.post(
             f"/org/{org.slug}/email/webhooks/new",
             {
                 "url": "https://example.com/hook",
                 "name": "My hook",
                 "pattern_prefix": "*",
-                "domain_part": "example.com",
+                "domain": str(domain.pk),
             },
         )
         assert response.status_code == 302
@@ -176,26 +179,28 @@ class TestWebhookCreateView:
         assert webhook.signing_key is not None
 
     def test_post__redirects_to_list(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.post(
             f"/org/{org.slug}/email/webhooks/new",
             {
                 "url": "https://example.com/hook",
                 "name": "",
                 "pattern_prefix": "support",
-                "domain_part": "example.com",
+                "domain": str(domain.pk),
             },
         )
         assert response.status_code == 302
         assert response.url.endswith(f"/org/{org.slug}/email/webhooks/")
 
     def test_post__not_found_for_non_member(self, admin_client, write_org):
+        domain = Domain.objects.create(name="example.com", org=write_org)
         response = admin_client.post(
             f"/org/{write_org.slug}/email/webhooks/new",
             {
                 "url": "https://example.com/hook",
                 "name": "",
                 "pattern_prefix": "*",
-                "domain_part": "example.com",
+                "domain": str(domain.pk),
             },
         )
         assert response.status_code == 404

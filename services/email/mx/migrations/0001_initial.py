@@ -99,6 +99,15 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
+                    "domain",
+                    models.ForeignKey(
+                        help_text="Receiving domain this webhook listens on.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="webhooks",
+                        to="domains.domain",
+                    ),
+                ),
+                (
                     "mx_status",
                     models.TextField(
                         choices=[

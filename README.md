@@ -24,46 +24,17 @@ When an organization is created, a `Domain` is auto-created with the name
 `{org.slug}.{RELAY_MANAGED_SENDER_DOMAIN}` (for example `acme.open.localhost`).
 The domain is DKIM-signed and pre-verified — no user DNS configuration needed.
 
-Billing is not yet implemented — sending and receiving is currently
-restricted to organization members.
-
 The managed domain cannot be deleted from the dashboard. Users can still add
 their own delegated domains alongside it.
 
-### DNS served automatically
-
-The built-in nameserver serves the following records at the managed domain.
-No user action is required.
-
-| Record  | Location                                                        | Value                                                         |
-| ------- | --------------------------------------------------------------- | ------------------------------------------------------------- |
-| A       | `mail.relay.{org}.{managed_domain}`                             | SMTP server IP(s)                                             |
-| MX      | `mail.relay.{org}.{managed_domain}`                             | `mail.relay.{org}.{managed_domain}` (priority 10)             |
-| NS      | `{org}.{managed_domain}`                                        | `ns1.{platform_domain}`, `ns2.{platform_domain}`              |
-| PTR     | `<reverse-IP>.in-addr.arpa`                                     | `mail.relay.{org}.{managed_domain}`                           |
-| SPF     | `mail.relay.{org}.{managed_domain}` (TXT)                       | `v=spf1 a mx ~all`                                            |
-| DKIM    | `{selector}._domainkey.mail.relay.{org}.{managed_domain}` (TXT) | DKIM public key (RSA-2048, RSA-1024, Ed25519)                 |
-| DMARC   | `_dmarc.mail.relay.{org}.{managed_domain}` (TXT)                | `v=DMARC1; p=none`                                            |
-| TLS-RPT | `_smtp._tls.mail.relay.{org}.{managed_domain}` (TXT)            | `v=TLSRPTv1;rua=mailto:tls@mail.relay.{org}.{managed_domain}` |
-| Verify  | `relay-verification.mail.relay.{org}.{managed_domain}` (TXT)    | `relay-verification {token}`                                  |
-| CNAME   | `rp.mail.relay.{org}.{managed_domain}`                          | `rp.{platform_domain}` (Return-Path)                          |
-
 ### Operator setup
 
-For the managed domain to resolve in production, the platform operator must:
-
-1. **Delegate the managed domain zone to Relay's nameservers.** If
-   `RELAY_MANAGED_SENDER_DOMAIN` is `open.example.com`, add NS records for the
-   `open` subdomain pointing to the nameservers in
-   `RELAY_DNS_NS_NAMESERVERS` (for example, `ns1.example.com`, `ns2.example.com`). If
-   the platform domain's NS records already point at Relay's nameservers, the
-   managed domain is served automatically as a subdomain and no extra delegation
-   is needed.
-1. **Make the SPF include resolve.** The managed domain's SPF record includes
-   `spf.{platform_domain}`. Make sure that the TXT record exists and lists the SMTP
-   server IP addresses.
-1. **Set `RELAY_MANAGED_SENDER_DOMAIN`** to a domain delegated to Relay's
-   nameservers.
+The platform operator only needs to delegate NS for the managed sender
+domain zone to Relay's nameservers. If `RELAY_MANAGED_SENDER_DOMAIN` is
+`open.example.com`, add NS records for the `open` subdomain pointing to
+`RELAY_DNS_NS_NAMESERVERS` (for example, `ns1.example.com`, `ns2.example.com`).
+All other records (MX, SPF, DKIM, DMARC, TLS-RPT) are served automatically
+by the internal nameserver — no per-domain delegation needed.
 
 ## Architecture
 

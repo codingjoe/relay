@@ -3,7 +3,6 @@ import uuid
 from enum import nonmember
 from fnmatch import fnmatch
 
-from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -12,7 +11,6 @@ from django.utils.translation import gettext_lazy as _
 from abstract.email_utils import iter_attachments
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
-from domains.models import Domain
 from kms.models import SigningKey
 from services.email.message.models import Message
 
@@ -93,6 +91,12 @@ class Webhook(OrganizationOwned):
             "or support@acme.com."
         ),
     )
+    domain = models.ForeignKey(
+        "domains.Domain",
+        on_delete=models.CASCADE,
+        related_name="webhooks",
+        help_text=_("Receiving domain this webhook listens on."),
+    )
     signing_key = models.ForeignKey(
         SigningKey,
         on_delete=models.PROTECT,
@@ -132,30 +136,18 @@ class Webhook(OrganizationOwned):
         return f"{self.org} / {self.name or self.url}"
 
     @property
-    def receiving_domain_name(self) -> str:
-        if "@" in self.address_pattern:
-            return self.address_pattern.split("@", 1)[1]
-        return self.address_pattern
-
-    @property
     def is_managed_domain(self) -> bool:
-        receiving = self.receiving_domain_name.lower()
-        managed = settings.RELAY_MANAGED_SENDER_DOMAIN.lower()
-        return receiving == managed or receiving.endswith(f".{managed}")
+        return self.domain.is_managed
 
     @property
     def mx_target(self) -> str:
-        receiving = self.receiving_domain_name.lower()
-        try:
-            return Domain.objects.root_for(receiving).sender_domain
-        except Domain.DoesNotExist:
-            return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{receiving}"
+        return self.domain.sender_domain
 
     @property
     def mx_record(self) -> str:
         if self.is_managed_domain:
             return ""
-        return f"MX {self.receiving_domain_name} → {self.mx_target}"
+        return f"MX {self.domain.name} → {self.mx_target}"
 
     def matches(self, rcpt_to) -> bool:
         return fnmatch(rcpt_to.lower(), self.address_pattern.lower())

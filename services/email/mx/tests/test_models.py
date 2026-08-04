@@ -2,8 +2,8 @@ import base64
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from django.conf import settings
 
+from domains.models import Domain
 from kms.models import SigningKey
 from services.email.mx.models import Webhook
 
@@ -11,11 +11,13 @@ from services.email.mx.models import Webhook
 @pytest.fixture
 def webhook(org):
     signing_key = SigningKey.generate("ed25519")
+    domain = Domain.objects.create(name="app.acme.com", org=org)
     return Webhook.objects.create(
         org=org,
         url="https://example.com/hook",
         name="My hook",
         address_pattern="*@app.acme.com",
+        domain=domain,
         signing_key=signing_key,
     )
 
@@ -29,80 +31,28 @@ class TestWebhookStr:
     @pytest.mark.django_db
     def test_str__falls_back_to_url_when_no_name(self, org):
         signing_key = SigningKey.generate("ed25519")
+        domain = Domain.objects.create(name="app.acme.com", org=org)
         webhook = Webhook.objects.create(
             org=org,
             url="https://example.com/hook",
             name="",
             address_pattern="*@app.acme.com",
+            domain=domain,
             signing_key=signing_key,
         )
         assert "example.com/hook" in str(webhook)
-
-
-class TestReceivingDomainName:
-    @pytest.mark.django_db
-    def test_receiving_domain_name__strips_user_part(self, webhook):
-        assert webhook.receiving_domain_name == "app.acme.com"
-
-    @pytest.mark.django_db
-    def test_receiving_domain_name__works_without_user_part(self, org):
-        signing_key = SigningKey.generate("ed25519")
-        webhook = Webhook.objects.create(
-            org=org,
-            url="https://example.com/hook",
-            address_pattern="app.acme.com",
-            signing_key=signing_key,
-        )
-        assert webhook.receiving_domain_name == "app.acme.com"
-
-
-class TestIsManagedDomain:
-    @pytest.mark.django_db
-    def test_is_managed_domain__true_when_matches_managed(self, org):
-        signing_key = SigningKey.generate("ed25519")
-        webhook = Webhook.objects.create(
-            org=org,
-            url="https://example.com/hook",
-            address_pattern=f"*@{settings.RELAY_MANAGED_SENDER_DOMAIN}",
-            signing_key=signing_key,
-        )
-        assert webhook.is_managed_domain is True
-
-    @pytest.mark.django_db
-    def test_is_managed_domain__true_for_subdomain(self, org):
-        signing_key = SigningKey.generate("ed25519")
-        webhook = Webhook.objects.create(
-            org=org,
-            url="https://example.com/hook",
-            address_pattern=f"*@{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}",
-            signing_key=signing_key,
-        )
-        assert webhook.is_managed_domain is True
-
-    @pytest.mark.django_db
-    def test_is_managed_domain__case_insensitive(self, org):
-        signing_key = SigningKey.generate("ed25519")
-        webhook = Webhook.objects.create(
-            org=org,
-            url="https://example.com/hook",
-            address_pattern=f"*@{settings.RELAY_MANAGED_SENDER_DOMAIN.upper()}",
-            signing_key=signing_key,
-        )
-        assert webhook.is_managed_domain is True
-
-    @pytest.mark.django_db
-    def test_is_managed_domain__false_for_custom_domain(self, webhook):
-        assert webhook.is_managed_domain is False
 
 
 class TestMatches:
     @pytest.mark.django_db
     def test_matches__exact(self, org):
         signing_key = SigningKey.generate("ed25519")
+        domain = Domain.objects.create(name="acme.com", org=org)
         webhook = Webhook.objects.create(
             org=org,
             url="https://example.com/hook",
             address_pattern="support@acme.com",
+            domain=domain,
             signing_key=signing_key,
         )
         assert webhook.matches("support@acme.com") is True
@@ -123,17 +73,6 @@ class TestMatches:
 
 
 class TestMxRecord:
-    @pytest.mark.django_db
-    def test_mx_record__empty_for_managed_domain(self, org):
-        signing_key = SigningKey.generate("ed25519")
-        webhook = Webhook.objects.create(
-            org=org,
-            url="https://example.com/hook",
-            address_pattern=f"*@{settings.RELAY_MANAGED_SENDER_DOMAIN}",
-            signing_key=signing_key,
-        )
-        assert webhook.mx_record == ""
-
     @pytest.mark.django_db
     def test_mx_record__shows_mx_record_for_custom_domain(self, webhook):
         assert webhook.mx_record == "MX app.acme.com → mail.relay.app.acme.com"

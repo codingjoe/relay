@@ -126,10 +126,9 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
 
     from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
 
-    domain = (
-        Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
-    )
-    if domain is None:
+    try:
+        domain = Domain.objects.get(name__iexact=from_domain)
+    except Domain.DoesNotExist:
         return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
