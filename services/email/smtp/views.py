@@ -4,7 +4,9 @@ from email.message import EmailMessage
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.validators import validate_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -171,6 +173,11 @@ class SuppressionCreateView(OrganizationScopedView, View):
         if not email:
             messages.error(request, _("Email address is required."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, _("Enter a valid email address."))
+            return redirect("smtp:suppression-list", org_slug=org_slug)
         _entry, created = SuppressionEntry.objects.create_or_update(
             self.org, email, reason=SuppressionEntry.Reason.MANUAL
         )
@@ -187,6 +194,11 @@ class SuppressionRemoveView(OrganizationScopedView, View):
         if not email:
             messages.error(request, _("Email address is required."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, _("Enter a valid email address."))
+            return redirect("smtp:suppression-list", org_slug=org_slug)
         deleted, _count = SuppressionEntry.objects.filter(
             org=self.org, address_hash__email=email
         ).delete()
@@ -202,6 +214,11 @@ class SuppressionCheckView(OrganizationScopedView, View):
         email = request.POST.get("email", "").strip()
         if not email:
             messages.error(request, _("Email address is required."))
+            return redirect("smtp:suppression-list", org_slug=org_slug)
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, _("Enter a valid email address."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
         if SuppressionEntry.objects.is_suppressed(self.org, email):
             messages.warning(request, _("Address is on the suppression list."))
