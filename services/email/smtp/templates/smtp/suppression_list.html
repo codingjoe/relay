@@ -36,7 +36,7 @@
                 name="email"
                 id="id_suppression_email"
                 placeholder="user@example.com"
-                class="input"
+                class="input w-full"
                 required
               >
             </div>
@@ -78,7 +78,7 @@
                 <span
                   class="badge"
                   data-size="sm"
-                  data-variant="{% if s.reason == s.Reason.BOUNCE %}destructive{% else %}outline{% endif %}"
+                  data-variant="{% if s.reason == 'bounce' %}destructive{% else %}outline{% endif %}"
                 >
                   {{ s.get_reason_display }}
                 </span>
@@ -104,9 +104,7 @@
       </table>
     </div>
 
-    {% if is_paginated %}
-      {% include "abstract/pagination.html" %}
-    {% endif %}
+    {% pagination %}
   {% else %}
     <p class="text-muted-foreground">
       {% blocktranslate %}no suppressed addresses yet.{% endblocktranslate %}
