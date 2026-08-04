@@ -4,6 +4,7 @@ from email.message import EmailMessage
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import BadRequest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
@@ -168,11 +169,13 @@ class SuppressionListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class SuppressionCreateView(OrganizationScopedView, generic.CreateView):
+class SuppressionCreateView(OrganizationScopedView, generic.FormView):
     http_method_names = ["post"]
-    model = SuppressionEntry
     form_class = SuppressionEntryForm
     parent = "smtp:suppression-list"
+
+    def form_invalid(self, form):
+        raise BadRequest
 
     def form_valid(self, form):
         if SuppressionEntry.objects.create_or_update(
@@ -217,6 +220,9 @@ class SuppressionCheckView(OrganizationScopedView, generic.FormView):
     http_method_names = ["post"]
     form_class = SuppressionEntryForm
     parent = "smtp:suppression-list"
+
+    def form_invalid(self, form):
+        raise BadRequest
 
     def form_valid(self, form):
         if SuppressionEntry.objects.is_suppressed(self.org, form.cleaned_data["email"]):

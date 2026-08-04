@@ -85,10 +85,12 @@ class TestCredentialListView:
         assert response.status_code == 302
         assert "/account/login" in response.url
 
+    @pytest.mark.django_db
     def test_get__ok_for_member(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
 
+    @pytest.mark.django_db
     def test_get__filters_by_org(self, admin_client, org, write_org):
         SmtpCredential.objects.create_with_key(org=org, name="mine")
         SmtpCredential.objects.create_with_key(org=write_org, name="theirs")
@@ -103,6 +105,7 @@ class TestCredentialListView:
         assert "smtp_hostname" in response.context
         assert "smtp_port" in response.context
 
+    @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/credentials/")
         assert response.status_code == 404
@@ -140,3 +143,142 @@ class TestCredentialDeleteView:
             f"/org/{org.slug}/email/credentials/{cred.pk}/delete"
         )
         assert response.status_code == 404
+
+
+class TestSuppressionListView:
+    @pytest.mark.django_db
+    def test_get__requires_login(self, client, org):
+        response = client.get(f"/org/{org.slug}/email/suppression/")
+        assert response.status_code == 302
+        assert "/account/login" in response.url
+
+    @pytest.mark.django_db
+    def test_get__ok_for_member(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
+    def test_get__not_found_for_non_member(self, admin_client, write_org):
+        response = admin_client.get(f"/org/{write_org.slug}/email/suppression/")
+        assert response.status_code == 404
+
+    @pytest.mark.django_db
+    def test_get__filters_by_org(self, admin_client, org, write_org):
+        from services.email.smtp.models import SuppressionEntry
+
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        SuppressionEntry.objects.create_or_update(
+            org=write_org,
+            email="theirs@example.com",
+            reason=SuppressionEntry.Reason.MANUAL,
+        )
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+        assert response.status_code == 200
+        entries = list(response.context["object_list"])
+        assert len(entries) == 1
+        assert entries[0].address_hash == SuppressionEntry.hash_address(
+            "mine@example.com"
+        )
+
+    @pytest.mark.django_db
+    def test_get__context_has_chart(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+        assert "suppression_chart" in response.context
+
+
+class TestSuppressionCreateView:
+    @pytest.mark.django_db
+    def test_post__creates_entry(self, admin_client, org):
+        from services.email.smtp.models import SuppressionEntry
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/add",
+            {"email": "bob@example.com"},
+        )
+        assert response.status_code == 302
+        entry = SuppressionEntry.objects.filter(org=org).first()
+        assert entry is not None
+        assert entry.reason == SuppressionEntry.Reason.MANUAL
+
+    @pytest.mark.django_db
+    def test_post__updates_existing_entry(self, admin_client, org):
+        from services.email.smtp.models import SuppressionEntry
+
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/add",
+            {"email": "bob@example.com"},
+        )
+        assert response.status_code == 302
+        assert SuppressionEntry.objects.filter(org=org).count() == 1
+
+    @pytest.mark.django_db
+    @pytest.mark.django_db
+    def test_post__invalid_email_returns_400(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/add",
+            {"email": "not-an-email"},
+        )
+        assert response.status_code == 400
+
+
+class TestSuppressionRemoveView:
+    @pytest.mark.django_db
+    def test_post__removes_entry(self, admin_client, org):
+        from services.email.smtp.models import SuppressionEntry
+
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/remove",
+            {"email": "bob@example.com"},
+        )
+        assert response.status_code == 302
+        assert not SuppressionEntry.objects.filter(
+            org=org, address_hash__email="bob@example.com"
+        ).exists()
+
+    @pytest.mark.django_db
+    def test_post__not_found_returns_404(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/remove",
+            {"email": "nobody@example.com"},
+        )
+        assert response.status_code == 404
+
+
+class TestSuppressionCheckView:
+    @pytest.mark.django_db
+    def test_post__suppressed_returns_warning(self, admin_client, org):
+        from services.email.smtp.models import SuppressionEntry
+
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/check",
+            {"email": "bob@example.com"},
+        )
+        assert response.status_code == 302
+
+    @pytest.mark.django_db
+    def test_post__not_suppressed_returns_success(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/check",
+            {"email": "nobody@example.com"},
+        )
+        assert response.status_code == 302
+
+    @pytest.mark.django_db
+    @pytest.mark.django_db
+    def test_post__invalid_email_returns_400(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/suppression/check",
+            {"email": "not-an-email"},
+        )
+        assert response.status_code == 400
