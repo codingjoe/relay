@@ -96,7 +96,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                 )
                 message.status = OutgoingMessage.Status.BOUNCED
                 message.save(update_fields=["status"])
-                SuppressionEntry.add(
+                SuppressionEntry.objects.add(
                     message.org, rcpt_to, reason=SuppressionEntry.Reason.BOUNCE
                 )
                 return

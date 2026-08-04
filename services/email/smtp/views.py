@@ -66,7 +66,7 @@ class TestEmailView(OrganizationScopedView, View):
             mail_from = f"postmaster@{domain.name}"
 
         recipient = request.user.email
-        if SuppressionEntry.is_suppressed(self.org, recipient):
+        if SuppressionEntry.objects.is_suppressed(self.org, recipient):
             messages.error(request, _("Recipient is on the suppression list."))
             return redirect("message:message-list", org_slug=org_slug)
 
@@ -170,7 +170,7 @@ class SuppressionCreateView(OrganizationScopedView, View):
         if not email:
             messages.error(request, _("Email address is required."))
             return redirect("smtp:suppression-list", org_slug=org_slug)
-        _entry, created = SuppressionEntry.add(
+        _entry, created = SuppressionEntry.objects.add(
             self.org, email, reason=SuppressionEntry.Reason.MANUAL
         )
         if created:

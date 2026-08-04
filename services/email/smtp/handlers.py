@@ -110,7 +110,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     ):
         return "550 Recipient not allowed for free sender domain"
 
-    if SuppressionEntry.is_suppressed(credential.org, rcpt_to):
+    if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
         return "550 Recipient suppressed"
 
     domain = (

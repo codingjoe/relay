@@ -148,6 +148,23 @@ class SmtpCredential(Credential):
     )
 
 
+class SuppressionQuerySet(models.QuerySet):
+    def add(self, org, email, reason=None):
+        """Add an email address to the suppression list if not already present."""
+        return self.get_or_create(
+            org=org,
+            address_hash=self.model.hash_address(email),
+            defaults={"reason": reason or self.model.Reason.MANUAL},
+        )
+
+    def is_suppressed(self, org, email) -> bool:
+        """Check whether an email address is on the org's suppression list."""
+        return self.filter(
+            org=org,
+            address_hash=self.model.hash_address(email),
+        ).exists()
+
+
 class SuppressionEntry(OrganizationOwned):
     """Store a salted hash of an email address that should not receive mail.
 
@@ -170,6 +187,8 @@ class SuppressionEntry(OrganizationOwned):
         help_text=_("How the entry was added."),
     )
 
+    objects = SuppressionQuerySet.as_manager()
+
     class Meta(TimeStamped.Meta):
         constraints = [
             models.UniqueConstraint(
@@ -190,21 +209,3 @@ class SuppressionEntry(OrganizationOwned):
     def hash_address(cls, email) -> str:
         """Return the salted SHA-256 hex digest of a lowercased email address."""
         return hashlib.sha256((cls.salt() + email.lower()).encode()).hexdigest()
-
-    @classmethod
-    def add(cls, org, email, reason=Reason.MANUAL):
-        """Add an email address to the suppression list if not already present."""
-        entry, created = cls.objects.get_or_create(
-            org=org,
-            address_hash=cls.hash_address(email),
-            defaults={"reason": reason},
-        )
-        return entry, created
-
-    @classmethod
-    def is_suppressed(cls, org, email) -> bool:
-        """Check whether an email address is on the org's suppression list."""
-        return cls.objects.filter(
-            org=org,
-            address_hash=cls.hash_address(email),
-        ).exists()
