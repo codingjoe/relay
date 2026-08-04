@@ -22,9 +22,11 @@ class TestDomainListView:
         assert response.status_code == 200
         domains = list(response.context["domains"])
         assert len(domains) == 2
-        names = {d.name for d in domains}
-        assert "acme.com" in names
-        assert f"{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}" in names
+        domain_names = {d.name for d in domains}
+        assert domain_names == {
+            "acme.com",
+            f"{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}",
+        }
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/domains/")
