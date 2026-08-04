@@ -4,7 +4,7 @@ from email.message import EmailMessage
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import BadRequest, ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.validators import validate_email
 from django.db import transaction
@@ -167,17 +167,19 @@ class SuppressionListView(OrganizationScopedView, TemplateView):
         }
 
 
-class SuppressionCreateView(OrganizationScopedView, View):
-    def post(self, request, org_slug, *args, **kwargs):
+class SuppressionViewMixin:
+    def get_email(self, request):
         email = request.POST.get("email", "").strip()
-        if not email:
-            messages.error(request, _("Email address is required."))
-            return redirect("smtp:suppression-list", org_slug=org_slug)
         try:
             validate_email(email)
         except ValidationError:
-            messages.error(request, _("Enter a valid email address."))
-            return redirect("smtp:suppression-list", org_slug=org_slug)
+            raise BadRequest(_("Enter a valid email address."))
+        return email
+
+
+class SuppressionCreateView(SuppressionViewMixin, OrganizationScopedView, View):
+    def post(self, request, org_slug, *args, **kwargs):
+        email = self.get_email(request)
         if SuppressionEntry.objects.create_or_update(
             self.org, email, reason=SuppressionEntry.Reason.MANUAL
         )[1]:
@@ -187,17 +189,9 @@ class SuppressionCreateView(OrganizationScopedView, View):
         return redirect("smtp:suppression-list", org_slug=org_slug)
 
 
-class SuppressionRemoveView(OrganizationScopedView, View):
+class SuppressionRemoveView(SuppressionViewMixin, OrganizationScopedView, View):
     def post(self, request, org_slug, *args, **kwargs):
-        email = request.POST.get("email", "").strip()
-        if not email:
-            messages.error(request, _("Email address is required."))
-            return redirect("smtp:suppression-list", org_slug=org_slug)
-        try:
-            validate_email(email)
-        except ValidationError:
-            messages.error(request, _("Enter a valid email address."))
-            return redirect("smtp:suppression-list", org_slug=org_slug)
+        email = self.get_email(request)
         if SuppressionEntry.objects.filter(
             org=self.org, address_hash__email=email
         ).delete()[0]:
@@ -207,17 +201,9 @@ class SuppressionRemoveView(OrganizationScopedView, View):
         return redirect("smtp:suppression-list", org_slug=org_slug)
 
 
-class SuppressionCheckView(OrganizationScopedView, View):
+class SuppressionCheckView(SuppressionViewMixin, OrganizationScopedView, View):
     def post(self, request, org_slug, *args, **kwargs):
-        email = request.POST.get("email", "").strip()
-        if not email:
-            messages.error(request, _("Email address is required."))
-            return redirect("smtp:suppression-list", org_slug=org_slug)
-        try:
-            validate_email(email)
-        except ValidationError:
-            messages.error(request, _("Enter a valid email address."))
-            return redirect("smtp:suppression-list", org_slug=org_slug)
+        email = self.get_email(request)
         if SuppressionEntry.objects.is_suppressed(self.org, email):
             messages.warning(request, _("Address is on the suppression list."))
         else:
