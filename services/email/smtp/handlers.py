@@ -99,7 +99,7 @@ def authenticate(username: str, key: str):
 def process_suppressed_message(
     mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl
 ):
-    """Store a suppressed message as dropped without enqueuing delivery."""
+    """Store a suppressed message without enqueuing delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
     from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
