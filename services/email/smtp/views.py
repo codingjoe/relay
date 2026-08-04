@@ -4,7 +4,7 @@ from email.message import EmailMessage
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -77,7 +77,7 @@ class TestEmailView(OrganizationScopedView, View):
         msg.set_content(request.POST.get("body", ""))
         raw_bytes = msg.as_bytes()
 
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             sender=request.user,
             org=self.org,
             rcpt_to=request.user.email,
@@ -85,10 +85,10 @@ class TestEmailView(OrganizationScopedView, View):
             subject=request.POST.get("subject", ""),
             message_id=msg.get("Message-ID", ""),
             domain=domain,
-            status=OutgoingMessage.Status.PENDING,
+            raw_body=SimpleUploadedFile(
+                f"{msg.get('Message-ID', 'message')}.eml", raw_bytes
+            ),
         )
-        message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
-        message.save()
 
         transaction.on_commit(
             lambda: deliver_message.enqueue(

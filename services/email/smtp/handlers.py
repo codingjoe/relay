@@ -6,7 +6,6 @@ from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
@@ -154,7 +153,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
     )
 
-    message = OutgoingMessage(
+    message = OutgoingMessage.objects.create(
         sender=sender,
         org=credential.org,
         rcpt_to=rcpt_to,
@@ -163,15 +162,9 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         message_id=message_id,
         domain=domain,
         credential=credential,
-        status=OutgoingMessage.Status.PENDING,
         received_with_tls=bool(ssl),
+        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
-    try:
-        message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
-        message.save()
-    except Exception as e:  # noqa: BLE001 — storage backend raises varied exceptions
-        logger.error(f"Failed to store message body: {e}")
-        return "451 Requested action aborted: local error"
 
     transaction.on_commit(
         lambda: deliver_message.enqueue(
