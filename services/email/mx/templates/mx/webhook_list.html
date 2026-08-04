@@ -138,27 +138,25 @@
               <pre class="bg-muted p-3 rounded-md overflow-auto text-sm mt-2"><code>{{ webhook.public_key_serialized }}</code></pre>
             </details>
           </section>
-          <aside>
-            <div role="group" class="button-group">
-              <form method="post" action="{% url 'mx:webhook-test' org.slug webhook.pk %}" style="display: inline">
-                {% csrf_token %}
-                <button type="submit" class="btn" data-variant="secondary" data-size="sm">
-                  {% translate "test"|capfirst context "verb" %}
-                </button>
-              </form>
-              <form method="post" action="{% url 'mx:webhook-delete' org.slug webhook.pk %}" style="display: inline">
-                {% csrf_token %}
-                <button
-                  type="submit"
-                  class="btn"
-                  data-variant="destructive"
-                  data-size="sm"
-                  onclick="return confirm('{% translate "delete this webhook?"|capfirst context "verb" %}')"
-                >
-                  {% translate "delete"|capfirst context "verb" %}
-                </button>
-              </form>
-            </div>
+          <aside class="flex items-center gap-2">
+            <form method="post" action="{% url 'mx:webhook-test' org.slug webhook.pk %}" style="display: inline">
+              {% csrf_token %}
+              <button type="submit" class="btn" data-variant="secondary" data-size="sm">
+                {% translate "test"|capfirst context "verb" %}
+              </button>
+            </form>
+            <form method="post" action="{% url 'mx:webhook-delete' org.slug webhook.pk %}" style="display: inline">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="btn"
+                data-variant="destructive"
+                data-size="sm"
+                onclick="return confirm('{% translate "delete this webhook?"|capfirst context "verb" %}')"
+              >
+                {% translate "delete"|capfirst context "verb" %}
+              </button>
+            </form>
           </aside>
         </article>
       {% endfor %}
