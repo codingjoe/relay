@@ -1,5 +1,3 @@
-"""Know-how article views — list and detail."""
-
 import pathlib
 
 import frontmatter

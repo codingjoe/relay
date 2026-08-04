@@ -1,5 +1,3 @@
-"""Cryptographic signing key storage."""
-
 import dkim
 from cryptography.hazmat.primitives import serialization
 from django.db import models

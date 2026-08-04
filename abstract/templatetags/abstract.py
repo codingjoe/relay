@@ -90,8 +90,8 @@ def timestamp(value):
 def pagination(context, page_obj=None):
     """Render a pagination nav for a Django Page object.
 
-    Falls back to ``context['page_obj']`` when ``page_obj`` is omitted,
-    so most templates can call ``{% pagination %}`` without an argument.
+    Falls back to `context['page_obj']` when `page_obj` is omitted,
+    so most templates can call `{% pagination %}` without an argument.
     """
     return {"page_obj": page_obj or context.get("page_obj")}
 

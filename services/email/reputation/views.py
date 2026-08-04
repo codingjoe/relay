@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DetailView, ListView
+from django.views import generic
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -10,8 +10,10 @@ from .evaluation import compute_domain_reputation
 from .models import FblReport
 
 
-class FblReportListView(OrganizationScopedView, ListView):
-    template_name = "reputation/fbl_report_list.html"
+class FblReportListView(OrganizationScopedView, generic.ListView):
+    def get_template_names(self):
+        return ["reputation/fbl_report_list.html"]
+
     context_object_name = "reports"
     paginate_by = 50
     title = _("FBL reports")
@@ -36,8 +38,10 @@ class FblReportListView(OrganizationScopedView, ListView):
         }
 
 
-class FblReportDetailView(OrganizationScopedView, DetailView):
-    template_name = "reputation/fbl_report_detail.html"
+class FblReportDetailView(OrganizationScopedView, generic.DetailView):
+    def get_template_names(self):
+        return ["reputation/fbl_report_detail.html"]
+
     context_object_name = "report"
     parent = "email-dashboard:report-list"
 
@@ -54,8 +58,10 @@ class FblReportDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class ReputationOverviewView(OrganizationScopedView, ListView):
-    template_name = "reputation/overview.html"
+class ReputationOverviewView(OrganizationScopedView, generic.ListView):
+    def get_template_names(self):
+        return ["reputation/overview.html"]
+
     context_object_name = "domains"
     title = _("Reputation")
     parent = "accounts:org-home"

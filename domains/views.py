@@ -1,18 +1,10 @@
-"""Domain management views."""
-
 from django.conf import settings
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    DetailView,
-    ListView,
-    View,
-)
+from django.views import generic
 
 from accounts.views import OrganizationScopedView
 
@@ -20,8 +12,7 @@ from .models import Domain
 from .services import verify_domain_dns
 
 
-class DomainListView(OrganizationScopedView, ListView):
-    template_name = "domains/domain_list.html"
+class DomainListView(OrganizationScopedView, generic.ListView):
     context_object_name = "domains"
     title = _("Domains")
     parent = "email-dashboard:dashboard"
@@ -30,9 +21,8 @@ class DomainListView(OrganizationScopedView, ListView):
         return Domain.objects.filter(org=self.org)
 
 
-class DomainCreateView(OrganizationScopedView, CreateView):
+class DomainCreateView(OrganizationScopedView, generic.CreateView):
     model = Domain
-    template_name = "domains/domain_form.html"
     fields = ["name"]
     title = _("New domain")
     parent = "domains:domain-list"
@@ -54,8 +44,7 @@ class DomainCreateView(OrganizationScopedView, CreateView):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
 
 
-class DomainDetailView(OrganizationScopedView, DetailView):
-    template_name = "domains/domain_detail.html"
+class DomainDetailView(OrganizationScopedView, generic.DetailView):
     context_object_name = "domain"
     parent = "domains:domain-list"
 
@@ -70,7 +59,7 @@ class DomainDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class DomainVerifyView(OrganizationScopedView, View):
+class DomainVerifyView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(Domain, org=self.org, pk=pk)
         verify_domain_dns(domain)
@@ -90,7 +79,7 @@ class DomainVerifyView(OrganizationScopedView, View):
         return redirect(domain.get_absolute_url())
 
 
-class DomainDeleteView(OrganizationScopedView, DeleteView):
+class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     model = Domain
     title = _("Delete")
     parent = "domains:domain-list"
@@ -109,10 +98,12 @@ class DomainDeleteView(OrganizationScopedView, DeleteView):
         return super().form_valid(form)
 
 
-class MtaStsPolicyView(DetailView):
+class MtaStsPolicyView(generic.DetailView):
     model = Domain
-    template_name = "domains/mta_sts.txt"
     content_type = "text/plain"
+
+    def get_template_names(self):
+        return ["domains/mta_sts.txt"]
 
     def get_object(self, queryset=None):
         host = self.request.META.get("HTTP_HOST", "").split(":")[0].lower()
