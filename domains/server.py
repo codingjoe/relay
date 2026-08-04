@@ -25,26 +25,26 @@ class DNSServer:
         try:
             request = DNSRecord.parse(data)
         except DNSError:
-            return
-
-        qname = request.q.qname
-        qtype = request.q.qtype
-        qtype_str = QTYPE[qtype]
-
-        reply = request.reply()
-        reply.header.rcode = RCODE.NOERROR
-
-        try:
-            records = self.resolver.resolve(qname, qtype_str)
-            for rr in records:
-                reply.add_answer(rr)
-        except DNSError, DatabaseError:
-            reply.header.rcode = RCODE.SERVFAIL
-
-        try:
-            sock.sendto(reply.pack(), addr)
-        except OSError:
             pass
+        else:
+            qname = request.q.qname
+            qtype = request.q.qtype
+            qtype_str = QTYPE[qtype]
+
+            reply = request.reply()
+            reply.header.rcode = RCODE.NOERROR
+
+            try:
+                records = self.resolver.resolve(qname, qtype_str)
+                for rr in records:
+                    reply.add_answer(rr)
+            except DNSError, DatabaseError:
+                reply.header.rcode = RCODE.SERVFAIL
+
+            try:
+                sock.sendto(reply.pack(), addr)
+            except OSError:
+                pass
 
     def run_udp(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -84,11 +84,10 @@ class DNSServer:
     def handle_tcp_request(self, conn):
         try:
             data = conn.recv(2)
-            if len(data) < 2:
-                return
-            length = int.from_bytes(data, "big")
-            data = conn.recv(length)
-            self.handle_tcp_query(data, conn)
+            if len(data) >= 2:
+                length = int.from_bytes(data, "big")
+                data = conn.recv(length)
+                self.handle_tcp_query(data, conn)
         except OSError:
             pass
         finally:
@@ -98,24 +97,24 @@ class DNSServer:
         try:
             request = DNSRecord.parse(data)
         except DNSError:
-            return
+            pass
+        else:
+            qname = request.q.qname
+            qtype = request.q.qtype
+            qtype_str = QTYPE[qtype]
 
-        qname = request.q.qname
-        qtype = request.q.qtype
-        qtype_str = QTYPE[qtype]
+            reply = request.reply()
+            reply.header.rcode = RCODE.NOERROR
 
-        reply = request.reply()
-        reply.header.rcode = RCODE.NOERROR
+            try:
+                records = self.resolver.resolve(qname, qtype_str)
+                for rr in records:
+                    reply.add_answer(rr)
+            except DNSError, DatabaseError:
+                reply.header.rcode = RCODE.SERVFAIL
 
-        try:
-            records = self.resolver.resolve(qname, qtype_str)
-            for rr in records:
-                reply.add_answer(rr)
-        except DNSError, DatabaseError:
-            reply.header.rcode = RCODE.SERVFAIL
-
-        packed = reply.pack()
-        conn.sendall(len(packed).to_bytes(2, "big") + packed)
+            packed = reply.pack()
+            conn.sendall(len(packed).to_bytes(2, "big") + packed)
 
     def start(self):
         self._running = True

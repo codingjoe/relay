@@ -1,14 +1,3 @@
-"""Account models — organizations, memberships, and abstract credentials.
-
-Organizations own resources (domains, credentials) — not individual users.
-Each user gets a personal organization on signup. Members share access to
-all org resources. The system hashes credentials and shows them only once at
-creation.
-
-Concrete credential models live in service apps (for example,
-smtp.SmtpCredential).
-"""
-
 import secrets
 import string
 

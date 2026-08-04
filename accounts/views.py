@@ -1,5 +1,3 @@
-"""Account views — authentication, organization and member management."""
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
@@ -9,13 +7,7 @@ from django.forms import CharField, ModelForm, SlugField, TextInput
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import NoReverseMatch, reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import (
-    DeleteView,
-    DetailView,
-    ListView,
-    TemplateView,
-    UpdateView,
-)
+from django.views import generic
 
 from abstract.views import BreadcrumbViewMixin
 
@@ -57,12 +49,11 @@ class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
         return super().get_context_data(**kwargs) | {"org": self.org}
 
 
-class LoginView(TemplateView):
+class LoginView(generic.TemplateView):
     template_name = "login.html"
 
 
-class OrganizationListView(LoginRequiredMixin, ListView):
-    template_name = "accounts/organization_list.html"
+class OrganizationListView(LoginRequiredMixin, generic.ListView):
     context_object_name = "organizations"
 
     def get_queryset(self):
@@ -109,8 +100,8 @@ class OrganizationForm(ModelForm):
         fields = ["slug"]
 
 
-class OrganizationHomeView(OrganizationScopedView, DetailView):
-    template_name = "accounts/organization_home.html"
+class OrganizationHomeView(OrganizationScopedView, generic.DetailView):
+    template_name_suffix = "_home"
     context_object_name = "organization"
     parent = ""
 
@@ -125,8 +116,7 @@ class OrganizationHomeView(OrganizationScopedView, DetailView):
         return self.org
 
 
-class OrganizationDetailView(OrganizationScopedView, DetailView):
-    template_name = "accounts/organization_detail.html"
+class OrganizationDetailView(OrganizationScopedView, generic.DetailView):
     context_object_name = "organization"
     title = _("Settings")
     parent = "accounts:org-home"
@@ -144,9 +134,8 @@ class OrganizationDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class OrganizationUpdateView(OrganizationScopedView, UpdateView):
+class OrganizationUpdateView(OrganizationScopedView, generic.UpdateView):
     model = Organization
-    template_name = "accounts/organization_form.html"
     form_class = OrganizationForm
     title = _("Edit")
     parent = "accounts:org-detail"
@@ -172,9 +161,8 @@ class OrganizationUpdateView(OrganizationScopedView, UpdateView):
         return self.org.get_absolute_url()
 
 
-class OrganizationDeleteView(OrganizationScopedView, DeleteView):
+class OrganizationDeleteView(OrganizationScopedView, generic.DeleteView):
     model = Organization
-    template_name = "accounts/organization_confirm_delete.html"
     success_url = reverse_lazy("accounts:org-list")
     title = _("Delete")
     parent = "accounts:org-detail"
@@ -205,8 +193,7 @@ class MembershipForm(ModelForm):
         fields = ["role"]
 
 
-class MembershipCreateView(OrganizationScopedView, DetailView):
-    template_name = "accounts/organization_detail.html"
+class MembershipCreateView(OrganizationScopedView, generic.DetailView):
     context_object_name = "organization"
     title = _("Settings")
     parent = "accounts:org-home"
@@ -253,9 +240,8 @@ class MembershipCreateView(OrganizationScopedView, DetailView):
         return redirect(self.org.get_absolute_url())
 
 
-class MembershipDeleteView(OrganizationScopedView, DeleteView):
+class MembershipDeleteView(OrganizationScopedView, generic.DeleteView):
     model = Membership
-    template_name = "accounts/membership_confirm_delete.html"
     parent = "accounts:org-detail"
 
     def dispatch(self, request, *args, **kwargs):
@@ -280,10 +266,9 @@ class MembershipDeleteView(OrganizationScopedView, DeleteView):
         return super().form_valid(form)
 
 
-class MembershipUpdateView(OrganizationScopedView, UpdateView):
+class MembershipUpdateView(OrganizationScopedView, generic.UpdateView):
     model = Membership
     form_class = MembershipForm
-    template_name = "accounts/membership_form.html"
     parent = "accounts:org-detail"
 
     def dispatch(self, request, *args, **kwargs):
