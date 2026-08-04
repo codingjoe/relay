@@ -9,9 +9,16 @@ from django.core.exceptions import BadRequest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, View
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    FormView,
+    ListView,
+    View,
+)
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -173,43 +180,65 @@ class SuppressionEntryForm(forms.Form):
     email = forms.EmailField(label=_("Email address"))
 
 
-class SuppressionCreateView(OrganizationScopedView, View):
-    def post(self, request, org_slug, *args, **kwargs):
-        form = SuppressionEntryForm(request.POST)
-        if not form.is_valid():
-            raise BadRequest
+class SuppressionCreateView(OrganizationScopedView, CreateView):
+    http_method_names = ["post"]
+    model = SuppressionEntry
+    form_class = SuppressionEntryForm
+    parent = "smtp:suppression-list"
+
+    def form_valid(self, form):
         if SuppressionEntry.objects.create_or_update(
             org=self.org,
             email=form.cleaned_data["email"],
             reason=SuppressionEntry.Reason.MANUAL,
         )[1]:
-            messages.success(request, _("Added address to suppression list."))
+            messages.success(self.request, _("Added address to suppression list."))
         else:
-            messages.info(request, _("Address is already on the suppression list."))
-        return redirect("smtp:suppression-list", org_slug=org_slug)
+            messages.info(
+                self.request, _("Address is already on the suppression list.")
+            )
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
 
 
-class SuppressionRemoveView(OrganizationScopedView, View):
-    def post(self, request, org_slug, *args, **kwargs):
-        form = SuppressionEntryForm(request.POST)
+class SuppressionRemoveView(OrganizationScopedView, DeleteView):
+    http_method_names = ["post"]
+    model = SuppressionEntry
+    parent = "smtp:suppression-list"
+
+    def get_queryset(self):
+        return self.model.objects.filter(org=self.org)
+
+    def get_object(self, queryset=None):
+        form = SuppressionEntryForm(self.request.POST)
         if not form.is_valid():
             raise BadRequest
-        if SuppressionEntry.objects.filter(
-            org=self.org, address_hash__email=form.cleaned_data["email"]
-        ).delete()[0]:
-            messages.success(request, _("Removed address from suppression list."))
-        else:
-            messages.info(request, _("Address was not on the suppression list."))
-        return redirect("smtp:suppression-list", org_slug=org_slug)
+        qs = (queryset or self.get_queryset()).filter(
+            address_hash__email=form.cleaned_data["email"]
+        )
+        return get_object_or_404(qs)
+
+    def form_valid(self, form):
+        messages.success(self.request, _("Removed address from suppression list."))
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
 
 
-class SuppressionCheckView(OrganizationScopedView, View):
-    def post(self, request, org_slug, *args, **kwargs):
-        form = SuppressionEntryForm(request.POST)
-        if not form.is_valid():
-            raise BadRequest
+class SuppressionCheckView(OrganizationScopedView, FormView):
+    http_method_names = ["post"]
+    form_class = SuppressionEntryForm
+    parent = "smtp:suppression-list"
+
+    def form_valid(self, form):
         if SuppressionEntry.objects.is_suppressed(self.org, form.cleaned_data["email"]):
-            messages.warning(request, _("Address is on the suppression list."))
+            messages.warning(self.request, _("Address is on the suppression list."))
         else:
-            messages.success(request, _("Address is not on the suppression list."))
-        return redirect("smtp:suppression-list", org_slug=org_slug)
+            messages.success(self.request, _("Address is not on the suppression list."))
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
