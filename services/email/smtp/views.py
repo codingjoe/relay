@@ -6,7 +6,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import BadRequest, ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.validators import validate_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -173,7 +172,7 @@ class SuppressionViewMixin:
     def get_email(self, request):
         email = request.POST.get("email", "").strip()
         try:
-            validate_email(email)
+            SuppressionEntry.hash_address(email)
         except ValidationError:
             raise BadRequest(_("Enter a valid email address."))
         return email

@@ -4,6 +4,7 @@ from datetime import timedelta
 from enum import nonmember
 
 from django.conf import settings
+from django.core.validators import validate_email
 from django.db import models
 from django.db.models import Lookup
 from django.urls import reverse
@@ -247,4 +248,5 @@ class SuppressionEntry(OrganizationOwned):
     @classmethod
     def hash_address(cls, email) -> str:
         """Return the salted SHA-256 hex digest of a lowercased email address."""
+        validate_email(email)
         return hashlib.sha256((cls.salt() + email.lower()).encode()).hexdigest()
