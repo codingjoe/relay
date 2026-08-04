@@ -2,7 +2,6 @@
 
 from email.message import EmailMessage
 
-from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -23,6 +22,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
 from .charts import build_suppression_chart
+from .forms import SuppressionEntryForm
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry, Transmission
 from .tasks import deliver_message
 
@@ -173,10 +173,6 @@ class SuppressionListView(OrganizationScopedView, ListView):
         return super().get_context_data(**kwargs) | {
             "suppression_chart": build_suppression_chart(self.org),
         }
-
-
-class SuppressionEntryForm(forms.Form):
-    email = forms.EmailField(label=_("Email address"))
 
 
 class SuppressionCreateView(OrganizationScopedView, CreateView):
