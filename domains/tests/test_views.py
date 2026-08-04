@@ -133,7 +133,7 @@ class TestDomainDeleteView:
         response = admin_client.post(
             f"/org/{org.slug}/email/domains/{domain.pk}/delete"
         )
-        assert response.status_code == 302
+        assert response.status_code == 404
         assert Domain.objects.filter(pk=domain.pk).exists()
 
 

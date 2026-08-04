@@ -68,7 +68,12 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
 
 class DomainVerifyView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, pk, *args, **kwargs):
-        domain = get_object_or_404(Domain, org=self.org, pk=pk)
+        domain = get_object_or_404(
+            Domain.objects.filter(org=self.org).exclude(
+                name__endswith=f".{settings.RELAY_FREE_SENDER_DOMAIN}"
+            ),
+            pk=pk,
+        )
         verify_domain_dns(domain)
         if all_ok := all(  # noqa: F841
             getattr(domain, f"{field}_status") == Domain.Status.OK
@@ -92,18 +97,14 @@ class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org)
+        return Domain.objects.filter(org=self.org).exclude(
+            name__endswith=f".{settings.RELAY_FREE_SENDER_DOMAIN}"
+        )
 
     def get_success_url(self):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
 
     def form_valid(self, form):
-        if self.object.is_managed:
-            messages.error(
-                self.request,
-                _("Cannot delete a relay-managed domain."),
-            )
-            return redirect(self.object.get_absolute_url())
         messages.success(
             self.request,
             _("Deleted domain “%(name)s”.") % {"name": self.object.name},

@@ -3,19 +3,24 @@
 {% block title %}{{ domain.name }} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{{ domain.name }}</h2>
+    <div class="flex items-center gap-2">
+      <h2 class="m-0">{{ domain.name }}</h2>
+      {% if domain.is_managed %}
+        <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
+      {% endif %}
+    </div>
     <form method="post">
       {% csrf_token %}
       <div role="group" class="button-group">
-        <button
-          type="submit"
-          class="btn"
-          data-variant="primary"
-          formaction="{% url 'domains:domain-verify' org.slug domain.pk %}"
-        >
-          {% translate "verify DNS"|title %}
-        </button>
         {% if not domain.is_managed %}
+          <button
+            type="submit"
+            class="btn"
+            data-variant="primary"
+            formaction="{% url 'domains:domain-verify' org.slug domain.pk %}"
+          >
+            {% translate "verify DNS"|title %}
+          </button>
           <button
             type="submit"
             class="btn"
