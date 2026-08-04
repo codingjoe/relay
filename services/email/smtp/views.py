@@ -9,14 +9,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    DetailView,
-    FormView,
-    ListView,
-    View,
-)
+from django.views import generic
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -27,7 +20,7 @@ from .models import OutgoingMessage, SmtpCredential, SuppressionEntry, Transmiss
 from .tasks import deliver_message
 
 
-class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
+class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
     template_name = "smtp/message_detail.html"
     context_object_name = "message"
     parent = "message:message-list"
@@ -63,7 +56,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class TestEmailView(OrganizationScopedView, View):
+class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         free_domain = settings.RELAY_FREE_SENDER_DOMAIN
         domain_pk = request.POST["domain"]
@@ -110,7 +103,7 @@ class TestEmailView(OrganizationScopedView, View):
         return redirect("message:message-list", org_slug=org_slug)
 
 
-class SmtpCredentialListView(OrganizationScopedView, ListView):
+class SmtpCredentialListView(OrganizationScopedView, generic.ListView):
     template_name = "smtp/credential_list.html"
     context_object_name = "credentials"
     title = _("SMTP credentials")
@@ -130,7 +123,7 @@ class SmtpCredentialListView(OrganizationScopedView, ListView):
         return context
 
 
-class SmtpCredentialCreateView(OrganizationScopedView, View):
+class SmtpCredentialCreateView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         credential, raw_key = SmtpCredential.objects.create_with_key(
             org=self.org,
@@ -145,7 +138,7 @@ class SmtpCredentialCreateView(OrganizationScopedView, View):
         return redirect("smtp:credential-list", org_slug=org_slug)
 
 
-class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
+class SmtpCredentialDeleteView(OrganizationScopedView, generic.DeleteView):
     model = SmtpCredential
     title = _("Delete")
     parent = "smtp:credential-list"
@@ -161,7 +154,7 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
         return super().form_valid(form)
 
 
-class SuppressionListView(OrganizationScopedView, ListView):
+class SuppressionListView(OrganizationScopedView, generic.ListView):
     model = SuppressionEntry
     title = _("Suppression list")
     parent = "accounts:org-home"
@@ -175,7 +168,7 @@ class SuppressionListView(OrganizationScopedView, ListView):
         }
 
 
-class SuppressionCreateView(OrganizationScopedView, CreateView):
+class SuppressionCreateView(OrganizationScopedView, generic.CreateView):
     http_method_names = ["post"]
     model = SuppressionEntry
     form_class = SuppressionEntryForm
@@ -198,7 +191,7 @@ class SuppressionCreateView(OrganizationScopedView, CreateView):
         return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
 
 
-class SuppressionRemoveView(OrganizationScopedView, DeleteView):
+class SuppressionRemoveView(OrganizationScopedView, generic.DeleteView):
     http_method_names = ["post"]
     model = SuppressionEntry
     parent = "smtp:suppression-list"
@@ -220,7 +213,7 @@ class SuppressionRemoveView(OrganizationScopedView, DeleteView):
         return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
 
 
-class SuppressionCheckView(OrganizationScopedView, FormView):
+class SuppressionCheckView(OrganizationScopedView, generic.FormView):
     http_method_names = ["post"]
     form_class = SuppressionEntryForm
     parent = "smtp:suppression-list"
