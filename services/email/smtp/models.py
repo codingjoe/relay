@@ -25,6 +25,7 @@ class OutgoingMessage(Message):
         HELD = "held", _("held")
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
+        SUPPRESSED = "suppressed", _("suppressed")
         FAILED = "failed", _("failed")
         DEFAULT = nonmember("pending")
 
@@ -49,7 +50,12 @@ class OutgoingMessage(Message):
         match self.status:
             case self.Status.SENT | self.Status.DELIVERED:
                 return "primary"
-            case self.Status.BOUNCED | self.Status.DROPPED | self.Status.FAILED:
+            case (
+                self.Status.BOUNCED
+                | self.Status.DROPPED
+                | self.Status.FAILED
+                | self.Status.SUPPRESSED
+            ):
                 return "destructive"
             case _:
                 return "outline"

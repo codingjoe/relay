@@ -115,11 +115,10 @@ def process_suppressed_message(
         message_id=message_id,
         domain=domain,
         credential=credential,
+        status=OutgoingMessage.Status.SUPPRESSED,
         received_with_tls=bool(ssl),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
-    message.status = OutgoingMessage.Status.DROPPED
-    message.save(update_fields=["status"])
     Transmission.objects.create(
         message=message,
         status=Transmission.Status.FAILED,
