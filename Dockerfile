@@ -5,7 +5,7 @@ RUN npm ci
 COPY ./ /app
 RUN npm run build
 
-FROM ghcr.io/astral-sh/uv:0.12.0-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.12.1-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
 LABEL url="https://github.com/codingjoe/the-box"
