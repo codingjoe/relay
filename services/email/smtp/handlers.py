@@ -11,7 +11,7 @@ from django.db import DatabaseError, transaction
 
 from domains.models import Domain
 
-from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
+from .models import OutgoingMessage, SmtpCredential, SuppressionEntry, Transmission
 from .tasks import deliver_message
 
 logger = logging.getLogger(__name__)
@@ -96,6 +96,44 @@ def authenticate(username: str, key: str):
 
 
 @sync_to_async
+def process_suppressed_message(
+    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl
+):
+    """Store a suppressed message as dropped without enqueuing delivery."""
+    subject = msg.get("Subject", "")
+    message_id = msg.get("Message-ID", "")
+    from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
+    domain = (
+        Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
+    )
+    message = OutgoingMessage(
+        sender=sender,
+        org=credential.org,
+        rcpt_to=rcpt_to,
+        mail_from=mail_from,
+        subject=subject,
+        message_id=message_id,
+        domain=domain,
+        credential=credential,
+        status=OutgoingMessage.Status.DROPPED,
+        received_with_tls=bool(ssl),
+    )
+    try:
+        message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
+        message.save()
+    except Exception as e:  # noqa: BLE001 — storage backend raises varied exceptions
+        logger.error(f"Failed to store suppressed message body: {e}")
+        return "451 Requested action aborted: local error"
+    Transmission.objects.create(
+        message=message,
+        status=Transmission.Status.FAILED,
+        details="Recipient is on the suppression list.",
+    )
+    logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
+    return "250 OK"
+
+
+@sync_to_async
 def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl):
     """Store a submitted outgoing message and enqueue its delivery."""
     subject = msg.get("Subject", "")
@@ -113,7 +151,9 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     if SuppressionEntry.objects.filter(
         org=credential.org, address_hash__email=rcpt_to
     ).exists():
-        return "550 Recipient suppressed"
+        return process_suppressed_message(
+            mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl
+        )
 
     domain = (
         Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None

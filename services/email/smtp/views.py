@@ -67,7 +67,9 @@ class TestEmailView(OrganizationScopedView, View):
             mail_from = f"postmaster@{domain.name}"
 
         recipient = request.user.email
-        if SuppressionEntry.objects.is_suppressed(self.org, recipient):
+        if SuppressionEntry.objects.filter(
+            org=self.org, address_hash__email=recipient
+        ).exists():
             messages.error(request, _("Recipient is on the suppression list."))
             return redirect("message:message-list", org_slug=org_slug)
 
