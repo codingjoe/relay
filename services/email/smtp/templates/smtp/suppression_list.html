@@ -35,25 +35,29 @@
           {% translate "enter an email address to remove from the list." %}
         </p>
       </header>
-      <form method="post" action="{% url 'smtp:suppression-remove' org.slug %}">
-        {% csrf_token %}
-        <fieldset class="fieldset">
-          <div role="group" class="field">
-            <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
-            <input
-              type="email"
-              name="email"
-              id="id_remove_email"
-              placeholder="user@example.com"
-              class="input w-full"
-              required
-            >
-          </div>
-        </fieldset>
-        <button type="submit" class="btn" data-variant="destructive">
+      <section>
+        <form method="post" action="{% url 'smtp:suppression-remove' org.slug %}" id="form-remove">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
+              <input
+                type="email"
+                name="email"
+                id="id_remove_email"
+                placeholder="user@example.com"
+                class="input w-full"
+                required
+              >
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button type="submit" form="form-remove" class="btn" data-variant="destructive">
           {% translate "remove"|capfirst context "verb" %}
         </button>
-      </form>
+      </footer>
     </article>
 
     <article class="card">
@@ -63,25 +67,29 @@
           {% translate "enter an email address to check if it is on the list." %}
         </p>
       </header>
-      <form method="post" action="{% url 'smtp:suppression-check' org.slug %}">
-        {% csrf_token %}
-        <fieldset class="fieldset">
-          <div role="group" class="field">
-            <label for="id_check_email">{% translate "email address"|capfirst %}</label>
-            <input
-              type="email"
-              name="email"
-              id="id_check_email"
-              placeholder="user@example.com"
-              class="input w-full"
-              required
-            >
-          </div>
-        </fieldset>
-        <button type="submit" class="btn" data-variant="secondary">
+      <section>
+        <form method="post" action="{% url 'smtp:suppression-check' org.slug %}" id="form-check">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_check_email">{% translate "email address"|capfirst %}</label>
+              <input
+                type="email"
+                name="email"
+                id="id_check_email"
+                placeholder="user@example.com"
+                class="input w-full"
+                required
+              >
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button type="submit" form="form-check" class="btn" data-variant="secondary">
           {% translate "check"|capfirst context "verb" %}
         </button>
-      </form>
+      </footer>
     </article>
   </section>
 
