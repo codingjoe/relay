@@ -8,7 +8,7 @@ from django.tasks import task
 
 from services.email.mx.mta_sts import MtaStsPolicy
 
-from .models import OutgoingMessage, Transmission
+from .models import OutgoingMessage, SuppressionEntry, Transmission
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,11 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                 )
                 message.status = OutgoingMessage.Status.BOUNCED
                 message.save(update_fields=["status"])
+                SuppressionEntry.objects.create_or_update(
+                    org=message.org,
+                    email=rcpt_to,
+                    reason=SuppressionEntry.Reason.BOUNCE,
+                )
                 return
             except aiosmtplib.SMTPException, OSError:
                 pass

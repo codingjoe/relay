@@ -38,4 +38,31 @@ urlpatterns = [
             ]
         ),
     ),
+    path(
+        "suppression/",
+        include(
+            [
+                path(
+                    "",
+                    views.SuppressionListView.as_view(),
+                    name="suppression-list",
+                ),
+                path(
+                    "add",
+                    views.SuppressionCreateView.as_view(),
+                    name="suppression-add",
+                ),
+                path(
+                    "remove",
+                    views.SuppressionRemoveView.as_view(),
+                    name="suppression-remove",
+                ),
+                path(
+                    "check",
+                    views.SuppressionCheckView.as_view(),
+                    name="suppression-check",
+                ),
+            ]
+        ),
+    ),
 ]
