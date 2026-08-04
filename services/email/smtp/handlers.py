@@ -11,7 +11,7 @@ from django.db import DatabaseError, transaction
 
 from domains.models import Domain
 
-from .models import OutgoingMessage, SmtpCredential, SuppressionEntry, Transmission
+from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
 from .tasks import deliver_message
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ def process_suppressed_message(
     domain = (
         Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
     )
-    message = OutgoingMessage.objects.create(
+    OutgoingMessage.objects.create(
         sender=sender,
         org=credential.org,
         rcpt_to=rcpt_to,
@@ -118,11 +118,6 @@ def process_suppressed_message(
         status=OutgoingMessage.Status.SUPPRESSED,
         received_with_tls=bool(ssl),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-    )
-    Transmission.objects.create(
-        message=message,
-        status=Transmission.Status.FAILED,
-        details="Recipient is on the suppression list.",
     )
     logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
     return "250 OK"
