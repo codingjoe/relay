@@ -9,11 +9,12 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, View
+from django.views.generic import DeleteView, DetailView, ListView, TemplateView, View
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
+from .charts import build_suppression_chart
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry, Transmission
 from .tasks import deliver_message
 
@@ -153,15 +154,16 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
         return super().form_valid(form)
 
 
-class SuppressionListView(OrganizationScopedView, ListView):
+class SuppressionListView(OrganizationScopedView, TemplateView):
     template_name = "smtp/suppression_list.html"
-    context_object_name = "suppressions"
-    paginate_by = 50
     title = _("Suppression list")
     parent = "accounts:org-home"
 
-    def get_queryset(self):
-        return SuppressionEntry.objects.filter(org=self.org)
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "suppression_chart": build_suppression_chart(self.org),
+            "total_suppressed": SuppressionEntry.objects.filter(org=self.org).count(),
+        }
 
 
 class SuppressionCreateView(OrganizationScopedView, View):
@@ -180,17 +182,27 @@ class SuppressionCreateView(OrganizationScopedView, View):
         return redirect("smtp:suppression-list", org_slug=org_slug)
 
 
-class SuppressionDeleteView(OrganizationScopedView, DeleteView):
-    model = SuppressionEntry
-    title = _("Remove")
-    parent = "smtp:suppression-list"
+class SuppressionRemoveView(OrganizationScopedView, View):
+    def post(self, request, org_slug, *args, **kwargs):
+        email = request.POST.get("email", "").strip()
+        if not email:
+            messages.error(request, _("Email address is required."))
+            return redirect("smtp:suppression-list", org_slug=org_slug)
+        if SuppressionEntry.objects.remove(self.org, email):
+            messages.success(request, _("Removed address from suppression list."))
+        else:
+            messages.info(request, _("Address was not on the suppression list."))
+        return redirect("smtp:suppression-list", org_slug=org_slug)
 
-    def get_queryset(self):
-        return SuppressionEntry.objects.filter(org=self.org)
 
-    def get_success_url(self):
-        return reverse_lazy("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
-
-    def form_valid(self, form):
-        messages.success(self.request, _("Removed address from suppression list."))
-        return super().form_valid(form)
+class SuppressionCheckView(OrganizationScopedView, View):
+    def post(self, request, org_slug, *args, **kwargs):
+        email = request.POST.get("email", "").strip()
+        if not email:
+            messages.error(request, _("Email address is required."))
+            return redirect("smtp:suppression-list", org_slug=org_slug)
+        if SuppressionEntry.objects.is_suppressed(self.org, email):
+            messages.warning(request, _("Address is on the suppression list."))
+        else:
+            messages.success(request, _("Address is not on the suppression list."))
+        return redirect("smtp:suppression-list", org_slug=org_slug)

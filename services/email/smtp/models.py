@@ -164,6 +164,17 @@ class SuppressionQuerySet(models.QuerySet):
             address_hash=self.model.hash_address(email),
         ).exists()
 
+    def remove(self, org, email) -> bool:
+        """Remove an email address from the suppression list. Return whether
+        an entry was deleted."""
+        return (
+            self.filter(
+                org=org,
+                address_hash=self.model.hash_address(email),
+            ).delete()[0]
+            > 0
+        )
+
 
 class SuppressionEntry(OrganizationOwned):
     """Store a salted hash of an email address that should not receive mail.

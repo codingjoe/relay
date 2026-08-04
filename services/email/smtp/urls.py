@@ -48,14 +48,19 @@ urlpatterns = [
                     name="suppression-list",
                 ),
                 path(
-                    "new",
+                    "add",
                     views.SuppressionCreateView.as_view(),
-                    name="suppression-create",
+                    name="suppression-add",
                 ),
                 path(
-                    "<int:pk>/delete",
-                    views.SuppressionDeleteView.as_view(),
-                    name="suppression-delete",
+                    "remove",
+                    views.SuppressionRemoveView.as_view(),
+                    name="suppression-remove",
+                ),
+                path(
+                    "check",
+                    views.SuppressionCheckView.as_view(),
+                    name="suppression-check",
                 ),
             ]
         ),

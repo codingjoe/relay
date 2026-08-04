@@ -8,7 +8,7 @@
       type="button"
       class="btn"
       data-variant="secondary"
-      onclick="document.getElementById('dlg-suppression').showModal()"
+      onclick="document.getElementById('dlg-add').showModal()"
     >
       {% translate "add address"|title %}
     </button>
@@ -19,22 +19,88 @@
       hash is stored — the plain address is never kept.{% endblocktranslate %}
   </p>
 
-  <dialog class="dialog" id="dlg-suppression">
+  {% if total_suppressed %}
+    {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="" %}
+  {% else %}
+    <p class="text-muted-foreground">
+      {% blocktranslate %}no suppressed addresses yet.{% endblocktranslate %}
+    </p>
+  {% endif %}
+
+  <section class="grid gap-4 md:grid-cols-2 mt-6">
+    <article class="card">
+      <header>
+        <h3 class="m-0">{% translate "remove address"|title %}</h3>
+        <p class="m-0 text-muted-foreground">
+          {% translate "enter an email address to remove from the list." %}
+        </p>
+      </header>
+      <form method="post" action="{% url 'smtp:suppression-remove' org.slug %}">
+        {% csrf_token %}
+        <fieldset class="fieldset">
+          <div role="group" class="field">
+            <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
+            <input
+              type="email"
+              name="email"
+              id="id_remove_email"
+              placeholder="user@example.com"
+              class="input w-full"
+              required
+            >
+          </div>
+        </fieldset>
+        <button type="submit" class="btn" data-variant="destructive">
+          {% translate "remove"|capfirst context "verb" %}
+        </button>
+      </form>
+    </article>
+
+    <article class="card">
+      <header>
+        <h3 class="m-0">{% translate "check address"|title %}</h3>
+        <p class="m-0 text-muted-foreground">
+          {% translate "enter an email address to check if it is on the list." %}
+        </p>
+      </header>
+      <form method="post" action="{% url 'smtp:suppression-check' org.slug %}">
+        {% csrf_token %}
+        <fieldset class="fieldset">
+          <div role="group" class="field">
+            <label for="id_check_email">{% translate "email address"|capfirst %}</label>
+            <input
+              type="email"
+              name="email"
+              id="id_check_email"
+              placeholder="user@example.com"
+              class="input w-full"
+              required
+            >
+          </div>
+        </fieldset>
+        <button type="submit" class="btn" data-variant="secondary">
+          {% translate "check"|capfirst context "verb" %}
+        </button>
+      </form>
+    </article>
+  </section>
+
+  <dialog class="dialog" id="dlg-add">
     <div>
       <header>
         <h2>{% translate "add address"|title %}</h2>
         <p>{% translate "add an email address to the suppression list."|capfirst %}</p>
       </header>
       <section>
-        <form method="post" action="{% url 'smtp:suppression-create' org.slug %}" id="dlg-suppression-form">
+        <form method="post" action="{% url 'smtp:suppression-add' org.slug %}" id="dlg-add-form">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
-              <label for="id_suppression_email">{% translate "email address"|capfirst %}</label>
+              <label for="id_add_email">{% translate "email address"|capfirst %}</label>
               <input
                 type="email"
                 name="email"
-                id="id_suppression_email"
+                id="id_add_email"
                 placeholder="user@example.com"
                 class="input w-full"
                 required
@@ -48,66 +114,14 @@
           type="button"
           class="btn"
           data-variant="secondary"
-          onclick="document.getElementById('dlg-suppression').close()"
+          onclick="document.getElementById('dlg-add').close()"
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>
-        <button type="submit" form="dlg-suppression-form" class="btn">
+        <button type="submit" form="dlg-add-form" class="btn">
           {% translate "add"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
   </dialog>
-
-  {% if suppressions %}
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>{% translate "hash"|capfirst %}</th>
-            <th>{% translate "reason"|capfirst %}</th>
-            <th>{% translate "added"|capfirst %}</th>
-            <th aria-hidden="true"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for s in suppressions %}
-            <tr>
-              <td><code>{{ s.address_hash|truncatechars:16 }}</code></td>
-              <td>
-                <span
-                  class="badge"
-                  data-size="sm"
-                  data-variant="{% if s.reason == 'bounce' %}destructive{% else %}outline{% endif %}"
-                >
-                  {{ s.get_reason_display }}
-                </span>
-              </td>
-              <td>{{ s.created_at|naturaltime }}</td>
-              <td>
-                <form method="post" action="{% url 'smtp:suppression-delete' org.slug s.pk %}">
-                  {% csrf_token %}
-                  <button
-                    type="submit"
-                    class="btn"
-                    data-variant="destructive"
-                    data-size="sm"
-                    onclick="return confirm('{% translate "remove this entry?"|capfirst context "verb" %}')"
-                  >
-                    {% translate "remove"|capfirst context "verb" %}
-                  </button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    {% pagination %}
-  {% else %}
-    <p class="text-muted-foreground">
-      {% blocktranslate %}no suppressed addresses yet.{% endblocktranslate %}
-    </p>
-  {% endif %}
 {% endblock %}
