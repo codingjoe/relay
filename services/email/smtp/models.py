@@ -173,12 +173,14 @@ HashedEmailField.register_lookup(EmailLookup)
 
 
 class SuppressionQuerySet(models.QuerySet):
-    def create_or_update(self, org, email, reason):
-        return self.update_or_create(
-            org=org,
-            address_hash=self.model.hash_address(email),
-            defaults={"reason": reason},
-        )
+    def create_or_update(self, defaults=None, **kwargs):
+        try:
+            email = kwargs.pop("email")
+        except KeyError:
+            pass
+        else:
+            kwargs["address_hash"] = self.model.hash_address(email)
+        return self.update_or_create(defaults=defaults, **kwargs)
 
     def is_suppressed(self, org, email) -> bool:
         """Check whether an email is suppressed for the given org.
