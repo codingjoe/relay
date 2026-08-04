@@ -4,21 +4,24 @@ from email.message import EmailMessage
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.files.base import ContentFile
+from django.core.exceptions import BadRequest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, View
+from django.views import generic
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .models import OutgoingMessage, SmtpCredential, Transmission
+from .charts import build_suppression_chart
+from .forms import SuppressionEntryForm
+from .models import OutgoingMessage, SmtpCredential, SuppressionEntry, Transmission
 from .tasks import deliver_message
 
 
-class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
+class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
     template_name = "smtp/message_detail.html"
     context_object_name = "message"
     parent = "message:message-list"
@@ -54,7 +57,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class TestEmailView(OrganizationScopedView, View):
+class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         free_domain = settings.RELAY_FREE_SENDER_DOMAIN
         domain_pk = request.POST["domain"]
@@ -65,6 +68,10 @@ class TestEmailView(OrganizationScopedView, View):
             domain = Domain.objects.get(pk=domain_pk, org=self.org)
             mail_from = f"postmaster@{domain.name}"
 
+        if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
+            messages.error(request, _("Recipient is on the suppression list."))
+            return redirect("message:message-list", org_slug=org_slug)
+
         msg = EmailMessage()
         msg["From"] = mail_from
         msg["To"] = request.user.email
@@ -72,7 +79,7 @@ class TestEmailView(OrganizationScopedView, View):
         msg.set_content(request.POST.get("body", ""))
         raw_bytes = msg.as_bytes()
 
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             sender=request.user,
             org=self.org,
             rcpt_to=request.user.email,
@@ -80,10 +87,10 @@ class TestEmailView(OrganizationScopedView, View):
             subject=request.POST.get("subject", ""),
             message_id=msg.get("Message-ID", ""),
             domain=domain,
-            status=OutgoingMessage.Status.PENDING,
+            raw_body=SimpleUploadedFile(
+                f"{msg.get('Message-ID', 'message')}.eml", raw_bytes
+            ),
         )
-        message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
-        message.save()
 
         transaction.on_commit(
             lambda: deliver_message.enqueue(
@@ -97,7 +104,7 @@ class TestEmailView(OrganizationScopedView, View):
         return redirect("message:message-list", org_slug=org_slug)
 
 
-class SmtpCredentialListView(OrganizationScopedView, ListView):
+class SmtpCredentialListView(OrganizationScopedView, generic.ListView):
     template_name = "smtp/credential_list.html"
     context_object_name = "credentials"
     title = _("SMTP credentials")
@@ -117,7 +124,7 @@ class SmtpCredentialListView(OrganizationScopedView, ListView):
         return context
 
 
-class SmtpCredentialCreateView(OrganizationScopedView, View):
+class SmtpCredentialCreateView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         credential, raw_key = SmtpCredential.objects.create_with_key(
             org=self.org,
@@ -132,7 +139,7 @@ class SmtpCredentialCreateView(OrganizationScopedView, View):
         return redirect("smtp:credential-list", org_slug=org_slug)
 
 
-class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
+class SmtpCredentialDeleteView(OrganizationScopedView, generic.DeleteView):
     model = SmtpCredential
     title = _("Delete")
     parent = "smtp:credential-list"
@@ -146,3 +153,83 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
     def form_valid(self, form):
         messages.success(self.request, _("Deleted SMTP credential."))
         return super().form_valid(form)
+
+
+class SuppressionListView(OrganizationScopedView, generic.ListView):
+    model = SuppressionEntry
+    title = _("Suppression list")
+    parent = "accounts:org-home"
+
+    def get_queryset(self):
+        return self.model.objects.filter(org=self.org)
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "suppression_chart": build_suppression_chart(self.org),
+        }
+
+
+class SuppressionCreateView(OrganizationScopedView, generic.FormView):
+    http_method_names = ["post"]
+    form_class = SuppressionEntryForm
+    parent = "smtp:suppression-list"
+
+    def form_invalid(self, form):
+        raise BadRequest
+
+    def form_valid(self, form):
+        if SuppressionEntry.objects.create_or_update(
+            org=self.org,
+            email=form.cleaned_data["email"],
+            reason=SuppressionEntry.Reason.MANUAL,
+        )[1]:
+            messages.success(self.request, _("Added address to suppression list."))
+        else:
+            messages.info(
+                self.request, _("Address is already on the suppression list.")
+            )
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
+
+
+class SuppressionRemoveView(OrganizationScopedView, generic.DeleteView):
+    http_method_names = ["post"]
+    model = SuppressionEntry
+    parent = "smtp:suppression-list"
+
+    def get_queryset(self):
+        return self.model.objects.filter(org=self.org)
+
+    def get_object(self, queryset=None):
+        qs = (queryset or self.get_queryset()).filter(
+            address_hash__email=self.request.POST.get("email", "")
+        )
+        return get_object_or_404(qs)
+
+    def form_valid(self, form):
+        messages.success(self.request, _("Removed address from suppression list."))
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})
+
+
+class SuppressionCheckView(OrganizationScopedView, generic.FormView):
+    http_method_names = ["post"]
+    form_class = SuppressionEntryForm
+    parent = "smtp:suppression-list"
+
+    def form_invalid(self, form):
+        raise BadRequest
+
+    def form_valid(self, form):
+        if SuppressionEntry.objects.is_suppressed(self.org, form.cleaned_data["email"]):
+            messages.warning(self.request, _("Address is on the suppression list."))
+        else:
+            messages.success(self.request, _("Address is not on the suppression list."))
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse("smtp:suppression-list", kwargs={"org_slug": self.org.slug})

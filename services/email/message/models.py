@@ -84,7 +84,8 @@ class Message(TimeStamped):
     def save(self, *args, **kwargs):
         if not self._is_pk_set():
             self.content_type = ContentType.objects.get_for_model(type(self))
-            self.status = self.Status.DEFAULT
+            if not self.status:
+                self.status = self.Status.DEFAULT
         self.clean_status()
         super().save(*args, **kwargs)
 
