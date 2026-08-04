@@ -1,11 +1,13 @@
 import hashlib
 import uuid
+from datetime import timedelta
 from enum import nonmember
 
 from django.conf import settings
 from django.db import models
 from django.db.models import Lookup
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -182,10 +184,6 @@ class SuppressionQuerySet(models.QuerySet):
         All entries for the current org suppress regardless of age or reason.
         Bounce entries from any other org suppress for 30 days after creation.
         """
-        from datetime import timedelta
-
-        from django.utils import timezone
-
         bounce_cutoff = timezone.now() - timedelta(days=30)
         return (
             self.filter(
