@@ -33,7 +33,7 @@ class DNSResolver:
             case "PTR" | "ANY" if qname_str.endswith(".in-addr.arpa"):
                 return self.resolve_ptr(qname, qname_str)
             case _:
-                domain = self.find_domain(qname_str)
+                domain = Domain.objects.zone_for(qname_str)
                 if domain is None:
                     return []
                 return self.resolve_domain_records(qname, qtype, qname_str, domain)
@@ -151,10 +151,6 @@ class DNSResolver:
             )
 
         return records
-
-    def find_domain(self, qname_str):
-        """Return the Domain whose zone owns a query name, or None."""
-        return Domain.objects.zone_for(qname_str)
 
     def resolve_ptr(self, qname, qname_str):
         """Return PTR records for the sender subdomain of the queried SMTP IP."""

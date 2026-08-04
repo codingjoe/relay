@@ -15,28 +15,28 @@ class TestTxt:
 
 
 @pytest.mark.django_db
-class TestFindDomain:
-    def test_find_domain__system_domain(self):
+class TestZoneFor:
+    def test_zone_for__system_domain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        domain = DNSResolver().find_domain("open.localhost")
+        domain = Domain.objects.zone_for("open.localhost")
         assert domain is not None
         assert domain.name == "open.localhost"
 
-    def test_find_domain__system_subdomain(self):
+    def test_zone_for__system_subdomain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        domain = DNSResolver().find_domain("mail.open.localhost")
+        domain = Domain.objects.zone_for("mail.open.localhost")
         assert domain is not None
         assert domain.name == "open.localhost"
 
-    def test_find_domain__user_domain(self):
+    def test_zone_for__user_domain(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        domain = DNSResolver().find_domain("mail.relay.example.com")
+        domain = Domain.objects.zone_for("mail.relay.example.com")
         assert domain is not None
         assert domain.name == "example.com"
 
-    def test_find_domain__unknown_returns_none(self):
-        assert DNSResolver().find_domain("nonexistent.com") is None
+    def test_zone_for__unknown_returns_none(self):
+        assert Domain.objects.zone_for("nonexistent.com") is None
 
 
 @pytest.mark.django_db
