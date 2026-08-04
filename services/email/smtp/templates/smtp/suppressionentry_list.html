@@ -6,7 +6,7 @@
     <div class="flex items-center gap-3">
       <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
       <span class="badge" data-size="sm" data-variant="outline">
-        {% blocktranslate count counter=total_suppressed %}{{ counter }} address{% plural %}{{ counter }}
+        {% blocktranslate count counter=object_list|length %}{{ counter }} address{% plural %}{{ counter }}
           addresses{% endblocktranslate %}
       </span>
     </div>
@@ -42,7 +42,7 @@
       hash is stored — the plain address is never kept.{% endblocktranslate %}
   </p>
 
-  {% if total_suppressed %}
+  {% if object_list|length %}
     {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="" %}
   {% else %}
     <p class="text-muted-foreground">

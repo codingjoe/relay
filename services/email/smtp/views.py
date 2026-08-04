@@ -11,7 +11,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, TemplateView, View
+from django.views.generic import DeleteView, DetailView, ListView, View
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -155,15 +155,17 @@ class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
         return super().form_valid(form)
 
 
-class SuppressionListView(OrganizationScopedView, TemplateView):
-    template_name = "smtp/suppression_list.html"
+class SuppressionListView(OrganizationScopedView, ListView):
+    model = SuppressionEntry
     title = _("Suppression list")
     parent = "accounts:org-home"
+
+    def get_queryset(self):
+        return self.model.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "suppression_chart": build_suppression_chart(self.org),
-            "total_suppressed": SuppressionEntry.objects.filter(org=self.org).count(),
         }
 
 
