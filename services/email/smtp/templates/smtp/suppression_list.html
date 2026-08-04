@@ -3,15 +3,35 @@
 {% block title %}{% translate "suppression list"|capfirst %} — relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
-    <button
-      type="button"
-      class="btn"
-      data-variant="secondary"
-      onclick="document.getElementById('dlg-add').showModal()"
-    >
-      {% translate "add address"|title %}
-    </button>
+    <div class="flex items-center gap-3">
+      <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
+      <span class="badge" data-size="sm" data-variant="outline">{{ total_suppressed }}</span>
+    </div>
+    <div class="btn-group">
+      <button
+        type="button"
+        class="btn"
+        onclick="document.getElementById('dlg-add').showModal()"
+      >
+        {% translate "add address"|title %}
+      </button>
+      <button
+        type="button"
+        class="btn"
+        data-variant="secondary"
+        onclick="document.getElementById('dlg-remove').showModal()"
+      >
+        {% translate "remove address"|title %}
+      </button>
+      <button
+        type="button"
+        class="btn"
+        data-variant="secondary"
+        onclick="document.getElementById('dlg-check').showModal()"
+      >
+        {% translate "check address"|title %}
+      </button>
+    </div>
   </header>
 
   <p class="text-muted-foreground mb-6">
@@ -27,72 +47,6 @@
     </p>
   {% endif %}
 
-  <section class="grid gap-4 md:grid-cols-2 mt-6">
-    <article class="card">
-      <header>
-        <h3 class="m-0">{% translate "remove address"|title %}</h3>
-        <p class="m-0 text-muted-foreground">
-          {% translate "enter an email address to remove from the list." %}
-        </p>
-      </header>
-      <section>
-        <form method="post" action="{% url 'smtp:suppression-remove' org.slug %}" id="form-remove">
-          {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_remove_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
-        </form>
-      </section>
-      <footer>
-        <button type="submit" form="form-remove" class="btn" data-variant="destructive">
-          {% translate "remove"|capfirst context "verb" %}
-        </button>
-      </footer>
-    </article>
-
-    <article class="card">
-      <header>
-        <h3 class="m-0">{% translate "check address"|title %}</h3>
-        <p class="m-0 text-muted-foreground">
-          {% translate "enter an email address to check if it is on the list." %}
-        </p>
-      </header>
-      <section>
-        <form method="post" action="{% url 'smtp:suppression-check' org.slug %}" id="form-check">
-          {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_check_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_check_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
-        </form>
-      </section>
-      <footer>
-        <button type="submit" form="form-check" class="btn" data-variant="secondary">
-          {% translate "check"|capfirst context "verb" %}
-        </button>
-      </footer>
-    </article>
-  </section>
-
   <dialog class="dialog" id="dlg-add">
     <div>
       <header>
@@ -100,7 +54,7 @@
         <p>{% translate "add an email address to the suppression list."|capfirst %}</p>
       </header>
       <section>
-        <form method="post" action="{% url 'smtp:suppression-add' org.slug %}" id="dlg-add-form">
+        <form method="post" action="{% url 'smtp:suppression-add' org.slug %}" id="form-add">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
@@ -126,8 +80,88 @@
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>
-        <button type="submit" form="dlg-add-form" class="btn">
+        <button type="submit" form="form-add" class="btn">
           {% translate "add"|capfirst context "verb" %}
+        </button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-remove">
+    <div>
+      <header>
+        <h2>{% translate "remove address"|title %}</h2>
+        <p>{% translate "enter an email address to remove from the list."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'smtp:suppression-remove' org.slug %}" id="form-remove">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
+              <input
+                type="email"
+                name="email"
+                id="id_remove_email"
+                placeholder="user@example.com"
+                class="input w-full"
+                required
+              >
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('dlg-remove').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="form-remove" class="btn" data-variant="destructive">
+          {% translate "remove"|capfirst context "verb" %}
+        </button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-check">
+    <div>
+      <header>
+        <h2>{% translate "check address"|title %}</h2>
+        <p>{% translate "enter an email address to check if it is on the list."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'smtp:suppression-check' org.slug %}" id="form-check">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_check_email">{% translate "email address"|capfirst %}</label>
+              <input
+                type="email"
+                name="email"
+                id="id_check_email"
+                placeholder="user@example.com"
+                class="input w-full"
+                required
+              >
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('dlg-check').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="form-check" class="btn">
+          {% translate "check"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
