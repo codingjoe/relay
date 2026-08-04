@@ -22,3 +22,11 @@
   pattern: "^[\"']{3}"
   hint: 'Do not write module docstrings for common Django/Python files. The file name is self-documenting.'
   filePattern: '.*/(models|admin|views|urls|apps|tasks|signals|tests)\.py$'
+- name: No RST double backticks in docstrings
+  pattern: '``[^`\n]+``'
+  hint: 'Use single backticks for inline code, not double backticks. Double backticks are RST syntax, not Markdown.'
+  filePattern: .*\.py
+- name: No early returns — use EAFP instead
+  pattern: '\n[ \t]+if [^\n]+:\n[ \t]+(?:return|continue)\b'
+  hint: 'Avoid early returns (`if ...: return/continue`). Use EAFP (try/except) or match/case instead.'
+  filePattern: .*\.py

@@ -81,7 +81,6 @@ Update it based on review feedback.
 - Never describe implementation details — describe what, not how.
 - Use bullet lists for parameters only when the function has 3+ non-obvious
   parameters. Otherwise the signature is self-documenting.
-- Do NOT use double backticks (` ` `) for inline code — use single backticks (` \` \`\`). Double backticks are RST syntax, not Markdown.
 - Do not write docstrings for inherited methods or properties — the
   base class already documents them.
 
