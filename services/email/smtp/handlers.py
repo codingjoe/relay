@@ -108,10 +108,11 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     if domain is None:
         return "550 Sender domain not registered"
 
-    if not credential.org.billing_is_active:
-        is_member = credential.org.members.filter(email__iexact=rcpt_to).exists()
-        if not is_member:
-            return "550 Recipient not allowed without active billing"
+    if (
+        not credential.org.billing_is_active
+        and not credential.org.members.filter(email__iexact=rcpt_to).exists()
+    ):
+        return "550 Recipient not allowed without active billing"
 
     message = OutgoingMessage(
         sender=sender,

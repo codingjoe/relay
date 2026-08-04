@@ -238,7 +238,7 @@ class Domain(TimeStamped):
         return f"{org.slug}.{settings.RELAY_FREE_SENDER_DOMAIN}"
 
     def clean(self):
-        """Validate that user-added domains are not subdomains of the free sender domain."""
+        """Validate that user-added domains are not subdomains of the managed sender domain."""
         if self.org is not None and self.is_managed and not self.pk:
             raise ValidationError(
                 _(

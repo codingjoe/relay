@@ -1,4 +1,5 @@
 import pytest
+from django.conf import settings
 
 from domains.models import Domain
 
@@ -62,6 +63,16 @@ class TestDomainCreateView:
         assert response.status_code == 302
         assert not Domain.objects.filter(name="example")
 
+    def test_post__rejects_managed_subdomain(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/new",
+            {"name": f"foo.{settings.RELAY_FREE_SENDER_DOMAIN}"},
+        )
+        assert response.status_code == 302
+        assert not Domain.objects.filter(
+            name=f"foo.{settings.RELAY_FREE_SENDER_DOMAIN}"
+        )
+
 
 @pytest.mark.django_db
 class TestDomainDetailView:
@@ -110,6 +121,20 @@ class TestDomainVerifyView:
             f"/org/{org.slug}/email/domains/{domain.pk}/verify"
         )
         assert response.status_code == 404
+
+
+class TestDomainDeleteView:
+    @pytest.mark.django_db
+    def test_post__prevents_managed_domain_deletion(self, admin_client, org):
+        domain = Domain.objects.filter(
+            org=org, name__endswith=".open.localhost"
+        ).first()
+        assert domain is not None
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/{domain.pk}/delete"
+        )
+        assert response.status_code == 302
+        assert Domain.objects.filter(pk=domain.pk).exists()
 
 
 @pytest.mark.django_db

@@ -17,7 +17,7 @@ by the built-in nameserver. You do not need to use the DNS provider dashboard.
 ## Managed Sender Domain
 
 Every organization gets a **managed sender domain** — a subdomain of the
-platform's free sender domain that Relay manages automatically. The domain is
+platform's managed sender domain that Relay manages automatically. The domain is
 set via `RELAY_FREE_SENDER_DOMAIN` (defaults to
 `open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
 When an organization is created, a `Domain` is auto-created with the name
@@ -35,31 +35,31 @@ their own delegated domains alongside it.
 The built-in nameserver serves the following records at the managed domain.
 No user action is required.
 
-| Record  | Location                                                     | Value                                                      |
-| ------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
-| A       | `mail.relay.{org}.{free_domain}`                             | SMTP server IP(s)                                          |
-| MX      | `mail.relay.{org}.{free_domain}`                             | `mail.relay.{org}.{free_domain}` (priority 10)             |
-| NS      | `{org}.{free_domain}`                                        | `ns1.{platform_domain}`, `ns2.{platform_domain}`           |
-| PTR     | `<reverse-IP>.in-addr.arpa`                                  | `mail.relay.{org}.{free_domain}`                           |
-| SPF     | `mail.relay.{org}.{free_domain}` (TXT)                       | `v=spf1 a mx ~all`                                         |
-| DKIM    | `{selector}._domainkey.mail.relay.{org}.{free_domain}` (TXT) | DKIM public key (RSA-2048, RSA-1024, Ed25519)              |
-| DMARC   | `_dmarc.mail.relay.{org}.{free_domain}` (TXT)                | `v=DMARC1; p=none`                                         |
-| TLS-RPT | `_smtp._tls.mail.relay.{org}.{free_domain}` (TXT)            | `v=TLSRPTv1;rua=mailto:tls@mail.relay.{org}.{free_domain}` |
-| Verify  | `relay-verification.mail.relay.{org}.{free_domain}` (TXT)    | `relay-verification {token}`                               |
-| CNAME   | `rp.mail.relay.{org}.{free_domain}`                          | `rp.{platform_domain}` (Return-Path)                       |
+| Record  | Location                                                        | Value                                                         |
+| ------- | --------------------------------------------------------------- | ------------------------------------------------------------- |
+| A       | `mail.relay.{org}.{managed_domain}`                             | SMTP server IP(s)                                             |
+| MX      | `mail.relay.{org}.{managed_domain}`                             | `mail.relay.{org}.{managed_domain}` (priority 10)             |
+| NS      | `{org}.{managed_domain}`                                        | `ns1.{platform_domain}`, `ns2.{platform_domain}`              |
+| PTR     | `<reverse-IP>.in-addr.arpa`                                     | `mail.relay.{org}.{managed_domain}`                           |
+| SPF     | `mail.relay.{org}.{managed_domain}` (TXT)                       | `v=spf1 a mx ~all`                                            |
+| DKIM    | `{selector}._domainkey.mail.relay.{org}.{managed_domain}` (TXT) | DKIM public key (RSA-2048, RSA-1024, Ed25519)                 |
+| DMARC   | `_dmarc.mail.relay.{org}.{managed_domain}` (TXT)                | `v=DMARC1; p=none`                                            |
+| TLS-RPT | `_smtp._tls.mail.relay.{org}.{managed_domain}` (TXT)            | `v=TLSRPTv1;rua=mailto:tls@mail.relay.{org}.{managed_domain}` |
+| Verify  | `relay-verification.mail.relay.{org}.{managed_domain}` (TXT)    | `relay-verification {token}`                                  |
+| CNAME   | `rp.mail.relay.{org}.{managed_domain}`                          | `rp.{platform_domain}` (Return-Path)                          |
 
 ### Operator setup
 
 For the managed domain to resolve in production, the platform operator must:
 
-1. **Delegate the free domain zone to Relay's nameservers.** If
+1. **Delegate the managed domain zone to Relay's nameservers.** If
    `RELAY_FREE_SENDER_DOMAIN` is `open.example.com`, add NS records for the
    `open` subdomain pointing to the nameservers in
    `RELAY_DNS_NS_NAMESERVERS` (for example, `ns1.example.com`, `ns2.example.com`). If
    the platform domain's NS records already point at Relay's nameservers, the
-   free domain is served automatically as a subdomain and no extra delegation
+   managed domain is served automatically as a subdomain and no extra delegation
    is needed.
-1. **Make the SPF include resolve.** The free domain's SPF record includes
+1. **Make the SPF include resolve.** The managed domain's SPF record includes
    `spf.{platform_domain}`. Make sure that the TXT record exists and lists the SMTP
    server IP addresses.
 1. **Set `RELAY_FREE_SENDER_DOMAIN`** to a domain delegated to Relay's

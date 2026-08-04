@@ -109,7 +109,7 @@ class Message(TimeStamped):
     @property
     def domain_name(self) -> str:
         """Return the associated domain name."""
-        return str(self.domain) if self.domain_id else ""
+        return str(self.domain)
 
     @property
     def status_badge_variant(self) -> str:

@@ -109,10 +109,11 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
             )
             return "250 OK"
 
-    if not domain.org.billing_is_active:
-        is_member = domain.org.members.filter(email__iexact=mail_from).exists()
-        if not is_member:
-            return "550 Sender not allowed without active billing"
+    if (
+        not domain.org.billing_is_active
+        and not domain.org.members.filter(email__iexact=mail_from).exists()
+    ):
+        return "550 Sender not allowed without active billing"
 
     message = IncomingMessage(
         org=domain.org,

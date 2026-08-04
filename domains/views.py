@@ -2,6 +2,7 @@
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -39,14 +40,11 @@ class DomainCreateView(OrganizationScopedView, CreateView):
 
     def form_valid(self, form):
         form.instance.org = self.org
-        if form.instance.is_managed:
-            form.add_error(
-                "name",
-                _(
-                    "Cannot add a subdomain of %(base)s — relay manages these automatically."
-                )
-                % {"base": settings.RELAY_FREE_SENDER_DOMAIN},
-            )
+        try:
+            form.instance.full_clean(exclude=["org"])
+        except ValidationError as e:
+            for error in e.messages:
+                form.add_error("name", error)
             return self.form_invalid(form)
         messages.success(
             self.request,
