@@ -27,6 +27,6 @@
   hint: 'Use single backticks for inline code, not double backticks. Double backticks are RST syntax, not Markdown.'
   filePattern: .*\.py
 - name: No early returns — use EAFP instead
-  pattern: '\n[ \t]+if [^\n]+:\n[ \t]+(?:return|continue)\b'
-  hint: 'Avoid early returns (`if ...: return/continue`). Use EAFP (try/except) or match/case instead.'
+  pattern: '\n[ \t]+(?:if|except)\b[^\n]*:\n[ \t]+(?:return|continue)\b'
+  hint: 'Avoid early returns (`if/except ...: return/continue`). Use EAFP (try/except) or match/case instead.'
   filePattern: .*\.py
