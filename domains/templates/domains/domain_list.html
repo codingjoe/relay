@@ -65,6 +65,9 @@
           </h3>
           <p class="flex items-center gap-2 flex-wrap">
             <code>{{ domain.sender_domain }}</code>
+            {% if domain.is_managed %}
+              <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
+            {% endif %}
           </p>
         </section>
       </a>
