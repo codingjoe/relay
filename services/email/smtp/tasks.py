@@ -1,5 +1,3 @@
-"""Outgoing message delivery tasks."""
-
 import asyncio
 import logging
 
@@ -98,7 +96,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                 message.save(update_fields=["status"])
                 return
             except aiosmtplib.SMTPException, OSError:
-                continue
+                pass
 
         raise MxHostsExhausted(f"All MX hosts failed for {rcpt_domain}")
 

@@ -1,5 +1,3 @@
-"""SMTP views — outgoing message detail, test email, and credential management."""
-
 from email.message import EmailMessage
 
 from django.conf import settings
@@ -9,7 +7,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, View
+from django.views import generic
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -18,8 +16,10 @@ from .models import OutgoingMessage, SmtpCredential, Transmission
 from .tasks import deliver_message
 
 
-class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
-    template_name = "smtp/message_detail.html"
+class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
+    def get_template_names(self):
+        return ["smtp/message_detail.html"]
+
     context_object_name = "message"
     parent = "message:message-list"
 
@@ -54,7 +54,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class TestEmailView(OrganizationScopedView, View):
+class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         free_domain = settings.RELAY_FREE_SENDER_DOMAIN
         domain_pk = request.POST["domain"]
@@ -97,8 +97,10 @@ class TestEmailView(OrganizationScopedView, View):
         return redirect("message:message-list", org_slug=org_slug)
 
 
-class SmtpCredentialListView(OrganizationScopedView, ListView):
-    template_name = "smtp/credential_list.html"
+class SmtpCredentialListView(OrganizationScopedView, generic.ListView):
+    def get_template_names(self):
+        return ["smtp/credential_list.html"]
+
     context_object_name = "credentials"
     title = _("SMTP credentials")
     parent = "email-dashboard:dashboard"
@@ -117,7 +119,7 @@ class SmtpCredentialListView(OrganizationScopedView, ListView):
         return context
 
 
-class SmtpCredentialCreateView(OrganizationScopedView, View):
+class SmtpCredentialCreateView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         credential, raw_key = SmtpCredential.objects.create_with_key(
             org=self.org,
@@ -132,7 +134,7 @@ class SmtpCredentialCreateView(OrganizationScopedView, View):
         return redirect("smtp:credential-list", org_slug=org_slug)
 
 
-class SmtpCredentialDeleteView(OrganizationScopedView, DeleteView):
+class SmtpCredentialDeleteView(OrganizationScopedView, generic.DeleteView):
     model = SmtpCredential
     title = _("Delete")
     parent = "smtp:credential-list"

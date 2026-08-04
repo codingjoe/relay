@@ -66,7 +66,7 @@ def parse_timestamp(parent, path):
     return datetime.fromtimestamp(int(value), tz=UTC) if value else None
 
 
-def _extract_part_text(part):
+def extract_part_text(part):
     """Extract text content from a MIME part, including sub-messages and base64 data."""
     import base64
 
@@ -124,7 +124,7 @@ def parse_arf(raw_bytes):
         ct = part.get_content_type()
         match ct:
             case "message/feedback-report":
-                body = _extract_part_text(part)
+                body = extract_part_text(part)
                 if body:
                     for line in body.splitlines():
                         if ":" in line:
@@ -141,7 +141,7 @@ def parse_arf(raw_bytes):
                                 if result in VALID_DELIVERY_RESULTS:
                                     report_data["delivery_result"] = result
             case "text/rfc822-headers" | "message/rfc822":
-                body = _extract_part_text(part)
+                body = extract_part_text(part)
                 if body:
                     report_data["original_headers"] = body
 

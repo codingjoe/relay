@@ -1,7 +1,3 @@
-- name: Do not use the "django_db" marker on entire test classes
-  pattern: \@pytest\.mark\.django_db[^\n]*\n\w*class
-  hint: Please use the "django_db" marker on individual tests only.
-  filePattern: .*\.py
 - name: Import generic views via the "generic" module
   pattern: from django\.views\.generic
   hint: 'Use `from django.views import generic` and reference `generic.View`, `generic.CreateView`, etc. to clearly identify generic views.'

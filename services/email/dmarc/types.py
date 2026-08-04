@@ -51,19 +51,17 @@ class DmarcPolicy:
             text = "".join(
                 s.decode() if isinstance(s, bytes) else s for s in record.strings
             )
-            if not text.startswith("v=DMARC1"):
-                continue
-            fields = {}
-            for part in text.split(";"):
-                part = part.strip()
-                if "=" not in part:
-                    continue
-                key, value = (s.strip() for s in part.split("=", 1))
-                if key in {"p", "sp", "adkim", "aspf", "rua", "ruf"}:
-                    fields[key] = value
-                elif key == "pct":
-                    fields[key] = int(value)
-            return cls(**fields)
+            if text.startswith("v=DMARC1"):
+                fields = {}
+                for part in text.split(";"):
+                    part = part.strip()
+                    if "=" in part:
+                        key, value = (s.strip() for s in part.split("=", 1))
+                        if key in {"p", "sp", "adkim", "aspf", "rua", "ruf"}:
+                            fields[key] = value
+                        elif key == "pct":
+                            fields[key] = int(value)
+                return cls(**fields)
         return cls()
 
     @property
@@ -153,7 +151,7 @@ class DmarcEvaluation:
                     ipaddress.ip_address(ip_str)
                     return ip_str
                 except ValueError:
-                    continue
+                    pass
         return None
 
     @staticmethod
@@ -186,17 +184,16 @@ class DmarcEvaluation:
                 text = "".join(
                     s.decode() if isinstance(s, bytes) else s for s in record.strings
                 )
-                if not text.startswith("v=spf1"):
-                    continue
-                mechanisms = text.split()
-                for mech in mechanisms:
-                    if mech == "a" or mech == "mx" or mech == f"ip4:{source_ip}":
-                        return AuthResult.PASS, domain
-                    if mech in ("~all", "-all"):
-                        return AuthResult.FAIL, domain
-                    if mech in ("+all", "?all"):
-                        return AuthResult.NEUTRAL, domain
-                return AuthResult.NEUTRAL, domain
+                if text.startswith("v=spf1"):
+                    mechanisms = text.split()
+                    for mech in mechanisms:
+                        if mech == "a" or mech == "mx" or mech == f"ip4:{source_ip}":
+                            return AuthResult.PASS, domain
+                        if mech in ("~all", "-all"):
+                            return AuthResult.FAIL, domain
+                        if mech in ("+all", "?all"):
+                            return AuthResult.NEUTRAL, domain
+                    return AuthResult.NEUTRAL, domain
             return AuthResult.NONE, domain
         return AuthResult.NONE, domain
 

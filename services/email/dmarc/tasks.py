@@ -97,13 +97,12 @@ def generate_daily_rua_reports():
     begin_at = end_at - timedelta(days=1)
 
     for domain in Domain.objects.filter(verified_at__isnull=False):
-        if not domain.dmarc_reporting_address:
-            continue
-        messages = IncomingMessage.objects.filter(
-            receiving_domain__iexact=domain.name,
-            created_at__gte=begin_at,
-            created_at__lte=end_at,
-        )
-        evaluations = [DmarcEvaluation.from_message(msg) for msg in messages]
-        if evaluations:
-            DmarcReport.send_rua_report(domain, evaluations, begin_at, end_at)
+        if domain.dmarc_reporting_address:
+            messages = IncomingMessage.objects.filter(
+                receiving_domain__iexact=domain.name,
+                created_at__gte=begin_at,
+                created_at__lte=end_at,
+            )
+            evaluations = [DmarcEvaluation.from_message(msg) for msg in messages]
+            if evaluations:
+                DmarcReport.send_rua_report(domain, evaluations, begin_at, end_at)
