@@ -24,10 +24,8 @@ When an organization is created, a `Domain` is auto-created with the name
 `{org.slug}.{RELAY_FREE_SENDER_DOMAIN}` (for example `acme.open.localhost`).
 The domain is DKIM-signed and pre-verified — no user DNS configuration needed.
 
-When the organization's `billing_is_active` flag is `False` (the default),
-sending is restricted to organization members and incoming mail is only
-accepted from organization members. Once billing is activated, the
-organization can send to and receive from anyone.
+Billing is not yet implemented — sending and receiving is currently
+restricted to organization members.
 
 The managed domain cannot be deleted from the dashboard. Users can still add
 their own delegated domains alongside it.

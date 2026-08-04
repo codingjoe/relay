@@ -11,7 +11,6 @@
     modified_at: 2026-08-01 18:21:34.638562+00:00
     created_at: 2026-08-01 18:21:34.638576+00:00
     slug: acme
-    billing_is_active: false
 - model: accounts.membership
   pk: 1
   fields:

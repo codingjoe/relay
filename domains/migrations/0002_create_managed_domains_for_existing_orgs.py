@@ -29,7 +29,7 @@ def create_managed_domains(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("accounts", "0002_organization_billing_is_active"),
+        ("accounts", "0001_initial"),
         ("domains", "0001_initial"),
     ]
 

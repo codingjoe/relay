@@ -125,12 +125,11 @@ class TestProcessMessage:
         assert result == "550 Sender domain not registered"
 
     async def test_process_message__creates_outgoing_message(self, user, org):
+        from unittest.mock import patch
+
+        from domains.models import Domain
         from services.email.smtp.handlers import process_message
         from services.email.smtp.models import OutgoingMessage
-
-        org.billing_is_active = True
-        org.save(update_fields=["billing_is_active"])
-        from domains.models import Domain
 
         Domain.objects.create(name="example.com", org=org)
         cred, _ = SmtpCredential.objects.create_with_key(org=org)
@@ -139,15 +138,16 @@ class TestProcessMessage:
         msg["To"] = "bob@example.com"
         msg["Subject"] = "Test"
         msg.set_content("Hello")
-        result = await process_message(
-            "alice@example.com",
-            "bob@example.com",
-            msg.as_bytes(),
-            msg,
-            cred,
-            user,
-            False,
-        )
+        with patch.object(type(org), "billing_is_active", True):
+            result = await process_message(
+                "alice@example.com",
+                "bob@example.com",
+                msg.as_bytes(),
+                msg,
+                cred,
+                user,
+                False,
+            )
         assert result == "250 OK"
         assert OutgoingMessage.objects.filter(org=org, sender=user).count() == 1
 

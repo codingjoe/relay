@@ -40,14 +40,15 @@ class Organization(TimeStamped):
         through="Membership",
         related_name="organizations",
     )
-    billing_is_active = models.BooleanField(
-        _("billing active"),
-        default=False,
-        help_text=_(
-            "Whether the organization has active billing. When inactive, "
-            "sending and receiving is restricted to organization members."
-        ),
-    )
+
+    @property
+    def billing_is_active(self):
+        """Return whether the organization has active billing.
+
+        Billing is not yet implemented — always returns False, which
+        restricts sending and receiving to organization members.
+        """
+        return False
 
     def __str__(self):
         return self.slug
