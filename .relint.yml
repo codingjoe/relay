@@ -1,4 +1,28 @@
-- name: Do not use the "django_db" marker on entire test classes
-  pattern: \@pytest\.mark\.django_db[^\n]*\n\w*class
-  hint: Please use the "django_db" marker on individual tests only.
+- name: Import generic views via the "generic" module
+  pattern: from django\.views\.generic
+  hint: 'Use `from django.views import generic` and reference `generic.View`, `generic.CreateView`, etc. to clearly identify generic views.'
+  filePattern: .*\.py
+- name: Do not override "template_name" on object-based generic views
+  pattern: 'class \w+\([^)]*(?:DetailView|ListView|CreateView|UpdateView|DeleteView)[^)]*\):\n(?:[ \t]+[^\n]*\n)*?[ \t]+template_name\s*='
+  hint: 'Object-based generic views have default template names like `<app_label>/<model_name>_detail.html`. Do not override "template_name".'
+  filePattern: .*\.py
+- name: No private functions (single underscore prefix)
+  pattern: 'def _[a-zA-Z]'
+  hint: 'Do not use private functions (underscore prefix). This project is not for redistribution.'
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: Use "..." instead of "pass" in empty classes
+  pattern: 'class \w+[^\n:]*:\n[ \t]+pass\b'
+  hint: 'Use `...` instead of `pass` in empty classes.'
+  filePattern: .*\.py
+- name: No module docstrings on common Django files
+  pattern: "^[\"']{3}"
+  hint: 'Do not write module docstrings for common Django/Python files. The file name is self-documenting.'
+  filePattern: '.*/(models|admin|views|urls|apps|tasks|signals|tests)\.py$'
+- name: No RST double backticks in docstrings
+  pattern: '``[^`\n]+``'
+  hint: 'Use single backticks for inline code, not double backticks. Double backticks are RST syntax, not Markdown.'
+  filePattern: .*\.py
+- name: No bare early returns — use EAFP instead
+  pattern: '\n[ \t]+(?:if|except)\b[^\n]*:\n[ \t]+(?:return\s*\n|continue\b)'
+  hint: 'Avoid bare `return` (no value) and `continue` to cut program flow (`if/except ...: return/continue`). Use EAFP (try/except) or match/case instead. Returns with an explicit value are OK.'
   filePattern: .*\.py

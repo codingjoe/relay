@@ -1,5 +1,5 @@
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DetailView, ListView
+from django.views import generic
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -8,8 +8,10 @@ from .charts import build_dmarc_chart
 from .models import DmarcFailureReport, DmarcReport
 
 
-class DmarcReportListView(OrganizationScopedView, ListView):
-    template_name = "dmarc/report_list.html"
+class DmarcReportListView(OrganizationScopedView, generic.ListView):
+    def get_template_names(self):
+        return ["dmarc/report_list.html"]
+
     context_object_name = "reports"
     paginate_by = 50
     title = _("DMARC reports")
@@ -34,8 +36,10 @@ class DmarcReportListView(OrganizationScopedView, ListView):
         }
 
 
-class DmarcReportDetailView(OrganizationScopedView, DetailView):
-    template_name = "dmarc/report_detail.html"
+class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
+    def get_template_names(self):
+        return ["dmarc/report_detail.html"]
+
     context_object_name = "report"
     parent = "email-dashboard:report-list"
 
@@ -52,8 +56,10 @@ class DmarcReportDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class DmarcFailureReportListView(OrganizationScopedView, ListView):
-    template_name = "dmarc/failure_report_list.html"
+class DmarcFailureReportListView(OrganizationScopedView, generic.ListView):
+    def get_template_names(self):
+        return ["dmarc/failure_report_list.html"]
+
     context_object_name = "reports"
     paginate_by = 50
     title = _("DMARC failure reports")
@@ -77,8 +83,10 @@ class DmarcFailureReportListView(OrganizationScopedView, ListView):
         }
 
 
-class DmarcFailureReportDetailView(OrganizationScopedView, DetailView):
-    template_name = "dmarc/failure_report_detail.html"
+class DmarcFailureReportDetailView(OrganizationScopedView, generic.DetailView):
+    def get_template_names(self):
+        return ["dmarc/failure_report_detail.html"]
+
     context_object_name = "report"
     parent = "email-dashboard:report-list"
 

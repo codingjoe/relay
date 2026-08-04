@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import ListView, TemplateView
+from django.views import generic
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 
@@ -16,7 +16,7 @@ from services.email.mx.models import TlsReport
 from services.email.smtp.charts import build_outgoing_chart
 
 
-class DashboardView(OrganizationScopedView, TemplateView):
+class DashboardView(OrganizationScopedView, generic.TemplateView):
     """Display the unified transactional email dashboard for an organization."""
 
     template_name = "dashboard/dashboard.html"
@@ -56,10 +56,12 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
         return Response(serializer.data)
 
 
-class ReportListView(OrganizationScopedView, ListView):
+class ReportListView(OrganizationScopedView, generic.ListView):
     """Display a merged timeline of DMARC and TLS reports."""
 
-    template_name = "dashboard/report_list.html"
+    def get_template_names(self):
+        return ["dashboard/report_list.html"]
+
     context_object_name = "reports"
     paginate_by = 50
     title = _("Reports")

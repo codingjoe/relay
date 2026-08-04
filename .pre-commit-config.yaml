@@ -76,6 +76,7 @@ repos:
     rev: 3.5.0
     hooks:
       - id: relint
+        args: []
 ci:
   skip:
     - no-commit-to-branch

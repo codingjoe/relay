@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def strip_frontmatter(text: str) -> str:
-    """Strip YAML frontmatter (``---`` delimited) from the start of a Markdown document.
+    """Strip YAML frontmatter (`---` delimited) from the start of a Markdown document.
 
     If the document does not start with a frontmatter block, return it unchanged.
     """

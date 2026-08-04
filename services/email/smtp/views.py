@@ -1,5 +1,3 @@
-"""SMTP views — outgoing message detail, test email, and credential management."""
-
 from email.message import EmailMessage
 
 from django.conf import settings
@@ -22,7 +20,9 @@ from .tasks import deliver_message
 
 
 class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
-    template_name = "smtp/message_detail.html"
+    def get_template_names(self):
+        return ["smtp/message_detail.html"]
+
     context_object_name = "message"
     parent = "message:message-list"
 
@@ -105,7 +105,9 @@ class TestEmailView(OrganizationScopedView, generic.View):
 
 
 class SmtpCredentialListView(OrganizationScopedView, generic.ListView):
-    template_name = "smtp/credential_list.html"
+    def get_template_names(self):
+        return ["smtp/credential_list.html"]
+
     context_object_name = "credentials"
     title = _("SMTP credentials")
     parent = "email-dashboard:dashboard"

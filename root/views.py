@@ -1,12 +1,10 @@
-"""Root project views."""
-
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import TemplateView
+from django.views import generic
 
 from abstract.views import BreadcrumbViewMixin, CacheControlMixin
 
 
-class HomeView(CacheControlMixin, BreadcrumbViewMixin, TemplateView):
+class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
     """Render the marketing landing page."""
 
     template_name = "start.html"
