@@ -5,6 +5,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from abstract.charts import CHART_DAYS
+from services.email.smtp.models import OutgoingMessage, Transmission
 
 from .models import FblReport
 
@@ -20,11 +21,8 @@ def build_reputation_chart(org):
     """Return chart data for reputation metrics grouped by day.
 
     Tracks sent, hard bounces, soft bounces, and FBL complaints over the
-    chart window. Uses a synthetic group field since the data comes from
-    multiple models rather than a single status field.
+    chart window.
     """
-    from services.email.smtp.models import OutgoingMessage, Transmission
-
     start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
 
     # Daily sent counts

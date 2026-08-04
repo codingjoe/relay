@@ -2,8 +2,8 @@ import logging
 
 from django.tasks import task
 
+from . import evaluation
 from .models import FblReport
-from .reputation import check_domain_reputation as check_reputation
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def check_domain_reputation(domain_id):
     from domains.models import Domain
 
     domain = Domain.objects.get(pk=domain_id)
-    check_reputation(domain)
+    evaluation.check_domain_reputation(domain)
 
 
 @task
@@ -66,4 +66,4 @@ def check_all_reputations():
         verified_at__isnull=False,
         org__isnull=False,
     ):
-        check_reputation(domain)
+        evaluation.check_domain_reputation(domain)

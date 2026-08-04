@@ -6,8 +6,8 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
 from .charts import build_reputation_chart
+from .evaluation import compute_domain_reputation
 from .models import FblReport
-from .reputation import compute_domain_reputation
 
 
 class FblReportListView(OrganizationScopedView, ListView):
