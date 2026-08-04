@@ -4,7 +4,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import DeleteView, DetailView, ListView, View
+from django.views import generic
 
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -14,8 +14,7 @@ from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
 
 
-class IncomingMessageDetailView(OrganizationScopedView, DetailView):
-    template_name = "mx/incomingmessage_detail.html"
+class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
     context_object_name = "message"
     parent = "message:message-list"
 
@@ -38,8 +37,7 @@ class IncomingMessageDetailView(OrganizationScopedView, DetailView):
         }
 
 
-class WebhookListView(OrganizationScopedView, ListView):
-    template_name = "mx/webhook_list.html"
+class WebhookListView(OrganizationScopedView, generic.ListView):
     context_object_name = "webhooks"
     title = _("Webhooks")
     parent = "email-dashboard:dashboard"
@@ -54,7 +52,7 @@ class WebhookListView(OrganizationScopedView, ListView):
         }
 
 
-class WebhookCreateView(OrganizationScopedView, View):
+class WebhookCreateView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         url = request.POST.get("url", "")
         name = request.POST.get("name", "")
@@ -83,7 +81,7 @@ class WebhookCreateView(OrganizationScopedView, View):
         return redirect("mx:webhook-list", org_slug=org_slug)
 
 
-class WebhookDeleteView(OrganizationScopedView, DeleteView):
+class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
     model = Webhook
     title = _("Delete")
     parent = "mx:webhook-list"
@@ -99,7 +97,7 @@ class WebhookDeleteView(OrganizationScopedView, DeleteView):
         return super().form_valid(form)
 
 
-class WebhookTestView(OrganizationScopedView, View):
+class WebhookTestView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, pk, *args, **kwargs):
         webhook = get_object_or_404(Webhook, pk=pk, org=self.org)
         ok, _status = deliver_to_webhook(message=None, webhook=webhook, is_test=True)
@@ -110,8 +108,10 @@ class WebhookTestView(OrganizationScopedView, View):
         return redirect("mx:webhook-list", org_slug=org_slug)
 
 
-class TlsReportListView(OrganizationScopedView, ListView):
-    template_name = "mx/tls_report_list.html"
+class TlsReportListView(OrganizationScopedView, generic.ListView):
+    def get_template_names(self):
+        return ["mx/tls_report_list.html"]
+
     context_object_name = "reports"
     paginate_by = 50
     title = _("TLS reports")
@@ -135,8 +135,10 @@ class TlsReportListView(OrganizationScopedView, ListView):
         }
 
 
-class TlsReportDetailView(OrganizationScopedView, DetailView):
-    template_name = "mx/tls_report_detail.html"
+class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
+    def get_template_names(self):
+        return ["mx/tls_report_detail.html"]
+
     context_object_name = "report"
     parent = "email-dashboard:report-list"
 

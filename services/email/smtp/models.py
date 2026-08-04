@@ -1,13 +1,18 @@
+import hashlib
 import uuid
+from datetime import timedelta
 from enum import nonmember
 
 from django.conf import settings
+from django.core.validators import validate_email
 from django.db import models
+from django.db.models import Lookup
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
-from accounts.models import Credential
+from accounts.models import Credential, OrganizationOwned
 from services.email.message.models import Message
 
 
@@ -21,6 +26,7 @@ class OutgoingMessage(Message):
         HELD = "held", _("held")
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
+        SUPPRESSED = "suppressed", _("suppressed")
         FAILED = "failed", _("failed")
         DEFAULT = nonmember("pending")
 
@@ -146,3 +152,103 @@ class SmtpCredential(Credential):
         default=Type.SMTP,
         help_text=_("SMTP authentication method."),
     )
+
+
+class EmailLookup(Lookup):
+    """Hash an email address before comparing against `address_hash`."""
+
+    lookup_name = "email"
+
+    def as_sql(self, compiler, connection):
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        model = self.lhs.output_field.model
+        return f"{lhs} = %s", [*lhs_params, model.hash_address(self.rhs)]
+
+
+class HashedEmailField(models.TextField):
+    """Provide the `__email` lookup for address hashing."""
+
+
+HashedEmailField.register_lookup(EmailLookup)
+
+
+class SuppressionQuerySet(models.QuerySet):
+    def create_or_update(self, defaults=None, **kwargs):
+        email = kwargs.pop("email", None)
+        if email is not None:
+            kwargs["address_hash"] = self.model.hash_address(email)
+        defaults = defaults or {}
+        if "reason" in kwargs:
+            defaults["reason"] = kwargs.pop("reason")
+        return self.update_or_create(defaults=defaults, **kwargs)
+
+    def is_suppressed(self, org, email) -> bool:
+        """Check whether an email is suppressed for the given org.
+
+        All entries for the current org suppress regardless of age or reason.
+        Bounce entries from any other org suppress for 30 days after creation.
+        """
+        bounce_cutoff = timezone.now() - timedelta(days=30)
+        return (
+            self.filter(
+                address_hash=self.model.hash_address(email),
+            )
+            .filter(
+                models.Q(org=org)
+                | models.Q(
+                    reason=self.model.Reason.BOUNCE,
+                    created_at__gte=bounce_cutoff,
+                ),
+            )
+            .exists()
+        )
+
+
+class SuppressionEntry(OrganizationOwned):
+    """Store a salted hash of an email address that should not receive mail.
+
+    The plain email address is never stored. Bounces are added automatically;
+    users can add or remove entries manually. Use the `__email` lookup to
+    filter by email address:
+
+        SuppressionEntry.objects.filter(org=org, address_hash__email=email)
+    """
+
+    class Reason(models.TextChoices):
+        BOUNCE = "bounce", _("bounce")
+        MANUAL = "manual", _("manual")
+
+    address_hash = HashedEmailField(
+        _("address hash"),
+        help_text=_("Salted SHA-256 of the lowercased email address."),
+    )
+    reason = models.TextField(
+        _("reason"),
+        choices=Reason,
+        default=Reason.MANUAL,
+        help_text=_("How the entry was added."),
+    )
+
+    objects = SuppressionQuerySet.as_manager()
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org", "address_hash"],
+                name="unique_suppression_per_org",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.org} / {self.address_hash[:12]}… ({self.reason})"
+
+    @classmethod
+    def salt(cls) -> str:
+        """Return a stable salt unique to this model class."""
+        return f"{cls.__module__}.{cls.__name__}"
+
+    @classmethod
+    def hash_address(cls, email) -> str:
+        """Return the salted SHA-256 hex digest of a lowercased email address."""
+        validate_email(email)
+        return hashlib.sha256((cls.salt() + email.lower()).encode()).hexdigest()

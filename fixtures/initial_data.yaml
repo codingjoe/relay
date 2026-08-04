@@ -248,6 +248,22 @@
     last_used_at: null
     hold: false
     type: smtp
+- model: smtp.suppressionentry
+  pk: 1
+  fields:
+    modified_at: 2026-08-01 18:21:34.820000+00:00
+    created_at: 2026-08-01 18:21:34.820000+00:00
+    org: 1
+    address_hash: efb95c768d4911cea647baaefb30051786052927d2145aa84d07ea0bc1db55eb
+    reason: bounce
+- model: smtp.suppressionentry
+  pk: 2
+  fields:
+    modified_at: 2026-08-01 18:21:34.821000+00:00
+    created_at: 2026-08-01 18:21:34.821000+00:00
+    org: 1
+    address_hash: de91c13e68eeca7b4289da1bf2787dca7ee8dc23b218dd0ef04a555a5a8e5cf4
+    reason: manual
 - model: domains.domain
   pk: 2
   fields:

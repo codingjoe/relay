@@ -1,8 +1,6 @@
-"""Well-known endpoint views — robots.txt, llms.txt, llms-full.txt, sitemap."""
-
 from django.template import loader
 from django.urls import reverse
-from django.views.generic import TemplateView
+from django.views import generic
 
 from abstract.utils import strip_frontmatter
 from abstract.views import CacheControlMixin
@@ -10,7 +8,7 @@ from alternative_to.views import AlternativeToListView
 from know_how.views import KnowHowListView
 
 
-class RobotsTxtView(CacheControlMixin, TemplateView):
+class RobotsTxtView(CacheControlMixin, generic.TemplateView):
     """Serve robots.txt with a sitemap reference."""
 
     template_name = "well_known/robots.txt"
@@ -25,7 +23,7 @@ class RobotsTxtView(CacheControlMixin, TemplateView):
         }
 
 
-class LlmsTxtView(CacheControlMixin, TemplateView):
+class LlmsTxtView(CacheControlMixin, generic.TemplateView):
     """Serve llms.txt following the llmstxt.org spec."""
 
     template_name = "well_known/llms.txt"
@@ -66,7 +64,7 @@ class LlmsTxtView(CacheControlMixin, TemplateView):
         }
 
 
-class LlmsFullTxtView(CacheControlMixin, TemplateView):
+class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
     """Serve llms-full.txt with the full content of all know-how articles."""
 
     template_name = "well_known/llms-full.txt"

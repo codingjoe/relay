@@ -102,15 +102,14 @@ class DNSResolver:
 
         # DKIM — serve public key for each cipher at its selector name
         for selector, key in domain.dkim_ciphers:
-            if not key:
-                continue
-            key_record_name = f"{selector}._domainkey.{base}"
-            if qname_lower == key_record_name.rstrip(".").lower():
-                p = base64.b64encode(key.public_bytes_der()).decode("ascii")
-                record = f"v=DKIM1; t=s; h=sha256; p={p};"
-                records.append(
-                    RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
-                )
+            if key:
+                key_record_name = f"{selector}._domainkey.{base}"
+                if qname_lower == key_record_name.rstrip(".").lower():
+                    p = base64.b64encode(key.public_bytes_der()).decode("ascii")
+                    record = f"v=DKIM1; t=s; h=sha256; p={p};"
+                    records.append(
+                        RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
+                    )
 
         verify_name = domain.verification_record_name
         if qname_lower == verify_name.rstrip(".").lower():

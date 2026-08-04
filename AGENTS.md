@@ -64,6 +64,9 @@ with wireit).
   Linting/formatting via pre-commit is the current quality gate.
 - **Update `CONVENTIONS.md`** when a reviewer identifies a new convention or
   corrects a pattern. This file is the authoritative coding-conventions source.
+- **Extend `.relint.yml`** when a convention can be enforced by regex. Move
+  enforced rules out of `CONVENTIONS.md` — `CONVENTIONS.md` documents for
+  humans, `.relint.yml` enforces for machines.
 - **`root/views.py` must not import models from other first-party apps.**
   Cross-app views belong in their corresponding app.
 - **`Model.save()` must include `update_fields=`** to avoid race conditions.
