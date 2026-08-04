@@ -107,7 +107,7 @@ def process_suppressed_message(
     domain = (
         Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
     )
-    message = OutgoingMessage(
+    message = OutgoingMessage.objects.create(
         sender=sender,
         org=credential.org,
         rcpt_to=rcpt_to,
@@ -116,15 +116,11 @@ def process_suppressed_message(
         message_id=message_id,
         domain=domain,
         credential=credential,
-        status=OutgoingMessage.Status.DROPPED,
         received_with_tls=bool(ssl),
+        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
-    message.raw_body.save(
-        f"{message.id}.eml",
-        SimpleUploadedFile(f"{message.id}.eml", raw_bytes),
-        save=False,
-    )
-    message.save()
+    message.status = OutgoingMessage.Status.DROPPED
+    message.save(update_fields=["status"])
     Transmission.objects.create(
         message=message,
         status=Transmission.Status.FAILED,
