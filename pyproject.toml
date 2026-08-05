@@ -57,6 +57,9 @@ test = [
 ]
 
 [tool.ruff]
+lint.extend-select = [
+  "DJ",
+]
 lint.ignore = [
   "RUF012",
 ]
