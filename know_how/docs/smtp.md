@@ -54,10 +54,10 @@ The server responds to each command with a three-digit code:
 
 | Code range | Meaning                                              |
 | ---------- | ---------------------------------------------------- |
-| `2xx`      | Success: the command completed                       |
-| `3xx`      | Continue: the server expects more data               |
-| `4xx`      | Temporary failure: the client should try again later |
-| `5xx`      | Permanent failure: the client should not retry       |
+| `2xx`      | Success. The command completed                       |
+| `3xx`      | Continue. The server expects more data               |
+| `4xx`      | Temporary failure. The client should try again later |
+| `5xx`      | Permanent failure. The client should not retry       |
 
 A `4xx` response tells the client to queue the message and retry later.[^dsn-spec] A `5xx` response tells the client to give up and return a bounce to the sender.
 

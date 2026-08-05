@@ -1,4 +1,4 @@
-"""DNS verification services: validates NS delegation and DMARC on root domain."""
+"""DNS verification services. Validates NS delegation and DMARC on root domain."""
 
 import dns.resolver
 from django.conf import settings

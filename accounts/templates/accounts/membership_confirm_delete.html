@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "remove member"|capfirst %}: {{ object.user.username }}{% endblock %}
+{% block title %}{% translate "remove member"|capfirst %} | {{ object.user.username }}{% endblock %}
 {% block content %}
   <div class="max-w-md">
     <h2 class="mb-4">{% translate "remove"|capfirst context "verb" %} {{ object.user.username }}</h2>

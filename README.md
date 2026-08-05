@@ -8,10 +8,10 @@ that removes manual DNS configuration.
 
 Users only need to set **two DNS records**:
 
-1. **NS delegation**: Delegate the sender subdomain to our nameservers
-1. **DMARC record**: On the root domain
+1. **NS delegation**. Delegate the sender subdomain to our nameservers
+1. **DMARC record**. On the root domain
 
-Everything else: MX, SPF, DKIM, Return-Path: is **served automatically**
+Everything else (MX, SPF, DKIM, Return-Path) is **served automatically**
 by the built-in nameserver. You do not need to use the DNS provider dashboard.
 
 ## Free Sender Domain
@@ -111,10 +111,10 @@ address glob pattern.
 ### Tech Stack
 
 - **Django** with the task framework for async message delivery
-- **PostgreSQL**: primary database
-- **Redis**: caching and rate limiting
-- **S3**: raw message body storage via django-storages
-- **basecoat CSS**: component-based CSS framework for the web UI
+- **PostgreSQL**. Primary database
+- **Redis**. Caching and rate limiting
+- **S3**. Raw message body storage via django-storages
+- **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
 
 ### Error monitoring (Sentry)

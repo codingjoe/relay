@@ -109,7 +109,7 @@ class CredentialQuerySet(models.QuerySet):
 class Credential(OrganizationOwned):
     """Abstract base for per-service credentials.
 
-    The plaintext key is never stored: only a hash (like Django passwords).
+    The plaintext key is never stored. Only a hash (like Django passwords).
     The key_prefix (the first 8 characters) makes an O(1) lookup possible
     before hash verification. Concrete models live in service apps (for
     example, smtp.SmtpCredential).

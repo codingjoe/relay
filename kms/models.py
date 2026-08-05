@@ -9,7 +9,7 @@ from . import keys
 
 
 class SigningKey(TimeStamped):
-    """A cryptographic signing key: algorithm-agnostic and purpose-agnostic."""
+    """A cryptographic signing key. Algorithm-agnostic and purpose-agnostic."""
 
     class Algorithm(models.TextChoices):
         RSA_2048 = "rsa-2048", "RSA 2048"
@@ -27,7 +27,7 @@ class SigningKey(TimeStamped):
     )
     public_key = models.TextField(
         _("public key"),
-        help_text=_("Plaintext public PEM: shareable with verifiers."),
+        help_text=_("Plaintext public PEM. Shareable with verifiers."),
     )
     key_id = models.CharField(
         _("key ID"),

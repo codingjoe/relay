@@ -1,6 +1,6 @@
 ---
 name: basecoat
-description: Build frontend UIs with BasecoatUI: a framework-agnostic Tailwind CSS component library compatible with shadcn/ui themes. Reference all 41 components, JS requirements, data-attributes, CDN usage, themes, and Jinja/Nunjucks macros.
+description: Build frontend UIs with BasecoatUI. A framework-agnostic Tailwind CSS component library compatible with shadcn/ui themes. Reference all 41 components, JS requirements, data-attributes, CDN usage, themes, and Jinja/Nunjucks macros.
 ---
 
 # BasecoatUI
@@ -154,10 +154,10 @@ chromium-cli screenshot http://127.0.0.1:8765/basecoat-preview.html
 
 Most components follow this shape:
 
-1. **Root class**: e.g. `btn`, `card`, `table`. Apply it to the root element.
-1. **Semantic structure**: many components use child `<header>`, `<section>`, `<footer>` (cards, dialogs, popovers).
-1. **Variants / sizes / state** via `data-*` attributes: e.g. `data-variant="outline"`, `data-size="sm"`.
-1. **ARIA roles**: the docs rely on native semantics plus explicit roles (`role="tablist"`, `role="menu"`, `role="listbox"`, etc.).
+1. **Root class**. E.g. `btn`, `card`, `table`. Apply it to the root element.
+1. **Semantic structure**. Many components use child `<header>`, `<section>`, `<footer>` (cards, dialogs, popovers).
+1. **Variants / sizes / state** via `data-*` attributes. E.g. `data-variant="outline"`, `data-size="sm"`.
+1. **ARIA roles**. The docs rely on native semantics plus explicit roles (`role="tablist"`, `role="menu"`, `role="listbox"`, etc.).
 1. **Tailwind utilities**: Basecoat uses your Tailwind configuration, so utilities like `w-full`, `flex`, `gap-2` continue to work.
 
 Common variants: `default`, `secondary`, `destructive`, `outline`, `ghost`, `link`.

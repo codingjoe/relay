@@ -26,9 +26,9 @@ MTA-STS is the email equivalent of HTTP Strict Transport Security (HSTS).[^hsts]
 
 MTA-STS has three components:
 
-1. **A DNS TXT record** at `_mta-sts.<domain>`: contains a policy ID. When you change the policy, you update this ID so senders know to fetch the new policy file.
-1. **A policy file** served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt`: specifies the TLS mode and the valid MX hosts.
-1. **A CNAME record** for `mta-sts.<domain>`: points to the host that serves the policy file.
+1. **A DNS TXT record** at `_mta-sts.<domain>`. Contains a policy ID. When you change the policy, you update this ID so senders know to fetch the new policy file.
+1. **A policy file** served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt`. Specifies the TLS mode and the valid MX hosts.
+1. **A CNAME record** for `mta-sts.<domain>`. Points to the host that serves the policy file.
 
 ### The policy file
 

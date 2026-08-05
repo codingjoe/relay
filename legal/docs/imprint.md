@@ -17,6 +17,6 @@ The operator is responsible for the content of this website according to § 18 p
 
 ## Disclaimer
 
-Liability for content: we created the content of this website with the greatest possible care. However, we cannot guarantee that the contents are accurate, complete, or timely.
+Liability for content. We created the content of this website with the greatest possible care. However, we cannot guarantee that the contents are accurate, complete, or timely.
 
-Liability for links: this website can contain links to external websites. We have no influence on the content of those websites, and we are not responsible for them.
+Liability for links. This website can contain links to external websites. We have no influence on the content of those websites, and we are not responsible for them.
