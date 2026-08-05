@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # Return-Path
 
-> **TL;DR** — The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address. relay configures the Return-Path for you.
+> **TL;DR**: The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address. relay configures the Return-Path for you.
 
 ## What is Return-Path?
 
@@ -34,8 +34,8 @@ The Return-Path domain is the domain that <a href="{% url 'know_how:detail' slug
 
 The Return-Path exists in two places:
 
-1. **The SMTP envelope** — The `MAIL FROM` command sets the envelope sender address. This address is not visible to the recipient. It is used for bounce delivery and SPF checks.
-1. **The Return-Path header** — The receiving mail server adds a `Return-Path` header to the message when it accepts the message. The header contains the envelope sender address from the `MAIL FROM` command.
+1. **The SMTP envelope**: The `MAIL FROM` command sets the envelope sender address. This address is not visible to the recipient. It is used for bounce delivery and SPF checks.
+1. **The Return-Path header**: The receiving mail server adds a `Return-Path` header to the message when it accepts the message. The header contains the envelope sender address from the `MAIL FROM` command.
 
 The sender does not set the `Return-Path` header. The receiving server adds it.[^null-sender] The sender only sets the envelope sender through the `MAIL FROM` command.
 
@@ -61,8 +61,8 @@ BATV is defined in [IETF draft draft-levine-smtp-batv](https://datatracker.ietf.
 
 The Return-Path subdomain needs DNS records for two purposes:
 
-1. **MX or A record** — So that bounce messages can be delivered to the mail server that processes bounces.
-1. **SPF record** — So that the <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check passes for the envelope sender domain.
+1. **MX or A record**: So that bounce messages can be delivered to the mail server that processes bounces.
+1. **SPF record**: So that the <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check passes for the envelope sender domain.
 
 relay uses a CNAME record for the Return-Path subdomain. The CNAME points from `rp.<domain>` to the relay Return-Path host. This lets relay receive and process bounce messages.
 
@@ -80,12 +80,12 @@ The Return-Path domain is part of the <a href="{% url 'know_how:detail' slug='sp
 
 ## Further reading
 
-- [RFC 5321 — Simple Mail Transfer Protocol (Section 4.4: Trace information)](https://datatracker.ietf.org/doc/html/rfc5321#section-4.4)
-- [RFC 5322 — Internet Message Format (Section 3.6.7: Return-Path)](https://datatracker.ietf.org/doc/html/rfc5322#section-3.6.7)
-- [RFC 3464 — An Extensible Message Format for Delivery Status Notifications](https://datatracker.ietf.org/doc/html/rfc3464)
-- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
-- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
-- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
+- [RFC 5321: Simple Mail Transfer Protocol (Section 4.4: Trace information)](https://datatracker.ietf.org/doc/html/rfc5321#section-4.4)
+- [RFC 5322: Internet Message Format (Section 3.6.7: Return-Path)](https://datatracker.ietf.org/doc/html/rfc5322#section-3.6.7)
+- [RFC 3464: An Extensible Message Format for Delivery Status Notifications](https://datatracker.ietf.org/doc/html/rfc3464)
+- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
+- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
 
 [^terminology]: The terms "Return-Path", "envelope sender", "bounce address", and "MAIL FROM address" all refer to the same concept in different contexts. "MAIL FROM" is the SMTP command. "Return-Path" is the header added by the receiving server. "Envelope sender" and "bounce address" are operational terms.
 

@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{% translate "DMARC report"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "DMARC report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">
       {% translate "DMARC report"|capfirst %}
-      {% if report.domain %}— {{ report.domain }}{% endif %}
+      {% if report.domain %}- {{ report.domain }}{% endif %}
     </h2>
   </header>
 

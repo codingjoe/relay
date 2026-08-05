@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # MTA-STS
 
-> **TL;DR** — MTA-STS tells sending mail servers to use TLS when they connect to your mail server. It prevents downgrade attacks and man-in-the-middle interception. relay serves the policy file automatically.
+> **TL;DR**: MTA-STS tells sending mail servers to use TLS when they connect to your mail server. It prevents downgrade attacks and man-in-the-middle interception. relay serves the policy file automatically.
 
 ## What is MTA-STS?
 
@@ -26,9 +26,9 @@ MTA-STS is the email equivalent of HTTP Strict Transport Security (HSTS).[^hsts]
 
 MTA-STS has three components:
 
-1. **A DNS TXT record** at `_mta-sts.<domain>` — contains a policy ID. When you change the policy, you update this ID so senders know to fetch the new policy file.
-1. **A policy file** served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt` — specifies the TLS mode and the valid MX hosts.
-1. **A CNAME record** for `mta-sts.<domain>` — points to the host that serves the policy file.
+1. **A DNS TXT record** at `_mta-sts.<domain>`. Contains a policy ID. When you change the policy, you update this ID so senders know to fetch the new policy file.
+1. **A policy file** served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt`. Specifies the TLS mode and the valid MX hosts.
+1. **A CNAME record** for `mta-sts.<domain>`. Points to the host that serves the policy file.
 
 ### The policy file
 
@@ -45,9 +45,9 @@ The policy file is a plain-text file with key-value pairs. It contains these fie
 
 The `mode` field has three values:
 
-- **`testing`** — The sending server collects TLS failures but still delivers the message. You use this mode to monitor TLS problems before you enforce the policy.
-- **`enforce`** — The sending server refuses to deliver over an unencrypted or untrusted connection. It queues the message and retries later.
-- **`none`** — The policy is disabled. Senders clear their cache and revert to opportunistic `STARTTLS`.
+- **`testing`**: The sending server collects TLS failures but still delivers the message. You use this mode to monitor TLS problems before you enforce the policy.
+- **`enforce`**: The sending server refuses to deliver over an unencrypted or untrusted connection. It queues the message and retries later.
+- **`none`**: The policy is disabled. Senders clear their cache and revert to opportunistic `STARTTLS`.
 
 ### Policy caching
 
@@ -70,10 +70,10 @@ relay handles the policy file, the HTTPS endpoint, and the TLS certificate. You 
 
 ## Further reading
 
-- [RFC 8461 — SMTP MTA Strict Transport Security (MTA-STS)](https://datatracker.ietf.org/doc/html/rfc8461)
-- [RFC 8461 Section 3.2 — Policy file format](https://datatracker.ietf.org/doc/html/rfc8461#section-3.2)
-- <a href="{% url 'know_how:detail' slug='tls-rpt' %}">TLS-RPT</a> — TLS Reporting
-- <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> — Mail Exchange records
+- [RFC 8461: SMTP MTA Strict Transport Security (MTA-STS)](https://datatracker.ietf.org/doc/html/rfc8461)
+- [RFC 8461 Section 3.2: Policy file format](https://datatracker.ietf.org/doc/html/rfc8461#section-3.2)
+- <a href="{% url 'know_how:detail' slug='tls-rpt' %}">TLS-RPT</a>: TLS Reporting
+- <a href="{% url 'know_how:detail' slug='mx' %}">MX</a>: Mail Exchange records
 
 [^hsts]: HSTS is defined in [RFC 6797](https://datatracker.ietf.org/doc/html/rfc6797). The analogy is not exact because HSTS is enforced by browsers and MTA-STS is enforced by mail transfer agents.
 
