@@ -52,7 +52,7 @@ class TestLlmsFullTxt:
         assert response.status_code == 200
         assert "text/plain" in response["Content-Type"]
         body = response.content.decode()
-        assert "relay — know how (full text)" in body
+        assert "relay. Know how (full text)" in body
         assert "DMARC" in body
         assert "SPF" in body
 

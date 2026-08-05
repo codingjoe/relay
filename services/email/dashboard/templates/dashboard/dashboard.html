@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "dashboard"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "dashboard"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "dashboard"|capfirst %}</h2>
@@ -64,7 +64,7 @@
 
   {% include "abstract/chart_card.html" with id="chart-outgoing" data_id="chart-outgoing-data" title=_("outgoing messages by status")|capfirst chart=outgoing_chart class="" %}
   {% include "abstract/chart_card.html" with id="chart-incoming" data_id="chart-incoming-data" title=_("incoming messages by status")|capfirst chart=incoming_chart class="mt-6" %}
-  {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation — sent, bounces, and complaints")|capfirst chart=reputation_chart class="mt-6" %}
+  {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation: sent, bounces, and complaints")|capfirst chart=reputation_chart class="mt-6" %}
   {% include "abstract/chart_card.html" with id="chart-dmarc" data_id="chart-dmarc-data" title=_("DMARC messages by disposition")|capfirst chart=dmarc_chart class="mt-6" %}
   {% include "abstract/chart_card.html" with id="chart-tls" data_id="chart-tls-data" title=_("TLS failures by type")|capfirst chart=tls_chart class="mt-6" %}
 {% endblock %}

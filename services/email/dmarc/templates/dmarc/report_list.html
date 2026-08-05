@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{% translate "DMARC reports"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "DMARC reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "DMARC reports"|capfirst %}</h2>
@@ -56,7 +56,7 @@
             onclick="window.location.href = '{% url 'dmarc:report-detail' org.slug report.pk %}'"
           >
             <td>{{ report.begin_at|naturalday }}</td>
-            <td>{{ report.domain|default:"—" }}</td>
+            <td>{{ report.domain|default:"-" }}</td>
             <td>{{ report.reporting_org|truncatechars:30 }}</td>
             <td>{{ report.report_id|truncatechars:40 }}</td>
           </tr>

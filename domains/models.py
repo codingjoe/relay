@@ -53,7 +53,7 @@ def generate_verification_token():
 
 
 class Domain(TimeStamped):
-    """Root domain — verified once with NS delegation, DMARC, SPF, and DKIM."""
+    """Root domain. Verified once with NS delegation, DMARC, SPF, and DKIM."""
 
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
@@ -170,7 +170,7 @@ class Domain(TimeStamped):
         null=True,
         blank=True,
         help_text=_(
-            "RSA-1024 DKIM signing key — for compatibility with older verifiers."
+            "RSA-1024 DKIM signing key. For compatibility with older verifiers."
         ),
     )
     dkim_key_ed25519 = models.ForeignKey(

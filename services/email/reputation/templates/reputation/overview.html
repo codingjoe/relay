@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "reputation"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "reputation"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "reputation"|capfirst %}</h2>
   </header>
 
-  {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation — sent, bounces, and complaints")|capfirst chart=chart class="" %}
+  {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation: sent, bounces, and complaints")|capfirst chart=chart class="" %}
 
   {% if domain_reputations %}
     <div class="table-container mt-6">

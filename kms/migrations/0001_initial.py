@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                 (
                     "public_key",
                     models.TextField(
-                        help_text="Plaintext public PEM — shareable with verifiers.",
+                        help_text="Plaintext public PEM. Shareable with verifiers.",
                         verbose_name="public key",
                     ),
                 ),

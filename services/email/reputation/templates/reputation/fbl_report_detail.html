@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load i18n abstract message %}
-{% block title %}{% translate "FBL report"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "FBL report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">
       {% translate "FBL report"|capfirst %}
-      {% if report.domain %}— {{ report.domain }}{% endif %}
+      {% if report.domain %}- {{ report.domain }}{% endif %}
     </h2>
   </header>
 
@@ -25,7 +25,7 @@
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
-        <dd class="m-0">{{ report.source_ip_address|default:"—" }}</dd>
+        <dd class="m-0">{{ report.source_ip_address|default:"-" }}</dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
@@ -40,7 +40,7 @@
               href="{% url 'message:message-list' org.slug %}?email={{ report.original_mail_from|urlencode }}"
             >{{ report.original_mail_from }}</a>
           {% else %}
-            —
+            -
           {% endif %}
         </dd>
       </div>
@@ -53,17 +53,17 @@
               href="{% url 'message:message-list' org.slug %}?email={{ report.original_rcpt_to|urlencode }}"
             >{{ report.original_rcpt_to }}</a>
           {% else %}
-            —
+            -
           {% endif %}
         </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "original message ID"|capfirst %}</dt>
-        <dd class="m-0">{{ report.original_message_id|truncatechars:60|default:"—" }}</dd>
+        <dd class="m-0">{{ report.original_message_id|truncatechars:60|default:"-" }}</dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "user agent"|capfirst %}</dt>
-        <dd class="m-0">{{ report.user_agent|default:"—" }}</dd>
+        <dd class="m-0">{{ report.user_agent|default:"-" }}</dd>
       </div>
     </dl>
   </div>

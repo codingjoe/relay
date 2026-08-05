@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n accounts abstract %}
-{% block title %}{% translate "organizations"|capfirst context "noun" %} — relay{% endblock %}
+{% block title %}{% translate "organizations"|capfirst context "noun" %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "organizations"|capfirst context "noun" %}</h2>
@@ -56,7 +56,9 @@
               {% if org.memberships.all|length > 5 %}
                 <span
                   data-count
-                  aria-label="{% blocktranslate count counter=org.memberships.all|length|add:'-5' %}{{ counter }} additional member{% plural %}{{ counter }} additional members{% endblocktranslate %}"
+                  aria-label="{% blocktranslate count counter=org.memberships.all|length|add:'-5' trimmed %}
+                    {{ counter }} additional member{% plural %}{{ counter }} additional members
+                  {% endblocktranslate %}"
                 >
                   <i data-lucide="plus" class="size-3.5" aria-hidden="true"></i>
                 </span>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "FBL reports"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "FBL reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "FBL reports"|capfirst %}</h2>
@@ -54,8 +54,8 @@
             class="cursor-pointer"
             onclick="window.location.href = '{% url 'reputation:fbl-report-detail' org.slug report.pk %}'"
           >
-            <td>{{ report.arrival_at|naturalday|default:"—" }}</td>
-            <td>{{ report.domain|default:"—" }}</td>
+            <td>{{ report.arrival_at|naturalday|default:"-" }}</td>
+            <td>{{ report.domain|default:"-" }}</td>
             <td>
               <span class="badge" data-size="sm" data-variant="destructive">
                 {{ report.get_feedback_type_display }}

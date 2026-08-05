@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{{ message.subject|truncatechars:50 }} — relay{% endblock %}
+{% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
   {% if webhook_deliveries %}
     <details open class="mb-4">
@@ -29,7 +29,7 @@
                     {{ delivery.get_status_display }}
                   </span>
                 </td>
-                <td>{{ delivery.response_code|default:"—" }}</td>
+                <td>{{ delivery.response_code|default:"-" }}</td>
                 <td>
                   {% timestamp delivery.created_at %}
                 </td>

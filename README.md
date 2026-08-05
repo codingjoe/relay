@@ -1,4 +1,4 @@
-# Relay — B2B SaaS Communication Platform
+# Relay: B2B SaaS Communication Platform
 
 A B2B SaaS communication platform for AI applications.
 The platform has a **built-in authoritative nameserver**
@@ -8,10 +8,10 @@ that removes manual DNS configuration.
 
 Users only need to set **two DNS records**:
 
-1. **NS delegation** — Delegate the sender subdomain to our nameservers
-1. **DMARC record** — On the root domain
+1. **NS delegation**. Delegate the sender subdomain to our nameservers
+1. **DMARC record**. On the root domain
 
-Everything else — MX, SPF, DKIM, Return-Path — is **served automatically**
+Everything else (MX, SPF, DKIM, Return-Path) is **served automatically**
 by the built-in nameserver. You do not need to use the DNS provider dashboard.
 
 ## Free Sender Domain
@@ -67,16 +67,16 @@ For the free domain to resolve in production, the platform operator must:
 Organization → Domain, SmtpCredential
 ```
 
-- **Organization** — Owns resources (domains, credentials). Each user gets a personal org on signup.
-- **Domain** — Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
-- **SendingDomain** — Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
-- **ReceivingDomain** — Receiving domain with MX record pointing to the root domain's sender subdomain
-- **SmtpCredential** — Per-org API key used to authenticate outgoing SMTP submissions
-- **Webhook** — Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
-- **DmarcReport** — Aggregate DMARC report (RUA) received from external organizations, parsed from XML
-- **DmarcFailureReport** — Forensic DMARC report (RUF) received from external organizations, parsed from ARF
-- **FblReport** — Feedback Loop complaint report received from email providers, parsed from ARF (RFC 5965)
-- **TlsReport** — TLS-RPT report received from external organizations, parsed from JSON via DRF serializers
+- **Organization**: Owns resources (domains, credentials). Each user gets a personal org on signup.
+- **Domain**: Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
+- **SendingDomain**: Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
+- **ReceivingDomain**: Receiving domain with MX record pointing to the root domain's sender subdomain
+- **SmtpCredential**: Per-org API key used to authenticate outgoing SMTP submissions
+- **Webhook**: Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
+- **DmarcReport**: Aggregate DMARC report (RUA) received from external organizations, parsed from XML
+- **DmarcFailureReport**: Forensic DMARC report (RUF) received from external organizations, parsed from ARF
+- **FblReport**: Feedback Loop complaint report received from email providers, parsed from ARF (RFC 5965)
+- **TlsReport**: TLS-RPT report received from external organizations, parsed from JSON via DRF serializers
 
 All report models use multi-table inheritance with `IncomingMessage` so they
 inherit the UUIDv7 primary key and inbound email metadata.
@@ -89,13 +89,13 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
 | SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
 | MX      | 25           | Incoming MX delivery (aiosmtpd)      |
-| Worker  | —            | Threadmill task worker               |
+| Worker  | N/A          | Threadmill task worker               |
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
 receiving domains (for example, `app.acme.com`) by pointing an MX record to their
 sender subdomain (for example, `MX app.acme.com → mail.relay.acme.com`). Webhooks
-follow the [Standard Webhooks](https://standardwebhooks.com) specification —
+follow the [Standard Webhooks](https://standardwebhooks.com) specification -
 each delivery includes `webhook-id`, `webhook-timestamp`, and
 `webhook-signature` headers with an Ed25519 (`v1a`) signature. Each webhook
 has its own keypair, so clients verify with the webhook's public key
@@ -112,11 +112,11 @@ address glob pattern.
 ### Tech Stack
 
 - **Django** with the task framework for async message delivery
-- **PostgreSQL** — primary database
-- **Redis** — caching and rate limiting
-- **S3** — raw message body storage via django-storages
-- **basecoat CSS** — component-based CSS framework for the web UI
-- **Granian** — Rust-based ASGI server
+- **PostgreSQL**. Primary database
+- **Redis**. Caching and rate limiting
+- **S3**. Raw message body storage via django-storages
+- **basecoat CSS**. Component-based CSS framework for the web UI
+- **Granian**: Rust-based ASGI server
 
 ### Error monitoring (Sentry)
 
@@ -124,11 +124,11 @@ All five processes report to a single Sentry project. Off by default; set
 `SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
 sent automatically.
 
-| Variable                    | Default         | Description                                |
-| --------------------------- | --------------- | ------------------------------------------ |
-| `SENTRY_DSN`                | _(empty — off)_ | Project DSN. Required to enable reporting. |
-| `SENTRY_ENVIRONMENT`        | `production`    | Sentry environment tag.                    |
-| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`           | Tracing sample rate (0–1). Off by default. |
+| Variable                    | Default        | Description                                |
+| --------------------------- | -------------- | ------------------------------------------ |
+| `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting. |
+| `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                    |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default. |
 
 ## App dependencies
 

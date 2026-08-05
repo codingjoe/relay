@@ -14,7 +14,7 @@ def compute_domain_reputation(domain):
     Returns a dict with keys: `total_sent`, `hard_bounces`,
     `soft_bounces`, `complaints`, `hard_bounce_rate`,
     `soft_bounce_rate`, `complaint_rate`, `bounce_rate`.
-    Rates are floats (0.0–1.0). Returns zero counts and rates when
+    Rates are floats (0.0-1.0). Returns zero counts and rates when
     the domain has no outgoing messages in the window.
     """
     window_start = timezone.now() - timedelta(

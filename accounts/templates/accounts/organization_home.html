@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{{ organization }} — relay{% endblock %}
+{% block title %}{{ organization }} | relay{% endblock %}
 {% block content %}
   <header class="mb-6">
     <h2 class="m-0">{{ organization }}</h2>
@@ -16,8 +16,9 @@
         <h3 class="m-0">{% translate "email"|capfirst context "noun" %}</h3>
       </div>
       <p class="text-muted-foreground m-0">
-        {% blocktranslate %}send and receive email with zero-config DNS. built-in authoritative nameserver, DKIM, SPF,
-          and DMARC.{% endblocktranslate %}
+        {% blocktranslate trimmed %}
+          Send and receive email with zero-config DNS. built-in authoritative nameserver, DKIM, SPF, and DMARC.
+        {% endblocktranslate %}
       </p>
     </a>
 
@@ -28,8 +29,9 @@
         <span class="badge" data-size="sm">{% translate "coming soon" %}</span>
       </div>
       <p class="text-muted-foreground m-0">
-        {% blocktranslate %}voice over IP with call routing, voicemail, and more. currently in
-          development.{% endblocktranslate %}
+        {% blocktranslate trimmed %}
+          Voice over IP with call routing, voicemail, and more. currently in development.
+        {% endblocktranslate %}
       </p>
     </div>
   </div>

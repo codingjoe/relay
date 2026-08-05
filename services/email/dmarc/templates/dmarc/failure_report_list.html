@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{% translate "DMARC failure reports"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "DMARC failure reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "DMARC failure reports"|capfirst %}</h2>
@@ -54,9 +54,9 @@
             class="cursor-pointer"
             onclick="window.location.href = '{% url 'dmarc:failure-report-detail' org.slug report.pk %}'"
           >
-            <td>{{ report.arrival_at|naturalday|default:"—" }}</td>
-            <td>{{ report.domain|default:"—" }}</td>
-            <td>{{ report.source_ip_address|default:"—" }}</td>
+            <td>{{ report.arrival_at|naturalday|default:"-" }}</td>
+            <td>{{ report.domain|default:"-" }}</td>
+            <td>{{ report.source_ip_address|default:"-" }}</td>
             <td>{{ report.original_mail_from|truncatechars:30 }}</td>
             <td>{{ report.get_delivery_result_display }}</td>
           </tr>

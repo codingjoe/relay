@@ -2,7 +2,7 @@
 {% load i18n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
-{% block title %}{% translate "relay — infrastructure as a service"|title %}{% endblock %}
+{% block title %}{% translate "relay: infrastructure as a service"|title %}{% endblock %}
 {% block content %}
   <div class="start relative isolate -mx-6 sm:-mx-8">
     <div
@@ -27,8 +27,9 @@
         Infrastructure <span class="landing-accent">as a Service</span>
       </h1>
       <p class="text-xl sm:text-2xl text-muted-foreground m-0 max-w-3xl leading-relaxed">
-        {% blocktranslate %}email sending, receiving, reputation monitoring, and a dev sandbox — ready the moment you
-          sign up.{% endblocktranslate %}
+        {% blocktranslate trimmed %}
+          Email sending, receiving, reputation monitoring, and a dev sandbox. Ready the moment you sign up.
+        {% endblocktranslate %}
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
@@ -57,7 +58,9 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "email sending"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}Send via SMTP or MCP with automated sender verification.{% endblocktranslate %}
+            {% blocktranslate trimmed %}
+              Send via SMTP or MCP with automated sender verification.
+            {% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
@@ -66,7 +69,9 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}Receive incoming mail via webhooks, API, or MCP.{% endblocktranslate %}
+            {% blocktranslate trimmed %}
+              Receive incoming mail via webhooks, API, or MCP.
+            {% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
@@ -75,8 +80,9 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "reputation monitoring"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}Track delivery status, bounce rates, and sender reputation across all
-              domains.{% endblocktranslate %}
+            {% blocktranslate trimmed %}
+              Track delivery status, bounce rates, and sender reputation across all domains.
+            {% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
@@ -85,8 +91,9 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "dev sandbox"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}Test credentials and a free sender domain ready the moment you sign
-              up.{% endblocktranslate %}
+            {% blocktranslate trimmed %}
+              Test credentials and a free sender domain ready the moment you sign up.
+            {% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
@@ -95,7 +102,9 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "hosted in the EU"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}GDPR compliant, EU data sovereignty, no third-country transfer.{% endblocktranslate %}
+            {% blocktranslate trimmed %}
+              GDPR compliant, EU data sovereignty, no third-country transfer.
+            {% endblocktranslate %}
           </p>
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
@@ -104,8 +113,9 @@
           </div>
           <h3 class="m-0 text-lg">{% translate "AI-first"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
-            {% blocktranslate %}For AI agents to send and receive email, with a focus on privacy and
-              security.{% endblocktranslate %}
+            {% blocktranslate trimmed %}
+              For AI agents to send and receive email, with a focus on privacy and security.
+            {% endblocktranslate %}
           </p>
         </article>
       </div>
@@ -116,7 +126,9 @@
         {% translate "start free. pay as you go."|capfirst %}
       </h2>
       <p class="text-center text-muted-foreground m-0 mb-10">
-        {% blocktranslate %}no contracts, no surprises.{% endblocktranslate %}
+        {% blocktranslate trimmed %}
+          No contracts, no surprises.
+        {% endblocktranslate %}
       </p>
       <div class="card p-8 shadow-sm border-primary/20 max-w-lg mx-auto">
         <header class="m-0">
@@ -124,7 +136,9 @@
           <p class="m-0 mt-1 flex items-baseline gap-1">
             <span class="text-6xl font-bold tracking-tight font-mono" id="price-amount">€0</span>
             <span class="text-muted-foreground" id="price-period">
-              {% blocktranslate %}/ month{% endblocktranslate %}
+              {% blocktranslate trimmed %}
+                / month.
+              {% endblocktranslate %}
             </span>
           </p>
         </header>
@@ -144,7 +158,9 @@
             aria-label="monthly email volume"
           >
           <p class="text-xs text-muted-foreground m-0 font-mono">
-            {% blocktranslate %}first 1,000 emails free, then €0.75 / 1,000 emails{% endblocktranslate %}
+            {% blocktranslate trimmed %}
+              First 1,000 emails free, then €0.75 / 1,000 emails.
+            {% endblocktranslate %}
           </p>
         </section>
         <hr class="my-6 border-border">

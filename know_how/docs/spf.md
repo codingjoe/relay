@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # SPF
 
-> **TL;DR** — SPF is a DNS record that lists the mail servers authorized to send email for your domain. Receiving servers check this record to verify the sender. relay publishes the SPF record for you automatically.
+> **TL;DR**: SPF is a DNS record that lists the mail servers authorized to send email for your domain. Receiving servers check this record to verify the sender. relay publishes the SPF record for you automatically.
 
 ## What is SPF?
 
@@ -82,11 +82,11 @@ The SPF record on the sender subdomain uses `~all` (soft fail) for all other sen
 
 ## Further reading
 
-- [RFC 7208 — Sender Policy Framework](https://datatracker.ietf.org/doc/html/rfc7208)
-- [RFC 7208 Section 2.3 — SPF results](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3)
-- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
-- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
-- <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
+- [RFC 7208: Sender Policy Framework](https://datatracker.ietf.org/doc/html/rfc7208)
+- [RFC 7208 Section 2.3: SPF results](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3)
+- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>: DomainKeys Identified Mail
+- <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a>: The bounce address and envelope sender
 
 [^helo-optional]: The `HELO`/`EHLO` check is optional in the SPF specification. A server can publish a separate SPF record for its `HELO` hostname. This practice is recommended but not required. See [RFC 7208 Section 2.3](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3).
 

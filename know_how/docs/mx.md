@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # MX
 
-> **TL;DR** — MX records tell senders which mail server receives email for a domain. relay points your MX record to the relay server and dispatches incoming mail to your webhooks.
+> **TL;DR**: MX records tell senders which mail server receives email for a domain. relay points your MX record to the relay server and dispatches incoming mail to your webhooks.
 
 ## What is MX?
 
@@ -69,10 +69,10 @@ For outgoing mail, relay uses the <a href="{% url 'know_how:detail' slug='smtp' 
 
 ## Further reading
 
-- [RFC 1035 — Domain Names: Implementation and Specification](https://datatracker.ietf.org/doc/html/rfc1035)
-- [RFC 5321 — Simple Mail Transfer Protocol (Section 5: MX lookup)](https://datatracker.ietf.org/doc/html/rfc5321#section-5)
-- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
-- <a href="{% url 'know_how:detail' slug='ptr' %}">PTR</a> — Pointer records (reverse DNS)
+- [RFC 1035: Domain Names: Implementation and Specification](https://datatracker.ietf.org/doc/html/rfc1035)
+- [RFC 5321: Simple Mail Transfer Protocol (Section 5: MX lookup)](https://datatracker.ietf.org/doc/html/rfc5321#section-5)
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
+- <a href="{% url 'know_how:detail' slug='ptr' %}">PTR</a>: Pointer records (reverse DNS)
 
 [^retry-behavior]: The retry schedule is implementation-specific. RFC 5321 recommends at least 4 to 5 days of retries. The sending server typically waits longer between each retry attempt (for example, 15 minutes, 1 hour, 4 hours, 8 hours).
 
