@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # PTR
 
-> **TL;DR** — A PTR record maps an IP address back to a hostname. Mail servers use it to verify the sending server. relay publishes the PTR record for the SMTP server automatically.
+> **TL;DR**: A PTR record maps an IP address back to a hostname. Mail servers use it to verify the sending server. relay publishes the PTR record for the SMTP server automatically.
 
 ## What is PTR?
 
@@ -44,8 +44,8 @@ For IPv6, PTR records live in the `ip6.arpa` zone.[^ipv6-ptr] The IPv6 address i
 
 A common verification technique is forward-confirmed reverse DNS (FCrDNS). The receiving server performs two lookups:
 
-1. **Reverse lookup** — The server looks up the PTR record for the sending IP address. The PTR record returns a hostname.
-1. **Forward lookup** — The server looks up the A or AAAA record for that hostname. The A record must return the original IP address.
+1. **Reverse lookup**: The server looks up the PTR record for the sending IP address. The PTR record returns a hostname.
+1. **Forward lookup**: The server looks up the A or AAAA record for that hostname. The A record must return the original IP address.
 
 If both lookups match, the IP address has valid forward-confirmed reverse DNS.[^fcrdns-weakness] This check prevents a sender from publishing an arbitrary hostname in their PTR record.
 
@@ -63,10 +63,10 @@ You do not need to configure PTR records. relay manages the IP address space and
 
 ## Further reading
 
-- [RFC 1035 — Domain Names: Implementation and Specification (Section 3.5: PTR)](https://datatracker.ietf.org/doc/html/rfc1035#section-3.5)
-- [RFC 1912 — Common DNS Operational and Configuration Errors (Section 2.1: PTR)](https://datatracker.ietf.org/doc/html/rfc1912#section-2.1)
-- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
-- <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> — Mail Exchange records
+- [RFC 1035: Domain Names: Implementation and Specification (Section 3.5: PTR)](https://datatracker.ietf.org/doc/html/rfc1035#section-3.5)
+- [RFC 1912: Common DNS Operational and Configuration Errors (Section 2.1: PTR)](https://datatracker.ietf.org/doc/html/rfc1912#section-2.1)
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
+- <a href="{% url 'know_how:detail' slug='mx' %}">MX</a>: Mail Exchange records
 
 [^ipv6-ptr]: IPv6 reverse DNS is often neglected. Many organizations set up IPv4 PTR records but forget IPv6. This causes delivery problems when the receiving server connects over IPv6 and the PTR check fails. relay publishes both IPv4 and IPv6 PTR records.
 

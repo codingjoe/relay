@@ -22,7 +22,50 @@
   pattern: '``[^`\n]+``'
   hint: 'Use single backticks for inline code, not double backticks. Double backticks are RST syntax, not Markdown.'
   filePattern: .*\.py
-- name: No bare early returns — use EAFP instead
+- name: "No bare early returns. Use EAFP instead"
   pattern: '\n[ \t]+(?:if|except)\b[^\n]*:\n[ \t]+(?:return\s*\n|continue\b)'
   hint: 'Avoid bare `return` (no value) and `continue` to cut program flow (`if/except ...: return/continue`). Use EAFP (try/except) or match/case instead. Returns with an explicit value are OK.'
   filePattern: .*\.py
+- name: Use translate instead of trans
+  pattern: '\{%\s*trans\b'
+  hint: |
+    Use {% translate %} instead of the shorthand {% trans %}.
+  filePattern: .*\.html$
+- name: Use blocktranslate instead of blocktrans
+  pattern: '\{%\s*(end)?blocktrans\b'
+  hint: |
+    Use {% blocktranslate %} / {% endblocktranslate %} instead of
+    the shorthand {% blocktrans %} / {% endblocktrans %}.
+  filePattern: .*\.html$
+- name: blocktranslate must use trimmed
+  pattern: '\{%\s*blocktranslate\b(?![^%]*\btrimmed\b)'
+  hint: |
+    Always pass `trimmed` to {% blocktranslate %} to strip whitespace
+    around interpolation blocks.
+  filePattern: .*\.html$
+- name: blocktranslate content must start on a new line
+  pattern: '\{%\s*blocktranslate\b[^%]*%\}[ \t]*\S'
+  hint: |
+    Start blocktranslate content on a new line after the opening tag.
+    Since `trimmed` strips whitespace, this improves readability without
+    affecting output.
+  filePattern: .*\.html$
+- name: blocktranslate content must start with a capital letter
+  pattern: '\{%\s*blocktranslate\b[^%]*%\}\n[ \t]*[a-z]'
+  hint: |
+    Start blocktranslate content with a capital letter (sentence case).
+    Interpolations ({{ }}) and HTML tags are exempt.
+  filePattern: .*\.html$
+- name: blocktranslate content must end with punctuation
+  pattern: '(?m)^(?!.*\{%\s*plural\b)[^\n]*[a-z0-9][ \t]*\n[ \t]*\{%\s*endblocktranslate\b'
+  hint: |
+    End blocktranslate content with sentence-ending punctuation (.!?).
+    Pluralization blocks ({% plural %}) are exempt.
+  filePattern: .*\.html$
+- name: No em dashes or en dashes
+  pattern: '[\u2014\u2013]'
+  hint: |
+    Do not use em dashes (U+2014) or en dashes (U+2013). Use periods,
+    colons, semicolons, or commas for sentence structure. Use hyphens
+    (U+002D) for compound words and ranges.
+  filePattern: '.*\.(py|html|md|yml|yaml)$'

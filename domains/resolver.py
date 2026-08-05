@@ -1,4 +1,4 @@
-"""DNS record resolver — build DNS records from Domain models."""
+"""DNS record resolver. Build DNS records from Domain models."""
 
 import base64
 
@@ -135,7 +135,7 @@ class DNSResolver:
                 )
             )
 
-        # DKIM — serve public key for each cipher at its selector name
+        # DKIM. Serve public key for each cipher at its selector name
         for selector, key in domain.dkim_ciphers:
             if key:
                 key_record_name = f"{selector}._domainkey.{base}"
@@ -167,7 +167,7 @@ class DNSResolver:
                 )
             )
 
-        # DMARC — system domains serve at the apex, user domains serve at the
+        # DMARC. System domains serve at the apex, user domains serve at the
         # sender subdomain for external reporting authorization.
         if domain.is_system and qname_lower == f"_dmarc.{domain.name}".lower():
             records.append(
@@ -193,7 +193,7 @@ class DNSResolver:
                 )
             )
 
-        # TLS-RPT — served at _smtp._tls.{base} for all domains.
+        # TLS-RPT. Served at _smtp._tls.{base} for all domains.
         if qname_lower == f"_smtp._tls.{base}".lower():
             records.append(
                 RR(

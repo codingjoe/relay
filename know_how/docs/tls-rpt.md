@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # TLS-RPT
 
-> **TL;DR** — TLS-RPT lets mail servers send you reports about TLS connection failures. It works with MTA-STS to help you monitor and fix delivery problems. relay collects these reports for you.
+> **TL;DR**: TLS-RPT lets mail servers send you reports about TLS connection failures. It works with MTA-STS to help you monitor and fix delivery problems. relay collects these reports for you.
 
 ## What is TLS-RPT?
 
@@ -66,12 +66,12 @@ TLS-RPT reports are JSON documents. Each report contains:
 
 The report specifies one of these failure reasons:
 
-- `starttls-not-supported` — The receiving server does not support STARTTLS.
-- `certificate-host-mismatch` — The certificate hostname does not match the MX host.
-- `certificate-expired` — The certificate has expired.
-- `certificate-not-trusted` — The certificate is not issued by a trusted authority.
-- `tls-version-unsupported` — The TLS version is too old or not supported.
-- `cipher-suite-unsupported` — The cipher suite is not acceptable.[^failure-detail-optional]
+- `starttls-not-supported`: The receiving server does not support STARTTLS.
+- `certificate-host-mismatch`: The certificate hostname does not match the MX host.
+- `certificate-expired`: The certificate has expired.
+- `certificate-not-trusted`: The certificate is not issued by a trusted authority.
+- `tls-version-unsupported`: The TLS version is too old or not supported.
+- `cipher-suite-unsupported`: The cipher suite is not acceptable.[^failure-detail-optional]
 
 ## How relay uses TLS-RPT
 
@@ -81,10 +81,10 @@ You can view the collected reports in the TLS reports dashboard in your organiza
 
 ## Further reading
 
-- [RFC 8460 — SMTP TLS Reporting](https://datatracker.ietf.org/doc/html/rfc8460)
-- [RFC 8460 Section 4 — Report format](https://datatracker.ietf.org/doc/html/rfc8460#section-4)
-- <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> — SMTP MTA Strict Transport Security
-- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> — Simple Mail Transfer Protocol
+- [RFC 8460: SMTP TLS Reporting](https://datatracker.ietf.org/doc/html/rfc8460)
+- [RFC 8460 Section 4: Report format](https://datatracker.ietf.org/doc/html/rfc8460#section-4)
+- <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>: SMTP MTA Strict Transport Security
+- <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
 
 [^report-interval]: Reports are typically sent once per day per sending domain. The report covers all TLS connection attempts during that 24-hour period, both successful and failed.
 

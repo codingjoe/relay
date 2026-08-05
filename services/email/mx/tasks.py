@@ -19,7 +19,7 @@ from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDeli
 logger = logging.getLogger(__name__)
 
 
-# Standard Webhooks retry schedule — delay *between* consecutive attempts,
+# Standard Webhooks retry schedule. Delay *between* consecutive attempts,
 # with jitter added at enqueue time. See "Deliverability and reliability":
 # https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md#deliverability-and-reliability
 WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (

@@ -181,7 +181,7 @@ class Migration(migrations.Migration):
                     "dkim_key_rsa1024",
                     models.ForeignKey(
                         blank=True,
-                        help_text="RSA-1024 DKIM signing key — for compatibility with older verifiers.",
+                        help_text="RSA-1024 DKIM signing key. For compatibility with older verifiers.",
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="+",

@@ -3,7 +3,9 @@
   <header>
     <h3 class="m-0">{{ title }}</h3>
     <p class="m-0 text-muted-foreground">
-      {% blocktranslate count days=chart.rows|length %}{{ days }} day{% plural %}{{ days }} days{% endblocktranslate %}
+      {% blocktranslate count days=chart.rows|length trimmed %}
+        {{ days }} day{% plural %}{{ days }} days
+      {% endblocktranslate %}
     </p>
   </header>
   <canvas id="{{ id }}" class="h-72" aria-label="{{ title }}"></canvas>

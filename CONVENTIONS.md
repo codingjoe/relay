@@ -25,7 +25,7 @@ Update it based on review feedback.
 - CRUD actions on objects must **not** end with a trailing slash.
   List/create views can use a trailing slash.
 
-- Always reference URLs by name, never by hardcoded path — in settings
+- Always reference URLs by name, never by hardcoded path. In settings
   (`LOGIN_URL`, `LOGIN_REDIRECT_URL`, `LOGOUT_REDIRECT_URL`), `redirect()`,
   `reverse()`/`reverse_lazy()`, and templates (`{% url %}`). This keeps
   redirects valid when paths move.
@@ -36,7 +36,7 @@ Update it based on review feedback.
 
 ## Primary Keys
 
-- Prefer `BigAutoField` (bigint) for most models — easier to work with in Django.
+- Prefer `BigAutoField` (bigint) for most models. Easier to work with in Django.
 - Use slugs based on title for URL patterns, not UUIDs.
 - Exception: `Message` and `Transmission` use UUIDv7 as PK because IDs are
   used as SMTP message-ids and need to be unique/transferable outside Postgres.
@@ -55,7 +55,7 @@ Update it based on review feedback.
 - Drop `class Meta` entirely if it only inherits without overriding anything.
 - Use `TextField` instead of `CharField` for all fields unless you
   specifically want Django's `max_length` validation. In PostgreSQL there
-  is no performance advantage to `varchar` over `text` — both use the same
+  is no performance advantage to `varchar` over `text`. Both use the same
   storage. Choice fields use `TextField` with `choices=`. Django's choice
   validation works without `max_length`. Only use `CharField(max_length=N)`
   when the standard defines a fixed maximum length and you want the DB-level
@@ -76,12 +76,12 @@ Update it based on review feedback.
 - Use Google-style Markdown docstrings (Napoleon). Not RST.
 - Start with a verb describing the external behavior (for example, "Return",
   "Send", "Validate", "Determine").
-- Keep docstrings concise — one sentence for simple functions.
+- Keep docstrings concise. One sentence for simple functions.
 - Never repeat the function/method name in the docstring.
-- Never describe implementation details — describe what, not how.
+- Never describe implementation details. Describe what, not how.
 - Use bullet lists for parameters only when the function has 3+ non-obvious
   parameters. Otherwise the signature is self-documenting.
-- Do not write docstrings for inherited methods or properties — the
+- Do not write docstrings for inherited methods or properties. The
   base class already documents them.
 
 ## Control Flow
@@ -98,7 +98,7 @@ Update it based on review feedback.
 - Import views as `from . import views` in URL configs, then reference
   `views.MyView.as_view()`.
 - Do not import with different names (no `import x as y`) unless necessary.
-- Do not import per-property — import the module directly.
+- Do not import per-property. Import the module directly.
 
 ## Authentication
 
@@ -110,7 +110,7 @@ Update it based on review feedback.
 
 - Use names that cover both ingress and egress when a model tracks
   bidirectional events (for example, `Transmission`, not `Delivery`).
-- Avoid abbreviations in general — write names out in full (for example,
+- Avoid abbreviations in general. Write names out in full (for example,
   `nameserver`, not `ns`). This includes field names, verbose names,
   and help text.
 - Email-specific abbreviations are OK since they are more common than
@@ -154,31 +154,31 @@ Update it based on review feedback.
     pages that show selectable entities (for example, organizations). Prefer items
     over tables when each row is a single clickable entity with a title and
     short metadata.
-  - Brand name: write `relay` in lowercase everywhere — it is a brand name,
+  - Brand name. Write `relay` in lowercase everywhere. It is a brand name,
     not a translatable string. Do not wrap it in `{% translate %}` or
     apply `|capfirst`/`|title`.
 
-- Icons use [Lucide](https://lucide.dev/) via vanilla JS — load the UMD
+- Icons use [Lucide](https://lucide.dev/) via vanilla JS. Load the UMD
   bundle from a CDN with `defer` and call `lucide.createIcons()` on
   `DOMContentLoaded`. Render icons with `<i data-lucide="name" class="size-4|size-5|size-3.5" aria-hidden="true">`
   (Tailwind size scale: 3.5=14px, 4=16px, 5=20px). Never inline Lucide SVGs
-  by hand — the library replaces the `<i>` element with the SVG at runtime.
-  Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons —
+  by hand. The library replaces the `<i>` element with the SVG at runtime.
+  Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons -
   use Lucide icons with semantic color classes instead (for example,
   `circle-check` with `text-primary`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
 
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
-  The source entry is `src/css/app.css` — it imports Tailwind CSS v4 and
+  The source entry is `src/css/app.css`. It imports Tailwind CSS v4 and
   basecoat-css (maia style), plus any custom CSS variables and layout glue.
   Run `npm run build` to compile `src/css/app.css` → `root/static/css/app.css`
-  (a build artifact, gitignored — do not edit it directly). Run `npm run dev`
+  (a build artifact, gitignored. Do not edit it directly). Run `npm run dev`
   to watch for changes during development. The build output is served via
   `{% static 'css/app.css' %}` in `base.html`.
-  Custom CSS is kept to the bare minimum — use it only for layout glue
+  Custom CSS is kept to the bare minimum. Use it only for layout glue
   basecoat/Tailwind do not provide directly (for example, the breadcrumb
   container's background, marketing-page accent highlights). Do not use it
-  for component styling — use basecoat classes instead. If a utility is
+  for component styling. Use basecoat classes instead. If a utility is
   missing, prefer a Tailwind utility before adding a custom rule.
 
 - Django form widgets are styled by overriding templates under
@@ -192,7 +192,7 @@ Update it based on review feedback.
 
 - Sidebar and main-nav links: assign each URL to a variable with
   `{% url '...' as var %}`, then use exact `request.path == var` to set
-  `aria-current="page"`. Do **not** use `{% if var in request.path %}` —
+  `aria-current="page"`. Do **not** use `{% if var in request.path %}` -
   a substring check highlights parent links on every child page.
   Hide main-nav links entirely when no org is selected.
 
@@ -222,7 +222,7 @@ Update it based on review feedback.
 
 - Tests that do not need the database carry no marker.
 
-- Prefer unit tests over integration tests — test model methods and
+- Prefer unit tests over integration tests. Test model methods and
   utility functions without the DB where possible.
 
 - CRUD view tests use Django's test client via the pytest-django `client`
@@ -237,7 +237,7 @@ Update it based on review feedback.
     `test_get__arbitrary_suffix` / `test_post__arbitrary_suffix`
     (for example, `test_get__not_found`, `test_post__creates_org`).
 
-- Group related tests in classes — no comment headlines (`# ── … ──`).
+- Group related tests in classes. No comment headlines (`# ── … ──`).
   Use plain `class TestSomething:` with no decorator unless a class-level
   `@pytest.mark.django_db` is needed.
 
@@ -246,7 +246,7 @@ Update it based on review feedback.
 
 - Avoid mocking and patching unless the code under test performs external I/O
   (DNS lookups, SMTP delivery, HTTP requests). Mocks can diverge from the real
-  implementation — tests pass but production fails. Prefer real objects and
+  implementation. Tests pass but production fails. Prefer real objects and
   real database state.
 
 - Test modules do not need module docstrings.

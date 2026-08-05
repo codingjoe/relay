@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # DKIM
 
-> **TL;DR** — DKIM adds a cryptographic signature to each outgoing email. Receiving servers verify the signature with a public key from DNS. relay generates and manages all keys for you.
+> **TL;DR**: DKIM adds a cryptographic signature to each outgoing email. Receiving servers verify the signature with a public key from DNS. relay generates and manages all keys for you.
 
 ## What is DKIM?
 
@@ -20,8 +20,8 @@ SPF verifies the sending IP address, but it cannot verify the message content. A
 
 DKIM provides two guarantees that SPF cannot:
 
-1. **Content integrity** — The signature covers selected message headers and the message body. If an attacker changes the content, the signature verification fails.
-1. **Domain accountability** — The signature identifies the domain that signed the message. This domain does not have to be the same as the visible From domain, but <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> alignment checks that they match.
+1. **Content integrity**: The signature covers selected message headers and the message body. If an attacker changes the content, the signature verification fails.
+1. **Domain accountability**: The signature identifies the domain that signed the message. This domain does not have to be the same as the visible From domain, but <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> alignment checks that they match.
 
 DKIM is one of the two authentication methods that <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> uses. The other is <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>. DMARC requires at least one of the two to pass.
 
@@ -59,8 +59,8 @@ The body hash (the `bh=` tag) covers the message body. If any byte of the body c
 
 Email messages can be modified in transit by mailing list software, forwarders, or other mail servers. These modifications can add or remove whitespace, change line endings, or wrap long lines. DKIM uses canonicalization algorithms to handle minor changes:
 
-- **Simple canonicalization** — Tolerates almost no changes. Any modification to the body or headers fails verification.
-- **Relaxed canonicalization** — Tolerates minor whitespace and line-ending changes. This mode is more common because it allows messages to pass through most mail infrastructure without breaking the signature.
+- **Simple canonicalization**: Tolerates almost no changes. Any modification to the body or headers fails verification.
+- **Relaxed canonicalization**: Tolerates minor whitespace and line-ending changes. This mode is more common because it allows messages to pass through most mail infrastructure without breaking the signature.
 
 The canonicalization mode is specified in the `c=` tag of the `DKIM-Signature` header.
 
@@ -80,9 +80,9 @@ DKIM uses TXT records at `<selector>._domainkey.<domain>`. The record contains:
 
 DKIM supports several key types:
 
-- **RSA-2048** — The most common key type. It provides strong security and is compatible with all receiving servers.
-- **RSA-1024** — An older key size. Some receivers no longer accept RSA-1024 keys because the security margin is too small.
-- **Ed25519** — A modern elliptic curve algorithm. It provides the same security as RSA-2048 with a much smaller key size.[^ed25519-support] Not all receiving servers support Ed25519 yet.
+- **RSA-2048**: The most common key type. It provides strong security and is compatible with all receiving servers.
+- **RSA-1024**: An older key size. Some receivers no longer accept RSA-1024 keys because the security margin is too small.
+- **Ed25519**: A modern elliptic curve algorithm. It provides the same security as RSA-2048 with a much smaller key size.[^ed25519-support] Not all receiving servers support Ed25519 yet.
 
 relay supports all three key types. Each key type gets its own selector and DNS record.
 
@@ -94,11 +94,11 @@ Each cipher type gets its own selector and CNAME record. You add the CNAME recor
 
 ## Further reading
 
-- [RFC 6376 — DomainKeys Identified Mail (DKIM) Signatures](https://datatracker.ietf.org/doc/html/rfc6376)
-- [RFC 6376 Section 3.5 — The DKIM-Signature header](https://datatracker.ietf.org/doc/html/rfc6376#section-3.5)
-- [RFC 8301 — DKIM Update](https://datatracker.ietf.org/doc/html/rfc8301)
-- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
-- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
+- [RFC 6376: DomainKeys Identified Mail (DKIM) Signatures](https://datatracker.ietf.org/doc/html/rfc6376)
+- [RFC 6376 Section 3.5: The DKIM-Signature header](https://datatracker.ietf.org/doc/html/rfc6376#section-3.5)
+- [RFC 8301: DKIM Update](https://datatracker.ietf.org/doc/html/rfc8301)
+- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
 
 [^internet-standard]: RFC 6376 has the status "Internet Standard" (STD 76). This is the highest maturity level in the IETF standards process. It means the protocol is stable, widely implemented, and has significant operational experience.
 

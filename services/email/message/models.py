@@ -59,7 +59,7 @@ class Message(TimeStamped):
     )
 
     class Status(models.TextChoices):
-        """Base status choices — subclasses must override and set DEFAULT."""
+        """Base status choices. Subclasses must override and set DEFAULT."""
 
     status = models.TextField(
         _("status"),
