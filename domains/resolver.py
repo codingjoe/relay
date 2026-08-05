@@ -57,10 +57,33 @@ class DNSResolver:
                         ttl=self.RECORD_TTL,
                     )
                 )
+                if domain.is_managed and qname_str.lower() == domain.name.lower():
+                    records.append(
+                        RR(
+                            qname,
+                            QTYPE.MX,
+                            rdata=MX(domain.sender_domain, self.MX_PRIORITY),
+                            ttl=self.RECORD_TTL,
+                        )
+                    )
             case "TXT" | "ANY":
                 records.extend(self.resolve_txt(qname, qname_str, base, domain))
             case "CNAME" | "ANY":
                 if qname_str.lower() == f"mta-sts.{base}".rstrip(".").lower():
+                    records.append(
+                        RR(
+                            qname,
+                            QTYPE.CNAME,
+                            rdata=CNAME(
+                                DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
+                            ),
+                            ttl=self.RECORD_TTL,
+                        )
+                    )
+                if (
+                    domain.is_managed
+                    and qname_str.lower() == f"mta-sts.{domain.name}".lower()
+                ):
                     records.append(
                         RR(
                             qname,
@@ -101,11 +124,32 @@ class DNSResolver:
                 RR(qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL)
             )
 
+        # Managed domains also serve root-level SPF for the MAIL FROM domain.
+        if domain.is_managed and qname_lower == domain.name.lower():
+            records.append(
+                RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.root_spf_record),
+                    ttl=self.RECORD_TTL,
+                )
+            )
+
         # DKIM — serve public key for each cipher at its selector name
         for selector, key in domain.dkim_ciphers:
             if key:
                 key_record_name = f"{selector}._domainkey.{base}"
                 if qname_lower == key_record_name.rstrip(".").lower():
+                    p = base64.b64encode(key.public_bytes_der()).decode("ascii")
+                    record = f"v=DKIM1; t=s; h=sha256; p={p};"
+                    records.append(
+                        RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
+                    )
+                # Managed domains also serve DKIM at the root domain level.
+                if (
+                    domain.is_managed
+                    and qname_lower == f"{selector}._domainkey.{domain.name}".lower()
+                ):
                     p = base64.b64encode(key.public_bytes_der()).decode("ascii")
                     record = f"v=DKIM1; t=s; h=sha256; p={p};"
                     records.append(
@@ -138,6 +182,16 @@ class DNSResolver:
                     ttl=self.RECORD_TTL,
                 )
             )
+        # Managed domains also serve DMARC at the root domain level.
+        if domain.is_managed and qname_lower == f"_dmarc.{domain.name}".lower():
+            records.append(
+                RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.dmarc_record),
+                    ttl=self.RECORD_TTL,
+                )
+            )
 
         # TLS-RPT — served at _smtp._tls.{base} for all domains.
         if qname_lower == f"_smtp._tls.{base}".lower():
@@ -146,6 +200,16 @@ class DNSResolver:
                     qname,
                     QTYPE.TXT,
                     rdata=txt(domain.sender_tls_rpt_record),
+                    ttl=self.RECORD_TTL,
+                )
+            )
+        # Managed domains also serve TLS-RPT at the root domain level.
+        if domain.is_managed and qname_lower == f"_smtp._tls.{domain.name}".lower():
+            records.append(
+                RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.tls_rpt_record),
                     ttl=self.RECORD_TTL,
                 )
             )
