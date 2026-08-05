@@ -56,3 +56,9 @@
     Start blocktranslate content with a capital letter (sentence case).
     Interpolations ({{ }}) and HTML tags are exempt.
   filePattern: .*\.html$
+- name: blocktranslate content must end with punctuation
+  pattern: '(?m)^(?!.*\{%\s*plural\b)[^\n]*[a-z0-9][ \t]*\n[ \t]*\{%\s*endblocktranslate\b'
+  hint: |
+    End blocktranslate content with sentence-ending punctuation (.!?).
+    Pluralization blocks ({% plural %}) are exempt.
+  filePattern: .*\.html$
