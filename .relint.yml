@@ -50,3 +50,9 @@
     Since `trimmed` strips whitespace, this improves readability without
     affecting output.
   filePattern: .*\.html$
+- name: blocktranslate content must start with a capital letter
+  pattern: '\{%\s*blocktranslate\b[^%]*%\}\n[ \t]*[a-z]'
+  hint: |
+    Start blocktranslate content with a capital letter (sentence case).
+    Interpolations ({{ }}) and HTML tags are exempt.
+  filePattern: .*\.html$

@@ -6,7 +6,7 @@
     <h2 class="mb-4">{% translate "remove"|capfirst context "verb" %} {{ object.user.username }}</h2>
     <p class="mb-6 text-muted-foreground">
       {% blocktranslate with user=object.user.username trimmed %}
-        this will remove {{ user }} from the organization.
+        This will remove {{ user }} from the organization.
       {% endblocktranslate %}
     </p>
     <form method="post" class="flex gap-2">

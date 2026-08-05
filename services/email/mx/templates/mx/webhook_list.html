@@ -162,7 +162,7 @@
   {% else %}
     <p class="text-muted-foreground">
       {% blocktranslate trimmed %}
-        no webhooks configured. create one to receive incoming email deliveries.
+        No webhooks configured. create one to receive incoming email deliveries.
       {% endblocktranslate %}
     </p>
   {% endif %}
@@ -173,7 +173,7 @@
     </header>
     <p>
       {% blocktranslate with docs_url="https://docs.standardwebhooks.com" sdk_url="https://github.com/standard-webhooks/standard-webhooks" trimmed %}
-        webhooks follow the
+        Webhooks follow the
         <a href="https://standardwebhooks.com">Standard Webhooks</a> specification. Each delivery includes <code
         >webhook-id</code>, <code>webhook-timestamp</code>, and <code>webhook-signature</code> headers. Use the
         per-webhook public key (shown above) with any <a href="{{ sdk_url }}">Standard Webhooks SDK</a> to verify
