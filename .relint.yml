@@ -26,3 +26,27 @@
   pattern: '\n[ \t]+(?:if|except)\b[^\n]*:\n[ \t]+(?:return\s*\n|continue\b)'
   hint: 'Avoid bare `return` (no value) and `continue` to cut program flow (`if/except ...: return/continue`). Use EAFP (try/except) or match/case instead. Returns with an explicit value are OK.'
   filePattern: .*\.py
+- name: Use translate instead of trans
+  pattern: '\{%\s*trans\b'
+  hint: |
+    Use {% translate %} instead of the shorthand {% trans %}.
+  filePattern: .*\.html$
+- name: Use blocktranslate instead of blocktrans
+  pattern: '\{%\s*(end)?blocktrans\b'
+  hint: |
+    Use {% blocktranslate %} / {% endblocktranslate %} instead of
+    the shorthand {% blocktrans %} / {% endblocktrans %}.
+  filePattern: .*\.html$
+- name: blocktranslate must use trimmed
+  pattern: '\{%\s*blocktranslate\b(?![^%]*\btrimmed\b)'
+  hint: |
+    Always pass `trimmed` to {% blocktranslate %} to strip whitespace
+    around interpolation blocks.
+  filePattern: .*\.html$
+- name: blocktranslate content must start on a new line
+  pattern: '\{%\s*blocktranslate\b[^%]*%\}[ \t]*\S'
+  hint: |
+    Start blocktranslate content on a new line after the opening tag.
+    Since `trimmed` strips whitespace, this improves readability without
+    affecting output.
+  filePattern: .*\.html$
