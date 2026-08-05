@@ -4,79 +4,84 @@ version = "0.1.0"
 description = "A digital infrastructure platform for email, VoIP, and more"
 readme = "README.md"
 requires-python = "~=3.14.0"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.14",
+]
 dependencies = [
-    "aiosmtplib>=5.1.2",
-    "aiosmtpd>=1.4.6",
-    "boto3>=1.43.59",
-    "cryptography>=50.0.0",
-    "django>=6.1rc1,<6.2",
-    "django-environ>=0.14.0",
-    "django-health-check[psutil,redis]>=4.4.3",
-    "django-storages[s3]>=1.14.6",
-    "dkimpy>=1.1.8",
-    "pynacl>=1.6.2",
-    "dnslib>=0.9.26",
-    "dnspython>=2.7.0",
-    "granian>=2.7.4",
-    "httpx>=0.28.1",
-    "psycopg[binary]>=3.3.4",
-    "pyyaml>=6.0.3",
-    "redis>=7.2.0",
-    "social-auth-app-django>=6.0.1",
-    "sentry-sdk>=2.66.1",
-    "validators>=0.34.0",
-    "whitenoise>=6.12.0",
-    "markdown>=3.10.2",
-    "pygments>=2.20.0",
-    "threadmill[redis]>=0.5.1",
-    "djangorestframework @ https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz",
-    "python-frontmatter>=1.3.0",
+  "aiosmtpd>=1.4.6",
+  "aiosmtplib>=5.1.2",
+  "boto3>=1.43.59",
+  "cryptography>=50",
+  "django>=6.1rc1,<6.2",
+  "django-environ>=0.14",
+  "django-health-check[psutil,redis]>=4.4.3",
+  "django-storages[s3]>=1.14.6",
+  """\
+  djangorestframework @ \
+  https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz\
+  """,
+  "dkimpy>=1.1.8",
+  "dnslib>=0.9.26",
+  "dnspython>=2.7",
+  "granian>=2.7.4",
+  "httpx>=0.28.1",
+  "markdown>=3.10.2",
+  "psycopg[binary]>=3.3.4",
+  "pygments>=2.20",
+  "pynacl>=1.6.2",
+  "python-frontmatter>=1.3",
+  "pyyaml>=6.0.3",
+  "redis>=7.2",
+  "sentry-sdk>=2.66.1",
+  "social-auth-app-django>=6.0.1",
+  "threadmill[redis]>=0.5.1",
+  "validators>=0.34",
+  "whitenoise>=6.12",
 ]
 
 [dependency-groups]
 dev = [
-  { include-group = "test" },
   "pyyaml>=6.0.3",
   "threadmill[inspector]>=0.5.1",
+  { include-group = "test" },
 ]
 test = [
-    "pytest>=9.1.1",
-    "pytest-django>=4.5.2",
-    "pytest-env>=1.7.0",
-    "pytest-cov>=4.1.0",
-    "pytest-randomly>=4.1.0",
-    "pytest-xdist>=3.8.0",
-    "pytest-asyncio>=1.4.0",
+  "pytest>=9.1.1",
+  "pytest-asyncio>=1.4",
+  "pytest-cov>=4.1",
+  "pytest-django>=4.5.2",
+  "pytest-env>=1.7",
+  "pytest-randomly>=4.1",
+  "pytest-xdist>=3.8",
 ]
 
-
+[tool.ruff]
+lint.ignore = [
+  "RUF012",
+]
 
 [tool.pytest]
-addopts = ["--cov", "--tb=short", "--fail-on-template-vars", "--reuse-db", "-q"]
+addopts = [ "--cov", "--tb=short", "--fail-on-template-vars", "--reuse-db", "-q" ]
 asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "root.settings"
 env = [
-    "DJANGO_ALLOW_ASYNC_UNSAFE=1",
-    "TEST=1",
+  "DJANGO_ALLOW_ASYNC_UNSAFE=1",
+  "TEST=1",
 ]
-norecursedirs = ["storage", ".venv", "node_modules", ".direnv", ".git"]
-python_files = ["tests.py", "test_*.py", "*_tests.py"]
+norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git" ]
+python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
 
-[tool.coverage.report]
-show_missing = true
-skip_covered = true
-skip_empty = true
-omit = [
-    ".venv/*",
-    "*/tests/*",
-    "*/migrations/*",
-    "manage.py",
-    "conftest.py",
-    "*/baker_recipes.py",
-    "node_modules/*",
+[tool.coverage]
+report.omit = [
+  "*/baker_recipes.py",
+  "*/migrations/*",
+  "*/tests/*",
+  ".venv/*",
+  "conftest.py",
+  "manage.py",
+  "node_modules/*",
 ]
-
-[tool.ruff.lint]
-ignore = [
-  "RUF012",
-]
+report.show_missing = true
+report.skip_covered = true
+report.skip_empty = true
