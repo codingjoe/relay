@@ -88,7 +88,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
 | SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
 | MX      | 25           | Incoming MX delivery (aiosmtpd)      |
-| Worker  | :            | Threadmill task worker               |
+| Worker  | N/A          | Threadmill task worker               |
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
