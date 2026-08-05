@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{% translate "reports"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "reports"|capfirst %}</h2>
@@ -99,12 +99,12 @@
               {% if report.domain %}
                 {{ report.domain.name }}
               {% else %}
-                —
+                -
               {% endif %}
             </td>
             <td>
               <code
-              >{% if type == 'tls' %}{{ report.reporting_email|default:"—" }}{% else %}{{ report.mail_from }}{% endif %}</code>
+              >{% if type == 'tls' %}{{ report.reporting_email|default:"-" }}{% else %}{{ report.mail_from }}{% endif %}</code>
             </td>
           </tr>
         {% empty %}

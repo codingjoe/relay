@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "webhooks"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "webhooks"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "webhooks"|capfirst %}</h2>
@@ -126,7 +126,7 @@
             {% else %}
               <p class="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-                {% translate "free domain — MX managed by relay, no setup needed."|capfirst %}
+                {% translate "free domain: MX managed by relay, no setup needed."|capfirst %}
               </p>
             {% endif %}
             <details class="mt-2">
@@ -177,7 +177,7 @@
         <a href="https://standardwebhooks.com">Standard Webhooks</a> specification. Each delivery includes <code
         >webhook-id</code>, <code>webhook-timestamp</code>, and <code>webhook-signature</code> headers. Use the
         per-webhook public key (shown above) with any <a href="{{ sdk_url }}">Standard Webhooks SDK</a> to verify
-        signatures — no custom code needed. See the
+        signatures: no custom code needed. See the
         <a href="{{ docs_url }}">documentation</a> for details.
       {% endblocktranslate %}
     </p>

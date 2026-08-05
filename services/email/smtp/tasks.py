@@ -105,7 +105,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
 
         raise MxHostsExhausted(f"All MX hosts failed for {rcpt_domain}")
 
-    except Exception as e:  # noqa: BLE001 — storage backend raises varied exceptions
+    except Exception as e:  # noqa: BLE001  # storage backend raises varied exceptions
         logger.error(f"Transmission error for message {message_id}: {e}")
         Transmission.objects.create(
             message=message,

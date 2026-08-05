@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{% translate "TLS report"|capfirst %} — relay{% endblock %}
+{% block title %}{% translate "TLS report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">
       {% translate "TLS report"|capfirst %}
-      {% if report.domain %}— {{ report.domain }}{% endif %}
+      {% if report.domain %}- {{ report.domain }}{% endif %}
     </h2>
   </header>
 
@@ -86,7 +86,7 @@
                   href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ failure.receiving_mx_ip_address|urlencode }}"
                 >{{ failure.receiving_mx_ip_address }}</a>
               {% else %}
-                —
+                -
               {% endif %}
             </td>
             <td>{{ failure.count }}</td>

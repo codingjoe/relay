@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # SMTP
 
-> **TL;DR** — SMTP is the standard protocol for sending email between mail servers. relay accepts outgoing mail on port 587 with STARTTLS and authenticates each request with an API key.
+> **TL;DR**: SMTP is the standard protocol for sending email between mail servers. relay accepts outgoing mail on port 587 with STARTTLS and authenticates each request with an API key.
 
 ## What is SMTP?
 
@@ -20,9 +20,9 @@ SMTP is the foundation of email delivery. Every email that travels across the in
 
 SMTP was designed in 1982[^rfc821] and has evolved over time. The core protocol is simple, which makes it robust. However, the simplicity also means that SMTP by itself does not provide:
 
-- **Authentication** — The protocol does not verify who sent the message. This gap is filled by <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>, <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>, and <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
-- **Encryption** — The protocol starts in plain text. This gap is filled by STARTTLS and <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>.
-- **Content verification** — The protocol does not check the message content. This gap is filled by spam filters and DKIM signatures.
+- **Authentication**: The protocol does not verify who sent the message. This gap is filled by <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>, <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>, and <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
+- **Encryption**: The protocol starts in plain text. This gap is filled by STARTTLS and <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>.
+- **Content verification**: The protocol does not check the message content. This gap is filled by spam filters and DKIM signatures.
 
 ## How SMTP works
 
@@ -52,12 +52,12 @@ The client sends the `QUIT` command to close the connection. The server acknowle
 
 The server responds to each command with a three-digit code:
 
-| Code range | Meaning                                               |
-| ---------- | ----------------------------------------------------- |
-| `2xx`      | Success — the command completed                       |
-| `3xx`      | Continue — the server expects more data               |
-| `4xx`      | Temporary failure — the client should try again later |
-| `5xx`      | Permanent failure — the client should not retry       |
+| Code range | Meaning                                              |
+| ---------- | ---------------------------------------------------- |
+| `2xx`      | Success: the command completed                       |
+| `3xx`      | Continue: the server expects more data               |
+| `4xx`      | Temporary failure: the client should try again later |
+| `5xx`      | Permanent failure: the client should not retry       |
 
 A `4xx` response tells the client to queue the message and retry later.[^dsn-spec] A `5xx` response tells the client to give up and return a bounce to the sender.
 
@@ -107,13 +107,13 @@ When you submit a message:
 
 ## Further reading
 
-- [RFC 5321 — Simple Mail Transfer Protocol](https://datatracker.ietf.org/doc/html/rfc5321)
-- [RFC 5322 — Internet Message Format](https://datatracker.ietf.org/doc/html/rfc5322)
-- [RFC 3207 — SMTP Service Extension for Secure SMTP over Transport Layer Security](https://datatracker.ietf.org/doc/html/rfc3207)
-- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> — Sender Policy Framework
-- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> — DomainKeys Identified Mail
-- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> — Domain-based Message Authentication, Reporting, and Conformance
-- <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a> — The bounce address and envelope sender
+- [RFC 5321: Simple Mail Transfer Protocol](https://datatracker.ietf.org/doc/html/rfc5321)
+- [RFC 5322: Internet Message Format](https://datatracker.ietf.org/doc/html/rfc5322)
+- [RFC 3207: SMTP Service Extension for Secure SMTP over Transport Layer Security](https://datatracker.ietf.org/doc/html/rfc3207)
+- <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
+- <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>: DomainKeys Identified Mail
+- <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
+- <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a>: The bounce address and envelope sender
 
 [^rfc821]: The original SMTP specification was [RFC 821](https://datatracker.ietf.org/doc/html/rfc821) (August 1982). It was obsoleted by [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321) in October 2008. The core command set is the same, but RFC 5321 added clarity, error handling, and security considerations.
 

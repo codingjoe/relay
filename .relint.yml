@@ -22,7 +22,7 @@
   pattern: '``[^`\n]+``'
   hint: 'Use single backticks for inline code, not double backticks. Double backticks are RST syntax, not Markdown.'
   filePattern: .*\.py
-- name: No bare early returns — use EAFP instead
+- name: "No bare early returns: use EAFP instead"
   pattern: '\n[ \t]+(?:if|except)\b[^\n]*:\n[ \t]+(?:return\s*\n|continue\b)'
   hint: 'Avoid bare `return` (no value) and `continue` to cut program flow (`if/except ...: return/continue`). Use EAFP (try/except) or match/case instead. Returns with an explicit value are OK.'
   filePattern: .*\.py
@@ -62,3 +62,10 @@
     End blocktranslate content with sentence-ending punctuation (.!?).
     Pluralization blocks ({% plural %}) are exempt.
   filePattern: .*\.html$
+- name: No em dashes or en dashes
+  pattern: '[\u2014\u2013]'
+  hint: |
+    Do not use em dashes (U+2014) or en dashes (U+2013). Use periods,
+    colons, semicolons, or commas for sentence structure. Use hyphens
+    (U+002D) for compound words and ranges.
+  filePattern: '.*\.(py|html|md|yml|yaml)$'
