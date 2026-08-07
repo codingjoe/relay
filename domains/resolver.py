@@ -1,6 +1,7 @@
 """DNS record resolver. Build DNS records from Domain models."""
 
 import base64
+from collections.abc import Iterator
 
 from django.conf import settings
 from dnslib import CNAME, MX, NS, PTR, RR, TXT, A, DNSLabel
@@ -9,7 +10,7 @@ from dnslib.dns import QTYPE
 from .models import Domain
 
 
-def txt(value):
+def txt(value: str) -> TXT:
     """Create a TXT rdata. If a value is longer than 255 characters, split it into multiple strings."""
     if len(value) <= 255:
         return TXT(value)
@@ -19,18 +20,15 @@ def txt(value):
 class DNSResolver:
     """Resolve DNS queries."""
 
-    MX_PRIORITY = 10
-    NS_TTL = 3600
-    RECORD_TTL = 1800
+    MX_PRIORITY: int = 10
+    NS_TTL: int = 3600
+    RECORD_TTL: int = 1800
 
-    def __init__(self):
-        pass
-
-    def resolve(self, qname, qtype):
+    def resolve(self, qname: DNSLabel, qtype: int) -> list[RR]:
         """Resolve a DNS query and return a list of RR records."""
         query_name = str(qname).strip().rstrip(".").lower()
-        match qtype.upper():
-            case "PTR" | "ANY" if query_name.endswith(".in-addr.arpa"):
+        match qtype:
+            case QTYPE.PTR | QTYPE.ANY if query_name.endswith(".in-addr.arpa"):
                 return self.resolve_ptr(qname, query_name)
             case _:
                 try:
@@ -41,17 +39,23 @@ class DNSResolver:
                     self.resolve_domain_records(qname, qtype, query_name, domain)
                 )
 
-    def resolve_domain_records(self, qname, qtype, query_name, domain):
+    def resolve_domain_records(
+        self,
+        qname: DNSLabel,
+        qtype: int,
+        query_name: str,
+        domain: Domain,
+    ) -> Iterator[RR]:
         """Build DNS records for a matched domain."""
         zone_name = domain.name if domain.is_system else domain.sender_domain
 
-        match qtype.upper():
-            case "A" | "ANY":
+        match qtype:
+            case QTYPE.A | QTYPE.ANY:
                 for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS:
                     yield RR(
                         qname, QTYPE.A, rdata=A(smtp_ip_address), ttl=self.RECORD_TTL
                     )
-            case "MX" | "ANY":
+            case QTYPE.MX | QTYPE.ANY:
                 yield RR(
                     qname,
                     QTYPE.MX,
@@ -65,19 +69,26 @@ class DNSResolver:
                         rdata=MX(domain.sender_domain, self.MX_PRIORITY),
                         ttl=self.RECORD_TTL,
                     )
-            case "TXT" | "ANY":
+            case QTYPE.TXT | QTYPE.ANY:
                 yield from self.resolve_txt(qname, qtype, query_name, zone_name, domain)
-            case "CNAME" | "ANY":
+            case QTYPE.CNAME | QTYPE.ANY:
                 yield from self.resolve_cname(
                     qname, qtype, query_name, zone_name, domain
                 )
-            case "NS" | "ANY":
+            case QTYPE.NS | QTYPE.ANY:
                 for nameserver in settings.RELAY_DNS_NS_NAMESERVERS:
                     yield RR(
                         qname, QTYPE.NS, rdata=NS(DNSLabel(nameserver)), ttl=self.NS_TTL
                     )
 
-    def resolve_txt(self, qname, qtype, query_name, zone_name, domain):
+    def resolve_txt(
+        self,
+        qname: DNSLabel,
+        qtype: int,
+        query_name: str,
+        zone_name: str,
+        domain: Domain,
+    ) -> Iterator[RR]:
         """Build TXT records for SPF, DKIM, verification, DMARC, and TLS-RPT."""
         # Records served for all domains (system and org-owned)
         match query_name:
@@ -153,7 +164,14 @@ class DNSResolver:
                         ttl=self.RECORD_TTL,
                     )
 
-    def resolve_cname(self, qname, qtype, query_name, zone_name, domain):
+    def resolve_cname(
+        self,
+        qname: DNSLabel,
+        qtype: int,
+        query_name: str,
+        zone_name: str,
+        domain: Domain,
+    ) -> Iterator[RR]:
         """Build CNAME records for MTA-STS and Return-Path."""
         # MTA-STS CNAME served at sender subdomain and root domain.
         mta_sts_names = [f"mta-sts.{zone_name}"]
@@ -176,7 +194,7 @@ class DNSResolver:
                     ttl=self.RECORD_TTL,
                 )
 
-    def resolve_ptr(self, qname, query_name):
+    def resolve_ptr(self, qname: DNSLabel, query_name: str) -> list[RR]:
         """Return PTR records for the sender subdomain of the queried SMTP IP."""
         smtp_ip_address = ".".join(
             reversed(query_name.removesuffix(".in-addr.arpa").split("."))

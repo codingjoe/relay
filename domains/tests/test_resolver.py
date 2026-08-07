@@ -1,5 +1,6 @@
 import pytest
 from dnslib import DNSLabel
+from dnslib.dns import QTYPE
 
 from accounts.models import Organization
 from domains.models import Domain
@@ -44,40 +45,42 @@ class TestDomainQuerySet:
 class TestResolve:
     def test_resolve__a_records(self):
         Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("open.localhost"), "A")
+        records = DNSResolver().resolve(DNSLabel("open.localhost"), QTYPE.A)
         assert len(records) >= 1
 
     def test_resolve__mx_records(self):
         Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("open.localhost"), "MX")
+        records = DNSResolver().resolve(DNSLabel("open.localhost"), QTYPE.MX)
         assert len(records) == 1
 
     def test_resolve__ns_records(self):
         Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("mail.relay.open.localhost"), "NS")
+        records = DNSResolver().resolve(DNSLabel("mail.relay.open.localhost"), QTYPE.NS)
         assert len(records) == 2
 
     def test_resolve__spf_txt(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(DNSLabel("mail.relay.example.com"), "TXT")
+        records = DNSResolver().resolve(DNSLabel("mail.relay.example.com"), QTYPE.TXT)
         assert len(records) == 1
         txt_data = b"".join(records[0].rdata.data)
         assert b"v=spf1" in txt_data
 
     def test_resolve__dmarc_txt_system_domain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("_dmarc.open.localhost"), "TXT")
+        records = DNSResolver().resolve(DNSLabel("_dmarc.open.localhost"), QTYPE.TXT)
         assert len(records) == 1
 
     def test_resolve__cname_return_path(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(DNSLabel("rp.mail.relay.example.com"), "CNAME")
+        records = DNSResolver().resolve(
+            DNSLabel("rp.mail.relay.example.com"), QTYPE.CNAME
+        )
         assert len(records) == 1
 
     def test_resolve__unknown_domain_returns_empty(self):
-        assert DNSResolver().resolve(DNSLabel("unknown.com"), "A") == []
+        assert DNSResolver().resolve(DNSLabel("unknown.com"), QTYPE.A) == []
 
 
 @pytest.mark.django_db
@@ -85,13 +88,13 @@ class TestResolvePtr:
     def test_resolve_ptr__known_ip(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(DNSLabel("1.0.0.127.in-addr.arpa"), "PTR")
+        records = DNSResolver().resolve(DNSLabel("1.0.0.127.in-addr.arpa"), QTYPE.PTR)
         assert len(records) == 1
 
     def test_resolve_ptr__unknown_ip(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(DNSLabel("1.1.1.255.in-addr.arpa"), "PTR")
+        records = DNSResolver().resolve(DNSLabel("1.1.1.255.in-addr.arpa"), QTYPE.PTR)
         assert records == []
 
 
@@ -101,19 +104,21 @@ class TestResolveMtaStsCname:
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve(
-            DNSLabel("mta-sts.mail.relay.example.com"), "CNAME"
+            DNSLabel("mta-sts.mail.relay.example.com"), QTYPE.CNAME
         )
         assert len(records) == 1
         assert "mta-sts." in str(records[0].rdata)
 
     def test_resolve__mta_sts_cname_system_domain(self):
         Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("mta-sts.open.localhost"), "CNAME")
+        records = DNSResolver().resolve(DNSLabel("mta-sts.open.localhost"), QTYPE.CNAME)
         assert len(records) == 1
         assert "mta-sts." in str(records[0].rdata)
 
     def test_resolve__mta_sts_no_cname_for_other_subdomains(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(DNSLabel("mta-sts.other.example.com"), "CNAME")
+        records = DNSResolver().resolve(
+            DNSLabel("mta-sts.other.example.com"), QTYPE.CNAME
+        )
         assert records == []

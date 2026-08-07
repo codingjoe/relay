@@ -5,7 +5,7 @@ import threading
 
 from django.db import DatabaseError
 from dnslib import DNSRecord
-from dnslib.dns import QTYPE, RCODE, DNSError
+from dnslib.dns import RCODE, DNSError
 
 from .resolver import DNSResolver
 
@@ -27,15 +27,11 @@ class DNSServer:
         except DNSError:
             pass
         else:
-            qname = request.q.qname
-            qtype = request.q.qtype
-            qtype_str = QTYPE[qtype]
-
             reply = request.reply()
             reply.header.rcode = RCODE.NOERROR
 
             try:
-                records = self.resolver.resolve(qname, qtype_str)
+                records = self.resolver.resolve(request.q.qname, request.q.qtype)
                 for rr in records:
                     reply.add_answer(rr)
             except DNSError, DatabaseError:
@@ -101,13 +97,12 @@ class DNSServer:
         else:
             qname = request.q.qname
             qtype = request.q.qtype
-            qtype_str = QTYPE[qtype]
 
             reply = request.reply()
             reply.header.rcode = RCODE.NOERROR
 
             try:
-                records = self.resolver.resolve(qname, qtype_str)
+                records = self.resolver.resolve(qname, qtype)
                 for rr in records:
                     reply.add_answer(rr)
             except DNSError, DatabaseError:
