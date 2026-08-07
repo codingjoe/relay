@@ -47,7 +47,7 @@ class DNSResolver:
         domain: Domain,
     ) -> Iterator[RR]:
         """Build DNS records for a matched domain."""
-        zone_name = domain.name if domain.is_system else domain.sender_domain
+        zone_name = domain.sender_domain
 
         match qtype:
             case QTYPE.A | QTYPE.ANY:
@@ -62,7 +62,7 @@ class DNSResolver:
                     rdata=MX(zone_name, self.MX_PRIORITY),
                     ttl=self.RECORD_TTL,
                 )
-                if not domain.is_system and query_name == domain.name:
+                if not domain.is_managed and query_name == domain.name:
                     yield RR(
                         qname,
                         QTYPE.MX,
@@ -112,18 +112,18 @@ class DNSResolver:
                 )
                 record = f"v=DKIM1; t=s; h=sha256; p={public_key_b64};"
                 dkim_names = [f"{selector}._domainkey.{zone_name}"]
-                if not domain.is_system:
+                if not domain.is_managed:
                     dkim_names.append(f"{selector}._domainkey.{domain.name}")
                 if query_name in dkim_names:
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
 
-        if domain.is_system:
+        if domain.is_managed:
             match query_name:
                 case name if name == f"_dmarc.{domain.name}":
                     yield RR(
                         qname,
                         QTYPE.TXT,
-                        rdata=txt("v=DMARC1; p=none"),
+                        rdata=txt(domain.dmarc_record),
                         ttl=self.RECORD_TTL,
                     )
         else:
@@ -168,7 +168,7 @@ class DNSResolver:
         """Build CNAME records for MTA-STS and Return-Path."""
         # MTA-STS CNAME served at sender subdomain and root domain.
         mta_sts_names = [f"mta-sts.{zone_name}"]
-        if not domain.is_system:
+        if not domain.is_managed:
             mta_sts_names.append(f"mta-sts.{domain.name}")
 
         match query_name:

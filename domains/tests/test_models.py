@@ -13,7 +13,7 @@ class TestValidateDomainName:
     def test_validate_domain_name__accepts_subdomain(self):
         validate_domain_name("sub.example.com")
 
-    def test_validate_domain_name__accepts_system_domain(self):
+    def test_validate_domain_name__accepts_managed_domain(self):
         validate_domain_name("open.localhost")
 
     def test_validate_domain_name__rejects_dot(self):
@@ -64,8 +64,10 @@ class TestDomainPropertiesNoDb:
             Domain(name="example.com", verified_at=timezone.now()).is_verified is True
         )
 
-    def test_is_system__true_for_no_org(self):
-        assert Domain(name="open.localhost", org=None).is_system is True
+    def test_sender_domain__managed_uses_apex(self):
+        assert Domain(name="acme.open.localhost", is_managed=True).sender_domain == (
+            "acme.open.localhost"
+        )
 
     def test_spf_record__includes_spf_include(self):
         record = Domain(name="example.com").root_spf_record
@@ -132,19 +134,13 @@ class TestDkimCnames:
             assert name.endswith("._domainkey.example.com")
             assert target.endswith("._domainkey.mail.relay.example.com")
 
-    def test_dkim_cnames__system_domain_uses_apex(self):
-        domain = Domain.objects.create(name="open.localhost", org=None)
-        for name, target in domain.dkim_cnames:
-            assert target.endswith("._domainkey.open.localhost")
-
-
-@pytest.mark.django_db
-class TestDomainIsSystem:
-    def test_is_system__false_for_org(self):
+    def test_dkim_cnames__managed_domain_uses_apex(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(slug="o")
-        assert Domain(name="example.com", org=org).is_system is False
+        Organization.objects.create(slug="acme")
+        domain = Domain.objects.get(name="acme.open.localhost")
+        for name, target in domain.dkim_cnames:
+            assert target.endswith("._domainkey.acme.open.localhost")
 
 
 @pytest.mark.django_db
@@ -157,10 +153,6 @@ class TestDomainGetAbsoluteUrl:
         url = domain.get_absolute_url()
         assert url is not None
         assert f"/org/{org.slug}/email/domains/{domain.pk}" in url
-
-    def test_get_absolute_url__none_for_system_domain(self):
-        domain = Domain.objects.create(name="system.com", org=None)
-        assert domain.get_absolute_url() is None
 
 
 class TestMtaStsRecord:

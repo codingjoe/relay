@@ -17,17 +17,19 @@ class TestTxt:
 
 @pytest.mark.django_db
 class TestDomainQuerySet:
-    def test_root_for__system_domain(self):
-        Domain.objects.create(name="open.localhost", org=None)
-        domain = Domain.objects.root_for("open.localhost", include_managed=True)
+    def test_root_for__managed_domain(self):
+        Organization.objects.create(slug="acme")
+        domain = Domain.objects.root_for("acme.open.localhost", include_managed=True)
         assert domain is not None
-        assert domain.name == "open.localhost"
+        assert domain.name == "acme.open.localhost"
 
-    def test_root_for__system_subdomain(self):
-        Domain.objects.create(name="open.localhost", org=None)
-        domain = Domain.objects.root_for("mail.open.localhost", include_managed=True)
+    def test_root_for__managed_subdomain(self):
+        Organization.objects.create(slug="acme")
+        domain = Domain.objects.root_for(
+            "mail.acme.open.localhost", include_managed=True
+        )
         assert domain is not None
-        assert domain.name == "open.localhost"
+        assert domain.name == "acme.open.localhost"
 
     def test_root_for__user_domain(self):
         org = Organization.objects.create(slug="o")
@@ -44,18 +46,18 @@ class TestDomainQuerySet:
 @pytest.mark.django_db
 class TestResolve:
     def test_resolve__a_records(self):
-        Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("open.localhost"), QTYPE.A)
+        Organization.objects.create(slug="acme")
+        records = DNSResolver().resolve(DNSLabel("acme.open.localhost"), QTYPE.A)
         assert len(records) >= 1
 
     def test_resolve__mx_records(self):
-        Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("open.localhost"), QTYPE.MX)
+        Organization.objects.create(slug="acme")
+        records = DNSResolver().resolve(DNSLabel("acme.open.localhost"), QTYPE.MX)
         assert len(records) == 1
 
     def test_resolve__ns_records(self):
-        Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("mail.relay.open.localhost"), QTYPE.NS)
+        Organization.objects.create(slug="acme")
+        records = DNSResolver().resolve(DNSLabel("mail.acme.open.localhost"), QTYPE.NS)
         assert len(records) == 2
 
     def test_resolve__spf_txt(self):
@@ -66,10 +68,15 @@ class TestResolve:
         txt_data = b"".join(records[0].rdata.data)
         assert b"v=spf1" in txt_data
 
-    def test_resolve__dmarc_txt_system_domain(self):
-        Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("_dmarc.open.localhost"), QTYPE.TXT)
+    def test_resolve__dmarc_txt_managed_domain(self):
+        Organization.objects.create(slug="acme")
+        records = DNSResolver().resolve(
+            DNSLabel("_dmarc.acme.open.localhost"), QTYPE.TXT
+        )
         assert len(records) == 1
+        txt_data = b"".join(records[0].rdata.data)
+        assert b"rua=mailto:" in txt_data
+        assert b"@acme.open.localhost" in txt_data
 
     def test_resolve__cname_return_path(self):
         org = Organization.objects.create(slug="o")
@@ -109,9 +116,11 @@ class TestResolveMtaStsCname:
         assert len(records) == 1
         assert "mta-sts." in str(records[0].rdata)
 
-    def test_resolve__mta_sts_cname_system_domain(self):
-        Domain.objects.create(name="open.localhost", org=None)
-        records = DNSResolver().resolve(DNSLabel("mta-sts.open.localhost"), QTYPE.CNAME)
+    def test_resolve__mta_sts_cname_managed_domain(self):
+        Organization.objects.create(slug="acme")
+        records = DNSResolver().resolve(
+            DNSLabel("mta-sts.acme.open.localhost"), QTYPE.CNAME
+        )
         assert len(records) == 1
         assert "mta-sts." in str(records[0].rdata)
 

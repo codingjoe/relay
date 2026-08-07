@@ -69,7 +69,7 @@ class Domain(TimeStamped):
         related_name="domains",
         null=True,
         blank=True,
-        help_text=_("Owning organization. Null for system domains."),
+        help_text=_("Owning organization."),
     )
     verified_at = models.DateTimeField(
         _("verified at"),
@@ -215,10 +215,6 @@ class Domain(TimeStamped):
     def is_verified(self):
         return self.verified_at is not None
 
-    @property
-    def is_system(self):
-        return self.org is None
-
     is_managed = models.BooleanField(
         _("managed"),
         default=False,
@@ -252,6 +248,13 @@ class Domain(TimeStamped):
 
     @property
     def sender_domain(self):
+        """Return the domain used as the SMTP envelope and DKIM sender.
+
+        Managed domains send from their apex; org-owned domains send from
+        a dedicated sender subdomain.
+        """
+        if self.is_managed:
+            return self.name
         return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{self.name}"
 
     @property
@@ -259,7 +262,7 @@ class Domain(TimeStamped):
         return f"_dmarc.{self.name}"
 
     def dkim_cname_for_selector(self, selector: str) -> tuple[str, str]:
-        base = self.name if self.is_system else self.sender_domain
+        base = self.sender_domain
         name = f"{selector}._domainkey.{self.name}"
         target = f"{selector}._domainkey.{base}"
         return name, target
