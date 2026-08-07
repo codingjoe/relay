@@ -87,8 +87,7 @@ class DNSResolver:
                             ),
                             ttl=self.RECORD_TTL,
                         )
-                rp_name = domain.return_path_domain
-                if cleaned_qname == rp_name:
+                if cleaned_qname == domain.return_path_domain:
                     yield RR(
                         qname,
                         QTYPE.CNAME,
