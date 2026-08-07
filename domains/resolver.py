@@ -1,4 +1,4 @@
-"""DNS record resolver: build DNS records from Domain models."""
+"""DNS record resolver. Build DNS records from Domain models."""
 
 import base64
 
@@ -28,23 +28,24 @@ class DNSResolver:
 
     def resolve(self, qname, qtype):
         """Resolve a DNS query and return a list of RR records."""
-        qname_str = str(qname).rstrip(".")
+        cleaned_qname = str(qname).strip().rstrip(".").lower()
         match qtype.upper():
-            case "PTR" | "ANY" if qname_str.endswith(".in-addr.arpa"):
-                return self.resolve_ptr(qname, qname_str)
+            case "PTR" | "ANY" if cleaned_qname.endswith(".in-addr.arpa"):
+                return self.resolve_ptr(qname, cleaned_qname)
             case _:
                 try:
-                    domain = Domain.objects.root_for(qname_str, include_managed=True)
+                    domain = Domain.objects.root_for(
+                        cleaned_qname, include_managed=True
+                    )
                 except Domain.DoesNotExist:
                     return []
                 return list(
-                    self.resolve_domain_records(qname, qtype, qname_str, domain)
+                    self.resolve_domain_records(qname, qtype, cleaned_qname, domain)
                 )
 
-    def resolve_domain_records(self, qname, qtype, qname_str, domain):
+    def resolve_domain_records(self, qname, qtype, cleaned_qname, domain):
         """Build DNS records for a matched domain."""
         base = domain.name if domain.is_system else domain.sender_domain
-        qname_lower = qname_str.lower()
 
         match qtype.upper():
             case "A" | "ANY":
@@ -57,7 +58,7 @@ class DNSResolver:
                     rdata=MX(base, self.MX_PRIORITY),
                     ttl=self.RECORD_TTL,
                 )
-                if not domain.is_system and qname_lower == domain.name:
+                if not domain.is_system and cleaned_qname == domain.name:
                     yield RR(
                         qname,
                         QTYPE.MX,
@@ -65,28 +66,29 @@ class DNSResolver:
                         ttl=self.RECORD_TTL,
                     )
             case "TXT" | "ANY":
-                yield from self.resolve_txt(qname, qtype, qname_str, base, domain)
+                yield from self.resolve_txt(qname, qtype, cleaned_qname, base, domain)
             case "CNAME" | "ANY":
-                if qname_lower == f"mta-sts.{base}".rstrip("."):
-                    yield RR(
-                        qname,
-                        QTYPE.CNAME,
-                        rdata=CNAME(
-                            DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
-                        ),
-                        ttl=self.RECORD_TTL,
-                    )
-                if not domain.is_system and qname_lower == f"mta-sts.{domain.name}":
-                    yield RR(
-                        qname,
-                        QTYPE.CNAME,
-                        rdata=CNAME(
-                            DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
-                        ),
-                        ttl=self.RECORD_TTL,
-                    )
+                match cleaned_qname:
+                    case c if c == f"mta-sts.{base}":
+                        yield RR(
+                            qname,
+                            QTYPE.CNAME,
+                            rdata=CNAME(
+                                DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
+                            ),
+                            ttl=self.RECORD_TTL,
+                        )
+                    case c if not domain.is_system and c == f"mta-sts.{domain.name}":
+                        yield RR(
+                            qname,
+                            QTYPE.CNAME,
+                            rdata=CNAME(
+                                DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
+                            ),
+                            ttl=self.RECORD_TTL,
+                        )
                 rp_name = domain.return_path_domain
-                if qname_lower == rp_name.rstrip("."):
+                if cleaned_qname == rp_name:
                     yield RR(
                         qname,
                         QTYPE.CNAME,
@@ -97,19 +99,17 @@ class DNSResolver:
                 for ns in settings.RELAY_DNS_NS_NAMESERVERS:
                     yield RR(qname, QTYPE.NS, rdata=NS(DNSLabel(ns)), ttl=self.NS_TTL)
 
-    def resolve_txt(self, qname, qtype, qname_str, base, domain):
+    def resolve_txt(self, qname, qtype, cleaned_qname, base, domain):
         """Build TXT records for SPF, DKIM, verification, DMARC, and TLS-RPT."""
-        qname_lower = qname_str.lower()
-
         # Sender subdomain SPF
-        if qname_lower == base:
+        if cleaned_qname == base:
             yield RR(
                 qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
             )
 
         # Root domain SPF (MAIL FROM domain). Served for all org-owned domains
         # because relay is authoritative for the zone that includes the root.
-        if not domain.is_system and qname_lower == domain.name:
+        if not domain.is_system and cleaned_qname == domain.name:
             yield RR(
                 qname,
                 QTYPE.TXT,
@@ -121,21 +121,21 @@ class DNSResolver:
         for selector, key in domain.dkim_ciphers:
             if key:
                 key_record_name = f"{selector}._domainkey.{base}"
-                if qname_lower == key_record_name.rstrip("."):
+                if cleaned_qname == key_record_name:
                     p = base64.b64encode(key.public_bytes_der()).decode("ascii")
                     record = f"v=DKIM1; t=s; h=sha256; p={p};"
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
                 # Also serve DKIM at the root domain level for org-owned domains.
                 if (
                     not domain.is_system
-                    and qname_lower == f"{selector}._domainkey.{domain.name}"
+                    and cleaned_qname == f"{selector}._domainkey.{domain.name}"
                 ):
                     p = base64.b64encode(key.public_bytes_der()).decode("ascii")
                     record = f"v=DKIM1; t=s; h=sha256; p={p};"
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
 
         verify_name = domain.verification_record_name
-        if qname_lower == verify_name.rstrip("."):
+        if cleaned_qname == verify_name:
             yield RR(
                 qname,
                 QTYPE.TXT,
@@ -146,18 +146,18 @@ class DNSResolver:
         # DMARC: system domains serve at the apex, org-owned domains serve at
         # both the sender subdomain (for external reporting authorization) and
         # the root domain (for policy enforcement).
-        if domain.is_system and qname_lower == f"_dmarc.{domain.name}":
+        if domain.is_system and cleaned_qname == f"_dmarc.{domain.name}":
             yield RR(
                 qname, QTYPE.TXT, rdata=txt("v=DMARC1; p=none"), ttl=self.RECORD_TTL
             )
-        if not domain.is_system and qname_lower == f"_dmarc.{base}":
+        if not domain.is_system and cleaned_qname == f"_dmarc.{base}":
             yield RR(
                 qname,
                 QTYPE.TXT,
                 rdata=txt(domain.sender_dmarc_record),
                 ttl=self.RECORD_TTL,
             )
-        if not domain.is_system and qname_lower == f"_dmarc.{domain.name}":
+        if not domain.is_system and cleaned_qname == f"_dmarc.{domain.name}":
             yield RR(
                 qname,
                 QTYPE.TXT,
@@ -166,7 +166,7 @@ class DNSResolver:
             )
 
         # TLS-RPT. Served at _smtp._tls.{base} for all domains.
-        if qname_lower == f"_smtp._tls.{base}":
+        if cleaned_qname == f"_smtp._tls.{base}":
             yield RR(
                 qname,
                 QTYPE.TXT,
@@ -174,7 +174,7 @@ class DNSResolver:
                 ttl=self.RECORD_TTL,
             )
         # Also serve TLS-RPT at the root domain level for org-owned domains.
-        if not domain.is_system and qname_lower == f"_smtp._tls.{domain.name}":
+        if not domain.is_system and cleaned_qname == f"_smtp._tls.{domain.name}":
             yield RR(
                 qname,
                 QTYPE.TXT,
@@ -182,9 +182,9 @@ class DNSResolver:
                 ttl=self.RECORD_TTL,
             )
 
-    def resolve_ptr(self, qname, qname_str):
+    def resolve_ptr(self, qname, cleaned_qname):
         """Return PTR records for the sender subdomain of the queried SMTP IP."""
-        ip = ".".join(reversed(qname_str.removesuffix(".in-addr.arpa").split(".")))
+        ip = ".".join(reversed(cleaned_qname.removesuffix(".in-addr.arpa").split(".")))
         if ip not in settings.RELAY_DNS_SMTP_IPS:
             return []
 

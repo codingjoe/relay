@@ -69,13 +69,4 @@ def check_managed_domain_dns(app_configs, **kwargs):
                         id="domains.W001",
                     )
                 )
-        if not domain.is_verified:
-            errors.append(
-                Error(
-                    f"Managed domain {domain.name} is not verified.",
-                    hint="Managed domains should be pre-verified.",
-                    id="domains.E004",
-                )
-            )
-
     return errors
