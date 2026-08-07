@@ -149,35 +149,26 @@ class DNSResolver:
 
     def resolve_cname(self, qname, qtype, cleaned_qname, base, domain):
         """Build CNAME records for MTA-STS and Return-Path."""
-        # Records served for all domains (system and org-owned)
+        # MTA-STS CNAME served at sender subdomain and root domain.
+        mta_sts_names = [f"mta-sts.{base}"]
+        if not domain.is_system:
+            mta_sts_names.append(f"mta-sts.{domain.name}")
+
         match cleaned_qname:
-            case c if c == f"mta-sts.{base}":
+            case c if c in mta_sts_names:
                 yield RR(
                     qname,
                     QTYPE.CNAME,
                     rdata=CNAME(DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")),
                     ttl=self.RECORD_TTL,
                 )
-            case c if cleaned_qname == domain.return_path_domain:
+            case c if c == domain.return_path_domain:
                 yield RR(
                     qname,
                     QTYPE.CNAME,
                     rdata=CNAME(DNSLabel(settings.RELAY_DNS_RETURN_PATH_DOMAIN)),
                     ttl=self.RECORD_TTL,
                 )
-
-        # Records served only for org-owned domains
-        if not domain.is_system:
-            match cleaned_qname:
-                case c if c == f"mta-sts.{domain.name}":
-                    yield RR(
-                        qname,
-                        QTYPE.CNAME,
-                        rdata=CNAME(
-                            DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
-                        ),
-                        ttl=self.RECORD_TTL,
-                    )
 
     def resolve_ptr(self, qname, cleaned_qname):
         """Return PTR records for the sender subdomain of the queried SMTP IP."""
