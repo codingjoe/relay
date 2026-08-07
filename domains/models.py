@@ -218,9 +218,8 @@ class Domain(TimeStamped):
     )
 
     def clean(self):
-        """Validate that user-added domains are not subdomains of relay's root domains."""
-        if not self.is_managed and not self.pk:
-            name = self.name.lower()
+        if not self.is_managed:
+            name = self.name
             root_domains = [
                 settings.RELAY_PLATFORM_DOMAIN.lower(),
                 settings.RELAY_MANAGED_SENDER_DOMAIN.lower(),
