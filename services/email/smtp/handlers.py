@@ -76,7 +76,7 @@ class SMTPHandler:
 @sync_to_async
 def get_membership(credential, username):
     """Return the membership linking the credential's org to the given user."""
-    return credential.org.memberships.filter(user__username=username).first()
+    return credential.org.memberships.get(user__username=username)
 
 
 @sync_to_async
@@ -104,7 +104,9 @@ def process_suppressed_message(
     message_id = msg.get("Message-ID", "")
     from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
     domain = (
-        Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
+        Domain.objects.filter(name__iexact=from_domain).first()  # noqa: optional domain
+        if from_domain
+        else None
     )
     OutgoingMessage.objects.create(
         sender=sender,
@@ -144,7 +146,9 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         )
 
     domain = (
-        Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
+        Domain.objects.filter(name__iexact=from_domain).first()  # noqa: optional domain
+        if from_domain
+        else None
     )
 
     message = OutgoingMessage.objects.create(

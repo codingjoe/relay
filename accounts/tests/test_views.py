@@ -177,7 +177,7 @@ class TestMembershipDeleteView:
         assert not Membership.objects.filter(pk=m.pk).exists()
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        membership = write_org.memberships.first()
+        membership = write_org.memberships.first()  # noqa: any membership
         response = admin_client.get(
             f"/org/{write_org.slug}/settings/members/{membership.pk}/delete"
         )

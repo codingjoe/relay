@@ -88,13 +88,13 @@ def dmarc_report(org):
 @pytest.mark.django_db
 class TestDmarcReportDetailView:
     def test_get__shows_report_detail(self, client, org, dmarc_report):
-        client.force_login(org.members.first())
+        client.force_login(org.members.first())  # noqa: any member
         response = client.get(f"/org/{org.slug}/email/dmarc/{dmarc_report.pk}")
         assert response.status_code == 200
         assert "192.168.1.1" in response.content.decode()
 
     def test_get__filters_records_by_source_ip(self, client, org, dmarc_report):
-        client.force_login(org.members.first())
+        client.force_login(org.members.first())  # noqa: any member
         response = client.get(
             f"/org/{org.slug}/email/dmarc/{dmarc_report.pk}",
             {"source_ip": "192.168.1.1"},
@@ -105,7 +105,7 @@ class TestDmarcReportDetailView:
     def test_get__source_ip_filter_excludes_non_matching(
         self, client, org, dmarc_report
     ):
-        client.force_login(org.members.first())
+        client.force_login(org.members.first())  # noqa: any member
         response = client.get(
             f"/org/{org.slug}/email/dmarc/{dmarc_report.pk}",
             {"source_ip": "10.0.0.1"},

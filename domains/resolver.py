@@ -164,7 +164,10 @@ class DNSResolver:
         for i in range(len(parts) - len(prefix_labels) + 1):
             if [p.lower() for p in parts[i : i + len(prefix_labels)]] == prefix_labels:
                 if root := ".".join(parts[i + len(prefix_labels) :]):
-                    return Domain.objects.filter(name__iexact=root).first()
+                    try:
+                        return Domain.objects.get(name__iexact=root)
+                    except Domain.DoesNotExist:
+                        return None
                 break
 
         return None
@@ -175,7 +178,7 @@ class DNSResolver:
         if ip not in settings.RELAY_DNS_SMTP_IPS:
             return []
 
-        domain = Domain.objects.first()
+        domain = Domain.objects.first()  # noqa: any domain works for PTR
         if domain is None:
             return []
 

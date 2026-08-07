@@ -59,8 +59,7 @@ class TestTestEmailView:
             {"domain": "free", "subject": "Test", "body": "Hello"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(org=org).first()
-        assert msg is not None
+        msg = OutgoingMessage.objects.get(org=org)
         assert msg.sender == user
         assert msg.subject == "Test"
 
@@ -73,8 +72,7 @@ class TestTestEmailView:
             {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(org=org).first()
-        assert msg is not None
+        msg = OutgoingMessage.objects.get(org=org)
         assert msg.domain == domain
 
 
@@ -118,8 +116,7 @@ class TestCredentialCreateView:
             f"/org/{org.slug}/email/credentials/new", {"name": "Production"}
         )
         assert response.status_code == 302
-        cred = SmtpCredential.objects.filter(org=org).first()
-        assert cred is not None
+        cred = SmtpCredential.objects.get(org=org)
         assert cred.name == "Production"
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
@@ -198,8 +195,7 @@ class TestSuppressionCreateView:
             {"email": "bob@example.com"},
         )
         assert response.status_code == 302
-        entry = SuppressionEntry.objects.filter(org=org).first()
-        assert entry is not None
+        entry = SuppressionEntry.objects.get(org=org)
         assert entry.reason == SuppressionEntry.Reason.MANUAL
 
     @pytest.mark.django_db
