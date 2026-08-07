@@ -1,8 +1,6 @@
 import dns.resolver
 from django.conf import settings
-from django.core.checks import Error, Warning, register
-
-from .models import Domain
+from django.core.checks import Error, register
 
 
 @register("domains", deploy=True)
@@ -48,25 +46,4 @@ def check_managed_domain_dns(app_configs, **kwargs):
             )
         )
 
-    # Check that managed domains in the database have all DNS statuses set to OK
-    for domain in Domain.objects.filter(is_managed=True):
-        status_fields = [
-            "nameserver_status",
-            "spf_status",
-            "dkim_status",
-            "dmarc_status",
-            "mta_sts_status",
-            "tls_rpt_status",
-        ]
-        for field in status_fields:
-            if getattr(domain, field) != Domain.Status.OK:
-                errors.append(
-                    Warning(
-                        f"Managed domain {domain.name} has {field} = "
-                        f"{getattr(domain, field)}. Expected OK.",
-                        hint="Run the DNS verification or check the nameserver "
-                        "configuration.",
-                        id="domains.W001",
-                    )
-                )
     return errors
