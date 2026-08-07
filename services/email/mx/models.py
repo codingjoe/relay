@@ -136,14 +136,10 @@ class Webhook(OrganizationOwned):
         return f"{self.org} / {self.name or self.url}"
 
     @property
-    def mx_target(self) -> str:
-        return self.domain.sender_domain
-
-    @property
     def mx_record(self) -> str:
         if self.domain.is_managed:
             return ""
-        return f"MX {self.domain.name} → {self.mx_target}"
+        return f"MX {self.domain.name} → {self.domain.sender_domain}"
 
     def matches(self, rcpt_to) -> bool:
         return fnmatch(rcpt_to.lower(), self.address_pattern.lower())

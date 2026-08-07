@@ -78,12 +78,6 @@ class TestMxRecord:
         assert webhook.mx_record == "MX app.acme.com → mail.relay.app.acme.com"
 
 
-class TestMxTarget:
-    @pytest.mark.django_db
-    def test_mx_target__uses_sender_subdomain_prefix_for_custom_domain(self, webhook):
-        assert webhook.mx_target == "mail.relay.app.acme.com"
-
-
 class TestPublicKeySerialized:
     @pytest.mark.django_db
     def test_public_key_serialized__starts_with_whpk(self, webhook):

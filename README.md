@@ -29,12 +29,27 @@ their own delegated domains alongside it.
 
 ### Operator setup
 
-The platform operator only needs to delegate NS for the managed sender
-domain zone to Relay's nameservers. If `RELAY_MANAGED_SENDER_DOMAIN` is
-`open.example.com`, add NS records for the `open` subdomain pointing to
-`RELAY_DNS_NS_NAMESERVERS` (for example, `ns1.example.com`, `ns2.example.com`).
-All other records (MX, SPF, DKIM, DMARC, TLS-RPT) are served automatically
-by the internal nameserver. No per-domain delegation needed.
+The platform operator must set up the following records on the
+`RELAY_PLATFORM_DOMAIN` nameserver:
+
+1. **NS delegation for `open.{platform_domain}`**. Add NS records for the
+   `open` subdomain pointing to `RELAY_DNS_NS_NAMESERVERS` (for example,
+   `ns1.{platform_domain}`, `ns2.{platform_domain}`).
+1. **A/AAAA record for the web server**. The platform domain itself needs
+   an A/AAAA record for the web UI.
+1. **A/AAAA records for the SMTP server**. Set
+   `RELAY_DNS_SMTP_IPS` so the nameserver can serve A records for the
+   sender subdomains.
+1. **SPF include**. The `spf.{platform_domain}` TXT record must list the
+   SMTP server IP addresses.
+1. **DMARC**. `_dmarc.{platform_domain}` TXT record.
+1. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
+   `mta-sts.{platform_domain}` CNAME.
+1. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
+
+All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
+domains are served automatically by the internal nameserver. No
+per-domain delegation needed.
 
 ## Architecture
 
