@@ -312,15 +312,15 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.4.4"
+version = "4.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/46/d5/34eac70f0df0d67351692d77f46995ced3d55be09a842802e93d26abceaa/django_health_check-4.4.4.tar.gz", hash = "sha256:4d84f3b0e3015568023f111bc8b3ef5e5094556637e1e0f6202b2eca80c07b9b", size = 21923, upload-time = "2026-07-28T17:33:52.816Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/64/16/8e6d9d123b9975c90d9df0e37c48c163e51fff35195cc5919fd5991559a7/django_health_check-4.5.0.tar.gz", hash = "sha256:7917436a29acf1500d7623928ed3d3c659fa660b00fadb2fc38b357c9c8c4e61", size = 22115, upload-time = "2026-08-07T15:39:33.394Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/e8/3bc8e4045c026d3496040dceb06265da3d049de1ad4fa082f9414b62ae73/django_health_check-4.4.4-py3-none-any.whl", hash = "sha256:22a4807e06bb60ba98bb35c7c5a625db1a845fc373de3cad6e9d675939dbfe4d", size = 27027, upload-time = "2026-07-28T17:33:51.477Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/54/bf8ee571e667e91b31df4c8ee1ebaa4439005fd218bfe34a6226b0faea87/django_health_check-4.5.0-py3-none-any.whl", hash = "sha256:f220f032c0547b363a4a41ec269224ecf0b4846d59fbda2445b98ef55193b05c", size = 27152, upload-time = "2026-08-07T15:39:32.043Z" },
 ]
 
 [package.optional-dependencies]
@@ -945,7 +945,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50" },
     { name = "django", specifier = ">=6.1,<6.2" },
     { name = "django-environ", specifier = ">=0.14" },
-    { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.4.3" },
+    { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.5.0" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "djangorestframework", url = "https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz" },
     { name = "dkimpy", specifier = ">=1.1.8" },

@@ -291,12 +291,28 @@ RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
 RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
 
 
-vars().update(
-    env.email_url(
-        "EMAIL_URL",
-        default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
-    )
+_email = env.email_url(
+    "EMAIL_URL",
+    default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
 )
+MAILERS = {
+    "default": {
+        "BACKEND": _email["EMAIL_BACKEND"],
+        "OPTIONS": {
+            key: value
+            for key, value in {
+                "host": _email["EMAIL_HOST"],
+                "port": _email["EMAIL_PORT"],
+                "username": _email["EMAIL_HOST_USER"],
+                "password": _email["EMAIL_HOST_PASSWORD"],
+                "use_tls": _email.get("EMAIL_USE_TLS"),
+                "use_ssl": _email.get("EMAIL_USE_SSL"),
+                "file_path": _email["EMAIL_FILE_PATH"],
+            }.items()
+            if value
+        },
+    },
+}
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL", default=f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 )
