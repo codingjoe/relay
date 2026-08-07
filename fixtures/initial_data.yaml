@@ -100,6 +100,10 @@
     dkim_error: ''
     dmarc_status: ok
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
@@ -122,6 +126,10 @@
     dkim_error: ''
     dmarc_status: ok
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
@@ -282,6 +290,10 @@
     dkim_error: ''
     dmarc_status: ok
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
@@ -303,6 +315,10 @@
     dkim_error: ''
     dmarc_status: unchecked
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: null
     dkim_key_rsa1024: null
@@ -325,6 +341,10 @@
     dkim_error: ''
     dmarc_status: ok
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: 2026-07-15 00:00:00+00:00
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
