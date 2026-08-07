@@ -1,9 +1,9 @@
 FROM node:26-slim AS frontend
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && pnpm ci --frozen-lockfile
 COPY ./ /app
-RUN npm run build
+RUN pnpm run build
 
 FROM ghcr.io/astral-sh/uv:0.12.1-trixie-slim AS build
 LABEL title="SMTP Server"

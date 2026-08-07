@@ -53,9 +53,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm ci --frozen-lockfile
+      - run: pnpm run build
       - run: uv run python manage.py check
       - run: uv run python manage.py collectstatic --no-input
       - run: uv run python manage.py makemigrations --check --dry-run
