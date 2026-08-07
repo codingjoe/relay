@@ -2,12 +2,15 @@
 
 import base64
 from collections.abc import Iterator
+from typing import NewType
 
 from django.conf import settings
 from dnslib import CNAME, MX, NS, PTR, RR, TXT, A, DNSLabel
 from dnslib.dns import QTYPE
 
 from .models import Domain
+
+QType = NewType("QType", int)
 
 
 def txt(value: str) -> TXT:
@@ -24,7 +27,7 @@ class DNSResolver:
     NS_TTL: int = 3600
     RECORD_TTL: int = 1800
 
-    def resolve(self, qname: DNSLabel, qtype: int) -> list[RR]:
+    def resolve(self, qname: DNSLabel, qtype: QType) -> list[RR]:
         """Resolve a DNS query and return a list of RR records."""
         query_name = str(qname).strip().rstrip(".").lower()
         match qtype:
@@ -42,7 +45,7 @@ class DNSResolver:
     def resolve_domain_records(
         self,
         qname: DNSLabel,
-        qtype: int,
+        qtype: QType,
         query_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
@@ -84,7 +87,7 @@ class DNSResolver:
     def resolve_txt(
         self,
         qname: DNSLabel,
-        qtype: int,
+        qtype: QType,
         query_name: str,
         zone_name: str,
         domain: Domain,
@@ -167,7 +170,7 @@ class DNSResolver:
     def resolve_cname(
         self,
         qname: DNSLabel,
-        qtype: int,
+        qtype: QType,
         query_name: str,
         zone_name: str,
         domain: Domain,
