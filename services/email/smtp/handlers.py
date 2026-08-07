@@ -127,7 +127,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
 
     try:
-        domain = Domain.objects.get(name__iexact=from_domain)
+        domain = Domain.objects.get(name__iexact=from_domain, org=credential.org)
     except Domain.DoesNotExist:
         return "550 Sender domain not registered"
 
