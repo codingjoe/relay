@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db import models
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -9,6 +9,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
 
+from .forms import WebhookForm
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
 
@@ -50,26 +51,37 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
             .fetch_mode(models.FETCH_PEERS)
         )
 
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "domain_choices": Domain.objects.filter(org=self.org),
+        }
+
 
 class WebhookCreateView(OrganizationScopedView, generic.CreateView):
+    http_method_names = ["post"]
     model = Webhook
-    fields = ["url", "name", "domain"]
+    form_class = WebhookForm
     title = _("New webhook")
     parent = "mx:webhook-list"
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields["domain"].queryset = Domain.objects.filter(
-            org=self.org, is_managed=False
-        )
-        return form
+    def get_form_kwargs(self):
+        return super().get_form_kwargs() | {"org": self.org}
 
     def form_valid(self, form):
-        form.instance.org = self.org
-        form.instance.signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
-        form.instance.address_pattern = f"*@{form.instance.domain.name}"
+        with transaction.atomic():
+            webhook = form.save(commit=False)
+            webhook.org = self.org
+            webhook.signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
+            webhook.save(force_insert=True)
+            self.object = webhook
         messages.success(self.request, _("Created webhook."))
-        return super().form_valid(form)
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(self.request, error)
+        return redirect("mx:webhook-list", org_slug=self.org.slug)
 
     def get_success_url(self):
         return reverse_lazy("mx:webhook-list", kwargs={"org_slug": self.org.slug})

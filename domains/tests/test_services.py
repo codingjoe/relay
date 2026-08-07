@@ -142,6 +142,11 @@ class TestVerifyDomainDns:
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", "v=STSv1; id=test")
         dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+        dns_resolver.add(
             f"_smtp._tls.{domain.name}", "TXT", "v=TLSRPTv1;rua=mailto:tls@example.com"
         )
         verify_domain_dns(domain)
@@ -220,6 +225,11 @@ class TestVerifyDomainDns:
             )
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", "v=STSv1; id=test")
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
         dns_resolver.add(
             f"_smtp._tls.{domain.name}", "TXT", "v=TLSRPTv1;rua=mailto:tls@example.com"
         )

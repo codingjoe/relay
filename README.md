@@ -37,9 +37,12 @@ The platform operator must set up the following records on the
    `ns1.{platform_domain}`, `ns2.{platform_domain}`).
 1. **A/AAAA record for the web server**. The platform domain itself needs
    an A/AAAA record for the web UI.
-1. **A/AAAA records for the SMTP server**. Set
-   `RELAY_DNS_SMTP_IPS` so the nameserver can serve A records for the
-   sender subdomains.
+1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS` and
+   `RELAY_SMTP_PUBLIC_HOSTNAME` (defaults to `smtp.{platform_domain}`). The
+   public hostname and sender subdomains resolve to the SMTP server IPs.
+1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
+   record with the hosting provider. Outbound SMTP must use the corresponding
+   hostname for EHLO.
 1. **SPF include**. The `spf.{platform_domain}` TXT record must list the
    SMTP server IP addresses.
 1. **DMARC**. `_dmarc.{platform_domain}` TXT record.
@@ -49,7 +52,7 @@ The platform operator must set up the following records on the
 
 All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
-per-domain delegation needed.
+per-domain delegation is necessary.
 
 ## Architecture
 

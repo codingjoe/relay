@@ -107,8 +107,10 @@ class Migration(migrations.Migration):
                 (
                     "domain",
                     models.ForeignKey(
+                        blank=True,
                         help_text="Domain associated with this message.",
-                        on_delete=django.db.models.deletion.CASCADE,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
                         related_name="+",
                         to="domains.domain",
                     ),

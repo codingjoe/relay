@@ -54,8 +54,8 @@
                 required
                 onchange="document.getElementById('id-pattern-suffix').textContent = '@' + this.options[this.selectedIndex].text"
               >
-                {% for value, label in domain_choices %}
-                  <option value="{{ value }}">{{ label }}</option>
+                {% for domain in domain_choices %}
+                  <option value="{{ domain.pk }}">{{ domain.name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -73,7 +73,7 @@
                 <span
                   data-align="end"
                   id="id-pattern-suffix"
-                >{% if domain_choices %}@{{ domain_choices.0.1 }}{% else %}@{% endif %}</span>
+                >{% if domain_choices %}@{{ domain_choices.0.name }}{% else %}@{% endif %}</span>
               </div>
             </div>
           </fieldset>
@@ -111,26 +111,6 @@
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
             </p>
-            {% if not webhook.domain.is_managed %}
-              <details class="mt-2">
-                <summary class="cursor-pointer text-sm">
-                  {% translate "MX record"|capfirst %}
-                  {% if webhook.mx_status == "ok" %}
-                    <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-                  {% elif webhook.mx_status == "error" %}
-                    <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-                  {% else %}
-                    <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-                  {% endif %}
-                </summary>
-                <pre class="bg-muted p-3 rounded-md overflow-auto text-sm mt-2"><code>{{ webhook.mx_record }}</code></pre>
-              </details>
-            {% else %}
-              <p class="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-                {% translate "managed domain: MX served by relay, no setup needed."|capfirst %}
-              </p>
-            {% endif %}
             <details class="mt-2">
               <summary class="cursor-pointer text-sm">
                 {% translate "public key"|capfirst %} <code>{{ webhook.signing_key.key_id }}</code>

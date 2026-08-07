@@ -75,11 +75,6 @@ class TestDomainPropertiesNoDb:
         assert "v=spf1" in record
         assert "include:mail.relay.example.com" in record
 
-    def test_return_path_domain__uses_prefix(self):
-        assert (
-            Domain(name="example.com").return_path_domain == "rp.mail.relay.example.com"
-        )
-
 
 @pytest.mark.django_db
 class TestDomainSave:

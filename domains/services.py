@@ -55,12 +55,19 @@ def check_dkim_cname(domain):
 def check_mta_sts(domain):
     try:
         txt_records = dns.resolver.resolve(f"_mta-sts.{domain.name}", "TXT")
-        return any(
+        txt_is_valid = any(
             "".join(
                 s.decode() if isinstance(s, bytes) else s for s in r.strings
             ).startswith("v=STSv1")
             for r in txt_records
         )
+        cname_records = dns.resolver.resolve(f"mta-sts.{domain.name}", "CNAME")
+        expected_target = f"mta-sts.{domain.sender_domain}."
+        cname_is_valid = any(
+            str(record.target).lower() == expected_target.lower()
+            for record in cname_records
+        )
+        return txt_is_valid and cname_is_valid
     except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
         return False
 

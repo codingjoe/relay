@@ -67,8 +67,10 @@ class Message(TimeStamped):
     )
     domain = models.ForeignKey(
         "domains.Domain",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="+",
+        null=True,
+        blank=True,
         help_text=_("Domain associated with this message."),
     )
 
@@ -110,7 +112,7 @@ class Message(TimeStamped):
     @property
     def domain_name(self) -> str:
         """Return the associated domain name."""
-        return str(self.domain)
+        return str(self.domain) if self.domain_id else ""
 
     @property
     def status_badge_variant(self) -> str:

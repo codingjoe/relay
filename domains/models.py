@@ -20,7 +20,7 @@ def validate_domain_name(value):
 
 
 class DomainQuerySet(models.QuerySet):
-    def root_for(self, name, include_managed=False):
+    def root_for(self, name, include_managed=True):
         """Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific
@@ -223,7 +223,7 @@ class Domain(TimeStamped):
 
     def clean(self):
         if not self.is_managed:
-            name = self.name
+            name = self.name.lower()
             root_domains = [
                 settings.RELAY_PLATFORM_DOMAIN.lower(),
                 settings.RELAY_MANAGED_SENDER_DOMAIN.lower(),
@@ -274,10 +274,6 @@ class Domain(TimeStamped):
     @property
     def root_spf_record(self):
         return f"v=spf1 include:{self.sender_domain} ~all"
-
-    @property
-    def return_path_domain(self):
-        return f"{settings.RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX}.{self.sender_domain}"
 
     @property
     def dmarc_reporting_address(self):

@@ -4,7 +4,7 @@ import base64
 from collections.abc import Iterator
 
 from django.conf import settings
-from dnslib import CNAME, MX, NS, PTR, RR, TXT, A, DNSLabel
+from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel
 from dnslib.dns import QTYPE
 
 from .models import Domain
@@ -28,8 +28,18 @@ class DNSResolver:
         """Resolve a DNS query and return a list of RR records."""
         query_name = str(qname).strip().rstrip(".").lower()
         match qtype:
-            case QTYPE.PTR | QTYPE.ANY if query_name.endswith(".in-addr.arpa"):
-                return self.resolve_ptr(qname, query_name)
+            case QTYPE.A | QTYPE.ANY if (
+                query_name == settings.RELAY_SMTP_PUBLIC_HOSTNAME
+            ):
+                return [
+                    RR(
+                        qname,
+                        QTYPE.A,
+                        rdata=A(smtp_ip_address),
+                        ttl=self.RECORD_TTL,
+                    )
+                    for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS
+                ]
             case _:
                 try:
                     domain = Domain.objects.root_for(query_name, include_managed=True)
@@ -152,45 +162,17 @@ class DNSResolver:
         query_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
-        """Build CNAME records for MTA-STS and Return-Path."""
+        """Build CNAME records for MTA-STS."""
         # MTA-STS CNAME served at sender subdomain and root domain.
         mta_sts_names = [
             f"mta-sts.{domain.sender_domain}",
             f"mta-sts.{domain.name}",
         ]
 
-        match query_name:
-            case name if name in mta_sts_names:
-                yield RR(
-                    qname,
-                    QTYPE.CNAME,
-                    rdata=CNAME(DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")),
-                    ttl=self.RECORD_TTL,
-                )
-            case name if name == domain.return_path_domain:
-                yield RR(
-                    qname,
-                    QTYPE.CNAME,
-                    rdata=CNAME(DNSLabel(settings.RELAY_DNS_RETURN_PATH_DOMAIN)),
-                    ttl=self.RECORD_TTL,
-                )
-
-    def resolve_ptr(self, qname: DNSLabel, query_name: str) -> list[RR]:
-        """Return PTR records for the sender subdomain of the queried SMTP IP."""
-        smtp_ip_address = ".".join(
-            reversed(query_name.removesuffix(".in-addr.arpa").split("."))
-        )
-        if smtp_ip_address not in settings.RELAY_DNS_SMTP_IPS:
-            return []
-
-        if not (domain := Domain.objects.first()):  # noqa: any domain works for PTR
-            return []
-
-        return [
-            RR(
+        if query_name in mta_sts_names:
+            yield RR(
                 qname,
-                QTYPE.PTR,
-                rdata=PTR(DNSLabel(domain.sender_domain)),
+                QTYPE.CNAME,
+                rdata=CNAME(DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")),
                 ttl=self.RECORD_TTL,
             )
-        ]

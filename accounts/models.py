@@ -3,6 +3,7 @@ import string
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -17,12 +18,22 @@ def generate_api_key():
     return "".join(secrets.choice(alphabet) for _ in range(32))
 
 
+organization_slug_validator = RegexValidator(
+    regex=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    message=_("Enter lowercase letters, digits, and single hyphens."),
+    code="invalid",
+)
+
+
 class Organization(TimeStamped):
     slug = models.SlugField(
         _("slug"),
-        max_length=255,
+        max_length=63,
         unique=True,
-        help_text=_("URL-safe identifier, lowercase letters, digits, and hyphens."),
+        validators=[organization_slug_validator],
+        help_text=_(
+            "DNS-safe identifier, at most 63 lowercase letters, digits, and hyphens."
+        ),
     )
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -34,6 +45,10 @@ class Organization(TimeStamped):
 
     def __str__(self):
         return self.slug
+
+    def save(self, *args, **kwargs):
+        organization_slug_validator(self.slug)
+        return super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse("accounts:org-home", kwargs={"org_slug": self.slug})

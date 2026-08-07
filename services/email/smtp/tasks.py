@@ -3,6 +3,7 @@ import logging
 
 import aiosmtplib
 import dns.resolver
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.tasks import task
 
@@ -21,6 +22,7 @@ class MxHostsExhausted(Exception):
 def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
     """Deliver a queued outgoing message to its recipients."""
     message = OutgoingMessage.objects.get(pk=message_id)
+    return_path = mail_from
 
     try:
         raw_bytes = message.raw_body.read()
@@ -29,7 +31,12 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
             from domains.dkim import sign_message
             from domains.models import Domain
 
-            raw_bytes = sign_message(raw_bytes, Domain.objects.get(pk=domain_id))
+            domain = Domain.objects.get(pk=domain_id)
+            raw_bytes = sign_message(raw_bytes, domain)
+            return_path = (
+                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
+                f"@{domain.sender_domain}"
+            )
             message.raw_body.save(
                 message.raw_body.name.split("/")[-1],
                 ContentFile(raw_bytes),
@@ -68,7 +75,8 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                         port=25,
                         use_tls=False,
                         start_tls=True,
-                        sender=mail_from,
+                        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+                        sender=return_path,
                         recipients=[rcpt_to],
                     )
                 )

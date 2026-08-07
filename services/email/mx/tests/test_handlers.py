@@ -21,7 +21,6 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster__creates_incoming_message(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        org.billing_is_active = True
         await process_incoming_message(
             "external@example.org",
             "postmaster@example.com",
@@ -39,7 +38,6 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster_plus_addressing__creates_incoming_message(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        org.billing_is_active = True
         await process_incoming_message(
             "external@example.org",
             "postmaster+bounces@example.com",
@@ -57,7 +55,6 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster__enqueues_notification(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        org.billing_is_active = True
         await process_incoming_message(
             "external@example.org",
             "postmaster@example.com",
