@@ -1,7 +1,7 @@
 FROM node:26-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && pnpm ci --frozen-lockfile
+RUN npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY ./ /app
 RUN pnpm run build
 
