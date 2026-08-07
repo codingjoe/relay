@@ -170,7 +170,7 @@ class Domain(TimeStamped):
     )
 
     def __str__(self):
-        return self.name
+        return f"{self.name} (managed)" if self.is_managed else self.name
 
     class Meta(TimeStamped.Meta):
         indexes = [

@@ -147,7 +147,7 @@ class TestMessage:
     @pytest.mark.django_db
     def test_domain_name__returns_domain_name(self, user, org):
         msg = create_outgoing(user, org)
-        assert Message.objects.get(pk=msg.pk).domain_name == msg.domain.name
+        assert Message.objects.get(pk=msg.pk).domain_name == str(msg.domain)
 
     @pytest.mark.django_db
     def test_domain_name__incoming_uses_receiving_domain(self, org):

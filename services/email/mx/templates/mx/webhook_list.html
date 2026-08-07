@@ -111,7 +111,7 @@
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
             </p>
-            {% if not webhook.is_managed_domain %}
+            {% if not webhook.domain.is_managed %}
               <details class="mt-2">
                 <summary class="cursor-pointer text-sm">
                   {% translate "MX record"|capfirst %}
