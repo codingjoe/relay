@@ -90,11 +90,18 @@ class DNSResolver:
         domain: Domain,
     ) -> Iterator[RR]:
         """Build TXT records for SPF, DKIM, DMARC, and TLS-RPT."""
-        # Records served for all domains (system and org-owned)
+        # Records served for all domains (managed and org-owned)
         match query_name:
             case name if name == zone_name:
                 yield RR(
                     qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
+                )
+            case name if name == f"_dmarc.{domain.name}":
+                yield RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.dmarc_record),
+                    ttl=self.RECORD_TTL,
                 )
             case name if name == f"_smtp._tls.{zone_name}":
                 yield RR(
@@ -117,16 +124,8 @@ class DNSResolver:
                 if query_name in dkim_names:
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
 
-        if domain.is_managed:
-            match query_name:
-                case name if name == f"_dmarc.{domain.name}":
-                    yield RR(
-                        qname,
-                        QTYPE.TXT,
-                        rdata=txt(domain.dmarc_record),
-                        ttl=self.RECORD_TTL,
-                    )
-        else:
+        # Extra records served only for org-owned (non-managed) domains
+        if not domain.is_managed:
             match query_name:
                 case name if name == domain.name:
                     yield RR(
@@ -140,13 +139,6 @@ class DNSResolver:
                         qname,
                         QTYPE.TXT,
                         rdata=txt(domain.sender_dmarc_record),
-                        ttl=self.RECORD_TTL,
-                    )
-                case name if name == f"_dmarc.{domain.name}":
-                    yield RR(
-                        qname,
-                        QTYPE.TXT,
-                        rdata=txt(domain.dmarc_record),
                         ttl=self.RECORD_TTL,
                     )
                 case name if name == f"_smtp._tls.{domain.name}":
