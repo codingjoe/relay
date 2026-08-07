@@ -183,8 +183,7 @@ class DNSResolver:
         if smtp_ip_address not in settings.RELAY_DNS_SMTP_IPS:
             return []
 
-        domain = Domain.objects.first()
-        if domain is None:
+        if not (domain := Domain.objects.first()):  # noqa: any domain works for PTR
             return []
 
         return [

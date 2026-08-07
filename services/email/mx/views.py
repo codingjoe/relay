@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import models
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -17,7 +18,9 @@ class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
     parent = "message:message-list"
 
     def get_queryset(self):
-        return IncomingMessage.objects.filter(org=self.org)
+        return IncomingMessage.objects.filter(org=self.org).fetch_mode(
+            models.FETCH_PEERS
+        )
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
@@ -41,7 +44,11 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org)
+        return (
+            Webhook.objects.filter(org=self.org)
+            .select_related("signing_key")
+            .fetch_mode(models.FETCH_PEERS)
+        )
 
 
 class WebhookCreateView(OrganizationScopedView, generic.CreateView):
@@ -74,7 +81,7 @@ class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "mx:webhook-list"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org)
+        return Webhook.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_success_url(self):
         return reverse_lazy("mx:webhook-list", kwargs={"org_slug": self.org.slug})
@@ -105,10 +112,10 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        qs = TlsReport.objects.filter(org=self.org)
+        qs = TlsReport.objects.filter(org=self.org).select_related("domain")
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
-        return qs
+        return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         from .charts import build_tls_chart
@@ -130,7 +137,7 @@ class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return TlsReport.objects.filter(org=self.org)
+        return TlsReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

@@ -35,7 +35,7 @@ class TestDeliverMessage:
     def test_deliver_message__no_mx_records(self, user, org, dns_resolver):
         from services.email.smtp.tasks import deliver_message
 
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
             sender=user,
             org=org,
@@ -107,7 +107,7 @@ class TestDeliverMessage:
 
         from services.email.smtp.tasks import deliver_message
 
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
             sender=user,
             org=org,

@@ -43,7 +43,7 @@ class TestWebhookEventFromTest:
 @pytest.mark.django_db
 class TestWebhookEventFromMessage:
     def test_from_message__populates_all_fields(self, org):
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         msg = IncomingMessage(
             org=org,
             domain=domain,
@@ -70,7 +70,7 @@ class TestWebhookEventFromMessage:
         assert event.body_url.endswith(".eml")
 
     def test_from_message__body_url_is_none_when_no_raw_body(self, org):
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         msg = IncomingMessage.objects.create(
             org=org,
             domain=domain,
@@ -119,7 +119,7 @@ class TestNotifyPostmasterRecipients:
     @pytest.mark.django_db(transaction=True)
     def test_notify__sends_to_all_members_with_email(self, org, user, other_user):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         msg = IncomingMessage.objects.create(
             org=org,
             domain=domain,
@@ -138,7 +138,7 @@ class TestNotifyPostmasterRecipients:
 
     @pytest.mark.django_db(transaction=True)
     def test_notify__skips_members_without_email(self, org):
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         no_email_user = User.objects.create_user(
             username="carol", email="", password="test"
         )
@@ -160,7 +160,7 @@ class TestNotifyPostmasterRecipients:
 
     @pytest.mark.django_db(transaction=True)
     def test_notify__includes_detail_url_in_body(self, org, user):
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         msg = IncomingMessage.objects.create(
             org=org,
             domain=domain,

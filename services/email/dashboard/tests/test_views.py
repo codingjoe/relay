@@ -22,7 +22,7 @@ class TestDashboardView:
     def test_get__shows_counts(self, admin_client, org, user):
         Domain.objects.create(name="a.com", org=org)
         Domain.objects.create(name="b.com", org=org)
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         OutgoingMessage.objects.create(
             sender=user,
             org=org,
@@ -41,7 +41,7 @@ class TestDashboardView:
 
     def test_get__counts_scoped_to_org(self, admin_client, org, write_org, user):
         Domain.objects.create(name="other.com", org=write_org)
-        domain = Domain.objects.filter(org=write_org).first()
+        domain = Domain.objects.filter(org=write_org).first()  # noqa: multiple domains per org
         OutgoingMessage.objects.create(
             sender=user,
             org=write_org,

@@ -8,7 +8,7 @@ from services.email.smtp.models import OutgoingMessage, SmtpCredential, Transmis
 
 def make_message(org, user, **kwargs):
     """Create an OutgoingMessage with the org's managed domain."""
-    domain = Domain.objects.filter(org=org).first()
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     defaults = {
         "sender": user,
         "org": org,

@@ -10,7 +10,7 @@ from services.email.mx.models import IncomingMessage, Webhook, WebhookDelivery
 
 
 def make_incoming(org, raw_body=b"From: a@b\r\nTo: c@d\r\nSubject: hi\r\n\r\nbody"):
-    domain = Domain.objects.filter(org=org).first()
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = IncomingMessage(
         org=org,
         domain=domain,
@@ -163,8 +163,7 @@ class TestWebhookCreateView:
             },
         )
         assert response.status_code == 302
-        webhook = Webhook.objects.filter(org=org).first()
-        assert webhook is not None
+        webhook = Webhook.objects.get(org=org)
         assert webhook.url == "https://example.com/hook"
         assert webhook.name == "My hook"
         assert webhook.address_pattern == "*@example.com"
@@ -237,8 +236,7 @@ class TestWebhookTestView:
         assert req["headers"]["webhook-id"].startswith("msg_")
         assert "webhook-timestamp" in req["headers"]
         assert req["headers"]["webhook-signature"].startswith("v1a,")
-        delivery = WebhookDelivery.objects.filter(webhook=webhook).first()
-        assert delivery is not None
+        delivery = WebhookDelivery.objects.get(webhook=webhook)
         assert delivery.is_test is True
         assert delivery.status == WebhookDelivery.Status.SENT
 
@@ -252,7 +250,7 @@ class TestWebhookTestView:
         finally:
             _CaptureHandler.status_code = 200
         assert response.status_code == 302
-        delivery = WebhookDelivery.objects.filter(webhook=webhook).first()
+        delivery = WebhookDelivery.objects.get(webhook=webhook)
         assert delivery.status == WebhookDelivery.Status.FAILED
 
     def test_post__not_found_for_other_org(

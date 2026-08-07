@@ -9,7 +9,7 @@ from services.email.smtp.models import OutgoingMessage, SmtpCredential
 
 
 def make_message(org, user, **kwargs):
-    domain = kwargs.pop("domain", None) or Domain.objects.filter(org=org).first()
+    domain = kwargs.pop("domain", None) or Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage(
         sender=user,
         org=org,
@@ -56,16 +56,13 @@ class TestMessageDetailView:
 @pytest.mark.django_db
 class TestTestEmailView:
     def test_post__creates_message_and_redirects(self, admin_client, org, user):
-        domain = Domain.objects.filter(org=org).first()
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
             {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(
-            org=org, sender=user, subject="Test"
-        ).first()
-        assert msg is not None
+        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Test")
         assert msg.sender == user
         assert msg.subject == "Test"
         assert msg.domain == domain
@@ -77,8 +74,7 @@ class TestTestEmailView:
             {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(org=org, sender=user, subject="Hi").first()
-        assert msg is not None
+        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Hi")
         assert msg.domain == domain
 
 
@@ -122,8 +118,7 @@ class TestCredentialCreateView:
             f"/org/{org.slug}/email/credentials/new", {"name": "Production"}
         )
         assert response.status_code == 302
-        cred = SmtpCredential.objects.filter(org=org).first()
-        assert cred is not None
+        cred = SmtpCredential.objects.get(org=org)
         assert cred.name == "Production"
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
@@ -202,8 +197,7 @@ class TestSuppressionCreateView:
             {"email": "bob@example.com"},
         )
         assert response.status_code == 302
-        entry = SuppressionEntry.objects.filter(org=org).first()
-        assert entry is not None
+        entry = SuppressionEntry.objects.get(org=org)
         assert entry.reason == SuppressionEntry.Reason.MANUAL
 
     @pytest.mark.django_db

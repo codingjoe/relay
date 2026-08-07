@@ -75,7 +75,7 @@ class SMTPHandler:
 @sync_to_async
 def get_membership(credential, username):
     """Return the membership linking the credential's org to the given user."""
-    return credential.org.memberships.filter(user__username=username).first()
+    return credential.org.memberships.get(user__username=username)
 
 
 @sync_to_async

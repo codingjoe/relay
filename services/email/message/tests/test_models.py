@@ -7,7 +7,7 @@ from services.email.smtp.models import OutgoingMessage
 
 
 def create_outgoing(user, org, status=None):
-    domain = Domain.objects.filter(org=org).first()
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage.objects.create(
         sender=user,
         org=org,
@@ -22,7 +22,7 @@ def create_outgoing(user, org, status=None):
 
 
 def create_incoming(org, status=None):
-    domain = Domain.objects.filter(org=org).first()
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = IncomingMessage.objects.create(
         org=org,
         domain=domain,

@@ -40,7 +40,7 @@ class DomainQuerySet(models.QuerySet):
         try:
             return qs.get()
         except self.model.MultipleObjectsReturned:
-            return qs.first()
+            return qs.first()  # noqa: fallback when multiple objects match
 
 
 class Domain(TimeStamped):

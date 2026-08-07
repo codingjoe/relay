@@ -13,9 +13,9 @@ dependencies = [
   "aiosmtplib>=5.1.2",
   "boto3>=1.43.59",
   "cryptography>=50",
-  "django>=6.1rc1,<6.2",
+  "django>=6.1,<6.2",
   "django-environ>=0.14",
-  "django-health-check[psutil,redis]>=4.4.3",
+  "django-health-check[psutil,redis]>=4.5",
   "django-storages[s3]>=1.14.6",
   """\
   djangorestframework @ \

@@ -76,11 +76,13 @@ class ReportListView(OrganizationScopedView, generic.ListView):
         ip = self.request.GET.get("ip", "")
         match report_type:
             case self.ReportType.DMARC:
-                qs = DmarcReport.objects.filter(org=self.org)
+                qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
                 if ip:
                     qs = qs.filter(source_ip_address=ip)
             case self.ReportType.FAILURES:
-                qs = DmarcFailureReport.objects.filter(org=self.org)
+                qs = DmarcFailureReport.objects.filter(org=self.org).select_related(
+                    "domain"
+                )
                 if ip:
                     qs = qs.filter(source_ip_address=ip)
             case self.ReportType.TLS:
@@ -88,8 +90,8 @@ class ReportListView(OrganizationScopedView, generic.ListView):
                 if domain:
                     qs = qs.filter(domain__name=domain)
             case _:
-                qs = DmarcReport.objects.filter(org=self.org)
-        return qs
+                qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
+        return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
