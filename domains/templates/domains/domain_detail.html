@@ -77,6 +77,36 @@
           </button>
         </div>
       {% endfor %}
+      <p class="text-sm text-muted-foreground mt-2">
+        {% translate "alternatively, delegate your apex domain NS to us and skip the records below."|capfirst %}
+      </p>
+      {% for ns in nameservers %}
+        <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
+          <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-sm"
+            onclick="navigator.clipboard.writeText('{{ domain.name }}')"
+            aria-label='{% translate "copy name"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+          <span>NS</span>
+          <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-sm"
+            onclick="navigator.clipboard.writeText('{{ ns }}.')"
+            aria-label='{% translate "copy value"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+        </div>
+      {% endfor %}
     </div>
 
     <div role="group" class="field">
