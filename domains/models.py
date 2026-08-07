@@ -188,6 +188,7 @@ class Domain(TimeStamped):
         )
 
     def save(self, *args, **kwargs):
+        self.name = self.name.lower()
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new and self.org is not None and self.dkim_key_rsa2048_id is None:
