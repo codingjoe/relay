@@ -101,41 +101,17 @@ class DNSResolver:
 
     def resolve_txt(self, qname, qtype, cleaned_qname, base, domain):
         """Build TXT records for SPF, DKIM, verification, DMARC, and TLS-RPT."""
+        # Records served for all domains (system and org-owned)
         match cleaned_qname:
             case c if c == base:
                 yield RR(
                     qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
-                )
-            case c if not domain.is_system and c == domain.name:
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.root_spf_record),
-                    ttl=self.RECORD_TTL,
                 )
             case c if c == domain.verification_record_name:
                 yield RR(
                     qname,
                     QTYPE.TXT,
                     rdata=txt(domain.verification_record),
-                    ttl=self.RECORD_TTL,
-                )
-            case c if domain.is_system and c == f"_dmarc.{domain.name}":
-                yield RR(
-                    qname, QTYPE.TXT, rdata=txt("v=DMARC1; p=none"), ttl=self.RECORD_TTL
-                )
-            case c if not domain.is_system and c == f"_dmarc.{base}":
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.sender_dmarc_record),
-                    ttl=self.RECORD_TTL,
-                )
-            case c if not domain.is_system and c == f"_dmarc.{domain.name}":
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
             case c if c == f"_smtp._tls.{base}":
@@ -145,38 +121,64 @@ class DNSResolver:
                     rdata=txt(domain.sender_tls_rpt_record),
                     ttl=self.RECORD_TTL,
                 )
-            case c if not domain.is_system and c == f"_smtp._tls.{domain.name}":
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.tls_rpt_record),
-                    ttl=self.RECORD_TTL,
-                )
-            case c if any(
-                c == f"{selector}._domainkey.{base}"
-                or (
-                    not domain.is_system and c == f"{selector}._domainkey.{domain.name}"
-                )
-                for selector, key in domain.dkim_ciphers
-                if key
-            ):
-                for selector, key in domain.dkim_ciphers:
-                    if key:
-                        if cleaned_qname == f"{selector}._domainkey.{base}":
-                            p = base64.b64encode(key.public_bytes_der()).decode("ascii")
-                            record = f"v=DKIM1; t=s; h=sha256; p={p};"
-                            yield RR(
-                                qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL
-                            )
-                        if (
-                            not domain.is_system
-                            and cleaned_qname == f"{selector}._domainkey.{domain.name}"
-                        ):
-                            p = base64.b64encode(key.public_bytes_der()).decode("ascii")
-                            record = f"v=DKIM1; t=s; h=sha256; p={p};"
-                            yield RR(
-                                qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL
-                            )
+
+        # Records served only for org-owned domains
+        if not domain.is_system:
+            match cleaned_qname:
+                case c if c == domain.name:
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(domain.root_spf_record),
+                        ttl=self.RECORD_TTL,
+                    )
+                case c if c == f"_dmarc.{base}":
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(domain.sender_dmarc_record),
+                        ttl=self.RECORD_TTL,
+                    )
+                case c if c == f"_dmarc.{domain.name}":
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(domain.dmarc_record),
+                        ttl=self.RECORD_TTL,
+                    )
+                case c if c == f"_smtp._tls.{domain.name}":
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(domain.tls_rpt_record),
+                        ttl=self.RECORD_TTL,
+                    )
+
+        # DKIM. Serve public key for each cipher at its selector name.
+        for selector, key in domain.dkim_ciphers:
+            if key:
+                if cleaned_qname == f"{selector}._domainkey.{base}":
+                    p = base64.b64encode(key.public_bytes_der()).decode("ascii")
+                    record = f"v=DKIM1; t=s; h=sha256; p={p};"
+                    yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
+                if (
+                    not domain.is_system
+                    and cleaned_qname == f"{selector}._domainkey.{domain.name}"
+                ):
+                    p = base64.b64encode(key.public_bytes_der()).decode("ascii")
+                    record = f"v=DKIM1; t=s; h=sha256; p={p};"
+                    yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
+
+        # Records served only for system domains
+        if domain.is_system:
+            match cleaned_qname:
+                case c if c == f"_dmarc.{domain.name}":
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt("v=DMARC1; p=none"),
+                        ttl=self.RECORD_TTL,
+                    )
 
     def resolve_ptr(self, qname, cleaned_qname):
         """Return PTR records for the sender subdomain of the queried SMTP IP."""
