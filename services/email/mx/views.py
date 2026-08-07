@@ -20,7 +20,9 @@ class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
     parent = "message:message-list"
 
     def get_queryset(self):
-        return IncomingMessage.objects.filter(org=self.org)
+        return IncomingMessage.objects.filter(org=self.org).fetch_mode(
+            models.FETCH_PEERS
+        )
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
@@ -94,7 +96,7 @@ class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "mx:webhook-list"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org)
+        return Webhook.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_success_url(self):
         return reverse_lazy("mx:webhook-list", kwargs={"org_slug": self.org.slug})
@@ -150,7 +152,7 @@ class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return TlsReport.objects.filter(org=self.org)
+        return TlsReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

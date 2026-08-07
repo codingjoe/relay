@@ -50,7 +50,7 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org)
+        return Domain.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -86,7 +86,7 @@ class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org)
+        return Domain.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_success_url(self):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})

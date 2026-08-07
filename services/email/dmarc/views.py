@@ -45,7 +45,7 @@ class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return DmarcReport.objects.filter(org=self.org)
+        return DmarcReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         records = self.object.records.select_related("report")
@@ -92,4 +92,6 @@ class DmarcFailureReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return DmarcFailureReport.objects.filter(org=self.org)
+        return DmarcFailureReport.objects.filter(org=self.org).fetch_mode(
+            models.FETCH_PEERS
+        )
