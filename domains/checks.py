@@ -6,7 +6,7 @@ from django.db.utils import OperationalError, ProgrammingError
 from .models import Domain
 
 
-@register()
+@register("domains", deploy=True)
 def check_managed_domain_dns(app_configs, **kwargs):
     """Verify that DNS records for the managed sender domain zone are configured."""
     errors = []
