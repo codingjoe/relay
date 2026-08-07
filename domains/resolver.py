@@ -47,7 +47,6 @@ class DNSResolver:
         domain: Domain,
     ) -> Iterator[RR]:
         """Build DNS records for a matched domain."""
-        zone_name = domain.sender_domain
 
         match qtype:
             case QTYPE.A | QTYPE.ANY:
@@ -59,7 +58,7 @@ class DNSResolver:
                 yield RR(
                     qname,
                     QTYPE.MX,
-                    rdata=MX(zone_name, self.MX_PRIORITY),
+                    rdata=MX(domain.sender_domain, self.MX_PRIORITY),
                     ttl=self.RECORD_TTL,
                 )
                 if not domain.is_managed and query_name == domain.name:
@@ -70,11 +69,9 @@ class DNSResolver:
                         ttl=self.RECORD_TTL,
                     )
             case QTYPE.TXT | QTYPE.ANY:
-                yield from self.resolve_txt(qname, qtype, query_name, zone_name, domain)
+                yield from self.resolve_txt(qname, qtype, query_name, domain)
             case QTYPE.CNAME | QTYPE.ANY:
-                yield from self.resolve_cname(
-                    qname, qtype, query_name, zone_name, domain
-                )
+                yield from self.resolve_cname(qname, qtype, query_name, domain)
             case QTYPE.NS | QTYPE.ANY:
                 for nameserver in settings.RELAY_DNS_NS_NAMESERVERS:
                     yield RR(
@@ -86,13 +83,12 @@ class DNSResolver:
         qname: DNSLabel,
         qtype: int,
         query_name: str,
-        zone_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
         """Build TXT records for SPF, DKIM, DMARC, and TLS-RPT."""
         # Records served for all domains (managed and org-owned)
         match query_name:
-            case name if name == zone_name:
+            case name if name == domain.sender_domain:
                 yield RR(
                     qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
                 )
@@ -103,7 +99,7 @@ class DNSResolver:
                     rdata=txt(domain.dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
-            case name if name == f"_smtp._tls.{zone_name}":
+            case name if name == f"_smtp._tls.{domain.sender_domain}":
                 yield RR(
                     qname,
                     QTYPE.TXT,
@@ -118,7 +114,7 @@ class DNSResolver:
                     "ascii"
                 )
                 record = f"v=DKIM1; t=s; h=sha256; p={public_key_b64};"
-                dkim_names = [f"{selector}._domainkey.{zone_name}"]
+                dkim_names = [f"{selector}._domainkey.{domain.sender_domain}"]
                 if not domain.is_managed:
                     dkim_names.append(f"{selector}._domainkey.{domain.name}")
                 if query_name in dkim_names:
@@ -134,7 +130,7 @@ class DNSResolver:
                         rdata=txt(domain.root_spf_record),
                         ttl=self.RECORD_TTL,
                     )
-                case name if name == f"_dmarc.{zone_name}":
+                case name if name == f"_dmarc.{domain.sender_domain}":
                     yield RR(
                         qname,
                         QTYPE.TXT,
@@ -154,12 +150,11 @@ class DNSResolver:
         qname: DNSLabel,
         qtype: int,
         query_name: str,
-        zone_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
         """Build CNAME records for MTA-STS and Return-Path."""
         # MTA-STS CNAME served at sender subdomain and root domain.
-        mta_sts_names = [f"mta-sts.{zone_name}"]
+        mta_sts_names = [f"mta-sts.{domain.sender_domain}"]
         if not domain.is_managed:
             mta_sts_names.append(f"mta-sts.{domain.name}")
 

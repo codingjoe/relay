@@ -64,9 +64,10 @@ class TestDomainPropertiesNoDb:
             Domain(name="example.com", verified_at=timezone.now()).is_verified is True
         )
 
-    def test_sender_domain__managed_uses_apex(self):
-        assert Domain(name="acme.open.localhost", is_managed=True).sender_domain == (
-            "acme.open.localhost"
+    def test_sender_domain__appends_prefix_for_managed(self):
+        assert (
+            Domain(name="acme.open.localhost", is_managed=True).sender_domain
+            == "mail.relay.acme.open.localhost"
         )
 
     def test_spf_record__includes_spf_include(self):
@@ -134,13 +135,14 @@ class TestDkimCnames:
             assert name.endswith("._domainkey.example.com")
             assert target.endswith("._domainkey.mail.relay.example.com")
 
-    def test_dkim_cnames__managed_domain_uses_apex(self):
+    def test_dkim_cnames__managed_domain_uses_sender_subdomain(self):
         from accounts.models import Organization
 
         Organization.objects.create(slug="acme")
         domain = Domain.objects.get(name="acme.open.localhost")
         for name, target in domain.dkim_cnames:
-            assert target.endswith("._domainkey.acme.open.localhost")
+            assert name.endswith("._domainkey.acme.open.localhost")
+            assert target.endswith("._domainkey.mail.relay.acme.open.localhost")
 
 
 @pytest.mark.django_db

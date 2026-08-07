@@ -76,7 +76,7 @@ class TestResolve:
         assert len(records) == 1
         txt_data = b"".join(records[0].rdata.data)
         assert b"rua=mailto:" in txt_data
-        assert b"@acme.open.localhost" in txt_data
+        assert b"@mail.relay.acme.open.localhost" in txt_data
 
     def test_resolve__cname_return_path(self):
         org = Organization.objects.create(slug="o")
@@ -119,7 +119,7 @@ class TestResolveMtaStsCname:
     def test_resolve__mta_sts_cname_managed_domain(self):
         Organization.objects.create(slug="acme")
         records = DNSResolver().resolve(
-            DNSLabel("mta-sts.acme.open.localhost"), QTYPE.CNAME
+            DNSLabel("mta-sts.mail.relay.acme.open.localhost"), QTYPE.CNAME
         )
         assert len(records) == 1
         assert "mta-sts." in str(records[0].rdata)

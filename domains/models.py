@@ -248,13 +248,7 @@ class Domain(TimeStamped):
 
     @property
     def sender_domain(self):
-        """Return the domain used as the SMTP envelope and DKIM sender.
-
-        Managed domains send from their apex; org-owned domains send from
-        a dedicated sender subdomain.
-        """
-        if self.is_managed:
-            return self.name
+        """Return the subdomain used as the SMTP envelope and DKIM sender."""
         return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{self.name}"
 
     @property
