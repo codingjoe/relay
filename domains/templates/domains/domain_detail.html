@@ -32,329 +32,344 @@
     {% translate "publish these records at your DNS provider. relaxed DMARC alignment covers all subdomains."|capfirst %}
   </p>
 
-  <div class="flex flex-col gap-4">
-    <div role="group" class="field">
-      <div class="flex items-center gap-2">
-        {% if domain.nameserver_status == 'ok' %}
-          <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-        {% elif domain.nameserver_status == 'error' %}
-          <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-        {% else %}
-          <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-        {% endif %}
-        <label>NS</label>
-      </div>
-      <p class="text-sm text-muted-foreground">
-        {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
-      </p>
-      {% if domain.nameserver_error %}
-        <p class="text-sm text-destructive">{{ domain.nameserver_error }}</p>
-      {% endif %}
-      {% for ns in nameservers %}
-        <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
-          <input type="text" readonly value="{{ domain.sender_domain }}" onfocus="this.select()">
-          <button
-            type="button"
-            class="btn"
-            data-variant="ghost"
-            data-size="icon-sm"
-            onclick="navigator.clipboard.writeText('{{ domain.sender_domain }}')"
-            aria-label='{% translate "copy name"|capfirst %}'
-          >
-            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-          </button>
-          <span>NS</span>
-          <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
-          <button
-            type="button"
-            class="btn"
-            data-variant="ghost"
-            data-size="icon-sm"
-            onclick="navigator.clipboard.writeText('{{ ns }}.')"
-            aria-label='{% translate "copy value"|capfirst %}'
-          >
-            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-          </button>
-        </div>
-      {% endfor %}
-      <p class="text-sm text-muted-foreground mt-2">
-        {% translate "alternatively, delegate your apex domain NS to us and skip the records below."|capfirst %}
-      </p>
-      {% for ns in nameservers %}
-        <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
-          <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
-          <button
-            type="button"
-            class="btn"
-            data-variant="ghost"
-            data-size="icon-sm"
-            onclick="navigator.clipboard.writeText('{{ domain.name }}')"
-            aria-label='{% translate "copy name"|capfirst %}'
-          >
-            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-          </button>
-          <span>NS</span>
-          <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
-          <button
-            type="button"
-            class="btn"
-            data-variant="ghost"
-            data-size="icon-sm"
-            onclick="navigator.clipboard.writeText('{{ ns }}.')"
-            aria-label='{% translate "copy value"|capfirst %}'
-          >
-            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-          </button>
-        </div>
-      {% endfor %}
-    </div>
-
-    <div role="group" class="field">
-      <div class="flex items-center gap-2">
-        {% if domain.spf_status == 'ok' %}
-          <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-        {% elif domain.spf_status == 'error' %}
-          <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-        {% else %}
-          <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-        {% endif %}
-        <label>SPF</label>
-        {% know_how_badge "spf" "SPF" %}
-      </div>
-      <p class="text-sm text-muted-foreground">
-        {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
-      </p>
-      {% if domain.spf_error %}
-        <p class="text-sm text-destructive">{{ domain.spf_error }}</p>
-      {% endif %}
-      <div class="input-group">
-        <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('{{ domain.name }}')"
-          aria-label='{% translate "copy name"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-        <span>TXT</span>
-        <input type="text" readonly value="&quot;{{ domain.root_spf_record }}&quot;" onfocus="this.select()">
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('{{ domain.root_spf_record }}')"
-          aria-label='{% translate "copy value"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-
-    <div role="group" class="field">
-      <div class="flex items-center gap-2">
-        {% if domain.dkim_status == 'ok' %}
-          <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-        {% elif domain.dkim_status == 'error' %}
-          <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-        {% else %}
-          <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-        {% endif %}
-        <label>DKIM</label>
-        {% know_how_badge "dkim" "DKIM" %}
-      </div>
-      <p class="text-sm text-muted-foreground">
-        {% translate "cryptographic email signing. one CNAME per cipher."|capfirst %}
-      </p>
-      {% if domain.dkim_error %}
-        <p class="text-sm text-destructive">{{ domain.dkim_error }}</p>
-      {% endif %}
-      {% for cname in dkim_cnames %}
-        <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
-          <input type="text" readonly value="{{ cname.0 }}" onfocus="this.select()">
-          <button
-            type="button"
-            class="btn"
-            data-variant="ghost"
-            data-size="icon-sm"
-            onclick="navigator.clipboard.writeText('{{ cname.0 }}')"
-            aria-label='{% translate "copy name"|capfirst %}'
-          >
-            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-          </button>
-          <span>CNAME</span>
-          <input type="text" readonly value="{{ cname.1 }}." onfocus="this.select()">
-          <button
-            type="button"
-            class="btn"
-            data-variant="ghost"
-            data-size="icon-sm"
-            onclick="navigator.clipboard.writeText('{{ cname.1 }}.')"
-            aria-label='{% translate "copy value"|capfirst %}'
-          >
-            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-          </button>
-        </div>
-      {% endfor %}
-    </div>
-
-    <div role="group" class="field">
-      <div class="flex items-center gap-2">
-        {% if domain.dmarc_status == 'ok' %}
-          <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-        {% elif domain.dmarc_status == 'error' %}
-          <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-        {% else %}
-          <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-        {% endif %}
-        <label>DMARC</label>
-        {% know_how_badge "dmarc" "DMARC" %}
-      </div>
-      <p class="text-sm text-muted-foreground">
-        {% translate "email authentication policy. relaxed alignment covers subdomains."|capfirst %}
-      </p>
-      {% if domain.dmarc_error %}
-        <p class="text-sm text-destructive">{{ domain.dmarc_error }}</p>
-      {% endif %}
-      <div class="input-group">
-        <input type="text" readonly value="_dmarc.{{ domain.name }}" onfocus="this.select()">
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('_dmarc.{{ domain.name }}')"
-          aria-label='{% translate "copy name"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-        <span>TXT</span>
-        <input
-          type="text"
-          readonly
-          value="&quot;{{ domain.dmarc_record }}&quot;"
-          onfocus="this.select()"
-        >
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('{{ domain.dmarc_record }}')"
-          aria-label='{% translate "copy value"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-
-    <div role="group" class="field">
-      <div class="flex items-center gap-2">
-        <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-        <label>TLS-RPT</label>
-        {% know_how_badge "tls-rpt" "TLS-RPT" %}
-      </div>
-      <p class="text-sm text-muted-foreground">
-        {% translate "receive TLS failure reports from senders. add this record at your DNS provider for the root domain."|capfirst %}
-      </p>
-      <div class="input-group">
-        <input type="text" readonly value="_smtp._tls.{{ domain.name }}" onfocus="this.select()">
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('_smtp._tls.{{ domain.name }}')"
-          aria-label='{% translate "copy name"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-        <span>TXT</span>
-        <input
-          type="text"
-          readonly
-          value="&quot;{{ domain.tls_rpt_record }}&quot;"
-          onfocus="this.select()"
-        >
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('{{ domain.tls_rpt_record }}')"
-          aria-label='{% translate "copy value"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-    <div role="group" class="field">
-      <div class="flex items-center gap-2">
-        <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-        <label>MTA-STS</label>
-        {% know_how_badge "mta-sts" "MTA-STS" %}
-      </div>
-      <p class="text-sm text-muted-foreground">
-        {% translate "enforce TLS for incoming mail. add the TXT record and the CNAME record at your DNS provider."|capfirst %}
-      </p>
-      <div class="input-group">
-        <input type="text" readonly value="_mta-sts.{{ domain.name }}" onfocus="this.select()">
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('_mta-sts.{{ domain.name }}')"
-          aria-label='{% translate "copy name"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-        <span>TXT</span>
-        <input
-          type="text"
-          readonly
-          value="&quot;{{ domain.mta_sts_record }}&quot;"
-          onfocus="this.select()"
-        >
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('{{ domain.mta_sts_record }}')"
-          aria-label='{% translate "copy value"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-      </div>
-      <div class="input-group mt-2">
-        <input type="text" readonly value="mta-sts.{{ domain.name }}" onfocus="this.select()">
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('mta-sts.{{ domain.name }}')"
-          aria-label='{% translate "copy name"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-        <span>CNAME</span>
-        <input type="text" readonly value="mta-sts.{{ domain.sender_domain }}." onfocus="this.select()">
-        <button
-          type="button"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-sm"
-          onclick="navigator.clipboard.writeText('mta-sts.{{ domain.sender_domain }}.')"
-          aria-label='{% translate "copy value"|capfirst %}'
-        >
-          <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
+  <div class="flex items-center gap-2 mb-4">
+    {% if domain.nameserver_status == 'ok' %}
+      <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+    {% elif domain.nameserver_status == 'error' %}
+      <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
+    {% else %}
+      <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+    {% endif %}
+    <label>NS</label>
+    {% if domain.nameserver_error %}
+      <p class="text-sm text-destructive">{{ domain.nameserver_error }}</p>
+    {% endif %}
   </div>
+
+  <section class="accordion mb-6">
+    <details open>
+      <summary>{% translate "subdomain NS + manual apex records"|capfirst %}</summary>
+      <section>
+        <div class="flex flex-col gap-4">
+          <div role="group" class="field">
+            <p class="text-sm text-muted-foreground">
+              {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
+            </p>
+            {% for ns in nameservers %}
+              <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
+                <input type="text" readonly value="{{ domain.sender_domain }}" onfocus="this.select()">
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="ghost"
+                  data-size="icon-sm"
+                  onclick="navigator.clipboard.writeText('{{ domain.sender_domain }}')"
+                  aria-label='{% translate "copy name"|capfirst %}'
+                >
+                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                </button>
+                <span>NS</span>
+                <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="ghost"
+                  data-size="icon-sm"
+                  onclick="navigator.clipboard.writeText('{{ ns }}.')"
+                  aria-label='{% translate "copy value"|capfirst %}'
+                >
+                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              {% if domain.spf_status == 'ok' %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% elif domain.spf_status == 'error' %}
+                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% endif %}
+              <label>SPF</label>
+              {% know_how_badge "spf" "SPF" %}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
+            </p>
+            {% if domain.spf_error %}
+              <p class="text-sm text-destructive">{{ domain.spf_error }}</p>
+            {% endif %}
+            <div class="input-group">
+              <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ domain.name }}')"
+                aria-label='{% translate "copy name"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+              <span>TXT</span>
+              <input type="text" readonly value="&quot;{{ domain.root_spf_record }}&quot;" onfocus="this.select()">
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ domain.root_spf_record }}')"
+                aria-label='{% translate "copy value"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              {% if domain.dkim_status == 'ok' %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% elif domain.dkim_status == 'error' %}
+                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% endif %}
+              <label>DKIM</label>
+              {% know_how_badge "dkim" "DKIM" %}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {% translate "cryptographic email signing. one CNAME per cipher."|capfirst %}
+            </p>
+            {% if domain.dkim_error %}
+              <p class="text-sm text-destructive">{{ domain.dkim_error }}</p>
+            {% endif %}
+            {% for cname in dkim_cnames %}
+              <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
+                <input type="text" readonly value="{{ cname.0 }}" onfocus="this.select()">
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="ghost"
+                  data-size="icon-sm"
+                  onclick="navigator.clipboard.writeText('{{ cname.0 }}')"
+                  aria-label='{% translate "copy name"|capfirst %}'
+                >
+                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                </button>
+                <span>CNAME</span>
+                <input type="text" readonly value="{{ cname.1 }}." onfocus="this.select()">
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="ghost"
+                  data-size="icon-sm"
+                  onclick="navigator.clipboard.writeText('{{ cname.1 }}.')"
+                  aria-label='{% translate "copy value"|capfirst %}'
+                >
+                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              {% if domain.dmarc_status == 'ok' %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% elif domain.dmarc_status == 'error' %}
+                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% endif %}
+              <label>DMARC</label>
+              {% know_how_badge "dmarc" "DMARC" %}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {% translate "email authentication policy. relaxed alignment covers subdomains."|capfirst %}
+            </p>
+            {% if domain.dmarc_error %}
+              <p class="text-sm text-destructive">{{ domain.dmarc_error }}</p>
+            {% endif %}
+            <div class="input-group">
+              <input type="text" readonly value="_dmarc.{{ domain.name }}" onfocus="this.select()">
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('_dmarc.{{ domain.name }}')"
+                aria-label='{% translate "copy name"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+              <span>TXT</span>
+              <input
+                type="text"
+                readonly
+                value="&quot;{{ domain.dmarc_record }}&quot;"
+                onfocus="this.select()"
+              >
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ domain.dmarc_record }}')"
+                aria-label='{% translate "copy value"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              <label>TLS-RPT</label>
+              {% know_how_badge "tls-rpt" "TLS-RPT" %}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {% translate "receive TLS failure reports from senders. add this record at your DNS provider for the root domain."|capfirst %}
+            </p>
+            <div class="input-group">
+              <input type="text" readonly value="_smtp._tls.{{ domain.name }}" onfocus="this.select()">
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('_smtp._tls.{{ domain.name }}')"
+                aria-label='{% translate "copy name"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+              <span>TXT</span>
+              <input
+                type="text"
+                readonly
+                value="&quot;{{ domain.tls_rpt_record }}&quot;"
+                onfocus="this.select()"
+              >
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ domain.tls_rpt_record }}')"
+                aria-label='{% translate "copy value"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              <label>MTA-STS</label>
+              {% know_how_badge "mta-sts" "MTA-STS" %}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {% translate "enforce TLS for incoming mail. add the TXT record and the CNAME record at your DNS provider."|capfirst %}
+            </p>
+            <div class="input-group">
+              <input type="text" readonly value="_mta-sts.{{ domain.name }}" onfocus="this.select()">
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('_mta-sts.{{ domain.name }}')"
+                aria-label='{% translate "copy name"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+              <span>TXT</span>
+              <input
+                type="text"
+                readonly
+                value="&quot;{{ domain.mta_sts_record }}&quot;"
+                onfocus="this.select()"
+              >
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ domain.mta_sts_record }}')"
+                aria-label='{% translate "copy value"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="input-group mt-2">
+              <input type="text" readonly value="mta-sts.{{ domain.name }}" onfocus="this.select()">
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('mta-sts.{{ domain.name }}')"
+                aria-label='{% translate "copy name"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+              <span>CNAME</span>
+              <input type="text" readonly value="mta-sts.{{ domain.sender_domain }}." onfocus="this.select()">
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('mta-sts.{{ domain.sender_domain }}.')"
+                aria-label='{% translate "copy value"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </details>
+
+    <details>
+      <summary>{% translate "apex NS delegation"|capfirst %}</summary>
+      <section>
+        <p class="text-sm text-muted-foreground mb-4">
+          {% translate "delegate your apex domain NS to us. we serve all records automatically, no manual setup needed."|capfirst %}
+        </p>
+        {% for ns in nameservers %}
+          <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
+            <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
+            <button
+              type="button"
+              class="btn"
+              data-variant="ghost"
+              data-size="icon-sm"
+              onclick="navigator.clipboard.writeText('{{ domain.name }}')"
+              aria-label='{% translate "copy name"|capfirst %}'
+            >
+              <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+            </button>
+            <span>NS</span>
+            <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
+            <button
+              type="button"
+              class="btn"
+              data-variant="ghost"
+              data-size="icon-sm"
+              onclick="navigator.clipboard.writeText('{{ ns }}.')"
+              aria-label='{% translate "copy value"|capfirst %}'
+            >
+              <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+            </button>
+          </div>
+        {% endfor %}
+      </section>
+    </details>
+  </section>
 {% endblock %}
