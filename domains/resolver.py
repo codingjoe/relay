@@ -79,17 +79,18 @@ class DNSResolver:
         domain: Domain,
     ) -> Iterator[RR]:
         """Build TXT records for SPF, DKIM, DMARC, and TLS-RPT."""
-        # Records served for all domains (managed and org-owned)
+        # Sender subdomain records (served for all domains; we are always
+        # authoritative for mail.relay.{name})
         match query_name:
             case name if name == domain.sender_domain:
                 yield RR(
                     qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
                 )
-            case name if name == f"_dmarc.{domain.name}":
+            case name if name == f"_dmarc.{domain.sender_domain}":
                 yield RR(
                     qname,
                     QTYPE.TXT,
-                    rdata=txt(domain.dmarc_record),
+                    rdata=txt(domain.sender_dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
             case name if name == f"_smtp._tls.{domain.sender_domain}":
@@ -100,43 +101,53 @@ class DNSResolver:
                     ttl=self.RECORD_TTL,
                 )
 
-        # DKIM. Serve public-key for each cipher at its selector name.
+        # DKIM public keys at the sender subdomain.
         for selector, key in domain.dkim_ciphers:
             if key:
                 public_key_b64 = base64.b64encode(key.public_bytes_der()).decode(
                     "ascii"
                 )
                 record = f"v=DKIM1; t=s; h=sha256; p={public_key_b64};"
-                dkim_names = [
-                    f"{selector}._domainkey.{domain.sender_domain}",
-                    f"{selector}._domainkey.{domain.name}",
-                ]
-                if query_name in dkim_names:
+                if query_name == f"{selector}._domainkey.{domain.sender_domain}":
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
 
-        # Records served at the domain apex (root SPF, sender DMARC, root TLS-RPT)
-        match query_name:
-            case name if name == domain.name:
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.root_spf_record),
-                    ttl=self.RECORD_TTL,
-                )
-            case name if name == f"_dmarc.{domain.sender_domain}":
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.sender_dmarc_record),
-                    ttl=self.RECORD_TTL,
-                )
-            case name if name == f"_smtp._tls.{domain.name}":
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.tls_rpt_record),
-                    ttl=self.RECORD_TTL,
-                )
+        # Apex records (served only for managed domains; we are only
+        # authoritative for the apex when the entire zone is delegated to us)
+        if domain.is_managed:
+            match query_name:
+                case name if name == domain.name:
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(domain.root_spf_record),
+                        ttl=self.RECORD_TTL,
+                    )
+                case name if name == f"_dmarc.{domain.name}":
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(domain.dmarc_record),
+                        ttl=self.RECORD_TTL,
+                    )
+                case name if name == f"_smtp._tls.{domain.name}":
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(domain.tls_rpt_record),
+                        ttl=self.RECORD_TTL,
+                    )
+
+            # DKIM public keys at the apex (DKIM signing uses d=domain.name)
+            for selector, key in domain.dkim_ciphers:
+                if key:
+                    public_key_b64 = base64.b64encode(key.public_bytes_der()).decode(
+                        "ascii"
+                    )
+                    record = f"v=DKIM1; t=s; h=sha256; p={public_key_b64};"
+                    if query_name == f"{selector}._domainkey.{domain.name}":
+                        yield RR(
+                            qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL
+                        )
 
     def resolve_cname(
         self,
@@ -146,11 +157,10 @@ class DNSResolver:
         domain: Domain,
     ) -> Iterator[RR]:
         """Build CNAME records for MTA-STS and Return-Path."""
-        # MTA-STS CNAME served at sender subdomain and root domain.
-        mta_sts_names = [
-            f"mta-sts.{domain.sender_domain}",
-            f"mta-sts.{domain.name}",
-        ]
+        # MTA-STS CNAME at sender subdomain (all domains) and apex (managed only)
+        mta_sts_names = [f"mta-sts.{domain.sender_domain}"]
+        if domain.is_managed:
+            mta_sts_names.append(f"mta-sts.{domain.name}")
 
         match query_name:
             case name if name in mta_sts_names:
