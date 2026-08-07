@@ -1,6 +1,4 @@
 from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -45,42 +43,29 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
     def get_queryset(self):
         return Webhook.objects.filter(org=self.org)
 
-    def get_context_data(self, **kwargs):
-        domain_choices = [
-            (d.pk, d.name)
-            for d in Domain.objects.filter(org=self.org, is_managed=False)
-        ]
-        return super().get_context_data(**kwargs) | {
-            "domain_choices": domain_choices,
-        }
 
+class WebhookCreateView(OrganizationScopedView, generic.CreateView):
+    model = Webhook
+    fields = ["url", "name", "domain"]
+    title = _("New webhook")
+    parent = "mx:webhook-list"
 
-class WebhookCreateView(OrganizationScopedView, generic.View):
-    def post(self, request, org_slug, *args, **kwargs):
-        url = request.POST.get("url", "")
-        name = request.POST.get("name", "")
-        pattern_prefix = request.POST.get("pattern_prefix", "*")
-        domain = get_object_or_404(Domain, org=self.org, pk=request.POST.get("domain"))
-        address_pattern = f"{pattern_prefix}@{domain.name}"
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields["domain"].queryset = Domain.objects.filter(
+            org=self.org, is_managed=False
+        )
+        return form
 
-        try:
-            with transaction.atomic():
-                signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
-                webhook = Webhook(
-                    org=self.org,
-                    url=url,
-                    name=name,
-                    address_pattern=address_pattern,
-                    domain=domain,
-                    signing_key=signing_key,
-                )
-                webhook.full_clean()
-                webhook.save(force_insert=True)
-        except ValidationError as e:
-            messages.error(request, "; ".join(e.messages))
-        else:
-            messages.success(request, _("Created webhook."))
-        return redirect("mx:webhook-list", org_slug=org_slug)
+    def form_valid(self, form):
+        form.instance.org = self.org
+        form.instance.signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
+        form.instance.address_pattern = f"*@{form.instance.domain.name}"
+        messages.success(self.request, _("Created webhook."))
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("mx:webhook-list", kwargs={"org_slug": self.org.slug})
 
 
 class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):

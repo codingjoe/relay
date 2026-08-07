@@ -145,13 +145,6 @@ class TestWebhookListView:
         assert len(webhooks) == 1
         assert webhooks[0].org == org
 
-    def test_get__context_has_domain_choices(self, admin_client, org):
-        domain = Domain.objects.create(name="example.com", org=org)
-        response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
-        assert "domain_choices" in response.context
-        pks = [d[0] for d in response.context["domain_choices"]]
-        assert domain.pk in pks
-
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/webhooks/")
         assert response.status_code == 404
@@ -166,7 +159,6 @@ class TestWebhookCreateView:
             {
                 "url": "https://example.com/hook",
                 "name": "My hook",
-                "pattern_prefix": "*",
                 "domain": str(domain.pk),
             },
         )
@@ -185,7 +177,6 @@ class TestWebhookCreateView:
             {
                 "url": "https://example.com/hook",
                 "name": "",
-                "pattern_prefix": "support",
                 "domain": str(domain.pk),
             },
         )
@@ -199,7 +190,6 @@ class TestWebhookCreateView:
             {
                 "url": "https://example.com/hook",
                 "name": "",
-                "pattern_prefix": "*",
                 "domain": str(domain.pk),
             },
         )

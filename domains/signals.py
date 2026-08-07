@@ -25,5 +25,7 @@ def create_managed_domain(sender, instance, created, **kwargs):
                 "spf_status": Domain.Status.OK,
                 "dkim_status": Domain.Status.OK,
                 "dmarc_status": Domain.Status.OK,
+                "mta_sts_status": Domain.Status.OK,
+                "tls_rpt_status": Domain.Status.OK,
             },
         )

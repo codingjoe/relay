@@ -140,6 +140,10 @@ class TestVerifyDomainDns:
                 "relay-abc._domainkey.mail.relay.example.com.",
             )
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", "v=STSv1; id=test")
+        dns_resolver.add(
+            f"_smtp._tls.{domain.name}", "TXT", "v=TLSRPTv1;rua=mailto:tls@example.com"
+        )
         verify_domain_dns(domain)
 
         domain.refresh_from_db()
@@ -147,6 +151,8 @@ class TestVerifyDomainDns:
         assert domain.spf_status == Domain.Status.OK
         assert domain.dkim_status == Domain.Status.OK
         assert domain.dmarc_status == Domain.Status.OK
+        assert domain.mta_sts_status == Domain.Status.OK
+        assert domain.tls_rpt_status == Domain.Status.OK
         assert domain.verified_at is not None
 
     def test_verify_domain_dns__all_fail_sets_errors(self, dns_resolver):
@@ -161,11 +167,15 @@ class TestVerifyDomainDns:
         assert domain.spf_status == Domain.Status.ERROR
         assert domain.dkim_status == Domain.Status.ERROR
         assert domain.dmarc_status == Domain.Status.ERROR
+        assert domain.mta_sts_status == Domain.Status.ERROR
+        assert domain.tls_rpt_status == Domain.Status.ERROR
         assert domain.verified_at is None
         assert domain.nameserver_error
         assert domain.spf_error
         assert domain.dkim_error
         assert domain.dmarc_error
+        assert domain.mta_sts_error
+        assert domain.tls_rpt_error
 
     def test_verify_domain_dns__partial_pass(self, dns_resolver):
         from domains.services import verify_domain_dns
@@ -186,6 +196,8 @@ class TestVerifyDomainDns:
         assert domain.spf_status == Domain.Status.ERROR
         assert domain.dkim_status == Domain.Status.OK
         assert domain.dmarc_status == Domain.Status.ERROR
+        assert domain.mta_sts_status == Domain.Status.ERROR
+        assert domain.tls_rpt_status == Domain.Status.ERROR
         assert domain.verified_at is None
 
     def test_verify_domain_dns__does_not_re_verify(self, dns_resolver):
@@ -207,6 +219,10 @@ class TestVerifyDomainDns:
                 "relay-abc._domainkey.mail.relay.example.com.",
             )
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", "v=STSv1; id=test")
+        dns_resolver.add(
+            f"_smtp._tls.{domain.name}", "TXT", "v=TLSRPTv1;rua=mailto:tls@example.com"
+        )
         verify_domain_dns(domain)
 
         domain.refresh_from_db()

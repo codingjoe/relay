@@ -158,6 +158,50 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
+                    "mta_sts_status",
+                    models.TextField(
+                        choices=[
+                            ("ok", "ok"),
+                            ("error", "error"),
+                            ("pending", "pending"),
+                            ("unchecked", "unchecked"),
+                        ],
+                        default="unchecked",
+                        help_text="MTA-STS record check result on the root domain.",
+                        verbose_name="MTA-STS status",
+                    ),
+                ),
+                (
+                    "mta_sts_error",
+                    models.TextField(
+                        blank=True,
+                        help_text="Failure detail if the MTA-STS record is incorrect.",
+                        verbose_name="MTA-STS error",
+                    ),
+                ),
+                (
+                    "tls_rpt_status",
+                    models.TextField(
+                        choices=[
+                            ("ok", "ok"),
+                            ("error", "error"),
+                            ("pending", "pending"),
+                            ("unchecked", "unchecked"),
+                        ],
+                        default="unchecked",
+                        help_text="TLS-RPT record check result on the root domain.",
+                        verbose_name="TLS-RPT status",
+                    ),
+                ),
+                (
+                    "tls_rpt_error",
+                    models.TextField(
+                        blank=True,
+                        help_text="Failure detail if the TLS-RPT record is incorrect.",
+                        verbose_name="TLS-RPT error",
+                    ),
+                ),
+                (
                     "dns_checked_at",
                     models.DateTimeField(
                         blank=True,

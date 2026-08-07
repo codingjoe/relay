@@ -52,6 +52,32 @@ def check_dkim_cname(domain):
         return False
 
 
+def check_mta_sts(domain):
+    try:
+        txt_records = dns.resolver.resolve(f"_mta-sts.{domain.name}", "TXT")
+        return any(
+            "".join(
+                s.decode() if isinstance(s, bytes) else s for s in r.strings
+            ).startswith("v=STSv1")
+            for r in txt_records
+        )
+    except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
+        return False
+
+
+def check_tls_rpt(domain):
+    try:
+        txt_records = dns.resolver.resolve(f"_smtp._tls.{domain.name}", "TXT")
+        return any(
+            "".join(
+                s.decode() if isinstance(s, bytes) else s for s in r.strings
+            ).startswith("v=TLSRPTv1")
+            for r in txt_records
+        )
+    except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
+        return False
+
+
 def verify_domain_dns(domain):
     """Run DNS checks for a domain and update its status fields."""
     checks = {
@@ -59,6 +85,8 @@ def verify_domain_dns(domain):
         "spf": check_spf,
         "dkim": check_dkim_cname,
         "dmarc": check_dmarc,
+        "mta_sts": check_mta_sts,
+        "tls_rpt": check_tls_rpt,
     }
 
     for field, check_fn in checks.items():
@@ -100,6 +128,10 @@ def verify_domain_dns(domain):
             "dkim_error",
             "dmarc_status",
             "dmarc_error",
+            "mta_sts_status",
+            "mta_sts_error",
+            "tls_rpt_status",
+            "tls_rpt_error",
             "dns_checked_at",
             "verified_at",
         ]

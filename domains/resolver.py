@@ -57,7 +57,7 @@ class DNSResolver:
                     rdata=MX(base, self.MX_PRIORITY),
                     ttl=self.RECORD_TTL,
                 )
-                if domain.is_managed and qname_lower == domain.name:
+                if not domain.is_system and qname_lower == domain.name:
                     yield RR(
                         qname,
                         QTYPE.MX,
@@ -76,7 +76,7 @@ class DNSResolver:
                         ),
                         ttl=self.RECORD_TTL,
                     )
-                if domain.is_managed and qname_lower == f"mta-sts.{domain.name}":
+                if not domain.is_system and qname_lower == f"mta-sts.{domain.name}":
                     yield RR(
                         qname,
                         QTYPE.CNAME,
@@ -101,13 +101,15 @@ class DNSResolver:
         """Build TXT records for SPF, DKIM, verification, DMARC, and TLS-RPT."""
         qname_lower = qname_str.lower()
 
+        # Sender subdomain SPF
         if qname_lower == base:
             yield RR(
                 qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
             )
 
-        # Managed domains also serve root-level SPF for the MAIL FROM domain.
-        if domain.is_managed and qname_lower == domain.name:
+        # Root domain SPF (MAIL FROM domain). Served for all org-owned domains
+        # because relay is authoritative for the zone that includes the root.
+        if not domain.is_system and qname_lower == domain.name:
             yield RR(
                 qname,
                 QTYPE.TXT,
@@ -115,7 +117,7 @@ class DNSResolver:
                 ttl=self.RECORD_TTL,
             )
 
-        # DKIM. Serve public key for each cipher at its selector name
+        # DKIM. Serve public key for each cipher at its selector name.
         for selector, key in domain.dkim_ciphers:
             if key:
                 key_record_name = f"{selector}._domainkey.{base}"
@@ -123,9 +125,9 @@ class DNSResolver:
                     p = base64.b64encode(key.public_bytes_der()).decode("ascii")
                     record = f"v=DKIM1; t=s; h=sha256; p={p};"
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
-                # Managed domains also serve DKIM at the root domain level.
+                # Also serve DKIM at the root domain level for org-owned domains.
                 if (
-                    domain.is_managed
+                    not domain.is_system
                     and qname_lower == f"{selector}._domainkey.{domain.name}"
                 ):
                     p = base64.b64encode(key.public_bytes_der()).decode("ascii")
@@ -141,8 +143,9 @@ class DNSResolver:
                 ttl=self.RECORD_TTL,
             )
 
-        # DMARC: system domains serve at the apex, user domains serve at the
-        # sender subdomain for external reporting authorization.
+        # DMARC: system domains serve at the apex, org-owned domains serve at
+        # both the sender subdomain (for external reporting authorization) and
+        # the root domain (for policy enforcement).
         if domain.is_system and qname_lower == f"_dmarc.{domain.name}":
             yield RR(
                 qname, QTYPE.TXT, rdata=txt("v=DMARC1; p=none"), ttl=self.RECORD_TTL
@@ -154,8 +157,7 @@ class DNSResolver:
                 rdata=txt(domain.sender_dmarc_record),
                 ttl=self.RECORD_TTL,
             )
-        # Managed domains also serve DMARC at the root domain level.
-        if domain.is_managed and qname_lower == f"_dmarc.{domain.name}":
+        if not domain.is_system and qname_lower == f"_dmarc.{domain.name}":
             yield RR(
                 qname,
                 QTYPE.TXT,
@@ -171,8 +173,8 @@ class DNSResolver:
                 rdata=txt(domain.sender_tls_rpt_record),
                 ttl=self.RECORD_TTL,
             )
-        # Managed domains also serve TLS-RPT at the root domain level.
-        if domain.is_managed and qname_lower == f"_smtp._tls.{domain.name}":
+        # Also serve TLS-RPT at the root domain level for org-owned domains.
+        if not domain.is_system and qname_lower == f"_smtp._tls.{domain.name}":
             yield RR(
                 qname,
                 QTYPE.TXT,

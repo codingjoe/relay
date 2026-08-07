@@ -135,6 +135,28 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if the DMARC record is incorrect."),
     )
+    mta_sts_status = models.TextField(
+        _("MTA-STS status"),
+        choices=Status,
+        default=Status.UNCHECKED,
+        help_text=_("MTA-STS record check result on the root domain."),
+    )
+    mta_sts_error = models.TextField(
+        _("MTA-STS error"),
+        blank=True,
+        help_text=_("Failure detail if the MTA-STS record is incorrect."),
+    )
+    tls_rpt_status = models.TextField(
+        _("TLS-RPT status"),
+        choices=Status,
+        default=Status.UNCHECKED,
+        help_text=_("TLS-RPT record check result on the root domain."),
+    )
+    tls_rpt_error = models.TextField(
+        _("TLS-RPT error"),
+        blank=True,
+        help_text=_("Failure detail if the TLS-RPT record is incorrect."),
+    )
     dns_checked_at = models.DateTimeField(
         _("DNS checked at"),
         null=True,

@@ -70,7 +70,7 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
         verify_domain_dns(domain)
         if all_ok := all(  # noqa: F841
             getattr(domain, f"{field}_status") == Domain.Status.OK
-            for field in ("nameserver", "spf", "dkim", "dmarc")
+            for field in ("nameserver", "spf", "dkim", "dmarc", "mta_sts", "tls_rpt")
         ):
             messages.success(request, _("DNS verification passed."))
         else:
