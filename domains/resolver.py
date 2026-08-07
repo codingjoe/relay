@@ -121,8 +121,27 @@ class DNSResolver:
                     ttl=self.RECORD_TTL,
                 )
 
-        # Records served only for org-owned domains
-        if not domain.is_system:
+        # DKIM. Serve public-key for each cipher at its selector name.
+        for selector, key in domain.dkim_ciphers:
+            if key:
+                p = base64.b64encode(key.public_bytes_der()).decode("ascii")
+                record = f"v=DKIM1; t=s; h=sha256; p={p};"
+                dkim_names = [f"{selector}._domainkey.{base}"]
+                if not domain.is_system:
+                    dkim_names.append(f"{selector}._domainkey.{domain.name}")
+                if cleaned_qname in dkim_names:
+                    yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
+
+        if domain.is_system:
+            match cleaned_qname:
+                case c if c == f"_dmarc.{domain.name}":
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt("v=DMARC1; p=none"),
+                        ttl=self.RECORD_TTL,
+                    )
+        else:
             match cleaned_qname:
                 case c if c == domain.name:
                     yield RR(
@@ -150,28 +169,6 @@ class DNSResolver:
                         qname,
                         QTYPE.TXT,
                         rdata=txt(domain.tls_rpt_record),
-                        ttl=self.RECORD_TTL,
-                    )
-
-        # DKIM. Serve public key for each cipher at its selector name.
-        for selector, key in domain.dkim_ciphers:
-            if key:
-                p = base64.b64encode(key.public_bytes_der()).decode("ascii")
-                record = f"v=DKIM1; t=s; h=sha256; p={p};"
-                dkim_names = [f"{selector}._domainkey.{base}"]
-                if not domain.is_system:
-                    dkim_names.append(f"{selector}._domainkey.{domain.name}")
-                if cleaned_qname in dkim_names:
-                    yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
-
-        # Records served only for system domains
-        if domain.is_system:
-            match cleaned_qname:
-                case c if c == f"_dmarc.{domain.name}":
-                    yield RR(
-                        qname,
-                        QTYPE.TXT,
-                        rdata=txt("v=DMARC1; p=none"),
                         ttl=self.RECORD_TTL,
                     )
 
