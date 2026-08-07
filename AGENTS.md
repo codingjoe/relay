@@ -40,9 +40,9 @@ with wireit).
 ## Core commands & workflows
 
 - `uv sync`. Install dependencies. **Use `uv` only**, never `pip`.
-- `npm install`. Install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit).
-- `npm run build`. Compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`).
-- `npm run dev`. Watch and recompile CSS on change.
+- `pnpm install`. Install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit).
+- `pnpm run build`. Compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`).
+- `pnpm run dev`. Watch and recompile CSS on change.
 - `uv run python manage.py check`: Django system checks.
 - `uv run python manage.py makemigrations`. Generate migrations.
 - `uv run python manage.py migrate`. Apply migrations.
