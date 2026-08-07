@@ -220,13 +220,6 @@ class Domain(TimeStamped):
         default=False,
         help_text=_("Whether relay manages this domain's DNS automatically."),
     )
-    apex_ns_delegated = models.BooleanField(
-        _("apex NS delegated"),
-        default=False,
-        help_text=_(
-            "Whether the apex domain NS records are delegated to our nameservers."
-        ),
-    )
 
     def clean(self):
         if not self.is_managed:

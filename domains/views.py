@@ -78,25 +78,6 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
         return redirect(domain.get_absolute_url())
 
 
-class DomainDelegateApexView(OrganizationScopedView, generic.View):
-    def post(self, request, org_slug, pk, *args, **kwargs):
-        domain = get_object_or_404(
-            Domain,
-            org=self.org,
-            is_managed=False,
-            pk=pk,
-        )
-        domain.apex_ns_delegated = not domain.apex_ns_delegated
-        domain.save(update_fields=["apex_ns_delegated"])
-        messages.success(
-            request,
-            _("Apex NS delegation enabled.")
-            if domain.apex_ns_delegated
-            else _("Apex NS delegation disabled."),
-        )
-        return redirect(domain.get_absolute_url())
-
-
 class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     model = Domain
     title = _("Delete")

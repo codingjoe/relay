@@ -14,11 +14,6 @@ urlpatterns = [
                 path("", views.DomainDetailView.as_view(), name="domain-detail"),
                 path("delete", views.DomainDeleteView.as_view(), name="domain-delete"),
                 path("verify", views.DomainVerifyView.as_view(), name="domain-verify"),
-                path(
-                    "delegate-apex",
-                    views.DomainDelegateApexView.as_view(),
-                    name="domain-delegate-apex",
-                ),
             ]
         ),
     ),
