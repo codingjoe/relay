@@ -68,32 +68,7 @@ class DNSResolver:
             case "TXT" | "ANY":
                 yield from self.resolve_txt(qname, qtype, cleaned_qname, base, domain)
             case "CNAME" | "ANY":
-                match cleaned_qname:
-                    case c if c == f"mta-sts.{base}":
-                        yield RR(
-                            qname,
-                            QTYPE.CNAME,
-                            rdata=CNAME(
-                                DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
-                            ),
-                            ttl=self.RECORD_TTL,
-                        )
-                    case c if not domain.is_system and c == f"mta-sts.{domain.name}":
-                        yield RR(
-                            qname,
-                            QTYPE.CNAME,
-                            rdata=CNAME(
-                                DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
-                            ),
-                            ttl=self.RECORD_TTL,
-                        )
-                if cleaned_qname == domain.return_path_domain:
-                    yield RR(
-                        qname,
-                        QTYPE.CNAME,
-                        rdata=CNAME(DNSLabel(settings.RELAY_DNS_RETURN_PATH_DOMAIN)),
-                        ttl=self.RECORD_TTL,
-                    )
+                yield from self.resolve_cname(qname, qtype, cleaned_qname, base, domain)
             case "NS" | "ANY":
                 for ns in settings.RELAY_DNS_NS_NAMESERVERS:
                     yield RR(qname, QTYPE.NS, rdata=NS(DNSLabel(ns)), ttl=self.NS_TTL)
@@ -169,6 +144,38 @@ class DNSResolver:
                         qname,
                         QTYPE.TXT,
                         rdata=txt(domain.tls_rpt_record),
+                        ttl=self.RECORD_TTL,
+                    )
+
+    def resolve_cname(self, qname, qtype, cleaned_qname, base, domain):
+        """Build CNAME records for MTA-STS and Return-Path."""
+        # Records served for all domains (system and org-owned)
+        match cleaned_qname:
+            case c if c == f"mta-sts.{base}":
+                yield RR(
+                    qname,
+                    QTYPE.CNAME,
+                    rdata=CNAME(DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")),
+                    ttl=self.RECORD_TTL,
+                )
+            case c if cleaned_qname == domain.return_path_domain:
+                yield RR(
+                    qname,
+                    QTYPE.CNAME,
+                    rdata=CNAME(DNSLabel(settings.RELAY_DNS_RETURN_PATH_DOMAIN)),
+                    ttl=self.RECORD_TTL,
+                )
+
+        # Records served only for org-owned domains
+        if not domain.is_system:
+            match cleaned_qname:
+                case c if c == f"mta-sts.{domain.name}":
+                    yield RR(
+                        qname,
+                        QTYPE.CNAME,
+                        rdata=CNAME(
+                            DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")
+                        ),
                         ttl=self.RECORD_TTL,
                     )
 
