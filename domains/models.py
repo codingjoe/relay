@@ -302,18 +302,13 @@ class Domain(TimeStamped):
 
     @property
     def tls_rpt_record(self):
-        """Return the TLS-RPT record for the root domain, with rua pointing to the sender subdomain."""
+        """Return the TLS-RPT record with rua pointing to the sender subdomain."""
         return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"
 
     @property
     def sender_dmarc_record(self):
         """Return the DMARC record served at _dmarc.{sender_subdomain} for external reporting authorization."""
         return "v=DMARC1; p=none"
-
-    @property
-    def sender_tls_rpt_record(self):
-        """Return the TLS-RPT record served at _smtp._tls.{sender_subdomain}."""
-        return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"
 
     @property
     def mta_sts_record(self):

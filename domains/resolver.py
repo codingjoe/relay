@@ -96,7 +96,7 @@ class DNSResolver:
                 yield RR(
                     qname,
                     QTYPE.TXT,
-                    rdata=txt(domain.sender_tls_rpt_record),
+                    rdata=txt(domain.tls_rpt_record),
                     ttl=self.RECORD_TTL,
                 )
 
