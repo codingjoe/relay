@@ -271,11 +271,6 @@ Update it based on review feedback.
 - Place merged views in the parent app that depends on all siblings.
   Siblings must not import from each other.
 
-## Querysets
-
-- Always `select_related()` FKs accessed in list templates to avoid N+1
-  queries.
-
 ## App structure
 
 - A concrete model shared between sibling apps belongs in a dedicated
