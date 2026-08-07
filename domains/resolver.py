@@ -61,13 +61,6 @@ class DNSResolver:
                     rdata=MX(domain.sender_domain, self.MX_PRIORITY),
                     ttl=self.RECORD_TTL,
                 )
-                if not domain.is_managed and query_name == domain.name:
-                    yield RR(
-                        qname,
-                        QTYPE.MX,
-                        rdata=MX(domain.sender_domain, self.MX_PRIORITY),
-                        ttl=self.RECORD_TTL,
-                    )
             case QTYPE.TXT | QTYPE.ANY:
                 yield from self.resolve_txt(qname, qtype, query_name, domain)
             case QTYPE.CNAME | QTYPE.ANY:
@@ -114,36 +107,36 @@ class DNSResolver:
                     "ascii"
                 )
                 record = f"v=DKIM1; t=s; h=sha256; p={public_key_b64};"
-                dkim_names = [f"{selector}._domainkey.{domain.sender_domain}"]
-                if not domain.is_managed:
-                    dkim_names.append(f"{selector}._domainkey.{domain.name}")
+                dkim_names = [
+                    f"{selector}._domainkey.{domain.sender_domain}",
+                    f"{selector}._domainkey.{domain.name}",
+                ]
                 if query_name in dkim_names:
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
 
-        # Extra records served only for org-owned (non-managed) domains
-        if not domain.is_managed:
-            match query_name:
-                case name if name == domain.name:
-                    yield RR(
-                        qname,
-                        QTYPE.TXT,
-                        rdata=txt(domain.root_spf_record),
-                        ttl=self.RECORD_TTL,
-                    )
-                case name if name == f"_dmarc.{domain.sender_domain}":
-                    yield RR(
-                        qname,
-                        QTYPE.TXT,
-                        rdata=txt(domain.sender_dmarc_record),
-                        ttl=self.RECORD_TTL,
-                    )
-                case name if name == f"_smtp._tls.{domain.name}":
-                    yield RR(
-                        qname,
-                        QTYPE.TXT,
-                        rdata=txt(domain.tls_rpt_record),
-                        ttl=self.RECORD_TTL,
-                    )
+        # Records served at the domain apex (root SPF, sender DMARC, root TLS-RPT)
+        match query_name:
+            case name if name == domain.name:
+                yield RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.root_spf_record),
+                    ttl=self.RECORD_TTL,
+                )
+            case name if name == f"_dmarc.{domain.sender_domain}":
+                yield RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.sender_dmarc_record),
+                    ttl=self.RECORD_TTL,
+                )
+            case name if name == f"_smtp._tls.{domain.name}":
+                yield RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.tls_rpt_record),
+                    ttl=self.RECORD_TTL,
+                )
 
     def resolve_cname(
         self,
@@ -154,9 +147,10 @@ class DNSResolver:
     ) -> Iterator[RR]:
         """Build CNAME records for MTA-STS and Return-Path."""
         # MTA-STS CNAME served at sender subdomain and root domain.
-        mta_sts_names = [f"mta-sts.{domain.sender_domain}"]
-        if not domain.is_managed:
-            mta_sts_names.append(f"mta-sts.{domain.name}")
+        mta_sts_names = [
+            f"mta-sts.{domain.sender_domain}",
+            f"mta-sts.{domain.name}",
+        ]
 
         match query_name:
             case name if name in mta_sts_names:
