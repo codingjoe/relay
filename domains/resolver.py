@@ -156,16 +156,12 @@ class DNSResolver:
         # DKIM. Serve public key for each cipher at its selector name.
         for selector, key in domain.dkim_ciphers:
             if key:
-                if cleaned_qname == f"{selector}._domainkey.{base}":
-                    p = base64.b64encode(key.public_bytes_der()).decode("ascii")
-                    record = f"v=DKIM1; t=s; h=sha256; p={p};"
-                    yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
-                if (
-                    not domain.is_system
-                    and cleaned_qname == f"{selector}._domainkey.{domain.name}"
-                ):
-                    p = base64.b64encode(key.public_bytes_der()).decode("ascii")
-                    record = f"v=DKIM1; t=s; h=sha256; p={p};"
+                p = base64.b64encode(key.public_bytes_der()).decode("ascii")
+                record = f"v=DKIM1; t=s; h=sha256; p={p};"
+                dkim_names = [f"{selector}._domainkey.{base}"]
+                if not domain.is_system:
+                    dkim_names.append(f"{selector}._domainkey.{domain.name}")
+                if cleaned_qname in dkim_names:
                     yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
 
         # Records served only for system domains
