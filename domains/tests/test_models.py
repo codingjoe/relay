@@ -2,7 +2,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.core.exceptions import ValidationError
 
-from domains.models import Domain, generate_verification_token, validate_domain_name
+from domains.models import Domain, validate_domain_name
 from kms import keys as kms_keys
 
 
@@ -35,14 +35,6 @@ class TestValidateDomainName:
     def test_validate_domain_name__rejects_leading_hyphen(self):
         with pytest.raises(ValidationError):
             validate_domain_name("-example.com")
-
-
-class TestGenerateVerificationToken:
-    def test_generate_verification_token__length(self):
-        assert len(generate_verification_token()) == 16
-
-    def test_generate_verification_token__charset(self):
-        assert generate_verification_token().isalnum()
 
 
 class TestGenerateRsaPrivateKey:
@@ -84,19 +76,6 @@ class TestDomainPropertiesNoDb:
         assert (
             Domain(name="example.com").return_path_domain == "rp.mail.relay.example.com"
         )
-
-    def test_verification_record_name__uses_prefix(self):
-        assert (
-            Domain(name="example.com").verification_record_name
-            == "relay-verification.mail.relay.example.com"
-        )
-
-    def test_verification_record__includes_token(self):
-        record = Domain(
-            name="example.com", verification_token="ABC123"
-        ).verification_record
-        assert "relay-verification" in record
-        assert "ABC123" in record
 
 
 @pytest.mark.django_db

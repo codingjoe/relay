@@ -2,15 +2,12 @@
 
 import base64
 from collections.abc import Iterator
-from typing import NewType
 
 from django.conf import settings
 from dnslib import CNAME, MX, NS, PTR, RR, TXT, A, DNSLabel
 from dnslib.dns import QTYPE
 
 from .models import Domain
-
-QType = NewType("QType", int)
 
 
 def txt(value: str) -> TXT:
@@ -27,7 +24,7 @@ class DNSResolver:
     NS_TTL: int = 3600
     RECORD_TTL: int = 1800
 
-    def resolve(self, qname: DNSLabel, qtype: QType) -> list[RR]:
+    def resolve(self, qname: DNSLabel, qtype: int) -> list[RR]:
         """Resolve a DNS query and return a list of RR records."""
         query_name = str(qname).strip().rstrip(".").lower()
         match qtype:
@@ -45,7 +42,7 @@ class DNSResolver:
     def resolve_domain_records(
         self,
         qname: DNSLabel,
-        qtype: QType,
+        qtype: int,
         query_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
@@ -87,24 +84,17 @@ class DNSResolver:
     def resolve_txt(
         self,
         qname: DNSLabel,
-        qtype: QType,
+        qtype: int,
         query_name: str,
         zone_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
-        """Build TXT records for SPF, DKIM, verification, DMARC, and TLS-RPT."""
+        """Build TXT records for SPF, DKIM, DMARC, and TLS-RPT."""
         # Records served for all domains (system and org-owned)
         match query_name:
             case name if name == zone_name:
                 yield RR(
                     qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
-                )
-            case name if name == domain.verification_record_name:
-                yield RR(
-                    qname,
-                    QTYPE.TXT,
-                    rdata=txt(domain.verification_record),
-                    ttl=self.RECORD_TTL,
                 )
             case name if name == f"_smtp._tls.{zone_name}":
                 yield RR(
@@ -170,7 +160,7 @@ class DNSResolver:
     def resolve_cname(
         self,
         qname: DNSLabel,
-        qtype: QType,
+        qtype: int,
         query_name: str,
         zone_name: str,
         domain: Domain,

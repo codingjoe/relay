@@ -25,4 +25,3 @@ class DomainAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "verified_at",
     ]
     search_fields = ["name", "org__name"]
-    readonly_fields = ["verification_token"]

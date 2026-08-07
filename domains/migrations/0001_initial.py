@@ -51,16 +51,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "verification_token",
-                    models.CharField(
-                        default=domains.models.generate_verification_token,
-                        editable=False,
-                        help_text="Token published in DNS to prove ownership.",
-                        max_length=16,
-                        verbose_name="verification token",
-                    ),
-                ),
-                (
                     "verified_at",
                     models.DateTimeField(
                         blank=True,

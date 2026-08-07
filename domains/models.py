@@ -1,5 +1,3 @@
-import secrets
-import string
 from functools import reduce
 from operator import or_
 
@@ -45,11 +43,6 @@ class DomainQuerySet(models.QuerySet):
             return qs.first()
 
 
-def generate_verification_token():
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(16))
-
-
 class Domain(TimeStamped):
     """Root domain. Verified once with NS delegation, DMARC, SPF, and DKIM."""
 
@@ -77,13 +70,6 @@ class Domain(TimeStamped):
         null=True,
         blank=True,
         help_text=_("Owning organization. Null for system domains."),
-    )
-    verification_token = models.CharField(
-        _("verification token"),
-        max_length=16,
-        default=generate_verification_token,
-        editable=False,
-        help_text=_("Token published in DNS to prove ownership."),
     )
     verified_at = models.DateTimeField(
         _("verified at"),
@@ -295,14 +281,6 @@ class Domain(TimeStamped):
     @property
     def return_path_domain(self):
         return f"{settings.RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX}.{self.sender_domain}"
-
-    @property
-    def verification_record_name(self):
-        return f"{settings.RELAY_DNS_DOMAIN_VERIFY_PREFIX}.{self.sender_domain}"
-
-    @property
-    def verification_record(self):
-        return f"{settings.RELAY_DNS_DOMAIN_VERIFY_PREFIX} {self.verification_token}"
 
     @property
     def dmarc_reporting_address(self):

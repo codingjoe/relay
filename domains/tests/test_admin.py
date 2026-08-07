@@ -17,6 +17,3 @@ class TestDomainAdmin:
     def test_domain_admin__search_fields(self):
         assert "name" in DomainAdmin.search_fields
         assert "org__name" in DomainAdmin.search_fields
-
-    def test_domain_admin__readonly_verification_token(self):
-        assert "verification_token" in DomainAdmin.readonly_fields
