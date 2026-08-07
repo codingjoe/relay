@@ -92,6 +92,13 @@ class DNSResolver:
                     rdata=txt(domain.dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
+            case name if name == f"_mta-sts.{domain.name}":
+                yield RR(
+                    qname,
+                    QTYPE.TXT,
+                    rdata=txt(domain.mta_sts_record),
+                    ttl=self.RECORD_TTL,
+                )
             case name if name == f"_smtp._tls.{domain.sender_domain}":
                 yield RR(
                     qname,

@@ -35,7 +35,7 @@ class DomainQuerySet(models.QuerySet):
             reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
         )
         if not include_managed:
-            qs = qs.filter(org__isnull=False)
+            qs = qs.filter(is_managed=False)
         qs = qs.select_related("org").order_by(Length("name").desc())
         try:
             return qs.get()

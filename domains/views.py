@@ -108,7 +108,7 @@ class MtaStsPolicyView(generic.DetailView):
         host = self.request.META.get("HTTP_HOST", "").split(":")[0].lower()
         name = host.removeprefix("mta-sts.")
         try:
-            return Domain.objects.root_for(name)
+            return Domain.objects.root_for(name, include_managed=True)
         except Domain.DoesNotExist:
             raise Http404
 
