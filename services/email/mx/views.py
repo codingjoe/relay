@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -44,7 +44,11 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org)
+        return (
+            Webhook.objects.filter(org=self.org)
+            .select_related("signing_key")
+            .fetch_mode(models.FETCH_PEERS)
+        )
 
     def get_context_data(self, **kwargs):
         domain_choices = [(d.name, d.name) for d in Domain.objects.filter(org=self.org)]
@@ -121,10 +125,10 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        qs = TlsReport.objects.filter(org=self.org)
+        qs = TlsReport.objects.filter(org=self.org).select_related("domain")
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
-        return qs
+        return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         from .charts import build_tls_chart

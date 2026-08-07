@@ -271,6 +271,14 @@ Update it based on review feedback.
 - Place merged views in the parent app that depends on all siblings.
   Siblings must not import from each other.
 
+## Querysets
+
+- Always `select_related()` FKs accessed in list templates to avoid N+1
+  queries.
+
+- End every list-view queryset with `.fetch_mode(models.FETCH_PEERS)` as a
+  safety net that batches any deferred-field fetches into a single query.
+
 ## App structure
 
 - A concrete model shared between sibling apps belongs in a dedicated
