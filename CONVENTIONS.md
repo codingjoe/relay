@@ -276,10 +276,6 @@ Update it based on review feedback.
 - Always `select_related()` FKs accessed in list templates to avoid N+1
   queries.
 
-- End every queryset returned from `get_queryset()` with
-  `.fetch_mode(models.FETCH_PEERS)` as a safety net that batches any
-  deferred-field fetches into a single query. Enforced by relint.
-
 ## App structure
 
 - A concrete model shared between sibling apps belongs in a dedicated

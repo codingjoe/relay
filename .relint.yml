@@ -30,6 +30,10 @@
   pattern: 'def get_queryset\(self\):\n[ \t]+return [^\n]*\.objects\.(?:filter|all|exclude)\((?:(?!\.fetch_mode)[^\n])*\)(?=\s*$)'
   hint: 'Set an explicit `fetch_mode` on every queryset returned from `get_queryset()`, e.g. `.fetch_mode(models.FETCH_PEERS)`, to guard against N+1 query bloat.'
   filePattern: .*\.py
+- name: Use .get() instead of .first()
+  pattern: '(?i)\.first\(\)(?!.*#\s*noqa)'
+  hint: 'Prefer `.get()` with proper exception handling over `.first()` and a None test. If `.first()` is intentional, add `# noqa` to the line.'
+  filePattern: .*\.py
 - name: Use translate instead of trans
   pattern: '\{%\s*trans\b'
   hint: |
