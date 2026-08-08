@@ -63,10 +63,14 @@ class DomainQuerySet(models.QuerySet):
         )
         if not include_managed:
             qs = qs.filter(is_managed=False)
-        domains = list(qs.select_related("org").order_by(Length("name").desc()))
-        if not domains:
-            raise self.model.DoesNotExist
-        if len({domain.org_id for domain in domains}) > 1:
+        if (
+            not (
+                domains := list(
+                    qs.select_related("org").order_by(Length("name").desc())
+                )
+            )
+            or len({domain.org_id for domain in domains}) > 1
+        ):
             raise self.model.DoesNotExist
         return domains[0]
 
