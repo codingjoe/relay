@@ -16,7 +16,8 @@ import os
 from pathlib import Path
 
 import environ
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, MultiFernet
+from django.core.exceptions import ImproperlyConfigured
 
 env = environ.Env(
     # set casting, default value
@@ -30,19 +31,68 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env("SECRET_KEY", default="django-insecure-!@#$%^&*()_+")
-
-# Fernet instance for symmetric encryption of secrets at rest (e.g. webhook
-# signing keys). Keyed off SECRET_KEY so a single key rotation invalidates
-# all ciphertexts. Migrate to a hardware KMS (e.g. AWS KMS) in production.
-FERNET = Fernet(base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()))
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
 # True when running under pytest (see pyproject.toml TEST env var).
 TEST = env.bool("TEST", default=False)
+
+# Use an explicit deployment environment instead of inferring production from
+# DEBUG. Image builds and management commands intentionally use development
+# defaults unless the runtime declares itself as production.
+RELAY_ENVIRONMENT = env(
+    "RELAY_ENVIRONMENT",
+    default="test" if TEST else "development",
+).lower()
+if RELAY_ENVIRONMENT not in {"development", "test", "production"}:
+    raise ImproperlyConfigured(
+        "RELAY_ENVIRONMENT must be development, test, or production."
+    )
+RELAY_IS_PRODUCTION = RELAY_ENVIRONMENT == "production"
+
+# Development and tests use deterministic defaults so local encrypted data
+# remains readable across process restarts. Production must provide independent
+# Django signing and KMS encryption keys.
+SECRET_KEY = env(
+    "SECRET_KEY",
+    default="" if RELAY_IS_PRODUCTION else "django-insecure-!@#$%^&*()_+",
+).strip()
+
+if not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY must be set in production.")
+if RELAY_IS_PRODUCTION and len(SECRET_KEY) < 50:
+    raise ImproperlyConfigured(
+        "SECRET_KEY must contain at least 50 characters in production."
+    )
+
+legacy_kms_fernet_key = base64.urlsafe_b64encode(
+    hashlib.sha256(SECRET_KEY.encode()).digest()
+).decode()
+KMS_FERNET_KEY = env(
+    "KMS_FERNET_KEY",
+    default=legacy_kms_fernet_key if not RELAY_IS_PRODUCTION else "",
+).strip()
+if not KMS_FERNET_KEY:
+    raise ImproperlyConfigured("KMS_FERNET_KEY must be set in production.")
+if RELAY_IS_PRODUCTION and KMS_FERNET_KEY in {
+    SECRET_KEY,
+    legacy_kms_fernet_key,
+}:
+    raise ImproperlyConfigured("KMS_FERNET_KEY must be independent from SECRET_KEY.")
+
+KMS_FERNET_LEGACY_KEYS = [
+    key.strip()
+    for key in env.list("KMS_FERNET_LEGACY_KEYS", default=[])
+    if key.strip() and key.strip() != KMS_FERNET_KEY
+]
+try:
+    FERNET = MultiFernet(
+        [Fernet(key.encode()) for key in [KMS_FERNET_KEY, *KMS_FERNET_LEGACY_KEYS]]
+    )
+except ValueError as error:
+    raise ImproperlyConfigured(
+        "KMS Fernet keys must be valid URL-safe base64 Fernet keys."
+    ) from error
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -265,6 +315,13 @@ RELAY_SMTP_SUBMISSION_PORT = env.int("RELAY_SMTP_SUBMISSION_PORT", default=587)
 RELAY_SMTP_MAX_MESSAGE_SIZE = env.int(
     "RELAY_SMTP_MAX_MESSAGE_SIZE", default=10485760
 )  # 10 MB
+RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
+RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
+RELAY_SMTP_ALLOW_INSECURE = env.bool("RELAY_SMTP_ALLOW_INSECURE", default=False)
+if RELAY_SMTP_ALLOW_INSECURE and RELAY_IS_PRODUCTION:
+    raise ImproperlyConfigured(
+        "RELAY_SMTP_ALLOW_INSECURE cannot be enabled in production."
+    )
 
 RELAY_MX_LISTEN_HOST = env("RELAY_MX_LISTEN_HOST", default="0.0.0.0")
 RELAY_MX_LISTEN_PORT = env.int("RELAY_MX_LISTEN_PORT", default=25)

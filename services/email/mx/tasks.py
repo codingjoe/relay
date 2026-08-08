@@ -14,6 +14,13 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from abstract.network import (
+    UnsafeNetworkOperation,
+    global_http_client,
+    read_bounded_response_text,
+    validate_global_url,
+)
+
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
 logger = logging.getLogger(__name__)
@@ -34,6 +41,8 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
     20 * 60 * 60,  # 20 hours
     24 * 60 * 60,  # 24 hours
 )
+
+WEBHOOK_RESPONSE_MAX_BYTES = 2000
 
 
 class WebhookDeliveryError(Exception): ...
@@ -158,28 +167,36 @@ def deliver_to_webhook(message, webhook, is_test=False):
     signature = webhook.sign(msg_id, timestamp, payload_bytes)
 
     try:
-        response = httpx.post(
-            webhook.url,
-            content=payload_bytes,
-            headers={
-                "Content-Type": "application/json",
-                "webhook-id": msg_id,
-                "webhook-timestamp": str(timestamp),
-                "webhook-signature": signature,
-            },
-            timeout=settings.RELAY_WEBHOOK_TIMEOUT,
-        )
-        ok = response.is_success
-        status_code = response.status_code
+        validate_global_url(webhook.url)
+        with (
+            global_http_client() as client,
+            client.stream(
+                "POST",
+                webhook.url,
+                content=payload_bytes,
+                headers={
+                    "Content-Type": "application/json",
+                    "webhook-id": msg_id,
+                    "webhook-timestamp": str(timestamp),
+                    "webhook-signature": signature,
+                },
+                timeout=settings.RELAY_WEBHOOK_TIMEOUT,
+            ) as response,
+        ):
+            response_body = read_bounded_response_text(
+                response, WEBHOOK_RESPONSE_MAX_BYTES
+            )
+            ok = response.is_success
+            status_code = response.status_code
         WebhookDelivery.objects.create(
             message=message,
             webhook=webhook,
             is_test=is_test,
             status=WebhookDelivery.Status.SENT if ok else WebhookDelivery.Status.FAILED,
             response_code=status_code,
-            response_body=response.text[:2000],
+            response_body=response_body,
         )
-    except httpx.HTTPError as e:
+    except (httpx.HTTPError, UnsafeNetworkOperation) as e:
         logger.error(f"Webhook delivery to {webhook.url} failed: {e}")
         WebhookDelivery.objects.create(
             message=message,

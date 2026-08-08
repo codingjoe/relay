@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.tasks import task
 
+from abstract.network import connect_global_tcp_socket
 from services.email.mx.mta_sts import MtaStsPolicy
 
 from .models import OutgoingMessage, SuppressionEntry, Transmission
@@ -16,6 +17,25 @@ logger = logging.getLogger(__name__)
 
 class MxHostsExhausted(Exception):
     """All MX hosts for a recipient domain failed to accept the message."""
+
+
+async def send_to_mx_host(raw_bytes, mx_host, return_path, recipient):
+    """Send a message through a prevalidated MX connection."""
+    sock = await connect_global_tcp_socket(mx_host, 25, timeout=10)
+    try:
+        return await aiosmtplib.send(
+            raw_bytes,
+            hostname=mx_host,
+            sock=sock,
+            use_tls=False,
+            start_tls=True,
+            local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+            sender=return_path,
+            recipients=[recipient],
+        )
+    except Exception:
+        sock.close()
+        raise
 
 
 @task
@@ -84,15 +104,11 @@ def deliver_message(message_id):
                 continue
             try:
                 response = asyncio.run(
-                    aiosmtplib.send(
+                    send_to_mx_host(
                         raw_bytes,
-                        hostname=mx_host,
-                        port=25,
-                        use_tls=False,
-                        start_tls=True,
-                        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
-                        sender=return_path,
-                        recipients=[message.rcpt_to],
+                        mx_host,
+                        return_path,
+                        message.rcpt_to,
                     )
                 )
                 Transmission.objects.create(

@@ -9,6 +9,8 @@ services:
     command: ["-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}"]
     volumes:
       - .:/app:cached
+    environment:
+      RELAY_ENVIRONMENT: development
   dns:
     build:
       target: development
@@ -19,6 +21,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      RELAY_ENVIRONMENT: development
   smtp:
     build:
       target: development
@@ -29,6 +32,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      RELAY_ENVIRONMENT: development
+      RELAY_SMTP_ALLOW_INSECURE: true
+    ports: !override
+      - "127.0.0.1:587:587"
   mx:
     build:
       target: development
@@ -39,6 +46,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      RELAY_ENVIRONMENT: development
   worker:
     build:
       target: development
@@ -51,4 +59,5 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      RELAY_ENVIRONMENT: development
     command: ["-m", "manage", "threadmill", "worker"]

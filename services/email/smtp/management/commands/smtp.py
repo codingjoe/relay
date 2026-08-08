@@ -18,4 +18,11 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"SMTP server listening on {host}:{port}"))
 
-        run_smtp_server(host=host, port=port, max_message_size=max_size)
+        run_smtp_server(
+            host=host,
+            port=port,
+            max_message_size=max_size,
+            tls_cert_path=settings.RELAY_SMTP_TLS_CERT_PATH,
+            tls_key_path=settings.RELAY_SMTP_TLS_KEY_PATH,
+            allow_insecure=settings.RELAY_SMTP_ALLOW_INSECURE,
+        )

@@ -43,6 +43,7 @@ class MXServer:
             handler,
             hostname=self.host,
             port=self.port,
+            data_size_limit=self.max_message_size,
             tls_context=self.build_tls_context(),
             auth_require_tls=False,
         )

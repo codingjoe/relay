@@ -96,10 +96,16 @@ data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
 
-> **STARTTLS cert provisioning**: in production, mount the same certificate
-> the Caddy reverse proxy uses into the MX container. Then point
-> `RELAY_MX_TLS_CERT_PATH` and `RELAY_MX_TLS_KEY_PATH` at the certificate. The cert must
-> include the MX hostname (for example, `mail.relay.acme.com`).
+> **STARTTLS cert provisioning**: in production, mount certificates into the
+> MX and SMTP containers. Set `RELAY_MX_TLS_CERT_PATH`,
+> `RELAY_MX_TLS_KEY_PATH`, `RELAY_SMTP_TLS_CERT_PATH`, and
+> `RELAY_SMTP_TLS_KEY_PATH`. Each certificate must include the service hostname.
+
+Production also requires independent `SECRET_KEY` and `KMS_FERNET_KEY` values.
+For the first KMS-key rollout, put the previous Fernet key in
+`KMS_FERNET_LEGACY_KEYS`. Verify access with `manage.py rotate_kms_keys`, then
+run `manage.py rotate_kms_keys --apply`. Remove the legacy key only after the
+command rotates and verifies every stored signing key.
 
 ### Tech Stack
 
