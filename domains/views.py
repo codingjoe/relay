@@ -28,6 +28,9 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
     title = _("New domain")
     parent = "domains:domain-list"
 
+    def get_form_kwargs(self):
+        return super().get_form_kwargs() | {"instance": Domain(org=self.org)}
+
     def form_valid(self, form):
         form.instance.org = self.org
         messages.success(

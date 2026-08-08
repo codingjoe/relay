@@ -1,6 +1,7 @@
 from functools import reduce
 from operator import or_
 
+import idna
 import validators as domain_validators
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -13,9 +14,19 @@ from abstract.models import TimeStamped
 from kms.models import SigningKey
 
 
+def canonicalize_domain_name(value):
+    """Return the lowercase ASCII UTS-46 form of a domain name."""
+    try:
+        return idna.encode(value, uts46=True, std3_rules=True).decode("ascii").lower()
+    except (idna.IDNAError, UnicodeError) as error:
+        raise ValidationError(
+            _("Enter a valid domain name, for example acme.com")
+        ) from error
+
+
 def validate_domain_name(value):
     """Validate that *value* is a syntactically valid domain name."""
-    if domain_validators.domain(value) is not True:
+    if domain_validators.domain(canonicalize_domain_name(value)) is not True:
         raise ValidationError(_("Enter a valid domain name, for example acme.com"))
 
 
@@ -29,18 +40,35 @@ class DomainQuerySet(models.QuerySet):
         Raises:
             DoesNotExist: If no matching domain is found.
         """
-        parts = name.lower().split(".")
-        candidates = [".".join(parts[i:]) for i in range(len(parts))]
+        try:
+            parts = idna.uts46_remap(
+                name,
+                std3_rules=False,
+                transitional=False,
+            ).split(".")
+        except (idna.IDNAError, UnicodeError) as error:
+            raise self.model.DoesNotExist from error
+        candidates = []
+        for index in range(len(parts)):
+            try:
+                candidate = canonicalize_domain_name(".".join(parts[index:]))
+            except ValidationError:
+                candidate = None
+            if candidate is not None:
+                candidates.append(candidate)
+        if not candidates:
+            raise self.model.DoesNotExist
         qs = self.filter(
             reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
         )
         if not include_managed:
             qs = qs.filter(is_managed=False)
-        qs = qs.select_related("org").order_by(Length("name").desc())
-        try:
-            return qs.get()
-        except self.model.MultipleObjectsReturned:
-            return qs.first()  # noqa: fallback when multiple objects match
+        domains = list(qs.select_related("org").order_by(Length("name").desc()))
+        if not domains:
+            raise self.model.DoesNotExist
+        if len({domain.org_id for domain in domains}) > 1:
+            raise self.model.DoesNotExist
+        return domains[0]
 
 
 class Domain(TimeStamped):
@@ -192,7 +220,8 @@ class Domain(TimeStamped):
         )
 
     def save(self, *args, **kwargs):
-        self.name = self.name.lower()
+        self.name = canonicalize_domain_name(self.name)
+        self.clean()
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new and self.dkim_key_rsa2048_id is None:
@@ -218,11 +247,12 @@ class Domain(TimeStamped):
     )
 
     def clean(self):
+        name = canonicalize_domain_name(self.name)
+        self.name = name
         if not self.is_managed:
-            name = self.name.lower()
             root_domains = [
-                settings.RELAY_PLATFORM_DOMAIN.lower(),
-                settings.RELAY_MANAGED_SENDER_DOMAIN.lower(),
+                canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+                canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN),
             ]
             for root in root_domains:
                 if name == root or name.endswith(f".{root}"):
@@ -232,6 +262,24 @@ class Domain(TimeStamped):
                         )
                         % {"base": root}
                     )
+
+        if self.org_id:
+            parts = name.split(".")
+            ancestors = [".".join(parts[index:]) for index in range(len(parts))]
+            overlapping_domains = Domain.objects.exclude(org_id=self.org_id).filter(
+                reduce(or_, (models.Q(name__iexact=value) for value in ancestors))
+                | models.Q(name__iendswith=f".{name}")
+            )
+            if self.pk:
+                overlapping_domains = overlapping_domains.exclude(pk=self.pk)
+            if overlapping_domains.exists():
+                raise ValidationError(
+                    {
+                        "name": _(
+                            "Domain overlaps with a domain owned by another organization."
+                        )
+                    }
+                )
 
     @property
     def dkim_ciphers(self):

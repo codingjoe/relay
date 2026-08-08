@@ -5,10 +5,11 @@ import logging
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
-from domains.models import Domain
+from domains.models import Domain, canonicalize_domain_name
 
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
 from .tasks import deliver_message
@@ -94,7 +95,6 @@ def authenticate(username: str, key: str):
     return None
 
 
-@sync_to_async
 def process_suppressed_message(
     mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain
 ):
@@ -124,11 +124,21 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
 
-    from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
+    if "@" not in mail_from:
+        return "550 Sender domain not registered"
 
     try:
-        domain = Domain.objects.get(name__iexact=from_domain, org=credential.org)
-    except Domain.DoesNotExist:
+        from_domain = canonicalize_domain_name(mail_from.rsplit("@", 1)[1])
+        domain = Domain.objects.get(name=from_domain, org=credential.org)
+        resolved_domain = Domain.objects.root_for(from_domain)
+    except Domain.DoesNotExist, ValidationError:
+        return "550 Sender domain not registered"
+
+    if (
+        resolved_domain.pk != domain.pk
+        or resolved_domain.org_id != domain.org_id
+        or resolved_domain.name != domain.name
+    ):
         return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
@@ -158,9 +168,6 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     transaction.on_commit(
         lambda: deliver_message.enqueue(
             message_id=str(message.id),
-            rcpt_to=rcpt_to,
-            mail_from=mail_from,
-            domain_id=domain.pk,
         )
     )
 

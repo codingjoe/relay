@@ -1,4 +1,5 @@
 from email.message import EmailMessage
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
@@ -55,17 +56,28 @@ class TestMessageDetailView:
 
 @pytest.mark.django_db
 class TestTestEmailView:
-    def test_post__creates_message_and_redirects(self, admin_client, org, user):
+    def test_post__creates_message_and_redirects(
+        self,
+        admin_client,
+        django_capture_on_commit_callbacks,
+        org,
+        user,
+    ):
         domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        response = admin_client.post(
-            f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
-        )
+        with (
+            patch("services.email.smtp.views.deliver_message") as delivery_task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            response = admin_client.post(
+                f"/org/{org.slug}/email/messages/test",
+                {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+            )
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Test")
         assert msg.sender == user
         assert msg.subject == "Test"
         assert msg.domain == domain
+        delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
 
     def test_post__with_real_domain(self, admin_client, org, user):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -76,6 +88,28 @@ class TestTestEmailView:
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Hi")
         assert msg.domain == domain
+
+    def test_post__does_not_use_domain_from_other_org(
+        self,
+        admin_client,
+        org,
+        write_org,
+        user,
+    ):
+        domain = Domain.objects.create(name="other.com", org=write_org)
+        admin_client.raise_request_exception = False
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(domain.pk), "subject": "Cross-org", "body": "Hello"},
+        )
+
+        assert response.status_code == 404
+        assert not OutgoingMessage.objects.filter(
+            org=org,
+            sender=user,
+            subject="Cross-org",
+        ).exists()
 
 
 @pytest.mark.django_db

@@ -47,7 +47,7 @@ class TestHandleRequest:
         from domains.server import DNSServer
 
         org = Organization.objects.create(slug="dns-server")
-        domain = Domain.objects.create(name="open.localhost", org=org)
+        domain = Domain.objects.create(name="example.com", org=org)
         server = DNSServer()
         request = dnslib.DNSRecord(
             q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)
@@ -87,7 +87,7 @@ class TestHandleTcpQuery:
         from domains.server import DNSServer
 
         org = Organization.objects.create(slug="dns-server")
-        domain = Domain.objects.create(name="open.localhost", org=org)
+        domain = Domain.objects.create(name="example.com", org=org)
         server = DNSServer()
         request = dnslib.DNSRecord(
             q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)

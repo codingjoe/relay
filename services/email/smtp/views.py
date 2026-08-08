@@ -61,7 +61,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
 
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
-        domain = Domain.objects.get(pk=request.POST["domain"], org=self.org)
+        domain = get_object_or_404(Domain, pk=request.POST["domain"], org=self.org)
         mail_from = f"postmaster@{domain.name}"
 
         if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
@@ -91,9 +91,6 @@ class TestEmailView(OrganizationScopedView, generic.View):
         transaction.on_commit(
             lambda: deliver_message.enqueue(
                 message_id=str(message.id),
-                rcpt_to=request.user.email,
-                mail_from=mail_from,
-                domain_id=domain.pk,
             )
         )
         messages.success(request, _("Queued test message for delivery."))

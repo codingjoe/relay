@@ -145,6 +145,20 @@ class TestWebhookListView:
         assert len(webhooks) == 1
         assert webhooks[0].org == org
 
+    def test_get__domain_choices_are_scoped_to_org(
+        self,
+        admin_client,
+        org,
+        write_org,
+    ):
+        own_domain = Domain.objects.create(name="example.com", org=org)
+        Domain.objects.create(name="other.com", org=write_org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
+
+        assert own_domain in response.context["domain_choices"]
+        assert not response.context["domain_choices"].filter(org=write_org).exists()
+
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/webhooks/")
         assert response.status_code == 404
@@ -169,8 +183,29 @@ class TestWebhookCreateView:
         assert webhook.address_pattern == "*@example.com"
         assert webhook.signing_key is not None
 
-    def test_post__redirects_to_list(self, admin_client, org):
+    def test_post__uses_address_pattern_prefix(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
+        response = admin_client.post(
+            f"/org/{org.slug}/email/webhooks/new",
+            {
+                "url": "https://example.com/hook",
+                "name": "",
+                "pattern_prefix": "support",
+                "domain": str(domain.pk),
+            },
+        )
+        assert response.status_code == 302
+        assert response.url.endswith(f"/org/{org.slug}/email/webhooks/")
+        assert Webhook.objects.get(org=org).address_pattern == "support@example.com"
+
+    def test_post__rejects_domain_from_other_org(
+        self,
+        admin_client,
+        org,
+        write_org,
+    ):
+        domain = Domain.objects.create(name="other.com", org=write_org)
+
         response = admin_client.post(
             f"/org/{org.slug}/email/webhooks/new",
             {
@@ -179,8 +214,9 @@ class TestWebhookCreateView:
                 "domain": str(domain.pk),
             },
         )
+
         assert response.status_code == 302
-        assert response.url.endswith(f"/org/{org.slug}/email/webhooks/")
+        assert not Webhook.objects.filter(org=org).exists()
 
     def test_post__not_found_for_non_member(self, admin_client, write_org):
         domain = Domain.objects.create(name="example.com", org=write_org)

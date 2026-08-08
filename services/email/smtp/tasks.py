@@ -19,32 +19,44 @@ class MxHostsExhausted(Exception):
 
 
 @task
-def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
+def deliver_message(message_id):
     """Deliver a queued outgoing message to its recipients."""
-    message = OutgoingMessage.objects.get(pk=message_id)
-    return_path = mail_from
+    message = OutgoingMessage.objects.select_related("domain").get(pk=message_id)
 
     try:
+        if message.domain is None:
+            raise ValueError("Outgoing message has no sender domain")
+
+        from domains.models import Domain, canonicalize_domain_name
+
+        canonical_name = canonicalize_domain_name(message.domain.name)
+        try:
+            resolved_domain = Domain.objects.root_for(canonical_name)
+        except Domain.DoesNotExist as error:
+            raise ValueError("Outgoing message sender domain is ambiguous") from error
+        if (
+            resolved_domain.pk != message.domain.pk
+            or resolved_domain.org_id != message.org_id
+            or resolved_domain.name != canonical_name
+        ):
+            raise ValueError("Outgoing message sender domain does not match")
+
         raw_bytes = message.raw_body.read()
+        from domains.dkim import sign_message
 
-        if domain_id:
-            from domains.dkim import sign_message
-            from domains.models import Domain
+        raw_bytes = sign_message(raw_bytes, message.domain)
+        return_path = (
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
+            f"@{message.domain.sender_domain}"
+        )
+        message.raw_body.save(
+            message.raw_body.name.split("/")[-1],
+            ContentFile(raw_bytes),
+            save=False,
+        )
+        message.save(update_fields=["raw_body"])
 
-            domain = Domain.objects.get(pk=domain_id)
-            raw_bytes = sign_message(raw_bytes, domain)
-            return_path = (
-                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
-                f"@{domain.sender_domain}"
-            )
-            message.raw_body.save(
-                message.raw_body.name.split("/")[-1],
-                ContentFile(raw_bytes),
-                save=False,
-            )
-            message.save(update_fields=["raw_body"])
-
-        rcpt_domain = rcpt_to.split("@")[-1]
+        rcpt_domain = message.rcpt_to.split("@")[-1]
         mx_hosts = fetch_mx_hosts(rcpt_domain)
 
         if not mx_hosts:
@@ -62,7 +74,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
             if not allowed:
                 logger.warning(
                     "MTA-STS blocked delivery to %s via %s: %s",
-                    rcpt_to,
+                    message.rcpt_to,
                     mx_host,
                     reason,
                 )
@@ -77,7 +89,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                         start_tls=True,
                         local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
                         sender=return_path,
-                        recipients=[rcpt_to],
+                        recipients=[message.rcpt_to],
                     )
                 )
                 Transmission.objects.create(
@@ -104,7 +116,7 @@ def deliver_message(message_id, rcpt_to, mail_from, domain_id=None):
                 message.save(update_fields=["status"])
                 SuppressionEntry.objects.create_or_update(
                     org=message.org,
-                    email=rcpt_to,
+                    email=message.rcpt_to,
                     reason=SuppressionEntry.Reason.BOUNCE,
                 )
                 return

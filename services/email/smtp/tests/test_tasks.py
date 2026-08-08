@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.conf import settings
 from django.core.files.base import ContentFile
 
 from domains.models import Domain
@@ -46,12 +47,8 @@ class TestDeliverMessage:
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
 
-        deliver_message.func(
-            message_id=str(msg.id),
-            rcpt_to="bob@nowhere.invalid",
-            mail_from="alice@example.com",
-            domain_id=None,
-        )
+        with patch("domains.dkim.sign_message", return_value=b"signed"):
+            deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
@@ -83,17 +80,19 @@ class TestDeliverMessage:
         with (
             patch(
                 "services.email.smtp.tasks.aiosmtplib.send", return_value=mock_response
-            ),
+            ) as mock_send,
             patch("domains.dkim.sign_message", return_value=b"signed") as mock_sign,
         ):
-            deliver_message.func(
-                message_id=str(msg.id),
-                rcpt_to="bob@example.com",
-                mail_from="alice@example.com",
-                domain_id=domain.pk,
-            )
+            deliver_message.func(message_id=str(msg.id))
 
         mock_sign.assert_called_once()
+        assert mock_send.call_args.kwargs["sender"] == (
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{msg.id}@{domain.sender_domain}"
+        )
+        assert (
+            mock_send.call_args.kwargs["local_hostname"]
+            == settings.RELAY_SMTP_PUBLIC_HOSTNAME
+        )
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.SENT
         assert Transmission.objects.filter(
@@ -120,16 +119,79 @@ class TestDeliverMessage:
 
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
         exc = aiosmtplib.SMTPResponseException(550, b"User unknown")
-        with patch("services.email.smtp.tasks.aiosmtplib.send", side_effect=exc):
-            deliver_message.func(
-                message_id=str(msg.id),
-                rcpt_to="reject@example.com",
-                mail_from="alice@example.com",
-                domain_id=None,
-            )
+        with (
+            patch("services.email.smtp.tasks.aiosmtplib.send", side_effect=exc),
+            patch("domains.dkim.sign_message", return_value=b"signed"),
+        ):
+            deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.BOUNCED
         assert Transmission.objects.filter(
             message=msg, status=Transmission.Status.BOUNCED
         ).exists()
+
+    def test_deliver_message__fails_closed_without_sender_domain(self, user, org):
+        from services.email.smtp.tasks import deliver_message
+
+        msg = OutgoingMessage.objects.create(
+            sender=user,
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=None,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        with patch("services.email.smtp.tasks.aiosmtplib.send") as mock_send:
+            deliver_message.func(message_id=str(msg.id))
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.FAILED
+        assert Transmission.objects.filter(
+            message=msg,
+            status=Transmission.Status.FAILED,
+            details__contains="no sender domain",
+        ).exists()
+        mock_send.assert_not_called()
+
+    def test_deliver_message__fails_closed_for_ambiguous_cross_org_domain(
+        self,
+        org,
+        write_org,
+        other_user,
+    ):
+        from services.email.smtp.tasks import deliver_message
+
+        _, child = Domain.objects.bulk_create(
+            [
+                Domain(name="example.com", org=org),
+                Domain(name="app.example.com", org=write_org),
+            ]
+        )
+        msg = OutgoingMessage.objects.create(
+            sender=other_user,
+            org=write_org,
+            rcpt_to="bob@example.com",
+            mail_from=f"alice@{child.name}",
+            domain=child,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        with (
+            patch("domains.dkim.sign_message") as mock_sign,
+            patch("services.email.smtp.tasks.aiosmtplib.send") as mock_send,
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.FAILED
+        assert Transmission.objects.filter(
+            message=msg,
+            status=Transmission.Status.FAILED,
+            details__contains="ambiguous",
+        ).exists()
+        mock_sign.assert_not_called()
+        mock_send.assert_not_called()

@@ -1,6 +1,7 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 
 from domains.models import Domain, validate_domain_name
 from kms import keys as kms_keys
@@ -75,9 +76,88 @@ class TestDomainPropertiesNoDb:
         assert "v=spf1" in record
         assert "include:mail.relay.example.com" in record
 
+    def test_str__labels_managed_domain(self):
+        assert str(Domain(name="open.example.com", is_managed=True)) == (
+            "open.example.com (managed)"
+        )
+
+
+class TestDomainClean:
+    @pytest.mark.parametrize(
+        "name",
+        ["relay.example.com", "app.relay.example.com", "open.relay.example.com"],
+    )
+    def test_clean__rejects_relay_managed_names(self, name, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        with pytest.raises(ValidationError):
+            Domain(name=name).clean()
+
+    def test_clean__allows_managed_domain(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        Domain(name="acme.open.relay.example.com", is_managed=True).clean()
+
+    def test_clean__rejects_unicode_dot_beneath_managed_zone(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        with pytest.raises(ValidationError):
+            Domain(name="app。relay.example.com").clean()
+
+    @pytest.mark.django_db
+    def test_save__rejects_cross_org_child_domain(self):
+        from accounts.models import Organization
+
+        parent_org = Organization.objects.create(slug="parent")
+        child_org = Organization.objects.create(slug="child")
+        Domain.objects.create(name="example.com", org=parent_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="app.example.com", org=child_org)
+
+    @pytest.mark.django_db
+    def test_save__rejects_cross_org_parent_domain(self):
+        from accounts.models import Organization
+
+        child_org = Organization.objects.create(slug="child")
+        parent_org = Organization.objects.create(slug="parent")
+        Domain.objects.create(name="app.example.com", org=child_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="example.com", org=parent_org)
+
+    @pytest.mark.django_db
+    def test_save__allows_nested_domains_for_same_org(self):
+        from accounts.models import Organization
+
+        org = Organization.objects.create(slug="o")
+        Domain.objects.create(name="example.com", org=org)
+
+        domain = Domain.objects.create(name="app.example.com", org=org)
+
+        assert domain.pk is not None
+
+    @pytest.mark.django_db
+    def test_save__rejects_unicode_dot_cross_org_child(self):
+        from accounts.models import Organization
+
+        parent_org = Organization.objects.create(slug="parent")
+        child_org = Organization.objects.create(slug="child")
+        Domain.objects.create(name="example.com", org=parent_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="app。example.com", org=child_org)
+
 
 @pytest.mark.django_db
 class TestDomainSave:
+    def test_save__requires_organization(self):
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Domain.objects.create(name="example.com")
+
     def test_save__creates_dkim_keys(self):
         from accounts.models import Organization
 
@@ -86,6 +166,33 @@ class TestDomainSave:
         assert domain.dkim_key_rsa2048 is not None
         assert domain.dkim_key_rsa1024 is not None
         assert domain.dkim_key_ed25519 is not None
+
+    def test_save__normalizes_name_to_lowercase(self):
+        from accounts.models import Organization
+
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="Example.COM", org=org)
+
+        assert domain.name == "example.com"
+        assert Domain.objects.filter(name="example.com").exists()
+
+    def test_save__stores_unicode_name_as_ascii_idna(self):
+        from accounts.models import Organization
+
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="éxample.com", org=org)
+
+        assert domain.name == "xn--xample-9ua.com"
+
+    def test_save__rejects_idna_alias_owned_by_other_org(self):
+        from accounts.models import Organization
+
+        unicode_org = Organization.objects.create(slug="unicode")
+        ascii_org = Organization.objects.create(slug="ascii")
+        Domain.objects.create(name="éxample.com", org=unicode_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="xn--xample-9ua.com", org=ascii_org)
 
     def test_save__does_not_duplicate_dkim_keys(self):
         from accounts.models import Organization

@@ -47,7 +47,7 @@ class Organization(TimeStamped):
         return self.slug
 
     def save(self, *args, **kwargs):
-        organization_slug_validator(self.slug)
+        self.slug = self._meta.get_field("slug").clean(self.slug, self)
         return super().save(*args, **kwargs)
 
     def get_absolute_url(self):

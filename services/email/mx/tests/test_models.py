@@ -77,6 +77,20 @@ class TestMxRecord:
     def test_mx_record__shows_mx_record_for_custom_domain(self, webhook):
         assert webhook.mx_record == "MX app.acme.com → mail.relay.app.acme.com"
 
+    @pytest.mark.django_db
+    def test_mx_record__empty_for_managed_domain(self, org):
+        signing_key = SigningKey.generate("ed25519")
+        domain = Domain.objects.get(org=org, is_managed=True)
+        webhook = Webhook.objects.create(
+            org=org,
+            url="https://example.com/hook",
+            address_pattern=f"*@{domain.name}",
+            domain=domain,
+            signing_key=signing_key,
+        )
+
+        assert webhook.mx_record == ""
+
 
 class TestPublicKeySerialized:
     @pytest.mark.django_db
