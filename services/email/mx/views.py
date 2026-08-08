@@ -1,7 +1,5 @@
-from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -11,6 +9,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
 
+from .forms import WebhookForm
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
 
@@ -20,7 +19,9 @@ class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
     parent = "message:message-list"
 
     def get_queryset(self):
-        return IncomingMessage.objects.filter(org=self.org)
+        return IncomingMessage.objects.filter(org=self.org).fetch_mode(
+            models.FETCH_PEERS
+        )
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
@@ -44,44 +45,46 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org)
+        return (
+            Webhook.objects.filter(org=self.org)
+            .select_related("signing_key")
+            .fetch_mode(models.FETCH_PEERS)
+        )
 
     def get_context_data(self, **kwargs):
-        domain_choices = [(d.name, d.name) for d in Domain.objects.filter(org=self.org)]
-        free_domain = settings.RELAY_FREE_SENDER_DOMAIN
-        domain_choices.append((free_domain, f"{free_domain} ({_('free')})"))
         return super().get_context_data(**kwargs) | {
-            "domain_choices": domain_choices,
+            "domain_choices": Domain.objects.filter(org=self.org),
         }
 
 
-class WebhookCreateView(OrganizationScopedView, generic.View):
-    def post(self, request, org_slug, *args, **kwargs):
-        url = request.POST.get("url", "")
-        name = request.POST.get("name", "")
-        pattern_prefix = request.POST.get("pattern_prefix", "*")
-        domain_part = request.POST.get("domain_part", "") or request.POST.get(
-            "domain", ""
-        )
-        address_pattern = f"{pattern_prefix}@{domain_part}"
+class WebhookCreateView(OrganizationScopedView, generic.CreateView):
+    http_method_names = ["post"]
+    model = Webhook
+    form_class = WebhookForm
+    title = _("New webhook")
+    parent = "mx:webhook-list"
 
-        try:
-            with transaction.atomic():
-                signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
-                webhook = Webhook(
-                    org=self.org,
-                    url=url,
-                    name=name,
-                    address_pattern=address_pattern,
-                    signing_key=signing_key,
-                )
-                webhook.full_clean()
-                webhook.save(force_insert=True)
-        except ValidationError as e:
-            messages.error(request, "; ".join(e.messages))
-        else:
-            messages.success(request, _("Created webhook."))
-        return redirect("mx:webhook-list", org_slug=org_slug)
+    def get_form_kwargs(self):
+        return super().get_form_kwargs() | {"org": self.org}
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            webhook = form.save(commit=False)
+            webhook.org = self.org
+            webhook.signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
+            webhook.save(force_insert=True)
+            self.object = webhook
+        messages.success(self.request, _("Created webhook."))
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(self.request, error)
+        return redirect("mx:webhook-list", org_slug=self.org.slug)
+
+    def get_success_url(self):
+        return reverse_lazy("mx:webhook-list", kwargs={"org_slug": self.org.slug})
 
 
 class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
@@ -90,7 +93,7 @@ class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "mx:webhook-list"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org)
+        return Webhook.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_success_url(self):
         return reverse_lazy("mx:webhook-list", kwargs={"org_slug": self.org.slug})
@@ -121,10 +124,10 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        qs = TlsReport.objects.filter(org=self.org)
+        qs = TlsReport.objects.filter(org=self.org).select_related("domain")
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
-        return qs
+        return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         from .charts import build_tls_chart
@@ -146,7 +149,7 @@ class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return TlsReport.objects.filter(org=self.org)
+        return TlsReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

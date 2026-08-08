@@ -1,8 +1,9 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 
-from domains.models import Domain, generate_verification_token, validate_domain_name
+from domains.models import Domain, validate_domain_name
 from kms import keys as kms_keys
 
 
@@ -13,7 +14,7 @@ class TestValidateDomainName:
     def test_validate_domain_name__accepts_subdomain(self):
         validate_domain_name("sub.example.com")
 
-    def test_validate_domain_name__accepts_system_domain(self):
+    def test_validate_domain_name__accepts_managed_domain(self):
         validate_domain_name("open.localhost")
 
     def test_validate_domain_name__rejects_dot(self):
@@ -35,14 +36,6 @@ class TestValidateDomainName:
     def test_validate_domain_name__rejects_leading_hyphen(self):
         with pytest.raises(ValidationError):
             validate_domain_name("-example.com")
-
-
-class TestGenerateVerificationToken:
-    def test_generate_verification_token__length(self):
-        assert len(generate_verification_token()) == 16
-
-    def test_generate_verification_token__charset(self):
-        assert generate_verification_token().isalnum()
 
 
 class TestGenerateRsaPrivateKey:
@@ -72,35 +65,99 @@ class TestDomainPropertiesNoDb:
             Domain(name="example.com", verified_at=timezone.now()).is_verified is True
         )
 
-    def test_is_system__true_for_no_org(self):
-        assert Domain(name="open.localhost", org=None).is_system is True
+    def test_sender_domain__appends_prefix_for_managed(self):
+        assert (
+            Domain(name="acme.open.localhost", is_managed=True).sender_domain
+            == "mail.relay.acme.open.localhost"
+        )
 
     def test_spf_record__includes_spf_include(self):
         record = Domain(name="example.com").root_spf_record
         assert "v=spf1" in record
         assert "include:mail.relay.example.com" in record
 
-    def test_return_path_domain__uses_prefix(self):
-        assert (
-            Domain(name="example.com").return_path_domain == "rp.mail.relay.example.com"
+    def test_str__labels_managed_domain(self):
+        assert str(Domain(name="open.example.com", is_managed=True)) == (
+            "open.example.com (managed)"
         )
 
-    def test_verification_record_name__uses_prefix(self):
-        assert (
-            Domain(name="example.com").verification_record_name
-            == "relay-verification.mail.relay.example.com"
-        )
 
-    def test_verification_record__includes_token(self):
-        record = Domain(
-            name="example.com", verification_token="ABC123"
-        ).verification_record
-        assert "relay-verification" in record
-        assert "ABC123" in record
+class TestDomainClean:
+    @pytest.mark.parametrize(
+        "name",
+        ["relay.example.com", "app.relay.example.com", "open.relay.example.com"],
+    )
+    def test_clean__rejects_relay_managed_names(self, name, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        with pytest.raises(ValidationError):
+            Domain(name=name).clean()
+
+    def test_clean__allows_managed_domain(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        Domain(name="acme.open.relay.example.com", is_managed=True).clean()
+
+    def test_clean__rejects_unicode_dot_beneath_managed_zone(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        with pytest.raises(ValidationError):
+            Domain(name="app。relay.example.com").clean()
+
+    @pytest.mark.django_db
+    def test_save__rejects_cross_org_child_domain(self):
+        from accounts.models import Organization
+
+        parent_org = Organization.objects.create(slug="parent")
+        child_org = Organization.objects.create(slug="child")
+        Domain.objects.create(name="example.com", org=parent_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="app.example.com", org=child_org)
+
+    @pytest.mark.django_db
+    def test_save__rejects_cross_org_parent_domain(self):
+        from accounts.models import Organization
+
+        child_org = Organization.objects.create(slug="child")
+        parent_org = Organization.objects.create(slug="parent")
+        Domain.objects.create(name="app.example.com", org=child_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="example.com", org=parent_org)
+
+    @pytest.mark.django_db
+    def test_save__allows_nested_domains_for_same_org(self):
+        from accounts.models import Organization
+
+        org = Organization.objects.create(slug="o")
+        Domain.objects.create(name="example.com", org=org)
+
+        domain = Domain.objects.create(name="app.example.com", org=org)
+
+        assert domain.pk is not None
+
+    @pytest.mark.django_db
+    def test_save__rejects_unicode_dot_cross_org_child(self):
+        from accounts.models import Organization
+
+        parent_org = Organization.objects.create(slug="parent")
+        child_org = Organization.objects.create(slug="child")
+        Domain.objects.create(name="example.com", org=parent_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="app。example.com", org=child_org)
 
 
 @pytest.mark.django_db
 class TestDomainSave:
+    def test_save__requires_organization(self):
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Domain.objects.create(name="example.com")
+
     def test_save__creates_dkim_keys(self):
         from accounts.models import Organization
 
@@ -109,6 +166,33 @@ class TestDomainSave:
         assert domain.dkim_key_rsa2048 is not None
         assert domain.dkim_key_rsa1024 is not None
         assert domain.dkim_key_ed25519 is not None
+
+    def test_save__normalizes_name_to_lowercase(self):
+        from accounts.models import Organization
+
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="Example.COM", org=org)
+
+        assert domain.name == "example.com"
+        assert Domain.objects.filter(name="example.com").exists()
+
+    def test_save__stores_unicode_name_as_ascii_idna(self):
+        from accounts.models import Organization
+
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="éxample.com", org=org)
+
+        assert domain.name == "xn--xample-9ua.com"
+
+    def test_save__rejects_idna_alias_owned_by_other_org(self):
+        from accounts.models import Organization
+
+        unicode_org = Organization.objects.create(slug="unicode")
+        ascii_org = Organization.objects.create(slug="ascii")
+        Domain.objects.create(name="éxample.com", org=unicode_org)
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name="xn--xample-9ua.com", org=ascii_org)
 
     def test_save__does_not_duplicate_dkim_keys(self):
         from accounts.models import Organization
@@ -153,19 +237,14 @@ class TestDkimCnames:
             assert name.endswith("._domainkey.example.com")
             assert target.endswith("._domainkey.mail.relay.example.com")
 
-    def test_dkim_cnames__system_domain_uses_apex(self):
-        domain = Domain.objects.create(name="open.localhost", org=None)
-        for name, target in domain.dkim_cnames:
-            assert target.endswith("._domainkey.open.localhost")
-
-
-@pytest.mark.django_db
-class TestDomainIsSystem:
-    def test_is_system__false_for_org(self):
+    def test_dkim_cnames__managed_domain_uses_sender_subdomain(self):
         from accounts.models import Organization
 
-        org = Organization.objects.create(slug="o")
-        assert Domain(name="example.com", org=org).is_system is False
+        Organization.objects.create(slug="acme")
+        domain = Domain.objects.get(name="acme.open.localhost")
+        for name, target in domain.dkim_cnames:
+            assert name.endswith("._domainkey.acme.open.localhost")
+            assert target.endswith("._domainkey.mail.relay.acme.open.localhost")
 
 
 @pytest.mark.django_db
@@ -178,10 +257,6 @@ class TestDomainGetAbsoluteUrl:
         url = domain.get_absolute_url()
         assert url is not None
         assert f"/org/{org.slug}/email/domains/{domain.pk}" in url
-
-    def test_get_absolute_url__none_for_system_domain(self):
-        domain = Domain.objects.create(name="system.com", org=None)
-        assert domain.get_absolute_url() is None
 
 
 class TestMtaStsRecord:

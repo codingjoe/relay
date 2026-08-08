@@ -89,10 +89,13 @@ class OrganizationListView(LoginRequiredMixin, generic.ListView):
 
 class OrganizationForm(ModelForm):
     slug = SlugField(
+        max_length=63,
         widget=TextInput(
             attrs={"pattern": r"[a-z0-9]+(?:-[a-z0-9]+)*"},
         ),
-        help_text=_("URL-safe identifier, lowercase letters, digits, and hyphens."),
+        help_text=_(
+            "DNS-safe identifier, at most 63 lowercase letters, digits, and hyphens."
+        ),
     )
 
     class Meta:

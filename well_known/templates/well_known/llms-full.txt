@@ -1,4 +1,4 @@
-# relay — know how (full text)
+# relay. Know how (full text)
 
 > Complete content of all know-how and alternative-to articles for AI agents.
 

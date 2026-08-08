@@ -314,7 +314,10 @@ class DmarcFailureReport(IncomingMessage):
         from domains.models import Domain
 
         try:
-            domain = Domain.objects.root_for(incoming_message.receiving_domain)
+            domain = Domain.objects.root_for(
+                incoming_message.receiving_domain,
+                include_managed=True,
+            )
         except Domain.DoesNotExist:
             logger.warning(
                 "No domain was found for the RUF report: %s",

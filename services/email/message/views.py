@@ -39,7 +39,7 @@ class MessageListView(OrganizationScopedView, generic.ListView):
             qs = qs.filter(
                 Q(outgoingmessage__status=status) | Q(incomingmessage__status=status)
             )
-        return qs
+        return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

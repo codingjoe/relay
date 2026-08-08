@@ -1,16 +1,20 @@
 from email.message import EmailMessage
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 
+from domains.models import Domain
 from services.email.smtp.models import OutgoingMessage, SmtpCredential
 
 
 def make_message(org, user, **kwargs):
+    domain = kwargs.pop("domain", None) or Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage(
         sender=user,
         org=org,
+        domain=domain,
         rcpt_to=kwargs.get("rcpt_to", "bob@example.com"),
         mail_from=kwargs.get("mail_from", "alice@example.com"),
         subject=kwargs.get("subject", "Test"),
@@ -26,7 +30,6 @@ def make_message(org, user, **kwargs):
     return msg
 
 
-@pytest.mark.django_db
 @pytest.mark.django_db
 class TestMessageDetailView:
     def test_get__ok_for_member(self, admin_client, org, user):
@@ -53,29 +56,60 @@ class TestMessageDetailView:
 
 @pytest.mark.django_db
 class TestTestEmailView:
-    def test_post__creates_message_and_redirects(self, admin_client, org, user):
-        response = admin_client.post(
-            f"/org/{org.slug}/email/messages/test",
-            {"domain": "free", "subject": "Test", "body": "Hello"},
-        )
+    def test_post__creates_message_and_redirects(
+        self,
+        admin_client,
+        django_capture_on_commit_callbacks,
+        org,
+        user,
+    ):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        with (
+            patch("services.email.smtp.views.deliver_message") as delivery_task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            response = admin_client.post(
+                f"/org/{org.slug}/email/messages/test",
+                {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+            )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(org=org).first()
-        assert msg is not None
+        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Test")
         assert msg.sender == user
         assert msg.subject == "Test"
+        assert msg.domain == domain
+        delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
 
     def test_post__with_real_domain(self, admin_client, org, user):
-        from domains.models import Domain
-
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
             {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.filter(org=org).first()
-        assert msg is not None
+        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Hi")
         assert msg.domain == domain
+
+    def test_post__does_not_use_domain_from_other_org(
+        self,
+        admin_client,
+        org,
+        write_org,
+        user,
+    ):
+        domain = Domain.objects.create(name="other.com", org=write_org)
+        admin_client.raise_request_exception = False
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(domain.pk), "subject": "Cross-org", "body": "Hello"},
+        )
+
+        assert response.status_code == 404
+        assert not OutgoingMessage.objects.filter(
+            org=org,
+            sender=user,
+            subject="Cross-org",
+        ).exists()
 
 
 @pytest.mark.django_db
@@ -118,8 +152,7 @@ class TestCredentialCreateView:
             f"/org/{org.slug}/email/credentials/new", {"name": "Production"}
         )
         assert response.status_code == 302
-        cred = SmtpCredential.objects.filter(org=org).first()
-        assert cred is not None
+        cred = SmtpCredential.objects.get(org=org)
         assert cred.name == "Production"
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
@@ -198,8 +231,7 @@ class TestSuppressionCreateView:
             {"email": "bob@example.com"},
         )
         assert response.status_code == 302
-        entry = SuppressionEntry.objects.filter(org=org).first()
-        assert entry is not None
+        entry = SuppressionEntry.objects.get(org=org)
         assert entry.reason == SuppressionEntry.Reason.MANUAL
 
     @pytest.mark.django_db

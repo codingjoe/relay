@@ -27,7 +27,6 @@
             <div role="group" class="field">
               <label for="te-domain">{% translate "domain"|capfirst context "noun" %}</label>
               <select id="te-domain" name="domain" class="select w-full" required>
-                <option value="free">{{ free_sender_domain }} ({% translate "free" %})</option>
                 {% for domain in domains %}
                   <option value="{{ domain.pk }}">{{ domain.name }}</option>
                 {% empty %}

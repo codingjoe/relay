@@ -1,8 +1,7 @@
-import secrets
-import string
 from functools import reduce
 from operator import or_
 
+import idna
 import validators as domain_validators
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -15,14 +14,24 @@ from abstract.models import TimeStamped
 from kms.models import SigningKey
 
 
+def canonicalize_domain_name(value):
+    """Return the lowercase ASCII UTS-46 form of a domain name."""
+    try:
+        return idna.encode(value, uts46=True, std3_rules=True).decode("ascii").lower()
+    except (idna.IDNAError, UnicodeError) as error:
+        raise ValidationError(
+            _("Enter a valid domain name, for example acme.com")
+        ) from error
+
+
 def validate_domain_name(value):
     """Validate that *value* is a syntactically valid domain name."""
-    if domain_validators.domain(value) is not True:
+    if domain_validators.domain(canonicalize_domain_name(value)) is not True:
         raise ValidationError(_("Enter a valid domain name, for example acme.com"))
 
 
 class DomainQuerySet(models.QuerySet):
-    def root_for(self, name):
+    def root_for(self, name, *, include_managed):
         """Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific
@@ -31,25 +40,39 @@ class DomainQuerySet(models.QuerySet):
         Raises:
             DoesNotExist: If no matching domain is found.
         """
-        parts = name.lower().split(".")
-        candidates = [".".join(parts[i:]) for i in range(len(parts))]
-        qs = (
-            self.filter(
-                reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
-                org__isnull=False,
-            )
-            .select_related("org")
-            .order_by(Length("name").desc())
-        )
         try:
-            return qs.get()
-        except self.model.MultipleObjectsReturned:
-            return qs.first()
-
-
-def generate_verification_token():
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(16))
+            parts = idna.uts46_remap(
+                name,
+                std3_rules=False,
+                transitional=False,
+            ).split(".")
+        except (idna.IDNAError, UnicodeError) as error:
+            raise self.model.DoesNotExist from error
+        candidates = []
+        for index in range(len(parts)):
+            try:
+                candidate = canonicalize_domain_name(".".join(parts[index:]))
+            except ValidationError:
+                candidate = None
+            if candidate is not None:
+                candidates.append(candidate)
+        if not candidates:
+            raise self.model.DoesNotExist
+        qs = self.filter(
+            reduce(or_, (models.Q(name__iexact=c) for c in candidates)),
+        )
+        if not include_managed:
+            qs = qs.filter(is_managed=False)
+        if (
+            not (
+                domains := list(
+                    qs.select_related("org").order_by(Length("name").desc())
+                )
+            )
+            or len({domain.org_id for domain in domains}) > 1
+        ):
+            raise self.model.DoesNotExist
+        return domains[0]
 
 
 class Domain(TimeStamped):
@@ -76,16 +99,7 @@ class Domain(TimeStamped):
         "accounts.Organization",
         on_delete=models.CASCADE,
         related_name="domains",
-        null=True,
-        blank=True,
-        help_text=_("Owning organization. Null for system domains."),
-    )
-    verification_token = models.CharField(
-        _("verification token"),
-        max_length=16,
-        default=generate_verification_token,
-        editable=False,
-        help_text=_("Token published in DNS to prove ownership."),
+        help_text=_("Owning organization."),
     )
     verified_at = models.DateTimeField(
         _("verified at"),
@@ -137,6 +151,28 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if the DMARC record is incorrect."),
     )
+    mta_sts_status = models.TextField(
+        _("MTA-STS status"),
+        choices=Status,
+        default=Status.UNCHECKED,
+        help_text=_("MTA-STS record check result on the root domain."),
+    )
+    mta_sts_error = models.TextField(
+        _("MTA-STS error"),
+        blank=True,
+        help_text=_("Failure detail if the MTA-STS record is incorrect."),
+    )
+    tls_rpt_status = models.TextField(
+        _("TLS-RPT status"),
+        choices=Status,
+        default=Status.UNCHECKED,
+        help_text=_("TLS-RPT record check result on the root domain."),
+    )
+    tls_rpt_error = models.TextField(
+        _("TLS-RPT error"),
+        blank=True,
+        help_text=_("Failure detail if the TLS-RPT record is incorrect."),
+    )
     dns_checked_at = models.DateTimeField(
         _("DNS checked at"),
         null=True,
@@ -183,7 +219,7 @@ class Domain(TimeStamped):
     )
 
     def __str__(self):
-        return self.name
+        return f"{self.name} (managed)" if self.is_managed else self.name
 
     class Meta(TimeStamped.Meta):
         indexes = [
@@ -193,17 +229,17 @@ class Domain(TimeStamped):
     objects = models.Manager.from_queryset(DomainQuerySet)()
 
     def get_absolute_url(self):
-        if self.org is None:
-            return None
         return reverse(
             "domains:domain-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
     def save(self, *args, **kwargs):
+        self.name = canonicalize_domain_name(self.name)
+        self.clean()
         is_new = self.pk is None
         super().save(*args, **kwargs)
-        if is_new and self.org is not None and self.dkim_key_rsa2048_id is None:
+        if is_new and self.dkim_key_rsa2048_id is None:
             self.dkim_key_rsa2048 = SigningKey.generate(SigningKey.Algorithm.RSA_2048)
             self.dkim_key_rsa1024 = SigningKey.generate(SigningKey.Algorithm.RSA_1024)
             self.dkim_key_ed25519 = SigningKey.generate(SigningKey.Algorithm.ED25519)
@@ -219,9 +255,46 @@ class Domain(TimeStamped):
     def is_verified(self):
         return self.verified_at is not None
 
-    @property
-    def is_system(self):
-        return self.org is None
+    is_managed = models.BooleanField(
+        _("managed"),
+        default=False,
+        help_text=_("Whether relay manages this domain's DNS automatically."),
+    )
+
+    def clean(self):
+        name = canonicalize_domain_name(self.name)
+        self.name = name
+        if not self.is_managed:
+            root_domains = [
+                canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+                canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN),
+            ]
+            for root in root_domains:
+                if name == root or name.endswith(f".{root}"):
+                    raise ValidationError(
+                        _(
+                            "Cannot add a subdomain of %(base)s. relay manages these automatically."
+                        )
+                        % {"base": root}
+                    )
+
+        if self.org_id:
+            parts = name.split(".")
+            ancestors = [".".join(parts[index:]) for index in range(len(parts))]
+            overlapping_domains = Domain.objects.exclude(org_id=self.org_id).filter(
+                reduce(or_, (models.Q(name__iexact=value) for value in ancestors))
+                | models.Q(name__iendswith=f".{name}")
+            )
+            if self.pk:
+                overlapping_domains = overlapping_domains.exclude(pk=self.pk)
+            if overlapping_domains.exists():
+                raise ValidationError(
+                    {
+                        "name": _(
+                            "Domain overlaps with a domain owned by another organization."
+                        )
+                    }
+                )
 
     @property
     def dkim_ciphers(self):
@@ -234,6 +307,7 @@ class Domain(TimeStamped):
 
     @property
     def sender_domain(self):
+        """Return the subdomain used as the SMTP envelope and DKIM sender."""
         return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{self.name}"
 
     @property
@@ -241,7 +315,7 @@ class Domain(TimeStamped):
         return f"_dmarc.{self.name}"
 
     def dkim_cname_for_selector(self, selector: str) -> tuple[str, str]:
-        base = self.name if self.is_system else self.sender_domain
+        base = self.sender_domain
         name = f"{selector}._domainkey.{self.name}"
         target = f"{selector}._domainkey.{base}"
         return name, target
@@ -259,18 +333,6 @@ class Domain(TimeStamped):
     @property
     def root_spf_record(self):
         return f"v=spf1 include:{self.sender_domain} ~all"
-
-    @property
-    def return_path_domain(self):
-        return f"{settings.RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX}.{self.sender_domain}"
-
-    @property
-    def verification_record_name(self):
-        return f"{settings.RELAY_DNS_DOMAIN_VERIFY_PREFIX}.{self.sender_domain}"
-
-    @property
-    def verification_record(self):
-        return f"{settings.RELAY_DNS_DOMAIN_VERIFY_PREFIX} {self.verification_token}"
 
     @property
     def dmarc_reporting_address(self):
@@ -295,18 +357,13 @@ class Domain(TimeStamped):
 
     @property
     def tls_rpt_record(self):
-        """Return the TLS-RPT record for the root domain, with rua pointing to the sender subdomain."""
+        """Return the TLS-RPT record with rua pointing to the sender subdomain."""
         return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"
 
     @property
     def sender_dmarc_record(self):
         """Return the DMARC record served at _dmarc.{sender_subdomain} for external reporting authorization."""
         return "v=DMARC1; p=none"
-
-    @property
-    def sender_tls_rpt_record(self):
-        """Return the TLS-RPT record served at _smtp._tls.{sender_subdomain}."""
-        return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"
 
     @property
     def mta_sts_record(self):

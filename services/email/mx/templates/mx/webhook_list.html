@@ -52,16 +52,15 @@
                 id="id_domain"
                 class="select w-full"
                 required
-                onchange="document.getElementById('id-pattern-suffix').textContent = '@' + this.value"
+                onchange="document.getElementById('id-pattern-suffix').textContent = '@' + this.options[this.selectedIndex].text"
               >
-                {% for value, label in domain_choices %}
-                  <option value="{{ value }}">{{ label }}</option>
+                {% for domain in domain_choices %}
+                  <option value="{{ domain.pk }}">{{ domain.name }}</option>
                 {% endfor %}
               </select>
             </div>
             <div role="group" class="field">
               <label for="id_pattern_prefix">{% translate "address pattern"|capfirst %}</label>
-              <input type="hidden" name="domain_part" id="id_domain_part" value="">
               <div class="input-group">
                 <input
                   type="text"
@@ -71,7 +70,10 @@
                   placeholder="*"
                   required
                 >
-                <span data-align="end" id="id-pattern-suffix">@{{ domain_choices.0.0 }}</span>
+                <span
+                  data-align="end"
+                  id="id-pattern-suffix"
+                >{% if domain_choices %}@{{ domain_choices.0.name }}{% else %}@{% endif %}</span>
               </div>
             </div>
           </fieldset>
@@ -109,26 +111,6 @@
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
             </p>
-            {% if not webhook.is_free_domain %}
-              <details class="mt-2">
-                <summary class="cursor-pointer text-sm">
-                  {% translate "MX record"|capfirst %}
-                  {% if webhook.mx_status == "ok" %}
-                    <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-                  {% elif webhook.mx_status == "error" %}
-                    <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-                  {% else %}
-                    <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-                  {% endif %}
-                </summary>
-                <pre class="bg-muted p-3 rounded-md overflow-auto text-sm mt-2"><code>{{ webhook.mx_record }}</code></pre>
-              </details>
-            {% else %}
-              <p class="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-                {% translate "free domain: MX managed by relay, no setup needed."|capfirst %}
-              </p>
-            {% endif %}
             <details class="mt-2">
               <summary class="cursor-pointer text-sm">
                 {% translate "public key"|capfirst %} <code>{{ webhook.signing_key.key_id }}</code>
@@ -143,7 +125,7 @@
                 {% translate "test"|capfirst context "verb" %}
               </button>
             </form>
-            <form method="post" action="{% url 'mx:webhook-delete' org.slug webhook.pk %}">
+            <form method="post" action="{% url 'mx:webhook-delete' org.slug webhook.pk %}" style="display: inline">
               {% csrf_token %}
               <button
                 type="submit"
@@ -167,7 +149,7 @@
     </p>
   {% endif %}
 
-  <section class="card mt-6">
+  <section class="card mt-6 p-6">
     <header>
       <h3 class="m-0">{% translate "webhook format"|capfirst %}</h3>
     </header>

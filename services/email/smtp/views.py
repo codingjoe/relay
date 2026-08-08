@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import BadRequest
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import transaction
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -27,8 +27,10 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
     parent = "message:message-list"
 
     def get_queryset(self):
-        return OutgoingMessage.objects.filter(org=self.org).select_related(
-            "domain", "credential"
+        return (
+            OutgoingMessage.objects.filter(org=self.org)
+            .select_related("domain", "credential")
+            .fetch_mode(models.FETCH_PEERS)
         )
 
     def get_object(self, queryset=None):
@@ -59,14 +61,8 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
 
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
-        free_domain = settings.RELAY_FREE_SENDER_DOMAIN
-        domain_pk = request.POST["domain"]
-        if domain_pk == "free":
-            mail_from = f"{request.user.username}@{free_domain}"
-            domain = None
-        else:
-            domain = Domain.objects.get(pk=domain_pk, org=self.org)
-            mail_from = f"postmaster@{domain.name}"
+        domain = get_object_or_404(Domain, pk=request.POST["domain"], org=self.org)
+        mail_from = f"postmaster@{domain.name}"
 
         if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
             messages.error(request, _("Recipient is on the suppression list."))
@@ -95,9 +91,6 @@ class TestEmailView(OrganizationScopedView, generic.View):
         transaction.on_commit(
             lambda: deliver_message.enqueue(
                 message_id=str(message.id),
-                rcpt_to=request.user.email,
-                mail_from=mail_from,
-                domain_id=domain.pk if domain else None,
             )
         )
         messages.success(request, _("Queued test message for delivery."))
@@ -113,7 +106,9 @@ class SmtpCredentialListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return SmtpCredential.objects.filter(org=self.org)
+        return SmtpCredential.objects.filter(org=self.org).fetch_mode(
+            models.FETCH_PEERS
+        )
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -147,7 +142,9 @@ class SmtpCredentialDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "smtp:credential-list"
 
     def get_queryset(self):
-        return SmtpCredential.objects.filter(org=self.org)
+        return SmtpCredential.objects.filter(org=self.org).fetch_mode(
+            models.FETCH_PEERS
+        )
 
     def get_success_url(self):
         return reverse_lazy("smtp:credential-list", kwargs={"org_slug": self.org.slug})
@@ -163,7 +160,7 @@ class SuppressionListView(OrganizationScopedView, generic.ListView):
     parent = "accounts:org-home"
 
     def get_queryset(self):
-        return self.model.objects.filter(org=self.org)
+        return self.model.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -202,7 +199,7 @@ class SuppressionRemoveView(OrganizationScopedView, generic.DeleteView):
     parent = "smtp:suppression-list"
 
     def get_queryset(self):
-        return self.model.objects.filter(org=self.org)
+        return self.model.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
 
     def get_object(self, queryset=None):
         qs = (queryset or self.get_queryset()).filter(

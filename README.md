@@ -14,52 +14,45 @@ Users only need to set **two DNS records**:
 Everything else (MX, SPF, DKIM, Return-Path) is **served automatically**
 by the built-in nameserver. You do not need to use the DNS provider dashboard.
 
-## Free Sender Domain
+## Managed Sender Domain
 
-Every account gets a **free sender domain** it can send from without configuring
-any DNS of its own. The domain is set via `RELAY_FREE_SENDER_DOMAIN` (defaults
-to `open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
-A migration auto-creates a system-owned `Domain` (`org=None`) for it, and the
-domain is DKIM-signed automatically.
+Every organization gets a **managed sender domain**. It is a subdomain of the
+platform domain, and relay manages it automatically. The domain is
+set via `RELAY_MANAGED_SENDER_DOMAIN` (defaults to
+`open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
+When an organization is created, a `Domain` is auto-created with the name
+`{org.slug}.{RELAY_MANAGED_SENDER_DOMAIN}` (for example `acme.open.localhost`).
+The domain is DKIM-signed and pre-verified. No user DNS configuration needed.
 
-The free domain is restricted. You can send messages only to your own
-registered email address. Use it to verify deliverability and test integrations
-before you delegate a real sender domain.
-
-### DNS served automatically
-
-The built-in nameserver serves the following records at the free domain.
-No user action is required.
-
-| Record  | Location                                                | Value                                              |
-| ------- | ------------------------------------------------------- | -------------------------------------------------- |
-| A       | `open.{platform_domain}`                                | SMTP server IP(s)                                  |
-| MX      | `open.{platform_domain}`                                | `open.{platform_domain}` (priority 10)             |
-| NS      | `open.{platform_domain}`                                | `ns1.{platform_domain}`, `ns2.{platform_domain}`   |
-| PTR     | `<reverse-IP>.in-addr.arpa`                             | `mail.relay.{platform_domain}`                     |
-| SPF     | `open.{platform_domain}` (TXT)                          | `v=spf1 a mx ~all`                                 |
-| DKIM    | `{selector}._domainkey.open.{platform_domain}` (TXT)    | DKIM public key (RSA-2048, RSA-1024, Ed25519)      |
-| DMARC   | `_dmarc.open.{platform_domain}` (TXT)                   | `v=DMARC1; p=none`                                 |
-| TLS-RPT | `_smtp._tls.open.{platform_domain}` (TXT)               | `v=TLSRPTv1;rua=mailto:tls@open.{platform_domain}` |
-| Verify  | `relay-verification.mail.relay.{platform_domain}` (TXT) | `relay-verification {token}`                       |
-| CNAME   | `rp.mail.relay.{platform_domain}`                       | `rp.{platform_domain}` (Return-Path)               |
+The managed domain cannot be deleted from the dashboard. Users can still add
+their own delegated domains alongside it.
 
 ### Operator setup
 
-For the free domain to resolve in production, the platform operator must:
+The platform operator must set up the following records on the
+`RELAY_PLATFORM_DOMAIN` nameserver:
 
-1. **Delegate the free domain zone to Relay's nameservers.** If
-   `RELAY_FREE_SENDER_DOMAIN` is `open.example.com`, add NS records for the
-   `open` subdomain pointing to the nameservers in
-   `RELAY_DNS_NS_NAMESERVERS` (for example, `ns1.example.com`, `ns2.example.com`). If
-   the platform domain's NS records already point at Relay's nameservers, the
-   free domain is served automatically as a subdomain and no extra delegation
-   is needed.
-1. **Make the SPF include resolve.** The free domain's SPF record includes
-   `spf.{platform_domain}`. Make sure that the TXT record exists and lists the SMTP
-   server IP addresses.
-1. **Set `RELAY_FREE_SENDER_DOMAIN`** to a domain delegated to Relay's
-   nameservers.
+1. **NS delegation for `open.{platform_domain}`**. Add NS records for the
+   `open` subdomain pointing to `RELAY_DNS_NS_NAMESERVERS` (for example,
+   `ns1.{platform_domain}`, `ns2.{platform_domain}`).
+1. **A/AAAA record for the web server**. The platform domain itself needs
+   an A/AAAA record for the web UI.
+1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS` and
+   `RELAY_SMTP_PUBLIC_HOSTNAME` (defaults to `smtp.{platform_domain}`). The
+   public hostname and sender subdomains resolve to the SMTP server IPs.
+1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
+   record with the hosting provider. Outbound SMTP must use the corresponding
+   hostname for EHLO.
+1. **SPF include**. The `spf.{platform_domain}` TXT record must list the
+   SMTP server IP addresses.
+1. **DMARC**. `_dmarc.{platform_domain}` TXT record.
+1. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
+   `mta-sts.{platform_domain}` CNAME.
+1. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
+
+All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
+domains are served automatically by the internal nameserver. No
+per-domain delegation is necessary.
 
 ## Architecture
 

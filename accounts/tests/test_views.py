@@ -38,6 +38,11 @@ class TestOrganizationListView:
         assert response.status_code == 200
         assert response.context["form"].errors
 
+    def test_post__rejects_slug_longer_than_dns_label(self, admin_client):
+        response = admin_client.post("/organizations/", {"slug": "a" * 64})
+        assert response.status_code == 200
+        assert "slug" in response.context["form"].errors
+
 
 @pytest.mark.django_db
 class TestOrganizationDetailView:
@@ -177,7 +182,7 @@ class TestMembershipDeleteView:
         assert not Membership.objects.filter(pk=m.pk).exists()
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
-        membership = write_org.memberships.first()
+        membership = write_org.memberships.first()  # noqa: any membership
         response = admin_client.get(
             f"/org/{write_org.slug}/settings/members/{membership.pk}/delete"
         )

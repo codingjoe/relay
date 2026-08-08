@@ -18,7 +18,10 @@ class MXHandler:
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
-            domain = await sync_to_async(Domain.objects.root_for)(rcpt_domain)
+            domain = await sync_to_async(Domain.objects.root_for)(
+                rcpt_domain,
+                include_managed=True,
+            )
         except Domain.DoesNotExist:
             return "550 Relay not authorised for this recipient"
         envelope.rcpt_tos.append(address)
@@ -128,8 +131,22 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
             transaction.on_commit(lambda: parse_fbl_report.enqueue(report_pk=report.pk))
             return "250 OK"
 
+    is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (
+        local_part.startswith(f"{settings.RELAY_POSTMASTER_LOCAL_PART}+")
+    )
+    is_bounce_recipient = local_part.startswith(f"{settings.RELAY_BOUNCE_LOCAL_PART}+")
+
+    if (
+        not is_postmaster_recipient
+        and not is_bounce_recipient
+        and not domain.org.billing_is_active
+        and not domain.org.members.filter(email__iexact=mail_from).exists()
+    ):
+        return "550 Sender not allowed without active billing"
+
     message = IncomingMessage(
         org=domain.org,
+        domain=domain,
         receiving_domain=rcpt_domain,
         mail_from=mail_from,
         rcpt_to=rcpt_to,
@@ -142,9 +159,7 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
     message.save(force_insert=True)
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
     transaction.on_commit(lambda: enqueue_dmarc_evaluation(message))
-    if local_part == settings.RELAY_POSTMASTER_LOCAL_PART or local_part.startswith(
-        f"{settings.RELAY_POSTMASTER_LOCAL_PART}+"
-    ):
+    if is_postmaster_recipient:
         transaction.on_commit(
             lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))
         )

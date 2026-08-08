@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
@@ -30,7 +29,6 @@ class DashboardView(OrganizationScopedView, generic.TemplateView):
             "domains": Domain.objects.filter(org=self.org),
             "total_domains": Domain.objects.filter(org=self.org).count(),
             "total_messages": Message.objects.filter(org=self.org).count(),
-            "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
             "outgoing_chart": build_outgoing_chart(self.org),
             "incoming_chart": build_incoming_chart(self.org),
             "dmarc_chart": build_dmarc_chart(self.org),
@@ -83,11 +81,13 @@ class ReportListView(OrganizationScopedView, generic.ListView):
         ip = self.request.GET.get("ip", "")
         match report_type:
             case self.ReportType.DMARC:
-                qs = DmarcReport.objects.filter(org=self.org)
+                qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
                 if ip:
                     qs = qs.filter(source_ip_address=ip)
             case self.ReportType.FAILURES:
-                qs = DmarcFailureReport.objects.filter(org=self.org)
+                qs = DmarcFailureReport.objects.filter(org=self.org).select_related(
+                    "domain"
+                )
                 if ip:
                     qs = qs.filter(source_ip_address=ip)
             case self.ReportType.TLS:
@@ -101,8 +101,8 @@ class ReportListView(OrganizationScopedView, generic.ListView):
                 if ip:
                     qs = qs.filter(source_ip_address=ip)
             case _:
-                qs = DmarcReport.objects.filter(org=self.org)
-        return qs
+                qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
+        return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

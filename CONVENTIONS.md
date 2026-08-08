@@ -171,8 +171,8 @@ Update it based on review feedback.
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`. It imports Tailwind CSS v4 and
   basecoat-css (maia style), plus any custom CSS variables and layout glue.
-  Run `npm run build` to compile `src/css/app.css` → `root/static/css/app.css`
-  (a build artifact, gitignored. Do not edit it directly). Run `npm run dev`
+  Run `pnpm run build` to compile `src/css/app.css` → `root/static/css/app.css`
+  (a build artifact, gitignored. Do not edit it directly). Run `pnpm run dev`
   to watch for changes during development. The build output is served via
   `{% static 'css/app.css' %}` in `base.html`.
   Custom CSS is kept to the bare minimum. Use it only for layout glue

@@ -5,11 +5,11 @@ import logging
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
-from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
-from domains.models import Domain
+from domains.models import Domain, canonicalize_domain_name
 
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
 from .tasks import deliver_message
@@ -76,7 +76,7 @@ class SMTPHandler:
 @sync_to_async
 def get_membership(credential, username):
     """Return the membership linking the credential's org to the given user."""
-    return credential.org.memberships.filter(user__username=username).first()
+    return credential.org.memberships.get(user__username=username)
 
 
 @sync_to_async
@@ -95,17 +95,12 @@ def authenticate(username: str, key: str):
     return None
 
 
-@sync_to_async
 def process_suppressed_message(
-    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl
+    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain
 ):
     """Store a suppressed message without enqueuing delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
-    from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
-    domain = (
-        Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
-    )
     OutgoingMessage.objects.create(
         sender=sender,
         org=credential.org,
@@ -129,23 +124,36 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
 
-    from_domain = mail_from.split("@")[-1] if "@" in mail_from else ""
-    free_domain = settings.RELAY_FREE_SENDER_DOMAIN.lower()
+    if "@" not in mail_from:
+        return "550 Sender domain not registered"
+
+    try:
+        from_domain = canonicalize_domain_name(mail_from.rsplit("@", 1)[1])
+        domain = Domain.objects.get(name=from_domain, org=credential.org)
+        resolved_domain = Domain.objects.root_for(
+            from_domain,
+            include_managed=True,
+        )
+    except Domain.DoesNotExist, ValidationError:
+        return "550 Sender domain not registered"
 
     if (
-        from_domain.lower() == free_domain
-        and rcpt_to.lower() != (sender.email or "").lower()
+        resolved_domain.pk != domain.pk
+        or resolved_domain.org_id != domain.org_id
+        or resolved_domain.name != domain.name
     ):
-        return "550 Recipient not allowed for free sender domain"
+        return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
         return process_suppressed_message(
-            mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl
+            mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain
         )
 
-    domain = (
-        Domain.objects.filter(name__iexact=from_domain).first() if from_domain else None
-    )
+    if (
+        not credential.org.billing_is_active
+        and not credential.org.members.filter(email__iexact=rcpt_to).exists()
+    ):
+        return "550 Recipient not allowed without active billing"
 
     if domain and domain.reputation_hold:
         return "550 Sender reputation suspended"
@@ -166,9 +174,6 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     transaction.on_commit(
         lambda: deliver_message.enqueue(
             message_id=str(message.id),
-            rcpt_to=rcpt_to,
-            mail_from=mail_from,
-            domain_id=domain.pk if domain else None,
         )
     )
 

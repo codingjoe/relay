@@ -90,7 +90,6 @@
     created_at: 2026-08-01 18:21:34.810335+00:00
     name: acme.com
     org: 1
-    verification_token: zYJeoEEHsNJgwg2t
     verified_at: 2026-01-01 00:00:00+00:00
     nameserver_status: ok
     nameserver_error: ''
@@ -100,6 +99,35 @@
     dkim_error: ''
     dmarc_status: ok
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
+    dns_checked_at: null
+    dkim_key_rsa2048: 1
+    dkim_key_rsa1024: 2
+    dkim_key_ed25519: 3
+- model: domains.domain
+  pk: 4
+  fields:
+    modified_at: 2026-08-01 18:21:34.810329+00:00
+    created_at: 2026-08-01 18:21:34.810335+00:00
+    name: acme.open.localhost
+    org: 1
+    is_managed: true
+    verified_at: 2026-01-01 00:00:00+00:00
+    nameserver_status: ok
+    nameserver_error: ''
+    spf_status: ok
+    spf_error: ''
+    dkim_status: ok
+    dkim_error: ''
+    dmarc_status: ok
+    dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
@@ -250,7 +278,6 @@
     created_at: 2026-08-01 18:21:34.820000+00:00
     name: acme.io
     org: 1
-    verification_token: xK7eRfPX2nQwLm4a
     verified_at: 2026-01-15 00:00:00+00:00
     nameserver_status: ok
     nameserver_error: ''
@@ -260,6 +287,10 @@
     dkim_error: ''
     dmarc_status: ok
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
@@ -271,7 +302,6 @@
     created_at: 2026-08-01 18:21:34.825000+00:00
     name: example.net
     org: 1
-    verification_token: aB3cD4eF5gH6iJ7k
     verified_at: null
     nameserver_status: unchecked
     nameserver_error: ''
@@ -281,10 +311,39 @@
     dkim_error: ''
     dmarc_status: unchecked
     dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: null
     dkim_key_rsa1024: null
     dkim_key_ed25519: null
+- model: domains.domain
+  pk: 5
+  fields:
+    modified_at: 2026-08-01 18:21:34.820000+00:00
+    created_at: 2026-08-01 18:21:34.820000+00:00
+    name: app.acme.com
+    org: 1
+    is_managed: false
+    verified_at: 2026-01-01 00:00:00+00:00
+    nameserver_status: ok
+    nameserver_error: ''
+    spf_status: ok
+    spf_error: ''
+    dkim_status: ok
+    dkim_error: ''
+    dmarc_status: ok
+    dmarc_error: ''
+    mta_sts_status: ok
+    mta_sts_error: ''
+    tls_rpt_status: ok
+    tls_rpt_error: ''
+    dns_checked_at: 2026-07-15 00:00:00+00:00
+    dkim_key_rsa2048: 1
+    dkim_key_rsa1024: 2
+    dkim_key_ed25519: 3
 - model: mx.webhook
   pk: 1
   fields:
@@ -294,6 +353,7 @@
     url: https://app.acme.com/webhooks/email
     name: App webhook
     address_pattern: '*@app.acme.com'
+    domain: 5
     signing_key: 3
     mx_status: ok
     mx_error: ''
