@@ -56,9 +56,20 @@ services:
     command: ["-m", "manage", "dns"]
     environment:
       !!merge <<: *relay-secrets
+      RELAY_DNS_LISTEN_HOST: 0.0.0.0
+      RELAY_DNS_LISTEN_PORT: 5353
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
+    networks:
+      - app
+  dnsdist:
+    image: powerdns/dnsdist-21@sha256:28100b260120b2f4fdcef6e973f5553966977c2ec4576ed2d849b1dc9d3278ea
+    depends_on:
+      dns:
+        condition: service_started
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/conf.d/relay.conf:ro
     ports:
       - "53:53/udp"
       - "53:53/tcp"

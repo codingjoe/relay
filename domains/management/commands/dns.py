@@ -4,10 +4,9 @@ import time
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from dnslib.server import DNSLogger
+from dnslib.server import DNSLogger, DNSServer
 
 from domains.resolver import DNSResolver
-from domains.server import DNSServer
 
 
 class Command(BaseCommand):
