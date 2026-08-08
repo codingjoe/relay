@@ -159,7 +159,9 @@ WSGI_APPLICATION = "root.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
 
-DATABASES = {"default": env.db(default="sqlite:///:memory:" if TEST else "sqlite:///db.sqlite3")}
+DATABASES = {
+    "default": env.db(default="sqlite:///:memory:" if TEST else "sqlite:///db.sqlite3")
+}
 
 # Caches
 # https://docs.djangoproject.com/en/stable/ref/settings/#caches
