@@ -1,103 +1,57 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import dnslib
 import pytest
-from dnslib import QTYPE, DNSLabel
+from django.db import DatabaseError
+from dnslib import RCODE, DNSRecord
+from dnslib.dns import DNSError
 
 from accounts.models import Organization
+from domains.models import Domain
+from domains.resolver import DNSResolver
 
 
-class TestDnsServerInit:
-    def test_init__defaults(self):
-        from domains.server import DNSServer
-
-        server = DNSServer()
-        assert server.host == "0.0.0.0"
-        assert server.port == 53
-        assert server._running is False
-        assert server._socks == []
-
-    def test_init__custom(self):
-        from domains.server import DNSServer
-
-        server = DNSServer(host="127.0.0.1", port=5353)
-        assert server.host == "127.0.0.1"
-        assert server.port == 5353
-
-
-class TestHandleRequest:
+class TestResolve:
     @pytest.mark.django_db
-    def test_handle_request__unknown_domain(self):
-        from domains.server import DNSServer
+    def test_resolve__unknown_domain(self):
+        reply = DNSResolver().resolve(DNSRecord.question("unknown.com"), None)
 
-        server = DNSServer()
-        request = dnslib.DNSRecord(
-            q=dnslib.DNSQuestion(DNSLabel("unknown.com"), QTYPE.A)
-        )
-        sock = MagicMock()
-        server.handle_request(request.pack(), ("127.0.0.1", 12345), sock)
-        sock.sendto.assert_called_once()
-        reply = dnslib.DNSRecord.parse(sock.sendto.call_args[0][0])
-        assert reply.header.rcode == dnslib.RCODE.NOERROR
-        assert len(reply.rr) == 0
+        assert reply.header.rcode == RCODE.NOERROR
+        assert reply.header.aa == 1
+        assert reply.header.ra == 0
+        assert reply.rr == []
 
     @pytest.mark.django_db
-    def test_handle_request__known_domain(self):
-        from domains.models import Domain
-        from domains.server import DNSServer
+    def test_resolve__known_domain(self):
+        organization = Organization.objects.create(slug="dns-server")
+        domain = Domain.objects.create(name="example.com", org=organization)
 
-        org = Organization.objects.create(slug="dns-server")
-        domain = Domain.objects.create(name="example.com", org=org)
-        server = DNSServer()
-        request = dnslib.DNSRecord(
-            q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)
-        )
-        sock = MagicMock()
-        server.handle_request(request.pack(), ("127.0.0.1", 12345), sock)
-        sock.sendto.assert_called_once()
-        reply = dnslib.DNSRecord.parse(sock.sendto.call_args[0][0])
-        assert reply.header.rcode == dnslib.RCODE.NOERROR
-        assert len(reply.rr) >= 1
+        reply = DNSResolver().resolve(DNSRecord.question(domain.sender_domain), None)
 
-    def test_handle_request__invalid_data(self):
-        from domains.server import DNSServer
+        assert reply.header.rcode == RCODE.NOERROR
+        assert reply.header.aa == 1
+        assert reply.header.ra == 0
+        assert reply.rr
 
-        server = DNSServer()
-        sock = MagicMock()
-        server.handle_request(b"invalid", ("127.0.0.1", 12345), sock)
-        sock.sendto.assert_not_called()
+    def test_resolve__dns_error(self):
+        resolver = DNSResolver()
+        with patch.object(
+            resolver,
+            "resolve_records",
+            side_effect=DNSError("Invalid DNS record"),
+        ):
+            reply = resolver.resolve(DNSRecord.question("example.com"), None)
 
+        assert reply.header.rcode == RCODE.SERVFAIL
+        assert reply.rr == []
 
-class TestDnsServerLifecycle:
-    def test_start_stop__running_flag(self):
-        from domains.server import DNSServer
+    def test_resolve__database_error(self):
+        resolver = DNSResolver()
+        with patch.object(
+            resolver,
+            "resolve_records",
+            side_effect=DatabaseError("Database unavailable"),
+        ):
+            reply = resolver.resolve(DNSRecord.question("example.com"), None)
 
-        server = DNSServer(host="127.0.0.1", port=0)
-        with patch.object(server, "run_udp"), patch.object(server, "run_tcp"):
-            server.start()
-            assert server._running is True
-            server.stop()
-            assert server._running is False
-
-
-@pytest.mark.django_db
-class TestHandleTcpQuery:
-    def test_handle_tcp_query__known_domain(self):
-        from domains.models import Domain
-        from domains.server import DNSServer
-
-        org = Organization.objects.create(slug="dns-server")
-        domain = Domain.objects.create(name="example.com", org=org)
-        server = DNSServer()
-        request = dnslib.DNSRecord(
-            q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)
-        )
-        conn = MagicMock()
-        server.handle_tcp_query(request.pack(), conn)
-        conn.sendall.assert_called_once()
-        sent = conn.sendall.call_args[0][0]
-        length = int.from_bytes(sent[:2], "big")
-        assert length > 0
-        reply = dnslib.DNSRecord.parse(sent[2:])
-        assert reply.header.rcode == dnslib.RCODE.NOERROR
-        assert len(reply.rr) >= 1
+        assert reply.header.rcode == RCODE.SERVFAIL
+        assert reply.rr == []

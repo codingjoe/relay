@@ -97,8 +97,8 @@ class TestDomainQuerySet:
 
 
 class TestResolvePublicHostname:
-    def test_resolve__public_smtp_hostname_a_records_without_domain(self):
-        records = DNSResolver().resolve(
+    def test_resolve_records__public_smtp_hostname_a_records_without_domain(self):
+        records = DNSResolver().resolve_records(
             DNSLabel(settings.RELAY_SMTP_PUBLIC_HOSTNAME),
             QTYPE.A,
         )
@@ -110,28 +110,30 @@ class TestResolvePublicHostname:
 
 @pytest.mark.django_db
 class TestResolve:
-    def test_resolve__a_records(self):
+    def test_resolve_records__a_records(self):
         Organization.objects.create(slug="acme")
-        records = DNSResolver().resolve(
+        records = DNSResolver().resolve_records(
             DNSLabel("mail.relay.acme.open.localhost"), QTYPE.A
         )
         assert {str(record.rdata) for record in records} == set(
             settings.RELAY_DNS_SMTP_IPS
         )
 
-    def test_resolve__does_not_publish_a_for_domain_apex(self):
+    def test_resolve_records__does_not_publish_a_for_domain_apex(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
 
-        assert DNSResolver().resolve(DNSLabel(domain.name), QTYPE.A) == []
+        assert DNSResolver().resolve_records(DNSLabel(domain.name), QTYPE.A) == []
 
-    def test_resolve__does_not_publish_a_for_other_subdomain(self):
+    def test_resolve_records__does_not_publish_a_for_other_subdomain(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
 
-        assert DNSResolver().resolve(DNSLabel("other.example.com"), QTYPE.A) == []
+        assert (
+            DNSResolver().resolve_records(DNSLabel("other.example.com"), QTYPE.A) == []
+        )
 
-    def test_resolve__does_not_use_cross_org_nested_domain(self):
+    def test_resolve_records__does_not_use_cross_org_nested_domain(self):
         parent_org = Organization.objects.create(slug="parent")
         child_org = Organization.objects.create(slug="child")
         Domain.objects.bulk_create(
@@ -141,37 +143,43 @@ class TestResolve:
             ]
         )
 
-        records = DNSResolver().resolve(
+        records = DNSResolver().resolve_records(
             DNSLabel("mail.app.example.com"),
             QTYPE.MX,
         )
 
         assert records == []
 
-    def test_resolve__mx_records(self):
+    def test_resolve_records__mx_records(self):
         Organization.objects.create(slug="acme")
-        records = DNSResolver().resolve(DNSLabel("acme.open.localhost"), QTYPE.MX)
+        records = DNSResolver().resolve_records(
+            DNSLabel("acme.open.localhost"), QTYPE.MX
+        )
         assert len(records) == 1
         assert str(records[0].rdata.label) == "mail.relay.acme.open.localhost."
 
-    def test_resolve__ns_records(self):
+    def test_resolve_records__ns_records(self):
         Organization.objects.create(slug="acme")
-        records = DNSResolver().resolve(DNSLabel("mail.acme.open.localhost"), QTYPE.NS)
+        records = DNSResolver().resolve_records(
+            DNSLabel("mail.acme.open.localhost"), QTYPE.NS
+        )
         assert {str(record.rdata.label).rstrip(".") for record in records} == set(
             settings.RELAY_DNS_NS_NAMESERVERS
         )
 
-    def test_resolve__spf_txt(self):
+    def test_resolve_records__spf_txt(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(DNSLabel("mail.relay.example.com"), QTYPE.TXT)
+        records = DNSResolver().resolve_records(
+            DNSLabel("mail.relay.example.com"), QTYPE.TXT
+        )
         assert len(records) == 1
         txt_data = b"".join(records[0].rdata.data)
         assert b"v=spf1" in txt_data
 
-    def test_resolve__dmarc_txt_managed_domain(self):
+    def test_resolve_records__dmarc_txt_managed_domain(self):
         Organization.objects.create(slug="acme")
-        records = DNSResolver().resolve(
+        records = DNSResolver().resolve_records(
             DNSLabel("_dmarc.acme.open.localhost"), QTYPE.TXT
         )
         assert len(records) == 1
@@ -179,7 +187,7 @@ class TestResolve:
         assert b"rua=mailto:" in txt_data
         assert b"@mail.relay.acme.open.localhost" in txt_data
 
-    def test_resolve__publishes_domain_txt_records(self):
+    def test_resolve_records__publishes_domain_txt_records(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         expected_records = [
@@ -192,60 +200,62 @@ class TestResolve:
         ]
 
         for query_name, expected_value in expected_records:
-            records = DNSResolver().resolve(DNSLabel(query_name), QTYPE.TXT)
+            records = DNSResolver().resolve_records(DNSLabel(query_name), QTYPE.TXT)
             values = [b"".join(record.rdata.data).decode() for record in records]
             assert expected_value in values, query_name
 
-    def test_resolve__publishes_dkim_at_root_and_sender_domain(self):
+    def test_resolve_records__publishes_dkim_at_root_and_sender_domain(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         selector, _ = domain.dkim_ciphers[0]
 
         for base in (domain.name, domain.sender_domain):
-            records = DNSResolver().resolve(
+            records = DNSResolver().resolve_records(
                 DNSLabel(f"{selector}._domainkey.{base}"),
                 QTYPE.TXT,
             )
             assert len(records) == 1, base
             assert b"v=DKIM1" in b"".join(records[0].rdata.data)
 
-    def test_resolve__unknown_domain_returns_empty(self):
-        assert DNSResolver().resolve(DNSLabel("unknown.com"), QTYPE.A) == []
+    def test_resolve_records__unknown_domain_returns_empty(self):
+        assert DNSResolver().resolve_records(DNSLabel("unknown.com"), QTYPE.A) == []
 
 
 @pytest.mark.django_db
 class TestResolveMtaStsCname:
-    def test_resolve__mta_sts_cname(self):
+    def test_resolve_records__mta_sts_cname(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(
+        records = DNSResolver().resolve_records(
             DNSLabel("mta-sts.mail.relay.example.com"), QTYPE.CNAME
         )
         assert len(records) == 1
         assert str(records[0].rdata) == f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}."
 
-    def test_resolve__mta_sts_cname_takes_priority_for_other_query_types(self):
+    def test_resolve_records__mta_sts_cname_takes_priority_for_other_query_types(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
 
-        records = DNSResolver().resolve(DNSLabel("mta-sts.example.com"), QTYPE.A)
+        records = DNSResolver().resolve_records(
+            DNSLabel("mta-sts.example.com"), QTYPE.A
+        )
 
         assert len(records) == 1
         assert records[0].rtype == QTYPE.CNAME
         assert str(records[0].rdata) == "mta-sts.mail.relay.example.com."
 
-    def test_resolve__mta_sts_cname_managed_domain(self):
+    def test_resolve_records__mta_sts_cname_managed_domain(self):
         Organization.objects.create(slug="acme")
-        records = DNSResolver().resolve(
+        records = DNSResolver().resolve_records(
             DNSLabel("mta-sts.mail.relay.acme.open.localhost"), QTYPE.CNAME
         )
         assert len(records) == 1
         assert str(records[0].rdata) == f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}."
 
-    def test_resolve__mta_sts_no_cname_for_other_subdomains(self):
+    def test_resolve_records__mta_sts_no_cname_for_other_subdomains(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        records = DNSResolver().resolve(
+        records = DNSResolver().resolve_records(
             DNSLabel("mta-sts.other.example.com"), QTYPE.CNAME
         )
         assert records == []

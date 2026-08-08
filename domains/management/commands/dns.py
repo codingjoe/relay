@@ -4,8 +4,9 @@ import time
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from dnslib.server import DNSLogger, DNSServer
 
-from domains.server import DNSServer
+from domains.resolver import DNSResolver
 
 
 class Command(BaseCommand):
@@ -21,14 +22,21 @@ class Command(BaseCommand):
         host = options["host"] or settings.RELAY_DNS_LISTEN_HOST
         port = options["port"] or settings.RELAY_DNS_LISTEN_PORT
 
-        server = DNSServer(host=host, port=port)
-        server.start()
+        resolver = DNSResolver()
+        logger = DNSLogger(log="-request,-reply,-truncated,-error")
+        servers = (
+            DNSServer(resolver, address=host, port=port, logger=logger),
+            DNSServer(resolver, address=host, port=port, tcp=True, logger=logger),
+        )
+        for server in servers:
+            server.start_thread()
 
         self.stdout.write(self.style.SUCCESS(f"DNS server listening on {host}:{port}"))
 
         def signal_handler(sig, frame):
             self.stdout.write("Shutting down DNS server...")
-            server.stop()
+            for server in servers:
+                server.stop()
             sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
