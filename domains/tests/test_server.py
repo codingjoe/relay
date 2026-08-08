@@ -44,10 +44,10 @@ class TestHandleRequest:
         from domains.models import Domain
         from domains.server import DNSServer
 
-        Domain.objects.create(name="open.localhost", org=None)
+        domain = Domain.objects.create(name="open.localhost", org=None)
         server = DNSServer()
         request = dnslib.DNSRecord(
-            q=dnslib.DNSQuestion(DNSLabel("open.localhost"), QTYPE.A)
+            q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)
         )
         sock = MagicMock()
         server.handle_request(request.pack(), ("127.0.0.1", 12345), sock)
@@ -83,10 +83,10 @@ class TestHandleTcpQuery:
         from domains.models import Domain
         from domains.server import DNSServer
 
-        Domain.objects.create(name="open.localhost", org=None)
+        domain = Domain.objects.create(name="open.localhost", org=None)
         server = DNSServer()
         request = dnslib.DNSRecord(
-            q=dnslib.DNSQuestion(DNSLabel("open.localhost"), QTYPE.A)
+            q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)
         )
         conn = MagicMock()
         server.handle_tcp_query(request.pack(), conn)

@@ -277,13 +277,22 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% if domain.tls_rpt_status == 'ok' %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% elif domain.tls_rpt_status == 'error' %}
+                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% endif %}
               <label>TLS-RPT</label>
               {% know_how_badge "tls-rpt" "TLS-RPT" %}
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "receive TLS failure reports from senders. add this record at your DNS provider for the root domain."|capfirst %}
             </p>
+            {% if domain.tls_rpt_error %}
+              <p class="text-sm text-destructive">{{ domain.tls_rpt_error }}</p>
+            {% endif %}
             <div class="input-group">
               <input type="text" readonly value="_smtp._tls.{{ domain.name }}" onfocus="this.select()">
               <button
@@ -318,13 +327,22 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% if domain.mta_sts_status == 'ok' %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% elif domain.mta_sts_status == 'error' %}
+                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% endif %}
               <label>MTA-STS</label>
               {% know_how_badge "mta-sts" "MTA-STS" %}
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "enforce TLS for incoming mail. add the TXT record and the CNAME record at your DNS provider."|capfirst %}
             </p>
+            {% if domain.mta_sts_error %}
+              <p class="text-sm text-destructive">{{ domain.mta_sts_error }}</p>
+            {% endif %}
             <div class="input-group">
               <input type="text" readonly value="_mta-sts.{{ domain.name }}" onfocus="this.select()">
               <button

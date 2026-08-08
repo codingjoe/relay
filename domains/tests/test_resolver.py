@@ -47,7 +47,9 @@ class TestDomainQuerySet:
 class TestResolve:
     def test_resolve__a_records(self):
         Organization.objects.create(slug="acme")
-        records = DNSResolver().resolve(DNSLabel("acme.open.localhost"), QTYPE.A)
+        records = DNSResolver().resolve(
+            DNSLabel("mail.relay.acme.open.localhost"), QTYPE.A
+        )
         assert len(records) >= 1
 
     def test_resolve__mx_records(self):

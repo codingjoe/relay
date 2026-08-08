@@ -75,12 +75,27 @@ def check_mta_sts(domain):
 def check_tls_rpt(domain):
     try:
         txt_records = dns.resolver.resolve(f"_smtp._tls.{domain.name}", "TXT")
-        return any(
-            "".join(
-                s.decode() if isinstance(s, bytes) else s for s in r.strings
-            ).startswith("v=TLSRPTv1")
-            for r in txt_records
-        )
+        expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
+        for txt_record in txt_records:
+            value = "".join(
+                string.decode() if isinstance(string, bytes) else string
+                for string in txt_record.strings
+            )
+            fields = [field.strip() for field in value.split(";")]
+            match fields:
+                case [version, *tag_fields] if version.lower() == "v=tlsrptv1":
+                    tags = {}
+                    for field in tag_fields:
+                        if "=" in field:
+                            tag_name, tag_value = field.split("=", 1)
+                            tags[tag_name.strip().lower()] = tag_value.strip()
+                    reporting_uris = {
+                        uri.strip().lower().split("!", 1)[0]
+                        for uri in tags.get("rua", "").split(",")
+                    }
+                    if expected_reporting_uri in reporting_uris:
+                        return True
+        return False
     except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
         return False
 

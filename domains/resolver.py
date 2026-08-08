@@ -58,8 +58,13 @@ class DNSResolver:
     ) -> Iterator[RR]:
         """Build DNS records for a matched domain."""
 
+        cname_records = list(self.resolve_cname(qname, query_name, domain))
+        if cname_records:
+            yield from cname_records
+            return
+
         match qtype:
-            case QTYPE.A | QTYPE.ANY:
+            case QTYPE.A | QTYPE.ANY if query_name == domain.sender_domain:
                 for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS:
                     yield RR(
                         qname, QTYPE.A, rdata=A(smtp_ip_address), ttl=self.RECORD_TTL
@@ -73,8 +78,6 @@ class DNSResolver:
                 )
             case QTYPE.TXT | QTYPE.ANY:
                 yield from self.resolve_txt(qname, qtype, query_name, domain)
-            case QTYPE.CNAME | QTYPE.ANY:
-                yield from self.resolve_cname(qname, qtype, query_name, domain)
             case QTYPE.NS | QTYPE.ANY:
                 for nameserver in settings.RELAY_DNS_NS_NAMESERVERS:
                     yield RR(
@@ -158,21 +161,21 @@ class DNSResolver:
     def resolve_cname(
         self,
         qname: DNSLabel,
-        qtype: int,
         query_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
         """Build CNAME records for MTA-STS."""
-        # MTA-STS CNAME served at sender subdomain and root domain.
-        mta_sts_names = [
-            f"mta-sts.{domain.sender_domain}",
-            f"mta-sts.{domain.name}",
-        ]
+        match query_name:
+            case name if name == f"mta-sts.{domain.name}":
+                target = f"mta-sts.{domain.sender_domain}"
+            case name if name == f"mta-sts.{domain.sender_domain}":
+                target = f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}"
+            case _:
+                return
 
-        if query_name in mta_sts_names:
-            yield RR(
-                qname,
-                QTYPE.CNAME,
-                rdata=CNAME(DNSLabel(f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}")),
-                ttl=self.RECORD_TTL,
-            )
+        yield RR(
+            qname,
+            QTYPE.CNAME,
+            rdata=CNAME(DNSLabel(target)),
+            ttl=self.RECORD_TTL,
+        )

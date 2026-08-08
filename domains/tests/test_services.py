@@ -147,7 +147,9 @@ class TestVerifyDomainDns:
             f"mta-sts.{domain.sender_domain}.",
         )
         dns_resolver.add(
-            f"_smtp._tls.{domain.name}", "TXT", "v=TLSRPTv1;rua=mailto:tls@example.com"
+            f"_smtp._tls.{domain.name}",
+            "TXT",
+            f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
         verify_domain_dns(domain)
 
@@ -231,7 +233,9 @@ class TestVerifyDomainDns:
             f"mta-sts.{domain.sender_domain}.",
         )
         dns_resolver.add(
-            f"_smtp._tls.{domain.name}", "TXT", "v=TLSRPTv1;rua=mailto:tls@example.com"
+            f"_smtp._tls.{domain.name}",
+            "TXT",
+            f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
         verify_domain_dns(domain)
 
