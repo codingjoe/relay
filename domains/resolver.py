@@ -1,11 +1,13 @@
-"""DNS record resolver. Build DNS records from Domain models."""
+"""Authoritative DNS resolver backed by Domain models."""
 
 import base64
 from collections.abc import Iterator
 
 from django.conf import settings
-from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel
-from dnslib.dns import QTYPE
+from django.db import DatabaseError
+from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel, DNSRecord
+from dnslib.dns import QTYPE, RCODE, DNSError
+from dnslib.server import BaseResolver
 
 from .models import Domain
 
@@ -17,15 +19,26 @@ def txt(value: str) -> TXT:
     return TXT([value[i : i + 255] for i in range(0, len(value), 255)])
 
 
-class DNSResolver:
+class DNSResolver(BaseResolver):
     """Resolve DNS queries."""
 
     MX_PRIORITY: int = 10
     NS_TTL: int = 3600
     RECORD_TTL: int = 1800
 
-    def resolve(self, qname: DNSLabel, qtype: int) -> list[RR]:
-        """Resolve a DNS query and return a list of RR records."""
+    def resolve(self, request: DNSRecord, handler) -> DNSRecord:
+        """Return an authoritative DNS reply."""
+        reply = request.reply(ra=0)
+
+        try:
+            reply.add_answer(*self.resolve_records(request.q.qname, request.q.qtype))
+        except DNSError, DatabaseError:
+            reply.header.rcode = RCODE.SERVFAIL
+
+        return reply
+
+    def resolve_records(self, qname: DNSLabel, qtype: int) -> list[RR]:
+        """Return matching DNS records."""
         query_name = str(qname).strip().rstrip(".").lower()
         match qtype:
             case QTYPE.A | QTYPE.ANY if (

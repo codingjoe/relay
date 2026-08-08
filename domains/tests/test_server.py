@@ -7,13 +7,13 @@ from dnslib.dns import DNSError
 
 from accounts.models import Organization
 from domains.models import Domain
-from domains.server import DNSReplyResolver
+from domains.resolver import DNSResolver
 
 
 class TestResolve:
     @pytest.mark.django_db
     def test_resolve__unknown_domain(self):
-        reply = DNSReplyResolver().resolve(DNSRecord.question("unknown.com"), None)
+        reply = DNSResolver().resolve(DNSRecord.question("unknown.com"), None)
 
         assert reply.header.rcode == RCODE.NOERROR
         assert reply.header.aa == 1
@@ -25,9 +25,7 @@ class TestResolve:
         organization = Organization.objects.create(slug="dns-server")
         domain = Domain.objects.create(name="example.com", org=organization)
 
-        reply = DNSReplyResolver().resolve(
-            DNSRecord.question(domain.sender_domain), None
-        )
+        reply = DNSResolver().resolve(DNSRecord.question(domain.sender_domain), None)
 
         assert reply.header.rcode == RCODE.NOERROR
         assert reply.header.aa == 1
@@ -35,10 +33,10 @@ class TestResolve:
         assert reply.rr
 
     def test_resolve__dns_error(self):
-        resolver = DNSReplyResolver()
+        resolver = DNSResolver()
         with patch.object(
-            resolver.record_resolver,
-            "resolve",
+            resolver,
+            "resolve_records",
             side_effect=DNSError("Invalid DNS record"),
         ):
             reply = resolver.resolve(DNSRecord.question("example.com"), None)
@@ -47,10 +45,10 @@ class TestResolve:
         assert reply.rr == []
 
     def test_resolve__database_error(self):
-        resolver = DNSReplyResolver()
+        resolver = DNSResolver()
         with patch.object(
-            resolver.record_resolver,
-            "resolve",
+            resolver,
+            "resolve_records",
             side_effect=DatabaseError("Database unavailable"),
         ):
             reply = resolver.resolve(DNSRecord.question("example.com"), None)

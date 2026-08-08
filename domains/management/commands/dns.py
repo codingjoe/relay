@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from dnslib.server import DNSLogger, DNSServer
 
-from domains.server import DNSReplyResolver
+from domains.resolver import DNSResolver
 
 
 class Command(BaseCommand):
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         host = options["host"] or settings.RELAY_DNS_LISTEN_HOST
         port = options["port"] or settings.RELAY_DNS_LISTEN_PORT
 
-        resolver = DNSReplyResolver()
+        resolver = DNSResolver()
         logger = DNSLogger(log="-request,-reply,-truncated,-error")
         servers = (
             DNSServer(resolver, address=host, port=port, logger=logger),

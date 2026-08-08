@@ -24,7 +24,7 @@ class TestDnsCommand:
                 "domains.management.commands.dns.DNSServer",
                 side_effect=(udp_server, tcp_server),
             ) as server_class,
-            patch("domains.management.commands.dns.DNSReplyResolver") as resolver_class,
+            patch("domains.management.commands.dns.DNSResolver") as resolver_class,
             patch("domains.management.commands.dns.DNSLogger") as logger_class,
             patch(
                 "domains.management.commands.dns.signal.signal",
