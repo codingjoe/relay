@@ -159,7 +159,9 @@ WSGI_APPLICATION = "root.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
 
-DATABASES = {"default": env.db(default="sqlite:///db.sqlite3")}
+DATABASES = {
+    "default": env.db(default="sqlite:///:memory:" if TEST else "sqlite:///db.sqlite3")
+}
 
 # Caches
 # https://docs.djangoproject.com/en/stable/ref/settings/#caches
@@ -246,18 +248,14 @@ RELAY_DNS_NS_NAMESERVERS = [
 RELAY_DNS_SMTP_IPS = [
     ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
 ]
+RELAY_SMTP_PUBLIC_HOSTNAME = env(
+    "RELAY_SMTP_PUBLIC_HOSTNAME", default=f"smtp.{RELAY_PLATFORM_DOMAIN}"
+)
 RELAY_DNS_SPF_INCLUDE = f"spf.{RELAY_PLATFORM_DOMAIN}"
-RELAY_DNS_RETURN_PATH_DOMAIN = f"rp.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")
-RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX = env(
-    "RELAY_DNS_CUSTOM_RETURN_PATH_PREFIX", default="rp"
-)
-RELAY_DNS_DOMAIN_VERIFY_PREFIX = env(
-    "RELAY_DNS_DOMAIN_VERIFY_PREFIX", default="relay-verification"
-)
 
-RELAY_FREE_SENDER_DOMAIN = env(
-    "RELAY_FREE_SENDER_DOMAIN", default=f"open.{RELAY_PLATFORM_DOMAIN}"
+RELAY_MANAGED_SENDER_DOMAIN = env(
+    "RELAY_MANAGED_SENDER_DOMAIN", default=f"open.{RELAY_PLATFORM_DOMAIN}"
 )
 
 RELAY_SMTP_HOST = env("RELAY_SMTP_HOST", default="smtp")
@@ -282,6 +280,7 @@ RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dm
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
 RELAY_POSTMASTER_LOCAL_PART = "postmaster"
+RELAY_BOUNCE_LOCAL_PART = "bounce"
 
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)

@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from accounts.models import Membership, Organization, generate_api_key
@@ -92,6 +93,16 @@ class TestCredentialHold:
             hold=False,
         )
         assert qs.exists()
+
+
+class TestOrganizationSlugValidator:
+    @pytest.mark.parametrize(
+        "slug",
+        ["ACME", "acme.example", "acme--inc", "-acme", "acme-", "a" * 64],
+    )
+    def test_save__rejects_non_dns_slug(self, slug):
+        with pytest.raises(ValidationError):
+            Organization(slug=slug).save()
 
 
 @pytest.mark.django_db

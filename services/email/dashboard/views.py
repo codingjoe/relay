@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
@@ -28,7 +27,6 @@ class DashboardView(OrganizationScopedView, generic.TemplateView):
             "domains": Domain.objects.filter(org=self.org),
             "total_domains": Domain.objects.filter(org=self.org).count(),
             "total_messages": Message.objects.filter(org=self.org).count(),
-            "free_sender_domain": settings.RELAY_FREE_SENDER_DOMAIN,
             "outgoing_chart": build_outgoing_chart(self.org),
             "incoming_chart": build_incoming_chart(self.org),
             "dmarc_chart": build_dmarc_chart(self.org),

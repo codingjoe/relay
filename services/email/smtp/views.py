@@ -61,14 +61,8 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
 
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
-        free_domain = settings.RELAY_FREE_SENDER_DOMAIN
-        domain_pk = request.POST["domain"]
-        if domain_pk == "free":
-            mail_from = f"{request.user.username}@{free_domain}"
-            domain = None
-        else:
-            domain = Domain.objects.get(pk=domain_pk, org=self.org)
-            mail_from = f"postmaster@{domain.name}"
+        domain = get_object_or_404(Domain, pk=request.POST["domain"], org=self.org)
+        mail_from = f"postmaster@{domain.name}"
 
         if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
             messages.error(request, _("Recipient is on the suppression list."))
@@ -97,9 +91,6 @@ class TestEmailView(OrganizationScopedView, generic.View):
         transaction.on_commit(
             lambda: deliver_message.enqueue(
                 message_id=str(message.id),
-                rcpt_to=request.user.email,
-                mail_from=mail_from,
-                domain_id=domain.pk if domain else None,
             )
         )
         messages.success(request, _("Queued test message for delivery."))

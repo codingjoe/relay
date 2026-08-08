@@ -1,4 +1,6 @@
 import pytest
+from django.conf import settings
+from django.contrib.messages import get_messages
 
 from domains.models import Domain
 
@@ -15,13 +17,17 @@ class TestDomainListView:
         assert response.status_code == 200
 
     def test_get__filters_by_org(self, admin_client, org, write_org):
-        Domain.objects.create(name="mine.com", org=org)
-        Domain.objects.create(name="theirs.com", org=write_org)
+        Domain.objects.create(name="acme.com", org=org)
+        Domain.objects.create(name="other.com", org=write_org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/")
         assert response.status_code == 200
         domains = list(response.context["domains"])
-        assert len(domains) == 1
-        assert domains[0].name == "mine.com"
+        assert len(domains) == 2
+        domain_names = {d.name for d in domains}
+        assert domain_names == {
+            "acme.com",
+            f"{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}",
+        }
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/domains/")
@@ -60,6 +66,26 @@ class TestDomainCreateView:
         assert response.status_code == 302
         assert not Domain.objects.filter(name="example")
 
+    def test_post__rejects_domain_overlapping_other_org(
+        self,
+        admin_client,
+        org,
+        write_org,
+    ):
+        Domain.objects.create(name="example.com", org=write_org)
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/new",
+            {"name": "app.example.com"},
+        )
+
+        assert response.status_code == 302
+        assert not Domain.objects.filter(name="app.example.com").exists()
+        assert any(
+            "overlaps with a domain owned by another organization" in str(message)
+            for message in get_messages(response.wsgi_request)
+        )
+
 
 @pytest.mark.django_db
 class TestDomainDetailView:
@@ -74,6 +100,28 @@ class TestDomainDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
         assert "nameservers" in response.context
         assert "dkim_cnames" in response.context
+
+    def test_get__warns_about_apex_ns_delegation(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+        assert b"Apex delegation replaces the current DNS service" in response.content
+        assert (
+            b"Websites and other services on this domain will stop" in response.content
+        )
+
+    def test_get__groups_sending_and_receiving_records(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+
+        assert b"Sending records" in response.content
+        assert b"Receiving records" in response.content
+        assert f"10 {domain.sender_domain}.".encode() in response.content
+
+    def test_get__not_found_for_managed_domain(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+
+        assert response.status_code == 404
 
     def test_get__not_found_for_other_org(self, admin_client, org, write_org):
         domain = Domain.objects.create(name="other.com", org=write_org)
@@ -96,6 +144,17 @@ class TestDomainVerifyView:
                 "relay-abc._domainkey.mail.relay.example.com.",
             )
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", "v=STSv1; id=test")
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+        dns_resolver.add(
+            f"_smtp._tls.{domain.name}",
+            "TXT",
+            f'"v=TLSRPTv1; rua=mailto:{domain.tls_reporting_address}"',
+        )
         response = admin_client.post(
             f"/org/{org.slug}/email/domains/{domain.pk}/verify"
         )
@@ -108,6 +167,36 @@ class TestDomainVerifyView:
             f"/org/{org.slug}/email/domains/{domain.pk}/verify"
         )
         assert response.status_code == 404
+
+    def test_post__not_found_for_managed_domain(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/{domain.pk}/verify"
+        )
+
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestDomainDeleteView:
+    def test_post__deletes_custom_domain(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/{domain.pk}/delete"
+        )
+
+        assert response.status_code == 302
+        assert not Domain.objects.filter(pk=domain.pk).exists()
+
+    def test_post__does_not_delete_managed_domain(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/{domain.pk}/delete"
+        )
+
+        assert response.status_code == 404
+        assert Domain.objects.filter(pk=domain.pk).exists()
 
 
 @pytest.mark.django_db

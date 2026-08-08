@@ -1,14 +1,17 @@
 import pytest
 
+from domains.models import Domain
 from services.email.message.models import Message
 from services.email.mx.models import IncomingMessage
 from services.email.smtp.models import OutgoingMessage
 
 
 def create_outgoing(user, org, status=None):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage.objects.create(
         sender=user,
         org=org,
+        domain=domain,
         rcpt_to="bob@example.com",
         mail_from="alice@example.com",
     )
@@ -19,8 +22,10 @@ def create_outgoing(user, org, status=None):
 
 
 def create_incoming(org, status=None):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = IncomingMessage.objects.create(
         org=org,
+        domain=domain,
         rcpt_to="bob@app.acme.com",
         mail_from="alice@external.com",
         receiving_domain="app.acme.com",
@@ -140,9 +145,9 @@ class TestMessage:
         assert Message.objects.get(pk=msg.pk).kind_icon == "inbox"
 
     @pytest.mark.django_db
-    def test_domain_name__empty_when_no_domain(self, user, org):
+    def test_domain_name__returns_domain_name(self, user, org):
         msg = create_outgoing(user, org)
-        assert Message.objects.get(pk=msg.pk).domain_name == ""
+        assert Message.objects.get(pk=msg.pk).domain_name == str(msg.domain)
 
     @pytest.mark.django_db
     def test_domain_name__incoming_uses_receiving_domain(self, org):

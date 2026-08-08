@@ -3,6 +3,7 @@ import string
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -17,12 +18,22 @@ def generate_api_key():
     return "".join(secrets.choice(alphabet) for _ in range(32))
 
 
+organization_slug_validator = RegexValidator(
+    regex=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    message=_("Enter lowercase letters, digits, and single hyphens."),
+    code="invalid",
+)
+
+
 class Organization(TimeStamped):
     slug = models.SlugField(
         _("slug"),
-        max_length=255,
+        max_length=63,
         unique=True,
-        help_text=_("URL-safe identifier, lowercase letters, digits, and hyphens."),
+        validators=[organization_slug_validator],
+        help_text=_(
+            "DNS-safe identifier, at most 63 lowercase letters, digits, and hyphens."
+        ),
     )
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -30,8 +41,14 @@ class Organization(TimeStamped):
         related_name="organizations",
     )
 
+    billing_is_active = False
+
     def __str__(self):
         return self.slug
+
+    def save(self, *args, **kwargs):
+        self.slug = self._meta.get_field("slug").clean(self.slug, self)
+        return super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse("accounts:org-home", kwargs={"org_slug": self.slug})
@@ -77,8 +94,8 @@ class OrganizationOwned(TimeStamped):
     """Provide a required `org` foreign key for resources always owned by an organization.
 
     Use this mixin for resources that always belong to an org (for example,
-    credentials). Resources that can be system-owned (for example, the free
-    sender domain) keep their own nullable `org` foreign key instead.
+    credentials). Models that need a custom reverse relation define their own
+    required `org` foreign key instead.
     """
 
     org = models.ForeignKey(

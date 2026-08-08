@@ -28,6 +28,9 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
     title = _("New domain")
     parent = "domains:domain-list"
 
+    def get_form_kwargs(self):
+        return super().get_form_kwargs() | {"instance": Domain(org=self.org)}
+
     def form_valid(self, form):
         form.instance.org = self.org
         messages.success(
@@ -50,7 +53,9 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return Domain.objects.filter(org=self.org, is_managed=False).fetch_mode(
+            models.FETCH_PEERS
+        )
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -62,21 +67,20 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
 
 class DomainVerifyView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, pk, *args, **kwargs):
-        domain = get_object_or_404(Domain, org=self.org, pk=pk)
+        domain = get_object_or_404(
+            Domain,
+            org=self.org,
+            is_managed=False,
+            pk=pk,
+        )
         verify_domain_dns(domain)
         if all_ok := all(  # noqa: F841
             getattr(domain, f"{field}_status") == Domain.Status.OK
-            for field in ("nameserver", "spf", "dkim", "dmarc")
+            for field in ("nameserver", "spf", "dkim", "dmarc", "mta_sts", "tls_rpt")
         ):
-            messages.success(
-                request,
-                _("Verified DNS records for “%(name)s”.") % {"name": domain.name},
-            )
+            messages.success(request, _("DNS verification passed."))
         else:
-            messages.error(
-                request,
-                _("DNS verification failed for “%(name)s”.") % {"name": domain.name},
-            )
+            messages.error(request, _("DNS verification failed."))
         return redirect(domain.get_absolute_url())
 
 
@@ -86,7 +90,9 @@ class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return Domain.objects.filter(org=self.org, is_managed=False).fetch_mode(
+            models.FETCH_PEERS
+        )
 
     def get_success_url(self):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
@@ -110,7 +116,7 @@ class MtaStsPolicyView(generic.DetailView):
         host = self.request.META.get("HTTP_HOST", "").split(":")[0].lower()
         name = host.removeprefix("mta-sts.")
         try:
-            return Domain.objects.root_for(name)
+            return Domain.objects.root_for(name, include_managed=True)
         except Domain.DoesNotExist:
             raise Http404
 

@@ -38,6 +38,11 @@ class TestOrganizationListView:
         assert response.status_code == 200
         assert response.context["form"].errors
 
+    def test_post__rejects_slug_longer_than_dns_label(self, admin_client):
+        response = admin_client.post("/organizations/", {"slug": "a" * 64})
+        assert response.status_code == 200
+        assert "slug" in response.context["form"].errors
+
 
 @pytest.mark.django_db
 class TestOrganizationDetailView:
