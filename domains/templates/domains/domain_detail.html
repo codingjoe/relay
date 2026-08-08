@@ -406,9 +406,14 @@
     <details>
       <summary>{% translate "apex NS delegation"|capfirst %}</summary>
       <section>
-        <p class="text-sm text-muted-foreground mb-4">
-          {% translate "delegate your apex domain NS to us. we serve all records automatically, no manual setup needed."|capfirst %}
-        </p>
+        <div class="alert mb-4" data-variant="destructive">
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          <h2>{% translate "DNS warning" %}</h2>
+          <section>
+            <p>{% translate "CAUTION: Apex delegation replaces the current DNS service for this domain." %}</p>
+            <p>{% translate "We serve email records only. Websites and other services on this domain will stop." %}</p>
+          </section>
+        </div>
         {% for ns in nameservers %}
           <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
             <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">

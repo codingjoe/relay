@@ -236,9 +236,7 @@ class Migration(migrations.Migration):
                 (
                     "org",
                     models.ForeignKey(
-                        blank=True,
-                        help_text="Owning organization. Null for system domains.",
-                        null=True,
+                        help_text="Owning organization.",
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="domains",
                         to="accounts.organization",

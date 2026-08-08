@@ -94,8 +94,8 @@ class OrganizationOwned(TimeStamped):
     """Provide a required `org` foreign key for resources always owned by an organization.
 
     Use this mixin for resources that always belong to an org (for example,
-    credentials). Resources that can be system-owned (for example, the free
-    sender domain) keep their own nullable `org` foreign key instead.
+    credentials). Models that need a custom reverse relation define their own
+    required `org` foreign key instead.
     """
 
     org = models.ForeignKey(

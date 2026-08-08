@@ -16,8 +16,8 @@ by the built-in nameserver. You do not need to use the DNS provider dashboard.
 
 ## Managed Sender Domain
 
-Every organization gets a **managed sender domain**. A subdomain of the
-platform's managed sender domain that Relay manages automatically. The domain is
+Every organization gets a **managed sender domain**. It is a subdomain of the
+platform domain, and relay manages it automatically. The domain is
 set via `RELAY_MANAGED_SENDER_DOMAIN` (defaults to
 `open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
 When an organization is created, a `Domain` is auto-created with the name

@@ -4,6 +4,8 @@ import dnslib
 import pytest
 from dnslib import QTYPE, DNSLabel
 
+from accounts.models import Organization
+
 
 class TestDnsServerInit:
     def test_init__defaults(self):
@@ -44,7 +46,8 @@ class TestHandleRequest:
         from domains.models import Domain
         from domains.server import DNSServer
 
-        domain = Domain.objects.create(name="open.localhost", org=None)
+        org = Organization.objects.create(slug="dns-server")
+        domain = Domain.objects.create(name="open.localhost", org=org)
         server = DNSServer()
         request = dnslib.DNSRecord(
             q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)
@@ -83,7 +86,8 @@ class TestHandleTcpQuery:
         from domains.models import Domain
         from domains.server import DNSServer
 
-        domain = Domain.objects.create(name="open.localhost", org=None)
+        org = Organization.objects.create(slug="dns-server")
+        domain = Domain.objects.create(name="open.localhost", org=org)
         server = DNSServer()
         request = dnslib.DNSRecord(
             q=dnslib.DNSQuestion(DNSLabel(domain.sender_domain), QTYPE.A)

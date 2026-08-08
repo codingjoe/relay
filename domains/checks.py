@@ -23,11 +23,11 @@ def check_managed_domain_dns(app_configs, **kwargs):
     # Check NS delegation for the managed domain zone
     try:
         ns_records = dns.resolver.resolve(managed_zone, "NS")
-    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout) as e:
+    except dns.exception.DNSException as error:
         errors.append(
             Error(
-                f"Could not resolve NS records for {managed_zone}: {e}.",
-                hint="Delegate the managed sender domain zone to Relay's nameservers.",
+                f"Could not resolve NS records for {managed_zone}: {error}.",
+                hint="Delegate the managed sender domain zone to the relay nameservers.",
                 id="domains.E002",
             )
         )
@@ -41,7 +41,7 @@ def check_managed_domain_dns(app_configs, **kwargs):
                 f"NS delegation for {managed_zone} does not match "
                 f"RELAY_DNS_NS_NAMESERVERS. Expected: {our_ns}. "
                 f"Found: {their_ns}.",
-                hint="Delegate the managed sender domain zone to Relay's nameservers.",
+                hint="Delegate the managed sender domain zone to the relay nameservers.",
                 id="domains.E003",
             )
         )

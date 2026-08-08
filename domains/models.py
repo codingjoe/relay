@@ -67,8 +67,6 @@ class Domain(TimeStamped):
         "accounts.Organization",
         on_delete=models.CASCADE,
         related_name="domains",
-        null=True,
-        blank=True,
         help_text=_("Owning organization."),
     )
     verified_at = models.DateTimeField(
@@ -188,8 +186,6 @@ class Domain(TimeStamped):
     objects = models.Manager.from_queryset(DomainQuerySet)()
 
     def get_absolute_url(self):
-        if self.org is None:
-            return None
         return reverse(
             "domains:domain-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
@@ -199,7 +195,7 @@ class Domain(TimeStamped):
         self.name = self.name.lower()
         is_new = self.pk is None
         super().save(*args, **kwargs)
-        if is_new and self.org is not None and self.dkim_key_rsa2048_id is None:
+        if is_new and self.dkim_key_rsa2048_id is None:
             self.dkim_key_rsa2048 = SigningKey.generate(SigningKey.Algorithm.RSA_2048)
             self.dkim_key_rsa1024 = SigningKey.generate(SigningKey.Algorithm.RSA_1024)
             self.dkim_key_ed25519 = SigningKey.generate(SigningKey.Algorithm.ED25519)
@@ -232,7 +228,7 @@ class Domain(TimeStamped):
                 if name == root or name.endswith(f".{root}"):
                     raise ValidationError(
                         _(
-                            "Cannot add a subdomain of %(base)s. Relay manages these automatically."
+                            "Cannot add a subdomain of %(base)s. relay manages these automatically."
                         )
                         % {"base": root}
                     )
