@@ -130,7 +130,10 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     try:
         from_domain = canonicalize_domain_name(mail_from.rsplit("@", 1)[1])
         domain = Domain.objects.get(name=from_domain, org=credential.org)
-        resolved_domain = Domain.objects.root_for(from_domain)
+        resolved_domain = Domain.objects.root_for(
+            from_domain,
+            include_managed=True,
+        )
     except Domain.DoesNotExist, ValidationError:
         return "550 Sender domain not registered"
 

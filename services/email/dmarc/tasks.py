@@ -77,7 +77,10 @@ def evaluate_incoming_message(message_pk):
 
     if evaluation.disposition != "none":
         try:
-            domain = Domain.objects.root_for(message.receiving_domain)
+            domain = Domain.objects.root_for(
+                message.receiving_domain,
+                include_managed=True,
+            )
         except Domain.DoesNotExist:
             logger.warning(
                 "No domain was found for the RUF report: %s", message.receiving_domain

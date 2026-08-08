@@ -18,7 +18,10 @@ class MXHandler:
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
-            domain = await sync_to_async(Domain.objects.root_for)(rcpt_domain)
+            domain = await sync_to_async(Domain.objects.root_for)(
+                rcpt_domain,
+                include_managed=True,
+            )
         except Domain.DoesNotExist:
             return "550 Relay not authorised for this recipient"
         envelope.rcpt_tos.append(address)

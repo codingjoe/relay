@@ -31,7 +31,10 @@ def deliver_message(message_id):
 
         canonical_name = canonicalize_domain_name(message.domain.name)
         try:
-            resolved_domain = Domain.objects.root_for(canonical_name)
+            resolved_domain = Domain.objects.root_for(
+                canonical_name,
+                include_managed=True,
+            )
         except Domain.DoesNotExist as error:
             raise ValueError("Outgoing message sender domain is ambiguous") from error
         if (

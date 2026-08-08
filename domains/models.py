@@ -31,7 +31,7 @@ def validate_domain_name(value):
 
 
 class DomainQuerySet(models.QuerySet):
-    def root_for(self, name, include_managed=True):
+    def root_for(self, name, *, include_managed):
         """Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific

@@ -16,6 +16,14 @@ class TestTxt:
         assert txt("a" * 300) is not None
 
 
+class TestDomainQuerySetSignature:
+    def test_root_for__requires_keyword_only_managed_scope(self):
+        with pytest.raises(TypeError):
+            Domain.objects.root_for("example.com")
+        with pytest.raises(TypeError):
+            Domain.objects.root_for("example.com", True)
+
+
 @pytest.mark.django_db
 class TestDomainQuerySet:
     def test_root_for__managed_domain(self):
@@ -44,7 +52,10 @@ class TestDomainQuerySet:
     def test_root_for__user_domain(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
-        domain = Domain.objects.root_for("mail.relay.example.com")
+        domain = Domain.objects.root_for(
+            "mail.relay.example.com",
+            include_managed=False,
+        )
         assert domain is not None
         assert domain.name == "example.com"
 
@@ -53,7 +64,13 @@ class TestDomainQuerySet:
         Domain.objects.create(name="example.com", org=org)
         child = Domain.objects.create(name="app.example.com", org=org)
 
-        assert Domain.objects.root_for("mail.app.example.com") == child
+        assert (
+            Domain.objects.root_for(
+                "mail.app.example.com",
+                include_managed=False,
+            )
+            == child
+        )
 
     def test_root_for__fails_closed_for_mixed_owners(self):
         parent_org = Organization.objects.create(slug="parent")
@@ -66,11 +83,17 @@ class TestDomainQuerySet:
         )
 
         with pytest.raises(Domain.DoesNotExist):
-            Domain.objects.root_for("mail.app.example.com")
+            Domain.objects.root_for(
+                "mail.app.example.com",
+                include_managed=False,
+            )
 
     def test_root_for__unknown_raises_does_not_exist(self):
         with pytest.raises(Domain.DoesNotExist):
-            Domain.objects.root_for("nonexistent.com")
+            Domain.objects.root_for(
+                "nonexistent.com",
+                include_managed=False,
+            )
 
 
 class TestResolvePublicHostname:
