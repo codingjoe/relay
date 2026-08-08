@@ -1,21 +1,21 @@
 import dns.resolver
-from django.test import override_settings
 
 from domains.checks import check_managed_domain_dns
 
 
-@override_settings(RELAY_MANAGED_SENDER_DOMAIN="")
-def test_check_managed_domain_dns__requires_managed_zone():
+def test_check_managed_domain_dns__requires_managed_zone(settings):
+    settings.RELAY_MANAGED_SENDER_DOMAIN = ""
     errors = check_managed_domain_dns(None)
 
     assert [error.id for error in errors] == ["domains.E001"]
 
 
-@override_settings(
-    RELAY_MANAGED_SENDER_DOMAIN="open.example.com",
-    RELAY_DNS_NS_NAMESERVERS=["ns1.example.com", "ns2.example.com"],
-)
-def test_check_managed_domain_dns__accepts_expected_nameservers(dns_resolver):
+def test_check_managed_domain_dns__accepts_expected_nameservers(
+    dns_resolver,
+    settings,
+):
+    settings.RELAY_MANAGED_SENDER_DOMAIN = "open.example.com"
+    settings.RELAY_DNS_NS_NAMESERVERS = ["ns1.example.com", "ns2.example.com"]
     dns_resolver.add(
         "open.example.com",
         "NS",
@@ -26,11 +26,12 @@ def test_check_managed_domain_dns__accepts_expected_nameservers(dns_resolver):
     assert check_managed_domain_dns(None) == []
 
 
-@override_settings(
-    RELAY_MANAGED_SENDER_DOMAIN="open.example.com",
-    RELAY_DNS_NS_NAMESERVERS=["ns1.example.com", "ns2.example.com"],
-)
-def test_check_managed_domain_dns__reports_nameserver_mismatch(dns_resolver):
+def test_check_managed_domain_dns__reports_nameserver_mismatch(
+    dns_resolver,
+    settings,
+):
+    settings.RELAY_MANAGED_SENDER_DOMAIN = "open.example.com"
+    settings.RELAY_DNS_NS_NAMESERVERS = ["ns1.example.com", "ns2.example.com"]
     dns_resolver.add("open.example.com", "NS", "ns.other.com.")
 
     errors = check_managed_domain_dns(None)

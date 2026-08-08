@@ -77,3 +77,7 @@
     colons, semicolons, or commas for sentence structure. Use hyphens
     (U+002D) for compound words and ranges.
   filePattern: '.*\.(py|html|md|yml|yaml)$'
+- name: Use pytest-django settings fixture
+  pattern: '\boverride_settings\b'
+  hint: 'Use pytest-django''s `settings` fixture instead of Django''s `override_settings` decorator or context manager.'
+  filePattern: '(^|.*/)(?:tests(?:/.*|\.py)|test_[^/]*\.py|conftest\.py)$'

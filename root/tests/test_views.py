@@ -4,22 +4,22 @@ import pytest
 from django.conf import settings
 from django.http import HttpResponse
 from django.template import engines as template_engines
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.utils.module_loading import import_string
 
 from root.views import HomeView
 
 
 class TestHomeView:
-    @override_settings(ALLOWED_HOSTS=["my.platform.com", "localhost", "localhost:8000"])
-    def test_get_context_data__nameservers_from_host(self):
+    def test_get_context_data__nameservers_from_host(self, settings):
+        settings.ALLOWED_HOSTS = ["my.platform.com", "localhost", "localhost:8000"]
         view = HomeView()
         view.request = RequestFactory().get("/", HTTP_HOST="my.platform.com")
         context = view.get_context_data()
         assert context["nameservers"] == ["ns1.my.platform.com", "ns2.my.platform.com"]
 
-    @override_settings(ALLOWED_HOSTS=["localhost", "localhost:8000"])
-    def test_get_context_data__strips_port_from_host(self):
+    def test_get_context_data__strips_port_from_host(self, settings):
+        settings.ALLOWED_HOSTS = ["localhost", "localhost:8000"]
         view = HomeView()
         view.request = RequestFactory().get("/", HTTP_HOST="localhost:8000")
         context = view.get_context_data()
