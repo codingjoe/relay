@@ -1,7 +1,7 @@
 include:
   - path:
       - compose.production.yml
-      - oci://docker.io/codingjoe/the-box:latest
+#      - oci://docker.io/codingjoe/the-box:main
 services:
   web:
     build:

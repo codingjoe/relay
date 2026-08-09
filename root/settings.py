@@ -383,6 +383,10 @@ LOGGING = {
     },
 }
 
+THREADMILL = {
+    "REDIS_URL": REDIS_URL,
+}
+
 
 # Error monitoring (Sentry)
 if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DEBUG:
