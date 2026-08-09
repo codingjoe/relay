@@ -37,7 +37,7 @@ dependencies = [
   "sentry-sdk>=2.66.1",
   "social-auth-app-django>=6.0.1",
   "threadmill[redis]>=0.5.1",
-  "validators>=0.35.0",
+  "validators>=0.35",
   "whitenoise>=6.12",
 ]
 
