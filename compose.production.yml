@@ -1,6 +1,11 @@
 include:
   - oci://docker.io/codingjoe/the-box-postgres:latest
   - oci://docker.io/codingjoe/the-box-redis:latest
+x-relay-secrets: &relay-secrets
+  SECRET_KEY:
+  KMS_FERNET_KEY:
+  KMS_FERNET_LEGACY_KEYS:
+  RELAY_ENVIRONMENT: production
 services:
   web:
     pull_policy: build
@@ -12,6 +17,7 @@ services:
       args:
         UV_NO_DEV: 0
     environment:
+      !!merge <<: *relay-secrets
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
       DEBUG: ${DEBUG:-false}
@@ -49,9 +55,21 @@ services:
         UV_NO_DEV: 0
     command: ["-m", "manage", "dns"]
     environment:
+      !!merge <<: *relay-secrets
+      RELAY_DNS_LISTEN_HOST: 0.0.0.0
+      RELAY_DNS_LISTEN_PORT: 5353
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
+    networks:
+      - app
+  dnsdist:
+    image: powerdns/dnsdist-21@sha256:28100b260120b2f4fdcef6e973f5553966977c2ec4576ed2d849b1dc9d3278ea
+    depends_on:
+      dns:
+        condition: service_started
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/conf.d/relay.conf:ro
     ports:
       - "53:53/udp"
       - "53:53/tcp"
@@ -69,6 +87,10 @@ services:
         UV_NO_DEV: 0
     command: ["-m", "manage", "smtp"]
     environment:
+      !!merge <<: *relay-secrets
+      RELAY_SMTP_ALLOW_INSECURE:
+      RELAY_SMTP_TLS_CERT_PATH:
+      RELAY_SMTP_TLS_KEY_PATH:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
@@ -88,6 +110,7 @@ services:
         UV_NO_DEV: 0
     command: ["-m", "manage", "mx"]
     environment:
+      !!merge <<: *relay-secrets
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
@@ -107,6 +130,7 @@ services:
         UV_NO_DEV: 0
     command: ["-m", "manage", "threadmill", "worker"]
     environment:
+      !!merge <<: *relay-secrets
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}

@@ -10,10 +10,18 @@ ARF_FIELD_MAP = {
     "authentication-results": "authentication_results",
 }
 VALID_DELIVERY_RESULTS = frozenset({"delivered", "spam", "policy", "rejected", "other"})
+MAX_DMARC_ELEMENT_MARKER_COUNT = 100_000
+MAX_DMARC_RECORD_COUNT = 10_000
 
 
 def parse_dmarc_xml(data):
     """Convert a DMARC aggregate report XML into a dict."""
+    record_marker = b"<record" if isinstance(data, bytes) else "<record"
+    element_marker = b"<" if isinstance(data, bytes) else "<"
+    if data.count(element_marker) > MAX_DMARC_ELEMENT_MARKER_COUNT:
+        raise ValueError("DMARC report contains too many elements.")
+    if data.count(record_marker) > MAX_DMARC_RECORD_COUNT:
+        raise ValueError("DMARC report contains too many records.")
     root = ET.fromstring(data)
 
     metadata_elem = root.find("report_metadata")

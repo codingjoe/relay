@@ -5,7 +5,16 @@ from fnmatch import fnmatch
 import httpx
 from django.core.cache import cache
 
+from abstract.network import (
+    UnsafeNetworkOperation,
+    global_http_client,
+    read_bounded_response_text,
+    validate_global_url,
+)
+
 logger = logging.getLogger(__name__)
+
+MTA_STS_POLICY_MAX_BYTES = 64 * 1024
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,10 +29,17 @@ class MtaStsPolicy:
     def fetch(cls, domain):
         """Retrieve and parse the MTA-STS policy for *domain* over HTTPS."""
         url = f"https://mta-sts.{domain}/.well-known/mta-sts.txt"
-        response = httpx.get(url, timeout=10)
-        response.raise_for_status()
+        validate_global_url(url)
+        with (
+            global_http_client() as client,
+            client.stream("GET", url, timeout=10) as response,
+        ):
+            response.raise_for_status()
+            response_text = read_bounded_response_text(
+                response, MTA_STS_POLICY_MAX_BYTES
+            )
         mode, mx_patterns, max_age, policy_id = "", [], 3600, ""
-        for line in response.text.splitlines():
+        for line in response_text.splitlines():
             line = line.strip()
             if line and ":" in line:
                 key, _, value = line.partition(":")
@@ -52,7 +68,7 @@ class MtaStsPolicy:
             return cached
         try:
             policy = cls.fetch(domain)
-        except httpx.HTTPError, OSError:
+        except httpx.HTTPError, UnsafeNetworkOperation:
             policy = cls()
         cache.set(f"mta-sts:{domain}", policy, timeout=policy.max_age)
         return policy

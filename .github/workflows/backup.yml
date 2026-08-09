@@ -10,7 +10,7 @@ jobs:
   pg_dump:
     runs-on: ubuntu-latest
     steps:
-      - uses: codingjoe/the-box/actions/backup@main
+      - uses: codingjoe/the-box/actions/backup@e8eb81b666b881ca980653580cafa6d408443b6d
         with:
           ssh-host: ${{ vars.SSH_HOSTNAME }}
           ssh-known-hosts: ${{ vars.SSH_KNOWN_HOSTS }}

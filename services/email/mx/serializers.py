@@ -4,6 +4,11 @@ import json
 
 from rest_framework import serializers
 
+MAX_TLS_REPORT_FAILURE_COUNT = 10_000
+MAX_TLS_REPORT_OBJECT_COUNT = 12_000
+MAX_TLS_REPORT_POLICY_COUNT = 1_000
+MAX_TLS_REPORT_SEPARATOR_COUNT = 50_000
+
 
 class TlsReportDateRangeSerializer(serializers.Serializer):
     """Date range within a TLS-RPT report."""
@@ -60,7 +65,10 @@ class TlsPolicyEntrySerializer(serializers.Serializer):
     policy = TlsPolicySerializer(required=False, default=dict)
     summary = TlsPolicySummarySerializer(required=False, default=dict)
     failure_details = TlsFailureDetailSerializer(
-        source="failure-details", many=True, default=list
+        source="failure-details",
+        many=True,
+        default=list,
+        max_length=MAX_TLS_REPORT_FAILURE_COUNT,
     )
 
 
@@ -73,7 +81,11 @@ class TlsReportSerializer(serializers.Serializer):
     date_range = TlsReportDateRangeSerializer(
         source="date-range", required=False, default=dict
     )
-    policies = TlsPolicyEntrySerializer(many=True, default=list)
+    policies = TlsPolicyEntrySerializer(
+        many=True,
+        default=list,
+        max_length=MAX_TLS_REPORT_POLICY_COUNT,
+    )
 
     @property
     def metadata(self):
@@ -123,6 +135,12 @@ class TlsReportSerializer(serializers.Serializer):
     @classmethod
     def parse_json(cls, data):
         """Return metadata and policies from a TLS-RPT JSON byte string."""
+        object_marker = b"{" if isinstance(data, bytes) else "{"
+        separator_marker = b"," if isinstance(data, bytes) else ","
+        if data.count(object_marker) > MAX_TLS_REPORT_OBJECT_COUNT:
+            raise serializers.ValidationError("TLS report contains too many objects.")
+        if data.count(separator_marker) > MAX_TLS_REPORT_SEPARATOR_COUNT:
+            raise serializers.ValidationError("TLS report contains too many values.")
         serializer = cls(data=json.loads(data))
         serializer.is_valid(raise_exception=True)
         return serializer.metadata, serializer.parsed_policies

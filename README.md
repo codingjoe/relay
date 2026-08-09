@@ -75,13 +75,14 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                          |
-| ------- | ------------ | ------------------------------------ |
-| Web     | 8000         | Django web UI (Granian)              |
-| DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
-| SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
-| MX      | 25           | Incoming MX delivery (aiosmtpd)      |
-| Worker  | N/A          | Threadmill task worker               |
+| Service       | Port            | Description                          |
+| ------------- | --------------- | ------------------------------------ |
+| Web           | 8000            | Django web UI (Granian)              |
+| DNS edge      | 53 (UDP+TCP)    | dnsdist connection and traffic guard |
+| DNS authority | 5353 (internal) | Django/dnslib record resolver        |
+| SMTP          | 587             | Outgoing SMTP submissions (aiosmtpd) |
+| MX            | 25              | Incoming MX delivery (aiosmtpd)      |
+| Worker        | N/A             | Threadmill task worker               |
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
@@ -96,10 +97,16 @@ data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
 
-> **STARTTLS cert provisioning**: in production, mount the same certificate
-> the Caddy reverse proxy uses into the MX container. Then point
-> `RELAY_MX_TLS_CERT_PATH` and `RELAY_MX_TLS_KEY_PATH` at the certificate. The cert must
-> include the MX hostname (for example, `mail.relay.acme.com`).
+> **STARTTLS cert provisioning**: in production, mount certificates into the
+> MX and SMTP containers. Set `RELAY_MX_TLS_CERT_PATH`,
+> `RELAY_MX_TLS_KEY_PATH`, `RELAY_SMTP_TLS_CERT_PATH`, and
+> `RELAY_SMTP_TLS_KEY_PATH`. Each certificate must include the service hostname.
+
+Production also requires independent `SECRET_KEY` and `KMS_FERNET_KEY` values.
+For the first KMS-key rollout, put the previous Fernet key in
+`KMS_FERNET_LEGACY_KEYS`. Verify access with `manage.py rotate_kms_keys`, then
+run `manage.py rotate_kms_keys --apply`. Remove the legacy key only after the
+command rotates and verifies every stored signing key.
 
 ### Tech Stack
 

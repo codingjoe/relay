@@ -66,6 +66,8 @@ RUN /app/.venv/bin/python -m manage collectstatic --no-input
 
 FROM development AS production
 
+ENV RELAY_ENVIRONMENT=production
+
 COPY ./ /app
 
 COPY --from=compile /app/root/locale /app/root/locale

@@ -121,7 +121,6 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
         not is_postmaster_recipient
         and not is_bounce_recipient
         and not domain.org.billing_is_active
-        and not domain.org.members.filter(email__iexact=mail_from).exists()
     ):
         return "550 Sender not allowed without active billing"
 
