@@ -9,8 +9,6 @@ from django.tasks import task
 
 from services.email.mx.mta_sts import MtaStsPolicy
 
-from .models import OutgoingMessage, SuppressionEntry, Transmission
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +19,8 @@ class MxHostsExhausted(Exception):
 @task
 def deliver_message(message_id):
     """Deliver a queued outgoing message to its recipients."""
+    from .models import OutgoingMessage, SuppressionEntry, Transmission
+
     message = OutgoingMessage.objects.select_related("domain").get(pk=message_id)
 
     try:
