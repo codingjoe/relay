@@ -5,7 +5,7 @@ RUN npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY ./ /app
 RUN pnpm run build
 
-FROM ghcr.io/astral-sh/uv:0.12.1-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.12.2-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
 LABEL url="https://github.com/codingjoe/the-box"
