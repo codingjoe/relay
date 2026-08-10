@@ -36,7 +36,7 @@ dependencies = [
   "redis>=7.2",
   "sentry-sdk>=2.66.1",
   "social-auth-app-django>=6.0.1",
-  "threadmill[redis]>=0.5.1",
+  "threadmill[redis]>=0.6.1",
   "validators>=0.35",
   "whitenoise>=6.12",
 ]
@@ -44,7 +44,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "pyyaml>=6.0.3",
-  "threadmill[inspector]>=0.5.1",
+  "threadmill[inspector]>=0.6.1",
   { include-group = "test" },
 ]
 test = [

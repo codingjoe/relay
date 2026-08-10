@@ -65,30 +65,30 @@ wheels = [
 
 [[package]]
 name = "boto3"
-version = "1.43.62"
+version = "1.43.67"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "botocore" },
     { name = "jmespath" },
     { name = "s3transfer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/c7/f7732c5e1abf7270a6bbbce47338d25ea66a30df658cffd1d17bb5f735fb/boto3-1.43.62.tar.gz", hash = "sha256:0bf920e0739346e81c7310b685a3f783bf1fcc62ce7d5c7016508fa25c0d261f", size = 112668, upload-time = "2026-07-31T19:35:17.257Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/bf/ef5de9b55523bc2141d072fbe6614627088e3e6f97b47850216e99de6a1c/boto3-1.43.67.tar.gz", hash = "sha256:75fe983b70d39cfdc274dc51f9bb02b8a0a104bdad4fa073c1af85a35e707c91", size = 112665, upload-time = "2026-08-07T19:30:20.418Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/f0/5e1a392c817e395b140c18c12a00c0c65c69f8d63da26ad4387aebf2172b/boto3-1.43.62-py3-none-any.whl", hash = "sha256:0bb298e7ffd72b91615df44bf71c417df80a29d844971e5d665b8bd743a4bb35", size = 140025, upload-time = "2026-07-31T19:35:15.347Z" },
+    { url = "https://files.pythonhosted.org/packages/77/0f/b41f8968452dc6bf3b83f15f5e9f76a27fd93e246906aeb2e0555f494375/boto3-1.43.67-py3-none-any.whl", hash = "sha256:082cf9df068168cb44028a1703822374c1eb7e48fa49470d7e8a76f0c977d0bc", size = 140025, upload-time = "2026-08-07T19:30:18.49Z" },
 ]
 
 [[package]]
 name = "botocore"
-version = "1.43.62"
+version = "1.43.67"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "python-dateutil" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4e/8d/36af6d99269a701f83809b87a01f4728699eb825ebdedee3a3d515b18f61/botocore-1.43.62.tar.gz", hash = "sha256:94efc419c9f0f41dc2415e4b6b62f04ae21b3ce3930fac47214c4d3f361ea8b8", size = 15818261, upload-time = "2026-07-31T19:35:06.235Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/1c/3a75deae60e36bd0ee5c27d040384756b2ea1c90bd7c8c9658335a18b4f5/botocore-1.43.67.tar.gz", hash = "sha256:6fe5cfa0c8676ba809efe505b618ec00f30d1af2d014bf316a7aa4ee86accb20", size = 15889514, upload-time = "2026-08-07T19:30:15.638Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/65/d5dae96de68ffc55acf87c3bae76e9dabeeca92aadf1223f20e9a7860aef/botocore-1.43.62-py3-none-any.whl", hash = "sha256:76de153de1ba3e242b2e6df6a13ab8a3fb35d17db562462969e661457b63166e", size = 15502622, upload-time = "2026-07-31T19:35:02.697Z" },
+    { url = "https://files.pythonhosted.org/packages/21/be/38af8e96f3d200c9d34eab8e9f69a4468388ed6030ea04ff012974e5af5a/botocore-1.43.67-py3-none-any.whl", hash = "sha256:48ab8e9fac26fbc2a700d57010251003e6a5f731cf74d8540fb796bc8f3fc0ef", size = 15575924, upload-time = "2026-08-07T19:30:12.116Z" },
 ]
 
 [[package]]
@@ -505,11 +505,11 @@ wheels = [
 
 [[package]]
 name = "markdown"
-version = "3.10.2"
+version = "3.10.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2b/f4/69fa6ed85ae003c2378ffa8f6d2e3234662abd02c10d216c0ba96081a238/markdown-3.10.2.tar.gz", hash = "sha256:994d51325d25ad8aa7ce4ebaec003febcce822c3f8c911e3b17c52f7f589f950", size = 368805, upload-time = "2026-02-09T14:57:26.942Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/29/6f/da4c6aea59b3001f2e8c0ec7497475aadaf3b021c10cab5b2858f0f32b26/markdown-3.10.3.tar.gz", hash = "sha256:3589362618f743188b4d955b874402bc814f4f83f544dc207719f4baa7d9c45f", size = 372596, upload-time = "2026-07-30T19:05:29.005Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/1f/77fa3081e4f66ca3576c896ae5d31c3002ac6607f9747d2e3aa49227e464/markdown-3.10.2-py3-none-any.whl", hash = "sha256:e91464b71ae3ee7afd3017d9f358ef0baf158fd9a298db92f1d4761133824c36", size = 108180, upload-time = "2026-02-09T14:57:25.787Z" },
+    { url = "https://files.pythonhosted.org/packages/64/69/4a5af2bc115a9a33fefe51709749de8262be3f9ba063d1753a837cdbc49c/markdown-3.10.3-py3-none-any.whl", hash = "sha256:fa6c92a00a4a3c98b22728c64a935ae1928250ae65058a6ded814d2cc29a4cea", size = 110757, upload-time = "2026-07-30T19:05:27.883Z" },
 ]
 
 [[package]]
@@ -942,7 +942,7 @@ test = [
 requires-dist = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "aiosmtplib", specifier = ">=5.1.2" },
-    { name = "boto3", specifier = ">=1.43.59" },
+    { name = "boto3", specifier = ">=1.43.65" },
     { name = "cryptography", specifier = ">=50" },
     { name = "django", specifier = ">=6.1,<6.2" },
     { name = "django-environ", specifier = ">=0.14" },
@@ -954,8 +954,8 @@ requires-dist = [
     { name = "dnspython", specifier = ">=2.7" },
     { name = "granian", specifier = ">=2.7.4" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "idna", specifier = ">=3.10" },
-    { name = "markdown", specifier = ">=3.10.2" },
+    { name = "idna", specifier = ">=3.18" },
+    { name = "markdown", specifier = ">=3.10.3" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4" },
     { name = "pygments", specifier = ">=2.20" },
     { name = "pynacl", specifier = ">=1.6.2" },
@@ -964,8 +964,8 @@ requires-dist = [
     { name = "redis", specifier = ">=7.2" },
     { name = "sentry-sdk", specifier = ">=2.66.1" },
     { name = "social-auth-app-django", specifier = ">=6.0.1" },
-    { name = "threadmill", extras = ["redis"], specifier = ">=0.5.1" },
-    { name = "validators", specifier = ">=0.34" },
+    { name = "threadmill", extras = ["redis"], specifier = ">=0.6.1" },
+    { name = "validators", specifier = ">=0.35" },
     { name = "whitenoise", specifier = ">=6.12" },
 ]
 
@@ -973,18 +973,18 @@ requires-dist = [
 dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4" },
-    { name = "pytest-cov", specifier = ">=4.1" },
+    { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-django", specifier = ">=4.5.2" },
     { name = "pytest-env", specifier = ">=1.7" },
     { name = "pytest-randomly", specifier = ">=4.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
     { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "threadmill", extras = ["inspector"], specifier = ">=0.5.1" },
+    { name = "threadmill", extras = ["inspector"], specifier = ">=0.6.1" },
 ]
 test = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4" },
-    { name = "pytest-cov", specifier = ">=4.1" },
+    { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-django", specifier = ">=4.5.2" },
     { name = "pytest-env", specifier = ">=1.7" },
     { name = "pytest-randomly", specifier = ">=4.1" },
@@ -1126,14 +1126,14 @@ wheels = [
 
 [[package]]
 name = "threadmill"
-version = "0.5.1"
+version = "0.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/36/ad/1adf19d448cf10ce05d989ad09b5fc114b79764990b3c2049cc85f686897/threadmill-0.5.1.tar.gz", hash = "sha256:54a14ce59e75c34a53c8ad164b389916d1e661bff1ee76068abca5acbde36237", size = 29603, upload-time = "2026-07-08T22:03:04.724Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/47/59e24f18d1b9ccd5c6bd344f47b4c94a8aaa81fc5983f1d3b9b1546eb0d4/threadmill-0.6.1.tar.gz", hash = "sha256:0c62340baf3c669ccd3e8a41e690e1e85482d4612a5e406699ed86417c24c3ad", size = 29617, upload-time = "2026-08-10T16:36:12.358Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e7/ea/c40e2124a6667e2a69f5eefb0d3721db2bba48343437d8ec4d622a99d3f7/threadmill-0.5.1-py3-none-any.whl", hash = "sha256:748731aa5bd455b403b743812c4a613862fd62f383c06dd41ce72e1a609ce236", size = 32903, upload-time = "2026-07-08T22:03:03.545Z" },
+    { url = "https://files.pythonhosted.org/packages/96/1b/9e31c3c1ec507e7c85bb3af6865331e51222a1f4b9086ff1be673c722c29/threadmill-0.6.1-py3-none-any.whl", hash = "sha256:7466f3fbba6b2380f9bfdc5ad21248811d0e04b9bec55dfb195502cd0f1960fa", size = 32916, upload-time = "2026-08-10T16:36:11.202Z" },
 ]
 
 [package.optional-dependencies]
