@@ -14,6 +14,7 @@ scripts:
       uv run --env-file .env manage.py dumpdata auth accounts kms domains smtp \
         --format yaml --output fixtures/initial_data.yaml
     disabled: true
+auto_open_in_browser: true
 automation:
   auto_issue_session: true
-  remote_control: false
+  remote_control: true
