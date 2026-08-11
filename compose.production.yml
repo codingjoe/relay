@@ -39,7 +39,7 @@ services:
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
     volumes:
-      - s3:/app/storage
+      - s3:/app/storage:x
   dns:
     extends:
       service: web
