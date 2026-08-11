@@ -38,34 +38,32 @@ FROM gcr.io/distroless/cc:debug-nonroot AS development
 COPY --from=build /dpkg /
 
 # Copy Python dependencies
-COPY --from=build --chown=root:root "$UV_PYTHON_INSTALL_DIR" "$UV_PYTHON_INSTALL_DIR"
-COPY --from=build --chown=root:root "${UV_PROJECT_ENVIRONMENT}" "${UV_PROJECT_ENVIRONMENT}"
+COPY --from=build --chown=root:root /opt/python /opt/python
+COPY --from=build --chown=root:root /opt/venv /opt/venv
 
 # Create the virtual environment
-ENV VIRTUAL_ENV=$UV_PROJECT_ENVIRONMENT
+ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 ENV PORT=8000
 
 WORKDIR /app
 
-ENTRYPOINT ["python"]
+ENTRYPOINT ["/opt/venv/bin/python"]
 
 FROM build AS compile
 
 RUN apt-get install -y gettext
 
 COPY ./ /app
-ENV VIRTUAL_ENV=$UV_PROJECT_ENVIRONMENT
-ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 # Compile message files
-RUN python -m manage compilemessages
+RUN /opt/venv/bin/python -m manage compilemessages
 
 # Copy compiled CSS from the frontend build stage
 COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
 
 # Collect static files
-RUN python -m manage collectstatic --no-input
+RUN /opt/venv/bin/python -m manage collectstatic --no-input
 
 FROM development AS production
 
@@ -75,4 +73,4 @@ COPY --from=compile /app/root/locale /app/root/locale
 COPY --from=compile /app/staticfiles /app/staticfiles
 
 WORKDIR /app
-ENTRYPOINT ["python"]
+ENTRYPOINT ["/opt/venv/bin/python"]

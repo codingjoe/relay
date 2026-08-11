@@ -31,98 +31,46 @@ services:
       retries: 5
       start_period: 30s
       timeout: 10s
-      #    depends_on:
-      #      migration:
-      #        condition: service_completed_successfully
+    depends_on:
+      migration:
+        condition: service_completed_successfully
     labels:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
+    volumes:
+      - s3:/app/storage
   dns:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
+    extends:
+      service: web
+    labels: !reset
+    deploy: !reset
     command: ["-m", "manage", "dns"]
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis/
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
     ports:
       - "53:53/udp"
       - "53:53/tcp"
-    networks:
-      - app
-      - app-wan
   smtp:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
+    extends:
+      service: web
+    labels: !reset
+    deploy: !reset
     command: ["-m", "manage", "smtp"]
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis/
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
     ports:
       - "587:587"
-    networks:
-      - app
-      - app-wan
   mx:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
+    extends:
+      service: web
+    labels: !reset
+    deploy: !reset
     command: ["-m", "manage", "mx"]
-    environment:
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis/
     ports:
       - "25:25"
-    networks:
-      - app
-      - app-wan
   worker:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
+    extends:
+      service: web
+    labels: !reset
+    deploy: !reset
     command: ["-m", "manage", "threadmill", "worker"]
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis/
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - app
   migration:
     extends:
       service: web
@@ -139,8 +87,5 @@ services:
         condition: service_healthy
         required: true
         restart: true
-    networks:
-      - app
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis/
+volumes:
+  s3:
