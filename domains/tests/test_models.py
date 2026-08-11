@@ -85,7 +85,7 @@ class TestDomainPropertiesNoDb:
 class TestDomainClean:
     @pytest.mark.parametrize(
         "name",
-        ["relay.example.com", "app.relay.example.com", "open.relay.example.com"],
+        ["app.open.relay.example.com", "open.relay.example.com"],
     )
     def test_clean__rejects_relay_managed_names(self, name, settings):
         settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
@@ -105,7 +105,7 @@ class TestDomainClean:
         settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
 
         with pytest.raises(ValidationError):
-            Domain(name="app。relay.example.com").clean()
+            Domain(name="app。open.relay.example.com").clean()
 
     @pytest.mark.django_db
     def test_save__rejects_cross_org_child_domain(self):

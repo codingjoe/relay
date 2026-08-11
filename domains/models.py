@@ -254,18 +254,14 @@ class Domain(TimeStamped):
         name = canonicalize_domain_name(self.name)
         self.name = name
         if not self.is_managed:
-            root_domains = [
-                canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
-                canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN),
-            ]
-            for root in root_domains:
-                if name == root or name.endswith(f".{root}"):
-                    raise ValidationError(
-                        _(
-                            "Cannot add a subdomain of %(base)s. relay manages these automatically."
-                        )
-                        % {"base": root}
+            root = canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN)
+            if name == root or name.endswith(f".{root}"):
+                raise ValidationError(
+                    _(
+                        "Cannot add a subdomain of %(base)s. relay manages these automatically."
                     )
+                    % {"base": root}
+                )
 
         if self.org_id:
             parts = name.split(".")
