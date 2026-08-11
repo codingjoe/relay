@@ -110,6 +110,9 @@ services:
       retries: 5
       start_period: 10s
       timeout: 5s
+    networks:
+      - app
+      - app-wan
   minio-init:
     image: minio/mc
     depends_on:
@@ -121,5 +124,7 @@ services:
     command:
       - mc alias set root http://minio:9000 minioadmin ${MINIO_ROOT_PASSWORD} && mc mb root/relay --ignore-existing
     restart: "no"
+    networks:
+      - app
 volumes:
   s3:
