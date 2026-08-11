@@ -21,6 +21,7 @@ ARG UV_NO_DEV
 ENV UV_NO_DEV=${UV_NO_DEV:-1}
 ENV UV_PYTHON_PREFERENCE=only-managed
 ENV UV_PYTHON_INSTALL_DIR=/opt/python
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_LINK_MODE=copy
 ENV UV_COMPILE_BYTECODE=1
 
@@ -37,12 +38,12 @@ FROM gcr.io/distroless/cc:debug-nonroot AS development
 COPY --from=build /dpkg /
 
 # Copy Python dependencies
-COPY --from=build --chown=root:root /opt/python /opt/python
-COPY --from=build --chown=root:root /app/.venv /opt/venv
+COPY --from=build --chown=root:root "$UV_PYTHON_INSTALL_DIR" "$UV_PYTHON_INSTALL_DIR"
+COPY --from=build --chown=root:root "${UV_PROJECT_ENVIRONMENT}" "${UV_PROJECT_ENVIRONMENT}"
 
 # Create the virtual environment
-ENV VIRTUAL_ENV=/opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+ENV VIRTUAL_ENV=$UV_PROJECT_ENVIRONMENT
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 ENV PORT=8000
 
 WORKDIR /app
@@ -54,15 +55,17 @@ FROM build AS compile
 RUN apt-get install -y gettext
 
 COPY ./ /app
+ENV VIRTUAL_ENV=$UV_PROJECT_ENVIRONMENT
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 # Compile message files
-RUN /app/.venv/bin/python -m manage compilemessages --ignore=.venv
+RUN python -m manage compilemessages
 
 # Copy compiled CSS from the frontend build stage
 COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
 
 # Collect static files
-RUN /app/.venv/bin/python -m manage collectstatic --no-input
+RUN python -m manage collectstatic --no-input
 
 FROM development AS production
 
