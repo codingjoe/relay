@@ -29,6 +29,7 @@ services:
       AWS_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
       AWS_STORAGE_BUCKET_NAME: relay
       AWS_S3_ADDRESSING_STYLE: path
+      RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
     command: ["-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application"]
     healthcheck:
       test: ["CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https"]
