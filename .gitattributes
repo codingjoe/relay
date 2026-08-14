@@ -1,3 +1,6 @@
 *.lock binary
 *-lock.* binary
 fixtures/* linguist-generated
+terraform/.terraform.lock.hcl linguist-generated
+terraform/*.tfstate binary
+terraform/*.tfstate.* binary

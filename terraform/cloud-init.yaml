@@ -1,0 +1,21 @@
+#cloud-config
+users:
+  - name: github
+    groups: sudo, docker
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${deploy_public_key}
+  - name: collaborator
+    groups: docker
+    shell: /bin/rbash
+    home: /home/collaborator
+packages:
+  - docker.io
+  - docker-compose-v2
+  - curl
+  - python3
+  - python3-pip
+runcmd:
+  - systemctl enable docker
+  - systemctl start docker
