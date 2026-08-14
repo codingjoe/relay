@@ -1,8 +1,8 @@
-import asyncio
 import logging
 
 import aiosmtplib
 import dns.resolver
+from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.tasks import task
@@ -83,17 +83,15 @@ def deliver_message(message_id):
                 )
                 continue
             try:
-                response = asyncio.run(
-                    aiosmtplib.send(
-                        raw_bytes,
-                        hostname=mx_host,
-                        port=25,
-                        use_tls=False,
-                        start_tls=True,
-                        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
-                        sender=return_path,
-                        recipients=[message.rcpt_to],
-                    )
+                response = async_to_sync(aiosmtplib.send)(
+                    raw_bytes,
+                    hostname=mx_host,
+                    port=25,
+                    use_tls=False,
+                    start_tls=True,
+                    local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+                    sender=return_path,
+                    recipients=[message.rcpt_to],
                 )
                 Transmission.objects.create(
                     message=message,
