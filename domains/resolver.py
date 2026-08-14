@@ -9,6 +9,8 @@ from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel, DNSRecord
 from dnslib.dns import QTYPE, RCODE, DNSError
 from dnslib.server import BaseResolver
 
+from kms.models import SigningKey
+
 from .models import Domain
 
 
@@ -136,10 +138,19 @@ class DNSResolver(BaseResolver):
         # DKIM. Serve public-key for each cipher at its selector name.
         for selector, key in domain.dkim_ciphers:
             if key:
-                public_key_b64 = base64.b64encode(key.public_bytes_der()).decode(
-                    "ascii"
-                )
-                record = f"v=DKIM1; t=s; h=sha256; p={public_key_b64};"
+                match key.algorithm:
+                    case SigningKey.Algorithm.ED25519:
+                        public_key_b64 = base64.b64encode(
+                            key.public_bytes_raw()
+                        ).decode("ascii")
+                        record = (
+                            f"v=DKIM1; k=ed25519; t=s; h=sha256; p={public_key_b64};"
+                        )
+                    case _:
+                        public_key_b64 = base64.b64encode(
+                            key.public_bytes_der()
+                        ).decode("ascii")
+                        record = f"v=DKIM1; k=rsa; t=s; h=sha256; p={public_key_b64};"
                 dkim_names = [
                     f"{selector}._domainkey.{domain.sender_domain}",
                     f"{selector}._domainkey.{domain.name}",
