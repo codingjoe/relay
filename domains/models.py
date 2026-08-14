@@ -335,7 +335,7 @@ class Domain(TimeStamped):
     def dmarc_record(self):
         """Return the DMARC record for the root domain, with rua/ruf pointing to the sender subdomain."""
         return (
-            f"v=DMARC1; p=none; sp=none; adkim=r; aspf=r;"
+            f"v=DMARC1; p=quarantine; sp=quarantine; adkim=r; aspf=r;"
             f" rua=mailto:{self.dmarc_reporting_address};"
             f" ruf=mailto:{self.dmarc_ruf_reporting_address};"
         )
@@ -348,7 +348,7 @@ class Domain(TimeStamped):
     @property
     def sender_dmarc_record(self):
         """Return the DMARC record served at _dmarc.{sender_subdomain} for external reporting authorization."""
-        return "v=DMARC1; p=none"
+        return "v=DMARC1; p=quarantine"
 
     @property
     def mta_sts_record(self):
