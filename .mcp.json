@@ -1,11 +1,17 @@
 {
   "mcpServers": {
+    "cloudfleet": {
+      "args": [
+        "mcp"
+      ],
+      "command": "cloudfleet"
+    },
     "playwright": {
       "args": [
         "-y",
         "@playwright/mcp@latest",
-        "--config",
-        ".playwright-mcp-config.json"
+        "--headless=true",
+        "--outputDir=.playwright-mcp"
       ],
       "command": "npx",
       "tools": [
