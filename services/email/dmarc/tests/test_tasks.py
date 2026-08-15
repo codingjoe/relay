@@ -10,7 +10,7 @@ from services.email.dmarc.tasks import (
 from services.email.mx.models import IncomingMessage
 
 DMARC_REJECT = (
-    "v=DMARC1; p=reject; rua=mailto:rua@example.org; ruf=mailto:ruf@example.org"
+    '"v=DMARC1; p=reject; rua=mailto:rua@example.org; ruf=mailto:ruf@example.org"'
 )
 
 
@@ -45,6 +45,13 @@ class TestEvaluateIncomingMessage:
         )
         evaluate_incoming_message.enqueue(message_pk=str(msg.pk))
         assert len(mail.outbox) == 0
+
+    def test_evaluate_incoming_message__evaluates_unencrypted(self, org, dns_resolver):
+        dns_resolver.add("_dmarc.example.org", "TXT", DMARC_REJECT)
+        msg = make_incoming(org, raw_body=raw_email())
+        evaluate_incoming_message.enqueue(message_pk=str(msg.pk))
+        assert len(mail.outbox) == 1
+        assert "DMARC failure report" in mail.outbox[0].subject
 
 
 @pytest.mark.django_db
