@@ -3,6 +3,7 @@ from django.urls import include, path
 
 from . import views
 from .encryption_views import (
+    EncryptionSetupPageView,
     EncryptionSetupView,
     EncryptionStatusView,
     MembershipEncryptionKeyDeleteView,
@@ -52,6 +53,11 @@ urlpatterns = [
                                 "setup/",
                                 EncryptionSetupView.as_view(),
                                 name="encryption-setup",
+                            ),
+                            path(
+                                "setup",
+                                EncryptionSetupPageView.as_view(),
+                                name="encryption-setup-page",
                             ),
                             path(
                                 "user-key/",

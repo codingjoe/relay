@@ -40,6 +40,13 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
         context = super().get_context_data(**kwargs)
         message = self.object
         parsed = message.parsed_email()
+        if parsed is None:
+            return context | {
+                "is_encrypted": True,
+                "body_url": message.raw_body.url if message.raw_body else None,
+                "headers": [],
+                "transmissions": Transmission.objects.filter(message=message),
+            }
         headers = list(parsed.items())
         dkim_signatures = [
             dict(

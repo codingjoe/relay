@@ -2,6 +2,8 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext_lazy as _
+from django.views import generic
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -42,6 +44,9 @@ class EncryptionStatusView(OrganizationScopedView, APIView):
         else:
             user_key_id = user_key.key_id
         membership = self.org.memberships.get(user=request.user)
+        sealed_org_private_key = None
+        if hasattr(membership, "encryption_key"):
+            sealed_org_private_key = membership.encryption_key.sealed_org_private_key
         return Response(
             {
                 "org_has_encryption": org_key_id is not None,
@@ -50,6 +55,7 @@ class EncryptionStatusView(OrganizationScopedView, APIView):
                 "user_has_key": user_key_id is not None,
                 "user_key_id": user_key_id,
                 "has_sealed_org_key": hasattr(membership, "encryption_key"),
+                "sealed_org_private_key": sealed_org_private_key,
             }
         )
 
@@ -66,17 +72,13 @@ class EncryptionSetupView(AdminOnlyView):
         try:
             (
                 org_public_key,
-                org_key_id,
                 user_public_key,
-                user_key_id,
                 encrypted_master_key,
                 encrypted_private_key,
                 sealed_org_private_key,
             ) = (
                 request.data["org_public_key"],
-                request.data["org_key_id"],
                 request.data["user_public_key"],
-                request.data["user_key_id"],
                 request.data["encrypted_master_key"],
                 request.data["encrypted_private_key"],
                 request.data["sealed_org_private_key"],
@@ -86,6 +88,8 @@ class EncryptionSetupView(AdminOnlyView):
                 {"error": f"Missing required field: {missing.args[0]}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        org_key_id = request.data.get("org_key_id", "")
+        user_key_id = request.data.get("user_key_id", "")
         with transaction.atomic():
             org_key = OrgEncryptionKey(
                 org=self.org,
@@ -134,9 +138,8 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
 
     def post(self, request, *args, **kwargs):
         try:
-            public_key, key_id, encrypted_master_key, encrypted_private_key = (
+            public_key, encrypted_master_key, encrypted_private_key = (
                 request.data["public_key"],
-                request.data["key_id"],
                 request.data["encrypted_master_key"],
                 request.data["encrypted_private_key"],
             )
@@ -145,6 +148,7 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
                 {"error": f"Missing required field: {missing.args[0]}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        key_id = request.data.get("key_id", "")
         user_key = UserEncryptionKey(
             user=request.user,
             public_key=public_key,
@@ -160,9 +164,8 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
 
     def put(self, request, *args, **kwargs):
         try:
-            public_key, key_id, encrypted_master_key, encrypted_private_key = (
+            public_key, encrypted_master_key, encrypted_private_key = (
                 request.data["public_key"],
-                request.data["key_id"],
                 request.data["encrypted_master_key"],
                 request.data["encrypted_private_key"],
             )
@@ -171,6 +174,7 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
                 {"error": f"Missing required field: {missing.args[0]}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        key_id = request.data.get("key_id", "")
         user_key = get_object_or_404(UserEncryptionKey, user=request.user)
         user_key.public_key = public_key
         user_key.key_id = key_id
@@ -263,3 +267,11 @@ class MembershipEncryptionKeyDeleteView(AdminOnlyView):
         membership = get_object_or_404(Membership, pk=membership_pk, org=self.org)
         get_object_or_404(MembershipEncryptionKey, membership=membership).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class EncryptionSetupPageView(OrganizationScopedView, generic.TemplateView):
+    """Render the encryption setup wizard HTML page."""
+
+    template_name = "encryption/setup.html"
+    title = _("Encryption setup")
+    parent = "accounts:org-home"

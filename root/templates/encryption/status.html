@@ -1,0 +1,67 @@
+{% load i18n %}
+<section id="encryption-status" class="card" data-size="sm" data-org-slug="{{ org_slug }}">
+  <header>
+    <h2>{% translate "encryption"|capfirst %}</h2>
+    <p>{% translate "client-side end-to-end encryption for message bodies." %}</p>
+  </header>
+  <section>
+    <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2">
+      <dt class="font-semibold">{% translate "org key"|capfirst %}</dt>
+      <dd id="encryption-org-status">
+        <span class="badge" data-variant="secondary" data-size="sm">
+          <i data-lucide="loader-circle" class="size-3.5 animate-spin" aria-hidden="true"></i>
+          {% translate "checking…"|capfirst %}
+        </span>
+      </dd>
+      <dt class="font-semibold">{% translate "user key"|capfirst %}</dt>
+      <dd id="encryption-user-status">
+        <span class="badge" data-variant="secondary" data-size="sm">
+          <i data-lucide="loader-circle" class="size-3.5 animate-spin" aria-hidden="true"></i>
+          {% translate "checking…"|capfirst %}
+        </span>
+      </dd>
+    </dl>
+  </section>
+  <footer id="encryption-actions"></footer>
+</section>
+
+<script defer>
+  (function () {
+    "use strict";
+
+    const orgSlug = document.querySelector("#encryption-status").dataset.orgSlug;
+    if (!orgSlug) return;
+
+    fetch(`/org/${orgSlug}/encryption/`, {
+      headers: { Accept: "application/json" },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const orgEl = document.getElementById("encryption-org-status");
+        const userEl = document.getElementById("encryption-user-status");
+        const actionsEl = document.getElementById("encryption-actions");
+
+        orgEl.innerHTML = data.org_has_encryption
+          ? '<span class="badge" data-variant="primary" data-size="sm"><i data-lucide="lock" class="size-3.5" aria-hidden="true"></i> {% translate "active"|capfirst %}</span>'
+          : '<span class="badge" data-variant="outline" data-size="sm"><i data-lucide="unlock" class="size-3.5" aria-hidden="true"></i> {% translate "not configured"|capfirst %}</span>';
+
+        userEl.innerHTML = data.user_has_key
+          ? '<span class="badge" data-variant="primary" data-size="sm"><i data-lucide="key-round" class="size-3.5" aria-hidden="true"></i> {% translate "configured"|capfirst %}</span>'
+          : '<span class="badge" data-variant="outline" data-size="sm"><i data-lucide="circle-dashed" class="size-3.5" aria-hidden="true"></i> {% translate "no key"|capfirst %}</span>';
+
+        if (!data.org_has_encryption) {
+          actionsEl.innerHTML =
+            '<a class="btn" data-size="sm" href="/org/' + orgSlug + '/encryption/setup"><i data-lucide="shield-plus" class="size-4" aria-hidden="true"></i> {% translate "set up encryption"|capfirst %}</a>';
+        } else if (!data.has_sealed_org_key) {
+          actionsEl.innerHTML =
+            '<p class="text-sm text-muted-foreground">{% translate "ask an admin to seal the org key for your account." %}</p>';
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+      })
+      .catch(() => {
+        document.getElementById("encryption-org-status").innerHTML =
+          '<span class="badge" data-variant="destructive" data-size="sm">{% translate "error"|capfirst %}</span>';
+      });
+  })();
+</script>

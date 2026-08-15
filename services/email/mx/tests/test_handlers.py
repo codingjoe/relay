@@ -7,9 +7,22 @@ from django.conf import settings
 from django.core import mail
 
 from domains.models import Domain
+from kms import envelope
+from kms.models import OrgEncryptionKey, SigningKey
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
-from services.email.mx.handlers import MXHandler, process_incoming_message
-from services.email.mx.models import IncomingMessage, TlsReport
+from services.email.mx.handlers import (
+    MXHandler,
+    process_incoming_message,
+    save_encrypted_body,
+    seal_file_keys_for_webhooks,
+)
+from services.email.mx.models import (
+    IncomingMessage,
+    SealedFileKey,
+    TlsReport,
+    Webhook,
+    WebhookEncryptionKey,
+)
 
 
 def make_raw_email(subject="Postmaster alert"):
@@ -265,3 +278,127 @@ class TestProcessIncomingMessageReports:
         report = await report_model.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
+
+
+def make_org_encryption_key(org):
+    pair = envelope.generate_x25519_keypair()
+    return OrgEncryptionKey.objects.create(
+        org=org,
+        public_key=envelope.encode_key(pair.public_key),
+        is_active=True,
+    )
+
+
+def make_encrypted_webhook(org, pattern):
+    """Create an active webhook with an encryption key. Return both.
+
+    The returned private key is the counterpart to the stored public key, so
+    tests can unseal sealed file keys for round-trip verification.
+    """
+    signing_key = SigningKey.generate("ed25519")
+    domain = Domain.objects.create(name=f"hook-{org.slug}.com", org=org)
+    webhook = Webhook.objects.create(
+        org=org,
+        url="https://example.com/hook",
+        name="",
+        address_pattern=pattern,
+        domain=domain,
+        signing_key=signing_key,
+    )
+    pair = envelope.generate_x25519_keypair()
+    WebhookEncryptionKey.objects.create(
+        webhook=webhook,
+        public_key=envelope.encode_key(pair.public_key),
+        key_id=envelope.key_fingerprint(pair.public_key),
+    )
+    return webhook, pair.private_key
+
+
+def make_plain_webhook(org, pattern):
+    signing_key = SigningKey.generate("ed25519")
+    domain = Domain.objects.create(name=f"plain-{org.slug}.com", org=org)
+    return Webhook.objects.create(
+        org=org,
+        url="https://example.com/hook",
+        name="",
+        address_pattern=pattern,
+        domain=domain,
+        signing_key=signing_key,
+    )
+
+
+def make_unsaved_incoming(org):
+    domain = Domain.objects.get(org=org, is_managed=True)
+    return IncomingMessage(
+        org=org,
+        domain=domain,
+        receiving_domain=domain.name,
+        mail_from="alice@example.com",
+        rcpt_to="bob@example.com",
+        subject="hi",
+        message_id="<abc@example.com>",
+    )
+
+
+@pytest.mark.django_db
+class TestSaveEncryptedBody:
+    def test_save_encrypted_body__encrypts_when_org_has_key(self, org):
+        org_key = make_org_encryption_key(org)
+        plaintext = b"From: a@b\r\nSubject: secret\r\n\r\nbody"
+        message = make_unsaved_incoming(org)
+        file_key = save_encrypted_body(message, plaintext, org)
+        assert file_key is not None
+        assert message.sealed_file_key
+        assert message.org_encryption_key_id == org_key.key_id
+        ciphertext = message.raw_body.read()
+        assert ciphertext != plaintext
+        assert envelope.decrypt_body(ciphertext, file_key) == plaintext
+
+    def test_save_encrypted_body__stores_plaintext_when_no_key(self, org):
+        plaintext = b"From: a@b\r\nSubject: hi\r\n\r\nbody"
+        message = make_unsaved_incoming(org)
+        file_key = save_encrypted_body(message, plaintext, org)
+        assert file_key is None
+        assert message.sealed_file_key == ""
+        assert message.raw_body.read() == plaintext
+
+
+@pytest.mark.django_db
+class TestSealFileKeysForWebhooks:
+    def test_seal_file_keys_for_webhooks__creates_sealed_keys(self, org):
+        webhook, private_key = make_encrypted_webhook(org, pattern="*@example.com")
+        message = make_unsaved_incoming(org)
+        message.rcpt_to = "bob@example.com"
+        message.save(force_insert=True)
+        file_key = envelope.generate_file_key()
+        seal_file_keys_for_webhooks(message, file_key, "bob@example.com")
+        sealed = SealedFileKey.objects.get(message=message, webhook=webhook)
+        assert sealed.webhook_key_id == webhook.encryption_key.key_id
+        recovered = envelope.unseal_file_key(
+            envelope.decode_key(sealed.sealed_key), private_key
+        )
+        assert recovered == file_key
+
+    def test_seal_file_keys_for_webhooks__skips_webhooks_without_encryption_key(
+        self, org
+    ):
+        webhook = make_plain_webhook(org, pattern="*@example.com")
+        message = make_unsaved_incoming(org)
+        message.rcpt_to = "bob@example.com"
+        message.save(force_insert=True)
+        file_key = envelope.generate_file_key()
+        seal_file_keys_for_webhooks(message, file_key, "bob@example.com")
+        assert not SealedFileKey.objects.filter(
+            message=message, webhook=webhook
+        ).exists()
+
+    def test_seal_file_keys_for_webhooks__only_seals_matching_webhooks(self, org):
+        webhook, _ = make_encrypted_webhook(org, pattern="*@other.com")
+        message = make_unsaved_incoming(org)
+        message.rcpt_to = "bob@example.com"
+        message.save(force_insert=True)
+        file_key = envelope.generate_file_key()
+        seal_file_keys_for_webhooks(message, file_key, "bob@example.com")
+        assert not SealedFileKey.objects.filter(
+            message=message, webhook=webhook
+        ).exists()

@@ -19,7 +19,7 @@ urlpatterns = [
         ),
     ),
     path(
-        "messages/<uuid:pk>/sealed-key/",
+        "messages/<uuid:pk>/sealed-key",
         SealedFileKeyView.as_view(),
         name="sealed-file-key",
     ),

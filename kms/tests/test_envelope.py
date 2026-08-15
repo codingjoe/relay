@@ -120,3 +120,18 @@ class TestEncodeDecodeKey:
     def test_encode_key__returns_str(self):
         key = envelope.generate_file_key()
         assert isinstance(envelope.encode_key(key), str)
+
+
+class TestSealAndEncrypt:
+    def test_seal_and_encrypt__round_trip(self):
+        pair = envelope.generate_x25519_keypair()
+        plaintext = b"confidential message body"
+        result = envelope.seal_and_encrypt(plaintext, pair.public_key, "key-id-abc")
+        assert envelope.decrypt_body(result.ciphertext, result.file_key) == plaintext
+
+    def test_seal_and_encrypt__returns_file_key(self):
+        pair = envelope.generate_x25519_keypair()
+        result = envelope.seal_and_encrypt(b"payload", pair.public_key, "key-id-abc")
+        sealed = envelope.decode_key(result.sealed_file_key)
+        assert envelope.unseal_file_key(sealed, pair.private_key) == result.file_key
+        assert result.org_encryption_key_id == "key-id-abc"

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% translate "encryption setup"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <div class="max-w-lg mx-auto py-8">
+    <div id="encryption-setup-loading" class="card">
+      <header>
+        <h2>{% translate "encryption setup"|capfirst %}</h2>
+      </header>
+      <section>
+        <div class="flex items-center gap-2">
+          <i data-lucide="loader-circle" class="size-5 animate-spin" aria-hidden="true"></i>
+          <span>{% translate "checking encryption status…"|capfirst %}</span>
+        </div>
+      </section>
+    </div>
+
+    <div id="encryption-setup-form" class="card hidden">
+      <header>
+        <h2>{% translate "set up encryption"|capfirst %}</h2>
+        <p>
+          {% translate "choose an encryption passphrase. this passphrase protects your keys on this device. it is never sent to the server." %}
+        </p>
+      </header>
+      <section>
+        <div class="alert" data-variant="warning" data-size="sm">
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          <p>
+            {% translate "if you lose this passphrase, all encrypted messages become permanently unreadable. there is no recovery." %}
+          </p>
+        </div>
+        <fieldset class="fieldset mt-4">
+          <div role="group" class="field">
+            <label for="encryption-passphrase">{% translate "passphrase"|capfirst %}</label>
+            <input
+              id="encryption-passphrase"
+              class="input w-full"
+              type="password"
+              autocomplete="new-password"
+              name="passphrase"
+              minlength="12"
+              required
+            >
+          </div>
+          <div role="group" class="field">
+            <label for="encryption-passphrase-confirm">{% translate "confirm passphrase"|capfirst %}</label>
+            <input
+              id="encryption-passphrase-confirm"
+              class="input w-full"
+              type="password"
+              autocomplete="new-password"
+              name="passphrase_confirm"
+              minlength="12"
+              required
+            >
+          </div>
+        </fieldset>
+        <p id="encryption-setup-error" class="text-destructive text-sm mt-2 hidden"></p>
+      </section>
+      <footer>
+        <button id="encryption-setup-submit" class="btn">
+          <i data-lucide="shield-plus" class="size-4" aria-hidden="true"></i>
+          {% translate "enable encryption"|capfirst %}
+        </button>
+      </footer>
+    </div>
+
+    <div id="encryption-setup-done" class="card hidden">
+      <header>
+        <h2>{% translate "encryption enabled"|capfirst %}</h2>
+      </header>
+      <section>
+        <div class="alert" data-variant="success" data-size="sm">
+          <i data-lucide="circle-check" class="size-4" aria-hidden="true"></i>
+          <p>{% translate "end-to-end encryption is now active for your organization." %}</p>
+        </div>
+      </section>
+      <footer>
+        <a class="btn" data-variant="outline" href="{% url 'accounts:org-home' org_slug=org.slug %}">
+          {% translate "back to dashboard"|capfirst %}
+        </a>
+      </footer>
+    </div>
+
+    <div id="encryption-setup-already" class="card hidden">
+      <header>
+        <h2>{% translate "encryption already configured"|capfirst %}</h2>
+      </header>
+      <section>
+        <p>{% translate "this organization already has encryption enabled." %}</p>
+      </section>
+      <footer>
+        <a class="btn" data-variant="outline" href="{% url 'accounts:org-home' org_slug=org.slug %}">
+          {% translate "back to dashboard"|capfirst %}
+        </a>
+      </footer>
+    </div>
+  </div>
+
+  {% csrf_token %}
+  <script defer>
+    (function () {
+      "use strict";
+
+      const orgSlug = "{{ org.slug }}";
+      const enc = window.relayEncryption;
+      const errorEl = document.getElementById("encryption-setup-error");
+      const submitBtn = document.getElementById("encryption-setup-submit");
+
+      function show(id) {
+        for (const el of document.querySelectorAll(
+          "#encryption-setup-loading, #encryption-setup-form, #encryption-setup-done, #encryption-setup-already",
+        )) {
+          el.classList.add("hidden");
+        }
+        document.getElementById(id).classList.remove("hidden");
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function csrfToken() {
+        return (
+          document.querySelector("[name=csrfmiddlewaretoken]")?.value ||
+          document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ""
+        );
+      }
+
+      async function checkStatus() {
+        const resp = await fetch(`/org/${orgSlug}/encryption/`, {
+          headers: { Accept: "application/json" },
+        });
+        const data = await resp.json();
+        if (data.org_has_encryption) {
+          show("encryption-setup-already");
+        } else {
+          show("encryption-setup-form");
+        }
+      }
+
+      async function setupEncryption() {
+        const passphrase = document.getElementById("encryption-passphrase").value;
+        const confirm = document.getElementById("encryption-passphrase-confirm").value;
+
+        if (passphrase.length < 12) {
+          errorEl.textContent = "Passphrase must be at least 12 characters.";
+          errorEl.classList.remove("hidden");
+          return;
+        }
+        if (passphrase !== confirm) {
+          errorEl.textContent = "Passphrases do not match.";
+          errorEl.classList.remove("hidden");
+          return;
+        }
+        errorEl.classList.add("hidden");
+        submitBtn.disabled = true;
+        submitBtn.innerHTML =
+          '<i data-lucide="loader-circle" class="size-4 animate-spin" aria-hidden="true"></i> {% translate "generating keys…"|capfirst %}';
+        if (window.lucide) window.lucide.createIcons();
+
+        try {
+          await enc.init();
+
+          // 1. Generate salt and derive KEK from passphrase.
+          const salt = sodium.randombytes_buf(enc.SALT_BYTES);
+          const kek = await enc.deriveKEK(passphrase, salt);
+
+          // 2. Generate master key.
+          const masterKey = enc.generateMasterKey();
+
+          // 3. Generate user X25519 keypair.
+          const userKeypair = enc.generateKeypair();
+
+          // 4. Encrypt master key with KEK: base64(salt + nonce + ciphertext).
+          const encryptedMasterKey = enc.encryptMasterKey(masterKey, kek, salt);
+
+          // 5. Encrypt user private key with master key: base64(nonce + ciphertext).
+          const encryptedPrivateKey = enc.encryptSecretKey(
+            userKeypair.privateKey,
+            masterKey,
+          );
+
+          // 6. Generate org X25519 keypair.
+          const orgKeypair = enc.generateKeypair();
+
+          // 7. Seal org private key with user's public key.
+          const sealedOrgPrivateKey = enc.toBase64(
+            enc.seal(orgKeypair.privateKey, userKeypair.publicKey),
+          );
+
+          // 8. Send to API.
+          const resp = await fetch(`/org/${orgSlug}/encryption/setup/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken(),
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              org_public_key: enc.toBase64(orgKeypair.publicKey),
+              org_key_id: "",
+              user_public_key: enc.toBase64(userKeypair.publicKey),
+              user_key_id: "",
+              encrypted_master_key: encryptedMasterKey,
+              encrypted_private_key: encryptedPrivateKey,
+              sealed_org_private_key: sealedOrgPrivateKey,
+            }),
+          });
+
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.error || "Setup failed.");
+          }
+
+          show("encryption-setup-done");
+        } catch (err) {
+          errorEl.textContent = err.message;
+          errorEl.classList.remove("hidden");
+          submitBtn.disabled = false;
+          submitBtn.innerHTML =
+            '<i data-lucide="shield-plus" class="size-4" aria-hidden="true"></i> {% translate "enable encryption"|capfirst %}';
+          if (window.lucide) window.lucide.createIcons();
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        checkStatus();
+        submitBtn.addEventListener("click", setupEncryption);
+      });
+    })();
+  </script>
+{% endblock %}

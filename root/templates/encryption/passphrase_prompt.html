@@ -1,0 +1,166 @@
+{% load i18n %}
+<dialog
+  id="passphrase-dialog"
+  class="dialog"
+  onclick="if (event.target === this) this.close()"
+>
+  <div class="sm:max-w-sm">
+    <header>
+      <h2>{% translate "enter encryption passphrase"|capfirst %}</h2>
+      <p>
+        {% translate "unlock your encryption keys to decrypt messages." %}
+      </p>
+    </header>
+    <section>
+      <fieldset class="fieldset">
+        <div role="group" class="field">
+          <label for="passphrase-input">{% translate "passphrase"|capfirst %}</label>
+          <input
+            id="passphrase-input"
+            class="input w-full"
+            type="password"
+            autocomplete="current-password"
+            name="passphrase"
+            required
+          >
+        </div>
+      </fieldset>
+      <p id="passphrase-error" class="text-destructive text-sm mt-2 hidden"></p>
+    </section>
+    <footer>
+      <button
+        class="btn"
+        data-variant="outline"
+        onclick="this.closest('dialog').close()"
+      >
+        {% translate "cancel"|capfirst %}
+      </button>
+      <button id="passphrase-submit" class="btn">
+        {% translate "unlock"|capfirst %}
+      </button>
+    </footer>
+  </div>
+</dialog>
+
+<script defer>
+  (function () {
+    "use strict";
+
+    // In-memory key cache, never persisted to storage.
+    let keyCache = null;
+
+    const dialog = document.getElementById("passphrase-dialog");
+    const input = document.getElementById("passphrase-input");
+    const errorEl = document.getElementById("passphrase-error");
+    const submitBtn = document.getElementById("passphrase-submit");
+
+    /**
+     * Fetch the user's encryption key from the API and decrypt all keys
+     * using the provided passphrase. Cache them in memory.
+     */
+    async function unlock(passphrase) {
+      const enc = window.relayEncryption;
+      await enc.init();
+
+      const orgSlug = dialog.dataset.orgSlug;
+
+      // Fetch user encryption key (encrypted_master_key, encrypted_private_key).
+      const userKeyResp = await fetch(
+        `/org/${orgSlug}/encryption/user-key/`,
+        { headers: { Accept: "application/json" } },
+      );
+      if (!userKeyResp.ok) throw new Error("No encryption key found for this user.");
+      const userKey = await userKeyResp.json();
+
+      // Decrypt master key: base64(salt + nonce + ciphertext).
+      const { masterKey } = await enc.decryptMasterKey(
+        userKey.encrypted_master_key,
+        passphrase,
+      );
+
+      // Decrypt private key: base64(nonce + ciphertext).
+      const privateKey = enc.decryptSecretKey(
+        userKey.encrypted_private_key,
+        masterKey,
+      );
+
+      // Fetch encryption status to get the sealed org private key.
+      const statusResp = await fetch(`/org/${orgSlug}/encryption/`, {
+        headers: { Accept: "application/json" },
+      });
+      const status = await statusResp.json();
+
+      if (!status.sealed_org_private_key) {
+        throw new Error("No sealed org private key for this membership.");
+      }
+
+      // Unseal the org private key with the user's private key.
+      const sealedOrgKey = enc.fromBase64(status.sealed_org_private_key);
+      const orgPrivateKey = enc.unseal(sealedOrgKey, privateKey);
+
+      keyCache = { masterKey, privateKey, orgPrivateKey };
+      return keyCache;
+    }
+
+    /**
+     * Show the passphrase dialog and return a promise that resolves with
+     * the decrypted keys once the user enters the correct passphrase.
+     * If keys are already cached, resolve immediately.
+     */
+    window.relayEncryption.promptPassphrase = function (orgSlug) {
+      if (keyCache) return Promise.resolve(keyCache);
+      dialog.dataset.orgSlug = orgSlug;
+      errorEl.classList.add("hidden");
+      input.value = "";
+      dialog.showModal();
+      input.focus();
+
+      return new Promise((resolve, reject) => {
+        async function handleSubmit() {
+          const passphrase = input.value;
+          if (!passphrase) return;
+          submitBtn.disabled = true;
+          errorEl.classList.add("hidden");
+          try {
+            const keys = await unlock(passphrase);
+            dialog.close();
+            resolve(keys);
+          } catch (err) {
+            errorEl.textContent =
+              "Incorrect passphrase or corrupted key data.";
+            errorEl.classList.remove("hidden");
+            input.select();
+          } finally {
+            submitBtn.disabled = false;
+          }
+        }
+
+        function onclose() {
+          dialog.removeEventListener("close", onclose);
+          submitBtn.removeEventListener("click", handleSubmit);
+          input.removeEventListener("keydown", onKey);
+          if (!keyCache) reject(new Error("Passphrase dialog cancelled."));
+        }
+
+        function onKey(e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            handleSubmit();
+          }
+        }
+
+        submitBtn.addEventListener("click", handleSubmit);
+        input.addEventListener("keydown", onKey);
+        dialog.addEventListener("close", onclose);
+      });
+    };
+
+    window.relayEncryption.clearKeyCache = function () {
+      keyCache = null;
+    };
+
+    window.relayEncryption.hasCachedKeys = function () {
+      return keyCache !== null;
+    };
+  })();
+</script>

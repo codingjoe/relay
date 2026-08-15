@@ -1,4 +1,5 @@
 import pytest
+from django.core.files.base import ContentFile
 
 from domains.models import Domain
 from services.email.message.models import Message
@@ -171,3 +172,38 @@ class TestMessage:
     def test_get_absolute_url__incoming(self, org):
         msg = create_incoming(org)
         assert str(msg.pk) in Message.objects.get(pk=msg.pk).get_absolute_url()
+
+
+class TestParsedEmail:
+    @pytest.mark.django_db
+    def test_parsed_email__returns_none_for_encrypted_message(self, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        raw = b"From: a@b\r\nTo: c@d\r\nSubject: hi\r\n\r\nbody"
+        msg = IncomingMessage(
+            org=org,
+            domain=domain,
+            receiving_domain="example.com",
+            mail_from="alice@example.com",
+            rcpt_to="bob@example.com",
+        )
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.sealed_file_key = "sealed-file-key"
+        msg.save(force_insert=True)
+        assert msg.parsed_email() is None
+
+    @pytest.mark.django_db
+    def test_parsed_email__parses_unencrypted_message(self, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        raw = b"From: a@b\r\nTo: c@d\r\nSubject: hi\r\n\r\nbody"
+        msg = IncomingMessage(
+            org=org,
+            domain=domain,
+            receiving_domain="example.com",
+            mail_from="alice@example.com",
+            rcpt_to="bob@example.com",
+        )
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(force_insert=True)
+        parsed = msg.parsed_email()
+        assert parsed is not None
+        assert parsed["Subject"] == "hi"

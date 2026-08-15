@@ -22,6 +22,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/chart.min.js" defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.15/dist/libsodium-wrappers.min.js" defer></script>
+    <script src="{% static 'js/encryption.js' %}" defer></script>
+    {% if current_org %}
+      {% include "encryption/passphrase_prompt.html" %}
+    {% endif %}
     <script defer>
       document.addEventListener("DOMContentLoaded", () => {
         if (window.lucide) window.lucide.createIcons();

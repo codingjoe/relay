@@ -4,8 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.views import OrganizationScopedView
+from services.email.message.models import Message
 
-from .models import IncomingMessage, Webhook, WebhookEncryptionKey
+from .models import Webhook, WebhookEncryptionKey
 
 
 class WebhookEncryptionKeyView(OrganizationScopedView, APIView):
@@ -48,10 +49,10 @@ class WebhookEncryptionKeyView(OrganizationScopedView, APIView):
 
 
 class SealedFileKeyView(OrganizationScopedView, APIView):
-    """Return the sealed file key for an incoming message."""
+    """Return the sealed file key for a message."""
 
     def get(self, request, pk, *args, **kwargs):
-        message = get_object_or_404(IncomingMessage, pk=pk, org=self.org)
+        message = get_object_or_404(Message, pk=pk, org=self.org)
         if not message.sealed_file_key:
             return Response(
                 {"error": "This message has no sealed file key."},

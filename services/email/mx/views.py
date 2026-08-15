@@ -29,6 +29,17 @@ class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         parsed = self.object.parsed_email()
+        if parsed is None:
+            return context | {
+                "is_encrypted": True,
+                "body_url": (
+                    self.object.raw_body.url if self.object.raw_body else None
+                ),
+                "headers": [],
+                "webhook_deliveries": WebhookDelivery.objects.filter(
+                    message=self.object
+                ).select_related("webhook"),
+            }
         return context | {
             "headers": list(parsed.items()),
             "parts": list(parsed.walk()) if parsed.is_multipart() else [parsed],
