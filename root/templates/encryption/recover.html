@@ -74,8 +74,7 @@
         }
 
         // Decode BIP39 mnemonic to entropy.
-        // The entropy is 128 bits (16 bytes) for 12 words.
-        const entropy = relayEntropy.mnemonicToEntropy(words);
+        const entropy = await relayEntropy.mnemonicToEntropy(words);
         if (!entropy) {
           alert("Invalid recovery seed. Check your words and try again.");
           return;

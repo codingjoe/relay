@@ -29,3 +29,6 @@ class RecoveryEventAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "created_at",
         "modified_at",
     ]
+
+    def has_delete_permission(self, request, obj=None):
+        return False

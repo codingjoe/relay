@@ -131,9 +131,8 @@
     );
   }
 
-  // BIP39: 128-bit entropy → 12 words.
-  // Uses the official BIP39 wordlist (2048 words). No external dependency.
-  // The wordlist is embedded as a compact constant.
+  // BIP39: 128-bit entropy to 12 words and back.
+  // Wordlist is loaded from a local static file (bip39-wordlist.json).
   let cachedOrgPrivateKey = null;
 
   function cacheOrgPrivateKey(key) {

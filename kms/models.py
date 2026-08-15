@@ -165,12 +165,12 @@ class RecoveryEvent(TimeStamped):
 
     org_encryption_key = models.ForeignKey(
         OrgEncryptionKey,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="recovery_events",
     )
     triggered_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="+",
         help_text=_("User who entered the recovery mnemonic."),
     )

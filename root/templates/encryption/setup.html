@@ -148,7 +148,7 @@
         if (window.lucide) window.lucide.createIcons();
       }
 
-      function showMnemonic(mnemonicStr) {
+      function showMnemonic(mnemonicStr, onContinue) {
         document.getElementById("mnemonic-display").textContent = mnemonicStr;
         show("encryption-setup-mnemonic");
         const confirmBox = document.getElementById("mnemonic-confirmed");
@@ -157,7 +157,11 @@
           continueBtn.disabled = !confirmBox.checked;
         });
         continueBtn.addEventListener("click", () => {
-          show("encryption-setup-done");
+          continueBtn.disabled = true;
+          continueBtn.innerHTML =
+            '<i data-lucide="loader-circle" class="size-4 animate-spin" aria-hidden="true"></i> {% translate "enabling encryption…"|capfirst %}';
+          if (window.lucide) window.lucide.createIcons();
+          onContinue();
         });
         document.getElementById("mnemonic-copy").addEventListener("click", () => {
           navigator.clipboard.writeText(mnemonicStr);
@@ -244,33 +248,46 @@
             entropy,
           );
 
-          // 10. Send to API.
-          const resp = await fetch(`/org/${orgSlug}/encryption/setup/`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrfToken(),
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              org_public_key: enc.toBase64(orgKeypair.publicKey),
-              org_key_id: "",
-              user_public_key: enc.toBase64(userKeypair.publicKey),
-              user_key_id: "",
-              encrypted_master_key: encryptedMasterKey,
-              encrypted_private_key: encryptedPrivateKey,
-              sealed_org_private_key: sealedOrgPrivateKey,
-              recovery_sealed_org_private_key: recoverySealedOrgPrivateKey,
-            }),
+          // 10. Show mnemonic BEFORE sending to API, so a tab close
+          // does not lose the recovery seed.
+          showMnemonic(mnemonicStr, async () => {
+            // Called when user clicks "Continue" after confirming they
+            // wrote down the seed.
+            try {
+              const resp = await fetch(`/org/${orgSlug}/encryption/setup/`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": csrfToken(),
+                  Accept: "application/json",
+                },
+                body: JSON.stringify({
+                  org_public_key: enc.toBase64(orgKeypair.publicKey),
+                  org_key_id: "",
+                  user_public_key: enc.toBase64(userKeypair.publicKey),
+                  user_key_id: "",
+                  encrypted_master_key: encryptedMasterKey,
+                  encrypted_private_key: encryptedPrivateKey,
+                  sealed_org_private_key: sealedOrgPrivateKey,
+                  recovery_sealed_org_private_key: recoverySealedOrgPrivateKey,
+                }),
+              });
+
+              if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.error || "Setup failed.");
+              }
+
+              show("encryption-setup-done");
+            } catch (err) {
+              errorEl.textContent = err.message;
+              errorEl.classList.remove("hidden");
+              submitBtn.disabled = false;
+              submitBtn.innerHTML =
+                '<i data-lucide="shield-plus" class="size-4" aria-hidden="true"></i> {% translate "enable encryption"|capfirst %}';
+              if (window.lucide) window.lucide.createIcons();
+            }
           });
-
-          if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            throw new Error(err.error || "Setup failed.");
-          }
-
-          // Show mnemonic to user (once, never stored server-side).
-          showMnemonic(mnemonicStr);
         } catch (err) {
           errorEl.textContent = err.message;
           errorEl.classList.remove("hidden");

@@ -38,7 +38,7 @@ def notify_recovery_triggered(recovery_event_id):
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
             )
-        except OSError as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(
                 f"Recovery notification to {membership.user.email} failed: {e}"
             )

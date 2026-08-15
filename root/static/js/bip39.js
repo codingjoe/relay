@@ -11,8 +11,7 @@
   const ENTROPY_BITS = 128;
   const CHECKSUM_BITS = 4;
   const WORD_COUNT = 12;
-  const WORDLIST_URL =
-    "https://cdn.jsdelivr.net/npm/bip39@3.1.0/src/wordlists/english.json";
+  const WORDLIST_URL = "/static/js/bip39-wordlist.json";
 
   let wordlist = null;
   let wordMap = null;
@@ -38,8 +37,8 @@
     const entropy = sodium.randombytes_buf(ENTROPY_BITS / 8);
 
     // Compute checksum: first 4 bits of SHA-256(entropy).
-    const hash = sodium.crypto_generichash(32, entropy);
-    const checksumByte = hash[0];
+    const hashBuffer = await crypto.subtle.digest("SHA-256", entropy);
+    const checksumByte = new Uint8Array(hashBuffer)[0];
 
     // Combine entropy + checksum bits.
     // 128 bits entropy + 4 bits checksum = 132 bits = 16.5 bytes.
@@ -96,9 +95,9 @@
       entropy[i] = byte;
     }
 
-    // Verify checksum.
-    const hash = sodium.crypto_generichash(32, entropy);
-    const checksumByte = hash[0];
+    // Verify checksum using SHA-256 (BIP39 standard).
+    const hashBuffer = await crypto.subtle.digest("SHA-256", entropy);
+    const checksumByte = new Uint8Array(hashBuffer)[0];
     for (let j = 7; j >= 4; j--) {
       const expected = (checksumByte >> j) & 1;
       const actual = bits[ENTROPY_BITS + (7 - j)];

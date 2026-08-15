@@ -2,15 +2,16 @@ import pytest
 
 from accounts.models import Membership, MembershipEncryptionKey, UserEncryptionKey
 from kms import envelope
-from kms.models import OrgEncryptionKey
+from kms.models import OrgEncryptionKey, RecoveryEvent
 
 
-def make_org_encryption_key(org):
+def make_org_encryption_key(org, recovery_sealed_org_private_key=""):
     pair = envelope.generate_x25519_keypair()
     return OrgEncryptionKey.objects.create(
         org=org,
         public_key=envelope.encode_key(pair.public_key),
         is_active=True,
+        recovery_sealed_org_private_key=recovery_sealed_org_private_key,
     )
 
 
@@ -234,3 +235,114 @@ class TestMembershipEncryptionKeyDeleteView:
             f"/org/{org.slug}/encryption/membership-key/{other_user.memberships.get(org=org).pk}/delete"
         )
         assert response.status_code == 403
+
+
+@pytest.mark.django_db
+class TestEncryptionStatusViewRecovery:
+    def test_get__returns_recovery_sealed_org_private_key(self, client, user, org):
+        make_org_encryption_key(org, recovery_sealed_org_private_key="recovery-sealed")
+        client.force_login(user)
+        response = client.get(f"/org/{org.slug}/encryption/")
+        assert response.status_code == 200
+        assert response.json()["recovery_sealed_org_private_key"] == "recovery-sealed"
+
+    def test_get__returns_null_recovery_key_when_not_set(self, client, user, org):
+        make_org_encryption_key(org)
+        client.force_login(user)
+        response = client.get(f"/org/{org.slug}/encryption/")
+        assert response.status_code == 200
+        assert response.json()["recovery_sealed_org_private_key"] is None
+
+
+@pytest.mark.django_db
+class TestEncryptionSetupViewRecovery:
+    def test_post__stores_recovery_sealed_org_private_key(self, client, user, org):
+        client.force_login(user)
+        response = client.post(
+            f"/org/{org.slug}/encryption/setup/",
+            setup_payload(),
+            content_type="application/json",
+        )
+        assert response.status_code == 201
+        org_key = OrgEncryptionKey.objects.get(org=org, is_active=True)
+        assert (
+            org_key.recovery_sealed_org_private_key == "recovery-sealed-org-private-key"
+        )
+
+    def test_post__missing_recovery_field_returns_400(self, client, user, org):
+        client.force_login(user)
+        payload = setup_payload()
+        del payload["recovery_sealed_org_private_key"]
+        response = client.post(
+            f"/org/{org.slug}/encryption/setup/",
+            payload,
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestRecoveryTriggerView:
+    def test_post__creates_recovery_event(self, client, user, org):
+        org_key = make_org_encryption_key(
+            org, recovery_sealed_org_private_key="recovery-sealed"
+        )
+        client.force_login(user)
+        response = client.post(f"/org/{org.slug}/encryption/recover")
+        assert response.status_code == 201
+        assert RecoveryEvent.objects.filter(org_encryption_key=org_key).exists()
+
+    def test_post__returns_201_with_event_id(self, client, user, org):
+        make_org_encryption_key(org, recovery_sealed_org_private_key="recovery-sealed")
+        client.force_login(user)
+        response = client.post(f"/org/{org.slug}/encryption/recover")
+        assert response.status_code == 201
+        body = response.json()
+        assert "recovery_event_id" in body
+        assert "created_at" in body
+        event = RecoveryEvent.objects.get()
+        assert body["recovery_event_id"] == event.pk
+
+    def test_post__no_recovery_key_returns_404(self, client, user, org):
+        make_org_encryption_key(org)
+        client.force_login(user)
+        response = client.post(f"/org/{org.slug}/encryption/recover")
+        assert response.status_code == 404
+
+    def test_post__non_member_gets_404(self, client, other_user, org):
+        make_org_encryption_key(org, recovery_sealed_org_private_key="recovery-sealed")
+        client.force_login(other_user)
+        response = client.post(f"/org/{org.slug}/encryption/recover")
+        assert response.status_code == 404
+
+    def test_post__write_member_can_trigger(self, client, other_user, org):
+        Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
+        make_org_encryption_key(org, recovery_sealed_org_private_key="recovery-sealed")
+        client.force_login(other_user)
+        response = client.post(f"/org/{org.slug}/encryption/recover")
+        assert response.status_code == 201
+
+
+@pytest.mark.django_db
+class TestEncryptionStatusRecoveryEvent:
+    def test_get__returns_recovery_triggered_at_when_recent(self, client, user, org):
+        org_key = make_org_encryption_key(org)
+        RecoveryEvent.objects.create(
+            org_encryption_key=org_key,
+            triggered_by=user,
+        )
+        client.force_login(user)
+        response = client.get(f"/org/{org.slug}/encryption/")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["recovery_triggered_at"] is not None
+        assert body["recovery_triggered_by"] == str(user)
+
+    def test_get__returns_null_recovery_info_when_no_event(self, client, user, org):
+        make_org_encryption_key(org)
+        client.force_login(user)
+        response = client.get(f"/org/{org.slug}/encryption/")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["recovery_triggered_at"] is None
+        assert body["recovery_triggered_by"] is None
