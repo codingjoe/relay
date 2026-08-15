@@ -12,11 +12,32 @@ terraform {
       source  = "hashicorp/null"
       version = "~> 3.2"
     }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
   }
 }
 
 provider "hcloud" {
   token = var.hcloud_token
+}
+
+# AWS provider configured for Hetzner S3-compatible Object Storage
+provider "aws" {
+  region                      = var.s3_region
+  access_key                  = var.s3_access_key
+  secret_key                  = var.s3_secret_key
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_region_validation      = true
+  skip_requesting_account_id  = true
+
+  s3_use_path_style = true
+
+  endpoints {
+    s3 = "https://${var.s3_endpoint}"
+  }
 }
 
 variable "hcloud_token" {
@@ -47,6 +68,33 @@ variable "ssh_public_keys" {
 variable "smtp_floating_ip_count" {
   type    = number
   default = 2
+}
+
+# Hetzner S3 Object Storage
+# Create S3 credentials in Hetzner Cloud Console → Object Storage → Credentials
+variable "s3_access_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "s3_secret_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "s3_endpoint" {
+  type    = string
+  default = "nbg1.your-objectstorage.com"
+}
+
+variable "s3_region" {
+  type    = string
+  default = "nbg1"
+}
+
+variable "s3_bucket_name" {
+  type    = string
+  default = "relay"
 }
 
 # Deployment SSH key pair (used by the-box GitHub Actions)
@@ -126,6 +174,18 @@ resource "null_resource" "floating_ip_config" {
   depends_on = [hcloud_primary_ip.smtp]
 }
 
+# S3 bucket for message storage (Hetzner Object Storage)
+resource "aws_s3_bucket" "relay" {
+  bucket = var.s3_bucket_name
+}
+
+resource "aws_s3_bucket_ownership_controls" "relay" {
+  bucket = aws_s3_bucket.relay.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
 output "server_ip" {
   value = hcloud_server.relay.ipv4_address
 }
@@ -137,4 +197,12 @@ output "smtp_ips" {
 output "ssh_private_key" {
   value     = tls_private_key.deploy_key.private_key_openssh
   sensitive = true
+}
+
+output "s3_endpoint_url" {
+  value = "https://${var.s3_endpoint}"
+}
+
+output "s3_bucket_name" {
+  value = aws_s3_bucket.relay.bucket
 }
