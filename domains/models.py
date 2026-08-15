@@ -231,12 +231,10 @@ class Domain(TimeStamped):
         if is_new and self.dkim_key_rsa2048_id is None:
             self.dkim_key_rsa2048 = SigningKey.generate(SigningKey.Algorithm.RSA_2048)
             self.dkim_key_rsa1024 = SigningKey.generate(SigningKey.Algorithm.RSA_1024)
-            self.dkim_key_ed25519 = SigningKey.generate(SigningKey.Algorithm.ED25519)
             super().save(
                 update_fields=[
                     "dkim_key_rsa2048",
                     "dkim_key_rsa1024",
-                    "dkim_key_ed25519",
                 ]
             )
 
@@ -287,7 +285,6 @@ class Domain(TimeStamped):
         return [
             (f"{prefix}-rsa2048", self.dkim_key_rsa2048),
             (f"{prefix}-rsa1024", self.dkim_key_rsa1024),
-            (f"{prefix}-ed25519", self.dkim_key_ed25519),
         ]
 
     @property

@@ -28,13 +28,13 @@ class TestSignMessage:
         assert b"DKIM-Signature:" in signed
 
     @pytest.mark.django_db
-    def test_sign_message__signs_with_all_three_ciphers(self):
+    def test_sign_message__signs_with_both_ciphers(self):
         from domains.dkim import sign_message
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
-        assert signed.count(b"DKIM-Signature:") == 3
+        assert signed.count(b"DKIM-Signature:") == 2
 
     @pytest.mark.django_db
     def test_sign_message__includes_all_selectors(self):
@@ -45,7 +45,6 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"s=relay-rsa2048" in signed
         assert b"s=relay-rsa1024" in signed
-        assert b"s=relay-ed25519" in signed
 
     @pytest.mark.django_db
     def test_sign_message__includes_domain(self):

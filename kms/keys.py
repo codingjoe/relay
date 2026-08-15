@@ -20,7 +20,6 @@ class Algorithm:
 DEFAULT_DKIM_ALGORITHMS: tuple[str, ...] = (
     Algorithm.RSA_2048,
     Algorithm.RSA_1024,
-    Algorithm.ED25519,
 )
 
 

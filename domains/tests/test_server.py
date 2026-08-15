@@ -1,8 +1,9 @@
 import base64
 import re
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
+from django.conf import settings
 from django.db import DatabaseError
 from dnslib import RCODE, DNSLabel, DNSRecord
 from dnslib.dns import QTYPE, DNSError
@@ -82,25 +83,47 @@ def make_domain_with_dkim_key(algorithm):
 class TestResolveTxt:
     def test_resolve_txt__ed25519_dkim_record_includes_k_tag(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.ED25519)
-        selector, _ = domain.dkim_ciphers[2]
-        query_name = f"{selector}._domainkey.{domain.name}"
-        records = list(
-            DNSResolver().resolve_txt(
-                DNSLabel(query_name), QTYPE.TXT, query_name, domain
+        prefix = settings.RELAY_DNS_DKIM_IDENTIFIER
+        selector = f"{prefix}-ed25519"
+        # dkim_ciphers no longer includes ed25519; patch it so the resolver
+        # can serve the manually-set key's record.
+        ciphers = [
+            (f"{prefix}-rsa2048", domain.dkim_key_rsa2048),
+            (f"{prefix}-rsa1024", domain.dkim_key_rsa1024),
+            (selector, domain.dkim_key_ed25519),
+        ]
+        with patch.object(
+            Domain, "dkim_ciphers", new_callable=PropertyMock, return_value=ciphers
+        ):
+            query_name = f"{selector}._domainkey.{domain.name}"
+            records = list(
+                DNSResolver().resolve_txt(
+                    DNSLabel(query_name), QTYPE.TXT, query_name, domain
+                )
             )
-        )
         record_str = b"".join(records[0].rdata.data).decode("ascii")
         assert "k=ed25519" in record_str
 
     def test_resolve_txt__ed25519_dkim_record_has_raw_public_key(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.ED25519)
-        selector, _ = domain.dkim_ciphers[2]
-        query_name = f"{selector}._domainkey.{domain.name}"
-        records = list(
-            DNSResolver().resolve_txt(
-                DNSLabel(query_name), QTYPE.TXT, query_name, domain
+        prefix = settings.RELAY_DNS_DKIM_IDENTIFIER
+        selector = f"{prefix}-ed25519"
+        # dkim_ciphers no longer includes ed25519; patch it so the resolver
+        # can serve the manually-set key's record.
+        ciphers = [
+            (f"{prefix}-rsa2048", domain.dkim_key_rsa2048),
+            (f"{prefix}-rsa1024", domain.dkim_key_rsa1024),
+            (selector, domain.dkim_key_ed25519),
+        ]
+        with patch.object(
+            Domain, "dkim_ciphers", new_callable=PropertyMock, return_value=ciphers
+        ):
+            query_name = f"{selector}._domainkey.{domain.name}"
+            records = list(
+                DNSResolver().resolve_txt(
+                    DNSLabel(query_name), QTYPE.TXT, query_name, domain
+                )
             )
-        )
         record_str = b"".join(records[0].rdata.data).decode("ascii")
         match = re.search(r"p=([^;]+)", record_str)
         public_key = base64.b64decode(match.group(1))
