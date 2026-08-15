@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: '0 0 * * *' # Sync daily at midnight
   workflow_dispatch: # Allow manual trigger
+    inputs:
+      environment:
+        description: 'Target environment for deployment'
+        required: true
+        type: environment
+        default: 'production'
 concurrency:
   group: backup
   cancel-in-progress: false
@@ -17,4 +23,4 @@ jobs:
           ssh-known-hosts: ${{ vars.SSH_KNOWN_HOSTS }}
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
           dotenv-private-key: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
-          environment: ${{ github.environment }}
+          environment: ${{ github.event.inputs.environment || 'production' }}
