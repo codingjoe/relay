@@ -387,3 +387,68 @@ class TlsFailure(TimeStamped):
 
     def __str__(self):
         return f"{self.get_result_type_display()} ×{self.count} ({self.receiving_mx_hostname})"
+
+
+class WebhookEncryptionKey(TimeStamped):
+    """Store a webhook recipient's X25519 public key for per-file sealing.
+
+    Each file key is sealed with the webhook's public key so the recipient
+    application can decrypt messages independently. The application holds
+    the corresponding private key; Relay never sees it.
+    """
+
+    webhook = models.OneToOneField(
+        Webhook,
+        on_delete=models.CASCADE,
+        related_name="encryption_key",
+    )
+    public_key = models.TextField(
+        _("public key"),
+        help_text=_("Base64-encoded X25519 public key for the webhook recipient."),
+    )
+    key_id = models.CharField(
+        _("key ID"),
+        max_length=16,
+        editable=False,
+        help_text=_("Short SHA256 fingerprint of the public key."),
+    )
+
+    def __str__(self):
+        return f"{self.webhook} / {self.key_id}"
+
+
+class SealedFileKey(TimeStamped):
+    """Store a file key sealed for a specific webhook recipient.
+
+    Each incoming message gets one sealed file key per matching webhook,
+    encrypted with that webhook's X25519 public key via crypto_box_seal.
+    Only the webhook application's private key can unseal it.
+    """
+
+    message = models.ForeignKey(
+        IncomingMessage,
+        on_delete=models.CASCADE,
+        related_name="sealed_file_keys",
+    )
+    webhook = models.ForeignKey(
+        Webhook,
+        on_delete=models.CASCADE,
+        related_name="sealed_file_keys",
+    )
+    sealed_key = models.TextField(
+        _("sealed key"),
+        help_text=_(
+            "File key sealed with the webhook's X25519 public key via crypto_box_seal."
+        ),
+    )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["message", "webhook"],
+                name="unique_sealed_file_key_per_message_webhook",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.message} → {self.webhook}"

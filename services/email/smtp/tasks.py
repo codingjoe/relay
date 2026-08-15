@@ -19,6 +19,7 @@ class MxHostsExhausted(Exception):
 @task
 def deliver_message(message_id):
     """Deliver a queued outgoing message to its recipients."""
+    from .handlers import encrypt_stored_body
     from .models import OutgoingMessage, SuppressionEntry, Transmission
 
     message = OutgoingMessage.objects.select_related("domain").get(pk=message_id)
@@ -102,6 +103,7 @@ def deliver_message(message_id):
                 )
                 message.status = OutgoingMessage.Status.SENT
                 message.save(update_fields=["status"])
+                encrypt_stored_body(message, raw_bytes)
                 return
             except aiosmtplib.SMTPResponseException as e:
                 code = getattr(e, "code", getattr(e, "smtp_code", 0))
@@ -115,6 +117,7 @@ def deliver_message(message_id):
                 )
                 message.status = OutgoingMessage.Status.BOUNCED
                 message.save(update_fields=["status"])
+                encrypt_stored_body(message, raw_bytes)
                 SuppressionEntry.objects.create_or_update(
                     org=message.org,
                     email=message.rcpt_to,
@@ -135,6 +138,12 @@ def deliver_message(message_id):
         )
         message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
+        if not message.sealed_file_key:
+            try:
+                body = message.raw_body.read()
+                encrypt_stored_body(message, body)
+            except Exception:  # noqa: BLE001
+                logger.warning(f"Could not encrypt body for message {message_id}")
 
 
 def fetch_mx_hosts(domain):

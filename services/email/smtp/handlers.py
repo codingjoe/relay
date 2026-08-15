@@ -6,15 +6,46 @@ from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
 from domains.models import Domain, canonicalize_domain_name
+from kms import envelope
+from kms.models import OrgEncryptionKey
 
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
 from .tasks import deliver_message
 
 logger = logging.getLogger(__name__)
+
+
+def encrypt_stored_body(message, plaintext):
+    """Encrypt the message body and update the stored copy on S3.
+
+    If the org has an active encryption key, the plaintext is encrypted and
+    the encrypted ciphertext replaces the raw body on S3. The file key is
+    sealed with the org's public key and stored on the message. If no
+    encryption key is configured, the plaintext is kept as-is.
+    """
+    try:
+        org_key = OrgEncryptionKey.objects.get(org_id=message.org_id, is_active=True)
+    except OrgEncryptionKey.DoesNotExist:
+        pass
+    else:
+        result = envelope.encrypt_for_org(
+            plaintext, envelope.decode_key(org_key.public_key), org_key.key_id
+        )
+        message.raw_body.save(
+            message.raw_body.name.split("/")[-1],
+            ContentFile(result.ciphertext),
+            save=False,
+        )
+        message.sealed_file_key = result.sealed_file_key
+        message.org_encryption_key_id = result.org_encryption_key_id
+        message.save(
+            update_fields=["raw_body", "sealed_file_key", "org_encryption_key_id"]
+        )
 
 
 class SMTPHandler:
@@ -101,7 +132,7 @@ def process_suppressed_message(
     """Store a suppressed message without enqueuing delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
-    OutgoingMessage.objects.create(
+    message = OutgoingMessage(
         sender=sender,
         org=credential.org,
         rcpt_to=rcpt_to,
@@ -112,8 +143,10 @@ def process_suppressed_message(
         credential=credential,
         status=OutgoingMessage.Status.SUPPRESSED,
         received_with_tls=bool(ssl),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
+    message.raw_body = SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes)
+    message.save(force_insert=True)
+    encrypt_stored_body(message, raw_bytes)
     logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
     return "250 OK"
 

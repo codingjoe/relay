@@ -194,3 +194,84 @@ class Credential(OrganizationOwned):
             self.save(update_fields=["last_used_at", "modified_at"])
             return True
         return False
+
+
+class UserEncryptionKey(TimeStamped):
+    """Store a user's X25519 public key and encrypted private key material.
+
+    The private key is encrypted with the user's Master Key, which is in turn
+    encrypted with a KEK derived from the user's encryption passphrase. The
+    server never sees the passphrase, KEK, or Master Key. All derivation and
+    decryption happen client-side in the browser.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="encryption_keys",
+    )
+    public_key = models.TextField(
+        _("public key"),
+        help_text=_("Base64-encoded X25519 public key."),
+    )
+    encrypted_master_key = models.TextField(
+        _("encrypted master key"),
+        help_text=_(
+            "Master Key encrypted with the KEK derived from the user's "
+            "encryption passphrase. Decrypted client-side only."
+        ),
+    )
+    encrypted_private_key = models.TextField(
+        _("encrypted private key"),
+        help_text=_(
+            "X25519 private key encrypted with the Master Key. "
+            "Decrypted client-side only."
+        ),
+    )
+    key_id = models.CharField(
+        _("key ID"),
+        max_length=16,
+        editable=False,
+        help_text=_("Short SHA256 fingerprint of the public key."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "key_id"],
+                name="unique_user_encryption_key_id_per_user",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} / {self.key_id}"
+
+
+class MembershipEncryptionKey(TimeStamped):
+    """Distribute an org's private key to a member via sealed encryption.
+
+    The org private key is sealed (encrypted) with the member's X25519 public
+    key using crypto_box_seal. Only the member's private key can unseal it.
+    Deleting this row revokes the member's ability to decrypt org files.
+    """
+
+    membership = models.OneToOneField(
+        Membership,
+        on_delete=models.CASCADE,
+        related_name="encryption_key",
+    )
+    org_encryption_key = models.ForeignKey(
+        "kms.OrgEncryptionKey",
+        on_delete=models.CASCADE,
+        related_name="membership_keys",
+    )
+    sealed_org_private_key = models.TextField(
+        _("sealed org private key"),
+        help_text=_(
+            "Org X25519 private key sealed with the member's public key "
+            "via crypto_box_seal. Unsealed client-side only."
+        ),
+    )
+
+    def __str__(self):
+        return f"{self.membership} / {self.org_encryption_key.key_id}"

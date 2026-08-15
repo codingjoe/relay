@@ -86,3 +86,50 @@ class SigningKey(TimeStamped):
             public_key=pair.public_key_pem,
             key_id=pair.key_id,
         )
+
+
+class OrgEncryptionKey(TimeStamped):
+    """Store an organization's X25519 public key for envelope encryption.
+
+    The server uses this public key to seal file keys. The corresponding
+    private key is never stored server-side. It is distributed to org
+    members and webhook applications as sealed copies (encrypted with each
+    recipient's own public key).
+    """
+
+    org = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="encryption_keys",
+    )
+    public_key = models.TextField(
+        _("public key"),
+        help_text=_("Base64-encoded X25519 public key used to seal file keys."),
+    )
+    key_id = models.CharField(
+        _("key ID"),
+        max_length=16,
+        editable=False,
+        help_text=_("Short SHA256 fingerprint of the public key."),
+    )
+    is_active = models.BooleanField(
+        _("active"),
+        default=True,
+        help_text=_("Only the active key is used to seal new file keys."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org", "key_id"],
+                name="unique_org_encryption_key_id_per_org",
+            ),
+            models.UniqueConstraint(
+                fields=["org"],
+                condition=models.Q(is_active=True),
+                name="unique_active_org_encryption_key_per_org",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.org} / {self.key_id}{' (active)' if self.is_active else ''}"

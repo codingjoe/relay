@@ -14,7 +14,14 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
+from .models import (
+    IncomingMessage,
+    SealedFileKey,
+    TlsFailure,
+    TlsReport,
+    Webhook,
+    WebhookDelivery,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -111,12 +118,13 @@ class WebhookEvent:
     received_with_tls: bool
     receiving_domain: str
     body_url: str | None
+    sealed_file_key: str | None = None
     received_at: str = field(
         default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     )
 
     @classmethod
-    def from_message(cls, message, *, is_test=False):
+    def from_message(cls, message, *, is_test=False, sealed_file_key=None):
         """Build a webhook event payload from a stored message (or a test ping)."""
         if is_test and message is None:
             return cls(
@@ -129,6 +137,7 @@ class WebhookEvent:
                 received_with_tls=False,
                 receiving_domain="",
                 body_url=None,
+                sealed_file_key=None,
             )
         return cls(
             type="email.test" if is_test else "email.received",
@@ -140,6 +149,7 @@ class WebhookEvent:
             received_with_tls=message.received_with_tls,
             receiving_domain=message.receiving_domain,
             body_url=message.raw_body.url if message.raw_body else None,
+            sealed_file_key=sealed_file_key,
         )
 
 
@@ -153,7 +163,16 @@ class WebhookJSONEncoder(DjangoJSONEncoder):
 def deliver_to_webhook(message, webhook, is_test=False):
     msg_id = f"msg_{uuid.uuid7()}"
     timestamp = int(time.time())
-    payload = WebhookEvent.from_message(message, is_test=is_test)
+    sealed_file_key = None
+    if not is_test:
+        try:
+            sealed = SealedFileKey.objects.get(message=message, webhook=webhook)
+            sealed_file_key = sealed.sealed_key
+        except SealedFileKey.DoesNotExist:
+            pass
+    payload = WebhookEvent.from_message(
+        message, is_test=is_test, sealed_file_key=sealed_file_key
+    )
     payload_bytes = json.dumps(payload, sort_keys=True, cls=WebhookJSONEncoder).encode()
     signature = webhook.sign(msg_id, timestamp, payload_bytes)
 

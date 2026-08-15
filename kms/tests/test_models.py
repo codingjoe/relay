@@ -2,7 +2,8 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from django.db import IntegrityError
 
-from kms.models import SigningKey
+from kms import envelope
+from kms.models import OrgEncryptionKey, SigningKey
 
 
 @pytest.mark.django_db
@@ -111,3 +112,57 @@ class TestSigningKeyConstraints:
                 public_key=key1.public_key,
                 encrypted_private_key=key1.encrypted_private_key,
             )
+
+
+def _make_org_encryption_key(org, is_active=True):
+    """Create an OrgEncryptionKey with a fresh X25519 keypair."""
+    pair = envelope.generate_org_keypair()
+    return OrgEncryptionKey.objects.create(
+        org=org,
+        public_key=envelope.encode_key(pair.public_key),
+        key_id=envelope.key_fingerprint(pair.public_key),
+        is_active=is_active,
+    )
+
+
+@pytest.mark.django_db
+class TestOrgEncryptionKeyCreate:
+    def test_create__persists_fields(self, org):
+        pair = envelope.generate_org_keypair()
+        public_key = envelope.encode_key(pair.public_key)
+        key_id = envelope.key_fingerprint(pair.public_key)
+        key = OrgEncryptionKey.objects.create(
+            org=org,
+            public_key=public_key,
+            key_id=key_id,
+            is_active=True,
+        )
+        key.refresh_from_db()
+        assert key.org == org
+        assert key.public_key == public_key
+        assert key.key_id == key_id
+        assert key.is_active is True
+
+
+@pytest.mark.django_db
+class TestOrgEncryptionKeyStr:
+    def test_str__active(self, org):
+        key = _make_org_encryption_key(org, is_active=True)
+        assert str(key) == f"{org} / {key.key_id} (active)"
+
+    def test_str__inactive(self, org):
+        key = _make_org_encryption_key(org, is_active=False)
+        assert str(key) == f"{org} / {key.key_id}"
+
+
+@pytest.mark.django_db
+class TestOrgEncryptionKeyConstraints:
+    def test_unique_active__only_one_per_org(self, org):
+        _make_org_encryption_key(org, is_active=True)
+        with pytest.raises(IntegrityError):
+            _make_org_encryption_key(org, is_active=True)
+
+    def test_multiple_inactive__allowed_for_same_org(self, org):
+        _make_org_encryption_key(org, is_active=False)
+        _make_org_encryption_key(org, is_active=False)
+        assert OrgEncryptionKey.objects.filter(org=org).count() == 2

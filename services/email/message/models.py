@@ -50,7 +50,20 @@ class Message(TimeStamped):
         _("raw body"),
         upload_to="messages/",
         blank=True,
-        help_text=_("Raw RFC 822 message bytes."),
+        help_text=_("Encrypted raw RFC 822 message bytes."),
+    )
+    sealed_file_key = models.TextField(
+        _("sealed file key"),
+        blank=True,
+        help_text=_(
+            "File key sealed with the org's active X25519 public key. "
+            "Unsealed client-side with the org private key."
+        ),
+    )
+    org_encryption_key_id = models.TextField(
+        _("org encryption key ID"),
+        blank=True,
+        help_text=_("Fingerprint of the org encryption key used to seal the file key."),
     )
     received_with_tls = models.BooleanField(
         _("received with TLS"),
@@ -128,7 +141,13 @@ class Message(TimeStamped):
         return child.get_absolute_url()
 
     def parsed_email(self):
-        """Parse the raw body into an `email.message.Message` object."""
+        """Parse the raw body into an `email.message.Message` object.
+
+        Returns `None` for encrypted messages (the body can only be
+        decrypted client-side).
+        """
+        if self.sealed_file_key:
+            return None
         try:
             return message_from_bytes(self.raw_body.read())
         except FileNotFoundError:

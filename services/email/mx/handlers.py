@@ -7,8 +7,10 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 
 from domains.models import Domain
+from kms import envelope
+from kms.models import OrgEncryptionKey
 
-from .models import IncomingMessage, TlsReport
+from .models import IncomingMessage, SealedFileKey, TlsReport, Webhook
 from .tasks import dispatch_webhook, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,53 @@ class MXHandler:
         )
         logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
         return result
+
+
+def save_encrypted_body(message, raw_bytes, org):
+    """Encrypt and save the raw body to S3. Return the plaintext file key if encrypted, else None.
+
+    If the org has an active encryption key, the body is encrypted with a
+    random file key and the file key is sealed with the org's public key.
+    Otherwise the plaintext body is stored as-is (backward compatible).
+    """
+    try:
+        org_key = OrgEncryptionKey.objects.get(org=org, is_active=True)
+    except OrgEncryptionKey.DoesNotExist:
+        message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
+        return None
+
+    file_key = envelope.generate_file_key()
+    ciphertext = envelope.encrypt_body(raw_bytes, file_key)
+    message.raw_body.save(f"{message.id}.eml", ContentFile(ciphertext), save=False)
+    sealed = envelope.seal_file_key(file_key, envelope.decode_key(org_key.public_key))
+    message.sealed_file_key = envelope.encode_key(sealed)
+    message.org_encryption_key_id = org_key.key_id
+    return file_key
+
+
+def seal_file_keys_for_webhooks(message, file_key, rcpt_to):
+    """Seal the file key for each matching webhook with an encryption key."""
+    webhooks = Webhook.objects.filter(
+        org=message.org,
+        is_active=True,
+        encryption_key__isnull=False,
+    ).select_related("encryption_key")
+    sealed_keys = [
+        SealedFileKey(
+            message=message,
+            webhook=webhook,
+            sealed_key=envelope.encode_key(
+                envelope.seal_file_key(
+                    file_key,
+                    envelope.decode_key(webhook.encryption_key.public_key),
+                )
+            ),
+        )
+        for webhook in webhooks
+        if webhook.matches(rcpt_to)
+    ]
+    if sealed_keys:
+        SealedFileKey.objects.bulk_create(sealed_keys)
 
 
 @sync_to_async
@@ -136,8 +185,10 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
         received_with_tls=bool(tls),
         status=IncomingMessage.Status.RECEIVED,
     )
-    message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
+    file_key = save_encrypted_body(message, raw_bytes, domain.org)
     message.save(force_insert=True)
+    if file_key:
+        seal_file_keys_for_webhooks(message, file_key, rcpt_to)
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
     transaction.on_commit(lambda: enqueue_dmarc_evaluation(message))
     if is_postmaster_recipient:
