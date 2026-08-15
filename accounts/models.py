@@ -41,7 +41,7 @@ class Organization(TimeStamped):
         related_name="organizations",
     )
 
-    billing_is_active = False
+    billing_is_active = True
 
     def __str__(self):
         return self.slug
