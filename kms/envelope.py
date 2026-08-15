@@ -10,8 +10,8 @@ FILE_KEY_SIZE = 32  # bytes, for XSalsa20-Poly1305
 
 
 @dataclass(frozen=True)
-class OrgKeyPair:
-    """An X25519 keypair for an organization.
+class X25519KeyPair:
+    """An X25519 keypair for sealed-box encryption.
 
     Only the public key is stored server-side.
     """
@@ -20,10 +20,10 @@ class OrgKeyPair:
     private_key: bytes  # 32 bytes
 
 
-def generate_org_keypair() -> OrgKeyPair:
-    """Generate a random X25519 keypair for an organization."""
+def generate_x25519_keypair() -> X25519KeyPair:
+    """Generate a random X25519 keypair."""
     private_key = PrivateKey.generate()
-    return OrgKeyPair(
+    return X25519KeyPair(
         public_key=bytes(private_key.public_key),
         private_key=bytes(private_key),
     )
@@ -65,16 +65,6 @@ def unseal_file_key(sealed: bytes, recipient_private_key: bytes) -> bytes:
     return SealedBox(PrivateKey(recipient_private_key)).decrypt(sealed)
 
 
-def seal_org_private_key(org_private_key: bytes, recipient_public_key: bytes) -> bytes:
-    """Seal an org private key with a recipient's public key."""
-    return seal_file_key(org_private_key, recipient_public_key)
-
-
-def unseal_org_private_key(sealed: bytes, recipient_private_key: bytes) -> bytes:
-    """Unseal an org private key sealed with `seal_org_private_key`."""
-    return unseal_file_key(sealed, recipient_private_key)
-
-
 def key_fingerprint(public_key: bytes) -> str:
     """Return a 16-character hex fingerprint of a public key."""
     return hashlib.sha256(public_key).hexdigest()[:16]
@@ -92,26 +82,30 @@ def decode_key(encoded: str) -> bytes:
 
 @dataclass(frozen=True)
 class EncryptionResult:
-    """Ciphertext and sealed file key produced by encrypt_for_org."""
+    """Ciphertext and sealed file key produced by seal_and_encrypt."""
 
     ciphertext: bytes
     sealed_file_key: str
     org_encryption_key_id: str
+    file_key: bytes
 
 
-def encrypt_for_org(
-    plaintext: bytes, org_public_key: bytes, org_key_id: str
+def seal_and_encrypt(
+    plaintext: bytes, recipient_public_key: bytes, key_id: str
 ) -> EncryptionResult:
-    """Encrypt plaintext and seal the file key with the org's public key.
+    """Encrypt plaintext and seal the file key with the recipient's public key.
 
     Return the ciphertext (for S3), a base64 sealed file key (for the DB),
-    and the org key ID used for sealing.
+    the key ID used for sealing, and the raw file key (for sealing additional
+    copies, for example for webhooks). Callers must discard the file key
+    after use.
     """
     file_key = generate_file_key()
     ciphertext = encrypt_body(plaintext, file_key)
-    sealed = seal_file_key(file_key, org_public_key)
+    sealed = seal_file_key(file_key, recipient_public_key)
     return EncryptionResult(
         ciphertext=ciphertext,
         sealed_file_key=encode_key(sealed),
-        org_encryption_key_id=org_key_id,
+        org_encryption_key_id=key_id,
+        file_key=file_key,
     )

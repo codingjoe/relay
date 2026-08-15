@@ -47,7 +47,7 @@ class MXHandler:
         return result
 
 
-def save_encrypted_body(message, raw_bytes, org):
+def save_encrypted_body(message, raw_bytes, org) -> bytes | None:
     """Encrypt and save the raw body to S3. Return the plaintext file key if encrypted, else None.
 
     If the org has an active encryption key, the body is encrypted with a
@@ -60,13 +60,15 @@ def save_encrypted_body(message, raw_bytes, org):
         message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
         return None
 
-    file_key = envelope.generate_file_key()
-    ciphertext = envelope.encrypt_body(raw_bytes, file_key)
-    message.raw_body.save(f"{message.id}.eml", ContentFile(ciphertext), save=False)
-    sealed = envelope.seal_file_key(file_key, envelope.decode_key(org_key.public_key))
-    message.sealed_file_key = envelope.encode_key(sealed)
-    message.org_encryption_key_id = org_key.key_id
-    return file_key
+    result = envelope.seal_and_encrypt(
+        raw_bytes, envelope.decode_key(org_key.public_key), org_key.key_id
+    )
+    message.raw_body.save(
+        f"{message.id}.eml", ContentFile(result.ciphertext), save=False
+    )
+    message.sealed_file_key = result.sealed_file_key
+    message.org_encryption_key_id = result.org_encryption_key_id
+    return result.file_key
 
 
 def seal_file_keys_for_webhooks(message, file_key, rcpt_to):
@@ -86,6 +88,7 @@ def seal_file_keys_for_webhooks(message, file_key, rcpt_to):
                     envelope.decode_key(webhook.encryption_key.public_key),
                 )
             ),
+            webhook_key_id=webhook.encryption_key.key_id,
         )
         for webhook in webhooks
         if webhook.matches(rcpt_to)
@@ -186,9 +189,10 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
         status=IncomingMessage.Status.RECEIVED,
     )
     file_key = save_encrypted_body(message, raw_bytes, domain.org)
-    message.save(force_insert=True)
-    if file_key:
-        seal_file_keys_for_webhooks(message, file_key, rcpt_to)
+    with transaction.atomic():
+        message.save(force_insert=True)
+        if file_key:
+            seal_file_keys_for_webhooks(message, file_key, rcpt_to)
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
     transaction.on_commit(lambda: enqueue_dmarc_evaluation(message))
     if is_postmaster_recipient:

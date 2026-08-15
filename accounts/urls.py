@@ -2,6 +2,13 @@ from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 
 from . import views
+from .encryption_views import (
+    EncryptionSetupView,
+    EncryptionStatusView,
+    MembershipEncryptionKeyDeleteView,
+    MembershipEncryptionKeyListView,
+    UserEncryptionKeyView,
+)
 
 app_name = "accounts"
 
@@ -31,6 +38,38 @@ urlpatterns = [
                     "",
                     views.OrganizationHomeView.as_view(),
                     name="org-home",
+                ),
+                path(
+                    "encryption/",
+                    include(
+                        [
+                            path(
+                                "",
+                                EncryptionStatusView.as_view(),
+                                name="encryption-status",
+                            ),
+                            path(
+                                "setup/",
+                                EncryptionSetupView.as_view(),
+                                name="encryption-setup",
+                            ),
+                            path(
+                                "user-key/",
+                                UserEncryptionKeyView.as_view(),
+                                name="user-encryption-key",
+                            ),
+                            path(
+                                "membership-key/",
+                                MembershipEncryptionKeyListView.as_view(),
+                                name="membership-encryption-key-list",
+                            ),
+                            path(
+                                "membership-key/<int:membership_pk>/delete",
+                                MembershipEncryptionKeyDeleteView.as_view(),
+                                name="membership-encryption-key-delete",
+                            ),
+                        ]
+                    ),
                 ),
                 path(
                     "settings/",

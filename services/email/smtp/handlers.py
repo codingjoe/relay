@@ -33,7 +33,7 @@ def encrypt_stored_body(message, plaintext):
     except OrgEncryptionKey.DoesNotExist:
         pass
     else:
-        result = envelope.encrypt_for_org(
+        result = envelope.seal_and_encrypt(
             plaintext, envelope.decode_key(org_key.public_key), org_key.key_id
         )
         message.raw_body.save(

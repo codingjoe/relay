@@ -116,7 +116,7 @@ class TestSigningKeyConstraints:
 
 def _make_org_encryption_key(org, is_active=True):
     """Create an OrgEncryptionKey with a fresh X25519 keypair."""
-    pair = envelope.generate_org_keypair()
+    pair = envelope.generate_x25519_keypair()
     return OrgEncryptionKey.objects.create(
         org=org,
         public_key=envelope.encode_key(pair.public_key),
@@ -128,7 +128,7 @@ def _make_org_encryption_key(org, is_active=True):
 @pytest.mark.django_db
 class TestOrgEncryptionKeyCreate:
     def test_create__persists_fields(self, org):
-        pair = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
         public_key = envelope.encode_key(pair.public_key)
         key_id = envelope.key_fingerprint(pair.public_key)
         key = OrgEncryptionKey.objects.create(

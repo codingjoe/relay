@@ -133,3 +133,10 @@ class OrgEncryptionKey(TimeStamped):
 
     def __str__(self):
         return f"{self.org} / {self.key_id}{' (active)' if self.is_active else ''}"
+
+    def save(self, *args, **kwargs):
+        if not self.key_id:
+            from kms import envelope
+
+            self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
+        super().save(*args, **kwargs)

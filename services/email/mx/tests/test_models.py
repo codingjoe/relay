@@ -178,7 +178,7 @@ def incoming_message(org):
 
 def _make_webhook_encryption_key(webhook):
     """Create a WebhookEncryptionKey with a fresh X25519 keypair."""
-    pair = envelope.generate_org_keypair()
+    pair = envelope.generate_x25519_keypair()
     return WebhookEncryptionKey.objects.create(
         webhook=webhook,
         public_key=envelope.encode_key(pair.public_key),
@@ -189,7 +189,7 @@ def _make_webhook_encryption_key(webhook):
 class TestWebhookEncryptionKeyCreate:
     @pytest.mark.django_db
     def test_create__persists_fields(self, webhook):
-        pair = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
         public_key = envelope.encode_key(pair.public_key)
         key_id = envelope.key_fingerprint(pair.public_key)
         key = WebhookEncryptionKey.objects.create(
@@ -204,7 +204,7 @@ class TestWebhookEncryptionKeyCreate:
 
     @pytest.mark.django_db
     def test_str__shows_webhook_and_key_id(self, webhook):
-        pair = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
         key_id = envelope.key_fingerprint(pair.public_key)
         key = WebhookEncryptionKey.objects.create(
             webhook=webhook,

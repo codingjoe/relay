@@ -416,6 +416,13 @@ class WebhookEncryptionKey(TimeStamped):
     def __str__(self):
         return f"{self.webhook} / {self.key_id}"
 
+    def save(self, *args, **kwargs):
+        if not self.key_id:
+            from kms import envelope
+
+            self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
+        super().save(*args, **kwargs)
+
 
 class SealedFileKey(TimeStamped):
     """Store a file key sealed for a specific webhook recipient.
@@ -440,6 +447,14 @@ class SealedFileKey(TimeStamped):
         help_text=_(
             "File key sealed with the webhook's X25519 public key via crypto_box_seal."
         ),
+    )
+    webhook_key_id = models.CharField(
+        _("webhook key ID"),
+        max_length=16,
+        blank=True,
+        default="",
+        editable=False,
+        help_text=_("Fingerprint of the webhook encryption key used for sealing."),
     )
 
     class Meta(TimeStamped.Meta):

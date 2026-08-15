@@ -246,6 +246,13 @@ class UserEncryptionKey(TimeStamped):
     def __str__(self):
         return f"{self.user} / {self.key_id}"
 
+    def save(self, *args, **kwargs):
+        if not self.key_id:
+            from kms import envelope
+
+            self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
+        super().save(*args, **kwargs)
+
 
 class MembershipEncryptionKey(TimeStamped):
     """Distribute an org's private key to a member via sealed encryption.

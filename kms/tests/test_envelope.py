@@ -5,17 +5,17 @@ from kms import envelope
 
 
 class TestGenerateOrgKeypair:
-    def test_generate_org_keypair__public_key_is_32_bytes(self):
-        pair = envelope.generate_org_keypair()
+    def test_generate_x25519_keypair__public_key_is_32_bytes(self):
+        pair = envelope.generate_x25519_keypair()
         assert len(pair.public_key) == 32
 
-    def test_generate_org_keypair__private_key_is_32_bytes(self):
-        pair = envelope.generate_org_keypair()
+    def test_generate_x25519_keypair__private_key_is_32_bytes(self):
+        pair = envelope.generate_x25519_keypair()
         assert len(pair.private_key) == 32
 
-    def test_generate_org_keypair__different_each_call(self):
-        pair1 = envelope.generate_org_keypair()
-        pair2 = envelope.generate_org_keypair()
+    def test_generate_x25519_keypair__different_each_call(self):
+        pair1 = envelope.generate_x25519_keypair()
+        pair2 = envelope.generate_x25519_keypair()
         assert pair1.public_key != pair2.public_key
         assert pair1.private_key != pair2.private_key
 
@@ -61,54 +61,52 @@ class TestEncryptDecryptBody:
 
 class TestSealUnsealFileKey:
     def test_unseal_file_key__recovers_original(self):
-        pair = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
         file_key = envelope.generate_file_key()
         sealed = envelope.seal_file_key(file_key, pair.public_key)
         assert envelope.unseal_file_key(sealed, pair.private_key) == file_key
 
     def test_seal_file_key__differs_from_plaintext(self):
-        pair = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
         file_key = envelope.generate_file_key()
         sealed = envelope.seal_file_key(file_key, pair.public_key)
         assert sealed != file_key
 
     def test_unseal_file_key__wrong_private_key_raises(self):
-        pair = envelope.generate_org_keypair()
-        other = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
+        other = envelope.generate_x25519_keypair()
         sealed = envelope.seal_file_key(envelope.generate_file_key(), pair.public_key)
         with pytest.raises(CryptoError):
             envelope.unseal_file_key(sealed, other.private_key)
 
 
 class TestSealUnsealOrgPrivateKey:
-    def test_unseal_org_private_key__recovers_original(self):
-        org_pair = envelope.generate_org_keypair()
-        recipient = envelope.generate_org_keypair()
-        sealed = envelope.seal_org_private_key(
-            org_pair.private_key, recipient.public_key
-        )
+    def test_unseal_file_key__recovers_original(self):
+        org_pair = envelope.generate_x25519_keypair()
+        recipient = envelope.generate_x25519_keypair()
+        sealed = envelope.seal_file_key(org_pair.private_key, recipient.public_key)
         assert (
-            envelope.unseal_org_private_key(sealed, recipient.private_key)
+            envelope.unseal_file_key(sealed, recipient.private_key)
             == org_pair.private_key
         )
 
 
 class TestKeyFingerprint:
     def test_key_fingerprint__is_16_char_hex(self):
-        pair = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
         fp = envelope.key_fingerprint(pair.public_key)
         assert len(fp) == 16
         int(fp, 16)
 
     def test_key_fingerprint__deterministic(self):
-        pair = envelope.generate_org_keypair()
+        pair = envelope.generate_x25519_keypair()
         assert envelope.key_fingerprint(pair.public_key) == envelope.key_fingerprint(
             pair.public_key
         )
 
     def test_key_fingerprint__differs_per_key(self):
-        pair1 = envelope.generate_org_keypair()
-        pair2 = envelope.generate_org_keypair()
+        pair1 = envelope.generate_x25519_keypair()
+        pair2 = envelope.generate_x25519_keypair()
         assert envelope.key_fingerprint(pair1.public_key) != envelope.key_fingerprint(
             pair2.public_key
         )

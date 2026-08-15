@@ -108,11 +108,8 @@ def generate_daily_rua_reports():
                 receiving_domain__iexact=domain.name,
                 created_at__gte=begin_at,
                 created_at__lte=end_at,
+                sealed_file_key="",
             )
-            evaluations = [
-                DmarcEvaluation.from_message(msg)
-                for msg in messages
-                if not msg.sealed_file_key
-            ]
+            evaluations = [DmarcEvaluation.from_message(msg) for msg in messages]
             if evaluations:
                 DmarcReport.send_rua_report(domain, evaluations, begin_at, end_at)
