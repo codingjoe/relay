@@ -1,5 +1,6 @@
 import dkim
 from cryptography.hazmat.primitives import serialization
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -117,6 +118,15 @@ class OrgEncryptionKey(TimeStamped):
         default=True,
         help_text=_("Only the active key is used to seal new file keys."),
     )
+    recovery_sealed_org_private_key = models.TextField(
+        _("recovery sealed org private key"),
+        blank=True,
+        help_text=_(
+            "Org private key encrypted with a KEK derived from a BIP39 "
+            "mnemonic. Used for break-glass recovery. Format: base64 of "
+            "salt + nonce + ciphertext."
+        ),
+    )
 
     class Meta(TimeStamped.Meta):
         constraints = [
@@ -140,3 +150,35 @@ class OrgEncryptionKey(TimeStamped):
 
             self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
         super().save(*args, **kwargs)
+
+
+class RecoveryEvent(TimeStamped):
+    """Record each break-glass recovery of the org private key.
+
+    This is a permanent, append-only audit log. Every time someone enters
+    the BIP39 mnemonic to recover the org private key, a row is created
+    here and all org members are notified. The notification is the
+    deterrent: a rogue admin can use the seed on their own machine, but
+    cannot prevent the server from logging the event and emailing every
+    member.
+    """
+
+    org_encryption_key = models.ForeignKey(
+        OrgEncryptionKey,
+        on_delete=models.CASCADE,
+        related_name="recovery_events",
+    )
+    triggered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="+",
+        help_text=_("User who entered the recovery mnemonic."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return (
+            f"{self.org_encryption_key.org} / {self.triggered_by} / {self.created_at}"
+        )

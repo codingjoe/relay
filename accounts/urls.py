@@ -8,6 +8,8 @@ from .encryption_views import (
     EncryptionStatusView,
     MembershipEncryptionKeyDeleteView,
     MembershipEncryptionKeyListView,
+    RecoveryPageView,
+    RecoveryTriggerView,
     UserEncryptionKeyView,
 )
 
@@ -73,6 +75,16 @@ urlpatterns = [
                                 "membership-key/<int:membership_pk>/delete",
                                 MembershipEncryptionKeyDeleteView.as_view(),
                                 name="membership-encryption-key-delete",
+                            ),
+                            path(
+                                "recover",
+                                RecoveryTriggerView.as_view(),
+                                name="encryption-recover",
+                            ),
+                            path(
+                                "recover-page",
+                                RecoveryPageView.as_view(),
+                                name="encryption-recover-page",
                             ),
                         ]
                     ),

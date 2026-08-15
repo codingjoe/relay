@@ -82,6 +82,37 @@
       </footer>
     </div>
 
+    <div id="encryption-setup-mnemonic" class="card hidden">
+      <header>
+        <h2>{% translate "save your recovery seed"|capfirst %}</h2>
+        <p>
+          {% translate "write down these 12 words and store them offline. anyone with access can decrypt all org messages. using them will notify all org members. they are never shown again." %}
+        </p>
+      </header>
+      <section>
+        <div class="alert" data-variant="destructive" data-size="sm">
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          <p>{% translate "this is your only chance to save the recovery seed. it will not be shown again." %}</p>
+        </div>
+        <div id="mnemonic-display" class="mt-4 p-4 bg-muted rounded font-mono text-lg break-words"></div>
+        <button id="mnemonic-copy" class="btn mt-2" data-variant="secondary" data-size="sm">
+          <i data-lucide="copy" class="size-4" aria-hidden="true"></i>
+          {% translate "copy to clipboard"|capfirst %}
+        </button>
+        <div role="group" class="field mt-4">
+          <label class="flex items-center gap-2">
+            <input id="mnemonic-confirmed" type="checkbox" class="checkbox">
+            <span>{% translate "i have written down the recovery seed" %}</span>
+          </label>
+        </div>
+      </section>
+      <footer>
+        <button id="mnemonic-continue" class="btn" disabled>
+          {% translate "continue"|capfirst %}
+        </button>
+      </footer>
+    </div>
+
     <div id="encryption-setup-already" class="card hidden">
       <header>
         <h2>{% translate "encryption already configured"|capfirst %}</h2>
@@ -109,12 +140,28 @@
 
       function show(id) {
         for (const el of document.querySelectorAll(
-          "#encryption-setup-loading, #encryption-setup-form, #encryption-setup-done, #encryption-setup-already",
+          "#encryption-setup-loading, #encryption-setup-form, #encryption-setup-done, #encryption-setup-already, #encryption-setup-mnemonic",
         )) {
           el.classList.add("hidden");
         }
         document.getElementById(id).classList.remove("hidden");
         if (window.lucide) window.lucide.createIcons();
+      }
+
+      function showMnemonic(mnemonicStr) {
+        document.getElementById("mnemonic-display").textContent = mnemonicStr;
+        show("encryption-setup-mnemonic");
+        const confirmBox = document.getElementById("mnemonic-confirmed");
+        const continueBtn = document.getElementById("mnemonic-continue");
+        confirmBox.addEventListener("change", () => {
+          continueBtn.disabled = !confirmBox.checked;
+        });
+        continueBtn.addEventListener("click", () => {
+          show("encryption-setup-done");
+        });
+        document.getElementById("mnemonic-copy").addEventListener("click", () => {
+          navigator.clipboard.writeText(mnemonicStr);
+        });
       }
 
       function csrfToken() {
@@ -186,7 +233,18 @@
             enc.seal(orgKeypair.privateKey, userKeypair.publicKey),
           );
 
-          // 8. Send to API.
+          // 8. Generate BIP39 recovery mnemonic (12 words, 128 bits).
+          const mnemonic = await relayEntropy.generateMnemonic();
+          const mnemonicStr = mnemonic.join(" ");
+
+          // 9. Derive recovery KEK from mnemonic entropy and seal org private key.
+          const entropy = await relayEntropy.mnemonicToEntropy(mnemonic);
+          const recoverySealedOrgPrivateKey = await relayEntropy.sealRecoveryKey(
+            orgKeypair.privateKey,
+            entropy,
+          );
+
+          // 10. Send to API.
           const resp = await fetch(`/org/${orgSlug}/encryption/setup/`, {
             method: "POST",
             headers: {
@@ -202,6 +260,7 @@
               encrypted_master_key: encryptedMasterKey,
               encrypted_private_key: encryptedPrivateKey,
               sealed_org_private_key: sealedOrgPrivateKey,
+              recovery_sealed_org_private_key: recoverySealedOrgPrivateKey,
             }),
           });
 
@@ -210,7 +269,8 @@
             throw new Error(err.error || "Setup failed.");
           }
 
-          show("encryption-setup-done");
+          // Show mnemonic to user (once, never stored server-side).
+          showMnemonic(mnemonicStr);
         } catch (err) {
           errorEl.textContent = err.message;
           errorEl.classList.remove("hidden");

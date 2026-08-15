@@ -24,8 +24,10 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.15/dist/libsodium-wrappers.min.js" defer></script>
     <script src="{% static 'js/encryption.js' %}" defer></script>
+    <script src="{% static 'js/bip39.js' %}" defer></script>
     {% if current_org %}
       {% include "encryption/passphrase_prompt.html" %}
+      {% include "encryption/recovery_banner.html" %}
     {% endif %}
     <script defer>
       document.addEventListener("DOMContentLoaded", () => {
@@ -41,7 +43,7 @@
       })();
     </script>
   </head>
-  <body class="min-h-screen flex">
+  <body class="min-h-screen flex" {% if current_org %}data-org-slug="{{ current_org.slug }}"{% endif %}>
     {% if current_org and request.resolver_match.namespace != 'accounts' %}
       {% include "partials/sidebar.html" %}
     {% endif %}

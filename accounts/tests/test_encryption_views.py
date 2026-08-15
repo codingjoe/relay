@@ -35,6 +35,7 @@ def setup_payload():
         "encrypted_master_key": "encrypted-master-key",
         "encrypted_private_key": "encrypted-private-key",
         "sealed_org_private_key": "sealed-org-private-key",
+        "recovery_sealed_org_private_key": "recovery-sealed-org-private-key",
     }
 
 

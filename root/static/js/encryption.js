@@ -124,6 +124,26 @@
     return result;
   }
 
+  function getCSRFToken() {
+    return (
+      document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+      document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ""
+    );
+  }
+
+  // BIP39: 128-bit entropy → 12 words.
+  // Uses the official BIP39 wordlist (2048 words). No external dependency.
+  // The wordlist is embedded as a compact constant.
+  let cachedOrgPrivateKey = null;
+
+  function cacheOrgPrivateKey(key) {
+    cachedOrgPrivateKey = key;
+  }
+
+  function getCachedOrgPrivateKey() {
+    return cachedOrgPrivateKey;
+  }
+
   window.relayEncryption = {
     init,
     deriveKEK,
@@ -139,6 +159,9 @@
     toBase64,
     fromBase64,
     fingerprint,
+    getCSRFToken,
+    cacheOrgPrivateKey,
+    getCachedOrgPrivateKey,
     SALT_BYTES,
     NONCE_BYTES,
   };
