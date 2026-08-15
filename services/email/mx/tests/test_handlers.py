@@ -164,6 +164,7 @@ class TestHandleRcpt:
 class TestProcessIncomingMessageBilling:
     @pytest.mark.django_db(transaction=True)
     async def test_unbilled_org__rejects_external_sender(self, org):
+        org.billing_is_active = False
         domain = Domain.objects.create(name="example.com", org=org)
 
         result = await process_incoming_message(
@@ -217,6 +218,7 @@ class TestProcessIncomingMessageBilling:
 
     @pytest.mark.django_db(transaction=True)
     async def test_unbilled_org__does_not_exempt_bare_bounce(self, org):
+        org.billing_is_active = False
         domain = Domain.objects.create(name="example.com", org=org)
 
         result = await process_incoming_message(

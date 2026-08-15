@@ -73,7 +73,7 @@ env = [
   "DJANGO_ALLOW_ASYNC_UNSAFE=1",
   "TEST=1",
 ]
-norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git" ]
+norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".worktrees" ]
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
 
 [tool.coverage]

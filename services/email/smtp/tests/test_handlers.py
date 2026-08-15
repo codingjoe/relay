@@ -159,6 +159,7 @@ class TestProcessMessage:
     ):
         from services.email.smtp.handlers import process_message
 
+        org.billing_is_active = False
         domain = Domain.objects.get(org=org, is_managed=True)
         credential, _ = SmtpCredential.objects.create_with_key(org=org)
         message = make_email(f"alice@{domain.name}", "external@example.com")
