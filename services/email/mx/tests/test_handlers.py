@@ -10,6 +10,7 @@ from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.mx.handlers import MXHandler, process_incoming_message
 from services.email.mx.models import IncomingMessage, TlsReport
+from services.email.spam import SpamResult
 
 
 def make_raw_email(subject="Postmaster alert"):
@@ -31,6 +32,7 @@ class TestProcessIncomingMessagePostmaster:
             make_raw_email(),
             True,
             domain,
+            SpamResult(),
         )
         message = await IncomingMessage.objects.aget(
             org=org,
@@ -48,6 +50,7 @@ class TestProcessIncomingMessagePostmaster:
             make_raw_email(),
             True,
             domain,
+            SpamResult(),
         )
         assert (
             IncomingMessage.objects.filter(
@@ -65,6 +68,7 @@ class TestProcessIncomingMessagePostmaster:
             make_raw_email(),
             True,
             domain,
+            SpamResult(),
         )
         assert any("postmaster" in m.subject.lower() for m in mail.outbox)
 
@@ -78,6 +82,7 @@ class TestProcessIncomingMessagePostmaster:
             make_raw_email(),
             True,
             domain,
+            SpamResult(),
         )
         message = await IncomingMessage.objects.aget(domain=domain)
         assert result == "250 OK"
@@ -173,6 +178,7 @@ class TestProcessIncomingMessageBilling:
             make_raw_email(),
             True,
             domain,
+            SpamResult(),
         )
 
         assert result == "550 Sender not allowed without active billing"
@@ -192,6 +198,7 @@ class TestProcessIncomingMessageBilling:
             make_raw_email(),
             True,
             domain,
+            SpamResult(),
         )
 
         assert result == "250 OK"
@@ -210,6 +217,7 @@ class TestProcessIncomingMessageBilling:
                 make_raw_email(),
                 True,
                 domain,
+                SpamResult(),
             )
 
         assert result == "250 OK"
@@ -227,6 +235,7 @@ class TestProcessIncomingMessageBilling:
             make_raw_email(),
             True,
             domain,
+            SpamResult(),
         )
 
         assert result == "550 Sender not allowed without active billing"
@@ -262,6 +271,7 @@ class TestProcessIncomingMessageReports:
                 make_raw_email(),
                 True,
                 domain,
+                SpamResult(),
             )
 
         report = await report_model.objects.aget(domain=domain)

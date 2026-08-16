@@ -19,4 +19,4 @@ def test_smtp_command__parses_host_and_port():
         mock_run.assert_called_once()
         call_kwargs = mock_run.call_args
         assert call_kwargs.kwargs.get("host") == "127.0.0.1"
-        assert call_kwargs.kwargs.get("port") == 587
+        assert call_kwargs.kwargs.get("ports") == [587]

@@ -7,16 +7,17 @@ class TestSmtpServerInit:
 
         server = SMTPServer()
         assert server.host == "0.0.0.0"
-        assert server.port == 25
+        assert server.ports == (587, 465)
+        assert server.implicit_tls_ports == (465,)
         assert server.max_message_size == 10485760
-        assert server.controller is None
+        assert server.controllers == []
 
     def test_init__custom(self):
         from services.email.smtp.server import SMTPServer
 
-        server = SMTPServer(host="127.0.0.1", port=587, max_message_size=1024)
+        server = SMTPServer(host="127.0.0.1", ports=(587,), max_message_size=1024)
         assert server.host == "127.0.0.1"
-        assert server.port == 587
+        assert server.ports == (587,)
         assert server.max_message_size == 1024
 
 
@@ -29,8 +30,8 @@ class TestSmtpServerLifecycle:
         mock_controller_cls.return_value = mock_controller
         server = SMTPServer()
         server.start()
-        assert server.controller is mock_controller
-        mock_controller.start.assert_called_once()
+        assert server.controllers == [mock_controller, mock_controller]
+        assert mock_controller.start.call_count == 2
 
     @patch("services.email.smtp.server.Controller")
     def test_stop__calls_controller_stop(self, mock_controller_cls):
@@ -41,11 +42,11 @@ class TestSmtpServerLifecycle:
         server = SMTPServer()
         server.start()
         server.stop()
-        mock_controller.stop.assert_called_once()
+        assert mock_controller.stop.call_count == 2
 
     def test_stop__without_start(self):
         from services.email.smtp.server import SMTPServer
 
         server = SMTPServer()
         server.stop()
-        assert server.controller is None
+        assert server.controllers == []

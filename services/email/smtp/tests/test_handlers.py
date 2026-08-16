@@ -11,6 +11,7 @@ from services.email.smtp.models import (
     SmtpCredential,
     SuppressionEntry,
 )
+from services.email.spam import SpamResult
 
 
 def make_email(mail_from, rcpt_to):
@@ -116,6 +117,7 @@ class TestProcessMessage:
             credential,
             user,
             False,
+            SpamResult(),
         )
 
         assert result == "550 Sender domain not registered"
@@ -147,6 +149,7 @@ class TestProcessMessage:
             credential,
             other_user,
             False,
+            SpamResult(),
         )
 
         assert result == "550 Sender domain not registered"
@@ -172,6 +175,7 @@ class TestProcessMessage:
             credential,
             user,
             False,
+            SpamResult(),
         )
 
         assert result == "550 Recipient not allowed without active billing"
@@ -199,6 +203,7 @@ class TestProcessMessage:
                 credential,
                 user,
                 True,
+                SpamResult(),
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
@@ -228,6 +233,7 @@ class TestProcessMessage:
                 credential,
                 user,
                 False,
+                SpamResult(),
             )
 
         assert result == "250 OK"
@@ -255,6 +261,7 @@ class TestProcessMessage:
                 credential,
                 user,
                 False,
+                SpamResult(),
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
