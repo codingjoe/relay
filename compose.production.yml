@@ -154,6 +154,9 @@ configs:
       -- Listen on port 53 (UDP + TCP)
       addLocal("0.0.0.0:53")
 
+      -- Authoritative nameserver: allow queries from all sources
+      setACL({"0.0.0.0/0", "::/0"})
+
       -- Resolve all 'dns' service replicas via Docker's embedded DNS
       local handle = io.popen("getent ahosts dns")
       local result = handle:read("*a")
