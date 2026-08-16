@@ -85,6 +85,68 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | rspamd  | 11334        | Spam detection (internal only)                   |
 | Worker  | N/A          | Threadmill task worker                           |
 
+```mermaid
+flowchart TD
+  subgraph Internet["Internet"]
+    Client["SMTP clients"]
+    Sender["Remote MTAs"]
+    Browser["Browsers"]
+  end
+
+  subgraph Caddy["Caddy (reverse proxy + TLS)"]
+    direction TB
+    CaddyProxy["Caddy docker-proxy"]
+    CaddyL4["Caddy L4"]
+    CaddyData["caddy_data volume\n(certs, read-only mount)"]
+  end
+
+  subgraph App["app network"]
+    Web["Web\nDjango + Granian\n:8000"]
+    SMTP["SMTP\naiosmtpd\n:587 STARTTLS\n:465 implicit TLS"]
+    MX["MX\naiosmtpd\n:25 STARTTLS"]
+    Worker["Worker\nThreadmill"]
+    rspamd["rspamd\n:11334"]
+    MinIO["MinIO\nS3 storage\n:9000"]
+  end
+
+  subgraph Data["data services"]
+    PG["PostgreSQL 18+"]
+    Redis["Redis"]
+  end
+
+  subgraph DNS["dnsdist network"]
+    dnsdist["dnsdist\n:53 UDP+TCP"]
+    DNSns["DNS\ndnslib\n:5353"]
+  end
+
+  Browser -->|"HTTPS :443"| CaddyProxy
+  CaddyProxy --> Web
+  CaddyL4 -->|"TCP 587/465"| SMTP
+  CaddyL4 -->|"TCP 25"| MX
+  CaddyData -.->|"cert mount"| SMTP
+  CaddyData -.->|"cert mount"| MX
+
+  Client -->|"STARTTLS :587\nimplicit TLS :465"| SMTP
+  Sender -->|"STARTTLS :25"| MX
+
+  SMTP --> rspamd
+  MX --> rspamd
+  rspamd --> Redis
+
+  Web --> PG
+  Web --> Redis
+  Web --> MinIO
+  SMTP --> PG
+  SMTP --> MinIO
+  MX --> PG
+  MX --> MinIO
+  Worker --> PG
+  Worker --> Redis
+
+  dnsdist --> DNSns
+  Sender -.->|"DNS :53"| dnsdist
+```
+
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
 receiving domains (for example, `app.acme.com`) by pointing an MX record to their
