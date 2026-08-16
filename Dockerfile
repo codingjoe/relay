@@ -1,7 +1,8 @@
 FROM node:26-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm ci --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY src/ ./src/
 COPY postcss.config.mjs ./
 RUN mkdir -p root/static/css && pnpm run build
