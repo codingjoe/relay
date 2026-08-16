@@ -33,7 +33,6 @@ conftest.py
 
 # Documentation (not needed in the image)
 README.md
-LICENSE
 AGENTS.md
 CLAUDE.md
 REVIEW.md
