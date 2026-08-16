@@ -78,16 +78,41 @@ services:
     labels: !reset
     deploy: !reset
     command: ["-m", "manage", "smtp"]
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: ${RELAY_SMTP_TLS_CERT_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.crt}
+      RELAY_SMTP_TLS_KEY_PATH: ${RELAY_SMTP_TLS_KEY_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.key}
     ports:
       - "587:587"
+      - "465:465"
+    volumes:
+      - caddy_data:/data:ro
   mx:
     extends:
       service: web
     labels: !reset
     deploy: !reset
     command: ["-m", "manage", "mx"]
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_MX_TLS_CERT_PATH: ${RELAY_MX_TLS_CERT_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}.crt}
+      RELAY_MX_TLS_KEY_PATH: ${RELAY_MX_TLS_KEY_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}.key}
     ports:
       - "25:25"
+    volumes:
+      - caddy_data:/data:ro
+  rspamd:
+    image: rspamd/rspamd
+    configs:
+      - source: rspamd_redis
+        target: /etc/rspamd/local.d/redis.conf
+      - source: rspamd_worker
+        target: /etc/rspamd/local.d/worker-normal.inc
+    networks:
+      - app
+    depends_on:
+      redis:
+        condition: service_healthy
   worker:
     extends:
       service: web
@@ -142,11 +167,18 @@ services:
       - app
 volumes:
   s3:
+  caddy_data:
 networks:
   dnsdist:
     internal: true
   dnsdist-wan:
 configs:
+  rspamd_redis:
+    content: |
+      servers = "redis";
+  rspamd_worker:
+    content: |
+      bind_socket = "*:11334";
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)

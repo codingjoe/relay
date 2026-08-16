@@ -111,6 +111,8 @@ class WebhookEvent:
     received_with_tls: bool
     receiving_domain: str
     body_url: str | None
+    spam_score: float | None = None
+    spam_action: str = ""
     received_at: str = field(
         default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     )
@@ -140,6 +142,8 @@ class WebhookEvent:
             received_with_tls=message.received_with_tls,
             receiving_domain=message.receiving_domain,
             body_url=message.raw_body.url if message.raw_body else None,
+            spam_score=message.spam_score,
+            spam_action=message.spam_action,
         )
 
 

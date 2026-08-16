@@ -2,11 +2,12 @@
 
 import logging
 import signal
-import ssl
 import sys
 import time
 
 from aiosmtpd.controller import Controller
+
+from services.email.tls import build_tls_context
 
 from .handlers import MXHandler
 
@@ -17,54 +18,65 @@ class MXServer:
     def __init__(
         self,
         host="0.0.0.0",
-        port=25,
+        ports=(25,),
+        implicit_tls_ports=(465,),
         max_message_size=10 * (1024**2),  # 10 MB
         tls_cert_path="",
         tls_key_path="",
     ):
         self.host = host
-        self.port = port
+        self.ports = ports
+        self.implicit_tls_ports = implicit_tls_ports
         self.max_message_size = max_message_size
         self.tls_cert_path = tls_cert_path
         self.tls_key_path = tls_key_path
-        self.controller = None
-
-    def build_tls_context(self):
-        try:
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            context.load_cert_chain(self.tls_cert_path, self.tls_key_path)
-            return context
-        except FileNotFoundError, ssl.SSLError:
-            return None
+        self.controllers = []
 
     def start(self):
         handler = MXHandler()
-        self.controller = Controller(
-            handler,
-            hostname=self.host,
-            port=self.port,
-            tls_context=self.build_tls_context(),
-            auth_require_tls=False,
-        )
-        self.controller.start()
-        logger.info(f"MX server listening on {self.host}:{self.port}")
+        tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
+        try:
+            for port in self.ports:
+                if port in self.implicit_tls_ports:
+                    controller = Controller(
+                        handler,
+                        hostname=self.host,
+                        port=port,
+                        ssl_context=tls_context,
+                    )
+                else:
+                    controller = Controller(
+                        handler,
+                        hostname=self.host,
+                        port=port,
+                        tls_context=tls_context,
+                    )
+                controller.start()
+                self.controllers.append(controller)
+                logger.info(f"MX server listening on {self.host}:{port}")
+        except Exception:
+            self.stop()
+            raise
 
     def stop(self):
-        if self.controller:
-            self.controller.stop()
-            logger.info("MX server stopped")
+        for controller in self.controllers:
+            controller.stop()
+        self.controllers = []
+        logger.info("MX server stopped")
 
 
 def run_mx_server(
     host="0.0.0.0",
-    port=25,
+    ports=(25,),
+    implicit_tls_ports=(465,),
     max_message_size=10 * (1024**2),  # 10 MB
     tls_cert_path="",
     tls_key_path="",
 ):
     server = MXServer(
         host=host,
-        port=port,
+        ports=ports,
+        implicit_tls_ports=implicit_tls_ports,
         max_message_size=max_message_size,
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,

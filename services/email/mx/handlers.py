@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 
 from domains.models import Domain
+from services.email.spam import SpamResult, check_message
 
 from .models import IncomingMessage, TlsReport
 from .tasks import dispatch_webhook, notify_postmaster_recipients, parse_tls_report
@@ -34,19 +35,35 @@ class MXHandler:
         rcpt_to = envelope.rcpt_tos[0] if envelope.rcpt_tos else ""
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
+        local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
+        report_local_parts = {
+            settings.RELAY_DMARC_REPORT_LOCAL_PART,
+            settings.RELAY_TLS_REPORT_LOCAL_PART,
+            settings.RELAY_DMARC_RUF_LOCAL_PART,
+        }
+        if local_part in report_local_parts:
+            spam = SpamResult()
+        else:
+            spam = await check_message(raw_bytes)
+            if (
+                spam.action == "reject"
+                or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
+            ):
+                return "550 Message rejected as spam"
         result = await process_incoming_message(
             mail_from,
             rcpt_to,
             raw_bytes,
             getattr(session, "ssl", False),
             getattr(envelope, "recipient_domain", None),
+            spam,
         )
         logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
         return result
 
 
 @sync_to_async
-def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
+def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
@@ -135,8 +152,14 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain):
         message_id=msg.get("Message-ID", ""),
         received_with_tls=bool(tls),
         status=IncomingMessage.Status.RECEIVED,
+        spam_score=spam.score,
+        spam_action=spam.action,
     )
-    message.raw_body.save(f"{message.id}.eml", ContentFile(raw_bytes), save=False)
+    message.raw_body.save(
+        f"{message.id}.eml",
+        ContentFile(spam.add_headers(raw_bytes)),
+        save=False,
+    )
     message.save(force_insert=True)
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
     transaction.on_commit(lambda: enqueue_dmarc_evaluation(message))

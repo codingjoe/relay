@@ -5,11 +5,13 @@ import logging
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
 from domains.models import Domain, canonicalize_domain_name
+from services.email.spam import check_message
 
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
 from .tasks import deliver_message
@@ -36,6 +38,9 @@ class SMTPHandler:
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
         msg = message_from_bytes(raw_bytes)
+        spam = await check_message(raw_bytes)
+        if spam.action == "reject" or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE:
+            return "550 Message rejected as spam"
         result = await process_message(
             mail_from,
             rcpt_to,
@@ -44,6 +49,7 @@ class SMTPHandler:
             credential,
             sender,
             getattr(session, "ssl", False),
+            spam,
         )
         logger.info(f"Message from {mail_from} to {rcpt_to}: {result}")
         return result
@@ -96,7 +102,7 @@ def authenticate(username: str, key: str):
 
 
 def process_suppressed_message(
-    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain
+    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain, spam
 ):
     """Store a suppressed message without enqueuing delivery."""
     subject = msg.get("Subject", "")
@@ -112,6 +118,8 @@ def process_suppressed_message(
         credential=credential,
         status=OutgoingMessage.Status.SUPPRESSED,
         received_with_tls=bool(ssl),
+        spam_score=spam.score,
+        spam_action=spam.action,
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
     logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
@@ -119,7 +127,7 @@ def process_suppressed_message(
 
 
 @sync_to_async
-def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl):
+def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, spam):
     """Store a submitted outgoing message and enqueue its delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
@@ -146,7 +154,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
         return process_suppressed_message(
-            mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain
+            mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain, spam
         )
 
     if (
@@ -155,6 +163,11 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
     ):
         return "550 Recipient not allowed without active billing"
 
+    status = (
+        OutgoingMessage.Status.HELD
+        if spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
+        else OutgoingMessage.Status.PENDING
+    )
     message = OutgoingMessage.objects.create(
         sender=sender,
         org=credential.org,
@@ -165,13 +178,17 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         domain=domain,
         credential=credential,
         received_with_tls=bool(ssl),
+        spam_score=spam.score,
+        spam_action=spam.action,
+        status=status,
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
 
-    transaction.on_commit(
-        lambda: deliver_message.enqueue(
-            message_id=str(message.id),
+    if status == OutgoingMessage.Status.PENDING:
+        transaction.on_commit(
+            lambda: deliver_message.enqueue(
+                message_id=str(message.id),
+            )
         )
-    )
 
     return "250 OK"

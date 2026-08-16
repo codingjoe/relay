@@ -80,8 +80,9 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | Web     | 8000         | Django web UI (Granian)                          |
 | dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)              |
 | DNS     | 5353         | Authoritative nameserver (dnslib, internal only) |
-| SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd)             |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd)             |
 | MX      | 25           | Incoming MX delivery (aiosmtpd)                  |
+| rspamd  | 11334        | Spam detection (internal only)                   |
 | Worker  | N/A          | Threadmill task worker                           |
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
@@ -97,10 +98,13 @@ data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
 
-> **STARTTLS cert provisioning**: in production, mount the same certificate
-> the Caddy reverse proxy uses into the MX container. Then point
-> `RELAY_MX_TLS_CERT_PATH` and `RELAY_MX_TLS_KEY_PATH` at the certificate. The cert must
-> include the MX hostname (for example, `mail.relay.acme.com`).
+> **STARTTLS cert provisioning**: in production, mount the Caddy data volume
+> (read-only) into the `smtp` and `mx` containers. Caddy stores certificates at
+> `<data>/certificates/<issuer>/<domain>/<domain>.crt|.key`. Point
+> `RELAY_SMTP_TLS_CERT_PATH`/`RELAY_SMTP_TLS_KEY_PATH` and
+> `RELAY_MX_TLS_CERT_PATH`/`RELAY_MX_TLS_KEY_PATH` at the mounted cert files. The
+> certs must include the SMTP hostname (for example, `smtp.relay.acme.com`) and the
+> MX hostname (for example, `mail.relay.acme.com`).
 
 ### Tech Stack
 

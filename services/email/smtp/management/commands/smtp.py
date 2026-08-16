@@ -9,13 +9,31 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--host", default=None, help="Listen host")
-        parser.add_argument("--port", type=int, default=None, help="Listen port")
+        parser.add_argument(
+            "--port",
+            type=int,
+            default=None,
+            help="Listen port (overrides RELAY_SMTP_SUBMISSION_PORTS)",
+        )
 
     def handle(self, *args, **options):
         host = options["host"] or settings.RELAY_SMTP_LISTEN_HOST
-        port = options["port"] or settings.RELAY_SMTP_LISTEN_PORT
+        ports = (
+            [options["port"]]
+            if options["port"]
+            else settings.RELAY_SMTP_SUBMISSION_PORTS
+        )
         max_size = settings.RELAY_SMTP_MAX_MESSAGE_SIZE
 
-        self.stdout.write(self.style.SUCCESS(f"SMTP server listening on {host}:{port}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"SMTP server listening on {host}:{ports}")
+        )
 
-        run_smtp_server(host=host, port=port, max_message_size=max_size)
+        run_smtp_server(
+            host=host,
+            ports=ports,
+            implicit_tls_ports=settings.RELAY_SMTP_IMPLICIT_TLS_PORTS,
+            max_message_size=max_size,
+            tls_cert_path=settings.RELAY_SMTP_TLS_CERT_PATH,
+            tls_key_path=settings.RELAY_SMTP_TLS_KEY_PATH,
+        )
