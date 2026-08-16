@@ -1,8 +1,43 @@
-README.md
-Dockerfile
-.venv/
+# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed
+.*
+!.env.example
+
+# Python
+venv/
+env/
+__pycache__/
+*.py[codz]
+*.pyo
+*.egg-info/
+*.egg
+htmlcov/
+
+# Node / frontend
 node_modules/
-.wireit/
-containers/
+
+# Django / runtime artifacts
 staticfiles/
 storage/
+db.sqlite3
+db.sqlite3-journal
+*.log
+root/static/css/app.css
+root/locale/*.mo
+
+# Test data and fixtures
+fixtures/
+
+# CI / tooling
+Makefile
+conftest.py
+
+# Documentation (not needed in the image)
+README.md
+AGENTS.md
+CLAUDE.md
+REVIEW.md
+CONVENTIONS.md
+
+# Misc
+backups/
+skills/
