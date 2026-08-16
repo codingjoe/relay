@@ -102,7 +102,7 @@ services:
     volumes:
       - caddy_data:/data:ro
   rspamd:
-    image: rspamd/rspamd
+    image: rspamd/rspamd:4.1
     configs:
       - source: rspamd_redis
         target: /etc/rspamd/local.d/redis.conf
