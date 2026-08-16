@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class MXHandler:
+    async def handle_PROXY(self, server, session, envelope, proxy_data):
+        """Accept PROXY protocol headers and update the session peer."""
+        if proxy_data.src_addr:
+            session.peer = (str(proxy_data.src_addr), proxy_data.src_port or 0)
+        return True
+
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:

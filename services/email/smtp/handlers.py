@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 class SMTPHandler:
     """Receive authenticated outgoing mail submissions from SMTP clients."""
 
+    async def handle_PROXY(self, server, session, envelope, proxy_data):
+        """Accept PROXY protocol headers and update the session peer."""
+        if proxy_data.src_addr:
+            session.peer = (str(proxy_data.src_addr), proxy_data.src_port or 0)
+        return True
+
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         envelope.rcpt_tos.append(address)
         return "250 OK"
@@ -78,6 +84,14 @@ class SMTPHandler:
         except (ValueError, DatabaseError) as e:
             logger.error(f"AUTH error: {e}")
             return "535 Authentication failed"
+
+
+class ProxiedTLSHandler(SMTPHandler):
+    """Receive submissions from HAProxy-terminated TLS connections."""
+
+    async def handle_DATA(self, server, session, envelope):
+        session.ssl = {"proxied": True}
+        return await super().handle_DATA(server, session, envelope)
 
 
 @sync_to_async

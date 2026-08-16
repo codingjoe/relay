@@ -97,16 +97,17 @@ flowchart TD
   subgraph Caddy["Caddy (reverse proxy + TLS)"]
     direction TB
     CaddyProxy["Caddy docker-proxy"]
+    CaddyCerts["caddy.respond=OK\ncerts for SMTP + MX hostnames"]
     CaddyData["caddy_data volume\n(certs, read-only mount)"]
   end
 
   subgraph HAProxy["HAProxy (L7 SMTP proxy)"]
-    HAProxyNode["HAProxy\n:25 :465 :587\nrate limiting"]
+    HAProxyNode["HAProxy\n:25 :465 :587\nTLS termination on :465\nrate limiting"]
   end
 
   subgraph App["app network"]
     Web["Web\nDjango + Granian\n:8000"]
-    SMTP["SMTP\naiosmtpd\n:587 STARTTLS\n:465 implicit TLS"]
+    SMTP["SMTP\naiosmtpd\n:587 STARTTLS\n:465 plaintext (HAProxy TLS)"]
     MX["MX\naiosmtpd\n:25 STARTTLS"]
     Worker["Worker\nThreadmill"]
     rspamd["rspamd\n:11334"]
@@ -128,10 +129,12 @@ flowchart TD
   Client -->|"STARTTLS :587\nimplicit TLS :465"| HAProxyNode
   Sender -->|"STARTTLS :25"| HAProxyNode
   HAProxyNode -->|"PROXY protocol\n:587 STARTTLS"| SMTP
-  HAProxyNode -->|":465 implicit TLS"| SMTP
+  HAProxyNode -->|"plaintext + PROXY protocol\n:465 TLS termination"| SMTP
   HAProxyNode -->|"PROXY protocol\n:25 STARTTLS"| MX
+  CaddyCerts -.->|"issue + renew certs"| CaddyData
   CaddyData -.->|"cert mount"| SMTP
   CaddyData -.->|"cert mount"| MX
+  CaddyData -.->|"cert mount (PEM)"| HAProxyNode
 
   SMTP --> rspamd
   MX --> rspamd

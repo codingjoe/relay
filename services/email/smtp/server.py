@@ -9,7 +9,7 @@ from aiosmtpd.controller import Controller
 
 from services.email.tls import build_tls_context
 
-from .handlers import SMTPHandler
+from .handlers import ProxiedTLSHandler, SMTPHandler
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +38,17 @@ class SMTPServer:
 
     def start(self):
         handler = SMTPHandler()
+        proxied_handler = ProxiedTLSHandler()
         tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
         try:
             for port in self.ports:
                 if port in self.implicit_tls_ports:
                     controller = Controller(
-                        handler,
+                        proxied_handler,
                         hostname=self.host,
                         port=port,
-                        ssl_context=tls_context,
-                        auth_require_tls=True,
+                        proxy_protocol_timeout=self.proxy_protocol_timeout,
+                        auth_require_tls=False,
                     )
                 else:
                     controller = Controller(

@@ -75,7 +75,9 @@ services:
   smtp:
     extends:
       service: web
-    labels: !reset
+    labels:
+      - "caddy=${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}"
+      - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "smtp"]
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
@@ -89,7 +91,9 @@ services:
   mx:
     extends:
       service: web
-    labels: !reset
+    labels:
+      - "caddy=${RELAY_MX_HOSTNAME:-mail.relay.acme.com}"
+      - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "mx"]
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
@@ -106,6 +110,13 @@ services:
       - "25:25"
       - "465:465"
       - "587:587"
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: ${RELAY_SMTP_TLS_CERT_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.crt}
+      RELAY_SMTP_TLS_KEY_PATH: ${RELAY_SMTP_TLS_KEY_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.key}
+    entrypoint: ["sh", "-c"]
+    command: ["umask 077 && cat \"$RELAY_SMTP_TLS_CERT_PATH\" \"$RELAY_SMTP_TLS_KEY_PATH\" > /run/smtp.pem && exec haproxy -f /usr/local/etc/haproxy/haproxy.cfg"]
+    volumes:
+      - caddy_data:/data:ro
     networks:
       - app
       - app-wan
@@ -237,15 +248,15 @@ configs:
           option smtpchk EHLO relay.local
           server smtp smtp:587 send-proxy check
 
-      # SMTP submission: port 465 (implicit TLS) without PROXY protocol
+      # SMTP submission: port 465 (implicit TLS, HAProxy terminates TLS)
       frontend smtp_465
-          bind *:465
+          bind *:465 ssl crt /run/smtp.pem
           tcp-request connection track-sc0 src table submission_rate_limits
           tcp-request connection reject if { sc0_conn_rate(submission_rate_limits) gt 20 }
           default_backend smtp_465_backend
 
       backend smtp_465_backend
-          server smtp smtp:465 check
+          server smtp smtp:465 send-proxy check
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)
