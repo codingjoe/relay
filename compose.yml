@@ -19,6 +19,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+  dnsdist:
+    ports: !override
+      - "127.0.0.1:53:53/udp"
+      - "127.0.0.1:53:53/tcp"
   smtp:
     build:
       target: development

@@ -52,11 +52,26 @@ services:
     extends:
       service: web
     labels: !reset
-    deploy: !reset
     command: ["-m", "manage", "dns"]
+    environment:
+      RELAY_DNS_LISTEN_PORT: 5353
+    networks: !override
+      - app
+      - dnsdist
+  dnsdist:
+    image: powerdns/dnsdist-18:latest
     ports:
-      - "53:53/udp"
-      - "53:53/tcp"
+      - "0.0.0.0:53:53/udp"
+      - "0.0.0.0:53:53/tcp"
+    networks:
+      - dnsdist
+      - dnsdist-wan
+    configs:
+      - source: dnsdist
+        target: /etc/dnsdist/dnsdist.conf
+    depends_on:
+      dns:
+        condition: service_started
   smtp:
     extends:
       service: web
@@ -129,3 +144,30 @@ services:
       - app
 volumes:
   s3:
+networks:
+  dnsdist:
+    internal: true
+  dnsdist-wan:
+configs:
+  dnsdist:
+    content: |
+      -- Listen on port 53 (UDP + TCP)
+      addLocal("0.0.0.0:53")
+
+      -- Resolve all 'dns' service replicas via Docker's embedded DNS
+      local handle = io.popen("getent ahosts dns")
+      local result = handle:read("*a")
+      handle:close()
+
+      -- Add each unique replica as a downstream server for redundancy
+      local seen = {}
+      for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
+          if not seen[ip] then
+              seen[ip] = true
+              newServer({address=ip .. ":5353", name="authoritative"})
+          end
+      end
+
+      -- Cache responses to reduce upstream load
+      pc = newPacketCache(10000, {maxTTL=86400, minTTL=0})
+      getPool(""):setCache(pc)
