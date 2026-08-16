@@ -75,13 +75,14 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                          |
-| ------- | ------------ | ------------------------------------ |
-| Web     | 8000         | Django web UI (Granian)              |
-| DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
-| SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
-| MX      | 25           | Incoming MX delivery (aiosmtpd)      |
-| Worker  | N/A          | Threadmill task worker               |
+| Service | Port         | Description                                      |
+| ------- | ------------ | ------------------------------------------------ |
+| Web     | 8000         | Django web UI (Granian)                          |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)              |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only) |
+| SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd)             |
+| MX      | 25           | Incoming MX delivery (aiosmtpd)                  |
+| Worker  | N/A          | Threadmill task worker                           |
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure

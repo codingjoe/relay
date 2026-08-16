@@ -54,9 +54,24 @@ services:
     labels: !reset
     deploy: !reset
     command: ["-m", "manage", "dns"]
+    environment:
+      RELAY_DNS_LISTEN_PORT: 5353
+    networks: !override
+      - app
+      - dnsdist
+  dnsdist:
+    image: powerdns/dnsdist-18:latest
     ports:
-      - "53:53/udp"
-      - "53:53/tcp"
+      - "0.0.0.0:53:53/udp"
+      - "0.0.0.0:53:53/tcp"
+    networks:
+      - dnsdist
+      - dnsdist-wan
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf:ro
+    depends_on:
+      dns:
+        condition: service_started
   smtp:
     extends:
       service: web
@@ -129,3 +144,7 @@ services:
       - app
 volumes:
   s3:
+networks:
+  dnsdist:
+    internal: true
+  dnsdist-wan:
