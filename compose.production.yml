@@ -52,7 +52,6 @@ services:
     extends:
       service: web
     labels: !reset
-    deploy: !reset
     command: ["-m", "manage", "dns"]
     environment:
       RELAY_DNS_LISTEN_PORT: 5353

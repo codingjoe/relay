@@ -19,11 +19,15 @@ class Command(BaseCommand):
         parser.add_argument("--port", type=int, default=None, help="Listen port")
 
     def handle(self, *args, **options):
+        sys.stdout.reconfigure(line_buffering=True)
         host = options["host"] or settings.RELAY_DNS_LISTEN_HOST
         port = options["port"] or settings.RELAY_DNS_LISTEN_PORT
 
         resolver = DNSResolver()
-        logger = DNSLogger(log="-request,-reply,-truncated,-error")
+        logger = DNSLogger(
+            log="+request,-reply" if settings.DEBUG else "-request,-reply",
+            logf=self.stdout.write,
+        )
         servers = (
             DNSServer(resolver, address=host, port=port, logger=logger),
             DNSServer(resolver, address=host, port=port, tcp=True, logger=logger),
