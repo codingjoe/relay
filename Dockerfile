@@ -2,8 +2,9 @@ FROM node:26-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm && pnpm ci --frozen-lockfile
-COPY ./ /app
-RUN pnpm run build
+COPY src/ ./src/
+COPY postcss.config.mjs ./
+RUN mkdir -p root/static/css && pnpm run build
 
 FROM ghcr.io/astral-sh/uv:0.12.3-trixie-slim AS build
 LABEL title="SMTP Server"
