@@ -36,4 +36,5 @@ class Command(BaseCommand):
             max_message_size=max_size,
             tls_cert_path=settings.RELAY_SMTP_TLS_CERT_PATH,
             tls_key_path=settings.RELAY_SMTP_TLS_KEY_PATH,
+            proxy_protocol_timeout=settings.RELAY_PROXY_PROTOCOL_TIMEOUT,
         )

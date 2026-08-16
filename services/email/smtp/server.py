@@ -25,6 +25,7 @@ class SMTPServer:
         max_message_size=10485760,
         tls_cert_path="",
         tls_key_path="",
+        proxy_protocol_timeout=None,
     ):
         self.host = host
         self.ports = ports
@@ -32,6 +33,7 @@ class SMTPServer:
         self.max_message_size = max_message_size
         self.tls_cert_path = tls_cert_path
         self.tls_key_path = tls_key_path
+        self.proxy_protocol_timeout = proxy_protocol_timeout
         self.controllers = []
 
     def start(self):
@@ -55,6 +57,7 @@ class SMTPServer:
                         tls_context=tls_context,
                         require_starttls=True,
                         auth_require_tls=True,
+                        proxy_protocol_timeout=self.proxy_protocol_timeout,
                     )
                 controller.start()
                 self.controllers.append(controller)
@@ -77,6 +80,7 @@ def run_smtp_server(
     max_message_size=10485760,
     tls_cert_path="",
     tls_key_path="",
+    proxy_protocol_timeout=None,
 ):
     """Run the SMTP submission server until interrupted."""
     server = SMTPServer(
@@ -86,6 +90,7 @@ def run_smtp_server(
         max_message_size=max_message_size,
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,
+        proxy_protocol_timeout=proxy_protocol_timeout,
     )
     server.start()
 

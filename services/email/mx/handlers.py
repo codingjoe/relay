@@ -44,7 +44,8 @@ class MXHandler:
         if local_part in report_local_parts:
             spam = SpamResult()
         else:
-            spam = await check_message(raw_bytes)
+            client_ip = session.peer[0] if session.peer else ""
+            spam = await check_message(raw_bytes, client_ip=client_ip)
             if (
                 spam.action == "reject"
                 or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE

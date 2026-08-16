@@ -28,17 +28,21 @@ class SpamResult:
         return headers + raw_bytes
 
 
-async def check_message(raw_bytes: bytes) -> SpamResult:
+async def check_message(raw_bytes: bytes, client_ip: str = "") -> SpamResult:
     """Return the rspamd score and action for a raw message.
 
     Fails open: on any rspamd error a neutral result is returned so mail is
     never lost during an outage. This is a deliberate availability trade-off.
     """
+    headers = {}
+    if client_ip:
+        headers["Ip"] = client_ip
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(
                 f"{settings.RELAY_RSPAMD_URL.rstrip('/')}/checkv2",
                 content=raw_bytes,
+                headers=headers,
             )
             response.raise_for_status()
             data = response.json()

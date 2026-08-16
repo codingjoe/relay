@@ -38,7 +38,8 @@ class SMTPHandler:
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
         msg = message_from_bytes(raw_bytes)
-        spam = await check_message(raw_bytes)
+        client_ip = session.peer[0] if session.peer else ""
+        spam = await check_message(raw_bytes, client_ip=client_ip)
         if spam.action == "reject" or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE:
             return "550 Message rejected as spam"
         result = await process_message(

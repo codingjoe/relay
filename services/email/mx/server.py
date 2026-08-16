@@ -23,6 +23,7 @@ class MXServer:
         max_message_size=10 * (1024**2),  # 10 MB
         tls_cert_path="",
         tls_key_path="",
+        proxy_protocol_timeout=None,
     ):
         self.host = host
         self.ports = ports
@@ -30,6 +31,7 @@ class MXServer:
         self.max_message_size = max_message_size
         self.tls_cert_path = tls_cert_path
         self.tls_key_path = tls_key_path
+        self.proxy_protocol_timeout = proxy_protocol_timeout
         self.controllers = []
 
     def start(self):
@@ -50,6 +52,7 @@ class MXServer:
                         hostname=self.host,
                         port=port,
                         tls_context=tls_context,
+                        proxy_protocol_timeout=self.proxy_protocol_timeout,
                     )
                 controller.start()
                 self.controllers.append(controller)
@@ -72,6 +75,7 @@ def run_mx_server(
     max_message_size=10 * (1024**2),  # 10 MB
     tls_cert_path="",
     tls_key_path="",
+    proxy_protocol_timeout=None,
 ):
     server = MXServer(
         host=host,
@@ -80,6 +84,7 @@ def run_mx_server(
         max_message_size=max_message_size,
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,
+        proxy_protocol_timeout=proxy_protocol_timeout,
     )
     server.start()
 

@@ -75,15 +75,16 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                                      |
-| ------- | ------------ | ------------------------------------------------ |
-| Web     | 8000         | Django web UI (Granian)                          |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)              |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only) |
-| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd)             |
-| MX      | 25           | Incoming MX delivery (aiosmtpd)                  |
-| rspamd  | 11334        | Spam detection (internal only)                   |
-| Worker  | N/A          | Threadmill task worker                           |
+| Service | Port         | Description                                         |
+| ------- | ------------ | --------------------------------------------------- |
+| Web     | 8000         | Django web UI (Granian)                             |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                 |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)    |
+| HAProxy | 25, 465, 587 | L7 SMTP proxy with rate limiting and PROXY protocol |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd)                |
+| MX      | 25           | Incoming MX delivery (aiosmtpd)                     |
+| rspamd  | 11334        | Spam detection (internal only)                      |
+| Worker  | N/A          | Threadmill task worker                              |
 
 ```mermaid
 flowchart TD
@@ -96,8 +97,11 @@ flowchart TD
   subgraph Caddy["Caddy (reverse proxy + TLS)"]
     direction TB
     CaddyProxy["Caddy docker-proxy"]
-    CaddyL4["Caddy L4"]
     CaddyData["caddy_data volume\n(certs, read-only mount)"]
+  end
+
+  subgraph HAProxy["HAProxy (L7 SMTP proxy)"]
+    HAProxyNode["HAProxy\n:25 :465 :587\nrate limiting"]
   end
 
   subgraph App["app network"]
@@ -121,13 +125,13 @@ flowchart TD
 
   Browser -->|"HTTPS :443"| CaddyProxy
   CaddyProxy --> Web
-  CaddyL4 -->|"TCP 587/465"| SMTP
-  CaddyL4 -->|"TCP 25"| MX
+  Client -->|"STARTTLS :587\nimplicit TLS :465"| HAProxyNode
+  Sender -->|"STARTTLS :25"| HAProxyNode
+  HAProxyNode -->|"PROXY protocol\n:587 STARTTLS"| SMTP
+  HAProxyNode -->|":465 implicit TLS"| SMTP
+  HAProxyNode -->|"PROXY protocol\n:25 STARTTLS"| MX
   CaddyData -.->|"cert mount"| SMTP
   CaddyData -.->|"cert mount"| MX
-
-  Client -->|"STARTTLS :587\nimplicit TLS :465"| SMTP
-  Sender -->|"STARTTLS :25"| MX
 
   SMTP --> rspamd
   MX --> rspamd
