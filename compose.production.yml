@@ -59,7 +59,7 @@ services:
       - app
       - dnsdist
   dnsdist:
-    image: powerdns/dnsdist-18:latest
+    image: powerdns/dnsdist-21:2.1.1
     ports:
       - "0.0.0.0:53:53/udp"
       - "0.0.0.0:53:53/tcp"
