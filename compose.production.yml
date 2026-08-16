@@ -116,8 +116,6 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: ["server", "/data", "--console-address", ":9001"]
-    ports:
-      - "9001:9001"
     volumes:
       - s3:/data
     healthcheck:
