@@ -1,18 +1,8 @@
-# Version control
-.git/
-.gitignore
-.gitattributes
-.worktreeinclude
-.worktrees/
-
-# Secrets and environment
-.env
-.env.*
+# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed
+.*
 !.env.example
-.box/
 
 # Python
-.venv/
 venv/
 env/
 __pycache__/
@@ -20,15 +10,10 @@ __pycache__/
 *.pyo
 *.egg-info/
 *.egg
-.pytest_cache/
-.ruff_cache/
-.coverage
-.coverage.*
 htmlcov/
 
 # Node / frontend
 node_modules/
-.wireit/
 
 # Django / runtime artifacts
 staticfiles/
@@ -43,12 +28,6 @@ root/locale/*.mo
 fixtures/
 
 # CI / tooling
-.github/
-.pre-commit-config.yaml
-.relint.yml
-.mcp.json
-.editorconfig
-.dtop.yml
 Makefile
 conftest.py
 
@@ -60,10 +39,6 @@ CLAUDE.md
 REVIEW.md
 CONVENTIONS.md
 
-# OS
-.DS_Store
-
 # Misc
 backups/
-.playwright-mcp/
 skills/
