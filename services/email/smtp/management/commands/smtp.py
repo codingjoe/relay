@@ -8,7 +8,7 @@ class Command(BaseCommand):
     help = "Run the SMTP server"
 
     def add_arguments(self, parser):
-        parser.add_argument("--host", default=None, help="Listen host")
+        parser.add_argument("--host", default="0.0.0.0", help="Listen host")
         parser.add_argument(
             "--port",
             type=int,
@@ -17,7 +17,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        host = options["host"] or settings.RELAY_SMTP_LISTEN_HOST
+        host = options["host"]
         ports = (
             [options["port"]]
             if options["port"]

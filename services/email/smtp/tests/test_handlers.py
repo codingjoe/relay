@@ -23,19 +23,6 @@ def make_email(mail_from, rcpt_to):
     return message
 
 
-class TestHandleRcpt:
-    async def test_handle_rcpt__appends_address(self):
-        from services.email.smtp.handlers import SMTPHandler
-
-        handler = SMTPHandler()
-        envelope = SimpleNamespace(rcpt_tos=[])
-        result = await handler.handle_RCPT(
-            None, None, envelope, "bob@example.com", None
-        )
-        assert result == "250 OK"
-        assert "bob@example.com" in envelope.rcpt_tos
-
-
 class TestHandleData:
     async def test_handle_data__rejects_unauthenticated(self):
         from services.email.smtp.handlers import SMTPHandler

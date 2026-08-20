@@ -32,10 +32,6 @@ class SMTPHandler:
             session.peer = (str(proxy_data.src_addr), proxy_data.src_port or 0)
         return True
 
-    async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
-        envelope.rcpt_tos.append(address)
-        return "250 OK"
-
     async def handle_DATA(self, server, session, envelope):
         """Store a submitted outgoing message."""
         credential = getattr(session, "credential", None)
