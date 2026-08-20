@@ -66,6 +66,8 @@ class MXHandler(ProxyProtocolMixin):
 
 @sync_to_async
 def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
+    from services.email.dmarc.tasks import evaluate_incoming_message
+
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
@@ -164,15 +166,11 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
     )
     message.save(force_insert=True)
     transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
-    transaction.on_commit(lambda: enqueue_dmarc_evaluation(message))
+    transaction.on_commit(
+        lambda: evaluate_incoming_message.enqueue(message_pk=str(message.id))
+    )
     if is_postmaster_recipient:
         transaction.on_commit(
             lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))
         )
     return "250 OK"
-
-
-def enqueue_dmarc_evaluation(message):
-    from services.email.dmarc.tasks import evaluate_incoming_message
-
-    evaluate_incoming_message.enqueue(message_pk=str(message.id))
