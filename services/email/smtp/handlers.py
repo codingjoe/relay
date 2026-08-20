@@ -11,6 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
 from domains.models import Domain, canonicalize_domain_name
+from services.email.proxy import ProxyProtocolMixin
 from services.email.spam import check_message
 
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
@@ -19,18 +20,8 @@ from .tasks import deliver_message
 logger = logging.getLogger(__name__)
 
 
-class SMTPHandler:
+class SMTPHandler(ProxyProtocolMixin):
     """Receive authenticated outgoing mail submissions from SMTP clients."""
-
-    async def handle_PROXY(self, server, session, envelope, proxy_data):
-        """Accept PROXY protocol headers and update the session peer.
-
-        The backend trusts the PROXY header because it is reachable only from
-        HAProxy on the internal app network. HAProxy is the sole PROXY sender.
-        """
-        if proxy_data.src_addr:
-            session.peer = (str(proxy_data.src_addr), proxy_data.src_port or 0)
-        return True
 
     async def handle_DATA(self, server, session, envelope):
         """Store a submitted outgoing message."""

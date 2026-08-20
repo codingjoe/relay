@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 
 from domains.models import Domain
+from services.email.proxy import ProxyProtocolMixin
 from services.email.spam import SpamResult, check_message
 
 from .models import IncomingMessage, TlsReport
@@ -15,17 +16,7 @@ from .tasks import dispatch_webhook, notify_postmaster_recipients, parse_tls_rep
 logger = logging.getLogger(__name__)
 
 
-class MXHandler:
-    async def handle_PROXY(self, server, session, envelope, proxy_data):
-        """Accept PROXY protocol headers and update the session peer.
-
-        The backend trusts the PROXY header because it is reachable only from
-        HAProxy on the internal app network. HAProxy is the sole PROXY sender.
-        """
-        if proxy_data.src_addr:
-            session.peer = (str(proxy_data.src_addr), proxy_data.src_port or 0)
-        return True
-
+class MXHandler(ProxyProtocolMixin):
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
