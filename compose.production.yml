@@ -76,14 +76,14 @@ services:
     extends:
       service: web
     labels:
-      - "caddy=${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}"
+      - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "smtp"]
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
-      RELAY_SMTP_TLS_CERT_PATH: ${RELAY_SMTP_TLS_CERT_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.crt}
-      RELAY_SMTP_TLS_KEY_PATH: ${RELAY_SMTP_TLS_KEY_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.key}
+      RELAY_SMTP_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
     volumes:
       - caddy_data:/data:ro
     networks: !override
@@ -92,14 +92,14 @@ services:
     extends:
       service: web
     labels:
-      - "caddy=${RELAY_MX_HOSTNAME:-mail.relay.acme.com}"
+      - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "mx"]
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
-      RELAY_MX_TLS_CERT_PATH: ${RELAY_MX_TLS_CERT_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}.crt}
-      RELAY_MX_TLS_KEY_PATH: ${RELAY_MX_TLS_KEY_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}/${RELAY_MX_HOSTNAME:-mail.relay.acme.com}.key}
+      RELAY_MX_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
     volumes:
       - caddy_data:/data:ro
     networks: !override
@@ -111,10 +111,9 @@ services:
       - "465:465"
       - "587:587"
     environment:
-      RELAY_SMTP_TLS_CERT_PATH: ${RELAY_SMTP_TLS_CERT_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.crt}
-      RELAY_SMTP_TLS_KEY_PATH: ${RELAY_SMTP_TLS_KEY_PATH:-/data/certificates/${RELAY_TLS_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}/${RELAY_SMTP_HOSTNAME:-smtp.relay.acme.com}.key}
+      HOSTNAME: ${HOSTNAME:-localhost}
     entrypoint: ["sh", "-c"]
-    command: ["umask 077 && cat \"$RELAY_SMTP_TLS_CERT_PATH\" \"$RELAY_SMTP_TLS_KEY_PATH\" > /run/smtp.pem && exec haproxy -f /usr/local/etc/haproxy/haproxy.cfg"]
+    command: ["umask 077 && cat /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.$$HOSTNAME/smtp.$$HOSTNAME.crt /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.$$HOSTNAME/smtp.$$HOSTNAME.key > /run/smtp.pem && exec haproxy -f /usr/local/etc/haproxy/haproxy.cfg"]
     volumes:
       - caddy_data:/data:ro
     networks:
