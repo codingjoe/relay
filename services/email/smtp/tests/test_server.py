@@ -9,16 +9,14 @@ class TestSmtpServerInit:
         assert server.host == "0.0.0.0"
         assert server.ports == (587, 465)
         assert server.implicit_tls_ports == (465,)
-        assert server.max_message_size == 10485760
         assert server.controllers == []
 
     def test_init__custom(self):
         from services.email.smtp.server import SMTPServer
 
-        server = SMTPServer(host="127.0.0.1", ports=(587,), max_message_size=1024)
+        server = SMTPServer(host="127.0.0.1", ports=(587,))
         assert server.host == "127.0.0.1"
         assert server.ports == (587,)
-        assert server.max_message_size == 1024
 
 
 class TestSmtpServerLifecycle:

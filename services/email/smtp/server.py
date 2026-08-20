@@ -22,7 +22,6 @@ class SMTPServer:
         host="0.0.0.0",
         ports=(587, 465),
         implicit_tls_ports=(465,),
-        max_message_size=10485760,
         tls_cert_path="",
         tls_key_path="",
         proxy_protocol_timeout=None,
@@ -30,7 +29,6 @@ class SMTPServer:
         self.host = host
         self.ports = ports
         self.implicit_tls_ports = implicit_tls_ports
-        self.max_message_size = max_message_size
         self.tls_cert_path = tls_cert_path
         self.tls_key_path = tls_key_path
         self.proxy_protocol_timeout = proxy_protocol_timeout
@@ -78,7 +76,6 @@ def run_smtp_server(
     host="0.0.0.0",
     ports=(587, 465),
     implicit_tls_ports=(465,),
-    max_message_size=10485760,
     tls_cert_path="",
     tls_key_path="",
     proxy_protocol_timeout=None,
@@ -88,7 +85,6 @@ def run_smtp_server(
         host=host,
         ports=ports,
         implicit_tls_ports=implicit_tls_ports,
-        max_message_size=max_message_size,
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,
         proxy_protocol_timeout=proxy_protocol_timeout,

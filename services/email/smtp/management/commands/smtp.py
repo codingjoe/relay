@@ -23,8 +23,6 @@ class Command(BaseCommand):
             if options["port"]
             else settings.RELAY_SMTP_SUBMISSION_PORTS
         )
-        max_size = settings.RELAY_SMTP_MAX_MESSAGE_SIZE
-
         self.stdout.write(
             self.style.SUCCESS(f"SMTP server listening on {host}:{ports}")
         )
@@ -33,7 +31,6 @@ class Command(BaseCommand):
             host=host,
             ports=ports,
             implicit_tls_ports=settings.RELAY_SMTP_IMPLICIT_TLS_PORTS,
-            max_message_size=max_size,
             tls_cert_path=settings.RELAY_SMTP_TLS_CERT_PATH,
             tls_key_path=settings.RELAY_SMTP_TLS_KEY_PATH,
             proxy_protocol_timeout=settings.RELAY_PROXY_PROTOCOL_TIMEOUT,
