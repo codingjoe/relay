@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # PTR
 
-> **TL;DR**: A PTR record maps an IP address back to a hostname. Mail servers use it to verify the sending server. relay publishes the PTR record for the SMTP server automatically.
+> **TL;DR**: A PTR record maps an IP address back to a hostname. Mail servers use it to verify the sending server.
 
 ## What is PTR?
 
@@ -42,10 +42,7 @@ For IPv6, PTR records live in the `ip6.arpa` zone.[^ipv6-ptr] The IPv6 address i
 
 ### Forward-confirmed reverse DNS (FCrDNS)
 
-A common verification technique is forward-confirmed reverse DNS (FCrDNS). The receiving server performs two lookups:
-
-1. **Reverse lookup**: The server looks up the PTR record for the sending IP address. The PTR record returns a hostname.
-1. **Forward lookup**: The server looks up the A or AAAA record for that hostname. The A record must return the original IP address.
+A common verification technique is forward-confirmed reverse DNS (FCrDNS). The receiving server performs two lookups. First it looks up the PTR record for the sending IP address, which returns a hostname. Then it looks up the A or AAAA record for that hostname, which must return the original IP address.
 
 If both lookups match, the IP address has valid forward-confirmed reverse DNS.[^fcrdns-weakness] This check prevents a sender from publishing an arbitrary hostname in their PTR record.
 
@@ -55,11 +52,14 @@ PTR records are controlled by the organization that owns the IP address range.[^
 
 This is different from most other DNS records (A, MX, TXT), which you control through your DNS provider.
 
-## How relay uses PTR
+## How to set up PTR
 
-relay publishes the PTR record for the <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server IP address automatically. The record points to the relay mail hostname. The forward A record also points back to the same IP, so the PTR record passes the FCrDNS check.
+PTR records are controlled by the owner of the IP address range. This is usually the internet service provider (ISP) or cloud hosting provider. You cannot set a PTR record in your domain's DNS zone.
 
-You do not need to configure PTR records. relay manages the IP address space and the reverse DNS zone.
+1. Ask your provider to set a PTR record for the sending IP address.
+1. Use a hostname that resolves back to the same IP address.
+
+The hostname must match the sending domain so that the PTR record passes the FCrDNS check.
 
 ## Further reading
 
@@ -68,7 +68,7 @@ You do not need to configure PTR records. relay manages the IP address space and
 - <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
 - <a href="{% url 'know_how:detail' slug='mx' %}">MX</a>: Mail Exchange records
 
-[^ipv6-ptr]: IPv6 reverse DNS is often neglected. Many organizations set up IPv4 PTR records but forget IPv6. This causes delivery problems when the receiving server connects over IPv6 and the PTR check fails. relay publishes both IPv4 and IPv6 PTR records.
+[^ipv6-ptr]: IPv6 reverse DNS is often neglected. Many organizations set up IPv4 PTR records but forget IPv6. This causes delivery problems when the receiving server connects over IPv6 and the PTR check fails. Set up PTR records for both IPv4 and IPv6.
 
 [^fcrdns-weakness]: FCrDNS is a weak authentication check. An attacker who controls both the forward and reverse DNS zones for an IP address can set up valid FCrDNS. The check is useful as a spam signal, not as a security boundary.
 

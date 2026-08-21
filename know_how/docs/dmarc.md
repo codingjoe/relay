@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # DMARC
 
-> **TL;DR**: DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication. You set one DNS record on your root domain. relay handles the rest.
+> **TL;DR**: DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication. You set one DNS record on your root domain.
 
 ## What is DMARC?
 
@@ -18,11 +18,7 @@ DMARC is defined in [RFC 7489](https://datatracker.ietf.org/doc/html/rfc7489).[^
 
 ## Why DMARC matters
 
-Email spoofing is one of the most common attack vectors in phishing and spam. An attacker can send a message that appears to come from your domain because SMTP does not verify the sender by default. DMARC gives you three tools to fight this:
-
-1. **Policy enforcement**: You tell receivers to reject or quarantine messages that fail authentication.
-1. **Alignment**: DMARC checks that the domain in the visible From address matches the domain that SPF or DKIM verified.
-1. **Reporting**: Receivers send you reports about messages that use your domain, so you can monitor for abuse.
+Email spoofing is one of the most common attack vectors in phishing and spam. An attacker can send a message that appears to come from your domain because SMTP does not verify the sender by default. DMARC gives you three tools. You can tell receivers to reject or quarantine failing messages. DMARC also checks that the domain in the From address matches the domain that SPF or DKIM verified. And receivers send you reports about any message that uses your domain, so you can watch for abuse.
 
 ## How DMARC works
 
@@ -52,18 +48,13 @@ The DMARC record is a TXT record at `_dmarc.<domain>`. It contains tags that con
 
 The `p=` tag has three values:
 
-- **`none`**: The receiver delivers all mail but still sends reports. Use this mode to monitor your authentication status before you enforce a policy.
-- **`quarantine`**: The receiver sends failing messages to the spam folder. This mode reduces the impact of spoofing without blocking legitimate mail that has configuration problems.
-- **`reject`**: The receiver rejects failing messages at the SMTP level. This mode gives the strongest protection but requires that all legitimate senders pass authentication.[^pct-rollout]
+The `p=` tag takes three values. `none` delivers all mail but still sends reports. Use it to watch your status before you enforce anything. `quarantine` sends failing messages to the spam folder. That limits the damage from spoofing without blocking legitimate mail that has config problems. `reject` refuses failing messages at the SMTP level. It gives the strongest protection, but only after every legitimate sender passes authentication.[^pct-rollout]
 
 ### Alignment
 
-Alignment is the key concept that DMARC adds on top of SPF and DKIM. A message can pass SPF on the envelope sender domain but show a different domain in the visible From header. Without alignment, an attacker can pass SPF on their own domain while spoofing yours in the From header.
+Alignment is the piece DMARC adds on top of SPF and DKIM. A message can pass SPF on the envelope sender domain and still show a different domain in the visible From header. Without alignment, an attacker can pass SPF on their own domain while spoofing yours.
 
-DMARC alignment has two modes:
-
-- **Relaxed alignment**: The organizational domains must match. For example, `mail.example.com` aligns with `example.com`.[^org-domain]
-- **Strict alignment**: The exact domains must match. For example, `mail.example.com` does not align with `example.com`.
+DMARC has two alignment modes. Relaxed alignment requires the organizational domains to match, so `mail.example.com` aligns with `example.com`.[^org-domain] Strict alignment requires the exact domains to match, so `mail.example.com` does not align with `example.com`.
 
 ## DMARC reports
 
@@ -88,13 +79,15 @@ Forensic reports are copies of individual messages that failed authentication. E
 
 Not all mail servers send forensic reports because of privacy concerns. Some servers redact or omit the message content.
 
-## How relay uses DMARC
+## How to set up DMARC
 
-You set one DMARC TXT record on your root domain. relay serves all other DNS records (SPF, DKIM, MX, and more) automatically through the built-in nameserver.
+1. Publish a DMARC TXT record at `_dmarc.<domain>`.
+1. Start with `p=none` to monitor the messages that use your domain.
+1. Review the aggregate reports for unauthorized senders and configuration errors.
+1. Move to `p=quarantine`, then `p=reject`, as your confidence grows.
+1. Use the `pct` tag to apply the policy to a percentage of messages during rollout.
 
-relay uses relaxed alignment for both SPF and DKIM. This means the policy covers all subdomains of your root domain. You do not need separate DMARC records for each subdomain.
-
-relay collects aggregate and forensic reports for you. You can view them in the DMARC reports dashboard in your organization.
+The policy applies to the root domain and all subdomains. You do not need a separate DMARC record for each subdomain. Use the `sp` tag to set a different policy for subdomains.
 
 ## Further reading
 
