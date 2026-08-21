@@ -114,7 +114,7 @@ class SmtpCredentialListView(OrganizationScopedView, generic.ListView):
         platform = self.request.get_host().split(":")[0]
         context = super().get_context_data(**kwargs) | {
             "smtp_hostname": f"smtp.{platform}",
-            "smtp_port": settings.RELAY_SMTP_SUBMISSION_PORT,
+            "smtp_ports": settings.RELAY_SMTP_SUBMISSION_PORTS,
         }
         if raw_key := self.request.session.pop("raw_key", None):
             context["raw_key"] = raw_key

@@ -8,14 +8,24 @@ class Command(BaseCommand):
     help = "Run the SMTP server"
 
     def add_arguments(self, parser):
-        parser.add_argument("--host", default=None, help="Listen host")
-        parser.add_argument("--port", type=int, default=None, help="Listen port")
+        parser.add_argument("--host", default="0.0.0.0", help="Listen host")
+        parser.add_argument(
+            "--ports",
+            nargs="+",
+            type=int,
+            default=[*settings.RELAY_SMTP_SUBMISSION_PORTS],
+            help="Listen ports (defaults to RELAY_SMTP_SUBMISSION_PORTS)",
+        )
 
-    def handle(self, *args, **options):
-        host = options["host"] or settings.RELAY_SMTP_LISTEN_HOST
-        port = options["port"] or settings.RELAY_SMTP_LISTEN_PORT
-        max_size = settings.RELAY_SMTP_MAX_MESSAGE_SIZE
+    def handle(self, *args, host, ports, **options):
+        self.stdout.write(
+            self.style.SUCCESS(f"SMTP server listening on {host}:{ports}")
+        )
 
-        self.stdout.write(self.style.SUCCESS(f"SMTP server listening on {host}:{port}"))
-
-        run_smtp_server(host=host, port=port, max_message_size=max_size)
+        run_smtp_server(
+            host=host,
+            ports=ports,
+            implicit_tls_ports=settings.RELAY_SMTP_IMPLICIT_TLS_PORTS,
+            tls_cert_path=settings.RELAY_SMTP_TLS_CERT_PATH,
+            tls_key_path=settings.RELAY_SMTP_TLS_KEY_PATH,
+        )

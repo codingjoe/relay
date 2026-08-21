@@ -52,9 +52,7 @@ services:
     extends:
       service: web
     labels: !reset
-    command: ["-m", "manage", "dns"]
-    environment:
-      RELAY_DNS_LISTEN_PORT: 5353
+    command: ["-m", "manage", "dns", "--port", "5353"]
     networks: !override
       - app
       - dnsdist
@@ -75,19 +73,54 @@ services:
   smtp:
     extends:
       service: web
-    labels: !reset
+    labels: !override
+      - "caddy=smtp.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "smtp"]
     ports:
-      - "587:587"
+      - "0.0.0.0:587:587"
+      - "0.0.0.0:465:465"
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+    volumes:
+      - caddy_data:/data:ro
+    networks: !override
+      - app
+      - app-wan
   mx:
     extends:
       service: web
-    labels: !reset
+    labels: !override
+      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "mx"]
     ports:
-      - "25:25"
+      - "0.0.0.0:25:25"
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_MX_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
+    volumes:
+      - caddy_data:/data:ro
+    networks: !override
+      - app
+      - app-wan
+  rspamd:
+    image: rspamd/rspamd:4.1
+    configs:
+      - source: rspamd_redis
+        target: /etc/rspamd/local.d/redis.conf
+      - source: rspamd_worker
+        target: /etc/rspamd/local.d/worker-normal.inc
+    networks:
+      - app
+    depends_on:
+      redis:
+        condition: service_healthy
   worker:
     extends:
       service: web
@@ -142,11 +175,19 @@ services:
       - app
 volumes:
   s3:
+  caddy_data:
 networks:
   dnsdist:
     internal: true
   dnsdist-wan:
 configs:
+  rspamd_redis:
+    content: |
+      servers = "redis";
+      database = 1;
+  rspamd_worker:
+    content: |
+      bind_socket = "*:11334";
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)

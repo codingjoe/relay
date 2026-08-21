@@ -22,6 +22,7 @@ class IncomingMessage(Message):
 
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
+        QUARANTINED = "quarantined", _("quarantined")
         WEBHOOK_SENT = "webhook_sent", _("webhook sent")
         WEBHOOK_FAILED = "webhook_failed", _("webhook failed")
         DROPPED = "dropped", _("dropped")
@@ -33,7 +34,7 @@ class IncomingMessage(Message):
             match self:
                 case Status.RECEIVED:
                     return "primary"
-                case Status.WEBHOOK_FAILED | Status.DROPPED:
+                case Status.QUARANTINED | Status.WEBHOOK_FAILED | Status.DROPPED:
                     return "destructive"
                 case _:
                     return "outline"

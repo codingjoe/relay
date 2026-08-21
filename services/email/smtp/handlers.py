@@ -12,17 +12,13 @@ from django.db import DatabaseError, transaction
 from domains.models import Domain, canonicalize_domain_name
 
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
-from .tasks import deliver_message
+from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
 
 
 class SMTPHandler:
     """Receive authenticated outgoing mail submissions from SMTP clients."""
-
-    async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
-        envelope.rcpt_tos.append(address)
-        return "250 OK"
 
     async def handle_DATA(self, server, session, envelope):
         """Store a submitted outgoing message."""
@@ -36,6 +32,7 @@ class SMTPHandler:
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
         msg = message_from_bytes(raw_bytes)
+        client_ip = session.peer[0] if session.peer else ""
         result = await process_message(
             mail_from,
             rcpt_to,
@@ -44,6 +41,7 @@ class SMTPHandler:
             credential,
             sender,
             getattr(session, "ssl", False),
+            client_ip,
         )
         logger.info(f"Message from {mail_from} to {rcpt_to}: {result}")
         return result
@@ -68,9 +66,22 @@ class SMTPHandler:
             membership = await get_membership(credential, username)
             session.sender = membership.user
             return "235 Authentication successful"
-        except (ValueError, DatabaseError) as e:
-            logger.error(f"AUTH error: {e}")
+        except ValueError, DatabaseError:
+            logger.exception("AUTH error")
             return "535 Authentication failed"
+
+
+class ImplicitTLSHandler(SMTPHandler):
+    """Handler for implicit TLS (port 465) connections.
+
+    aiosmtpd doesn't detect pre-wrapped TLS sockets, so `session.ssl`
+    is never set for implicit TLS. Mark the session as encrypted before
+    delegating to the standard handler so AUTH and TLS reporting work.
+    """
+
+    async def handle_DATA(self, server, session, envelope):
+        session.ssl = True
+        return await super().handle_DATA(server, session, envelope)
 
 
 @sync_to_async
@@ -119,7 +130,9 @@ def process_suppressed_message(
 
 
 @sync_to_async
-def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl):
+def process_message(
+    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, client_ip
+):
     """Store a submitted outgoing message and enqueue its delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
@@ -165,12 +178,14 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl)
         domain=domain,
         credential=credential,
         received_with_tls=bool(ssl),
+        status=OutgoingMessage.Status.PENDING,
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
 
     transaction.on_commit(
-        lambda: deliver_message.enqueue(
-            message_id=str(message.id),
+        lambda: check_outgoing_spam.enqueue(
+            message_pk=str(message.id),
+            client_ip=client_ip,
         )
     )
 

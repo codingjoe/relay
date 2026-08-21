@@ -1,13 +1,17 @@
+import datetime
 import logging
 
 import aiosmtplib
 import dns.resolver
+import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.tasks import task
+from threadmill.retry import ExponentialBackoff
 
 from services.email.mx.mta_sts import MtaStsPolicy
+from services.email.spam import SpamAction, check_message
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +130,8 @@ def deliver_message(message_id):
 
         raise MxHostsExhausted(f"All MX hosts failed for {rcpt_domain}")
 
-    except Exception as e:  # noqa: BLE001  # storage backend raises varied exceptions
-        logger.error(f"Transmission error for message {message_id}: {e}")
+    except Exception as e:  # storage backend raises varied exceptions
+        logger.exception("Transmission error for message %r", message_id)
         Transmission.objects.create(
             message=message,
             status=Transmission.Status.FAILED,
@@ -147,3 +151,31 @@ def fetch_mx_hosts(domain):
         ]
     except dns.exception.DNSException:
         return []
+
+
+@task(
+    retry=ExponentialBackoff(
+        base_delay=datetime.timedelta(seconds=1),
+        max_delay=datetime.timedelta(minutes=5),
+        max_retries=5,
+        expected_exceptions=(httpx.HTTPError, OSError),
+    )
+)
+def check_outgoing_spam(message_pk, client_ip):
+    """Check an outgoing message for spam and enqueue delivery if clean."""
+    from .models import OutgoingMessage
+
+    message = OutgoingMessage.objects.get(pk=message_pk)
+    raw_bytes = message.raw_body.read()
+    spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    is_spam = (
+        spam.action == SpamAction.REJECT
+        or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
+    )
+    message.spam_score = spam.score
+    message.spam_action = spam.action
+    if is_spam:
+        message.status = OutgoingMessage.Status.HELD
+    message.save(update_fields=["spam_score", "spam_action", "status"])
+    if not is_spam:
+        deliver_message.enqueue(message_id=str(message.pk))

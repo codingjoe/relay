@@ -5,7 +5,7 @@ from django.tasks import task
 from django.utils import timezone
 
 from .models import DmarcFailureReport, DmarcReport
-from .types import DmarcEvaluation
+from .types import Disposition, DmarcEvaluation
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ def evaluate_incoming_message(message_pk):
     message = IncomingMessage.objects.get(pk=message_pk)
     evaluation = DmarcEvaluation.from_message(message)
 
-    if evaluation.disposition != "none":
+    if evaluation.disposition != Disposition.NONE:
         try:
             domain = Domain.objects.root_for(
                 message.receiving_domain,

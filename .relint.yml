@@ -81,6 +81,14 @@
   pattern: '\boverride_settings\b'
   hint: 'Use pytest-django''s `settings` fixture instead of Django''s `override_settings` decorator or context manager.'
   filePattern: '(^|.*/)(?:tests(?:/.*|\.py)|test_[^/]*\.py|conftest\.py)$'
+- name: Use exc_info=True for exception logging
+  pattern: 'logger\.(warning|error|exception)\(f["''].*\{(?:e|error|exc|err)\}'
+  hint: 'Use exc_info=True instead of interpolating exception objects in f-strings. Provide a meaningful message without the exception.'
+  filePattern: .*\.py
+- name: Use %r for logging objects
+  pattern: 'logger\.\w+\([^,)]*%s[^,)]*,\s+\w+\s*[,)]'
+  hint: 'Use %r instead of %s for logging objects. %r calls repr() which gives better debugging output (type, quotes, structure). Use %s only for string values or attribute accesses (e.g. obj.name).'
+  filePattern: .*\.py
 - name: No "relay" brand mentions in how-to docs
   pattern: '(?i)\brelay\b'
   hint: |

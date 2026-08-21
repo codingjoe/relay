@@ -137,7 +137,7 @@ class TestCredentialListView:
     def test_get__context_has_smtp_info(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
-        assert "smtp_port" in response.context
+        assert "smtp_ports" in response.context
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
