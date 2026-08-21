@@ -37,8 +37,6 @@ class SMTPHandler(ProxyProtocolMixin):
         msg = message_from_bytes(raw_bytes)
         client_ip = session.peer[0] if session.peer else ""
         spam = await check_message(raw_bytes, client_ip=client_ip)
-        if spam.action == "reject" or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE:
-            return "550 Message rejected as spam"
         result = await process_message(
             mail_from,
             rcpt_to,
@@ -171,7 +169,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl,
 
     status = (
         OutgoingMessage.Status.HELD
-        if spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
+        if spam.action == "reject" or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
         else OutgoingMessage.Status.PENDING
     )
     message = OutgoingMessage.objects.create(

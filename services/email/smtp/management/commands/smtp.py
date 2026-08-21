@@ -10,19 +10,16 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--host", default="0.0.0.0", help="Listen host")
         parser.add_argument(
-            "--port",
+            "--ports",
+            nargs="+",
             type=int,
             default=None,
-            help="Listen port (overrides RELAY_SMTP_SUBMISSION_PORTS)",
+            help="Listen ports (overrides RELAY_SMTP_SUBMISSION_PORTS)",
         )
 
     def handle(self, *args, **options):
         host = options["host"]
-        ports = (
-            [options["port"]]
-            if options["port"]
-            else settings.RELAY_SMTP_SUBMISSION_PORTS
-        )
+        ports = options["ports"] or settings.RELAY_SMTP_SUBMISSION_PORTS
         self.stdout.write(
             self.style.SUCCESS(f"SMTP server listening on {host}:{ports}")
         )

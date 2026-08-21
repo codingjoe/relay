@@ -13,7 +13,7 @@ KNOWN_ACTIONS = frozenset(
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SpamResult:
     """Outcome of a rspamd scan."""
 
@@ -28,15 +28,13 @@ class SpamResult:
         return headers + raw_bytes
 
 
-async def check_message(raw_bytes: bytes, client_ip: str = "") -> SpamResult:
+async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
     """Return the rspamd score and action for a raw message.
 
     Fails open: on any rspamd error a neutral result is returned so mail is
     never lost during an outage. This is a deliberate availability trade-off.
     """
-    headers = {}
-    if client_ip:
-        headers["Ip"] = client_ip
+    headers = {"Ip": client_ip} if client_ip else {}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(
@@ -45,12 +43,12 @@ async def check_message(raw_bytes: bytes, client_ip: str = "") -> SpamResult:
                 headers=headers,
             )
             response.raise_for_status()
-            data = response.json()
-            score = float(data.get("score") or 0.0)
-            action = data.get("action", "no action")
-            if action not in KNOWN_ACTIONS:
-                action = "no action"
-            return SpamResult(score=score, action=action)
-    except (httpx.HTTPError, ValueError, TypeError) as error:
+    except httpx.HTTPError as error:
         logger.warning("rspamd check failed: %s", error)
         return SpamResult()
+    data = response.json()
+    score = float(data.get("score") or 0.0)
+    action = data.get("action", "no action")
+    if action not in KNOWN_ACTIONS:
+        action = "no action"
+    return SpamResult(score=score, action=action)

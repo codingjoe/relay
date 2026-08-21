@@ -47,11 +47,6 @@ class MXHandler(ProxyProtocolMixin):
         else:
             client_ip = session.peer[0] if session.peer else ""
             spam = await check_message(raw_bytes, client_ip=client_ip)
-            if (
-                spam.action == "reject"
-                or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
-            ):
-                return "550 Message rejected as spam"
         result = await process_incoming_message(
             mail_from,
             rcpt_to,
@@ -146,6 +141,14 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
     ):
         return "550 Sender not allowed without active billing"
 
+    is_spam = (
+        spam.action == "reject" or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
+    )
+    status = (
+        IncomingMessage.Status.QUARANTINED
+        if is_spam
+        else IncomingMessage.Status.RECEIVED
+    )
     message = IncomingMessage(
         org=domain.org,
         domain=domain,
@@ -155,7 +158,7 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
         subject=msg.get("Subject", ""),
         message_id=msg.get("Message-ID", ""),
         received_with_tls=bool(tls),
-        status=IncomingMessage.Status.RECEIVED,
+        status=status,
         spam_score=spam.score,
         spam_action=spam.action,
     )
@@ -165,10 +168,13 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
         save=False,
     )
     message.save(force_insert=True)
-    transaction.on_commit(lambda: dispatch_webhook.enqueue(message_id=str(message.id)))
     transaction.on_commit(
         lambda: evaluate_incoming_message.enqueue(message_pk=str(message.id))
     )
+    if not is_spam:
+        transaction.on_commit(
+            lambda: dispatch_webhook.enqueue(message_id=str(message.id))
+        )
     if is_postmaster_recipient:
         transaction.on_commit(
             lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))

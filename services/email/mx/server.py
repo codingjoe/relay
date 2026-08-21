@@ -40,7 +40,9 @@ class MXServer:
                     hostname=self.host,
                     port=port,
                     tls_context=tls_context,
-                    proxy_protocol_timeout=self.proxy_protocol_timeout,
+                    proxy_protocol_timeout=self.proxy_protocol_timeout.total_seconds()
+                    if self.proxy_protocol_timeout
+                    else None,
                 )
                 controller.start()
                 self.controllers.append(controller)

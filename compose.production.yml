@@ -73,7 +73,7 @@ services:
   smtp:
     extends:
       service: web
-    labels:
+    labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
     deploy: !reset
@@ -89,7 +89,7 @@ services:
   mx:
     extends:
       service: web
-    labels:
+    labels: !override
       - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
     deploy: !reset
@@ -200,6 +200,7 @@ configs:
   rspamd_redis:
     content: |
       servers = "redis";
+      database = 1;
   rspamd_worker:
     content: |
       bind_socket = "*:11334";

@@ -87,71 +87,53 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | Worker  | N/A          | Threadmill task worker                              |
 
 ```mermaid
-flowchart TD
-  subgraph Internet["Internet"]
-    Client["SMTP clients"]
-    Sender["Remote MTAs"]
-    Browser["Browsers"]
-  end
+architecture-beta
+    group internet(internet)[Internet]
+    service client(mail)[SMTP clients] in internet
+    service sender(mail)[Remote MTAs] in internet
+    service browser(browser)[Browsers] in internet
 
-  subgraph Caddy["Caddy (reverse proxy + TLS)"]
-    direction TB
-    CaddyProxy["Caddy docker-proxy"]
-    CaddyCerts["caddy.respond=OK\ncerts for SMTP + MX hostnames"]
-    CaddyData["caddy_data volume\n(certs, read-only mount)"]
-  end
+    group caddy(cloud)[Caddy reverse proxy + TLS]
+    service caddy_proxy(server)[Caddy docker-proxy] in caddy
 
-  subgraph HAProxy["HAProxy (L7 SMTP proxy)"]
-    HAProxyNode["HAProxy\n:25 :465 :587\nTLS termination on :465\nrate limiting"]
-  end
+    group haproxy(server)[HAProxy L7 SMTP proxy]
+    service haproxy_node(server)[HAProxy :25 :465 :587] in haproxy
 
-  subgraph App["app network"]
-    Web["Web\nDjango + Granian\n:8000"]
-    SMTP["SMTP\naiosmtpd\n:587 STARTTLS\n:465 plaintext (HAProxy TLS)"]
-    MX["MX\naiosmtpd\n:25 STARTTLS"]
-    Worker["Worker\nThreadmill"]
-    rspamd["rspamd\n:11334"]
-    MinIO["MinIO\nS3 storage\n:9000"]
-  end
+    group app(server)[app network]
+    service web(server)[Web Django + Granian :8000] in app
+    service smtp(server)[SMTP aiosmtpd :587 :465] in app
+    service mx(server)[MX aiosmtpd :25] in app
+    service worker(server)[Worker Threadmill] in app
+    service rspamd(server)[rspamd :11334] in app
+    service minio(server)[MinIO S3 :9000] in app
 
-  subgraph Data["data services"]
-    PG["PostgreSQL 18+"]
-    Redis["Redis"]
-  end
+    group data(database)[data services]
+    service pg(database)[PostgreSQL 18+] in data
+    service redis(database)[Redis] in data
 
-  subgraph DNS["dnsdist network"]
-    dnsdist["dnsdist\n:53 UDP+TCP"]
-    DNSns["DNS\ndnslib\n:5353"]
-  end
+    group dns(server)[dnsdist network]
+    service dnsdist(server)[dnsdist :53 UDP+TCP] in dns
+    service dns_ns(server)[DNS dnslib :5353] in dns
 
-  Browser -->|"HTTPS :443"| CaddyProxy
-  CaddyProxy --> Web
-  Client -->|"STARTTLS :587\nimplicit TLS :465"| HAProxyNode
-  Sender -->|"STARTTLS :25"| HAProxyNode
-  HAProxyNode -->|"PROXY protocol\n:587 STARTTLS"| SMTP
-  HAProxyNode -->|"plaintext + PROXY protocol\n:465 TLS termination"| SMTP
-  HAProxyNode -->|"PROXY protocol\n:25 STARTTLS"| MX
-  CaddyCerts -.->|"issue + renew certs"| CaddyData
-  CaddyData -.->|"cert mount"| SMTP
-  CaddyData -.->|"cert mount"| MX
-  CaddyData -.->|"cert mount (PEM)"| HAProxyNode
-
-  SMTP --> rspamd
-  MX --> rspamd
-  rspamd --> Redis
-
-  Web --> PG
-  Web --> Redis
-  Web --> MinIO
-  SMTP --> PG
-  SMTP --> MinIO
-  MX --> PG
-  MX --> MinIO
-  Worker --> PG
-  Worker --> Redis
-
-  dnsdist --> DNSns
-  Sender -.->|"DNS :53"| dnsdist
+    browser:L -- R:caddy_proxy
+    caddy_proxy:B -- T:web
+    client -- STARTTLS :587 / TLS :465 --> haproxy_node
+    sender -- STARTTLS :25 --> haproxy_node
+    haproxy_node -- PROXY :587 STARTTLS --> smtp
+    haproxy_node -- PROXY :465 plaintext --> smtp
+    haproxy_node -- PROXY :25 STARTTLS --> mx
+    smtp:B -- T:rspamd
+    mx:B -- T:rspamd
+    rspamd:B -- T:redis
+    web:B -- T:pg
+    web:L -- R:redis
+    web:R -- L:minio
+    smtp:L -- R:pg
+    smtp:R -- L:minio
+    mx:L -- R:pg
+    mx:R -- L:minio
+    dnsdist:B -- T:dns_ns
+    sender -- DNS :53 --> dnsdist
 ```
 
 The MX server receives incoming email (port 25, STARTTLS by default) and

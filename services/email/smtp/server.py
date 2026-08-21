@@ -45,7 +45,9 @@ class SMTPServer:
                         proxied_handler,
                         hostname=self.host,
                         port=port,
-                        proxy_protocol_timeout=self.proxy_protocol_timeout,
+                        proxy_protocol_timeout=self.proxy_protocol_timeout.total_seconds()
+                        if self.proxy_protocol_timeout
+                        else None,
                         auth_require_tls=False,
                     )
                 else:
@@ -56,7 +58,9 @@ class SMTPServer:
                         tls_context=tls_context,
                         require_starttls=True,
                         auth_require_tls=True,
-                        proxy_protocol_timeout=self.proxy_protocol_timeout,
+                        proxy_protocol_timeout=self.proxy_protocol_timeout.total_seconds()
+                        if self.proxy_protocol_timeout
+                        else None,
                     )
                 controller.start()
                 self.controllers.append(controller)
