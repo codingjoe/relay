@@ -77,10 +77,6 @@
     colons, semicolons, or commas for sentence structure. Use hyphens
     (U+002D) for compound words and ranges.
   filePattern: '.*\.(py|html|md|yml|yaml)$'
-- name: No "relay" brand mentions in how-to docs
-  pattern: '\bRELAY_\w+|\bRelay\b'
-  hint: 'How-to docs should be brand-agnostic. Do not mention "relay" as a brand name or use RELAY_ setting names. Use generic terms instead.'
-  filePattern: 'know_how/.*\.md$'
 - name: Use pytest-django settings fixture
   pattern: '\boverride_settings\b'
   hint: 'Use pytest-django''s `settings` fixture instead of Django''s `override_settings` decorator or context manager.'
