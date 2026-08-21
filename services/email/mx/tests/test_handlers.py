@@ -10,7 +10,6 @@ from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.mx.handlers import MXHandler, process_incoming_message
 from services.email.mx.models import IncomingMessage, TlsReport
-from services.email.spam import SpamResult
 
 
 def make_raw_email(subject="Postmaster alert"):
@@ -26,14 +25,16 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster__creates_incoming_message(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        result = await process_incoming_message(
-            "external@example.org",
-            "postmaster@example.com",
-            make_raw_email(),
-            True,
-            domain,
-            SpamResult(),
-        )
+        with patch("services.email.mx.handlers.check_incoming_spam"):
+            result = await process_incoming_message(
+                "external@example.org",
+                "postmaster@example.com",
+                make_raw_email(),
+                True,
+                domain,
+                False,
+                "",
+            )
         message = await IncomingMessage.objects.aget(
             org=org,
             rcpt_to="postmaster@example.com",
@@ -44,14 +45,16 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster_plus_addressing__creates_incoming_message(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        await process_incoming_message(
-            "external@example.org",
-            "postmaster+bounces@example.com",
-            make_raw_email(),
-            True,
-            domain,
-            SpamResult(),
-        )
+        with patch("services.email.mx.handlers.check_incoming_spam"):
+            await process_incoming_message(
+                "external@example.org",
+                "postmaster+bounces@example.com",
+                make_raw_email(),
+                True,
+                domain,
+                False,
+                "",
+            )
         assert (
             IncomingMessage.objects.filter(
                 org=org, rcpt_to="postmaster+bounces@example.com"
@@ -62,28 +65,32 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster__enqueues_notification(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        await process_incoming_message(
-            "external@example.org",
-            "postmaster@example.com",
-            make_raw_email(),
-            True,
-            domain,
-            SpamResult(),
-        )
+        with patch("services.email.mx.handlers.check_incoming_spam"):
+            await process_incoming_message(
+                "external@example.org",
+                "postmaster@example.com",
+                make_raw_email(),
+                True,
+                domain,
+                False,
+                "",
+            )
         assert any("postmaster" in m.subject.lower() for m in mail.outbox)
 
     @pytest.mark.django_db(transaction=True)
     async def test_non_postmaster__does_not_notify(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
         org.billing_is_active = True
-        result = await process_incoming_message(
-            "external@example.org",
-            "info@example.com",
-            make_raw_email(),
-            True,
-            domain,
-            SpamResult(),
-        )
+        with patch("services.email.mx.handlers.check_incoming_spam"):
+            result = await process_incoming_message(
+                "external@example.org",
+                "info@example.com",
+                make_raw_email(),
+                True,
+                domain,
+                False,
+                "",
+            )
         message = await IncomingMessage.objects.aget(domain=domain)
         assert result == "250 OK"
         assert message.org == org
@@ -178,7 +185,8 @@ class TestProcessIncomingMessageBilling:
             make_raw_email(),
             True,
             domain,
-            SpamResult(),
+            False,
+            "",
         )
 
         assert result == "550 Sender not allowed without active billing"
@@ -192,14 +200,16 @@ class TestProcessIncomingMessageBilling:
     ):
         domain = Domain.objects.create(name="example.com", org=org)
 
-        result = await process_incoming_message(
-            user.email.upper(),
-            "info@example.com",
-            make_raw_email(),
-            True,
-            domain,
-            SpamResult(),
-        )
+        with patch("services.email.mx.handlers.check_incoming_spam"):
+            result = await process_incoming_message(
+                user.email.upper(),
+                "info@example.com",
+                make_raw_email(),
+                True,
+                domain,
+                False,
+                "",
+            )
 
         assert result == "250 OK"
         assert await IncomingMessage.objects.filter(domain=domain).aexists()
@@ -208,16 +218,20 @@ class TestProcessIncomingMessageBilling:
     async def test_unbilled_org__accepts_plus_addressed_bounce(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
 
-        with patch(
-            "services.email.mx.handlers.notify_postmaster_recipients"
-        ) as notify_task:
+        with (
+            patch(
+                "services.email.mx.handlers.notify_postmaster_recipients"
+            ) as notify_task,
+            patch("services.email.mx.handlers.check_incoming_spam"),
+        ):
             result = await process_incoming_message(
                 "external@example.org",
                 "bounce+message-id@example.com",
                 make_raw_email(),
                 True,
                 domain,
-                SpamResult(),
+                False,
+                "",
             )
 
         assert result == "250 OK"
@@ -235,7 +249,8 @@ class TestProcessIncomingMessageBilling:
             make_raw_email(),
             True,
             domain,
-            SpamResult(),
+            False,
+            "",
         )
 
         assert result == "550 Sender not allowed without active billing"
@@ -271,7 +286,8 @@ class TestProcessIncomingMessageReports:
                 make_raw_email(),
                 True,
                 domain,
-                SpamResult(),
+                False,
+                "",
             )
 
         report = await report_model.objects.aget(domain=domain)

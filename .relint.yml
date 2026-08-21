@@ -81,3 +81,7 @@
   pattern: '\boverride_settings\b'
   hint: 'Use pytest-django''s `settings` fixture instead of Django''s `override_settings` decorator or context manager.'
   filePattern: '(^|.*/)(?:tests(?:/.*|\.py)|test_[^/]*\.py|conftest\.py)$'
+- name: Use exc_info=True for exception logging
+  pattern: 'logger\.(warning|error|exception)\(f["''].*\{(?:e|error|exc|err)\}'
+  hint: 'Use exc_info=True instead of interpolating exception objects in f-strings. Provide a meaningful message without the exception.'
+  filePattern: .*\.py

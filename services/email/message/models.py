@@ -59,7 +59,7 @@ class Message(TimeStamped):
     )
     spam_score = models.FloatField(
         _("spam score"),
-        default=0.0,
+        null=True,
         blank=True,
         help_text=_("rspamd score assigned to the message."),
     )

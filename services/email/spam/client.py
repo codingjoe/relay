@@ -2,15 +2,21 @@
 
 import logging
 from dataclasses import dataclass
+from enum import StrEnum
 
 import httpx
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-KNOWN_ACTIONS = frozenset(
-    {"no action", "greylist", "add header", "rewrite subject", "soft reject", "reject"}
-)
+
+class SpamAction(StrEnum):
+    NO_ACTION = "no action"
+    GREYLIST = "greylist"
+    ADD_HEADER = "add header"
+    REWRITE_SUBJECT = "rewrite subject"
+    SOFT_REJECT = "soft reject"
+    REJECT = "reject"
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,14 +24,17 @@ class SpamResult:
     """Outcome of a rspamd scan."""
 
     score: float = 0.0
-    action: str = "no action"
+    action: SpamAction = SpamAction.NO_ACTION
 
-    def add_headers(self, raw_bytes: bytes) -> bytes:
-        """Return the raw message with X-Spam headers prepended."""
-        headers = (
-            f"X-Spam-Score: {self.score}\r\nX-Spam-Action: {self.action}\r\n"
-        ).encode()
-        return headers + raw_bytes
+    @classmethod
+    def from_response(cls, data: dict) -> SpamResult:
+        """Create a SpamResult from a rspamd /checkv2 JSON response."""
+        score = float(data.get("score") or 0.0)
+        try:
+            action = SpamAction(data.get("action", "no action"))
+        except ValueError:
+            action = SpamAction.NO_ACTION
+        return cls(score=score, action=action)
 
 
 async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
@@ -43,12 +52,8 @@ async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
                 headers=headers,
             )
             response.raise_for_status()
-    except httpx.HTTPError as error:
-        logger.warning("rspamd check failed: %s", error)
+            data = response.json()
+    except (httpx.HTTPError, ValueError):  # fmt: skip
+        logger.warning("rspamd check failed", exc_info=True)
         return SpamResult()
-    data = response.json()
-    score = float(data.get("score") or 0.0)
-    action = data.get("action", "no action")
-    if action not in KNOWN_ACTIONS:
-        action = "no action"
-    return SpamResult(score=score, action=action)
+    return SpamResult.from_response(data)

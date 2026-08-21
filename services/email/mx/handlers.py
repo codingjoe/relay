@@ -7,10 +7,10 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 
 from domains.models import Domain
-from services.email.spam import SpamResult, check_message
+from services.email.dmarc.types import Disposition, DmarcEvaluation
 
 from .models import IncomingMessage, TlsReport
-from .tasks import dispatch_webhook, notify_postmaster_recipients, parse_tls_report
+from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
 
@@ -41,27 +41,34 @@ class MXHandler:
             settings.RELAY_TLS_REPORT_LOCAL_PART,
             settings.RELAY_DMARC_RUF_LOCAL_PART,
         }
-        if local_part in report_local_parts:
-            spam = SpamResult()
-        else:
+        is_report = local_part in report_local_parts
+        dmarc_quarantined = False
+        client_ip = ""
+        if not is_report:
             client_ip = session.peer[0] if session.peer else ""
-            spam = await check_message(raw_bytes, client_ip=client_ip)
+            evaluation = await sync_to_async(
+                DmarcEvaluation.from_bytes, thread_sensitive=False
+            )(raw_bytes, mail_from)
+            if evaluation.disposition == Disposition.REJECT:
+                return "550 Message rejected by DMARC policy"
+            dmarc_quarantined = evaluation.disposition == Disposition.QUARANTINE
         result = await process_incoming_message(
             mail_from,
             rcpt_to,
             raw_bytes,
             getattr(session, "ssl", False),
             getattr(envelope, "recipient_domain", None),
-            spam,
+            dmarc_quarantined,
+            client_ip,
         )
         logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
         return result
 
 
 @sync_to_async
-def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
-    from services.email.dmarc.tasks import evaluate_incoming_message
-
+def process_incoming_message(
+    mail_from, rcpt_to, raw_bytes, tls, domain, dmarc_quarantined, client_ip
+):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
@@ -140,12 +147,9 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
     ):
         return "550 Sender not allowed without active billing"
 
-    is_spam = (
-        spam.action == "reject" or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
-    )
     status = (
         IncomingMessage.Status.QUARANTINED
-        if is_spam
+        if dmarc_quarantined
         else IncomingMessage.Status.RECEIVED
     )
     message = IncomingMessage(
@@ -158,22 +162,18 @@ def process_incoming_message(mail_from, rcpt_to, raw_bytes, tls, domain, spam):
         message_id=msg.get("Message-ID", ""),
         received_with_tls=bool(tls),
         status=status,
-        spam_score=spam.score,
-        spam_action=spam.action,
     )
     message.raw_body.save(
         f"{message.id}.eml",
-        ContentFile(spam.add_headers(raw_bytes)),
+        ContentFile(raw_bytes),
         save=False,
     )
     message.save(force_insert=True)
     transaction.on_commit(
-        lambda: evaluate_incoming_message.enqueue(message_pk=str(message.id))
-    )
-    if not is_spam:
-        transaction.on_commit(
-            lambda: dispatch_webhook.enqueue(message_id=str(message.id))
+        lambda: check_incoming_spam.enqueue(
+            message_pk=str(message.id), client_ip=client_ip
         )
+    )
     if is_postmaster_recipient:
         transaction.on_commit(
             lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))

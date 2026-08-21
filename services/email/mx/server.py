@@ -42,9 +42,9 @@ class MXServer:
                 controller.start()
                 self.controllers.append(controller)
                 logger.info(f"MX server listening on {self.host}:{port}")
-        except Exception:
-            self.stop()
-            raise
+        finally:
+            if len(self.controllers) != len(self.ports):
+                self.stop()
 
     def stop(self):
         for controller in self.controllers:

@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
             name="spam_score",
             field=models.FloatField(
                 blank=True,
-                default=0.0,
+                null=True,
                 help_text="rspamd score assigned to the message.",
                 verbose_name="spam score",
             ),

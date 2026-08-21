@@ -8,6 +8,7 @@ from django.core.files.base import ContentFile
 from django.tasks import task
 
 from services.email.mx.mta_sts import MtaStsPolicy
+from services.email.spam import SpamAction, check_message
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +127,8 @@ def deliver_message(message_id):
 
         raise MxHostsExhausted(f"All MX hosts failed for {rcpt_domain}")
 
-    except Exception as e:  # noqa: BLE001  # storage backend raises varied exceptions
-        logger.error(f"Transmission error for message {message_id}: {e}")
+    except Exception as e:  # storage backend raises varied exceptions
+        logger.exception("Transmission error for message %s", message_id)
         Transmission.objects.create(
             message=message,
             status=Transmission.Status.FAILED,
@@ -147,3 +148,37 @@ def fetch_mx_hosts(domain):
         ]
     except dns.exception.DNSException:
         return []
+
+
+@task
+def check_outgoing_spam(message_pk, client_ip):
+    """Check an outgoing message for spam and enqueue delivery if clean.
+
+    Fails open: on any error the message is treated as clean so it is never
+    orphaned.
+    """
+    from .models import OutgoingMessage
+
+    message = OutgoingMessage.objects.get(pk=message_pk)
+    is_spam = False
+    update_fields = []
+    try:
+        raw_bytes = message.raw_body.read()
+        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+        is_spam = (
+            spam.action == SpamAction.REJECT
+            or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
+        )
+        message.spam_score = spam.score
+        message.spam_action = spam.action
+        update_fields = ["spam_score", "spam_action"]
+    except Exception:
+        logger.exception("Spam check failed for message %s", message_pk)
+
+    if is_spam:
+        message.status = OutgoingMessage.Status.HELD
+        message.save(update_fields=["spam_score", "spam_action", "status"])
+    else:
+        if update_fields:
+            message.save(update_fields=update_fields)
+        deliver_message.enqueue(message_id=str(message.pk))

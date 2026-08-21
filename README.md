@@ -86,47 +86,52 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | Worker  | N/A          | Threadmill task worker                           |
 
 ```mermaid
-architecture-beta
-    group internet(internet)[Internet]
-    service client(mail)[SMTP clients] in internet
-    service sender(mail)[Remote MTAs] in internet
-    service browser(browser)[Browsers] in internet
+flowchart TD
+    subgraph internet[Internet]
+        client[SMTP clients]
+        sender[Remote MTAs]
+        browser[Browsers]
+    end
 
-    group caddy(cloud)[Caddy reverse proxy + TLS]
-    service caddy_proxy(server)[Caddy docker-proxy] in caddy
+    subgraph caddy[Caddy reverse proxy + TLS]
+        caddy_proxy[Caddy docker-proxy]
+    end
 
-    group app(server)[app network]
-    service web(server)[Web Django + Granian :8000] in app
-    service smtp(server)[SMTP aiosmtpd :587 :465] in app
-    service mx(server)[MX aiosmtpd :25] in app
-    service worker(server)[Worker Threadmill] in app
-    service rspamd(server)[rspamd :11334] in app
-    service minio(server)[MinIO S3 :9000] in app
+    subgraph app[app network]
+        web[Web Django + Granian :8000]
+        smtp[SMTP aiosmtpd :587 :465]
+        mx[MX aiosmtpd :25]
+        worker[Worker Threadmill]
+        rspamd[rspamd :11334]
+        minio[MinIO S3 :9000]
+    end
 
-    group data(database)[data services]
-    service pg(database)[PostgreSQL 18+] in data
-    service redis(database)[Redis] in data
+    subgraph data[data services]
+        pg[PostgreSQL 18+]
+        redis[Redis]
+    end
 
-    group dns(server)[dnsdist network]
-    service dnsdist(server)[dnsdist :53 UDP+TCP] in dns
-    service dns_ns(server)[DNS dnslib :5353] in dns
+    subgraph dns[dnsdist network]
+        dnsdist[dnsdist :53 UDP+TCP]
+        dns_ns[DNS dnslib :5353]
+    end
 
-    browser:L -- R:caddy_proxy
-    caddy_proxy:B -- T:web
-    client -- STARTTLS :587 / TLS :465 --> smtp
-    sender -- STARTTLS :25 --> mx
-    smtp:B -- T:rspamd
-    mx:B -- T:rspamd
-    rspamd:B -- T:redis
-    web:B -- T:pg
-    web:L -- R:redis
-    web:R -- L:minio
-    smtp:L -- R:pg
-    smtp:R -- L:minio
-    mx:L -- R:pg
-    mx:R -- L:minio
-    dnsdist:B -- T:dns_ns
-    sender -- DNS :53 --> dnsdist
+    browser --> caddy_proxy
+    caddy_proxy --> web
+    client -->|STARTTLS :587 / TLS :465| smtp
+    sender -->|STARTTLS :25| mx
+    smtp --> rspamd
+    mx --> rspamd
+    rspamd --> redis
+    web --> pg
+    web --> redis
+    web --> minio
+    smtp --> pg
+    smtp --> minio
+    mx --> pg
+    mx --> minio
+    dnsdist --> dns_ns
+    sender -->|DNS :53| dnsdist
 ```
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
@@ -141,14 +146,6 @@ has its own keypair, so clients verify with the webhook's public key
 data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
-
-> **STARTTLS cert provisioning**: in production, mount the Caddy data volume
-> (read-only) into the `smtp` and `mx` containers. Caddy stores certificates at
-> `<data>/certificates/<issuer>/<domain>/<domain>.crt|.key`. Point
-> `RELAY_SMTP_TLS_CERT_PATH`/`RELAY_SMTP_TLS_KEY_PATH` and
-> `RELAY_MX_TLS_CERT_PATH`/`RELAY_MX_TLS_KEY_PATH` at the mounted cert files. The
-> certs must include the SMTP hostname (for example, `smtp.relay.acme.com`) and the
-> MX hostname (for example, `mail.relay.acme.com`).
 
 ### Tech Stack
 

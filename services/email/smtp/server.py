@@ -63,9 +63,9 @@ class SMTPServer:
                 controller.start()
                 self.controllers.append(controller)
                 logger.info(f"SMTP server listening on {self.host}:{port}")
-        except Exception:
-            self.stop()
-            raise
+        finally:
+            if len(self.controllers) != len(self.ports):
+                self.stop()
 
     def stop(self):
         for controller in self.controllers:

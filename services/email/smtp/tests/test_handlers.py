@@ -11,7 +11,6 @@ from services.email.smtp.models import (
     SmtpCredential,
     SuppressionEntry,
 )
-from services.email.spam import SpamResult
 
 
 def make_email(mail_from, rcpt_to):
@@ -104,7 +103,7 @@ class TestProcessMessage:
             credential,
             user,
             False,
-            SpamResult(),
+            "",
         )
 
         assert result == "550 Sender domain not registered"
@@ -136,7 +135,7 @@ class TestProcessMessage:
             credential,
             other_user,
             False,
-            SpamResult(),
+            "",
         )
 
         assert result == "550 Sender domain not registered"
@@ -162,7 +161,7 @@ class TestProcessMessage:
             credential,
             user,
             False,
-            SpamResult(),
+            "",
         )
 
         assert result == "550 Recipient not allowed without active billing"
@@ -181,7 +180,7 @@ class TestProcessMessage:
         mail_from = f"alice@{domain.name.upper()}"
         message = make_email(mail_from, rcpt_to)
 
-        with patch("services.email.smtp.handlers.deliver_message") as delivery_task:
+        with patch("services.email.smtp.handlers.check_outgoing_spam") as spam_task:
             result = await process_message(
                 mail_from,
                 rcpt_to,
@@ -190,14 +189,16 @@ class TestProcessMessage:
                 credential,
                 user,
                 True,
-                SpamResult(),
+                "",
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
         assert result == "250 OK"
         assert outgoing.domain == domain
         assert outgoing.received_with_tls is True
-        delivery_task.enqueue.assert_called_once_with(message_id=str(outgoing.id))
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(outgoing.id), client_ip=""
+        )
 
     async def test_process_message__allows_external_recipient_with_billing(
         self,
@@ -211,7 +212,7 @@ class TestProcessMessage:
         credential, _ = SmtpCredential.objects.create_with_key(org=org)
         message = make_email(f"alice@{domain.name}", "external@example.com")
 
-        with patch("services.email.smtp.handlers.deliver_message"):
+        with patch("services.email.smtp.handlers.check_outgoing_spam"):
             result = await process_message(
                 f"alice@{domain.name}",
                 "external@example.com",
@@ -220,7 +221,7 @@ class TestProcessMessage:
                 credential,
                 user,
                 False,
-                SpamResult(),
+                "",
             )
 
         assert result == "250 OK"
@@ -239,7 +240,7 @@ class TestProcessMessage:
         SuppressionEntry.objects.create_or_update(org=org, email=rcpt_to)
         message = make_email(f"alice@{domain.name}", rcpt_to)
 
-        with patch("services.email.smtp.handlers.deliver_message") as delivery_task:
+        with patch("services.email.smtp.handlers.check_outgoing_spam") as spam_task:
             result = await process_message(
                 f"alice@{domain.name}",
                 rcpt_to,
@@ -248,14 +249,14 @@ class TestProcessMessage:
                 credential,
                 user,
                 False,
-                SpamResult(),
+                "",
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
         assert result == "250 OK"
         assert outgoing.status == OutgoingMessage.Status.SUPPRESSED
         assert outgoing.domain == domain
-        delivery_task.enqueue.assert_not_called()
+        spam_task.enqueue.assert_not_called()
 
 
 @pytest.mark.django_db(transaction=True)

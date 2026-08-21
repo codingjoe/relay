@@ -1,3 +1,3 @@
-from .client import SpamResult, check_message
+from .client import SpamAction, SpamResult, check_message
 
-__all__ = ["SpamResult", "check_message"]
+__all__ = ["SpamAction", "SpamResult", "check_message"]

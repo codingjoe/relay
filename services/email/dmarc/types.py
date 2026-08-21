@@ -44,8 +44,15 @@ class DmarcPolicy:
     @classmethod
     def lookup(cls, domain):
         try:
-            records = dns.resolver.resolve(f"_dmarc.{domain}", "TXT")
-        except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
+            resolver = dns.resolver.Resolver()
+            resolver.lifetime = 2.0
+            records = resolver.resolve(f"_dmarc.{domain}", "TXT")
+        except (
+            dns.resolver.NXDOMAIN,
+            dns.resolver.NoAnswer,
+            dns.exception.Timeout,
+            dns.resolver.NoNameservers,
+        ):
             return cls()
         for record in records:
             text = "".join(
@@ -110,10 +117,17 @@ class DmarcEvaluation:
     @classmethod
     def from_message(cls, incoming_message):
         """Return DMARC evaluation results for an incoming message."""
-        raw_bytes = incoming_message.raw_body.read()
+        return cls.from_bytes(
+            incoming_message.raw_body.read(),
+            incoming_message.mail_from,
+        )
+
+    @classmethod
+    def from_bytes(cls, raw_bytes, mail_from):
+        """Evaluate DMARC for a message from raw bytes."""
         msg = message_from_bytes(raw_bytes)
         header_from_domain = cls.extract_domain(msg.get("From", ""))
-        envelope_from_domain = cls.extract_domain(incoming_message.mail_from)
+        envelope_from_domain = cls.extract_domain(mail_from)
         source_ip = cls.extract_source_ip(msg)
         policy = DmarcPolicy.lookup(header_from_domain)
         dkim_result, dkim_domain = cls.verify_dkim(raw_bytes)
@@ -122,7 +136,6 @@ class DmarcEvaluation:
             dkim_domain, header_from_domain, policy.adkim
         )
         spf_aligned = cls.check_alignment(spf_domain, header_from_domain, policy.aspf)
-
         return cls(
             source_ip_address=source_ip,
             header_from=header_from_domain,
@@ -177,8 +190,15 @@ class DmarcEvaluation:
     def check_spf(source_ip, domain):
         if source_ip and domain:
             try:
-                records = dns.resolver.resolve(domain, "TXT")
-            except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.exception.Timeout:
+                resolver = dns.resolver.Resolver()
+                resolver.lifetime = 2.0
+                records = resolver.resolve(domain, "TXT")
+            except (
+                dns.resolver.NXDOMAIN,
+                dns.resolver.NoAnswer,
+                dns.exception.Timeout,
+                dns.resolver.NoNameservers,
+            ):
                 return AuthResult.NONE, domain
             for record in records:
                 text = "".join(

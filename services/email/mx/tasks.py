@@ -7,12 +7,15 @@ import uuid
 from dataclasses import dataclass, field
 
 import httpx
+from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+from services.email.spam import SpamAction, check_message
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -111,8 +114,8 @@ class WebhookEvent:
     received_with_tls: bool
     receiving_domain: str
     body_url: str | None
-    spam_score: float = 0.0
-    spam_action: str = "no action"
+    spam_score: float | None = None
+    spam_action: str = ""
     received_at: str = field(
         default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     )
@@ -184,7 +187,7 @@ def deliver_to_webhook(message, webhook, is_test=False):
             response_body=response.text[:2000],
         )
     except httpx.HTTPError as e:
-        logger.error(f"Webhook delivery to {webhook.url} failed: {e}")
+        logger.exception("Webhook delivery to %s failed", webhook.url)
         WebhookDelivery.objects.create(
             message=message,
             webhook=webhook,
@@ -255,7 +258,41 @@ def notify_postmaster_recipients(message_pk):
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
             )
-        except OSError as e:
-            logger.error(
-                f"Postmaster notification to {membership.user.email} failed: {e}"
+        except OSError:
+            logger.exception(
+                "Postmaster notification to %s failed",
+                membership.user.email,
             )
+
+
+@task
+def check_incoming_spam(message_pk, client_ip):
+    """Check an incoming message for spam and dispatch webhook if clean.
+
+    Fails open: on any error the message is treated as clean so it is never
+    orphaned. DMARC-quarantined messages are never webhook-dispatched.
+    """
+    message = IncomingMessage.objects.get(pk=message_pk)
+    is_spam = False
+    update_fields = []
+    try:
+        raw_bytes = message.raw_body.read()
+        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+        is_spam = (
+            spam.action == SpamAction.REJECT
+            or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
+        )
+        message.spam_score = spam.score
+        message.spam_action = spam.action
+        update_fields = ["spam_score", "spam_action"]
+    except Exception:
+        logger.exception("Spam check failed for message %s", message_pk)
+
+    if is_spam:
+        message.status = IncomingMessage.Status.QUARANTINED
+        message.save(update_fields=["spam_score", "spam_action", "status"])
+    else:
+        if update_fields:
+            message.save(update_fields=update_fields)
+        if message.status != IncomingMessage.Status.QUARANTINED:
+            dispatch_webhook.enqueue(message_id=str(message.pk))
