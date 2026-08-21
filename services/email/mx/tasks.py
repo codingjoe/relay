@@ -286,7 +286,7 @@ def check_incoming_spam(message_pk, client_ip):
         message.spam_action = spam.action
         update_fields = ["spam_score", "spam_action"]
     except Exception:
-        logger.exception("Spam check failed for message %s", message_pk)
+        logger.exception("Spam check failed for message %r", message_pk)
 
     if is_spam:
         message.status = IncomingMessage.Status.QUARANTINED

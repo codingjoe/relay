@@ -67,7 +67,7 @@ class MtaStsPolicy:
 
         match self.mode:
             case "testing":
-                logger.warning("MTA-STS testing: MX %s not in policy", mx_hostname)
+                logger.warning("MTA-STS testing: MX %r not in policy", mx_hostname)
                 return True, "MTA-STS testing mode, MX not in policy"
             case "enforce":
                 return False, f"MTA-STS enforce: MX {mx_hostname} not allowed"

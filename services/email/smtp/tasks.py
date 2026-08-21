@@ -128,7 +128,7 @@ def deliver_message(message_id):
         raise MxHostsExhausted(f"All MX hosts failed for {rcpt_domain}")
 
     except Exception as e:  # storage backend raises varied exceptions
-        logger.exception("Transmission error for message %s", message_id)
+        logger.exception("Transmission error for message %r", message_id)
         Transmission.objects.create(
             message=message,
             status=Transmission.Status.FAILED,
@@ -173,7 +173,7 @@ def check_outgoing_spam(message_pk, client_ip):
         message.spam_action = spam.action
         update_fields = ["spam_score", "spam_action"]
     except Exception:
-        logger.exception("Spam check failed for message %s", message_pk)
+        logger.exception("Spam check failed for message %r", message_pk)
 
     if is_spam:
         message.status = OutgoingMessage.Status.HELD
