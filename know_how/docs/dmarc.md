@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # DMARC
 
-> **TL;DR**: DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication. You set one DNS record on your root domain. relay handles the rest.
+> **TL;DR**: DMARC tells receiving mail servers what to do when an email fails SPF or DKIM authentication. You set one DNS record on your root domain. The platform handles the rest.
 
 ## What is DMARC?
 
@@ -88,13 +88,13 @@ Forensic reports are copies of individual messages that failed authentication. E
 
 Not all mail servers send forensic reports because of privacy concerns. Some servers redact or omit the message content.
 
-## How relay uses DMARC
+## How the platform uses DMARC
 
-You set one DMARC TXT record on your root domain. relay serves all other DNS records (SPF, DKIM, MX, and more) automatically through the built-in nameserver.
+You set one DMARC TXT record on your root domain. The platform serves all other DNS records (SPF, DKIM, MX, and more) automatically through the built-in nameserver.
 
-relay uses relaxed alignment for both SPF and DKIM. This means the policy covers all subdomains of your root domain. You do not need separate DMARC records for each subdomain.
+The platform uses relaxed alignment for both SPF and DKIM. This means the policy covers all subdomains of your root domain. You do not need separate DMARC records for each subdomain.
 
-relay collects aggregate and forensic reports for you. You can view them in the DMARC reports dashboard in your organization.
+The platform collects aggregate and forensic reports for you. You can view them in the DMARC reports dashboard in your organization.
 
 ## Further reading
 

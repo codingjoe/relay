@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # DKIM
 
-> **TL;DR**: DKIM adds a cryptographic signature to each outgoing email. Receiving servers verify the signature with a public key from DNS. relay generates and manages all keys for you.
+> **TL;DR**: DKIM adds a cryptographic signature to each outgoing email. Receiving servers verify the signature with a public key from DNS. The platform generates and manages all keys for you.
 
 ## What is DKIM?
 
@@ -47,7 +47,7 @@ The DKIM signing and verification process has two sides:
 
 The selector is a label that identifies which key to use. A domain can have multiple DKIM keys, each with a different selector. This design lets you rotate keys without downtime.[^key-rotation] You publish the new key under a new selector, update the signing configuration, and then remove the old key.
 
-For example, `relay._domainkey.example.com` contains the public key for the `relay` selector.
+For example, `mail._domainkey.example.com` contains the public key for the `mail` selector.
 
 ### Body and header hashing
 
@@ -84,13 +84,13 @@ DKIM supports several key types:
 - **RSA-1024**: An older key size. Some receivers no longer accept RSA-1024 keys because the security margin is too small.
 - **Ed25519**: A modern elliptic curve algorithm. It provides the same security as RSA-2048 with a much smaller key size.[^ed25519-support] Not all receiving servers support Ed25519 yet.
 
-relay supports all three key types. Each key type gets its own selector and DNS record.
+The platform supports all three key types. Each key type gets its own selector and DNS record.
 
-## How relay uses DKIM
+## How the platform uses DKIM
 
-relay generates and stores the private keys for you. The keys live in the `kms` app, which manages key creation, storage, and signing. relay publishes the public keys as DNS records on the sender subdomain through the built-in nameserver.
+The platform generates and stores the private keys for you. The keys live in the `kms` app, which manages key creation, storage, and signing. The platform publishes the public keys as DNS records on the sender subdomain through the built-in nameserver.
 
-Each cipher type gets its own selector and CNAME record. You add the CNAME records at your DNS provider. relay handles the rest, including key rotation.
+Each cipher type gets its own selector and CNAME record. You add the CNAME records at your DNS provider. The platform handles the rest, including key rotation.
 
 ## Further reading
 
@@ -102,8 +102,8 @@ Each cipher type gets its own selector and CNAME record. You add the CNAME recor
 
 [^internet-standard]: RFC 6376 has the status "Internet Standard" (STD 76). This is the highest maturity level in the IETF standards process. It means the protocol is stable, widely implemented, and has significant operational experience.
 
-[^key-rotation]: Key rotation is a security best practice. Rotate DKIM keys at least every 6 to 12 months. relay handles key rotation for you. You do not need to manage the rotation schedule.
+[^key-rotation]: Key rotation is a security best practice. Rotate DKIM keys at least every 6 to 12 months. The platform handles key rotation for you. You do not need to manage the rotation schedule.
 
 [^body-length]: The `l=` tag in the `DKIM-Signature` header limits the body hash to a specific number of bytes. This tag is rarely used and creates a security risk because an attacker can append content after the signed portion. Most implementations omit the `l=` tag entirely. See [RFC 6376 Section 5.4](https://datatracker.ietf.org/doc/html/rfc6376#section-5.4) for details.
 
-[^ed25519-support]: Ed25519 support was added in [RFC 8463](https://datatracker.ietf.org/doc/html/rfc8463). Adoption is growing but not universal. relay publishes Ed25519 keys alongside RSA keys, so receivers that support Ed25519 can use the smaller signature.
+[^ed25519-support]: Ed25519 support was added in [RFC 8463](https://datatracker.ietf.org/doc/html/rfc8463). Adoption is growing but not universal. The platform publishes Ed25519 keys alongside RSA keys, so receivers that support Ed25519 can use the smaller signature.

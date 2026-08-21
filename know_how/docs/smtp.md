@@ -6,11 +6,11 @@ author: Johannes Maron
 
 # SMTP
 
-> **TL;DR**: SMTP is the standard protocol for sending email between mail servers. relay accepts outgoing mail on port 587 with STARTTLS and authenticates each request with an API key.
+> **TL;DR**: SMTP is the standard protocol for sending email between mail servers. The platform accepts outgoing mail on port 587 with STARTTLS and authenticates each request with an API key.
 
 ## What is SMTP?
 
-SMTP (Simple Mail Transfer Protocol) is the standard protocol for sending and relaying email across the internet. It defines the commands that a mail client sends to a mail server to submit a message, and the commands that mail servers exchange to deliver messages to each other.
+SMTP (Simple Mail Transfer Protocol) is the standard protocol for sending and delivering email across the internet. It defines the commands that a mail client sends to a mail server to submit a message, and the commands that mail servers exchange to deliver messages to each other.
 
 SMTP is defined in [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321). The message format that SMTP carries is defined in [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322).
 
@@ -67,7 +67,7 @@ SMTP uses different ports for different roles:
 
 | Port | Purpose                                    | Encryption        |
 | ---- | ------------------------------------------ | ----------------- |
-| 25   | Server-to-server relay (MX delivery)       | Optional STARTTLS |
+| 25   | Server-to-server delivery (MX delivery)    | Optional STARTTLS |
 | 587  | Client-to-server submission                | STARTTLS          |
 | 465  | Client-to-server submission (implicit TLS) | TLS               |
 
@@ -91,17 +91,17 @@ STARTTLS is an SMTP extension that upgrades a plain-text connection to TLS. The 
 
 STARTTLS is opportunistic by default. If the server does not advertise STARTTLS, or if the TLS handshake fails, the client can fall back to plain text. <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> solves this problem by requiring TLS.
 
-## How relay uses SMTP
+## How the platform uses SMTP
 
-relay accepts outgoing mail submissions on port 587 with STARTTLS. The authentication uses an API key as the SMTP password. Each organization gets its own API key through the `SmtpCredential` model.
+The platform accepts outgoing mail submissions on port 587 with STARTTLS. The authentication uses an API key as the SMTP password. Each organization gets its own API key through the `SmtpCredential` model.
 
 When you submit a message:
 
-1. Your mail client connects to the relay SMTP server on port 587.
+1. Your mail client connects to the platform's SMTP server on port 587.
 1. The client upgrades the connection with STARTTLS.
 1. The client authenticates with the organization API key.
 1. The client sends the message.
-1. The relay SMTP server stores the raw message body in S3 storage.
+1. The platform's SMTP server stores the raw message body in S3 storage.
 1. The server dispatches delivery through the Django task framework.
 1. The server reports the delivery status back to the client.
 

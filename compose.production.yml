@@ -52,9 +52,7 @@ services:
     extends:
       service: web
     labels: !reset
-    command: ["-m", "manage", "dns"]
-    environment:
-      RELAY_DNS_LISTEN_PORT: 5353
+    command: ["-m", "manage", "dns", "--port", "5353"]
     networks: !override
       - app
       - dnsdist

@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # Spam
 
-> **TL;DR**: rspamd scans every message relay receives and sends. High-score mail is rejected with a `550` response. Borderline outgoing mail is held for review. relay stores the score and action on each message.
+> **TL;DR**: rspamd scans every message the platform receives and sends. High-score mail is rejected with a `550` response. Borderline outgoing mail is held for review. The platform stores the score and action on each message.
 
 ## What is rspamd?
 
@@ -18,16 +18,16 @@ rspamd uses many signals to build the score. It checks the message content, the 
 
 Email is open by design. Anyone can send a message to any address. Without filtering, a mailbox fills with unwanted mail. Spam also wastes resources and damages the sender reputation.
 
-relay scans both directions:
+The platform scans both directions:
 
 - **Incoming mail** on the <a href="{% url 'know_how:detail' slug='mx' %}">MX</a> server. This protects the receiving domain from spam.
 - **Outgoing mail** on the <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> submission server. This detects abuse from a compromised account.
 
-## How relay integrates rspamd
+## How the platform integrates rspamd
 
-relay calls rspamd over HTTP. It posts the raw message to the `/checkv2` endpoint. rspamd returns a JSON response with the `score` and the `action`.
+The platform calls rspamd over HTTP. It posts the raw message to the `/checkv2` endpoint. rspamd returns a JSON response with the `score` and the `action`.
 
-relay uses the HTTP interface instead of a milter. The <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server does not support milters. HTTP is the pragmatic integration.
+The platform uses the HTTP interface instead of a milter. The <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server does not support milters. HTTP is the pragmatic integration.
 
 The rspamd URL is set with `RELAY_RSPAMD_URL`. It defaults to `http://rspamd:11334`.
 
@@ -42,7 +42,7 @@ Two settings control the thresholds:
 
 The reject score is higher than the hold score. A message that reaches the reject score is spam. A message that reaches the hold score is borderline.
 
-## How relay handles the result
+## How the platform handles the result
 
 The handling differs by direction.
 

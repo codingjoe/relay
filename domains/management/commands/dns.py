@@ -20,8 +20,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         sys.stdout.reconfigure(line_buffering=True)
-        host = options["host"] or settings.RELAY_DNS_LISTEN_HOST
-        port = options["port"] or settings.RELAY_DNS_LISTEN_PORT
+        host = options["host"] or "0.0.0.0"
+        port = options["port"] or 53
 
         resolver = DNSResolver()
         logger = DNSLogger(
