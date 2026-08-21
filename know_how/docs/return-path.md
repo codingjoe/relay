@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # Return-Path
 
-> **TL;DR**: The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address. The platform configures the Return-Path for you.
+> **TL;DR**: The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address. relay configures the Return-Path for you.
 
 ## What is Return-Path?
 
@@ -44,12 +44,12 @@ The sender does not set the `Return-Path` header. The receiving server adds it.[
 A message might have these fields:
 
 ```text
-MAIL FROM: <bounce+019a8c26@mail.example.com>   (envelope sender)
+MAIL FROM: <bounce+019a8c26@mail.relay.example.com>   (envelope sender)
 From: billing@example.com                             (visible header)
-Return-Path: bounce+019a8c26@mail.example.com   (added by receiver)
+Return-Path: bounce+019a8c26@mail.relay.example.com   (added by receiver)
 ```
 
-The recipient sees `billing@example.com` in the mail client. Bounce messages go to the tagged address. The <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check uses `mail.example.com`.
+The recipient sees `billing@example.com` in the mail client. Bounce messages go to the tagged address. The <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check uses `mail.relay.example.com`.
 
 ### Bounce address tag verification (BATV)
 
@@ -59,21 +59,21 @@ BATV is defined in [IETF draft draft-levine-smtp-batv](https://datatracker.ietf.
 
 ## DNS configuration
 
-The sender domain has MX and SPF records. The MX record routes bounce messages to the platform. The SPF record authorizes the sending servers.
+The sender domain has MX and SPF records. The MX record routes bounce messages to relay. The SPF record authorizes the sending servers.
 
 The built-in nameserver serves these records. You do not need a separate Return-Path domain or DNS record.
 
-## How the platform uses Return-Path
+## How relay uses Return-Path
 
-The platform sets the envelope sender (the `MAIL FROM` address) to a subdomain of your sender domain. The format is:
+relay sets the envelope sender (the `MAIL FROM` address) to a subdomain of your sender domain. The format is:
 
 ```text
-bounce+<message-id>@mail.<your-domain>
+bounce+<message-id>@mail.relay.<your-domain>
 ```
 
-The tag after `bounce+` contains the outgoing message ID. The sender domain routes bounce messages to the platform's MX service.
+The tag after `bounce+` contains the outgoing message ID. The sender domain routes bounce messages to the relay MX service.
 
-The Return-Path domain is part of the <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> setup. The envelope sender domain must align with the visible From domain for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>. The platform uses a subdomain, which aligns under relaxed DMARC.
+The Return-Path domain is part of the <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> setup. The envelope sender domain must align with the visible From domain for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>. relay uses a subdomain, which aligns under relaxed DMARC.
 
 ## Further reading
 

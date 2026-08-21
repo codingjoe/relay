@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # MX
 
-> **TL;DR**: MX records tell senders which mail server receives email for a domain. The platform points your MX record to its mail server and dispatches incoming mail to your webhooks.
+> **TL;DR**: MX records tell senders which mail server receives email for a domain. relay points your MX record to the relay server and dispatches incoming mail to your webhooks.
 
 ## What is MX?
 
@@ -49,23 +49,23 @@ When two MX records have the same priority, senders pick one at random.[^equal-p
 
 If a domain has no MX records, some sending servers try to deliver to the A record of the domain itself. This behavior is defined in [RFC 5321 Section 5.1](https://datatracker.ietf.org/doc/html/rfc5321#section-5.1).[^a-record-fallback] However, this fallback is not universal. Many modern mail servers do not fall back to A records. You should always publish an explicit MX record.
 
-## How the platform uses MX
+## How relay uses MX
 
-The platform uses MX records in two ways:
+relay uses MX records in two ways:
 
 ### Incoming mail
 
-For incoming mail, the platform points the MX record of your receiving domain to your sender subdomain on its nameserver. For example, if your receiving domain is `app.example.com` and your sender subdomain is `mail.example.com`, the MX record is:
+For incoming mail, relay points the MX record of your receiving domain to your sender subdomain on the relay nameserver. For example, if your receiving domain is `app.example.com` and your sender subdomain is `mail.relay.example.com`, the MX record is:
 
 ```text
-app.example.com.  MX  10  mail.example.com.
+app.example.com.  MX  10  mail.relay.example.com.
 ```
 
-The platform's MX server receives the mail on port 25 and dispatches it to your configured webhooks. Webhooks follow the [Standard Webhooks](https://standardwebhooks.com) specification.
+The relay MX server receives the mail on port 25 and dispatches it to your configured webhooks. Webhooks follow the [Standard Webhooks](https://standardwebhooks.com) specification.
 
 ### Outgoing mail
 
-For outgoing mail, the platform uses the <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server on port 587 for message submission. The MX record is not involved in outgoing mail. MX records are only for incoming delivery.
+For outgoing mail, relay uses the <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server on port 587 for message submission. The MX record is not involved in outgoing mail. MX records are only for incoming delivery.
 
 ## Further reading
 

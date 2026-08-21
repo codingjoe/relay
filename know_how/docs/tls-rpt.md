@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # TLS-RPT
 
-> **TL;DR**: TLS-RPT lets mail servers send you reports about TLS connection failures. It works with MTA-STS to help you monitor and fix delivery problems. The platform collects these reports for you.
+> **TL;DR**: TLS-RPT lets mail servers send you reports about TLS connection failures. It works with MTA-STS to help you monitor and fix delivery problems. relay collects these reports for you.
 
 ## What is TLS-RPT?
 
@@ -73,9 +73,9 @@ The report specifies one of these failure reasons:
 - `tls-version-unsupported`: The TLS version is too old or not supported.
 - `cipher-suite-unsupported`: The cipher suite is not acceptable.[^failure-detail-optional]
 
-## How the platform uses TLS-RPT
+## How relay uses TLS-RPT
 
-The platform collects TLS-RPT reports for you. You add one TXT record at your DNS provider at `_smtp._tls.<domain>`. The record points to the platform's reporting endpoint. The platform provides the HTTPS endpoint automatically.
+relay collects TLS-RPT reports for you. You add one TXT record at your DNS provider at `_smtp._tls.<domain>`. The record points to the relay reporting endpoint. relay provides the HTTPS endpoint automatically.
 
 You can view the collected reports in the TLS reports dashboard in your organization. The reports show which senders had TLS failures and the reason for each failure.
 

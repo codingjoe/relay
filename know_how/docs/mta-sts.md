@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # MTA-STS
 
-> **TL;DR**: MTA-STS tells sending mail servers to use TLS when they connect to your mail server. It prevents downgrade attacks and man-in-the-middle interception. The platform serves the policy file automatically.
+> **TL;DR**: MTA-STS tells sending mail servers to use TLS when they connect to your mail server. It prevents downgrade attacks and man-in-the-middle interception. relay serves the policy file automatically.
 
 ## What is MTA-STS?
 
@@ -59,14 +59,14 @@ When you change the policy, you update the `id=` tag in the DNS TXT record.[^pol
 
 In `enforce` mode, the sending server validates the TLS certificate of the receiving mail server. The certificate must be issued by a trusted certificate authority, and the hostname must match the MX record.[^dane-alternative] This prevents man-in-the-middle attacks where an attacker presents a self-signed certificate.
 
-## How the platform uses MTA-STS
+## How relay uses MTA-STS
 
-The platform serves the MTA-STS policy file over HTTPS automatically. You add two DNS records at your DNS provider:
+relay serves the MTA-STS policy file over HTTPS automatically. You add two DNS records at your DNS provider:
 
 1. The TXT record at `_mta-sts.<domain>` with the policy ID.
-1. The CNAME record for `mta-sts.<domain>` that points to the platform's server.
+1. The CNAME record for `mta-sts.<domain>` that points to the relay server.
 
-The platform handles the policy file, the HTTPS endpoint, and the TLS certificate. You do not need to run a separate web server for the policy file.
+relay handles the policy file, the HTTPS endpoint, and the TLS certificate. You do not need to run a separate web server for the policy file.
 
 ## Further reading
 
@@ -77,6 +77,6 @@ The platform handles the policy file, the HTTPS endpoint, and the TLS certificat
 
 [^hsts]: HSTS is defined in [RFC 6797](https://datatracker.ietf.org/doc/html/rfc6797). The analogy is not exact because HSTS is enforced by browsers and MTA-STS is enforced by mail transfer agents.
 
-[^policy-id]: The policy ID can be any unique string. A common practice is to use a short random token or a version number. When the platform updates the policy, it generates a new ID automatically.
+[^policy-id]: The policy ID can be any unique string. A common practice is to use a short random token or a version number. When relay updates the policy, it generates a new ID automatically.
 
 [^dane-alternative]: DANE (DNS-Based Authentication of Named Entities) is an alternative approach to SMTP TLS that uses DNSSEC instead of certificate authorities. DANE is defined in [RFC 7672](https://datatracker.ietf.org/doc/html/rfc7672). MTA-STS and DANE can coexist, but MTA-STS is simpler to deploy because it does not require DNSSEC.
