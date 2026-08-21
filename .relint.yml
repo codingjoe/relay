@@ -81,3 +81,9 @@
   pattern: '\boverride_settings\b'
   hint: 'Use pytest-django''s `settings` fixture instead of Django''s `override_settings` decorator or context manager.'
   filePattern: '(^|.*/)(?:tests(?:/.*|\.py)|test_[^/]*\.py|conftest\.py)$'
+- name: No "relay" brand mentions in how-to docs
+  pattern: '(?i)\brelay\b'
+  hint: |
+    How-to docs are brand-agnostic. Do not mention "relay" (the brand).
+    Use "the platform" or a generic term instead.
+  filePattern: 'know_how/docs/.*\.md$'

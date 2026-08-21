@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # Return-Path
 
-> **TL;DR**: The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address. relay configures the Return-Path for you.
+> **TL;DR**: The Return-Path is the email address that receives bounce messages. It is set by the sending mail server and is separate from the visible From address.
 
 ## What is Return-Path?
 
@@ -16,7 +16,7 @@ The Return-Path is part of the SMTP specification in [RFC 5321](https://datatrac
 
 ## Why Return-Path matters
 
-The Return-Path serves two critical functions in email delivery:
+The Return-Path does two important jobs in email delivery:
 
 ### Bounce handling
 
@@ -32,10 +32,7 @@ The Return-Path domain is the domain that <a href="{% url 'know_how:detail' slug
 
 ### The envelope vs. the header
 
-The Return-Path exists in two places:
-
-1. **The SMTP envelope**: The `MAIL FROM` command sets the envelope sender address. This address is not visible to the recipient. It is used for bounce delivery and SPF checks.
-1. **The Return-Path header**: The receiving mail server adds a `Return-Path` header to the message when it accepts the message. The header contains the envelope sender address from the `MAIL FROM` command.
+The Return-Path shows up in two places. In the SMTP envelope, the `MAIL FROM` command sets the envelope sender address. The recipient never sees it, but it drives bounce delivery and SPF checks. Separately, the receiving mail server adds a `Return-Path` header to the accepted message. That header holds the same envelope sender address.
 
 The sender does not set the `Return-Path` header. The receiving server adds it.[^null-sender] The sender only sets the envelope sender through the `MAIL FROM` command.
 
@@ -44,12 +41,12 @@ The sender does not set the `Return-Path` header. The receiving server adds it.[
 A message might have these fields:
 
 ```text
-MAIL FROM: <bounce+019a8c26@mail.relay.example.com>   (envelope sender)
-From: billing@example.com                             (visible header)
-Return-Path: bounce+019a8c26@mail.relay.example.com   (added by receiver)
+MAIL FROM: <bounce+019a8c26@bounces.example.com>   (envelope sender)
+From: billing@example.com                           (visible header)
+Return-Path: bounce+019a8c26@bounces.example.com   (added by receiver)
 ```
 
-The recipient sees `billing@example.com` in the mail client. Bounce messages go to the tagged address. The <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check uses `mail.relay.example.com`.
+The recipient sees `billing@example.com` in the mail client. Bounce messages go to the tagged address. The <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> check uses `bounces.example.com`.
 
 ### Bounce address tag verification (BATV)
 
@@ -59,21 +56,18 @@ BATV is defined in [IETF draft draft-levine-smtp-batv](https://datatracker.ietf.
 
 ## DNS configuration
 
-The sender domain has MX and SPF records. The MX record routes bounce messages to relay. The SPF record authorizes the sending servers.
+The bounce domain needs MX and SPF records. The MX record routes bounce messages back to the mail server. The SPF record authorizes the mail servers.
 
-The built-in nameserver serves these records. You do not need a separate Return-Path domain or DNS record.
+You do not need a separate DNS record for the Return-Path.
 
-## How relay uses Return-Path
+## How to set up the Return-Path
 
-relay sets the envelope sender (the `MAIL FROM` address) to a subdomain of your sender domain. The format is:
+1. Choose a subdomain of your sending domain for the envelope sender, for example `bounces.example.com`.
+1. Publish an MX record for the subdomain so that bounce messages return to your mail server.
+1. Add the subdomain to your SPF record.
+1. Make sure that the envelope sender domain aligns with the visible From domain for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
 
-```text
-bounce+<message-id>@mail.relay.<your-domain>
-```
-
-The tag after `bounce+` contains the outgoing message ID. The sender domain routes bounce messages to the relay MX service.
-
-The Return-Path domain is part of the <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a> setup. The envelope sender domain must align with the visible From domain for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>. relay uses a subdomain, which aligns under relaxed DMARC.
+A subdomain of the sending domain aligns under relaxed DMARC. Add a tag such as `bounce+<message-id>` to the local part to identify the original message from a bounce.
 
 ## Further reading
 

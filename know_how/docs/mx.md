@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # MX
 
-> **TL;DR**: MX records tell senders which mail server receives email for a domain. relay points your MX record to the relay server and dispatches incoming mail to your webhooks.
+> **TL;DR**: MX records tell senders which mail server receives email for a domain.
 
 ## What is MX?
 
@@ -49,23 +49,14 @@ When two MX records have the same priority, senders pick one at random.[^equal-p
 
 If a domain has no MX records, some sending servers try to deliver to the A record of the domain itself. This behavior is defined in [RFC 5321 Section 5.1](https://datatracker.ietf.org/doc/html/rfc5321#section-5.1).[^a-record-fallback] However, this fallback is not universal. Many modern mail servers do not fall back to A records. You should always publish an explicit MX record.
 
-## How relay uses MX
+## How to set up MX
 
-relay uses MX records in two ways:
+1. Decide which server receives messages for your domain.
+1. Publish an MX record that points to that server.
+1. Use priority 10 for the primary server.
+1. Add a backup server with a higher priority value for redundancy.
 
-### Incoming mail
-
-For incoming mail, relay points the MX record of your receiving domain to your sender subdomain on the relay nameserver. For example, if your receiving domain is `app.example.com` and your sender subdomain is `mail.relay.example.com`, the MX record is:
-
-```text
-app.example.com.  MX  10  mail.relay.example.com.
-```
-
-The relay MX server receives the mail on port 25 and dispatches it to your configured webhooks. Webhooks follow the [Standard Webhooks](https://standardwebhooks.com) specification.
-
-### Outgoing mail
-
-For outgoing mail, relay uses the <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server on port 587 for message submission. The MX record is not involved in outgoing mail. MX records are only for incoming delivery.
+The MX record routes incoming deliveries only. Outgoing submissions use a separate <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server and do not use the MX record.
 
 ## Further reading
 

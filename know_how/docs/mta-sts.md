@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # MTA-STS
 
-> **TL;DR**: MTA-STS tells sending mail servers to use TLS when they connect to your mail server. It prevents downgrade attacks and man-in-the-middle interception. relay serves the policy file automatically.
+> **TL;DR**: MTA-STS tells sending mail servers to use TLS when they connect to your mail server. It prevents downgrade attacks and man-in-the-middle interception.
 
 ## What is MTA-STS?
 
@@ -24,11 +24,7 @@ MTA-STS is the email equivalent of HTTP Strict Transport Security (HSTS).[^hsts]
 
 ## How MTA-STS works
 
-MTA-STS has three components:
-
-1. **A DNS TXT record** at `_mta-sts.<domain>`. Contains a policy ID. When you change the policy, you update this ID so senders know to fetch the new policy file.
-1. **A policy file** served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt`. Specifies the TLS mode and the valid MX hosts.
-1. **A CNAME record** for `mta-sts.<domain>`. Points to the host that serves the policy file.
+MTA-STS has three components. A DNS TXT record at `_mta-sts.<domain>` holds a policy ID. When you change the policy, you update this ID so senders fetch the new file. A policy file, served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt`, sets the TLS mode and the valid MX hosts. A CNAME record for `mta-sts.<domain>` points to the host that serves that file.
 
 ### The policy file
 
@@ -43,11 +39,7 @@ The policy file is a plain-text file with key-value pairs. It contains these fie
 
 ### Policy modes
 
-The `mode` field has three values:
-
-- **`testing`**: The sending server collects TLS failures but still delivers the message. You use this mode to monitor TLS problems before you enforce the policy.
-- **`enforce`**: The sending server refuses to deliver over an unencrypted or untrusted connection. It queues the message and retries later.
-- **`none`**: The policy is disabled. Senders clear their cache and revert to opportunistic `STARTTLS`.
+The `mode` field takes three values. In `testing`, the sending server records TLS failures but still delivers the message. Use this mode to monitor problems before you enforce the policy. In `enforce`, the server refuses to deliver over an unencrypted or untrusted connection, queues the message, and retries later. In `none`, the policy is disabled, senders clear their cache, and delivery falls back to opportunistic `STARTTLS`.
 
 ### Policy caching
 
@@ -59,14 +51,14 @@ When you change the policy, you update the `id=` tag in the DNS TXT record.[^pol
 
 In `enforce` mode, the sending server validates the TLS certificate of the receiving mail server. The certificate must be issued by a trusted certificate authority, and the hostname must match the MX record.[^dane-alternative] This prevents man-in-the-middle attacks where an attacker presents a self-signed certificate.
 
-## How relay uses MTA-STS
+## How to set up MTA-STS
 
-relay serves the MTA-STS policy file over HTTPS automatically. You add two DNS records at your DNS provider:
+1. Create a policy file that lists your valid MX hosts and the enforcement mode.
+1. Serve the policy file over HTTPS at `mta-sts.<domain>/.well-known/mta-sts.txt`.
+1. Publish a TXT record at `_mta-sts.<domain>` with a unique policy ID.
+1. Publish a CNAME record for `mta-sts.<domain>` that points to the host that serves the policy file.
 
-1. The TXT record at `_mta-sts.<domain>` with the policy ID.
-1. The CNAME record for `mta-sts.<domain>` that points to the relay server.
-
-relay handles the policy file, the HTTPS endpoint, and the TLS certificate. You do not need to run a separate web server for the policy file.
+Start with `mode: testing` and monitor the reports. Then switch to `mode: enforce` once you confirm that all senders can connect with TLS.
 
 ## Further reading
 
@@ -77,6 +69,6 @@ relay handles the policy file, the HTTPS endpoint, and the TLS certificate. You 
 
 [^hsts]: HSTS is defined in [RFC 6797](https://datatracker.ietf.org/doc/html/rfc6797). The analogy is not exact because HSTS is enforced by browsers and MTA-STS is enforced by mail transfer agents.
 
-[^policy-id]: The policy ID can be any unique string. A common practice is to use a short random token or a version number. When relay updates the policy, it generates a new ID automatically.
+[^policy-id]: The policy ID can be any unique string. A common practice is to use a short random token or a version number. Update the ID whenever you change the policy file so that senders fetch the new version.
 
 [^dane-alternative]: DANE (DNS-Based Authentication of Named Entities) is an alternative approach to SMTP TLS that uses DNSSEC instead of certificate authorities. DANE is defined in [RFC 7672](https://datatracker.ietf.org/doc/html/rfc7672). MTA-STS and DANE can coexist, but MTA-STS is simpler to deploy because it does not require DNSSEC.
