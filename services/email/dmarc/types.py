@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import re
 from dataclasses import dataclass
 from email import message_from_bytes
@@ -6,6 +7,8 @@ from enum import StrEnum
 
 import dkim
 import dns.resolver
+
+logger = logging.getLogger(__name__)
 
 RECEIVED_IP_PATTERN = re.compile(r"\[(\d+\.\d+\.\d+\.\d+)\]|\[([0-9a-fA-F:]+)\]")
 EMAIL_DOMAIN_PATTERN = re.compile(r"@([\w.-]+)")
@@ -47,12 +50,10 @@ class DmarcPolicy:
             resolver = dns.resolver.Resolver()
             resolver.lifetime = 2.0
             records = resolver.resolve(f"_dmarc.{domain}", "TXT")
-        except (
-            dns.resolver.NXDOMAIN,
-            dns.resolver.NoAnswer,
-            dns.exception.Timeout,
-            dns.resolver.NoNameservers,
-        ):
+        except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
+            return cls()
+        except dns.exception.Timeout, dns.resolver.NoNameservers:
+            logger.warning("DMARC DNS lookup failed for %r", domain, exc_info=True)
             return cls()
         for record in records:
             text = "".join(
@@ -193,12 +194,10 @@ class DmarcEvaluation:
                 resolver = dns.resolver.Resolver()
                 resolver.lifetime = 2.0
                 records = resolver.resolve(domain, "TXT")
-            except (
-                dns.resolver.NXDOMAIN,
-                dns.resolver.NoAnswer,
-                dns.exception.Timeout,
-                dns.resolver.NoNameservers,
-            ):
+            except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
+                return AuthResult.NONE, domain
+            except dns.exception.Timeout, dns.resolver.NoNameservers:
+                logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
                 return AuthResult.NONE, domain
             for record in records:
                 text = "".join(

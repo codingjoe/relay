@@ -31,20 +31,20 @@ class MXServer:
     def start(self):
         handler = MXHandler()
         tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
-        try:
-            for port in self.ports:
-                controller = Controller(
-                    handler,
-                    hostname=self.host,
-                    port=port,
-                    tls_context=tls_context,
-                )
+        for port in self.ports:
+            controller = Controller(
+                handler,
+                hostname=self.host,
+                port=port,
+                tls_context=tls_context,
+            )
+            try:
                 controller.start()
-                self.controllers.append(controller)
-                logger.info(f"MX server listening on {self.host}:{port}")
-        finally:
-            if len(self.controllers) != len(self.ports):
+            except Exception:
                 self.stop()
+                raise
+            self.controllers.append(controller)
+            logger.info(f"MX server listening on {self.host}:{port}")
 
     def stop(self):
         for controller in self.controllers:

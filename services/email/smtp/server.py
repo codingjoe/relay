@@ -41,31 +41,31 @@ class SMTPServer:
             raise ValueError(
                 "Implicit TLS ports require a TLS certificate, but no cert path is configured."
             )
-        try:
-            for port in self.ports:
-                if port in self.implicit_tls_ports:
-                    controller = Controller(
-                        ImplicitTLSHandler(),
-                        hostname=self.host,
-                        port=port,
-                        ssl_context=tls_context,
-                        auth_require_tls=False,
-                    )
-                else:
-                    controller = Controller(
-                        SMTPHandler(),
-                        hostname=self.host,
-                        port=port,
-                        tls_context=tls_context,
-                        require_starttls=True,
-                        auth_require_tls=True,
-                    )
+        for port in self.ports:
+            if port in self.implicit_tls_ports:
+                controller = Controller(
+                    ImplicitTLSHandler(),
+                    hostname=self.host,
+                    port=port,
+                    ssl_context=tls_context,
+                    auth_require_tls=False,
+                )
+            else:
+                controller = Controller(
+                    SMTPHandler(),
+                    hostname=self.host,
+                    port=port,
+                    tls_context=tls_context,
+                    require_starttls=True,
+                    auth_require_tls=True,
+                )
+            try:
                 controller.start()
-                self.controllers.append(controller)
-                logger.info(f"SMTP server listening on {self.host}:{port}")
-        finally:
-            if len(self.controllers) != len(self.ports):
+            except Exception:
                 self.stop()
+                raise
+            self.controllers.append(controller)
+            logger.info(f"SMTP server listening on {self.host}:{port}")
 
     def stop(self):
         for controller in self.controllers:

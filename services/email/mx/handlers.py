@@ -35,30 +35,24 @@ class MXHandler:
         rcpt_to = envelope.rcpt_tos[0] if envelope.rcpt_tos else ""
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
-        local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
-        report_local_parts = {
-            settings.RELAY_DMARC_REPORT_LOCAL_PART,
-            settings.RELAY_TLS_REPORT_LOCAL_PART,
-            settings.RELAY_DMARC_RUF_LOCAL_PART,
-        }
-        is_report = local_part in report_local_parts
-        dmarc_quarantined = False
-        client_ip = ""
-        if not is_report:
-            client_ip = session.peer[0] if session.peer else ""
-            evaluation = await sync_to_async(
-                DmarcEvaluation.from_bytes, thread_sensitive=False
-            )(raw_bytes, mail_from)
-            if evaluation.disposition == Disposition.REJECT:
-                return "550 Message rejected by DMARC policy"
-            dmarc_quarantined = evaluation.disposition == Disposition.QUARANTINE
+        client_ip = session.peer[0] if session.peer else ""
+        evaluation = await sync_to_async(
+            DmarcEvaluation.from_bytes, thread_sensitive=False
+        )(raw_bytes, mail_from)
+        if evaluation.disposition == Disposition.REJECT:
+            return "550 Message rejected by DMARC policy"
+        status = (
+            IncomingMessage.Status.QUARANTINED
+            if evaluation.disposition == Disposition.QUARANTINE
+            else IncomingMessage.Status.RECEIVED
+        )
         result = await process_incoming_message(
             mail_from,
             rcpt_to,
             raw_bytes,
             getattr(session, "ssl", False),
             getattr(envelope, "recipient_domain", None),
-            dmarc_quarantined,
+            status,
             client_ip,
         )
         logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
@@ -67,7 +61,7 @@ class MXHandler:
 
 @sync_to_async
 def process_incoming_message(
-    mail_from, rcpt_to, raw_bytes, tls, domain, dmarc_quarantined, client_ip
+    mail_from, rcpt_to, raw_bytes, tls, domain, status, client_ip
 ):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
@@ -136,21 +130,6 @@ def process_incoming_message(
 
     is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (
         local_part.startswith(f"{settings.RELAY_POSTMASTER_LOCAL_PART}+")
-    )
-    is_bounce_recipient = local_part.startswith(f"{settings.RELAY_BOUNCE_LOCAL_PART}+")
-
-    if (
-        not is_postmaster_recipient
-        and not is_bounce_recipient
-        and not domain.org.billing_is_active
-        and not domain.org.members.filter(email__iexact=mail_from).exists()
-    ):
-        return "550 Sender not allowed without active billing"
-
-    status = (
-        IncomingMessage.Status.QUARANTINED
-        if dmarc_quarantined
-        else IncomingMessage.Status.RECEIVED
     )
     message = IncomingMessage(
         org=domain.org,

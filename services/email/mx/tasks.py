@@ -14,6 +14,7 @@ from django.tasks import task
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from threadmill.retry import ExponentialBackoff
 
 from services.email.spam import SpamAction, check_message
 
@@ -56,6 +57,10 @@ def webhook_retry(context):
 def dispatch_webhook(message_id):
     """Distribute an incoming message to all matching active webhooks."""
     message = IncomingMessage.objects.get(pk=message_id)
+    if not message.org.billing_is_active:
+        message.status = IncomingMessage.Status.DROPPED
+        message.save(update_fields=["status"])
+        return
     webhooks = [
         webhook
         for webhook in Webhook.objects.filter(org=message.org, is_active=True)
@@ -265,34 +270,27 @@ def notify_postmaster_recipients(message_pk):
             )
 
 
-@task
+@task(
+    retry=ExponentialBackoff(
+        base_delay=datetime.timedelta(seconds=1),
+        max_delay=datetime.timedelta(minutes=5),
+        max_retries=5,
+        expected_exceptions=(httpx.HTTPError, OSError),
+    )
+)
 def check_incoming_spam(message_pk, client_ip):
-    """Check an incoming message for spam and dispatch webhook if clean.
-
-    Fails open: on any error the message is treated as clean so it is never
-    orphaned. DMARC-quarantined messages are never webhook-dispatched.
-    """
+    """Check an incoming message for spam and dispatch webhook if clean."""
     message = IncomingMessage.objects.get(pk=message_pk)
-    is_spam = False
-    update_fields = []
-    try:
-        raw_bytes = message.raw_body.read()
-        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
-        is_spam = (
-            spam.action == SpamAction.REJECT
-            or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
-        )
-        message.spam_score = spam.score
-        message.spam_action = spam.action
-        update_fields = ["spam_score", "spam_action"]
-    except Exception:
-        logger.exception("Spam check failed for message %r", message_pk)
-
+    raw_bytes = message.raw_body.read()
+    spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    is_spam = (
+        spam.action == SpamAction.REJECT
+        or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
+    )
+    message.spam_score = spam.score
+    message.spam_action = spam.action
     if is_spam:
         message.status = IncomingMessage.Status.QUARANTINED
-        message.save(update_fields=["spam_score", "spam_action", "status"])
-    else:
-        if update_fields:
-            message.save(update_fields=update_fields)
-        if message.status != IncomingMessage.Status.QUARANTINED:
-            dispatch_webhook.enqueue(message_id=str(message.pk))
+    message.save(update_fields=["spam_score", "spam_action", "status"])
+    if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
+        dispatch_webhook.enqueue(message_id=str(message.pk))

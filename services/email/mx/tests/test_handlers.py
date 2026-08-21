@@ -32,7 +32,7 @@ class TestProcessIncomingMessagePostmaster:
                 make_raw_email(),
                 True,
                 domain,
-                False,
+                IncomingMessage.Status.RECEIVED,
                 "",
             )
         message = await IncomingMessage.objects.aget(
@@ -52,7 +52,7 @@ class TestProcessIncomingMessagePostmaster:
                 make_raw_email(),
                 True,
                 domain,
-                False,
+                IncomingMessage.Status.RECEIVED,
                 "",
             )
         assert (
@@ -72,7 +72,7 @@ class TestProcessIncomingMessagePostmaster:
                 make_raw_email(),
                 True,
                 domain,
-                False,
+                IncomingMessage.Status.RECEIVED,
                 "",
             )
         assert any("postmaster" in m.subject.lower() for m in mail.outbox)
@@ -88,13 +88,30 @@ class TestProcessIncomingMessagePostmaster:
                 make_raw_email(),
                 True,
                 domain,
-                False,
+                IncomingMessage.Status.RECEIVED,
                 "",
             )
         message = await IncomingMessage.objects.aget(domain=domain)
         assert result == "250 OK"
         assert message.org == org
         assert len(mail.outbox) == 0
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_quarantined_status__stored_with_quarantine(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        with patch("services.email.mx.handlers.check_incoming_spam"):
+            result = await process_incoming_message(
+                "external@example.org",
+                "info@example.com",
+                make_raw_email(),
+                True,
+                domain,
+                IncomingMessage.Status.QUARANTINED,
+                "",
+            )
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert message.status == IncomingMessage.Status.QUARANTINED
 
 
 class TestHandleRcpt:
@@ -173,90 +190,6 @@ class TestHandleRcpt:
         assert not hasattr(envelope, "recipient_domain")
 
 
-class TestProcessIncomingMessageBilling:
-    @pytest.mark.django_db(transaction=True)
-    async def test_unbilled_org__rejects_external_sender(self, org):
-        org.billing_is_active = False
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        result = await process_incoming_message(
-            "external@example.org",
-            "info@example.com",
-            make_raw_email(),
-            True,
-            domain,
-            False,
-            "",
-        )
-
-        assert result == "550 Sender not allowed without active billing"
-        assert not await IncomingMessage.objects.filter(domain=domain).aexists()
-
-    @pytest.mark.django_db(transaction=True)
-    async def test_unbilled_org__accepts_member_sender_case_insensitively(
-        self,
-        org,
-        user,
-    ):
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        with patch("services.email.mx.handlers.check_incoming_spam"):
-            result = await process_incoming_message(
-                user.email.upper(),
-                "info@example.com",
-                make_raw_email(),
-                True,
-                domain,
-                False,
-                "",
-            )
-
-        assert result == "250 OK"
-        assert await IncomingMessage.objects.filter(domain=domain).aexists()
-
-    @pytest.mark.django_db(transaction=True)
-    async def test_unbilled_org__accepts_plus_addressed_bounce(self, org):
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        with (
-            patch(
-                "services.email.mx.handlers.notify_postmaster_recipients"
-            ) as notify_task,
-            patch("services.email.mx.handlers.check_incoming_spam"),
-        ):
-            result = await process_incoming_message(
-                "external@example.org",
-                "bounce+message-id@example.com",
-                make_raw_email(),
-                True,
-                domain,
-                False,
-                "",
-            )
-
-        assert result == "250 OK"
-        assert await IncomingMessage.objects.filter(domain=domain).aexists()
-        notify_task.enqueue.assert_not_called()
-
-    @pytest.mark.django_db(transaction=True)
-    async def test_unbilled_org__does_not_exempt_bare_bounce(self, org):
-        org.billing_is_active = False
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        result = await process_incoming_message(
-            "external@example.org",
-            "bounce@example.com",
-            make_raw_email(),
-            True,
-            domain,
-            False,
-            "",
-        )
-
-        assert result == "550 Sender not allowed without active billing"
-        assert not await IncomingMessage.objects.filter(domain=domain).aexists()
-
-
 class TestProcessIncomingMessageReports:
     @pytest.mark.django_db(transaction=True)
     @pytest.mark.parametrize(
@@ -286,7 +219,7 @@ class TestProcessIncomingMessageReports:
                 make_raw_email(),
                 True,
                 domain,
-                False,
+                IncomingMessage.Status.RECEIVED,
                 "",
             )
 

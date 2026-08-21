@@ -1,11 +1,14 @@
+import datetime
 import logging
 
 import aiosmtplib
 import dns.resolver
+import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.tasks import task
+from threadmill.retry import ExponentialBackoff
 
 from services.email.mx.mta_sts import MtaStsPolicy
 from services.email.spam import SpamAction, check_message
@@ -150,35 +153,29 @@ def fetch_mx_hosts(domain):
         return []
 
 
-@task
+@task(
+    retry=ExponentialBackoff(
+        base_delay=datetime.timedelta(seconds=1),
+        max_delay=datetime.timedelta(minutes=5),
+        max_retries=5,
+        expected_exceptions=(httpx.HTTPError, OSError),
+    )
+)
 def check_outgoing_spam(message_pk, client_ip):
-    """Check an outgoing message for spam and enqueue delivery if clean.
-
-    Fails open: on any error the message is treated as clean so it is never
-    orphaned.
-    """
+    """Check an outgoing message for spam and enqueue delivery if clean."""
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.get(pk=message_pk)
-    is_spam = False
-    update_fields = []
-    try:
-        raw_bytes = message.raw_body.read()
-        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
-        is_spam = (
-            spam.action == SpamAction.REJECT
-            or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
-        )
-        message.spam_score = spam.score
-        message.spam_action = spam.action
-        update_fields = ["spam_score", "spam_action"]
-    except Exception:
-        logger.exception("Spam check failed for message %r", message_pk)
-
+    raw_bytes = message.raw_body.read()
+    spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    is_spam = (
+        spam.action == SpamAction.REJECT
+        or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
+    )
+    message.spam_score = spam.score
+    message.spam_action = spam.action
     if is_spam:
         message.status = OutgoingMessage.Status.HELD
-        message.save(update_fields=["spam_score", "spam_action", "status"])
-    else:
-        if update_fields:
-            message.save(update_fields=update_fields)
+    message.save(update_fields=["spam_score", "spam_action", "status"])
+    if not is_spam:
         deliver_message.enqueue(message_id=str(message.pk))

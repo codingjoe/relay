@@ -1,13 +1,10 @@
 """rspamd spam-detection client."""
 
-import logging
 from dataclasses import dataclass
 from enum import StrEnum
 
 import httpx
 from django.conf import settings
-
-logger = logging.getLogger(__name__)
 
 
 class SpamAction(StrEnum):
@@ -38,22 +35,13 @@ class SpamResult:
 
 
 async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
-    """Return the rspamd score and action for a raw message.
-
-    Fails open: on any rspamd error a neutral result is returned so mail is
-    never lost during an outage. This is a deliberate availability trade-off.
-    """
+    """Return the rspamd score and action for a raw message."""
     headers = {"Ip": client_ip} if client_ip else {}
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.post(
-                f"{settings.RELAY_RSPAMD_URL.rstrip('/')}/checkv2",
-                content=raw_bytes,
-                headers=headers,
-            )
-            response.raise_for_status()
-            data = response.json()
-    except (httpx.HTTPError, ValueError):  # fmt: skip
-        logger.warning("rspamd check failed", exc_info=True)
-        return SpamResult()
-    return SpamResult.from_response(data)
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.post(
+            f"{settings.RELAY_RSPAMD_URL.rstrip('/')}/checkv2",
+            content=raw_bytes,
+            headers=headers,
+        )
+        response.raise_for_status()
+    return SpamResult.from_response(response.json())

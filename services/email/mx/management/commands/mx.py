@@ -12,17 +12,14 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--host", default="0.0.0.0", help="Listen host")
         parser.add_argument(
-            "--port",
-            action="append",
+            "--ports",
+            nargs="+",
             type=int,
-            default=None,
-            help="Listen port (repeat for multiple, defaults to RELAY_MX_PORTS)",
+            default=[*settings.RELAY_MX_PORTS],
+            help="Listen ports (defaults to RELAY_MX_PORTS)",
         )
 
-    def handle(self, *args, **options):
-        host = options["host"]
-        ports = options["port"] or settings.RELAY_MX_PORTS
-
+    def handle(self, *args, host, ports, **options):
         self.stdout.write(self.style.SUCCESS(f"MX server listening on {host}:{ports}"))
 
         run_mx_server(

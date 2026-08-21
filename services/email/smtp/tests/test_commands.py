@@ -11,7 +11,7 @@ def test_smtp_command__parses_host_and_ports():
 
         try:
             call_command(
-                "smtp", "--host", "127.0.0.1", "--port", "587", stdout=StringIO()
+                "smtp", "--host", "127.0.0.1", "--ports", "587", stdout=StringIO()
             )
         except SystemExit:
             pass
