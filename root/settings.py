@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/stable/ref/settings/
 """
 
 import base64
-import datetime
 import hashlib
 import os
 from pathlib import Path
@@ -265,10 +264,6 @@ RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
 RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
 RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15)
 RELAY_RSPAMD_HOLD_SCORE = env.float("RELAY_RSPAMD_HOLD_SCORE", default=6)
-
-RELAY_PROXY_PROTOCOL_TIMEOUT = datetime.timedelta(
-    seconds=env.int("RELAY_PROXY_PROTOCOL_TIMEOUT", default=5)
-)
 
 RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 

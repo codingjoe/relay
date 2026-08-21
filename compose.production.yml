@@ -78,6 +78,9 @@ services:
       - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "smtp"]
+    ports:
+      - "0.0.0.0:587:587"
+      - "0.0.0.0:465:465"
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
       RELAY_SMTP_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
@@ -86,6 +89,7 @@ services:
       - caddy_data:/data:ro
     networks: !override
       - app
+      - app-wan
   mx:
     extends:
       service: web
@@ -94,6 +98,8 @@ services:
       - "caddy.respond=OK"
     deploy: !reset
     command: ["-m", "manage", "mx"]
+    ports:
+      - "0.0.0.0:25:25"
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
       RELAY_MX_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
@@ -102,29 +108,7 @@ services:
       - caddy_data:/data:ro
     networks: !override
       - app
-  haproxy:
-    image: haproxy:3.2
-    ports:
-      - "25:25"
-      - "465:465"
-      - "587:587"
-    environment:
-      HOSTNAME: ${HOSTNAME:-localhost}
-    entrypoint: ["sh", "-c"]
-    command: ["umask 077 && cat /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.$$HOSTNAME/smtp.$$HOSTNAME.crt /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.$$HOSTNAME/smtp.$$HOSTNAME.key > /run/smtp.pem && exec haproxy -f /usr/local/etc/haproxy/haproxy.cfg"]
-    volumes:
-      - caddy_data:/data:ro
-    networks:
-      - app
       - app-wan
-    configs:
-      - source: haproxy
-        target: /usr/local/etc/haproxy/haproxy.cfg
-    depends_on:
-      smtp:
-        condition: service_started
-      mx:
-        condition: service_started
   rspamd:
     image: rspamd/rspamd:4.1
     configs:
@@ -204,57 +188,6 @@ configs:
   rspamd_worker:
     content: |
       bind_socket = "*:11334";
-  haproxy:
-    content: |
-      global
-          log stdout format raw local0
-
-      defaults
-          log global
-          mode tcp
-          option tcplog
-          timeout connect 10s
-          timeout client 5m
-          timeout server 5m
-
-      # Shared rate-limit tables (per-IP, shared across frontends)
-      backend mx_rate_limits
-          stick-table type ip size 100k expire 30s store conn_rate(10s)
-
-      backend submission_rate_limits
-          stick-table type ip size 100k expire 30s store conn_rate(10s)
-
-      # MX receiving: port 25 (STARTTLS) with PROXY protocol
-      frontend mx_25
-          bind *:25
-          tcp-request connection track-sc0 src table mx_rate_limits
-          tcp-request connection reject if { sc0_conn_rate(mx_rate_limits) gt 50 }
-          default_backend mx_backend
-
-      backend mx_backend
-          option smtpchk EHLO relay.local
-          server mx mx:25 send-proxy check
-
-      # SMTP submission: port 587 (STARTTLS) with PROXY protocol
-      frontend smtp_587
-          bind *:587
-          tcp-request connection track-sc0 src table submission_rate_limits
-          tcp-request connection reject if { sc0_conn_rate(submission_rate_limits) gt 20 }
-          default_backend smtp_587_backend
-
-      backend smtp_587_backend
-          option smtpchk EHLO relay.local
-          server smtp smtp:587 send-proxy check
-
-      # SMTP submission: port 465 (implicit TLS, HAProxy terminates TLS)
-      frontend smtp_465
-          bind *:465 ssl crt /run/smtp.pem
-          tcp-request connection track-sc0 src table submission_rate_limits
-          tcp-request connection reject if { sc0_conn_rate(submission_rate_limits) gt 20 }
-          default_backend smtp_465_backend
-
-      backend smtp_465_backend
-          server smtp smtp:465 send-proxy check
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)

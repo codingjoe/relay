@@ -7,7 +7,6 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 
 from domains.models import Domain
-from services.email.proxy import ProxyProtocolMixin
 from services.email.spam import SpamResult, check_message
 
 from .models import IncomingMessage, TlsReport
@@ -16,7 +15,7 @@ from .tasks import dispatch_webhook, notify_postmaster_recipients, parse_tls_rep
 logger = logging.getLogger(__name__)
 
 
-class MXHandler(ProxyProtocolMixin):
+class MXHandler:
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:

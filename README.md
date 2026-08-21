@@ -75,16 +75,15 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                                         |
-| ------- | ------------ | --------------------------------------------------- |
-| Web     | 8000         | Django web UI (Granian)                             |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                 |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)    |
-| HAProxy | 25, 465, 587 | L7 SMTP proxy with rate limiting and PROXY protocol |
-| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd)                |
-| MX      | 25           | Incoming MX delivery (aiosmtpd)                     |
-| rspamd  | 11334        | Spam detection (internal only)                      |
-| Worker  | N/A          | Threadmill task worker                              |
+| Service | Port         | Description                                      |
+| ------- | ------------ | ------------------------------------------------ |
+| Web     | 8000         | Django web UI (Granian)                          |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)              |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only) |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, TLS direct) |
+| MX      | 25           | Incoming MX delivery (aiosmtpd, STARTTLS direct) |
+| rspamd  | 11334        | Spam detection (internal only)                   |
+| Worker  | N/A          | Threadmill task worker                           |
 
 ```mermaid
 architecture-beta
@@ -95,9 +94,6 @@ architecture-beta
 
     group caddy(cloud)[Caddy reverse proxy + TLS]
     service caddy_proxy(server)[Caddy docker-proxy] in caddy
-
-    group haproxy(server)[HAProxy L7 SMTP proxy]
-    service haproxy_node(server)[HAProxy :25 :465 :587] in haproxy
 
     group app(server)[app network]
     service web(server)[Web Django + Granian :8000] in app
@@ -117,11 +113,8 @@ architecture-beta
 
     browser:L -- R:caddy_proxy
     caddy_proxy:B -- T:web
-    client -- STARTTLS :587 / TLS :465 --> haproxy_node
-    sender -- STARTTLS :25 --> haproxy_node
-    haproxy_node -- PROXY :587 STARTTLS --> smtp
-    haproxy_node -- PROXY :465 plaintext --> smtp
-    haproxy_node -- PROXY :25 STARTTLS --> mx
+    client -- STARTTLS :587 / TLS :465 --> smtp
+    sender -- STARTTLS :25 --> mx
     smtp:B -- T:rspamd
     mx:B -- T:rspamd
     rspamd:B -- T:redis

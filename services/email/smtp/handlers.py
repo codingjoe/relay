@@ -11,7 +11,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
 from domains.models import Domain, canonicalize_domain_name
-from services.email.proxy import ProxyProtocolMixin
 from services.email.spam import check_message
 
 from .models import OutgoingMessage, SmtpCredential, SuppressionEntry
@@ -20,7 +19,7 @@ from .tasks import deliver_message
 logger = logging.getLogger(__name__)
 
 
-class SMTPHandler(ProxyProtocolMixin):
+class SMTPHandler:
     """Receive authenticated outgoing mail submissions from SMTP clients."""
 
     async def handle_DATA(self, server, session, envelope):
@@ -75,11 +74,16 @@ class SMTPHandler(ProxyProtocolMixin):
             return "535 Authentication failed"
 
 
-class ProxiedTLSHandler(SMTPHandler):
-    """Receive submissions from HAProxy-terminated TLS connections."""
+class ImplicitTLSHandler(SMTPHandler):
+    """Handler for implicit TLS (port 465) connections.
+
+    aiosmtpd doesn't detect pre-wrapped TLS sockets, so `session.ssl`
+    is never set for implicit TLS. Mark the session as encrypted before
+    delegating to the standard handler so AUTH and TLS reporting work.
+    """
 
     async def handle_DATA(self, server, session, envelope):
-        session.ssl = {"proxied": True}
+        session.ssl = True
         return await super().handle_DATA(server, session, envelope)
 
 

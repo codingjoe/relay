@@ -9,7 +9,7 @@ from aiosmtpd.controller import Controller
 
 from services.email.tls import build_tls_context
 
-from .handlers import ProxiedTLSHandler, SMTPHandler
+from .handlers import ImplicitTLSHandler, SMTPHandler
 
 logger = logging.getLogger(__name__)
 
@@ -24,43 +24,41 @@ class SMTPServer:
         implicit_tls_ports=(465,),
         tls_cert_path="",
         tls_key_path="",
-        proxy_protocol_timeout=None,
     ):
         self.host = host
         self.ports = ports
         self.implicit_tls_ports = implicit_tls_ports
         self.tls_cert_path = tls_cert_path
         self.tls_key_path = tls_key_path
-        self.proxy_protocol_timeout = proxy_protocol_timeout
         self.controllers = []
 
     def start(self):
-        handler = SMTPHandler()
-        proxied_handler = ProxiedTLSHandler()
         tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
+        if (
+            any(p in self.implicit_tls_ports for p in self.ports)
+            and tls_context is None
+        ):
+            raise ValueError(
+                "Implicit TLS ports require a TLS certificate, but no cert path is configured."
+            )
         try:
             for port in self.ports:
                 if port in self.implicit_tls_ports:
                     controller = Controller(
-                        proxied_handler,
+                        ImplicitTLSHandler(),
                         hostname=self.host,
                         port=port,
-                        proxy_protocol_timeout=self.proxy_protocol_timeout.total_seconds()
-                        if self.proxy_protocol_timeout
-                        else None,
+                        ssl_context=tls_context,
                         auth_require_tls=False,
                     )
                 else:
                     controller = Controller(
-                        handler,
+                        SMTPHandler(),
                         hostname=self.host,
                         port=port,
                         tls_context=tls_context,
                         require_starttls=True,
                         auth_require_tls=True,
-                        proxy_protocol_timeout=self.proxy_protocol_timeout.total_seconds()
-                        if self.proxy_protocol_timeout
-                        else None,
                     )
                 controller.start()
                 self.controllers.append(controller)
@@ -82,7 +80,6 @@ def run_smtp_server(
     implicit_tls_ports=(465,),
     tls_cert_path="",
     tls_key_path="",
-    proxy_protocol_timeout=None,
 ):
     """Run the SMTP submission server until interrupted."""
     server = SMTPServer(
@@ -91,7 +88,6 @@ def run_smtp_server(
         implicit_tls_ports=implicit_tls_ports,
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,
-        proxy_protocol_timeout=proxy_protocol_timeout,
     )
     server.start()
 
