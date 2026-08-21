@@ -85,5 +85,5 @@
   pattern: '(?i)\brelay\b'
   hint: |
     How-to docs are brand-agnostic. Do not mention "relay" (the brand).
-    Use "the platform" or a generic term instead.
+    Write about the email topic generically instead.
   filePattern: 'know_how/docs/.*\.md$'
