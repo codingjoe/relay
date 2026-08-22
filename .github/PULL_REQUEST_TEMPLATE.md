@@ -1,6 +1,6 @@
 <!--
 Write in present tense, imperative mood.
-For example: "Add foo". Not "Added foo" or "Adds foo".
+For example: "Fix foo". Not "Fixed foo" or "Fixes foo".
 
 Use the i-have-adhd skill when writing this PR: lead with the next action,
 number steps, no preamble or closers.
@@ -14,8 +14,14 @@ Reference issues with one of:
 
 ### Why
 
-<!-- Why is this change needed? Link the issue it closes or relates to. -->
+<!-- Why is this change needed? Link the issue it closes or relates to. Write as user stories. -->
+
+As a <persona>, I <want to>, <so that>.
 
 ### Changes
 
-<!-- What does this PR change? Add screenshot if helpful. -->
+- Add
+- Move
+- Remove
+
+<!-- What does this PR change? Add a screenshot if helpful. -->

@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("mx", "0001_initial"),
+        ("mta", "0001_initial"),
     ]
 
     operations = [
@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                         parent_link=True,
                         primary_key=True,
                         serialize=False,
-                        to="mx.incomingmessage",
+                        to="mta.incomingmessage",
                     ),
                 ),
                 (
@@ -145,6 +145,6 @@ class Migration(migrations.Migration):
                     ),
                 ],
             },
-            bases=("mx.incomingmessage",),
+            bases=("mta.incomingmessage",),
         ),
     ]

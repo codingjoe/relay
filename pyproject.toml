@@ -11,47 +11,44 @@ classifiers = [
 dependencies = [
   "aiosmtpd>=1.4.6",
   "aiosmtplib>=5.1.2",
-  "boto3>=1.43.59",
+  "boto3>=1.43.72",
   "cryptography>=50",
   "django>=6.1,<6.2",
   "django-environ>=0.14",
   "django-health-check[psutil,redis]>=4.5",
   "django-storages[s3]>=1.14.6",
-  """\
-  djangorestframework @ \
-  https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz\
-  """,
+  "djangorestframework>=3.18",
   "dkimpy>=1.1.8",
   "dnslib>=0.9.26",
-  "dnspython>=2.7",
-  "granian>=2.7.4",
+  "dnspython>=2.8",
+  "granian>=2.8.1",
   "httpx>=0.28.1",
-  "idna>=3.10",
-  "markdown>=3.10.2",
+  "idna>=3.18",
+  "markdown>=3.10.3",
   "psycopg[binary]>=3.3.4",
   "pygments>=2.20",
   "pynacl>=1.6.2",
   "python-frontmatter>=1.3",
   "pyyaml>=6.0.3",
-  "redis>=7.2",
-  "sentry-sdk>=2.66.1",
+  "redis>=8.1",
+  "sentry-sdk>=2.68",
   "social-auth-app-django>=6.0.1",
-  "threadmill[redis]>=0.5.1",
-  "validators>=0.34",
+  "threadmill[redis]>=0.6.1",
+  "validators>=0.35",
   "whitenoise>=6.12",
 ]
 
 [dependency-groups]
 dev = [
   "pyyaml>=6.0.3",
-  "threadmill[inspector]>=0.5.1",
+  "threadmill[inspector]>=0.6.1",
   { include-group = "test" },
 ]
 test = [
   "pytest>=9.1.1",
   "pytest-asyncio>=1.4",
-  "pytest-cov>=4.1",
-  "pytest-django>=4.5.2",
+  "pytest-cov>=7.1",
+  "pytest-django>=4.14",
   "pytest-env>=1.7",
   "pytest-randomly>=4.1",
   "pytest-xdist>=3.8",
@@ -73,7 +70,7 @@ env = [
   "DJANGO_ALLOW_ASYNC_UNSAFE=1",
   "TEST=1",
 ]
-norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git" ]
+norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".worktrees" ]
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
 
 [tool.coverage]
@@ -86,6 +83,6 @@ report.omit = [
   "manage.py",
   "node_modules/*",
 ]
-report.show_missing = true
 report.skip_covered = true
 report.skip_empty = true
+report.show_missing = true

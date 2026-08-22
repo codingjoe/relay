@@ -41,42 +41,53 @@
 
   <div class="item-group">
     {% for org in organizations %}
-      <article class="item" data-variant="outline">
-        <section>
-          <h3><a href="{% url 'accounts:org-home' org.slug %}">{{ org.slug }}</a></h3>
-          <p class="flex items-center gap-3 flex-wrap">
-            {{ org.my_membership.0.get_role_display }} · {{ org.created_at|naturalday|capfirst }}
-            <div class="avatar-group">
-              {% for m in org.memberships.all|slice:":5" %}
-                <span class="avatar" data-size="sm">
-                  <img src="{% gravatar_url m.user 56 %}" alt="@{{ m.user.username }}">
-                  <span>{{ m.user.username|slice:":2"|upper }}</span>
-                </span>
-              {% endfor %}
-              {% if org.memberships.all|length > 5 %}
-                <span
-                  data-count
-                  aria-label="{% blocktranslate count counter=org.memberships.all|length|add:'-5' trimmed %}
-                    {{ counter }} additional member{% plural %}{{ counter }} additional members
-                  {% endblocktranslate %}"
-                >
-                  <i data-lucide="plus" class="size-3.5" aria-hidden="true"></i>
-                </span>
-              {% endif %}
+      <div class="relative">
+        <a
+          class="item"
+          data-variant="outline"
+          href="{% url 'accounts:org-home' org.slug %}"
+        >
+          <section>
+            <h3>{{ org.slug }}</h3>
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="text-muted-foreground">
+                {{ org.my_membership.0.get_role_display }} · {{ org.created_at|naturalday|capfirst }}
+              </span>
+              {% with total_members=org.memberships.all|length %}
+                <div class="avatar-group">
+                  {% for m in org.memberships.all|slice:":5" %}
+                    <span class="avatar" data-size="sm">
+                      <img src="{% gravatar_url m.user 56 %}" alt="@{{ m.user.username }}">
+                      <span>{{ m.user.username|slice:":2"|upper }}</span>
+                    </span>
+                  {% endfor %}
+                  {% if total_members > 5 %}
+                    <span
+                      data-count
+                      aria-label="{% blocktranslate count counter=total_members|add:'-5' trimmed %}
+                        {{ counter }} additional member{% plural %}{{ counter }} additional members
+                      {% endblocktranslate %}"
+                    >
+                      <i data-lucide="plus" class="size-3.5" aria-hidden="true"></i>
+                    </span>
+                  {% endif %}
+                </div>
+              {% endwith %}
             </div>
-          </p>
-        </section>
-        <aside>
-          <a
-            href="{% url 'accounts:org-detail' org.slug %}"
-            class="btn"
-            data-variant="secondary"
-            data-size="sm"
-          >
-            {% translate "manage"|capfirst context "verb" %}
-          </a>
-        </aside>
-      </article>
+          </section>
+          <aside>
+            <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto shrink-0" aria-hidden="true"></i>
+          </aside>
+        </a>
+        <a
+          href="{% url 'accounts:org-detail' org.slug %}"
+          class="btn absolute right-12 top-1/2 -translate-y-1/2 z-10"
+          data-variant="secondary"
+          data-size="sm"
+        >
+          {% translate "manage"|capfirst context "verb" %}
+        </a>
+      </div>
     {% empty %}
       <p class="text-muted-foreground">{% translate "no organizations yet." %}</p>
     {% endfor %}

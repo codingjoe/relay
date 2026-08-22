@@ -7,7 +7,6 @@
     <button
       type="button"
       class="btn"
-      data-variant="secondary"
       onclick="document.getElementById('dlg-test-email').showModal()"
     >
       {% translate "send test email"|title %}
@@ -21,7 +20,7 @@
         <p>{% translate "send a test message to verify your setup."|capfirst %}</p>
       </header>
       <section>
-        <form method="post" action="{% url 'smtp:message-test' org.slug %}" id="dlg-test-email-form">
+        <form method="post" action="{% url 'msa:message-test' org.slug %}" id="dlg-test-email-form">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">

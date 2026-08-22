@@ -1,7 +1,7 @@
 include:
   - path:
       - compose.production.yml
-      - oci://docker.io/codingjoe/the-box:latest
+#      - oci://docker.io/codingjoe/the-box:main
 services:
   web:
     build:
@@ -19,7 +19,11 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-  smtp:
+  dnsdist:
+    ports: !override
+      - "127.0.0.1:53:53/udp"
+      - "127.0.0.1:53:53/tcp"
+  msa:
     build:
       target: development
     volumes:
@@ -29,7 +33,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-  mx:
+  mta:
     build:
       target: development
     volumes:

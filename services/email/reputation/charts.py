@@ -5,7 +5,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from abstract.charts import CHART_DAYS
-from services.email.smtp.models import OutgoingMessage, Transmission
+from services.email.msa.models import OutgoingMessage, Transmission
 
 from .models import FblReport
 

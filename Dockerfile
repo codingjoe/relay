@@ -1,11 +1,12 @@
 FROM node:26-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm ci --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY ./ /app
-RUN pnpm run build
+RUN mkdir -p root/static/css && pnpm run build
 
-FROM ghcr.io/astral-sh/uv:0.12.1-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.12.3-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
 LABEL url="https://github.com/codingjoe/the-box"
@@ -21,6 +22,7 @@ ARG UV_NO_DEV
 ENV UV_NO_DEV=${UV_NO_DEV:-1}
 ENV UV_PYTHON_PREFERENCE=only-managed
 ENV UV_PYTHON_INSTALL_DIR=/opt/python
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_LINK_MODE=copy
 ENV UV_COMPILE_BYTECODE=1
 
@@ -31,23 +33,23 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-editable
 
-FROM gcr.io/distroless/cc:debug-nonroot AS development
+FROM gcr.io/distroless/cc:debug AS development
 
 # Copy binary dependencies
 COPY --from=build /dpkg /
 
 # Copy Python dependencies
 COPY --from=build --chown=root:root /opt/python /opt/python
-COPY --from=build --chown=root:root /app/.venv /opt/venv
+COPY --from=build --chown=root:root /opt/venv /opt/venv
 
 # Create the virtual environment
 ENV VIRTUAL_ENV=/opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 ENV PORT=8000
 
 WORKDIR /app
 
-ENTRYPOINT ["python"]
+ENTRYPOINT ["/opt/venv/bin/python"]
 
 FROM build AS compile
 
@@ -56,13 +58,13 @@ RUN apt-get install -y gettext
 COPY ./ /app
 
 # Compile message files
-RUN /app/.venv/bin/python -m manage compilemessages --ignore=.venv
+RUN /opt/venv/bin/python -m manage compilemessages
 
 # Copy compiled CSS from the frontend build stage
 COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
 
 # Collect static files
-RUN /app/.venv/bin/python -m manage collectstatic --no-input
+RUN /opt/venv/bin/python -m manage collectstatic --no-input
 
 FROM development AS production
 
@@ -72,4 +74,4 @@ COPY --from=compile /app/root/locale /app/root/locale
 COPY --from=compile /app/staticfiles /app/staticfiles
 
 WORKDIR /app
-ENTRYPOINT ["python"]
+ENTRYPOINT ["/opt/venv/bin/python"]

@@ -57,6 +57,17 @@ class Message(TimeStamped):
         default=False,
         help_text=_("Submission received over TLS."),
     )
+    spam_score = models.FloatField(
+        _("spam score"),
+        null=True,
+        blank=True,
+        help_text=_("rspamd score assigned to the message."),
+    )
+    spam_action = models.TextField(
+        _("spam action"),
+        blank=True,
+        help_text=_("rspamd action assigned to the message."),
+    )
 
     class Status(models.TextChoices):
         """Base status choices. Subclasses must override and set DEFAULT."""

@@ -88,10 +88,10 @@ INSTALLED_APPS = [
     "alternative_to",
     "well_known",
     "root",
-    "services.email.smtp",
+    "services.email.msa",
     "services.email.message",
     "services.email.dashboard",
-    "services.email.mx",
+    "services.email.mta",
     "services.email.dmarc",
     "services.email.reputation",
 ]
@@ -234,9 +234,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Relay config
 
-RELAY_PLATFORM_DOMAIN = env(
-    "RELAY_PLATFORM_DOMAIN", default=env("HOSTNAME", default="localhost")
-)
+RELAY_PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
 
 RELAY_SENDER_SUBDOMAIN_PREFIX = env(
     "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"
@@ -249,31 +247,24 @@ RELAY_DNS_NS_NAMESERVERS = [
 RELAY_DNS_SMTP_IPS = [
     ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
 ]
-RELAY_SMTP_PUBLIC_HOSTNAME = env(
-    "RELAY_SMTP_PUBLIC_HOSTNAME", default=f"smtp.{RELAY_PLATFORM_DOMAIN}"
-)
+RELAY_SMTP_PUBLIC_HOSTNAME = f"smtp.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_SPF_INCLUDE = f"spf.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")
 
-RELAY_MANAGED_SENDER_DOMAIN = env(
-    "RELAY_MANAGED_SENDER_DOMAIN", default=f"open.{RELAY_PLATFORM_DOMAIN}"
-)
+RELAY_MANAGED_SENDER_DOMAIN = f"open.{RELAY_PLATFORM_DOMAIN}"
 
-RELAY_SMTP_HOST = env("RELAY_SMTP_HOST", default="smtp")
-RELAY_SMTP_LISTEN_HOST = env("RELAY_SMTP_LISTEN_HOST", default="0.0.0.0")
-RELAY_SMTP_LISTEN_PORT = env.int("RELAY_SMTP_LISTEN_PORT", default=587)
-RELAY_SMTP_SUBMISSION_PORT = env.int("RELAY_SMTP_SUBMISSION_PORT", default=587)
-RELAY_SMTP_MAX_MESSAGE_SIZE = env.int(
-    "RELAY_SMTP_MAX_MESSAGE_SIZE", default=10485760
-)  # 10 MB
+RELAY_SMTP_SUBMISSION_PORTS = (587, 465)
+RELAY_SMTP_IMPLICIT_TLS_PORTS = (465,)
+RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
+RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
 
-RELAY_MX_LISTEN_HOST = env("RELAY_MX_LISTEN_HOST", default="0.0.0.0")
-RELAY_MX_LISTEN_PORT = env.int("RELAY_MX_LISTEN_PORT", default=25)
-RELAY_MX_MAX_MESSAGE_SIZE = env.int(
-    "RELAY_MX_MAX_MESSAGE_SIZE", default=10485760
-)  # 10 MB
+RELAY_MX_PORTS = (25,)
 RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
 RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
+
+RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
+RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)
+RELAY_RSPAMD_HOLD_SCORE = env.float("RELAY_RSPAMD_HOLD_SCORE", default=6.0)
 
 RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 
@@ -296,9 +287,6 @@ RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
-
-RELAY_DNS_LISTEN_HOST = env("RELAY_DNS_LISTEN_HOST", default="0.0.0.0")
-RELAY_DNS_LISTEN_PORT = env.int("RELAY_DNS_LISTEN_PORT", default=53)
 
 
 _email = env.email_url(
@@ -323,9 +311,7 @@ MAILERS = {
         },
     },
 }
-DEFAULT_FROM_EMAIL = env(
-    "DEFAULT_FROM_EMAIL", default=f"postmaster@{RELAY_PLATFORM_DOMAIN}"
-)
+DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 
 
 # Django task framework
@@ -392,6 +378,10 @@ LOGGING = {
         "handlers": ["console"],
         "level": "INFO",
     },
+}
+
+THREADMILL = {
+    "REDIS_URL": REDIS_URL,
 }
 
 

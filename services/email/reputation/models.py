@@ -2,7 +2,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from services.email.mx.models import IncomingMessage
+from services.email.mta.models import IncomingMessage
 
 
 class FblReport(IncomingMessage):

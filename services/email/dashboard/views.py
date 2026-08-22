@@ -10,11 +10,11 @@ from domains.models import Domain
 from services.email.dmarc.charts import build_dmarc_chart
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.message.models import Message
-from services.email.mx.charts import build_incoming_chart, build_tls_chart
-from services.email.mx.models import TlsReport
+from services.email.msa.charts import build_outgoing_chart
+from services.email.mta.charts import build_incoming_chart, build_tls_chart
+from services.email.mta.models import TlsReport
 from services.email.reputation.charts import build_reputation_chart
 from services.email.reputation.models import FblReport
-from services.email.smtp.charts import build_outgoing_chart
 
 
 class DashboardView(OrganizationScopedView, generic.TemplateView):

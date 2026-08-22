@@ -1,10 +1,10 @@
 include:
-  - oci://docker.io/codingjoe/the-box-postgres:latest
-  - oci://docker.io/codingjoe/the-box-redis:latest
+  - oci://docker.io/codingjoe/the-box-postgres:main
+  - oci://docker.io/codingjoe/the-box-redis:main
 services:
   web:
     pull_policy: build
-    image: !reset
+    image: app
     build:
       context: .
       dockerfile: Dockerfile
@@ -24,6 +24,12 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
+      AWS_S3_ENDPOINT_URL: http://minio:9000
+      AWS_S3_ACCESS_KEY_ID: minioadmin
+      AWS_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_STORAGE_BUCKET_NAME: relay
+      AWS_S3_ADDRESSING_STYLE: path
+      RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
     command: ["-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application"]
     healthcheck:
       test: ["CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https"]
@@ -31,108 +37,182 @@ services:
       retries: 5
       start_period: 30s
       timeout: 10s
-      #    depends_on:
-      #      migration:
-      #        condition: service_completed_successfully
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+        required: true
+        restart: true
     labels:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
   dns:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
-    command: ["-m", "manage", "dns"]
-    environment:
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
+    extends:
+      service: web
+    labels: !reset
+    command: ["-m", "manage", "dns", "--port", "5353"]
+    networks: !override
+      - app
+      - dnsdist
+  dnsdist:
+    image: powerdns/dnsdist-21:2.1.1
     ports:
-      - "53:53/udp"
-      - "53:53/tcp"
+      - "0.0.0.0:53:53/udp"
+      - "0.0.0.0:53:53/tcp"
     networks:
+      - dnsdist
+      - dnsdist-wan
+    configs:
+      - source: dnsdist
+        target: /etc/dnsdist/dnsdist.conf
+    depends_on:
+      dns:
+        condition: service_started
+  msa:
+    extends:
+      service: web
+    labels: !override
+      - "caddy=smtp.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+    deploy: !reset
+    command: ["-m", "manage", "msa"]
+    ports:
+      - "0.0.0.0:587:587"
+      - "0.0.0.0:465:465"
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+    volumes:
+      - caddy_data:/data:ro
+    networks: !override
       - app
       - app-wan
-  smtp:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
-    command: ["-m", "manage", "smtp"]
-    environment:
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
+  mta:
+    extends:
+      service: web
+    labels: !override
+      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+    deploy: !reset
+    command: ["-m", "manage", "mta"]
     ports:
-      - "587:587"
-    networks:
+      - "0.0.0.0:25:25"
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
+    volumes:
+      - caddy_data:/data:ro
+    networks: !override
       - app
       - app-wan
-  mx:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
-    command: ["-m", "manage", "mx"]
-    environment:
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
-    ports:
-      - "25:25"
+  rspamd:
+    image: rspamd/rspamd:4.1
+    configs:
+      - source: rspamd_redis
+        target: /etc/rspamd/local.d/redis.conf
+      - source: rspamd_worker
+        target: /etc/rspamd/local.d/worker-normal.inc
     networks:
       - app
-      - app-wan
-  worker:
-    pull_policy: build
-    image: !reset
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
-    command: ["-m", "manage", "threadmill", "worker"]
-    environment:
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
     depends_on:
       redis:
         condition: service_healthy
+  worker:
+    extends:
+      service: web
+    labels: !reset
+    deploy: !reset
+    command: ["-m", "manage", "threadmill", "worker"]
+  migration:
+    extends:
+      service: web
+    restart: no
+    command: ["-m", "manage", "migrate", "--noinput"]
+    deploy: !reset
+    labels: !reset
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+        required: true
+        restart: false
+      redis:
+        condition: service_healthy
+        required: true
+        restart: false
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: ["server", "/data", "--console-address", ":9001"]
+    volumes:
+      - s3:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 5s
     networks:
       - app
-#  migration:
-#    extends:
-#      service: web
-#    restart: no
-#    command: ["-m", "manage", "migrate", "--noinput"]
-#    deploy: !reset
-#    labels: !reset
-#    depends_on: !override
-#      postgres:
-#        condition: service_healthy
-#        required: true
-#        restart: true
-#      redis:
-#        condition: service_healthy
-#        required: true
-#        restart: true
-#    networks:
-#      - app
-#    environment:
-#      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-#      REDIS_URL: redis://:${REDIS_PASSWORD}@redis/
+      - app-wan
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+        required: true
+        restart: true
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - mc alias set root http://minio:9000 minioadmin ${MINIO_ROOT_PASSWORD} && mc mb root/relay --ignore-existing
+    restart: "no"
+    networks:
+      - app
+volumes:
+  s3:
+  caddy_data:
+    name: the-box_caddy_data
+    external: true
+networks:
+  dnsdist:
+    internal: true
+  dnsdist-wan:
+configs:
+  rspamd_redis:
+    content: |
+      servers = "redis";
+      password = "${REDIS_PASSWORD}";
+      database = 1;
+  rspamd_worker:
+    content: |
+      bind_socket = "*:11334";
+  dnsdist:
+    content: |
+      -- Listen on port 53 (UDP + TCP)
+      addLocal("0.0.0.0:53")
+
+      -- Authoritative nameserver: allow queries from all sources
+      setACL({"0.0.0.0/0", "::/0"})
+
+      -- Resolve all 'dns' service replicas via Docker's embedded DNS
+      local handle = io.popen("getent ahosts dns")
+      local result = handle:read("*a")
+      handle:close()
+
+      -- Add each unique replica as a downstream server for redundancy
+      local seen = {}
+      for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
+          if not seen[ip] then
+              seen[ip] = true
+              newServer({address=ip .. ":5353", name="authoritative"})
+          end
+      end
+
+      -- Cache responses to reduce upstream load
+      pc = newPacketCache(10000, {maxTTL=86400, minTTL=0})
+      getPool(""):setCache(pc)

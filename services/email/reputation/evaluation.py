@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from services.email.smtp.models import OutgoingMessage, Transmission
+from services.email.msa.models import OutgoingMessage, Transmission
 
 from .models import FblReport
 

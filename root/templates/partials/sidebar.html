@@ -44,7 +44,7 @@
             </a>
           </li>
           <li>
-            {% url 'smtp:credential-list' current_org.slug as credential_list_url %}
+            {% url 'msa:credential-list' current_org.slug as credential_list_url %}
             <a
               href="{{ credential_list_url }}"
               {% if request.path == credential_list_url %}aria-current="page"{% endif %}
@@ -54,7 +54,7 @@
             </a>
           </li>
           <li>
-            {% url 'smtp:suppression-list' current_org.slug as suppression_list_url %}
+            {% url 'msa:suppression-list' current_org.slug as suppression_list_url %}
             <a
               href="{{ suppression_list_url }}"
               {% if request.path == suppression_list_url %}aria-current="page"{% endif %}
@@ -64,7 +64,7 @@
             </a>
           </li>
           <li>
-            {% url 'mx:webhook-list' current_org.slug as webhook_list_url %}
+            {% url 'mta:webhook-list' current_org.slug as webhook_list_url %}
             <a
               href="{{ webhook_list_url }}"
               {% if request.path == webhook_list_url %}aria-current="page"{% endif %}
