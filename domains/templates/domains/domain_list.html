@@ -53,33 +53,43 @@
 
   <div class="item-group">
     {% for domain in domains %}
-      <a
-        {% if not domain.is_managed %}href="{% url 'domains:domain-detail' org.slug domain.pk %}"{% endif %}
-        class="item"
-        data-variant="outline"
-      >
-        <section>
-          <h3>
-            {% if domain.verified_at %}
-              <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-            {% else %}
-              <i data-lucide="loader-circle" class="size-4 text-muted-foreground animate-spin" aria-hidden="true"></i>
-            {% endif %}
-            {{ domain.name }}
-          </h3>
-          <p class="flex items-center gap-2 flex-wrap">
-            <code>{{ domain.sender_domain }}</code>
-            {% if domain.is_managed %}
+      {% if domain.is_managed %}
+        <article class="item" data-variant="outline">
+          <section>
+            <h3>
+              {% if domain.verified_at %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="loader-circle" class="size-4 text-muted-foreground animate-spin" aria-hidden="true"></i>
+              {% endif %}
+              {{ domain.name }}
+            </h3>
+            <p class="flex items-center gap-2 flex-wrap">
+              <code>{{ domain.sender_domain }}</code>
               <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
-            {% endif %}
-          </p>
-        </section>
-        {% if not domain.is_managed %}
+            </p>
+          </section>
+        </article>
+      {% else %}
+        <a class="item" data-variant="outline" href="{% url 'domains:domain-detail' org.slug domain.pk %}">
+          <section>
+            <h3>
+              {% if domain.verified_at %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="loader-circle" class="size-4 text-muted-foreground animate-spin" aria-hidden="true"></i>
+              {% endif %}
+              {{ domain.name }}
+            </h3>
+            <p class="flex items-center gap-2 flex-wrap">
+              <code>{{ domain.sender_domain }}</code>
+            </p>
+          </section>
           <aside>
             <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto shrink-0" aria-hidden="true"></i>
           </aside>
-        {% endif %}
-      </a>
+        </a>
+      {% endif %}
     {% empty %}
       <p class="text-muted-foreground">{% translate "no domains configured yet." %}</p>
     {% endfor %}
