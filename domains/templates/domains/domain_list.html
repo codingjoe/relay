@@ -74,6 +74,11 @@
             {% endif %}
           </p>
         </section>
+        {% if not domain.is_managed %}
+          <aside>
+            <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto shrink-0" aria-hidden="true"></i>
+          </aside>
+        {% endif %}
       </a>
     {% empty %}
       <p class="text-muted-foreground">{% translate "no domains configured yet." %}</p>
