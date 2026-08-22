@@ -1,6 +1,11 @@
 """Shared TLS helpers for the mail servers."""
 
+import datetime
+import logging
 import ssl
+import time
+
+logger = logging.getLogger(__name__)
 
 
 def build_tls_context(cert_path: str, key_path: str) -> ssl.SSLContext | None:
@@ -15,3 +20,44 @@ def build_tls_context(cert_path: str, key_path: str) -> ssl.SSLContext | None:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(cert_path, key_path)
     return context
+
+
+def wait_for_certificate_and_key(
+    cert_path: str,
+    key_path: str,
+    timeout: datetime.timedelta = datetime.timedelta(minutes=5),
+) -> None:
+    """Block until the certificate and key files load successfully.
+
+    Raise TimeoutError if the files do not load within timeout.
+    Return immediately when no TLS paths are configured.
+    """
+    if cert_path and key_path:
+        deadline = time.monotonic() + timeout.total_seconds()
+        logged = False
+        while True:
+            try:
+                build_tls_context(cert_path, key_path)
+            except OSError:
+                if time.monotonic() > deadline:
+                    raise TimeoutError(
+                        f"TLS certificate ({cert_path}) and key ({key_path}) "
+                        f"did not load within {timeout}."
+                    )
+                if not logged:
+                    logger.warning(
+                        "Waiting for TLS certificate (%s) and key (%s)…",
+                        cert_path,
+                        key_path,
+                    )
+                    logged = True
+                else:
+                    logger.debug(
+                        "Waiting for TLS certificate (%s) and key (%s)…",
+                        cert_path,
+                        key_path,
+                    )
+                time.sleep(5)
+            else:
+                logger.info("TLS certificate and key are available.")
+                return

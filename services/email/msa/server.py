@@ -7,7 +7,7 @@ import time
 
 from aiosmtpd.controller import Controller
 
-from services.email.tls import build_tls_context
+from services.email.tls import build_tls_context, wait_for_certificate_and_key
 
 from .handlers import ImplicitTLSHandler, SMTPHandler
 
@@ -89,6 +89,7 @@ def run_smtp_server(
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,
     )
+    wait_for_certificate_and_key(tls_cert_path, tls_key_path)
     server.start()
 
     def signal_handler(sig, frame):

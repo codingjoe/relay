@@ -1,4 +1,4 @@
-from datetime import timedelta
+import datetime
 
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
@@ -33,7 +33,7 @@ TLS_CHART_COLORS = {
 
 def build_incoming_chart(org):
     """Return chart data for incoming messages grouped by status."""
-    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
+    start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     rows = (
         IncomingMessage.objects.filter(org=org, created_at__date__gte=start)
         .annotate(day=TruncDate("created_at"))
@@ -51,7 +51,7 @@ def build_incoming_chart(org):
 
 def build_tls_chart(org):
     """Return chart data for TLS failure counts grouped by result type."""
-    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
+    start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     rows = (
         TlsFailure.objects.filter(
             report__org=org,

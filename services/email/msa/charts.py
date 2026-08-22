@@ -1,4 +1,4 @@
-from datetime import timedelta
+import datetime
 
 from django.db.models import Count
 from django.db.models.functions import TruncDate
@@ -26,7 +26,7 @@ SUPPRESSION_CHART_COLORS = {
 
 def build_outgoing_chart(org):
     """Return chart data for outgoing messages grouped by status."""
-    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
+    start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     rows = (
         OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
         .annotate(day=TruncDate("created_at"))
@@ -44,7 +44,7 @@ def build_outgoing_chart(org):
 
 def build_suppression_chart(org):
     """Return chart data for suppression entries grouped by reason."""
-    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
+    start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     rows = (
         SuppressionEntry.objects.filter(org=org, created_at__date__gte=start)
         .annotate(day=TruncDate("created_at"))
