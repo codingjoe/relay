@@ -17,10 +17,7 @@ dependencies = [
   "django-environ>=0.14",
   "django-health-check[psutil,redis]>=4.5",
   "django-storages[s3]>=1.14.6",
-  """\
-  djangorestframework @ \
-  https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz\
-  """,
+  "djangorestframework>=3.18",
   "dkimpy>=1.1.8",
   "dnslib>=0.9.26",
   "dnspython>=2.8",
