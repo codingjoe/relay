@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-editable
 
-FROM gcr.io/distroless/cc:debug-nonroot AS development
+FROM gcr.io/distroless/cc:debug AS development
 
 # Copy binary dependencies
 COPY --from=build /dpkg /
