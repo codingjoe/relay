@@ -30,7 +30,15 @@ class MXServer:
 
     def start(self):
         handler = MXHandler()
-        tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
+        try:
+            tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
+        except OSError:
+            logger.warning(
+                "TLS certificate (%s) or key (%s) not found; starting without STARTTLS",
+                self.tls_cert_path,
+                self.tls_key_path,
+            )
+            tls_context = None
         for port in self.ports:
             controller = Controller(
                 handler,

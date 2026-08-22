@@ -101,7 +101,7 @@ class TestIsSuppressed:
 
     @pytest.mark.django_db
     def test_bounce_entry_does_not_suppress_after_30_days(self):
-        from datetime import timedelta
+        import datetime
 
         from django.utils import timezone
 
@@ -110,7 +110,7 @@ class TestIsSuppressed:
         entry, _ = SuppressionEntry.objects.create_or_update(
             org=org1, email="bob@example.com", reason=SuppressionEntry.Reason.BOUNCE
         )
-        entry.created_at = timezone.now() - timedelta(days=31)
+        entry.created_at = timezone.now() - datetime.timedelta(days=31)
         entry.save(update_fields=["created_at"])
         assert not SuppressionEntry.objects.is_suppressed(org2, "bob@example.com")
 
