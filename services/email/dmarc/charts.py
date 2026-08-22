@@ -1,4 +1,4 @@
-from datetime import timedelta
+import datetime
 
 from django.db.models import Sum
 from django.db.models.functions import TruncDate
@@ -17,7 +17,7 @@ DMARC_CHART_COLORS = {
 
 def build_dmarc_chart(org):
     """Return chart data for DMARC message counts grouped by disposition."""
-    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
+    start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     rows = (
         DmarcRecord.objects.filter(
             report__org=org,

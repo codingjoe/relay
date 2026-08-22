@@ -1,5 +1,5 @@
+import datetime
 import xml.etree.ElementTree as ET
-from datetime import UTC, datetime
 from email import message_from_bytes
 
 ARF_FIELD_MAP = {
@@ -63,7 +63,9 @@ def text(parent, path):
 def parse_timestamp(parent, path):
     """Convert a Unix timestamp from an XML element into an aware datetime."""
     value = text(parent, path)
-    return datetime.fromtimestamp(int(value), tz=UTC) if value else None
+    return (
+        datetime.datetime.fromtimestamp(int(value), tz=datetime.UTC) if value else None
+    )
 
 
 def extract_part_text(part):

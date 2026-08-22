@@ -3,8 +3,8 @@ from django.core.files.base import ContentFile
 
 from domains.models import Domain
 from services.email.message.models import Message
-from services.email.mx.models import IncomingMessage
-from services.email.smtp.models import OutgoingMessage
+from services.email.msa.models import OutgoingMessage
+from services.email.mta.models import IncomingMessage
 
 
 def create_outgoing(user, org, status=None):

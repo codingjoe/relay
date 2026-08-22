@@ -1,20 +1,64 @@
-# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
 version: 2
 updates:
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: daily
-  - package-ecosystem: docker
-    directories:
-      - "/"
-    schedule:
-      interval: daily
   - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      semver-patch-days: 3
+      semver-minor-days: 7
+      semver-major-days: 21
+    groups:
+      minor-python-dependencies:
+        update-types:
+          - "minor"
+          - "patch"
+      major-python-dependencies:
+        update-types:
+          - "major"
+    open-pull-requests-limit: 10
   - package-ecosystem: npm
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      semver-patch-days: 3
+      semver-minor-days: 7
+      semver-major-days: 21
+    groups:
+      minor-javascript-dependencies:
+        update-types:
+          - "minor"
+          - "patch"
+      major-javascript-dependencies:
+        update-types:
+          - "major"
+    versioning-strategy: lockfile-only
+    open-pull-requests-limit: 10
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker
+    directories:
+      - "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+  - package-ecosystem: docker-compose
+    directories:
+      - "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+  - package-ecosystem: pre-commit
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3

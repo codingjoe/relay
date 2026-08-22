@@ -1,4 +1,5 @@
 hosts:
   - host: local
   - host: ssh://collaborator@relays.to
+all: true
 sort: name

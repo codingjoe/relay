@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import iter_attachments
 from abstract.models import TimeStamped
-from services.email.mx.models import IncomingMessage
+from services.email.mta.models import IncomingMessage
 
 from .parser import parse_arf, parse_dmarc_xml
 

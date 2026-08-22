@@ -229,3 +229,6 @@ root/static/css/app.css
 
 # Playwright MCP
 .playwright-mcp/
+
+# Backup encryption private keys
+.box/*.key

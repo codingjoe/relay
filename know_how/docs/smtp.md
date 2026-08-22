@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # SMTP
 
-> **TL;DR**: SMTP is the standard protocol for sending email between mail servers. relay accepts outgoing mail on port 587 with STARTTLS and authenticates each request with an API key.
+> **TL;DR**: SMTP is the standard protocol for sending email between mail servers. Submission servers accept messages on port 587 with STARTTLS and require authentication.
 
 ## What is SMTP?
 
@@ -18,11 +18,7 @@ SMTP is defined in [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321). Th
 
 SMTP is the foundation of email delivery. Every email that travels across the internet uses SMTP. Without it, mail servers could not communicate with each other.
 
-SMTP was designed in 1982[^rfc821] and has evolved over time. The core protocol is simple, which makes it robust. However, the simplicity also means that SMTP by itself does not provide:
-
-- **Authentication**: The protocol does not verify who sent the message. This gap is filled by <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>, <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>, and <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
-- **Encryption**: The protocol starts in plain text. This gap is filled by STARTTLS and <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>.
-- **Content verification**: The protocol does not check the message content. This gap is filled by spam filters and DKIM signatures.
+SMTP was designed in 1982[^rfc821] and has grown around it since. The core protocol is simple, and that simplicity is a strength. It also means SMTP on its own leaves three gaps. It does not verify who sent a message, which is what <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>, <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>, and <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a> handle. It starts in plain text, so STARTTLS and <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> add encryption. And it never looks at the message content, which is left to spam filters and DKIM signatures.
 
 ## How SMTP works
 
@@ -67,7 +63,7 @@ SMTP uses different ports for different roles:
 
 | Port | Purpose                                    | Encryption        |
 | ---- | ------------------------------------------ | ----------------- |
-| 25   | Server-to-server relay (MX delivery)       | Optional STARTTLS |
+| 25   | Server-to-server MX delivery               | Optional STARTTLS |
 | 587  | Client-to-server submission                | STARTTLS          |
 | 465  | Client-to-server submission (implicit TLS) | TLS               |
 
@@ -91,19 +87,16 @@ STARTTLS is an SMTP extension that upgrades a plain-text connection to TLS. The 
 
 STARTTLS is opportunistic by default. If the server does not advertise STARTTLS, or if the TLS handshake fails, the client can fall back to plain text. <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> solves this problem by requiring TLS.
 
-## How relay uses SMTP
+## How to submit mail
 
-relay accepts outgoing mail submissions on port 587 with STARTTLS. The authentication uses an API key as the SMTP password. Each organization gets its own API key through the `SmtpCredential` model.
+To submit a message to a submission server:
 
-When you submit a message:
+1. Connect to the server on port 587.
+1. Upgrade the connection with STARTTLS.
+1. Authenticate with your account credentials.
+1. Send the message.
 
-1. Your mail client connects to the relay SMTP server on port 587.
-1. The client upgrades the connection with STARTTLS.
-1. The client authenticates with the organization API key.
-1. The client sends the message.
-1. The relay SMTP server stores the raw message body in S3 storage.
-1. The server dispatches delivery through the Django task framework.
-1. The server reports the delivery status back to the client.
+The server queues the message for delivery and reports the result back to the client. Submission servers require authentication so that they do not forward messages for unknown senders.
 
 ## Further reading
 

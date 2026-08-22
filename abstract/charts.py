@@ -1,4 +1,4 @@
-from datetime import timedelta
+import datetime
 
 CHART_DAYS = 30
 
@@ -26,7 +26,9 @@ def build_chart_data(rows, choices, colors, start, group_field):
         }
         for choice in choices
     ]
-    days_list = [start + timedelta(days=offset) for offset in range(CHART_DAYS)]
+    days_list = [
+        start + datetime.timedelta(days=offset) for offset in range(CHART_DAYS)
+    ]
     return {
         "series": series,
         "rows": [

@@ -129,7 +129,7 @@ class Credential(OrganizationOwned):
     The plaintext key is never stored. Only a hash (like Django passwords).
     The key_prefix (the first 8 characters) makes an O(1) lookup possible
     before hash verification. Concrete models live in service apps (for
-    example, smtp.SmtpCredential).
+    example, msa.MsaCredential).
     """
 
     key_hash = models.CharField(

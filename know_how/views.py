@@ -33,7 +33,7 @@ class KnowHowListView(
     """Display all know-how articles."""
 
     template_name = "know_how/list.html"
-    title = _("know how")
+    title = _("Know how")
     parent = "home"
     cache_control = {"public": True, "max_age": 3600}
     docs_dir = KNOW_HOW_DIR

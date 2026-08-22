@@ -59,8 +59,8 @@ urlpatterns = [
             [
                 path("", include("services.email.message.urls")),
                 path("", include("services.email.dashboard.urls")),
-                path("", include("services.email.smtp.urls")),
-                path("", include("services.email.mx.urls")),
+                path("", include("services.email.msa.urls")),
+                path("", include("services.email.mta.urls")),
                 path("", include("services.email.dmarc.urls")),
                 path("domains/", include("domains.urls")),
             ]

@@ -7,7 +7,7 @@ from services.email.dmarc.tasks import (
     evaluate_incoming_message,
     generate_daily_rua_reports,
 )
-from services.email.mx.models import IncomingMessage
+from services.email.mta.models import IncomingMessage
 
 DMARC_REJECT = (
     '"v=DMARC1; p=reject; rua=mailto:rua@example.org; ruf=mailto:ruf@example.org"'
