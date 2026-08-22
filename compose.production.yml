@@ -4,7 +4,7 @@ include:
 services:
   web:
     pull_policy: build
-    image: !reset
+    image: app
     build:
       context: .
       dockerfile: Dockerfile
