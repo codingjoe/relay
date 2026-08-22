@@ -350,15 +350,15 @@ s3 = [
 
 [[package]]
 name = "djangorestframework"
-version = "3.17.1"
-source = { url = "https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz" }
+version = "3.18.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { hash = "sha256:58de99707e4fa2a7ea3d8b1638752a1735bd7deb6fc3d50ffe33d0d7c485a4f0" }
-
-[package.metadata]
-requires-dist = [{ name = "django", specifier = ">=5.2" }]
+sdist = { url = "https://files.pythonhosted.org/packages/79/bc/de04e3d4dc65e8b926700956ee70d4f084f2005603d21122d4d0683006fd/djangorestframework-3.18.0.tar.gz", hash = "sha256:2323a5111837e0b784dcb8323abc78ecc54fa2a5af7aff2677cf50cdd849477f", size = 913667, upload-time = "2026-08-07T14:53:33.571Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/d7/7461738e819b853275b35fd35712a85806c09a327e1fd5f8ff766bdd317e/djangorestframework-3.18.0-py3-none-any.whl", hash = "sha256:381fc44d3249c9565c5f723850855b734e99030eb30957a49f506d3fe11d7dcb", size = 900032, upload-time = "2026-08-07T14:53:31.881Z" },
+]
 
 [[package]]
 name = "dkimpy"
@@ -948,7 +948,7 @@ requires-dist = [
     { name = "django-environ", specifier = ">=0.14" },
     { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.5" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
-    { name = "djangorestframework", url = "https://github.com/encode/django-rest-framework/archive/f0d95c2df066e163553f7d19b33d724e988744cc.tar.gz" },
+    { name = "djangorestframework", specifier = ">=3.18.0" },
     { name = "dkimpy", specifier = ">=1.1.8" },
     { name = "dnslib", specifier = ">=0.9.26" },
     { name = "dnspython", specifier = ">=2.8" },
