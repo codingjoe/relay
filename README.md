@@ -99,8 +99,8 @@ flowchart TD
 
     subgraph app[app network]
         web[Web Django + Granian :8000]
-        smtp[SMTP aiosmtpd :587 :465]
-        mx[MX aiosmtpd :25]
+        msa[SMTP aiosmtpd :587 :465]
+        mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
         rspamd[rspamd :11334]
         minio[MinIO S3 :9000]
@@ -118,18 +118,18 @@ flowchart TD
 
     browser --> caddy_proxy
     caddy_proxy --> web
-    client -->|STARTTLS :587 / TLS :465| smtp
-    sender -->|STARTTLS :25| mx
-    smtp --> rspamd
-    mx --> rspamd
+    client -->|STARTTLS :587 / TLS :465| msa
+    sender -->|STARTTLS :25| mta
+    msa --> rspamd
+    mta --> rspamd
     rspamd --> redis
     web --> pg
     web --> redis
     web --> minio
-    smtp --> pg
-    smtp --> minio
-    mx --> pg
-    mx --> minio
+    msa --> pg
+    msa --> minio
+    mta --> pg
+    mta --> minio
     dnsdist --> dns_ns
     sender -->|DNS :53| dnsdist
 ```
@@ -207,25 +207,25 @@ graph BT
  direction BT
  dashboard[dashboard]
  message[message]
- smtp
- mx
+ msa
+ mta
  dmarc
  message --> accounts
  message --> domains
- smtp --> message
- smtp --> accounts
- smtp --> domains
- smtp --> kms
- mx --> message
- mx --> accounts
- mx --> domains
- mx --> kms
+ msa --> message
+ msa --> accounts
+ msa --> domains
+ msa --> kms
+ mta --> message
+ mta --> accounts
+ mta --> domains
+ mta --> kms
  dmarc --> accounts
  dmarc --> domains
- dmarc --> mx
+ dmarc --> mta
  dashboard --> message
- dashboard --> smtp
- dashboard --> mx
+ dashboard --> msa
+ dashboard --> mta
  dashboard --> dmarc
  end
  subgraph voip

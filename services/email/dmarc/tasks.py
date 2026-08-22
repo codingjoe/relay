@@ -70,7 +70,7 @@ def parse_dmarc_failure_report(report_pk):
 def evaluate_incoming_message(message_pk):
     """Evaluate DMARC for an incoming message. If the evaluation fails, generate a RUF report."""
     from domains.models import Domain
-    from services.email.mx.models import IncomingMessage
+    from services.email.mta.models import IncomingMessage
 
     message = IncomingMessage.objects.get(pk=message_pk)
     evaluation = DmarcEvaluation.from_message(message)
@@ -94,7 +94,7 @@ def evaluate_incoming_message(message_pk):
 def generate_daily_rua_reports():
     """Generate and send daily DMARC RUA reports for all verified domains."""
     from domains.models import Domain
-    from services.email.mx.models import IncomingMessage
+    from services.email.mta.models import IncomingMessage
 
     end_at = timezone.now()
     begin_at = end_at - timedelta(days=1)

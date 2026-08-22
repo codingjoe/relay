@@ -1,7 +1,7 @@
 import pytest
 
 from domains.models import Domain
-from services.email.smtp.models import OutgoingMessage
+from services.email.msa.models import OutgoingMessage
 
 
 @pytest.mark.django_db
