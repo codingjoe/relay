@@ -138,11 +138,11 @@ services:
       postgres:
         condition: service_healthy
         required: true
-        restart: true
+        restart: false
       redis:
         condition: service_healthy
         required: true
-        restart: true
+        restart: false
   minio:
     image: minio/minio
     environment:
@@ -184,6 +184,7 @@ configs:
   rspamd_redis:
     content: |
       servers = "redis";
+      password = "${REDIS_PASSWORD}";
       database = 1;
   rspamd_worker:
     content: |
