@@ -88,10 +88,10 @@ INSTALLED_APPS = [
     "alternative_to",
     "well_known",
     "root",
-    "services.email.smtp",
+    "services.email.msa",
     "services.email.message",
     "services.email.dashboard",
-    "services.email.mx",
+    "services.email.mta",
     "services.email.dmarc",
 ]
 

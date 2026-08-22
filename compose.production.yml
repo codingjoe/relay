@@ -70,14 +70,14 @@ services:
     depends_on:
       dns:
         condition: service_started
-  smtp:
+  msa:
     extends:
       service: web
     labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
     deploy: !reset
-    command: ["-m", "manage", "smtp"]
+    command: ["-m", "manage", "msa"]
     ports:
       - "0.0.0.0:587:587"
       - "0.0.0.0:465:465"
@@ -90,14 +90,14 @@ services:
     networks: !override
       - app
       - app-wan
-  mx:
+  mta:
     extends:
       service: web
     labels: !override
       - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
     deploy: !reset
-    command: ["-m", "manage", "mx"]
+    command: ["-m", "manage", "mta"]
     ports:
       - "0.0.0.0:25:25"
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
