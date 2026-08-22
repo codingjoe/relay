@@ -176,6 +176,8 @@ services:
 volumes:
   s3:
   caddy_data:
+    name: the-box_caddy_data
+    external: true
 networks:
   dnsdist:
     internal: true
