@@ -83,8 +83,8 @@ services:
       - "0.0.0.0:465:465"
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
-      RELAY_SMTP_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
-      RELAY_SMTP_TLS_KEY_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
     volumes:
       - caddy_data:/data:ro
     networks: !override
@@ -102,8 +102,8 @@ services:
       - "0.0.0.0:25:25"
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
-      RELAY_MX_TLS_CERT_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
     volumes:
       - caddy_data:/data:ro
     networks: !override
