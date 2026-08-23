@@ -108,12 +108,9 @@ code_formatter = HtmlFormatter(cssclass="codehilite")
 def highlight_code(value: str, language: str = "text") -> str:
     """Highlight a static code snippet with Pygments.
 
-    Returns an empty string for empty input. When the requested language is
-    unknown, falls back to the plain-text lexer and still returns a Pygments
-    highlighted `<pre>` block.
+    When the requested language is unknown, falls back to the plain-text lexer
+    and still returns a Pygments highlighted `<pre>` block.
     """
-    if not value:
-        return ""
     try:
         lexer = get_lexer_by_name(language)
     except ClassNotFound:

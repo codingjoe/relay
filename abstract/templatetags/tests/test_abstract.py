@@ -88,10 +88,6 @@ def test_naturaltime():
     )
 
 
-def test_highlight_code__empty():
-    assert abstract.highlight_code("") == ""
-
-
 def test_highlight_code__known_language():
     highlighted = abstract.highlight_code('{"key": "value"}', "json")
     assert '<div class="codehilite">' in highlighted
