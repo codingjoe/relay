@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -132,3 +133,125 @@ class FblReport(IncomingMessage):
             authentication_results=parsed["authentication_results"],
             original_headers=parsed["original_headers"],
         )
+
+    @classmethod
+    def create_for_spam(cls, message):
+        """Create and store an FBL report for a message flagged as spam.
+
+        Used for both MSA-held outgoing messages and MTA-quarantined
+        incoming messages. Returns the created FblReport, or None if
+        the message has no associated domain.
+        """
+        from django.core.files.base import ContentFile
+
+        if message.domain_id is None:
+            return None
+
+        report = cls(
+            org=message.org,
+            domain=message.domain,
+            receiving_domain=getattr(message, "receiving_domain", ""),
+            mail_from=message.mail_from,
+            rcpt_to=message.rcpt_to,
+            subject=message.subject,
+            message_id=message.message_id,
+            received_with_tls=message.received_with_tls,
+            feedback_type=cls.FeedbackType.ABUSE,
+            user_agent="relay",
+            version="1",
+            reporting_org="relay",
+            reporting_email=f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
+            original_mail_from=message.mail_from,
+            original_rcpt_to=message.rcpt_to.split(",")[0] if message.rcpt_to else "",
+            original_message_id=message.message_id,
+        )
+        raw_bytes = message.raw_body.read() if message.raw_body else b""
+        report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
+        report.save(force_insert=True)
+        return report
+
+    @classmethod
+    def send_fbl_report(cls, message):
+        """Send an ARF FBL report email to the sender domain's FBL address.
+
+        Looks up the sender's domain and sends an ARF-formatted complaint
+        report to its FBL reporting address. Does nothing if the sender
+        domain is not registered or has no FBL address.
+        """
+        from django.core.mail import EmailMessage
+
+        from domains.models import Domain
+
+        sender_domain = (
+            message.mail_from.split("@")[-1] if "@" in message.mail_from else ""
+        )
+        try:
+            domain = Domain.objects.root_for(sender_domain, include_managed=True)
+            address = domain.fbl_reporting_address
+        except Domain.DoesNotExist, ValueError:
+            address = ""
+
+        match address:
+            case "":
+                return
+            case _:
+                raw_headers = ""
+                if message.raw_body:
+                    from email import message_from_bytes
+
+                    parsed = message_from_bytes(message.raw_body.read())
+                    raw_headers = "".join(f"{k}: {v}\r\n" for k, v in parsed.items())[
+                        :2000
+                    ]
+
+                body = cls.build_arf_body(
+                    source_ip="unknown",
+                    arrival_date=message.created_at.isoformat(),
+                    envelope_from=message.mail_from,
+                    rcpt_to=message.rcpt_to,
+                    delivery_result="spam",
+                    original_headers=raw_headers,
+                )
+                email = EmailMessage(
+                    subject=f"FBL report for {sender_domain}",
+                    body=body,
+                    from_email=f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
+                    to=[address],
+                )
+                email.send()
+                return
+
+    @staticmethod
+    def build_arf_body(**fields):
+        """Build an ARF (RFC 5965) multipart body for an FBL report."""
+        lines = [
+            "This is an email abuse report for an email message received from",
+            f"IP {fields.get('source_ip', 'unknown')} on {fields.get('arrival_date', 'unknown')}.",
+            "",
+            "The message was flagged as spam.",
+            "",
+            "--boundary",
+            "Content-Type: text/plain",
+            "",
+            "Feedback loop complaint report.",
+            "",
+            "--boundary",
+            "Content-Type: message/feedback-report",
+            "",
+            "Feedback-Type: abuse",
+            "User-Agent: relay",
+            "Version: 1",
+            f"Original-Mail-From: {fields.get('envelope_from', '')}",
+            f"Original-Rcpt-To: {fields.get('rcpt_to', '')}",
+            f"Arrival-Date: {fields.get('arrival_date', '')}",
+            f"Source-IP: {fields.get('source_ip', '')}",
+            f"Delivery-Result: {fields.get('delivery_result', 'spam')}",
+            "",
+            "--boundary",
+            "Content-Type: text/rfc822-headers",
+            "",
+            fields.get("original_headers", ""),
+            "",
+            "--boundary--",
+        ]
+        return "\n".join(lines)

@@ -177,5 +177,9 @@ def check_outgoing_spam(message_pk, client_ip):
     if is_spam:
         message.status = OutgoingMessage.Status.HELD
     message.save(update_fields=["spam_score", "spam_action", "status"])
-    if not is_spam:
+    if is_spam:
+        from services.email.reputation.models import FblReport
+
+        FblReport.create_for_spam(message)
+    else:
         deliver_message.enqueue(message_id=str(message.pk))

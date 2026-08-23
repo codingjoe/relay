@@ -62,7 +62,7 @@ def build_reputation_chart(org):
     )
     soft_bounce_counts = {row["day"]: row["count"] for row in soft_bounce_rows}
 
-    # Daily FBL complaint counts
+    # Daily FBL complaint and spam-held counts
     complaint_rows = (
         FblReport.objects.filter(org=org, created_at__date__gte=start)
         .annotate(day=TruncDate("created_at"))
@@ -70,6 +70,21 @@ def build_reputation_chart(org):
         .annotate(count=Count("id"))
     )
     complaint_counts = {row["day"]: row["count"] for row in complaint_rows}
+
+    held_spam_rows = (
+        OutgoingMessage.objects.filter(
+            org=org,
+            created_at__date__gte=start,
+            status=OutgoingMessage.Status.HELD,
+        )
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+    )
+    for row in held_spam_rows:
+        complaint_counts[row["day"]] = (
+            complaint_counts.get(row["day"], 0) + row["count"]
+        )
 
     days_list = [start + timedelta(days=offset) for offset in range(CHART_DAYS)]
     series = [

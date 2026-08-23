@@ -292,5 +292,10 @@ def check_incoming_spam(message_pk, client_ip):
     if is_spam:
         message.status = IncomingMessage.Status.QUARANTINED
     message.save(update_fields=["spam_score", "spam_action", "status"])
-    if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
+    if is_spam:
+        from services.email.reputation.models import FblReport
+
+        FblReport.create_for_spam(message)
+        FblReport.send_fbl_report(message)
+    elif message.status != IncomingMessage.Status.QUARANTINED:
         dispatch_webhook.enqueue(message_id=str(message.pk))

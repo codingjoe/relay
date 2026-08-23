@@ -38,6 +38,14 @@ def compute_domain_reputation(domain):
         created_at__gte=window_start,
     ).count()
 
+    held_spam = OutgoingMessage.objects.filter(
+        domain=domain,
+        created_at__gte=window_start,
+        status=OutgoingMessage.Status.HELD,
+    ).count()
+
+    complaints += held_spam
+
     bounce_rate = (hard_bounces + soft_bounces) / total_sent if total_sent else 0.0
     hard_bounce_rate = hard_bounces / total_sent if total_sent else 0.0
     soft_bounce_rate = soft_bounces / total_sent if total_sent else 0.0
