@@ -3,7 +3,6 @@ import hashlib
 import uuid
 from enum import nonmember
 
-from django.conf import settings
 from django.core.validators import validate_email
 from django.db import models
 from django.db.models import Lookup
@@ -41,11 +40,6 @@ class OutgoingMessage(Message):
                 case _:
                     return "outline"
 
-    sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="outgoing_messages",
-    )
     credential = models.ForeignKey(
         "MsaCredential",
         on_delete=models.SET_NULL,

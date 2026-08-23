@@ -76,7 +76,6 @@ class TestEmailView(OrganizationScopedView, generic.View):
         raw_bytes = msg.as_bytes()
 
         message = OutgoingMessage.objects.create(
-            sender=request.user,
             org=self.org,
             rcpt_to=request.user.email,
             mail_from=mail_from,
@@ -110,9 +109,16 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
+        implicit_tls_ports = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS
+        starttls_ports = tuple(
+            p
+            for p in settings.RELAY_SMTP_SUBMISSION_PORTS
+            if p not in implicit_tls_ports
+        )
         context = super().get_context_data(**kwargs) | {
             "smtp_hostname": f"smtp.{platform}",
-            "smtp_ports": settings.RELAY_SMTP_SUBMISSION_PORTS,
+            "smtp_starttls_ports": starttls_ports,
+            "smtp_implicit_tls_ports": implicit_tls_ports,
         }
         if raw_key := self.request.session.pop("raw_key", None):
             context["raw_key"] = raw_key

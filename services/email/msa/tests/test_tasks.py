@@ -38,7 +38,6 @@ class TestDeliverMessage:
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="bob@nowhere.invalid",
             mail_from="alice@example.com",
@@ -64,7 +63,6 @@ class TestDeliverMessage:
 
         domain = Domain.objects.create(name="example.com", org=org)
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
@@ -108,7 +106,6 @@ class TestDeliverMessage:
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="reject@example.com",
             mail_from="alice@example.com",
@@ -135,7 +132,6 @@ class TestDeliverMessage:
         from services.email.msa.tasks import deliver_message
 
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
@@ -171,7 +167,6 @@ class TestDeliverMessage:
             ]
         )
         msg = OutgoingMessage.objects.create(
-            sender=other_user,
             org=write_org,
             rcpt_to="bob@example.com",
             mail_from=f"alice@{child.name}",

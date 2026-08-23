@@ -8,10 +8,9 @@ from .models import MsaCredential, OutgoingMessage, Transmission
 @admin.register(OutgoingMessage)
 class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
-        "sender",
+        "credential",
         "mail_from",
         "rcpt_to",
-        "credential",
         "status",
         "created_at",
     ]
@@ -21,7 +20,6 @@ class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "rcpt_to",
         "subject",
         "message_id",
-        "sender__username",
     ]
     readonly_fields = ["id", "created_at"]
 
