@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n abstract %}
 {% block title %}{% translate "webhooks"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -111,12 +111,20 @@
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
             </p>
-            <details class="mt-2">
-              <summary class="cursor-pointer text-sm">
-                {% translate "public key"|capfirst %} <code>{{ webhook.signing_key.key_id }}</code>
-              </summary>
-              <pre class="bg-muted p-3 rounded-md overflow-auto text-sm mt-2"><code>{{ webhook.public_key_serialized }}</code></pre>
-            </details>
+            <p class="flex items-center gap-2 flex-wrap mt-2 text-sm text-muted-foreground">
+              {% translate "public key"|capfirst %}
+              <code class="text-foreground">{{ webhook.public_key_serialized }}</code>
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized|escapejs }}')"
+                aria-label="{% translate 'copy public key'|capfirst %}"
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </p>
           </section>
           <aside class="flex items-center gap-2">
             <form method="post" action="{% url 'mta:webhook-test' org.slug webhook.pk %}" style="display: inline">
@@ -163,17 +171,6 @@
         <a href="{{ docs_url }}">documentation</a> for details.
       {% endblocktranslate %}
     </p>
-    <pre class="bg-muted p-3 rounded-md overflow-auto text-sm"><code>{
-  "type": "email.received",
-  "message_id": "0192...",
-  "sender": "sender@example.com",
-  "recipient": "recipient@app.acme.com",
-  "subject": "Hello",
-  "rfc822_message_id": "&lt;abc@example.com&gt;",
-  "received_with_tls": true,
-  "receiving_domain": "app.acme.com",
-  "body_url": "https://bucket.s3.amazonaws.com/messages/uuid.eml?...",
-  "received_at": "2026-07-27T18:58:09Z"
-}</code></pre>
+    {{ webhook_payload|highlight_code:"json" }}
   </section>
 {% endblock %}
