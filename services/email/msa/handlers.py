@@ -23,8 +23,7 @@ class SMTPHandler:
     async def handle_DATA(self, server, session, envelope):
         """Store a submitted outgoing message."""
         credential = getattr(session, "credential", None)
-        sender = getattr(session, "sender", None)
-        if credential is None or sender is None:
+        if credential is None:
             return "530 Authentication required"
 
         mail_from = envelope.mail_from or ""
@@ -39,7 +38,6 @@ class SMTPHandler:
             raw_bytes,
             msg,
             credential,
-            sender,
             getattr(session, "ssl", False),
             client_ip,
         )
@@ -63,8 +61,10 @@ class SMTPHandler:
             if credential is None:
                 return "535 Authentication failed"
             session.credential = credential
-            membership = await get_membership(credential, username)
-            session.sender = membership.user
+            logger.info(
+                f"Authenticated org '{credential.org}' with credential "
+                f"'{credential.name or credential.key_prefix}…'"
+            )
             return "235 Authentication successful"
         except ValueError, DatabaseError:
             logger.exception("AUTH error")
@@ -85,18 +85,12 @@ class ImplicitTLSHandler(SMTPHandler):
 
 
 @sync_to_async
-def get_membership(credential, username):
-    """Return the membership linking the credential's org to the given user."""
-    return credential.org.memberships.get(user__username=username)
-
-
-@sync_to_async
 def authenticate(username: str, key: str):
-    """Authenticate a user by their SMTP credential. Return the credential,
-    or `None` if authentication fails."""
+    """Authenticate an org by its slug and SMTP credential key. Return the
+    credential, or `None` if authentication fails."""
     api_keys = MsaCredential.objects.select_related("org").filter(
         key_prefix=key[:8],
-        org__memberships__user__username=username,
+        org__slug=username,
         type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
         hold=False,
     )
@@ -107,13 +101,12 @@ def authenticate(username: str, key: str):
 
 
 def process_suppressed_message(
-    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain
+    mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
 ):
     """Store a suppressed message without enqueuing delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
     OutgoingMessage.objects.create(
-        sender=sender,
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
@@ -130,9 +123,7 @@ def process_suppressed_message(
 
 
 @sync_to_async
-def process_message(
-    mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, client_ip
-):
+def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_ip):
     """Store a submitted outgoing message and enqueue its delivery."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
@@ -159,7 +150,7 @@ def process_message(
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
         return process_suppressed_message(
-            mail_from, rcpt_to, raw_bytes, msg, credential, sender, ssl, domain
+            mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
         )
 
     if (
@@ -169,7 +160,6 @@ def process_message(
         return "550 Recipient not allowed without active billing"
 
     message = OutgoingMessage.objects.create(
-        sender=sender,
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,

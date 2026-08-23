@@ -12,7 +12,6 @@ from services.email.msa.models import MsaCredential, OutgoingMessage
 def make_message(org, user, **kwargs):
     domain = kwargs.pop("domain", None) or Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage(
-        sender=user,
         org=org,
         domain=domain,
         rcpt_to=kwargs.get("rcpt_to", "bob@example.com"),
@@ -73,8 +72,7 @@ class TestTestEmailView:
                 {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
             )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Test")
-        assert msg.sender == user
+        msg = OutgoingMessage.objects.get(org=org, subject="Test")
         assert msg.subject == "Test"
         assert msg.domain == domain
         delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
@@ -86,7 +84,7 @@ class TestTestEmailView:
             {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Hi")
+        msg = OutgoingMessage.objects.get(org=org, subject="Hi")
         assert msg.domain == domain
 
     def test_post__does_not_use_domain_from_other_org(
@@ -107,7 +105,6 @@ class TestTestEmailView:
         assert response.status_code == 404
         assert not OutgoingMessage.objects.filter(
             org=org,
-            sender=user,
             subject="Cross-org",
         ).exists()
 
@@ -137,7 +134,8 @@ class TestCredentialListView:
     def test_get__context_has_smtp_info(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
-        assert "smtp_ports" in response.context
+        assert "smtp_starttls_ports" in response.context
+        assert "smtp_implicit_tls_ports" in response.context
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
