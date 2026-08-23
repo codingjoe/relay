@@ -111,12 +111,20 @@
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
             </p>
-            <details class="mt-2">
-              <summary class="cursor-pointer text-sm">
-                {% translate "public key"|capfirst %} <code>{{ webhook.signing_key.key_id }}</code>
-              </summary>
-              <pre class="bg-muted p-3 rounded-md overflow-auto text-sm mt-2"><code>{{ webhook.public_key_serialized }}</code></pre>
-            </details>
+            <p class="flex items-center gap-2 flex-wrap mt-2 text-sm text-muted-foreground">
+              {% translate "public key"|capfirst %}
+              <code class="text-foreground">{{ webhook.public_key_serialized }}</code>
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized }}')"
+                aria-label='{% translate "copy public key"|capfirst %}'
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </p>
           </section>
           <aside class="flex items-center gap-2">
             <form method="post" action="{% url 'mta:webhook-test' org.slug webhook.pk %}" style="display: inline">
