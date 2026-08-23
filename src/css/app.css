@@ -92,113 +92,118 @@ svg.lucide {
 }
 
 /* Pygments/CodeHilite syntax highlighting.
-   Colors adapt to the light/dark Basecoat theme via light-dark(). */
+   Colors adapt to the light/dark Basecoat theme via light-dark().
+   The wrapper is styled to match Tailwind typography's prose pre when it is
+   not already inside .prose; inside .prose the wrapper stays transparent so
+   the native prose pre styling is not duplicated. */
 .codehilite {
-  background-color: var(--color-muted);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
+  background-color: light-dark(oklch(27.8% 0.033 256.848), rgb(0 0 0 / 50%));
+  color: light-dark(oklch(92.8% 0.006 264.531), oklch(87.2% 0.01 258.338));
+  border-radius: 0.375rem;
   overflow-x: auto;
+  padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  line-height: 1.5;
-
-  & pre,
-  & pre code {
-    margin: 0;
-    padding: 0;
-    background-color: transparent;
-    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
-  }
-
-  & .hll {
-    background-color: light-dark(hsl(55, 100%, 85%), hsl(55, 30%, 25%));
-  }
-
-  & .err {
-    color: light-dark(hsl(0, 70%, 50%), hsl(0, 80%, 70%));
-    text-decoration: underline wavy;
-  }
-
-  & .k,
-  & .kc,
-  & .kd,
-  & .kp,
-  & .kr {
-    color: var(--color-primary-text);
-    font-weight: 600;
-  }
-
-  & .s,
-  & .s2,
-  & .sb,
-  & .sc,
-  & .sd,
-  & .se,
-  & .sh,
-  & .si,
-  & .sx {
-    color: light-dark(hsl(160, 80%, 30%), hsl(150, 60%, 55%));
-  }
-
-  & .m,
-  & .mf,
-  & .mh,
-  & .mi,
-  & .mo,
-  & .il {
-    color: light-dark(hsl(28, 90%, 45%), hsl(28, 80%, 60%));
-  }
-
-  & .c,
-  & .cm,
-  & .c1,
-  & .cs,
-  & .ch {
-    color: var(--color-muted-foreground);
-    font-style: italic;
-  }
-
-  & .nb,
-  & .bp {
-    color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
-  }
-
-  & .nf,
-  & .fm {
-    color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
-  }
-
-  & .nc,
-  & .ne,
-  & .nt,
-  & .nv,
-  & .vc,
-  & .vg,
-  & .vi,
-  & .vm {
-    color: light-dark(hsl(340, 60%, 50%), hsl(340, 70%, 70%));
-  }
-
-  & .na,
-  & .nd,
-  & .ni,
-  & .no {
-    color: light-dark(hsl(199, 89%, 42%), hsl(199, 89%, 62%));
-  }
-
-  & .o,
-  & .p {
-    color: var(--color-foreground);
-  }
-
-  & .w {
-    color: var(--color-muted-foreground);
-  }
+  line-height: 1.7142857;
+  font-weight: 400;
 }
 
-/* Tailwind typography adds its own padding and background to pre blocks.
-   CodeHilite already styles the outer wrapper, so reset the inner pre. */
-article.prose .codehilite pre,
-article.prose .codehilite pre code {
-  padding: 0;
+.prose .codehilite {
   background-color: transparent;
+  color: inherit;
+  border-radius: 0;
+  overflow-x: visible;
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
+.codehilite pre {
+  margin: 0;
+  overflow-x: visible;
+}
+
+.codehilite .hll {
+  background-color: light-dark(hsl(55, 100%, 85%), hsl(55, 30%, 25%));
+}
+
+.codehilite .err {
+  color: light-dark(hsl(0, 70%, 50%), hsl(0, 80%, 70%));
+  text-decoration: underline wavy;
+}
+
+.codehilite .k,
+.codehilite .kc,
+.codehilite .kd,
+.codehilite .kp,
+.codehilite .kr {
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+.codehilite .s,
+.codehilite .s2,
+.codehilite .sb,
+.codehilite .sc,
+.codehilite .sd,
+.codehilite .se,
+.codehilite .sh,
+.codehilite .si,
+.codehilite .sx {
+  color: light-dark(hsl(160, 80%, 30%), hsl(150, 60%, 55%));
+}
+
+.codehilite .m,
+.codehilite .mf,
+.codehilite .mh,
+.codehilite .mi,
+.codehilite .mo,
+.codehilite .il {
+  color: light-dark(hsl(28, 90%, 45%), hsl(28, 80%, 60%));
+}
+
+.codehilite .c,
+.codehilite .cm,
+.codehilite .c1,
+.codehilite .cs,
+.codehilite .ch {
+  color: var(--color-muted-foreground);
+  font-style: italic;
+}
+
+.codehilite .nb,
+.codehilite .bp {
+  color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
+}
+
+.codehilite .nf,
+.codehilite .fm {
+  color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
+}
+
+.codehilite .nc,
+.codehilite .ne,
+.codehilite .nt,
+.codehilite .nv,
+.codehilite .vc,
+.codehilite .vg,
+.codehilite .vi,
+.codehilite .vm {
+  color: light-dark(hsl(340, 60%, 50%), hsl(340, 70%, 70%));
+}
+
+.codehilite .na,
+.codehilite .nd,
+.codehilite .ni,
+.codehilite .no {
+  color: light-dark(hsl(199, 89%, 42%), hsl(199, 89%, 62%));
+}
+
+.codehilite .o,
+.codehilite .p {
+  color: var(--color-foreground);
+}
+
+.codehilite .w {
+  color: var(--color-muted-foreground);
 }
