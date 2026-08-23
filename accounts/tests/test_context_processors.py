@@ -41,8 +41,13 @@ class TestOrganizationsContextProcessor:
         assert organizations(request) == {}
 
     @pytest.mark.django_db
-    def test_organizations__no_session_cookie_returns_empty(self, user):
+    def test_organizations__no_session_cookie_returns_orgs(self, user, org):
         factory = RequestFactory()
         request = factory.get("/")
         request.user = user
-        assert organizations(request) == {}
+        request.current_org = org
+        context = organizations(request)
+        assert "user_orgs" in context
+        assert "current_org" in context
+        assert context["current_org"] == org
+        assert org in context["user_orgs"]
