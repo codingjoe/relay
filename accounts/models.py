@@ -1,5 +1,4 @@
 import secrets
-import string
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
@@ -10,13 +9,6 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
-
-
-def generate_api_key():
-    """Generate a 32-character random secret for use as an API key."""
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(32))
-
 
 organization_slug_validator = RegexValidator(
     regex=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
@@ -116,7 +108,7 @@ class CredentialQuerySet(models.QuerySet):
         Return a `(credential, raw_key)` tuple. The caller sees the raw key
         only once.
         """
-        raw_key = generate_api_key()
+        raw_key = secrets.token_urlsafe(15)
         credential = self.model(org=org, name=name, **kwargs)
         credential.set_key(raw_key)
         credential.save(force_insert=True)
