@@ -86,3 +86,19 @@ def test_naturaltime():
         abstract.naturaltime(future(max_offset=1).replace(hour=8, minute=0))
         == "tomorrow 8 a.m."
     )
+
+
+def test_highlight_code__empty():
+    assert abstract.highlight_code("") == ""
+
+
+def test_highlight_code__known_language():
+    highlighted = abstract.highlight_code('{"key": "value"}', "json")
+    assert '<div class="codehilite">' in highlighted
+    assert "<pre>" in highlighted
+
+
+def test_highlight_code__unknown_language():
+    highlighted = abstract.highlight_code("plain text", "not-a-language")
+    assert '<div class="codehilite">' in highlighted
+    assert "<pre>" in highlighted

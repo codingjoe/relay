@@ -136,6 +136,13 @@ class TestWebhookListView:
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert response.status_code == 200
 
+    def test_get__context_has_webhook_payload(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
+        assert response.status_code == 200
+        assert "webhook_payload" in response.context
+        assert '"type": "email.received"' in response.context["webhook_payload"]
+        assert b"codehilite" in response.content
+
     def test_get__filters_by_org(self, admin_client, org, write_org, webhook_server):
         make_webhook(org, url=f"{webhook_server}/a")
         make_webhook(write_org, url=f"{webhook_server}/b")

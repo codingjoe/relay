@@ -1,15 +1,20 @@
-"""Template context processors."""
+"""Add organization context for the navbar switcher."""
 
 
 def organizations(request):
-    """Expose the user's organizations and the current org to every template.
+    """Expose the current org and the user's organizations to templates.
 
     `OrganizationScopedView` sets `current_org` on the request. On non-org
-    pages, `current_org` is absent.
+    pages, nothing is added to the context because the org switcher only
+    appears when an org is active.
     """
-    if not getattr(request, "user", None) or not request.user.is_authenticated:
+    user = getattr(request, "user", None)
+    if not getattr(user, "is_authenticated", False):
+        return {}
+    current_org = getattr(request, "current_org", None)
+    if current_org is None:
         return {}
     return {
-        "user_orgs": request.user.organizations.all(),
-        "current_org": getattr(request, "current_org", None),
+        "user_orgs": user.organizations.all(),
+        "current_org": current_org,
     }

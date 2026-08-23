@@ -68,7 +68,8 @@ def md_2_html(document: str, baselevel: int = 1) -> SafeText:
         baselevel: Base level for the table of contents (default: 1).
 
     Returns:
-        HTML based on the given Markdown value.
+        HTML based on the given Markdown value, including syntax-highlighted
+        fenced code blocks.
 
     """
     html = markdown.markdown(

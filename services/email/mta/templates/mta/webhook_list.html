@@ -119,8 +119,8 @@
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-sm"
-                onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized }}')"
-                aria-label='{% translate "copy public key"|capfirst %}'
+                onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized|escapejs }}')"
+                aria-label="{% translate 'copy public key'|capfirst %}"
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>

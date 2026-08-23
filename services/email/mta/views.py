@@ -15,6 +15,7 @@ from .forms import WebhookForm
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
 
+# Sample payload rendered as highlighted JSON on the webhook list page.
 WEBHOOK_PAYLOAD = {
     "type": "email.received",
     "message_id": "0192...",
