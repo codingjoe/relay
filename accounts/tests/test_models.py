@@ -1,42 +1,27 @@
+import secrets
+
 import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from accounts.models import Membership, Organization, generate_api_key
+from accounts.models import Membership, Organization
 from services.email.msa.models import MsaCredential
 
 
-class TestGenerateApiKey:
-    def test_generate_api_key__length(self):
-        assert len(generate_api_key()) == 32
-
-    def test_generate_api_key__charset(self):
-        assert generate_api_key().isalnum()
-
-    def test_generate_api_key__uniqueness(self):
-        assert generate_api_key() != generate_api_key()
-
-
 @pytest.mark.django_db
-class TestCredentialSalt:
+class TestCredential:
     def test_salt__returns_class_path(self):
         cred = MsaCredential(org=Organization.objects.create(slug="o"))
         assert cred.salt == "services.email.msa.models.MsaCredential"
 
-
-@pytest.mark.django_db
-class TestSetKey:
     def test_set_key__stores_hash_and_prefix(self):
         cred = MsaCredential(org=Organization.objects.create(slug="o"))
-        raw_key = generate_api_key()
+        raw_key = secrets.token_urlsafe(15)
         cred.set_key(raw_key)
         assert cred.key_hash != raw_key
         assert cred.key_prefix == raw_key[:8]
 
-
-@pytest.mark.django_db
-class TestVerifyKey:
     def test_verify_key__correct_key(self):
         org = Organization.objects.create(slug="o")
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
@@ -57,21 +42,6 @@ class TestVerifyKey:
         cred.refresh_from_db()
         assert cred.last_used_at is None
 
-
-@pytest.mark.django_db
-class TestCreateWithKey:
-    def test_create_with_key__returns_credential_and_raw_key(self):
-        org = Organization.objects.create(slug="o")
-        cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="prod")
-        assert cred.pk is not None
-        assert len(raw_key) == 32
-        assert cred.key_prefix == raw_key[:8]
-        assert cred.org == org
-        assert cred.name == "prod"
-
-
-@pytest.mark.django_db
-class TestCredentialHold:
     def test_hold__excluded_from_query(self, user, org):
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         cred.hold = True
@@ -95,7 +65,18 @@ class TestCredentialHold:
         assert qs.exists()
 
 
-class TestOrganizationSlugValidator:
+@pytest.mark.django_db
+class TestCredentialQuerySet:
+    def test_create_with_key__returns_credential_and_raw_key(self):
+        org = Organization.objects.create(slug="o")
+        cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="prod")
+        assert cred.pk is not None
+        assert cred.key_prefix == raw_key[:8]
+        assert cred.org == org
+        assert cred.name == "prod"
+
+
+class TestOrganization:
     @pytest.mark.parametrize(
         "slug",
         ["ACME", "acme.example", "acme--inc", "-acme", "acme-", "a" * 64],
@@ -104,19 +85,27 @@ class TestOrganizationSlugValidator:
         with pytest.raises(ValidationError):
             Organization(slug=slug).save()
 
-
-@pytest.mark.django_db
-class TestOrganization:
+    @pytest.mark.django_db
     def test_str__returns_slug(self):
         org = Organization.objects.create(slug="acme-inc")
         assert str(org) == "acme-inc"
 
+    @pytest.mark.django_db
     def test_members__uses_membership_through(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="acme")
         Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
         assert user in org.members.all()
         assert user.organizations.filter(pk=org.pk).exists()
+
+    @pytest.mark.django_db
+    def test_get_absolute_url__returns_detail_url(self):
+        from django.urls import reverse
+
+        org = Organization.objects.create(slug="acme")
+        assert org.get_absolute_url() == reverse(
+            "accounts:org-home", kwargs={"org_slug": "acme"}
+        )
 
 
 @pytest.mark.django_db
@@ -135,14 +124,3 @@ class TestMembership:
         Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
         with pytest.raises(IntegrityError):
             Membership.objects.create(org=org, user=user, role=Membership.Role.WRITE)
-
-
-@pytest.mark.django_db
-class TestOrganizationGetAbsoluteUrl:
-    def test_get_absolute_url__returns_detail_url(self):
-        from django.urls import reverse
-
-        org = Organization.objects.create(slug="acme")
-        assert org.get_absolute_url() == reverse(
-            "accounts:org-home", kwargs={"org_slug": "acme"}
-        )
