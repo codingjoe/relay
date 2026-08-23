@@ -95,3 +95,7 @@
     How-to docs are brand-agnostic. Do not mention "relay" (the brand).
     Write about the email topic generically instead.
   filePattern: 'know_how/docs/.*\.md$'
+- name: Use CSS nesting instead of repeated parent selectors
+  pattern: '^\.codehilite \.[a-z]'
+  hint: 'Nest token selectors inside `.codehilite { ... }` using `& .token` instead of repeating `.codehilite .token`.'
+  filePattern: '.*\.css$'

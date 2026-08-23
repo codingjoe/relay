@@ -105,6 +105,96 @@ svg.lucide {
   font-size: 0.875rem;
   line-height: 1.7142857;
   font-weight: 400;
+
+  & pre {
+    margin: 0;
+    overflow-x: visible;
+  }
+
+  & .hll {
+    background-color: light-dark(hsl(55, 100%, 85%), hsl(55, 30%, 25%));
+  }
+
+  & .err {
+    color: light-dark(hsl(0, 70%, 50%), hsl(0, 80%, 70%));
+    text-decoration: underline wavy;
+  }
+
+  & .k,
+  & .kc,
+  & .kd,
+  & .kp,
+  & .kr {
+    color: var(--color-primary-text);
+    font-weight: 600;
+  }
+
+  & .s,
+  & .s2,
+  & .sb,
+  & .sc,
+  & .sd,
+  & .se,
+  & .sh,
+  & .si,
+  & .sx {
+    color: light-dark(hsl(160, 80%, 30%), hsl(150, 60%, 55%));
+  }
+
+  & .m,
+  & .mf,
+  & .mh,
+  & .mi,
+  & .mo,
+  & .il {
+    color: light-dark(hsl(28, 90%, 45%), hsl(28, 80%, 60%));
+  }
+
+  & .c,
+  & .cm,
+  & .c1,
+  & .cs,
+  & .ch {
+    color: var(--color-muted-foreground);
+    font-style: italic;
+  }
+
+  & .nb,
+  & .bp {
+    color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
+  }
+
+  & .nf,
+  & .fm {
+    color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
+  }
+
+  & .nc,
+  & .ne,
+  & .nt,
+  & .nv,
+  & .vc,
+  & .vg,
+  & .vi,
+  & .vm {
+    color: light-dark(hsl(340, 60%, 50%), hsl(340, 70%, 70%));
+  }
+
+  & .na,
+  & .nd,
+  & .ni,
+  & .no {
+    color: light-dark(hsl(199, 89%, 42%), hsl(199, 89%, 62%));
+  }
+
+  & .o,
+  & .p {
+    color: var(--color-foreground);
+  }
+
+  & .w {
+    color: var(--color-muted-foreground);
+  }
 }
 
 .prose .codehilite {
@@ -116,94 +206,4 @@ svg.lucide {
   font-size: inherit;
   line-height: inherit;
   font-weight: inherit;
-}
-
-.codehilite pre {
-  margin: 0;
-  overflow-x: visible;
-}
-
-.codehilite .hll {
-  background-color: light-dark(hsl(55, 100%, 85%), hsl(55, 30%, 25%));
-}
-
-.codehilite .err {
-  color: light-dark(hsl(0, 70%, 50%), hsl(0, 80%, 70%));
-  text-decoration: underline wavy;
-}
-
-.codehilite .k,
-.codehilite .kc,
-.codehilite .kd,
-.codehilite .kp,
-.codehilite .kr {
-  color: var(--color-primary-text);
-  font-weight: 600;
-}
-
-.codehilite .s,
-.codehilite .s2,
-.codehilite .sb,
-.codehilite .sc,
-.codehilite .sd,
-.codehilite .se,
-.codehilite .sh,
-.codehilite .si,
-.codehilite .sx {
-  color: light-dark(hsl(160, 80%, 30%), hsl(150, 60%, 55%));
-}
-
-.codehilite .m,
-.codehilite .mf,
-.codehilite .mh,
-.codehilite .mi,
-.codehilite .mo,
-.codehilite .il {
-  color: light-dark(hsl(28, 90%, 45%), hsl(28, 80%, 60%));
-}
-
-.codehilite .c,
-.codehilite .cm,
-.codehilite .c1,
-.codehilite .cs,
-.codehilite .ch {
-  color: var(--color-muted-foreground);
-  font-style: italic;
-}
-
-.codehilite .nb,
-.codehilite .bp {
-  color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
-}
-
-.codehilite .nf,
-.codehilite .fm {
-  color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
-}
-
-.codehilite .nc,
-.codehilite .ne,
-.codehilite .nt,
-.codehilite .nv,
-.codehilite .vc,
-.codehilite .vg,
-.codehilite .vi,
-.codehilite .vm {
-  color: light-dark(hsl(340, 60%, 50%), hsl(340, 70%, 70%));
-}
-
-.codehilite .na,
-.codehilite .nd,
-.codehilite .ni,
-.codehilite .no {
-  color: light-dark(hsl(199, 89%, 42%), hsl(199, 89%, 62%));
-}
-
-.codehilite .o,
-.codehilite .p {
-  color: var(--color-foreground);
-}
-
-.codehilite .w {
-  color: var(--color-muted-foreground);
 }
