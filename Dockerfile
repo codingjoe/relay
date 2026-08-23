@@ -6,7 +6,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 COPY ./ /app
 RUN mkdir -p root/static/css && pnpm run build
 
-FROM ghcr.io/astral-sh/uv:0.12.3-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.12.5-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
 LABEL url="https://github.com/codingjoe/the-box"
