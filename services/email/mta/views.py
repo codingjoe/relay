@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect
@@ -12,6 +14,20 @@ from kms.models import SigningKey
 from .forms import WebhookForm
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
+
+# Sample payload rendered as highlighted JSON on the webhook list page.
+WEBHOOK_PAYLOAD = {
+    "type": "email.received",
+    "message_id": "0192...",
+    "sender": "sender@example.com",
+    "recipient": "recipient@app.acme.com",
+    "subject": "Hello",
+    "rfc822_message_id": "<abc@example.com>",
+    "received_with_tls": True,
+    "receiving_domain": "app.acme.com",
+    "body_url": "https://bucket.s3.amazonaws.com/messages/uuid.eml?...",
+    "received_at": "2026-07-27T18:58:09Z",
+}
 
 
 class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
@@ -54,6 +70,7 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "domain_choices": Domain.objects.filter(org=self.org),
+            "webhook_payload": json.dumps(WEBHOOK_PAYLOAD, indent=2),
         }
 
 
