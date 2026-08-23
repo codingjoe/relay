@@ -4,6 +4,11 @@ from django.contrib.humanize.templatetags import humanize
 from django.template import loader
 from django.template.defaulttags import register
 from django.utils import formats, timezone
+from django.utils.safestring import mark_safe
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import get_lexer_by_name
+from pygments.util import ClassNotFound
 
 from .. import utils
 
@@ -94,6 +99,25 @@ def pagination(context, page_obj=None):
     so most templates can call `{% pagination %}` without an argument.
     """
     return {"page_obj": page_obj or context.get("page_obj")}
+
+
+code_formatter = HtmlFormatter(cssclass="codehilite")
+
+
+@register.filter
+def highlight_code(value: str, language: str = "text") -> str:
+    """Highlight a static code snippet with Pygments.
+
+    Falls back to an escaped, uncolored `<pre>` block if the requested
+    language is unknown or the value is empty.
+    """
+    if not value:
+        return ""
+    try:
+        lexer = get_lexer_by_name(language)
+    except ClassNotFound:
+        lexer = get_lexer_by_name("text")
+    return mark_safe(highlight(value, lexer, code_formatter))
 
 
 @register.simple_tag

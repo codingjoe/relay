@@ -90,3 +90,104 @@ svg.lucide {
     color: var(--color-muted-foreground);
   }
 }
+
+/* Pygments/CodeHilite syntax highlighting.
+   Colors adapt to the light/dark Basecoat theme via light-dark(). */
+.codehilite {
+  background-color: var(--color-muted);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+
+  & pre {
+    margin: 0;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  }
+
+  & .hll {
+    background-color: light-dark(hsl(55, 100%, 85%), hsl(55, 30%, 25%));
+  }
+
+  & .err {
+    color: light-dark(hsl(0, 70%, 50%), hsl(0, 80%, 70%));
+    text-decoration: underline wavy;
+  }
+
+  & .k,
+  & .kc,
+  & .kd,
+  & .kp,
+  & .kr {
+    color: var(--color-primary-text);
+    font-weight: 600;
+  }
+
+  & .s,
+  & .s2,
+  & .sb,
+  & .sc,
+  & .sd,
+  & .se,
+  & .sh,
+  & .si,
+  & .sx {
+    color: light-dark(hsl(160, 80%, 30%), hsl(150, 60%, 55%));
+  }
+
+  & .m,
+  & .mf,
+  & .mh,
+  & .mi,
+  & .mo,
+  & .il {
+    color: light-dark(hsl(28, 90%, 45%), hsl(28, 80%, 60%));
+  }
+
+  & .c,
+  & .cm,
+  & .c1,
+  & .cs,
+  & .ch {
+    color: var(--color-muted-foreground);
+    font-style: italic;
+  }
+
+  & .nb,
+  & .bp {
+    color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
+  }
+
+  & .nf,
+  & .fm {
+    color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
+  }
+
+  & .nc,
+  & .ne,
+  & .nt,
+  & .nv,
+  & .vc,
+  & .vg,
+  & .vi,
+  & .vm {
+    color: light-dark(hsl(340, 60%, 50%), hsl(340, 70%, 70%));
+  }
+
+  & .na,
+  & .nd,
+  & .ni,
+  & .no {
+    color: light-dark(hsl(199, 89%, 42%), hsl(199, 89%, 62%));
+  }
+
+  & .o,
+  & .p {
+    color: var(--color-foreground);
+  }
+
+  & .w {
+    color: var(--color-muted-foreground);
+  }
+}

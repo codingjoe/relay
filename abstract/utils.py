@@ -5,6 +5,7 @@ import random
 import markdown
 from django.utils import timezone
 from django.utils.safestring import SafeText, mark_safe
+from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.md_in_html import MarkdownInHtmlExtension
 from markdown.extensions.toc import TocExtension
 
@@ -82,6 +83,7 @@ def md_2_html(document: str, baselevel: int = 1) -> SafeText:
             "tables",
             "footnotes",
             "fenced_code",
+            CodeHiliteExtension(css_class="codehilite", guess_lang=False),
         ],
         extension_configs={
             "smarty": {"smart_angled_quotes": True},
