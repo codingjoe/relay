@@ -101,8 +101,11 @@ svg.lucide {
   font-size: 0.875rem;
   line-height: 1.5;
 
-  & pre {
+  & pre,
+  & pre code {
     margin: 0;
+    padding: 0;
+    background-color: transparent;
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   }
 
@@ -190,4 +193,12 @@ svg.lucide {
   & .w {
     color: var(--color-muted-foreground);
   }
+}
+
+/* Tailwind typography adds its own padding and background to pre blocks.
+   CodeHilite already styles the outer wrapper, so reset the inner pre. */
+article.prose .codehilite pre,
+article.prose .codehilite pre code {
+  padding: 0;
+  background-color: transparent;
 }
