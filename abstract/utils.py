@@ -84,7 +84,7 @@ def md_2_html(document: str, baselevel: int = 1) -> SafeText:
             "tables",
             "footnotes",
             "fenced_code",
-            CodeHiliteExtension(css_class="codehilite", guess_lang=False),
+            CodeHiliteExtension(css_class="codehilite"),
         ],
         extension_configs={
             "smarty": {"smart_angled_quotes": True},
