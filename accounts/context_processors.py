@@ -9,12 +9,10 @@ def organizations(request):
     appears when an org is active.
     """
     user = getattr(request, "user", None)
-    if not getattr(user, "is_authenticated", False):
-        return {}
     current_org = getattr(request, "current_org", None)
-    if current_org is None:
-        return {}
-    return {
-        "user_orgs": user.organizations.all(),
-        "current_org": current_org,
-    }
+    if getattr(user, "is_authenticated", False) and current_org is not None:
+        return {
+            "user_orgs": user.organizations.all(),
+            "current_org": current_org,
+        }
+    return {}
