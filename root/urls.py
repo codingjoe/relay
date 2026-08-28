@@ -45,6 +45,7 @@ urlpatterns = [
         ),
     ),
     path("", views.HomeView.as_view(), name="home"),
+    path("open-source/", views.OpenSourceView.as_view(), name="open-source"),
     # Platform (not org-scoped)
     path("", include("accounts.urls")),
     path("legal/", include("legal.urls")),
