@@ -214,6 +214,23 @@ def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
     msg.save()
     return msg
 
+    @pytest.mark.django_db(transaction=True)
+    def test_notify__logs_and_continues_when_sending_fails(self, org):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        msg = IncomingMessage.objects.create(
+            org=org,
+            domain=domain,
+            receiving_domain="example.com",
+            mail_from="external@example.org",
+            rcpt_to="postmaster@example.com",
+            subject="Alert",
+            message_id="<abc@example.org>",
+        )
+        with patch.object(User, "email_user", side_effect=OSError("smtp down")):
+            notify_postmaster_recipients.func(message_pk=str(msg.id))
+
+        assert len(mail.outbox) == 0
+
 
 @pytest.mark.django_db(transaction=True)
 class TestCheckIncomingSpam:
@@ -534,22 +551,3 @@ class TestParseTlsReport:
         assert failure.receiving_mx_ip_address == "192.0.2.1"
         assert failure.count == 2
         assert failure.additional_info == "https://acme.com/why"
-
-
-class TestNotifyPostmasterRecipientsFailures:
-    @pytest.mark.django_db(transaction=True)
-    def test_notify__logs_and_continues_when_sending_fails(self, org):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        msg = IncomingMessage.objects.create(
-            org=org,
-            domain=domain,
-            receiving_domain="example.com",
-            mail_from="external@example.org",
-            rcpt_to="postmaster@example.com",
-            subject="Alert",
-            message_id="<abc@example.org>",
-        )
-        with patch.object(User, "email_user", side_effect=OSError("smtp down")):
-            notify_postmaster_recipients.func(message_pk=str(msg.id))
-
-        assert len(mail.outbox) == 0

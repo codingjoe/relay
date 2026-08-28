@@ -91,7 +91,7 @@ class TestOutgoingMessageGetAbsoluteUrl:
         assert f"/org/{org.slug}/email/messages/{msg.id}" in url
 
 
-class TestTransmissionStatusBadgeVariant:
+class TestTransmission:
     @pytest.mark.parametrize(
         ("status", "expected"),
         [
@@ -102,5 +102,5 @@ class TestTransmissionStatusBadgeVariant:
             (Transmission.Status.RETRY, "outline"),
         ],
     )
-    def test_badge_variant(self, status, expected):
+    def test_status_badge_variant(self, status, expected):
         assert Transmission(status=status).status_badge_variant == expected

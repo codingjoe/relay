@@ -32,6 +32,67 @@ class TestHandleData:
         result = await handler.handle_DATA(None, session, SimpleNamespace())
         assert result == "530 Authentication required"
 
+    async def test_handle_auth__invalid_base64(self):
+        from services.email.msa.handlers import SMTPHandler
+
+        handler = SMTPHandler()
+        session = SimpleNamespace()
+        result = await handler.handle_AUTH(None, session, None, ["PLAIN", "abc"])
+        assert result == "535 Authentication failed"
+
+    async def test_handle_data__stores_authenticated_submission(
+        self,
+        user,
+        org,
+    ):
+        from services.email.msa.handlers import SMTPHandler
+
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        session = SimpleNamespace(
+            credential=credential, peer=("127.0.0.1", 2525), ssl=True
+        )
+        message = make_email(f"alice@{domain.name}", user.email)
+        envelope = SimpleNamespace(
+            mail_from=f"alice@{domain.name}",
+            rcpt_tos=[user.email],
+            content=message.as_bytes(),
+        )
+
+        with patch("services.email.msa.handlers.check_outgoing_spam") as spam_task:
+            result = await SMTPHandler().handle_DATA(None, session, envelope)
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        assert result == "250 OK"
+        assert outgoing.received_with_tls is True
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(outgoing.id), client_ip="127.0.0.1"
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__accepts_string_content_without_peer(
+        self,
+        user,
+        org,
+    ):
+        from services.email.msa.handlers import SMTPHandler
+
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        session = SimpleNamespace(credential=credential, peer=None)
+        message = make_email(f"alice@{domain.name}", user.email)
+        envelope = SimpleNamespace(
+            mail_from=f"alice@{domain.name}",
+            rcpt_tos=[user.email],
+            content=message.as_string(),
+        )
+
+        with patch("services.email.msa.handlers.check_outgoing_spam"):
+            result = await SMTPHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        assert await OutgoingMessage.objects.filter(org=org).aexists()
+
 
 class TestHandleAuth:
     async def test_handle_auth__unrecognized_type(self):
@@ -381,72 +442,7 @@ class TestAuthenticate:
         assert result.name == "test"
 
 
-@pytest.mark.django_db(transaction=True)
-class TestHandleDataSubmission:
-    async def test_handle_data__stores_authenticated_submission(
-        self,
-        user,
-        org,
-    ):
-        from services.email.msa.handlers import SMTPHandler
-
-        domain = await Domain.objects.aget(org=org, is_managed=True)
-        credential, _ = MsaCredential.objects.create_with_key(org=org)
-        session = SimpleNamespace(
-            credential=credential, peer=("127.0.0.1", 2525), ssl=True
-        )
-        message = make_email(f"alice@{domain.name}", user.email)
-        envelope = SimpleNamespace(
-            mail_from=f"alice@{domain.name}",
-            rcpt_tos=[user.email],
-            content=message.as_bytes(),
-        )
-
-        with patch("services.email.msa.handlers.check_outgoing_spam") as spam_task:
-            result = await SMTPHandler().handle_DATA(None, session, envelope)
-
-        outgoing = await OutgoingMessage.objects.aget(org=org)
-        assert result == "250 OK"
-        assert outgoing.received_with_tls is True
-        spam_task.enqueue.assert_called_once_with(
-            message_pk=str(outgoing.id), client_ip="127.0.0.1"
-        )
-
-    async def test_handle_data__accepts_string_content_without_peer(
-        self,
-        user,
-        org,
-    ):
-        from services.email.msa.handlers import SMTPHandler
-
-        domain = await Domain.objects.aget(org=org, is_managed=True)
-        credential, _ = MsaCredential.objects.create_with_key(org=org)
-        session = SimpleNamespace(credential=credential, peer=None)
-        message = make_email(f"alice@{domain.name}", user.email)
-        envelope = SimpleNamespace(
-            mail_from=f"alice@{domain.name}",
-            rcpt_tos=[user.email],
-            content=message.as_string(),
-        )
-
-        with patch("services.email.msa.handlers.check_outgoing_spam"):
-            result = await SMTPHandler().handle_DATA(None, session, envelope)
-
-        assert result == "250 OK"
-        assert await OutgoingMessage.objects.filter(org=org).aexists()
-
-
-class TestHandleAuthErrors:
-    async def test_handle_auth__invalid_base64(self):
-        from services.email.msa.handlers import SMTPHandler
-
-        handler = SMTPHandler()
-        session = SimpleNamespace()
-        result = await handler.handle_AUTH(None, session, None, ["PLAIN", "abc"])
-        assert result == "535 Authentication failed"
-
-
-class TestImplicitTlsHandler:
+class TestImplicitTLSHandler:
     async def test_handle_data__marks_session_encrypted(self):
         from services.email.msa.handlers import ImplicitTLSHandler
 

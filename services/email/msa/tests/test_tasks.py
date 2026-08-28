@@ -219,98 +219,6 @@ class TestDeliverMessage:
         assert transmission.code == 550
         assert transmission.output == "550 Account suspended due to sender reputation"
 
-
-@pytest.mark.django_db(transaction=True)
-class TestCheckOutgoingSpam:
-    def test_check_outgoing_spam__drops_queued_messages_of_suspended_org(
-        self, user, org
-    ):
-        from services.email.msa.tasks import check_outgoing_spam
-
-        domain = Domain.objects.get(org=org)
-        msg = OutgoingMessage.objects.create(
-            org=org,
-            rcpt_to="bob@example.com",
-            mail_from="alice@example.com",
-            domain=domain,
-        )
-        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
-        msg.save()
-
-        org.suspended_at = timezone.now()
-        org.save(update_fields=["suspended_at", "modified_at"])
-
-        check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
-
-        msg.refresh_from_db()
-        assert msg.status == OutgoingMessage.Status.DROPPED
-        transmission = Transmission.objects.get(message=msg)
-        assert transmission.status == Transmission.Status.FAILED
-        assert transmission.code == 550
-        assert transmission.output == "550 Account suspended due to sender reputation"
-
-    def test_check_outgoing_spam__holds_spam(self, user, org):
-        from services.email.msa.tasks import check_outgoing_spam
-        from services.email.spam import SpamAction, SpamResult
-
-        domain = Domain.objects.get(org=org)
-        msg = OutgoingMessage.objects.create(
-            org=org,
-            rcpt_to="bob@example.com, carol@example.com",
-            mail_from="alice@example.com",
-            domain=domain,
-        )
-        msg.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
-        msg.save()
-
-        with (
-            patch(
-                "services.email.msa.tasks.check_message",
-                return_value=SpamResult(score=10.0, action=SpamAction.REJECT),
-            ) as mock_check,
-            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
-        ):
-            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="1.2.3.4")
-
-        mock_check.assert_awaited_once_with(b"spam body", client_ip="1.2.3.4")
-        mock_deliver.enqueue.assert_not_called()
-        msg.refresh_from_db()
-        assert msg.status == OutgoingMessage.Status.HELD
-        assert msg.spam_score == 10.0
-        assert msg.spam_action == SpamAction.REJECT
-
-    def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
-        from services.email.msa.tasks import check_outgoing_spam
-        from services.email.spam import SpamResult
-
-        domain = Domain.objects.get(org=org)
-        msg = OutgoingMessage.objects.create(
-            org=org,
-            rcpt_to="bob@example.com",
-            mail_from="alice@example.com",
-            domain=domain,
-        )
-        msg.raw_body.save("test.eml", ContentFile(b"clean body"), save=False)
-        msg.save()
-
-        with (
-            patch(
-                "services.email.msa.tasks.check_message",
-                return_value=SpamResult(score=0.0),
-            ),
-            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
-        ):
-            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
-
-        mock_deliver.enqueue.assert_called_once_with(message_id=str(msg.pk))
-        msg.refresh_from_db()
-        assert msg.status == OutgoingMessage.Status.PENDING
-        assert msg.spam_score == 0.0
-        assert not Transmission.objects.filter(message=msg).exists()
-
-
-@pytest.mark.django_db(transaction=True)
-class TestDeliverMessageFailureModes:
     @staticmethod
     def make_message(user, org, domain, rcpt_to="bob@example.com"):
         msg = OutgoingMessage.objects.create(
@@ -431,3 +339,92 @@ class TestDeliverMessageFailureModes:
             status=Transmission.Status.FAILED,
             details__contains="All MX hosts failed for example.com",
         ).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+class TestCheckOutgoingSpam:
+    def test_check_outgoing_spam__drops_queued_messages_of_suspended_org(
+        self, user, org
+    ):
+        from services.email.msa.tasks import check_outgoing_spam
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at", "modified_at"])
+
+        check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.DROPPED
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.code == 550
+        assert transmission.output == "550 Account suspended due to sender reputation"
+
+    def test_check_outgoing_spam__holds_spam(self, user, org):
+        from services.email.msa.tasks import check_outgoing_spam
+        from services.email.spam import SpamAction, SpamResult
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com, carol@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
+        msg.save()
+
+        with (
+            patch(
+                "services.email.msa.tasks.check_message",
+                return_value=SpamResult(score=10.0, action=SpamAction.REJECT),
+            ) as mock_check,
+            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
+        ):
+            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="1.2.3.4")
+
+        mock_check.assert_awaited_once_with(b"spam body", client_ip="1.2.3.4")
+        mock_deliver.enqueue.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.HELD
+        assert msg.spam_score == 10.0
+        assert msg.spam_action == SpamAction.REJECT
+
+    def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
+        from services.email.msa.tasks import check_outgoing_spam
+        from services.email.spam import SpamResult
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"clean body"), save=False)
+        msg.save()
+
+        with (
+            patch(
+                "services.email.msa.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
+        ):
+            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
+
+        mock_deliver.enqueue.assert_called_once_with(message_id=str(msg.pk))
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert msg.spam_score == 0.0
+        assert not Transmission.objects.filter(message=msg).exists()

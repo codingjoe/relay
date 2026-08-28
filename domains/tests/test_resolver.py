@@ -95,10 +95,6 @@ class TestDomainQuerySet:
                 include_managed=False,
             )
 
-
-class TestRootForInvalidInput:
-    """Malformed names fail closed without touching the database."""
-
     def test_root_for__invalid_idna_raises_does_not_exist(self):
         with pytest.raises(Domain.DoesNotExist):
             Domain.objects.root_for(
@@ -113,8 +109,6 @@ class TestRootForInvalidInput:
                 include_managed=False,
             )
 
-
-class TestResolvePublicHostname:
     def test_resolve_records__public_smtp_hostname_a_records_without_domain(self):
         records = DNSResolver().resolve_records(
             DNSLabel(settings.RELAY_SMTP_PUBLIC_HOSTNAME),
@@ -238,9 +232,6 @@ class TestResolve:
     def test_resolve_records__unknown_domain_returns_empty(self):
         assert DNSResolver().resolve_records(DNSLabel("unknown.com"), QTYPE.A) == []
 
-
-@pytest.mark.django_db
-class TestResolveMtaStsCname:
     def test_resolve_records__mta_sts_cname(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)

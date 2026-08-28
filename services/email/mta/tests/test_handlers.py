@@ -278,7 +278,7 @@ def make_dmarc_evaluation(disposition):
     )
 
 
-class TestMXHandlerData:
+class TestMXHandler:
     @pytest.mark.django_db(transaction=True)
     async def test_handle_data__rejects_on_dmarc_reject(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
