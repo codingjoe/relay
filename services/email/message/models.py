@@ -142,5 +142,7 @@ class Message(TimeStamped):
         """Parse the raw body into an `email.message.Message` object."""
         try:
             return message_from_bytes(self.raw_body.read())
-        except FileNotFoundError:
+        except FileNotFoundError, ValueError:
+            # FieldFile raises ValueError when no file is associated (empty
+            # name), e.g. pruned or fixture-only rows.
             return message_from_bytes(b"body pruned")
