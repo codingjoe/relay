@@ -94,7 +94,13 @@ variable "s3_region" {
 
 variable "s3_bucket_name" {
   type    = string
-  default = "relay"
+  default = null
+}
+
+locals {
+  # Bucket names are unique across Hetzner Object Storage, so derive a unique
+  # name from the hostname instead of a generic one.
+  s3_bucket_name = coalesce(var.s3_bucket_name, "relay-${replace(var.hostname, ".", "-")}")
 }
 
 # Deployment SSH key pair (used by the-box GitHub Actions)
@@ -127,7 +133,7 @@ resource "hcloud_primary_ip" "smtp" {
   assignee_type = "server"
   assignee_id   = hcloud_server.relay.id
   auto_delete   = false
-  datacenter    = "${var.server_location}-dc3"
+  location      = var.server_location
 }
 
 # PTR records — must match forward A records
@@ -176,7 +182,7 @@ resource "null_resource" "floating_ip_config" {
 
 # S3 bucket for message storage (Hetzner Object Storage)
 resource "aws_s3_bucket" "relay" {
-  bucket = var.s3_bucket_name
+  bucket = local.s3_bucket_name
 }
 
 resource "aws_s3_bucket_ownership_controls" "relay" {
@@ -204,5 +210,5 @@ output "s3_endpoint_url" {
 }
 
 output "s3_bucket_name" {
-  value = aws_s3_bucket.relay.bucket
+  value = local.s3_bucket_name
 }

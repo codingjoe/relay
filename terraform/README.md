@@ -70,7 +70,8 @@ smtp_floating_ip_count = 2
 s3_access_key  = "<your-s3-access-key>"
 s3_secret_key  = "<your-s3-secret-key>"
 s3_endpoint    = "nbg1.your-objectstorage.com"
-s3_bucket_name = "relay"
+# s3_bucket_name is optional; by default it is derived from the hostname
+# (bucket names must be unique across all of Hetzner Object Storage)
 EOF
 
 terraform init
@@ -128,7 +129,7 @@ S3_BUCKET=$(cd terraform && terraform output -raw s3_bucket_name)
 dotenvx set HOSTNAME "relay.example.com" -f .env.production -p
 dotenvx set POSTGRES_PASSWORD "$(python3 -c 'import secrets; print(secrets.token_urlsafe())')" -f .env.production
 dotenvx set REDIS_PASSWORD "$(python3 -c 'import secrets; print(secrets.token_urlsafe())')" -f .env.production
-dotenvx set RELAY_DNS_SMTP_IPS "$(cd terraform && terraform output -raw smtp_ips | jq -r '.[0]')" -f .env.production
+dotenvx set RELAY_DNS_SMTP_IPS "$(cd terraform && terraform output -json smtp_ips | jq -r '.[0]')" -f .env.production
 dotenvx set GITHUB_CLIENT_ID "<oauth-client-id>" -f .env.production
 dotenvx set GITHUB_CLIENT_SECRET "<oauth-client-secret>" -f .env.production
 dotenvx set SECRET_KEY "$(python3 -c 'import secrets; print(secrets.token_urlsafe())')" -f .env.production
@@ -173,7 +174,7 @@ If an SMTP IP gets blacklisted:
 
 ## Troubleshooting
 
-- **Pods not starting**: `ssh root@<server_ip> docker compose ps`
+- **Containers not starting**: `ssh root@<server_ip> docker compose ps`
 - **Floating IPs missing**: `ssh root@<server_ip> ip addr show eth0`
 - **SMTP refused**: `ssh root@<server_ip> docker compose logs smtp`
 - **TLS not issuing**: `dig relay.example.com` then `ssh root@<server_ip> docker compose logs caddy`
