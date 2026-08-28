@@ -91,7 +91,7 @@ def process_incoming_message(
                 ),
             )
             transaction.on_commit(
-                lambda: parse_dmarc_report.enqueue(report_pk=report.pk)
+                lambda: parse_dmarc_report.enqueue(report_pk=str(report.pk))
             )
             return "250 OK"
 
@@ -110,7 +110,9 @@ def process_incoming_message(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
             )
-            transaction.on_commit(lambda: parse_tls_report.enqueue(report_pk=report.pk))
+            transaction.on_commit(
+                lambda: parse_tls_report.enqueue(report_pk=str(report.pk))
+            )
             return "250 OK"
 
         case settings.RELAY_DMARC_RUF_LOCAL_PART:
@@ -128,7 +130,7 @@ def process_incoming_message(
                 ),
             )
             transaction.on_commit(
-                lambda: parse_dmarc_failure_report.enqueue(report_pk=report.pk)
+                lambda: parse_dmarc_failure_report.enqueue(report_pk=str(report.pk))
             )
             return "250 OK"
 

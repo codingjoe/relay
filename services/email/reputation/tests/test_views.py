@@ -10,10 +10,14 @@ from services.email.reputation.models import FblReport
 
 
 def make_report(org, **kwargs):
+    message = IncomingMessage.objects.create(
+        org=org,
+        mail_from="feedback@gmail.com",
+        rcpt_to="postmaster@acme.com",
+    )
     defaults = {
         "org": org,
-        "mail_from": "feedback@gmail.com",
-        "rcpt_to": "fbl@acme.com",
+        "message": message,
         "reporting_org": "gmail",
         "feedback_type": "abuse",
         "original_mail_from": "sender@acme.com",

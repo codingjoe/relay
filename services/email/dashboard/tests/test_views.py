@@ -2,6 +2,7 @@ import pytest
 
 from domains.models import Domain
 from services.email.msa.models import OutgoingMessage
+from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
 
 
@@ -125,11 +126,15 @@ class TestReportListView:
 
     @pytest.fixture
     def fbl_report(self, org, domain):
+        message = IncomingMessage.objects.create(
+            org=org,
+            mail_from="feedback@gmail.com",
+            rcpt_to="postmaster@acme.com",
+        )
         return FblReport.objects.create(
             org=org,
             domain=domain,
-            mail_from="feedback@gmail.com",
-            rcpt_to="fbl@acme.com",
+            message=message,
             source_ip_address="10.0.0.3",
         )
 

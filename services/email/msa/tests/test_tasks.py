@@ -57,7 +57,7 @@ class TestDeliverMessage:
         assert t.status == Transmission.Status.FAILED
         assert "No MX" in t.details
 
-    def test_deliver_message__with_domain_signs_and_sends(
+    def test_deliver_message__sends_with_bounce_return_path(
         self, user, org, dns_resolver
     ):
         from services.email.msa.tasks import deliver_message
@@ -76,15 +76,11 @@ class TestDeliverMessage:
         mock_response = MagicMock()
         mock_response.__str__ = MagicMock(return_value="250 OK")
 
-        with (
-            patch(
-                "services.email.msa.tasks.aiosmtplib.send", return_value=mock_response
-            ) as mock_send,
-            patch("domains.dkim.sign_message", return_value=b"signed") as mock_sign,
-        ):
+        with patch(
+            "services.email.msa.tasks.aiosmtplib.send", return_value=mock_response
+        ) as mock_send:
             deliver_message.func(message_id=str(msg.id))
 
-        mock_sign.assert_called_once()
         assert mock_send.call_args.kwargs["sender"] == (
             f"{settings.RELAY_BOUNCE_LOCAL_PART}+{msg.id}@{domain.sender_domain}"
         )

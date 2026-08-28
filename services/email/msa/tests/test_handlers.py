@@ -40,6 +40,7 @@ class TestHandleData:
         result = await handler.handle_AUTH(None, session, None, ["PLAIN", "abc"])
         assert result == "535 Authentication failed"
 
+    @pytest.mark.django_db(transaction=True)
     async def test_handle_data__stores_authenticated_submission(
         self,
         user,

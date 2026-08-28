@@ -58,8 +58,14 @@ class TestFblReport:
 
     @pytest.mark.django_db
     def test_get_absolute_url__reverses_to_detail(self, org):
+        message = IncomingMessage.objects.create(
+            org=org,
+            mail_from="feedback@gmail.com",
+            rcpt_to="postmaster@acme.com",
+        )
         report = FblReport.objects.create(
             org=org,
+            message=message,
             reporting_org="gmail",
         )
         assert report.get_absolute_url() == reverse(

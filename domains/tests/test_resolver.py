@@ -24,14 +24,15 @@ class TestDomainQuerySetSignature:
             Domain.objects.root_for("example.com", True)
 
 
-@pytest.mark.django_db
 class TestDomainQuerySet:
+    @pytest.mark.django_db
     def test_root_for__managed_domain(self):
         Organization.objects.create(slug="acme")
         domain = Domain.objects.root_for("acme.open.localhost", include_managed=True)
         assert domain is not None
         assert domain.name == "acme.open.localhost"
 
+    @pytest.mark.django_db
     def test_root_for__managed_subdomain(self):
         Organization.objects.create(slug="acme")
         domain = Domain.objects.root_for(
@@ -40,6 +41,7 @@ class TestDomainQuerySet:
         assert domain is not None
         assert domain.name == "acme.open.localhost"
 
+    @pytest.mark.django_db
     def test_root_for__can_exclude_managed_domain(self):
         Organization.objects.create(slug="acme")
 
@@ -49,6 +51,7 @@ class TestDomainQuerySet:
                 include_managed=False,
             )
 
+    @pytest.mark.django_db
     def test_root_for__user_domain(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
@@ -59,6 +62,7 @@ class TestDomainQuerySet:
         assert domain is not None
         assert domain.name == "example.com"
 
+    @pytest.mark.django_db
     def test_root_for__selects_nested_domain_for_same_org(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
@@ -72,6 +76,7 @@ class TestDomainQuerySet:
             == child
         )
 
+    @pytest.mark.django_db
     def test_root_for__fails_closed_for_mixed_owners(self):
         parent_org = Organization.objects.create(slug="parent")
         child_org = Organization.objects.create(slug="child")
@@ -88,6 +93,7 @@ class TestDomainQuerySet:
                 include_managed=False,
             )
 
+    @pytest.mark.django_db
     def test_root_for__unknown_raises_does_not_exist(self):
         with pytest.raises(Domain.DoesNotExist):
             Domain.objects.root_for(

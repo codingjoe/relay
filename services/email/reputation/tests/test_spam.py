@@ -45,10 +45,14 @@ class TestComputeOrgReputation:
             status=OutgoingMessage.Status.SENT,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        FblReport.objects.create(
+        message = IncomingMessage.objects.create(
             org=org,
             mail_from="feedback@gmail.com",
-            rcpt_to="fbl@acme.com",
+            rcpt_to="postmaster@acme.com",
+        )
+        FblReport.objects.create(
+            org=org,
+            message=message,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.PROVIDER,
         )
@@ -58,7 +62,7 @@ class TestComputeOrgReputation:
         assert stats["complaints"] == 1
 
     def test_compute_org_reputation__ignores_relay_generated_fbl(self, org, user):
-        OutgoingMessage.objects.create(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -67,8 +71,7 @@ class TestComputeOrgReputation:
         )
         FblReport.objects.create(
             org=org,
-            mail_from="fbl@relay.local",
-            rcpt_to="fbl@acme.com",
+            message=message,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.RELAY,
         )
@@ -264,7 +267,7 @@ class TestCheckReputationOnHeldMessage:
         report = FblReport.objects.get(org=org)
         assert report.source == FblReport.Source.RELAY
         assert report.original_rcpt_to == "rcpt@example.com"
-        assert report.message == message
+        assert report.message_id == message.pk
         assert len(mailoutbox) == 0
 
     @pytest.mark.django_db(transaction=True)
@@ -314,7 +317,7 @@ class TestCheckReputationOnIncomingMessage:
         report = FblReport.objects.get(org=org)
         assert report.source == FblReport.Source.RELAY
         assert report.domain == domain
-        assert report.message == message
+        assert report.message_id == message.pk
 
 
 @pytest.mark.django_db
@@ -333,10 +336,14 @@ class TestBuildReputationChart:
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
         FblReport.create_for_spam(message)
-        FblReport.objects.create(
+        report_email = IncomingMessage.objects.create(
             org=org,
             mail_from="feedback@gmail.com",
-            rcpt_to="fbl@acme.com",
+            rcpt_to="postmaster@acme.com",
+        )
+        FblReport.objects.create(
+            org=org,
+            message=report_email,
             original_mail_from="sender@acme.com",
         )
 
