@@ -365,6 +365,21 @@ class TestAuthenticate:
         result = await authenticate(org.slug, raw_key)
         assert result is None
 
+    async def test_authenticate__skips_credential_with_matching_prefix_but_wrong_key(
+        self,
+        user,
+        org,
+    ):
+        from services.email.msa.handlers import authenticate
+
+        _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
+        stale = MsaCredential(org=org, name="stale")
+        stale.set_key(raw_key[:8] + "stale-tail")
+        stale.save()
+        result = await authenticate(org.slug, raw_key)
+        assert result is not None
+        assert result.name == "test"
+
 
 @pytest.mark.django_db(transaction=True)
 class TestHandleDataSubmission:

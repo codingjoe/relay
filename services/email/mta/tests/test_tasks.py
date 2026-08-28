@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.files.base import ContentFile
 
-from accounts.models import Membership
+from accounts.models import Membership, Organization
 from domains.models import Domain
 from kms.models import SigningKey
 from services.email.mta.models import (
@@ -359,6 +359,18 @@ class TestDispatchWebhook:
         )
         message.refresh_from_db()
         assert message.status == IncomingMessage.Status.RECEIVED
+
+    def test_drops_message_without_active_billing(self, org, monkeypatch):
+        message = make_incoming_message(org)
+        make_webhook(org)
+        monkeypatch.setattr(Organization, "billing_is_active", False)
+
+        with patch("services.email.mta.tasks.deliver_webhook") as mock_deliver:
+            dispatch_webhook.func(message_id=str(message.pk))
+
+        mock_deliver.enqueue.assert_not_called()
+        message.refresh_from_db()
+        assert message.status == IncomingMessage.Status.DROPPED
 
 
 @pytest.mark.django_db(transaction=True)

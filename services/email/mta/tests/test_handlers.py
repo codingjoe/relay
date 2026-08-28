@@ -151,6 +151,35 @@ class TestHandleRcpt:
         assert envelope.recipient_domain == domain
 
     @pytest.mark.django_db(transaction=True)
+    async def test_handle_rcpt__keeps_recipient_domain_for_multiple_recipients(
+        self,
+        org,
+    ):
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        envelope = SimpleNamespace(rcpt_tos=[])
+        handler = MXHandler()
+
+        first = await handler.handle_RCPT(
+            None,
+            None,
+            envelope,
+            f"alice@{domain.name}",
+            None,
+        )
+        second = await handler.handle_RCPT(
+            None,
+            None,
+            envelope,
+            f"bob@{domain.name}",
+            None,
+        )
+
+        assert first == "250 OK"
+        assert second == "250 OK"
+        assert envelope.recipient_domain == domain
+        assert envelope.rcpt_tos == [f"alice@{domain.name}", f"bob@{domain.name}"]
+
+    @pytest.mark.django_db(transaction=True)
     async def test_handle_rcpt__selects_most_specific_domain(self, org):
         Domain.objects.create(name="example.com", org=org)
         child = Domain.objects.create(name="app.example.com", org=org)
