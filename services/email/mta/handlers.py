@@ -14,7 +14,7 @@ from services.email.dmarc.tasks import (
 )
 from services.email.dmarc.types import Disposition, DmarcEvaluation
 
-from .models import IncomingMessage, TlsReport
+from .models import IncomingMessage, TlsReport, is_fbl_report
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
@@ -134,9 +134,7 @@ def process_incoming_message(
             )
             return "250 OK"
 
-        case _ if local_part == settings.RELAY_FBL_LOCAL_PART or local_part.startswith(
-            f"{settings.RELAY_FBL_LOCAL_PART}+"
-        ):
+        case _ if is_fbl_report(mail_from, rcpt_to):
             IncomingMessage.objects.create(
                 org=domain.org,
                 domain=domain,

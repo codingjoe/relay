@@ -16,26 +16,22 @@ from .models import FblReport
 logger = logging.getLogger(__name__)
 
 
-def resolve_fbl_owner(rcpt_to, original_mail_from):
+def resolve_fbl_owner(original_mail_from):
     """Return the org and domain that sent the message a report is about.
 
-    FBL reports arrive on a registered reporting address, which for abuse
+    FBL reports arrive on a single reporting address, which for abuse
     reporting format (RFC 5965) carries no per-message identity in the
-    recipient. Preference is a VERP token that references the original
-    outgoing message: either in the report recipient
-    (fbl+<message-id>@...) or in the original envelope sender echoed by
-    the report (bounce+<message-id>@...). Without a token, the original
-    envelope sender domain resolves the customer domain; managed domains
-    are excluded.
+    recipient. The per-message identity arrives in the payload: the
+    reporting provider echoes the original envelope sender, which may
+    carry a VERP token (bounce+<message-id>@...) that references the
+    original outgoing message. Without a token or with an unknown token,
+    the envelope sender domain resolves the customer domain; managed
+    domains are excluded.
 
     Returns `None` when the report cannot be attributed to an org.
     """
-    token = ""
-    for address in (rcpt_to, original_mail_from):
-        local_part = address.split("@", 1)[0]
-        token = local_part.split("+", 1)[1] if "+" in local_part else ""
-        if token:
-            break
+    local_part = original_mail_from.split("@", 1)[0]
+    token = local_part.split("+", 1)[1] if "+" in local_part else ""
     if token:
         try:
             original = OutgoingMessage.objects.select_related(
@@ -84,10 +80,7 @@ def parse_fbl_report(report_pk):
         report.authentication_results = parsed.authentication_results
         report.original_headers = parsed.original_headers
 
-    owner = resolve_fbl_owner(
-        rcpt_to=report.message.rcpt_to,
-        original_mail_from=report.original_mail_from,
-    )
+    owner = resolve_fbl_owner(original_mail_from=report.original_mail_from)
     update_fields = [
         "org",
         "domain",

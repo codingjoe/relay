@@ -3,6 +3,7 @@ import uuid
 from enum import nonmember
 from fnmatch import fnmatch
 
+from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -15,6 +16,27 @@ from kms.models import SigningKey
 from services.email.message.models import Message
 
 from .serializers import TlsReportSerializer
+
+
+def is_fbl_report(mail_from, rcpt_to):
+    """Tell whether an incoming message is an accepted feedback loop
+    report.
+
+    Reports are only accepted on the platform reporting address and only
+    from senders listed in `RELAY_FBL_SENDERS`. Entries are email
+    addresses or domains and are matched case-insensitively.
+    """
+    recipient_local, _, recipient_domain = rcpt_to.partition("@")
+    if (
+        recipient_local.lower() != settings.RELAY_FBL_LOCAL_PART
+        or recipient_domain.rstrip(".").lower() != settings.RELAY_PLATFORM_DOMAIN
+    ):
+        return False
+    mail_from = mail_from.lower()
+    for allowed in settings.RELAY_FBL_SENDERS:
+        if mail_from == allowed or mail_from.endswith(f"@{allowed}"):
+            return True
+    return False
 
 
 class IncomingMessage(Message):

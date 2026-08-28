@@ -1,10 +1,9 @@
-from django.conf import settings
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from services.email.msa.models import OutgoingMessage, Transmission
-from services.email.mta.models import IncomingMessage
+from services.email.mta.models import IncomingMessage, is_fbl_report
 
 from . import tasks
 from .models import FblReport
@@ -41,13 +40,7 @@ def check_reputation_on_held_message(sender, instance, **kwargs):
 def check_reputation_on_incoming_message(sender, instance, created, **kwargs):
     """Store provider FBL reports sent to the FBL inbox and record relay
     reports for quarantined mail."""
-    local_part = (
-        instance.rcpt_to.split("@", 1)[0].lower() if "@" in instance.rcpt_to else ""
-    )
-    is_fbl_recipient = local_part == settings.RELAY_FBL_LOCAL_PART or (
-        local_part.startswith(f"{settings.RELAY_FBL_LOCAL_PART}+")
-    )
-    if created and is_fbl_recipient:
+    if created and is_fbl_report(instance.mail_from, instance.rcpt_to):
         report = FblReport.create_for_incoming(instance)
         transaction.on_commit(
             lambda: tasks.parse_fbl_report.enqueue(report_pk=str(report.pk))

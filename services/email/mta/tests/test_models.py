@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from domains.models import Domain
 from kms.models import SigningKey
-from services.email.mta.models import Webhook
+from services.email.mta.models import Webhook, is_fbl_report
 
 
 @pytest.fixture
@@ -153,3 +153,32 @@ class TestSign:
             webhook.signing_key.public_bytes_raw()
         )
         public_key.verify(sig_bytes, signed_content)
+
+
+class TestIsFblReport:
+    def test_fbl_report__is_platform_reporting_address_from_allowed_sender(
+        self, settings
+    ):
+        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is True
+
+    def test_fbl_report__matches_allowed_sender_email(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_SENDERS = ["feedback-loops@yahoo.com"]
+        assert is_fbl_report("feedback-loops@yahoo.com", "fbl@relays.test") is True
+
+    def test_fbl_report__rejects_unknown_sender(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        assert is_fbl_report("forged@example.org", "fbl@relays.test") is False
+
+    def test_fbl_report__rejects_customer_reporting_address(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        assert is_fbl_report("feedback@gmail.com", "fbl@acme.com") is False
+
+    def test_fbl_report__is_case_insensitive(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        assert is_fbl_report("Feedback@GMAIL.com", "FBL@Relays.Test.") is True

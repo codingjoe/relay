@@ -1,4 +1,5 @@
 from email.message import EmailMessage
+from unittest.mock import patch
 
 import pytest
 from django.conf import settings
@@ -98,31 +99,6 @@ class TestParseFblReport:
         assert len(mailoutbox) == 1
         assert mailoutbox[0].to == ["alice@example.com"]
 
-    def test_parse_fbl_report__routes_report_by_verp_token(self, org):
-        sender_org = Organization.objects.create(slug="sender")
-        domain = Domain.objects.create(name="sender.test", org=sender_org)
-        original = OutgoingMessage.objects.create(
-            org=sender_org,
-            domain=domain,
-            mail_from="sender@sender.test",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-        )
-        report = make_report(org, make_arf_email())
-        message = report.message
-        message.rcpt_to = f"{settings.RELAY_FBL_LOCAL_PART}+{original.pk}@relay.example"
-        message.save(update_fields=["rcpt_to", "modified_at"])
-
-        parse_fbl_report.func(report_pk=report.pk)
-
-        report.refresh_from_db()
-        assert report.org == sender_org
-        assert report.domain == domain
-        message.refresh_from_db()
-        assert message.org == sender_org
-        assert message.domain == domain
-
     def test_parse_fbl_report__routes_report_by_envelope_sender_token(self, org):
         sender_org = Organization.objects.create(slug="sender")
         domain = Domain.objects.create(name="sender.test", org=sender_org)
@@ -146,6 +122,10 @@ class TestParseFblReport:
         report.refresh_from_db()
         assert report.org == sender_org
         assert report.domain == domain
+        message = report.message
+        message.refresh_from_db()
+        assert message.org == sender_org
+        assert message.domain == domain
 
     def test_parse_fbl_report__routes_report_by_original_mail_from(self, org):
         sender_org = Organization.objects.create(slug="sender")
@@ -171,7 +151,11 @@ class TestParseFblReport:
 
 class TestProcessIncomingMessage:
     @pytest.mark.django_db(transaction=True)
-    async def test_process_incoming_message__fbl_recipient_creates_report(self, org):
+    async def test_process_incoming_message__fbl_recipient_creates_report(
+        self, org, settings
+    ):
+        settings.RELAY_PLATFORM_DOMAIN = "example.com"
+        settings.RELAY_FBL_SENDERS = ["gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         result = await process_incoming_message(
             "feedback@gmail.com",
@@ -191,20 +175,24 @@ class TestProcessIncomingMessage:
         assert report.original_mail_from == "sender@acme.com"
 
     @pytest.mark.django_db(transaction=True)
-    async def test_process_incoming_message__verp_fbl_recipient_creates_report(
-        self, org
+    async def test_process_incoming_message__fbl_recipient_unknown_sender_checks_spam(
+        self, org, settings
     ):
+        settings.RELAY_PLATFORM_DOMAIN = "example.com"
+        settings.RELAY_FBL_SENDERS = ["gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
-        result = await process_incoming_message(
-            "feedback@gmail.com",
-            f"{settings.RELAY_FBL_LOCAL_PART}+019fbe8f-602c-73e0-9a10-00000001@example.com",
-            make_arf_email(),
-            True,
-            domain,
-            IncomingMessage.Status.RECEIVED,
-            "",
-        )
+        with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
+            result = await process_incoming_message(
+                "forged@example.org",
+                f"{settings.RELAY_FBL_LOCAL_PART}@example.com",
+                make_arf_email(),
+                True,
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                "",
+            )
 
         assert result == "250 OK"
-        report = await FblReport.objects.aget(org=org)
-        assert report.source == "provider"
+        assert not await FblReport.objects.aexists()
+        assert await IncomingMessage.objects.aexists()
+        spam_task.enqueue.assert_called_once()
