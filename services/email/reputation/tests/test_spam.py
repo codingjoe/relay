@@ -349,5 +349,5 @@ class TestBuildReputationChart:
 
         rows = build_reputation_chart(org)["rows"]
 
-        assert sum(row["complained"] for row in rows) == 2
+        assert rows[-1]["complained"] == 2
         assert compute_org_reputation(org)["complaints"] == 2

@@ -97,8 +97,8 @@
   </div>
   <p class="text-sm text-muted-foreground mt-2">
     {% blocktranslate count days=window_days trimmed %}
-      Counts cover the last day.
-    {% plural %}Counts cover the last {{ days }} days.
+      Counts accumulate over the last day.
+    {% plural %}Counts accumulate over the last {{ days }} days.
     {% endblocktranslate %}
     {% blocktranslate count volume=min_volume trimmed %}
       Status changes apply from one sent message.

@@ -5,7 +5,6 @@ from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from abstract.charts import CHART_DAYS
 from services.email.msa.models import OutgoingMessage, Transmission
 
 from .models import FblReport
@@ -26,10 +25,14 @@ def build_reputation_chart(org):
     """Return per-day message counts, rates, and rate limits for one org.
 
     Counts provider FBL reports and outgoing messages held as spam as
-    complaints over the `CHART_DAYS` window. Rates and limits are per
-    cent, so they share one axis and can be plotted next to each other.
+    complaints. Values accumulate from the start of the evaluation
+    window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
+    equals the rates the reputation check evaluates. Rates and limits
+    are per cent, so they share one axis and can be plotted next to
+    each other.
     """
-    start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
+    window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
+    start = timezone.localdate() - timedelta(days=window_days - 1)
 
     sent_rows = (
         OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
@@ -92,7 +95,7 @@ def build_reputation_chart(org):
             complaint_counts.get(row["day"], 0) + row["count"]
         )
 
-    days_list = [start + timedelta(days=offset) for offset in range(CHART_DAYS)]
+    days_list = [start + timedelta(days=offset) for offset in range(window_days)]
     series = [
         {
             "key": "sent",
@@ -118,16 +121,25 @@ def build_reputation_chart(org):
     bounce_limit = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD * 100
     complaint_limit = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD * 100
 
-    def rate(counts):
+    def cumulative(counts):
+        counts = [counts.get(day, 0) for day in days_list]
+        return [sum(counts[: index + 1]) for index in range(len(days_list))]
+
+    sent_cumulative = cumulative(sent_counts)
+    hard_bounce_cumulative = cumulative(hard_bounce_counts)
+    soft_bounce_cumulative = cumulative(soft_bounce_counts)
+    complaint_cumulative = cumulative(complaint_counts)
+
+    def rate(count_cumulative):
         return [
-            round(counts.get(day, 0) / sent_counts[day] * 100, 4)
-            if sent_counts.get(day)
+            round(count / sent_total * 100, 4)
+            if (sent_total := sent_cumulative[index])
             else None
-            for day in days_list
+            for index, count in enumerate(count_cumulative)
         ]
 
-    hard_bounce_rates = rate(hard_bounce_counts)
-    complaint_rates = rate(complaint_counts)
+    hard_bounce_rates = rate(hard_bounce_cumulative)
+    complaint_rates = rate(complaint_cumulative)
     rate_series = [
         {
             "key": "hard_bounce_rate",
@@ -158,10 +170,10 @@ def build_reputation_chart(org):
         "rows": [
             {
                 "day": day.isoformat(),
-                "sent": sent_counts.get(day, 0),
-                "hard_bounced": hard_bounce_counts.get(day, 0),
-                "soft_bounced": soft_bounce_counts.get(day, 0),
-                "complained": complaint_counts.get(day, 0),
+                "sent": sent_cumulative[index],
+                "hard_bounced": hard_bounce_cumulative[index],
+                "soft_bounced": soft_bounce_cumulative[index],
+                "complained": complaint_cumulative[index],
                 "hard_bounce_rate": hard_bounce_rates[index],
                 "complaint_rate": complaint_rates[index],
                 "hard_bounce_limit": bounce_limit,
