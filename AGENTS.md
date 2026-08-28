@@ -93,7 +93,7 @@ Before you finish, always:
 
 ## Running tests
 
-- `uv run pytest`. The last line is always the outcome summary, e.g.
+- `uv run --group test pytest`. The last line is always the outcome summary, e.g.
   `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
   to assert results. Nothing is measured by default.
 - `--maxfail=3` stops after three failures.
