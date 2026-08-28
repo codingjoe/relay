@@ -4,8 +4,8 @@
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: the open-source charter"|title %}{% endblock %}
 {% block meta_description %}
-  relay's open-source charter: audit the code, free forever for open-source communities, upstream-first contributions,
-  and support that grows with relay.
+  relay's open-source charter: free forever for open-source communities, contributions upstream, funded security, and
+  support that grows with relay.
 {% endblock meta_description %}
 {% block content %}
   <!--
@@ -13,16 +13,16 @@
     THESIS: the charter is a signed document, not a pitch: numbered pledges
     written to be held to. Refuses the marketing-page default of buzzword
     cards. OWN-WORLD: relay's established landing world, neutral ground, one
-    purple primary, mono for indices and registry data, divider rules instead
-    of cards, the network motif quieted to stars and dot grid (no pulses).
-    STORY: the visitor reads what relay owes the commons, believes the
-    commitment is structural, and acts: contribute on GitHub or start free.
+    purple primary, mono for indices, divider rules instead of cards, the
+    network motif quieted to stars and dot grid (no pulses).
+    STORY: the visitor reads what relay gives back, believes the commitment
+    is structural, and acts: contribute on GitHub or start free.
     FIRST VIEWPORT: quiet network ground; "← relay" link top-left; centered
-    h1 "the open-source charter"; mono AGPL chip linking the source; one lead
+    h1 "the open-source charter"; mono chip linking the source; one lead
     line. No primary action yet, reading comes first: the band closes the
-    page. FORM: single document, left-aligned reading column: registry of
-    real dependencies, five numbered pledges, founder pledge in we voice,
-    closing primary band. Built directly: the request was precisely specified.
+    page. FORM: single document, left-aligned reading column: five numbered
+    pledges, founder pledge in we voice, closing primary band. Built
+    directly: the request was precisely specified.
   -->
   <div class="charter relative isolate -mx-6 sm:-mx-8">
     <div class="charter__network pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
@@ -45,10 +45,8 @@
         href="https://github.com/codingjoe/relay"
         target="_blank"
         rel="noopener"
-        class="charter__chip inline-flex items-center gap-2 font-mono text-sm shadow-sm"
+        class="charter__chip inline-flex items-center font-mono text-sm shadow-sm"
       >
-        AGPL-3.0
-        <span class="charter__chip-dot" aria-hidden="true">·</span>
         github.com/codingjoe/relay
       </a>
       <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0">
@@ -56,79 +54,11 @@
       </h1>
       <p class="text-lg sm:text-xl text-muted-foreground leading-relaxed m-0 max-w-2xl">
         {% blocktranslate trimmed %}
-          Being open source is not a label. It is how you audit our code, verify our security claims, and propose
-          improvements. The pledges on this page are what we owe in return, written down so you can hold us to it.
+          Relay is open source, built by open-source people. Our entire stack stands on giant open-source projects, and
+          we give back: free services for communities, code upstream, and money for security.
         {% endblocktranslate %}
       </p>
     </header>
-
-    <section class="pb-16 sm:pb-24 max-w-3xl mx-auto px-4 sm:px-8">
-      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
-        {% translate "standing on giants"|capfirst %}
-      </h2>
-      <p class="text-muted-foreground leading-relaxed m-0 mb-10">
-        {% blocktranslate trimmed %}
-          Every request relay serves travels a stack maintained by people who give their work away. We run their code
-          every single day. This charter exists because we intend to pay it back.
-        {% endblocktranslate %}
-      </p>
-      <dl class="charter__registry m-0">
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">linux</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "the kernel under everything"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">python</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "the language we think in"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">django</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "the framework holding it together"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">postgresql</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "where every byte lives"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">redis</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "cache, queue, and locks"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">dnslib</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "the authoritative nameserver"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">aiosmtpd</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "the mail servers"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">dkimpy</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "every signature we sign"|capfirst %}
-          </dd>
-        </div>
-        <div class="charter__row flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-3">
-          <dt class="font-mono text-sm font-semibold m-0 sm:w-40 shrink-0">granian</dt>
-          <dd class="text-sm text-muted-foreground m-0">
-            {% translate "the server that serves it all"|capfirst %}
-          </dd>
-        </div>
-      </dl>
-    </section>
 
     <section class="pb-16 sm:pb-24 max-w-3xl mx-auto px-4 sm:px-8">
       <h2 class="text-2xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
@@ -136,7 +66,7 @@
       </h2>
       <p class="text-muted-foreground leading-relaxed m-0 mb-10">
         {% blocktranslate trimmed %}
-          Five commitments. Not aspirations: obligations we accept today, in public.
+          Five commitments, accepted today, in public.
         {% endblocktranslate %}
       </p>
       <div class="charter__pledges">
@@ -144,12 +74,13 @@
           <span class="font-mono text-lg text-primary" aria-hidden="true">01</span>
           <div class="flex flex-col gap-2">
             <h3 class="text-lg font-semibold m-0">
-              {% translate "everything open, forever"|capfirst %}
+              {% translate "free for open source"|capfirst %}
             </h3>
             <p class="text-muted-foreground leading-relaxed m-0">
               {% blocktranslate trimmed %}
-                The complete stack, nameserver, mail server, and dashboard, is AGPL-3.0 and public from day one. There
-                is no hidden part, and there never will be: every line is there for you to audit, verify, and improve.
+                Every relay service is free, forever, for open-source projects and the communities that maintain them.
+                It is our first way of giving back: an in-kind donation to the people who build the software we all run
+                on.
               {% endblocktranslate %}
             </p>
           </div>
@@ -158,11 +89,12 @@
           <span class="font-mono text-lg text-primary" aria-hidden="true">02</span>
           <div class="flex flex-col gap-2">
             <h3 class="text-lg font-semibold m-0">
-              {% translate "free for open source"|capfirst %}
+              {% translate "upstream first"|capfirst %}
             </h3>
             <p class="text-muted-foreground leading-relaxed m-0">
               {% blocktranslate trimmed %}
-                Every relay service is free, forever, for open-source projects and the communities that maintain them.
+                When we find a bug, we fix it. When we improve something, it goes upstream. We contribute back to every
+                project our stack runs on, copyleft or not. Code before cash.
               {% endblocktranslate %}
             </p>
           </div>
@@ -171,12 +103,12 @@
           <span class="font-mono text-lg text-primary" aria-hidden="true">03</span>
           <div class="flex flex-col gap-2">
             <h3 class="text-lg font-semibold m-0">
-              {% translate "upstream first"|capfirst %}
+              {% translate "funded security"|capfirst %}
             </h3>
             <p class="text-muted-foreground leading-relaxed m-0">
               {% blocktranslate trimmed %}
-                When we find a bug, we fix it. When we improve something, it goes upstream. We contribute back to every
-                project our stack runs on. Code before cash.
+                Beyond free service, we give money. We fund the maintainers our supply chain depends on so they can
+                secure their software, at a time when AI multiplies security vulnerabilities.
               {% endblocktranslate %}
             </p>
           </div>
@@ -203,7 +135,7 @@
             </h3>
             <p class="text-muted-foreground leading-relaxed m-0">
               {% blocktranslate trimmed %}
-                We do not pretend to know every way relay can support open-source communities. If your project needs
+                We learn from the communities around us, and our support should meet their needs. If your project needs
                 something we have not thought of, tell us on GitHub. If we can help, we will.
               {% endblocktranslate %}
             </p>
@@ -219,15 +151,14 @@
       <div class="flex flex-col gap-4">
         <p class="text-muted-foreground leading-relaxed m-0">
           {% blocktranslate trimmed %}
-            Relay is not a company that discovered open source last quarter. It is built by people who have spent years
-            inside these communities: our founder is a member of the Django and Python projects and maintains packages
-            this platform itself runs on, django-health-check among them.
+            Relay is built by people who have spent years inside these communities: our founder is a member of the
+            Django and Python projects and maintains packages this platform itself runs on, django-health-check among
+            them.
           {% endblocktranslate %}
         </p>
         <p class="leading-relaxed m-0">
           {% blocktranslate trimmed %}
-            This charter is not a promise made to a marketing team. It is who we already are, and it is how relay will
-            keep paying its debts to the commons.
+            This charter is who we already are. It is how relay will keep paying its debts to the commons.
           {% endblocktranslate %}
         </p>
         <a
@@ -335,15 +266,6 @@
     .charter__chip:hover {
       color: var(--color-foreground);
       text-decoration: none;
-    }
-
-    .charter__chip-dot {
-      color: var(--color-muted-foreground);
-      opacity: 0.5;
-    }
-
-    .charter__registry > * + * {
-      border-block-start: 1px solid var(--color-border);
     }
 
     .charter__pledges > * + * {
