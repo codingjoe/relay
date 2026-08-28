@@ -55,6 +55,13 @@ test = [
   "pytest-xdist>=3.8",
 ]
 
+[tool.uv]
+# Temporary pin: fix for
+# https://github.com/python-social-auth/social-app-django/pull/1077
+# (Django 6 `list_select_related = True` deprecation). Revert to the
+# PyPI release once it is merged and released.
+sources.social-auth-app-django = { git = "https://github.com/codingjoe/social-app-django", rev = "a5224fc" }
+
 [tool.ruff]
 lint.extend-select = [
   "DJ",
