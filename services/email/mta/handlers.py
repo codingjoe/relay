@@ -134,7 +134,9 @@ def process_incoming_message(
             )
             return "250 OK"
 
-        case settings.RELAY_FBL_LOCAL_PART:
+        case _ if local_part == settings.RELAY_FBL_LOCAL_PART or local_part.startswith(
+            f"{settings.RELAY_FBL_LOCAL_PART}+"
+        ):
             IncomingMessage.objects.create(
                 org=domain.org,
                 domain=domain,

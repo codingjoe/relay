@@ -187,8 +187,10 @@ class FblReport(OrganizationOwned):
     def create_for_incoming(cls, message):
         """Store an FBL report email received at the FBL reporting address.
 
-        The report is stored un-parsed and filled in later by the
-        `parse_fbl_report` task.
+        Reports usually arrive on a single reporting address such as
+        `fbl@relays.to`, regardless of the original recipient. The report
+        is stored un-parsed and filled in later by the `parse_fbl_report`
+        task, which also routes the report to the sending organization.
         """
         return cls.objects.create(
             source=cls.Source.PROVIDER,

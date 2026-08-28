@@ -44,7 +44,10 @@ def check_reputation_on_incoming_message(sender, instance, created, **kwargs):
     local_part = (
         instance.rcpt_to.split("@", 1)[0].lower() if "@" in instance.rcpt_to else ""
     )
-    if created and local_part == settings.RELAY_FBL_LOCAL_PART:
+    is_fbl_recipient = local_part == settings.RELAY_FBL_LOCAL_PART or (
+        local_part.startswith(f"{settings.RELAY_FBL_LOCAL_PART}+")
+    )
+    if created and is_fbl_recipient:
         report = FblReport.create_for_incoming(instance)
         transaction.on_commit(
             lambda: tasks.parse_fbl_report.enqueue(report_pk=str(report.pk))

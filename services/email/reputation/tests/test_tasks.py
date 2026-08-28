@@ -13,7 +13,7 @@ from services.email.reputation.models import FblReport
 from services.email.reputation.tasks import parse_fbl_report
 
 
-def make_arf_email(feedback_type="fraud"):
+def make_arf_email(feedback_type="fraud", original_mail_from="sender@acme.com"):
     message = EmailMessage()
     message["From"] = "feedback@gmail.com"
     message["Subject"] = "FBL Report"
@@ -24,7 +24,7 @@ def make_arf_email(feedback_type="fraud"):
         "Version: 1.0\n"
         "Arrival-Date: 2026-01-02T03:04:05Z\n"
         "Source-IP: 192.0.2.1\n"
-        "Original-Mail-From: sender@acme.com\n"
+        f"Original-Mail-From: {original_mail_from}\n"
         "Original-Rcpt-To: victim@gmail.com\n"
     )
     message.add_attachment(
@@ -98,6 +98,52 @@ class TestParseFblReport:
         assert len(mailoutbox) == 1
         assert mailoutbox[0].to == ["alice@example.com"]
 
+    def test_parse_fbl_report__routes_report_by_verp_token(self, org):
+        sender_org = Organization.objects.create(slug="sender")
+        domain = Domain.objects.create(name="sender.test", org=sender_org)
+        original = OutgoingMessage.objects.create(
+            org=sender_org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+        )
+        report = make_report(org, make_arf_email())
+        message = report.message
+        message.rcpt_to = f"{settings.RELAY_FBL_LOCAL_PART}+{original.pk}@relay.example"
+        message.save(update_fields=["rcpt_to", "modified_at"])
+
+        parse_fbl_report.func(report_pk=report.pk)
+
+        report.refresh_from_db()
+        assert report.org == sender_org
+        assert report.domain == domain
+        message.refresh_from_db()
+        assert message.org == sender_org
+        assert message.domain == domain
+
+    def test_parse_fbl_report__routes_report_by_original_mail_from(self, org):
+        sender_org = Organization.objects.create(slug="sender")
+        domain = Domain.objects.create(name="sender.test", org=sender_org)
+        report = make_report(
+            org, make_arf_email(original_mail_from="someone@sender.test")
+        )
+
+        parse_fbl_report.func(report_pk=report.pk)
+
+        report.refresh_from_db()
+        assert report.org == sender_org
+        assert report.domain == domain
+
+    def test_parse_fbl_report__keeps_receiving_org_when_unroutable(self, org):
+        report = make_report(org, make_arf_email())
+
+        parse_fbl_report.func(report_pk=report.pk)
+
+        report.refresh_from_db()
+        assert report.org == org
+
 
 class TestProcessIncomingMessage:
     @pytest.mark.django_db(transaction=True)
@@ -119,3 +165,22 @@ class TestProcessIncomingMessage:
         assert report.domain == domain
         assert report.feedback_type == "fraud"
         assert report.original_mail_from == "sender@acme.com"
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_process_incoming_message__verp_fbl_recipient_creates_report(
+        self, org
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        result = await process_incoming_message(
+            "feedback@gmail.com",
+            f"{settings.RELAY_FBL_LOCAL_PART}+019fbe8f-602c-73e0-9a10-00000001@example.com",
+            make_arf_email(),
+            True,
+            domain,
+            IncomingMessage.Status.RECEIVED,
+            "",
+        )
+
+        assert result == "250 OK"
+        report = await FblReport.objects.aget(org=org)
+        assert report.source == "provider"
