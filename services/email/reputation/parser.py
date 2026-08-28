@@ -1,7 +1,14 @@
+from contextlib import suppress
 from datetime import datetime
 from email import message_from_bytes
 
+from abnf import ParseError
+from abnf.grammars.rfc5322 import Rule
+
 from abstract.email_utils import extract_part_text
+
+FIELD_NAME_RULE = Rule("field-name")
+MAX_FIELD_NAME_LENGTH = 255
 
 FBL_FIELD_MAP = {
     "source-ip": "source_ip_address",
@@ -19,10 +26,19 @@ VALID_FEEDBACK_TYPES = frozenset(
 
 
 def parse_fbl(raw_bytes):
-    """Return FBL (Feedback Loop) complaint report fields as a dict.
+    """Return the report fields of an ARF (RFC 5965) message as a dict.
 
-    The report uses the ARF (Abuse Reporting Format, RFC 5965) MIME structure.
-    Raises `ValueError` if no ARF feedback-report content is found.
+    Fields are read leniently: continuation (obs-fold) lines join the
+    preceding value with a single space, the last occurrence of a repeated
+    field wins, and lines that are neither a continuation nor a valid field
+    name (overlong names included) are ignored and end any continuation in
+    progress.
+
+    Feedback-Type defaults to "abuse" when absent or unrecognized,
+    `arrival_at` stays `None` when Arrival-Date is missing or invalid, and
+    `reporting_org` and `reporting_email` come from the message's From
+    header. Raises `ValueError` if the message contains no feedback-report
+    content.
     """
     msg = message_from_bytes(raw_bytes)
     report_data = {
@@ -43,28 +59,46 @@ def parse_fbl(raw_bytes):
     for part in msg.walk():
         match part.get_content_type():
             case "message/feedback-report":
-                body = extract_part_text(part)
-                if body:
+                if body := extract_part_text(part):
+                    # Collect fields before mapping the known ones onto the
+                    # report.
+                    fields: dict[str, list[str]] = {}
+                    key = None
                     for line in body.splitlines():
-                        if ":" in line:
-                            key, value = (s.strip() for s in line.split(":", 1))
-                            key_lower = key.lower()
-                            if key_lower == "feedback-type":
-                                ftype = value.lower().replace(" ", "-")
-                                if ftype in VALID_FEEDBACK_TYPES:
-                                    report_data["feedback_type"] = ftype
-                            elif key_lower == "arrival-date":
+                        if line.startswith((" ", "\t")):
+                            if key is not None and (continuation := line.strip()):
+                                fields[key].append(continuation)
+                        elif ":" in line:
+                            name, _, value = line.partition(":")
+                            name = name.strip()
+                            if len(name) > MAX_FIELD_NAME_LENGTH:
+                                key = None
+                            else:
                                 try:
+                                    FIELD_NAME_RULE.parse_all(name)
+                                except ParseError:
+                                    key = None
+                                else:
+                                    key = name.lower()
+                                    fields[key] = [value.strip()]
+                        else:
+                            key = None
+                    for key, parts in fields.items():
+                        value = " ".join(parts)
+                        match key:
+                            case "feedback-type":
+                                feedback_type = value.lower().replace(" ", "-")
+                                if feedback_type in VALID_FEEDBACK_TYPES:
+                                    report_data["feedback_type"] = feedback_type
+                            case "arrival-date":
+                                with suppress(ValueError):
                                     report_data["arrival_at"] = datetime.fromisoformat(
                                         value
                                     )
-                                except ValueError:
-                                    pass
-                            elif key_lower in FBL_FIELD_MAP:
-                                report_data[FBL_FIELD_MAP[key_lower]] = value
+                            case _ if key in FBL_FIELD_MAP:
+                                report_data[FBL_FIELD_MAP[key]] = value
             case "text/rfc822-headers" | "message/rfc822":
-                body = extract_part_text(part)
-                if body:
+                if body := extract_part_text(part):
                     report_data["original_headers"] = body
 
     if not report_data["source_ip_address"] and not report_data["original_mail_from"]:
