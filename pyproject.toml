@@ -63,7 +63,7 @@ lint.ignore = [
 ]
 
 [tool.pytest]
-addopts = [ "--cov", "--tb=short", "--fail-on-template-vars", "--reuse-db", "-q" ]
+addopts = [ "--tb=short", "--fail-on-template-vars", "--reuse-db", "-q" ]
 asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "root.settings"
 env = [

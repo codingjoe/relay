@@ -91,6 +91,20 @@ Before you finish, always:
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
 
+## Running tests
+
+- `uv run pytest`. The last line is always the outcome summary, e.g.
+  `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
+  to assert results. Nothing is measured by default.
+- `uv run pytest --cov` adds the coverage table. Use
+  `--cov --cov-report=xml` for machine-readable coverage.
+- `--maxfail=3 -n auto` limits failure output and runs tests in parallel.
+- `--collect-only` lists tests without running them; it never reports
+  passed or failed. Outcomes appear only in executed runs.
+- Collection, setup, or usage errors print tracebacks without an outcome
+  summary; environment errors (missing Postgres, missing env vars) are a
+  likely cause. Start the database before reading failures as app bugs.
+
 ## Browser automation
 
 Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
