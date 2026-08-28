@@ -98,7 +98,7 @@ Before you finish, always:
   to assert results. Nothing is measured by default.
 - `uv run pytest --cov` adds the coverage table. Use
   `--cov --cov-report=xml` for machine-readable coverage.
-- `--maxfail=3 -n auto` limits failure output and runs tests in parallel.
+- `--maxfail=3` stops after three failures.
 - `--collect-only` lists tests without running them; it never reports
   passed or failed. Outcomes appear only in executed runs.
 - Collection, setup, or usage errors print tracebacks without an outcome
