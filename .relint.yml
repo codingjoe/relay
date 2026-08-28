@@ -105,7 +105,5 @@
 - name: No indented imports
   pattern: '\n[ \t]+(?:from[ \t]+\S+[ \t]+import[ \t]|import[ \t]+[\w.]+)'
   hint: |
-    Move all imports to the top of the file. Exceptions for Django
-    scaffold and import cycles: `tasks.py`, `apps.py`, `settings.py`,
-    `manage.py`.
+    Move all imports to the top of the file.
   filePattern: '(?!.*(?:/tasks\.py$|/apps\.py$|/settings\.py$|manage\.py$|/tests/|/test_|conftest\.py$)).*\.py$'
