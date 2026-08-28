@@ -7,17 +7,19 @@
   </header>
 
   <div class="grid gap-4 sm:grid-cols-3 mb-6">
-    <section class="card">
-      <h3 class="m-0 text-sm text-muted-foreground">{% translate "status"|capfirst %}</h3>
-      {% if org.suspended_at %}
-        <p class="m-0 text-2xl font-semibold text-destructive">{% translate "suspended"|capfirst %}</p>
-      {% else %}
-        <p class="m-0 text-2xl font-semibold text-primary">{% translate "ok"|capfirst %}</p>
-      {% endif %}
+    <section class="card p-6">
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "status"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold">
+        {% if org.suspended_at %}
+          <span class="text-destructive">{% translate "suspended"|capfirst %}</span>
+        {% else %}
+          <span class="text-primary">{% translate "ok"|capfirst %}</span>
+        {% endif %}
+      </p>
     </section>
-    <section class="card">
-      <h3 class="m-0 text-sm text-muted-foreground">{% translate "hard bounce rate"|capfirst %}</h3>
-      <p class="m-0 text-2xl font-semibold">
+    <section class="card p-6">
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "hard bounce rate"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold">
         {{ stats.hard_bounce_rate|percent:"2" }}
         {% if stats.hard_bounce_rate > bounce_threshold %}
           <i data-lucide="triangle-alert" class="size-4 text-destructive" aria-hidden="true"></i>
@@ -27,16 +29,16 @@
         {% translate "limit"|capfirst %}: {{ bounce_threshold|percent:"2" }}
       </p>
     </section>
-    <section class="card">
-      <h3 class="m-0 text-sm text-muted-foreground">{% translate "complaint rate"|capfirst %}</h3>
-      <p class="m-0 text-2xl font-semibold">
+    <section class="card p-6">
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "complaint rate"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold">
         {{ stats.complaint_rate|percent:"2" }}
         {% if stats.complaint_rate > complaint_threshold %}
           <i data-lucide="triangle-alert" class="size-4 text-destructive" aria-hidden="true"></i>
         {% endif %}
       </p>
       <p class="m-0 text-sm text-muted-foreground">
-        {% translate "limit"|capfirst %}: {{ complaint_threshold|percent:"3" }}
+        {% translate "limit"|capfirst %}: {{ complaint_threshold|percent:"2" }}
       </p>
     </section>
   </div>
