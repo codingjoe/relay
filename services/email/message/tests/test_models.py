@@ -9,7 +9,6 @@ from services.email.mta.models import IncomingMessage
 def create_outgoing(user, org, status=None):
     domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage.objects.create(
-        sender=user,
         org=org,
         domain=domain,
         rcpt_to="bob@example.com",

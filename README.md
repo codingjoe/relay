@@ -1,18 +1,7 @@
-# Relay: B2B SaaS Communication Platform
+# relay: Developer-First IT Infrastructure
 
-A B2B SaaS communication platform for AI applications.
-The platform has a **built-in authoritative nameserver**
-that removes manual DNS configuration.
-
-## How It Works
-
-Users only need to set **two DNS records**:
-
-1. **NS delegation**. Delegate the sender subdomain to our nameservers
-1. **DMARC record**. On the root domain
-
-Everything else (MX, SPF, DKIM, Return-Path) is **served automatically**
-by the built-in nameserver. You do not need to use the DNS provider dashboard.
+A developer-first IT infrastructure provider. We build superior products and
+enable our clients to build AAA applications on top of them.
 
 ## Managed Sender Domain
 

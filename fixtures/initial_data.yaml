@@ -186,24 +186,18 @@
 - model: msa.outgoingmessage
   pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: sent
 - model: msa.outgoingmessage
   pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: sent
 - model: msa.outgoingmessage
   pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: sent
@@ -580,8 +574,6 @@
 - model: msa.outgoingmessage
   pk: 019fbe8f-5f6c-7190-8625-4fb14169749e
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: pending
@@ -605,8 +597,6 @@
 - model: msa.outgoingmessage
   pk: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: bounced
@@ -630,8 +620,6 @@
 - model: msa.outgoingmessage
   pk: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
   fields:
-    sender:
-      - test
     domain: 2
     credential: 1
     status: failed

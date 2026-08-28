@@ -27,7 +27,7 @@ class TestHandleData:
         from services.email.msa.handlers import SMTPHandler
 
         handler = SMTPHandler()
-        session = SimpleNamespace(credential=None, sender=None)
+        session = SimpleNamespace(credential=None)
         result = await handler.handle_DATA(None, session, SimpleNamespace())
         assert result == "530 Authentication required"
 
@@ -59,7 +59,7 @@ class TestHandleAuth:
         MsaCredential.objects.create_with_key(org=org, name="test")
         handler = SMTPHandler()
         session = SimpleNamespace()
-        encoded = base64.b64encode(b"\0alice\0wrongkey12345678")
+        encoded = base64.b64encode(b"\0test-org\0wrongkey12345678")
         result = await handler.handle_AUTH(
             None, session, None, ["PLAIN", encoded.decode()]
         )
@@ -72,13 +72,12 @@ class TestHandleAuth:
         _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         handler = SMTPHandler()
         session = SimpleNamespace()
-        encoded = base64.b64encode(f"\0alice\0{raw_key}".encode())
+        encoded = base64.b64encode(f"\0test-org\0{raw_key}".encode())
         result = await handler.handle_AUTH(
             None, session, None, ["PLAIN", encoded.decode()]
         )
         assert result == "235 Authentication successful"
         assert session.credential is not None
-        assert session.sender == user
 
 
 @pytest.mark.django_db(transaction=True)
@@ -156,7 +155,6 @@ class TestProcessMessage:
             message.as_bytes(),
             message,
             credential,
-            user,
             False,
             "",
         )
@@ -188,7 +186,6 @@ class TestProcessMessage:
             message.as_bytes(),
             message,
             credential,
-            other_user,
             False,
             "",
         )
@@ -214,7 +211,6 @@ class TestProcessMessage:
             message.as_bytes(),
             message,
             credential,
-            user,
             False,
             "",
         )
@@ -269,7 +265,6 @@ class TestProcessMessage:
                 message.as_bytes(),
                 message,
                 credential,
-                user,
                 True,
                 "",
             )
@@ -301,7 +296,6 @@ class TestProcessMessage:
                 message.as_bytes(),
                 message,
                 credential,
-                user,
                 False,
                 "",
             )
@@ -329,7 +323,6 @@ class TestProcessMessage:
                 message.as_bytes(),
                 message,
                 credential,
-                user,
                 False,
                 "",
             )
@@ -347,7 +340,7 @@ class TestAuthenticate:
         from services.email.msa.handlers import authenticate
 
         _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
-        result = await authenticate(user.username, raw_key)
+        result = await authenticate(org.slug, raw_key)
         assert result is not None
         assert result.org == org
 
@@ -355,14 +348,14 @@ class TestAuthenticate:
         from services.email.msa.handlers import authenticate
 
         MsaCredential.objects.create_with_key(org=org, name="test")
-        result = await authenticate(user.username, "wrongkey12345678")
+        result = await authenticate(org.slug, "wrongkey12345678")
         assert result is None
 
-    async def test_authenticate__returns_none_for_unknown_user(self, user, org):
+    async def test_authenticate__returns_none_for_unknown_org(self, user, org):
         from services.email.msa.handlers import authenticate
 
         _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
-        result = await authenticate("unknownuser", raw_key)
+        result = await authenticate("unknown-org", raw_key)
         assert result is None
 
     async def test_authenticate__returns_none_for_held_credential(self, user, org):
@@ -371,7 +364,7 @@ class TestAuthenticate:
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         cred.hold = True
         cred.save(update_fields=["hold"])
-        result = await authenticate(user.username, raw_key)
+        result = await authenticate(org.slug, raw_key)
         assert result is None
 
 
