@@ -71,6 +71,13 @@ class TestDomainPropertiesNoDb:
             == "mail.relay.acme.open.localhost"
         )
 
+    def test_fbl_reporting_address__uses_fbl_local_part(self):
+        from django.conf import settings
+
+        assert Domain(name="example.com").fbl_reporting_address == (
+            f"{settings.RELAY_FBL_LOCAL_PART}@mail.relay.example.com"
+        )
+
     def test_spf_record__includes_spf_include(self):
         record = Domain(name="example.com").root_spf_record
         assert "v=spf1" in record

@@ -136,6 +136,38 @@ class TestCheckOrgReputationLock:
         org.refresh_from_db()
         assert not org.reputation_locked
 
+    def test_check_org_reputation__skips_notification_when_already_locked(
+        self, org, user, mailoutbox, settings
+    ):
+        from django.core.files.base import ContentFile
+
+        from accounts.models import Organization
+        from services.email.msa.models import OutgoingMessage, Transmission
+        from services.email.reputation.evaluation import check_org_reputation
+
+        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        Organization.objects.filter(pk=org.pk).update(reputation_locked=True)
+        message = OutgoingMessage(
+            sender=user,
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            status=OutgoingMessage.Status.SENT,
+        )
+        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
+        message.save(force_insert=True)
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+        )
+
+        check_org_reputation(org)
+
+        org.refresh_from_db()
+        assert org.reputation_locked
+        assert len(mailoutbox) == 0
+
 
 @pytest.mark.django_db
 class TestComputeOrgReputationComplaintSources:

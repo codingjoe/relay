@@ -90,3 +90,33 @@ class TestOutgoingMessageGetAbsoluteUrl:
         url = msg.get_absolute_url()
         assert url is not None
         assert f"/org/{org.slug}/email/messages/{msg.id}" in url
+
+
+class TestTransmissionStatusBadgeVariant:
+    @pytest.mark.parametrize(
+        ("status", "expected"),
+        [
+            (Transmission.Status.SENT, "primary"),
+            (Transmission.Status.DELIVERED, "primary"),
+            (Transmission.Status.FAILED, "destructive"),
+            (Transmission.Status.BOUNCED, "destructive"),
+            (Transmission.Status.RETRY, "outline"),
+        ],
+    )
+    def test_badge_variant(self, status, expected):
+        assert Transmission(status=status).status_badge_variant == expected
+
+
+class TestTransmissionBounceType:
+    @pytest.mark.parametrize(
+        ("status", "code", "expected"),
+        [
+            (Transmission.Status.BOUNCED, 550, "hard"),
+            (Transmission.Status.BOUNCED, 450, "soft"),
+            (Transmission.Status.BOUNCED, None, ""),
+            (Transmission.Status.SENT, 550, ""),
+            (Transmission.Status.SENT, None, ""),
+        ],
+    )
+    def test_bounce_type(self, status, code, expected):
+        assert Transmission(status=status, code=code).bounce_type == expected

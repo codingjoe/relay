@@ -96,6 +96,24 @@ class TestDomainQuerySet:
             )
 
 
+class TestRootForInvalidInput:
+    """Malformed names fail closed without touching the database."""
+
+    def test_root_for__invalid_idna_raises_does_not_exist(self):
+        with pytest.raises(Domain.DoesNotExist):
+            Domain.objects.root_for(
+                "\udcff",
+                include_managed=False,
+            )
+
+    def test_root_for__empty_name_raises_does_not_exist(self):
+        with pytest.raises(Domain.DoesNotExist):
+            Domain.objects.root_for(
+                "",
+                include_managed=False,
+            )
+
+
 class TestResolvePublicHostname:
     def test_resolve_records__public_smtp_hostname_a_records_without_domain(self):
         records = DNSResolver().resolve_records(

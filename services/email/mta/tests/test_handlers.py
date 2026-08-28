@@ -3,13 +3,17 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core import mail
 
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
+from services.email.dmarc.types import Disposition, DmarcEvaluation
 from services.email.mta.handlers import MXHandler, process_incoming_message
 from services.email.mta.models import IncomingMessage, TlsReport
+from services.email.reputation.models import FblReport
 
 
 def make_raw_email(subject="Postmaster alert"):
@@ -226,3 +230,153 @@ class TestProcessIncomingMessageReports:
         report = await report_model.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
+
+
+def make_dmarc_evaluation(disposition):
+    from services.email.dmarc.types import Alignment, AuthResult
+
+    return DmarcEvaluation(
+        source_ip_address="192.0.2.1",
+        header_from="example.com",
+        envelope_from="example.org",
+        dkim_domain="",
+        dkim_result=AuthResult.FAIL,
+        dkim_alignment=Alignment.FAIL,
+        spf_domain="example.org",
+        spf_result=AuthResult.FAIL,
+        spf_alignment=Alignment.FAIL,
+        disposition=disposition,
+    )
+
+
+class TestMXHandlerData:
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__rejects_on_dmarc_reject(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "services.email.dmarc.types.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.REJECT),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "550 Message rejected by DMARC policy"
+        assert not await IncomingMessage.objects.aexists()
+        spam_task.enqueue.assert_not_called()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__quarantines_on_dmarc_quarantine(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "services.email.dmarc.types.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.QUARANTINE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam"),
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert message.status == IncomingMessage.Status.QUARANTINED
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__accepts_on_dmarc_none(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "services.email.dmarc.types.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert message.status == IncomingMessage.Status.RECEIVED
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(message.id), client_ip="127.0.0.1"
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__accepts_string_content_without_peer(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email().decode(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=None, ssl=False)
+
+        with (
+            patch(
+                "services.email.dmarc.types.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ) as mock_evaluation,
+            patch("services.email.mta.handlers.check_incoming_spam"),
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        assert await IncomingMessage.objects.filter(domain=domain).aexists()
+        raw_bytes = mock_evaluation.call_args.args[0]
+        assert isinstance(raw_bytes, bytes)
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__fbl_recipient_skips_spam_check(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="feedback@gmail.com",
+            rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "services.email.dmarc.types.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        content_type = await sync_to_async(ContentType.objects.get_for_model)(
+            IncomingMessage
+        )
+        assert result == "250 OK"
+        assert await IncomingMessage.objects.filter(
+            rcpt_to=f"{settings.RELAY_FBL_LOCAL_PART}@example.com",
+            content_type=content_type,
+        ).aexists()
+        assert await FblReport.objects.filter(org=org).aexists()
+        spam_task.enqueue.assert_not_called()

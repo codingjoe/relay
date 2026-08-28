@@ -103,3 +103,24 @@ class TestParseFbl:
         result = parse_fbl(msg.as_bytes())
         assert result["arrival_at"] is None
         assert result["source_ip_address"] == "10.0.0.3"
+
+    def test_parse_fbl__skips_empty_and_unparseable_parts(self):
+        msg = EmailMessage()
+        msg["Subject"] = "FBL Report"
+        msg["From"] = "feedback@gmail.com"
+        msg.set_content("Complaint")
+        msg.add_attachment(b"", maintype="message", subtype="feedback-report")
+        msg.add_attachment(
+            b"not a header line\n"
+            b"Incident-Name: spam\n"
+            b"Feedback-Type: nonsense\n"
+            b"Feedback-Type: abuse\n"
+            b"Source-IP: 10.0.0.4\n",
+            maintype="message",
+            subtype="feedback-report",
+        )
+        msg.add_attachment(b"", maintype="text", subtype="rfc822-headers")
+        result = parse_fbl(msg.as_bytes())
+        assert result["feedback_type"] == "abuse"
+        assert result["source_ip_address"] == "10.0.0.4"
+        assert result["original_headers"] == ""

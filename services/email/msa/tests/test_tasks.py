@@ -307,3 +307,128 @@ class TestCheckOutgoingSpam:
         assert msg.status == OutgoingMessage.Status.PENDING
         assert msg.spam_score == 0.0
         assert not Transmission.objects.filter(message=msg).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+class TestDeliverMessageFailureModes:
+    @staticmethod
+    def make_message(user, org, domain, rcpt_to="bob@example.com"):
+        msg = OutgoingMessage.objects.create(
+            sender=user,
+            org=org,
+            rcpt_to=rcpt_to,
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+        return msg
+
+    def test_deliver_message__fails_for_non_canonical_sender_domain(self, user, org):
+        from services.email.msa.tasks import deliver_message
+
+        # bulk_create bypasses save()/clean(), so the stored name stays
+        # non-canonical and no longer matches the resolved root domain.
+        (domain,) = Domain.objects.bulk_create([Domain(name="Example.com", org=org)])
+        msg = self.make_message(user, org, domain)
+
+        with (
+            patch("domains.dkim.sign_message") as mock_sign,
+            patch("services.email.msa.tasks.aiosmtplib.send") as mock_send,
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        mock_sign.assert_not_called()
+        mock_send.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.FAILED
+        assert Transmission.objects.filter(
+            message=msg,
+            status=Transmission.Status.FAILED,
+            details__contains="does not match",
+        ).exists()
+
+    def test_deliver_message__skips_hosts_blocked_by_mta_sts(
+        self, user, org, dns_resolver
+    ):
+        from services.email.msa.tasks import deliver_message
+
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+
+        with (
+            patch("services.email.msa.tasks.MtaStsPolicy") as mock_policy,
+            patch("services.email.msa.tasks.aiosmtplib.send") as mock_send,
+            patch("domains.dkim.sign_message", return_value=b"signed"),
+        ):
+            mock_policy.get.return_value.allows.return_value = (
+                False,
+                "STS policy blocked",
+            )
+            deliver_message.func(message_id=str(msg.id))
+
+        mock_policy.get.return_value.allows.assert_called_once_with("mx.example.com")
+        mock_send.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.FAILED
+        assert Transmission.objects.filter(
+            message=msg,
+            status=Transmission.Status.FAILED,
+            details__contains="All MX hosts failed",
+        ).exists()
+
+    def test_deliver_message__temporary_smtp_error_fails_message(
+        self, user, org, dns_resolver
+    ):
+        import aiosmtplib
+
+        from services.email.msa.tasks import deliver_message
+
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+
+        exc = aiosmtplib.SMTPResponseException(450, b"Try again later")
+        with (
+            patch("services.email.msa.tasks.aiosmtplib.send", side_effect=exc),
+            patch("domains.dkim.sign_message", return_value=b"signed"),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.FAILED
+        assert Transmission.objects.filter(
+            message=msg, status=Transmission.Status.FAILED
+        ).exists()
+
+    def test_deliver_message__exhausts_all_mx_hosts_on_smtp_exception(
+        self, user, org, dns_resolver
+    ):
+        import aiosmtplib
+
+        from services.email.msa.tasks import deliver_message
+
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add(
+            "example.com", "MX", "10 mx1.example.com.", "20 mx2.example.com."
+        )
+
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.send",
+                side_effect=aiosmtplib.SMTPException("nope"),
+            ) as mock_send,
+            patch("domains.dkim.sign_message", return_value=b"signed"),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        assert mock_send.call_count == 2
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.FAILED
+        assert Transmission.objects.filter(
+            message=msg,
+            status=Transmission.Status.FAILED,
+            details__contains="All MX hosts failed for example.com",
+        ).exists()
