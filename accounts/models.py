@@ -32,16 +32,11 @@ class Organization(TimeStamped):
         through="Membership",
         related_name="organizations",
     )
-    reputation_locked = models.BooleanField(
-        _("reputation locked"),
-        default=False,
-        help_text=_("Locked organizations cannot send outgoing messages."),
-    )
-    reputation_locked_at = models.DateTimeField(
-        _("reputation locked at"),
+    suspended_at = models.DateTimeField(
+        _("suspended at"),
         null=True,
         blank=True,
-        help_text=_("When the organization was locked for sender reputation."),
+        help_text=_("Suspended organizations cannot send outgoing messages."),
     )
 
     billing_is_active = True

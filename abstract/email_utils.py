@@ -7,28 +7,22 @@ from email import message_from_bytes
 
 def extract_part_text(part):
     """Extract text content from a MIME part, including sub-messages and base64 data."""
-    if not part.is_multipart():
-        payload = part.get_payload(decode=True)
-        if payload is None:
-            return ""
-        return payload.decode("utf-8", errors="replace")
-    # Handle message/* parts parsed as multipart by Python's email parser
-    sub_payloads = (
-        payload
-        for sub in part.get_payload()
-        if (payload := sub.get_payload(decode=True)) is not None
-    )
-    for payload in sub_payloads:
-        # Python's email parser may return base64 bytes when CTE is set
-        # but the sub-message structure doesn't honor it
-        try:
-            stripped = bytes(payload).strip()
-            decoded = base64.b64decode(stripped)
-            re_encoded = base64.b64encode(decoded)
-            if re_encoded == stripped.replace(b"\n", b"").replace(b"\r", b""):
-                payload = decoded
-        except ValueError, TypeError:
-            pass  # payload is not base64-encoded, use as-is
+    if part.is_multipart():
+        for sub in part.get_payload():
+            if payload := sub.get_payload(decode=True):
+                # Python's email parser may return base64 bytes when CTE is set
+                # but the sub-message structure doesn't honor it
+                try:
+                    stripped = bytes(payload).strip()
+                    decoded = base64.b64decode(stripped)
+                    re_encoded = base64.b64encode(decoded)
+                    if re_encoded == stripped.replace(b"\n", b"").replace(b"\r", b""):
+                        payload = decoded
+                except ValueError, TypeError:
+                    pass  # payload is not base64-encoded, use as-is
+                return payload.decode("utf-8", errors="replace")
+        return ""
+    if payload := part.get_payload(decode=True):
         return payload.decode("utf-8", errors="replace")
     return ""
 

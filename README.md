@@ -43,36 +43,6 @@ All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
 per-domain delegation is necessary.
 
-## Reputation limits
-
-Reputation limits apply **per account (organization)**, not per domain,
-because bounces and complaints affect the platform's sending IPs. The
-reputation page in the sidebar shows the lock status and the current rates.
-
-A rolling window counts every outgoing message of the account and, against
-it:
-
-- **Hard bounces**. Transmissions the receiving server rejected with an SMTP
-  5xx response. Soft bounces (4xx) are shown but do not count.
-- **Complaints**. Feedback loop reports received from email providers, plus
-  outgoing messages relay holds as spam.
-
-Once an account has sent at least `RELAY_REPUTATION_MIN_VOLUME` messages in
-the window, it locks when the hard-bounce rate or the complaint rate exceeds
-its threshold. A lock never clears automatically. A locked account cannot
-send: new SMTP submissions are rejected with
-`550 Account locked due to sender reputation`, and queued messages are
-dropped. Org admins and platform staff receive an email when an account
-locks. Staff unlock the account with the **Unlock reputation** action on the
-organization page in the Django admin.
-
-| Variable                                    | Default | Description                                |
-| ------------------------------------------- | ------- | ------------------------------------------ |
-| `RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD`    | `0.05`  | Hard-bounce rate that locks the account.   |
-| `RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD` | `0.001` | Complaint rate that locks the account.     |
-| `RELAY_REPUTATION_WINDOW_DAYS`              | `7`     | Rolling window length in days.             |
-| `RELAY_REPUTATION_MIN_VOLUME`               | `100`   | Messages required before thresholds apply. |
-
 ## Architecture
 
 ```

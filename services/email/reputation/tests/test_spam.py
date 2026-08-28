@@ -101,8 +101,7 @@ class TestCheckOrgReputationLock:
         check_org_reputation(org)
 
         org.refresh_from_db()
-        assert org.reputation_locked
-        assert org.reputation_locked_at is not None
+        assert org.suspended_at is not None
         assert len(mailoutbox) == 1
         assert mailoutbox[0].to == ["alice@example.com"]
 
@@ -130,7 +129,7 @@ class TestCheckOrgReputationLock:
         check_org_reputation(org)
 
         org.refresh_from_db()
-        assert not org.reputation_locked
+        assert org.suspended_at is None
 
     def test_check_org_reputation__skips_notification_when_already_locked(
         self, org, user, mailoutbox, settings
@@ -142,7 +141,9 @@ class TestCheckOrgReputationLock:
         from services.email.reputation.evaluation import check_org_reputation
 
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        Organization.objects.filter(pk=org.pk).update(reputation_locked=True)
+        from django.utils import timezone
+
+        Organization.objects.filter(pk=org.pk).update(suspended_at=timezone.now())
         message = OutgoingMessage(
             org=org,
             mail_from="sender@acme.com",
@@ -160,7 +161,7 @@ class TestCheckOrgReputationLock:
         check_org_reputation(org)
 
         org.refresh_from_db()
-        assert org.reputation_locked
+        assert org.suspended_at is not None
         assert len(mailoutbox) == 0
 
 
@@ -274,7 +275,7 @@ class TestReputationSignals:
             )
 
         org.refresh_from_db()
-        assert org.reputation_locked
+        assert org.suspended_at is not None
 
     def test_soft_bounce_does_not_trigger_check(
         self, django_capture_on_commit_callbacks, org, user, settings
@@ -292,7 +293,7 @@ class TestReputationSignals:
             )
 
         org.refresh_from_db()
-        assert not org.reputation_locked
+        assert org.suspended_at is None
 
     def test_held_message_triggers_lock(
         self, django_capture_on_commit_callbacks, org, user, settings
@@ -316,7 +317,7 @@ class TestReputationSignals:
             message.save(update_fields=["status"])
 
         org.refresh_from_db()
-        assert org.reputation_locked
+        assert org.suspended_at is not None
 
     def test_regular_send_does_not_trigger_check(
         self, django_capture_on_commit_callbacks, org, user, settings
@@ -338,16 +339,17 @@ class TestReputationSignals:
             message.save(force_insert=True)
 
         org.refresh_from_db()
-        assert not org.reputation_locked
+        assert org.suspended_at is None
 
     def test_held_message_creates_and_sends_relay_fbl_report(
-        self, org, user, mailoutbox
+        self, org, user, mailoutbox, settings
     ):
         from django.core.files.base import ContentFile
 
         from domains.models import Domain
         from services.email.msa.models import OutgoingMessage
 
+        settings.RELAY_FBL_REPORTING_ADDRESS = "fbl@relay.local"
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage(
             org=org,

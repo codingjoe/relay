@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from domains.models import Domain
 from services.email.msa.models import OutgoingMessage, Transmission
@@ -204,8 +205,8 @@ class TestDeliverMessage:
         message.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         message.save()
 
-        org.reputation_locked = True
-        org.save(update_fields=["reputation_locked", "modified_at"])
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at", "modified_at"])
 
         with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
             deliver_message.func(message_id=str(message.id))
@@ -213,12 +214,17 @@ class TestDeliverMessage:
         mock_send.assert_not_called()
         message.refresh_from_db()
         assert message.status == OutgoingMessage.Status.DROPPED
-        assert not Transmission.objects.filter(message=message).exists()
+        transmission = Transmission.objects.get(message=message)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.code == 550
+        assert transmission.output == "550 Account suspended due to sender reputation"
 
 
 @pytest.mark.django_db(transaction=True)
 class TestCheckOutgoingSpam:
-    def test_check_outgoing_spam__drops_queued_messages_of_locked_org(self, user, org):
+    def test_check_outgoing_spam__drops_queued_messages_of_suspended_org(
+        self, user, org
+    ):
         from services.email.msa.tasks import check_outgoing_spam
 
         domain = Domain.objects.get(org=org)
@@ -231,14 +237,17 @@ class TestCheckOutgoingSpam:
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
 
-        org.reputation_locked = True
-        org.save(update_fields=["reputation_locked", "modified_at"])
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at", "modified_at"])
 
         check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
 
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.DROPPED
-        assert not Transmission.objects.filter(message=msg).exists()
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.code == 550
+        assert transmission.output == "550 Account suspended due to sender reputation"
 
     def test_check_outgoing_spam__holds_spam(self, user, org):
         from services.email.msa.tasks import check_outgoing_spam

@@ -10,11 +10,6 @@ from . import tasks
 from .models import FblReport
 
 
-def enqueue_org_reputation_check(org_id):
-    """Schedule a reputation check after the surrounding transaction commits."""
-    transaction.on_commit(lambda: tasks.check_org_reputation.enqueue(org_id=org_id))
-
-
 @receiver(post_save, sender=Transmission)
 def check_reputation_on_hard_bounce(sender, instance, **kwargs):
     """Queue a reputation check when a transmission hard bounces."""
@@ -23,7 +18,8 @@ def check_reputation_on_hard_bounce(sender, instance, **kwargs):
         and instance.code
         and instance.code >= 500
     ):
-        enqueue_org_reputation_check(instance.message.org_id)
+        org_id = instance.message.org_id
+        transaction.on_commit(lambda: tasks.check_org_reputation.enqueue(org_id=org_id))
 
 
 @receiver(post_save, sender=OutgoingMessage)
@@ -35,7 +31,9 @@ def check_reputation_on_held_message(sender, instance, **kwargs):
     if held_as_spam:
         FblReport.create_for_spam(instance)
         FblReport.send_fbl_report(instance)
-        enqueue_org_reputation_check(instance.org_id)
+        transaction.on_commit(
+            lambda: tasks.check_org_reputation.enqueue(org_id=instance.org_id)
+        )
 
 
 @receiver(post_save, sender=IncomingMessage)

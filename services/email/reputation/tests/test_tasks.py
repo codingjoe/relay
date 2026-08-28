@@ -60,7 +60,7 @@ class TestParseFblReport:
         assert str(report.source_ip_address) == "192.0.2.1"
         assert report.original_mail_from == "sender@acme.com"
         assert report.original_rcpt_to == "victim@gmail.com"
-        assert not Organization.objects.get(pk=org.pk).reputation_locked
+        assert Organization.objects.get(pk=org.pk).suspended_at is None
 
     def test_parse_fbl_report__leaves_non_arf_report_unparsed(self, org):
         report = make_report(org, b"Not an ARF email")
@@ -94,8 +94,7 @@ class TestParseFblReport:
         parse_fbl_report.func(report_pk=report.pk)
 
         org.refresh_from_db()
-        assert org.reputation_locked
-        assert org.reputation_locked_at is not None
+        assert org.suspended_at is not None
         assert len(mailoutbox) == 1
         assert mailoutbox[0].to == ["alice@example.com"]
 

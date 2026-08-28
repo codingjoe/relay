@@ -3,7 +3,7 @@ from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 
 from domains.models import Domain
@@ -83,7 +83,7 @@ def process_incoming_message(
                 received_with_tls=bool(tls),
                 report_id="",
             )
-            report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
+            report.raw_body = SimpleUploadedFile(f"{report.id}.eml", raw_bytes)
             report.save(force_insert=True)
             transaction.on_commit(
                 lambda: parse_dmarc_report.enqueue(report_pk=report.pk)
@@ -102,7 +102,7 @@ def process_incoming_message(
                 received_with_tls=bool(tls),
                 report_id="",
             )
-            report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
+            report.raw_body = SimpleUploadedFile(f"{report.id}.eml", raw_bytes)
             report.save(force_insert=True)
             transaction.on_commit(lambda: parse_tls_report.enqueue(report_pk=report.pk))
             return "250 OK"
@@ -121,7 +121,7 @@ def process_incoming_message(
                 message_id=msg.get("Message-ID", ""),
                 received_with_tls=bool(tls),
             )
-            report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
+            report.raw_body = SimpleUploadedFile(f"{report.id}.eml", raw_bytes)
             report.save(force_insert=True)
             transaction.on_commit(
                 lambda: parse_dmarc_failure_report.enqueue(report_pk=report.pk)
@@ -140,11 +140,7 @@ def process_incoming_message(
                 received_with_tls=bool(tls),
                 status=status,
             )
-            message.raw_body.save(
-                f"{message.id}.eml",
-                ContentFile(raw_bytes),
-                save=False,
-            )
+            message.raw_body = SimpleUploadedFile(f"{message.id}.eml", raw_bytes)
             message.save(force_insert=True)
             return "250 OK"
 
@@ -162,11 +158,7 @@ def process_incoming_message(
         received_with_tls=bool(tls),
         status=status,
     )
-    message.raw_body.save(
-        f"{message.id}.eml",
-        ContentFile(raw_bytes),
-        save=False,
-    )
+    message.raw_body = SimpleUploadedFile(f"{message.id}.eml", raw_bytes)
     message.save(force_insert=True)
     transaction.on_commit(
         lambda: check_incoming_spam.enqueue(

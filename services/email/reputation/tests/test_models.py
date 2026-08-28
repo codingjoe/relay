@@ -1,7 +1,6 @@
 from email.message import EmailMessage
 
 import pytest
-from django.conf import settings
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
@@ -174,15 +173,21 @@ class TestFblReportSendFblReport:
         message.save(force_insert=True)
         return message
 
-    def test_send_fbl_report__skips_unregistered_sender_domain(self, org, mailoutbox):
-        domain = Domain.objects.create(name="example.com", org=org)
+    def test_send_fbl_report__skips_when_no_reporting_address(
+        self, org, mailoutbox, settings
+    ):
+        settings.RELAY_FBL_REPORTING_ADDRESS = ""
+        domain = Domain.objects.create(name="acme.com", org=org)
         message = self.make_quarantined_message(org, domain)
 
         FblReport.send_fbl_report(message)
 
         assert mailoutbox == []
 
-    def test_send_fbl_report__sends_arf_with_original_headers(self, org, mailoutbox):
+    def test_send_fbl_report__sends_arf_with_original_headers(
+        self, org, mailoutbox, settings
+    ):
+        settings.RELAY_FBL_REPORTING_ADDRESS = "fbl@relay.local"
         domain = Domain.objects.create(name="acme.com", org=org)
         message = self.make_quarantined_message(
             org, domain, raw_bytes=make_arf_report_email()
@@ -192,7 +197,7 @@ class TestFblReportSendFblReport:
 
         assert len(mailoutbox) == 1
         email = mailoutbox[0]
-        assert email.to == [domain.fbl_reporting_address]
+        assert email.to == ["fbl@relay.local"]
         assert email.subject == "FBL report for acme.com"
         assert email.from_email == (
             f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}"
@@ -209,8 +214,9 @@ class TestFblReportSendFblReport:
         assert "Subject: Buy now" in headers_part.get_payload()
 
     def test_send_fbl_report__without_raw_body_omits_original_headers(
-        self, org, mailoutbox
+        self, org, mailoutbox, settings
     ):
+        settings.RELAY_FBL_REPORTING_ADDRESS = "fbl@relay.local"
         domain = Domain.objects.create(name="acme.com", org=org)
         message = self.make_quarantined_message(org, domain)
 

@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import TypedDict
 
 from django.conf import settings
-from django.core.mail import mail_admins, send_mail
+from django.core.mail import mail_managers
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -89,8 +89,8 @@ def check_org_reputation(org: Organization) -> ReputationStats:
         return stats
 
     now = timezone.now()
-    updated = Organization.objects.filter(pk=org.pk, reputation_locked=False).update(
-        reputation_locked=True, reputation_locked_at=now, modified_at=now
+    updated = Organization.objects.filter(pk=org.pk, suspended_at__isnull=True).update(
+        suspended_at=now, modified_at=now
     )
     if updated:
         notify_org_locked(org, stats)
@@ -98,10 +98,10 @@ def check_org_reputation(org: Organization) -> ReputationStats:
 
 
 def notify_org_locked(org: Organization, stats: ReputationStats):
-    """Email the organization admins and platform staff about the lock."""
-    subject = _("Your account was locked due to sender reputation")
+    """Email the organization admins and platform staff about the suspension."""
+    subject = _("Your account was suspended due to sender reputation")
     message = _(
-        "Your organization was locked because outgoing messages exceeded "
+        "Your organization was suspended because outgoing messages exceeded "
         "the bounce or complaint rate threshold. Bounces: %(hard_bounces)s, "
         "complaints: %(complaints)s, messages sent: %(total_sent)s over the "
         "last %(days)s days. New submissions are rejected and queued "
@@ -112,17 +112,11 @@ def notify_org_locked(org: Organization, stats: ReputationStats):
         "total_sent": stats["total_sent"],
         "days": settings.RELAY_REPUTATION_WINDOW_DAYS,
     }
-    recipients = [
-        membership.user.email
-        for membership in Membership.objects.filter(
-            org=org,
-            role=Membership.Role.ADMIN,
-        ).select_related("user")
-    ]
-    send_mail(
-        subject,
-        message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
-    )
-    mail_admins(subject, message)
+    for membership in Membership.objects.filter(
+        org=org,
+        role=Membership.Role.ADMIN,
+    ).select_related("user"):
+        membership.user.email_user(
+            subject, message, from_email=settings.DEFAULT_FROM_EMAIL
+        )
+    mail_managers(subject, message)

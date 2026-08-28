@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from domains.models import Domain
 from services.email.msa.models import (
@@ -223,8 +224,8 @@ class TestProcessMessage:
     ):
         from services.email.msa.handlers import process_message
 
-        org.reputation_locked = True
-        await org.asave(update_fields=["reputation_locked", "modified_at"])
+        org.suspended_at = timezone.now()
+        await org.asave(update_fields=["suspended_at", "modified_at"])
         domain = Domain.objects.get(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
         message = make_email(f"alice@{domain.name}", user.email)
@@ -239,7 +240,7 @@ class TestProcessMessage:
             "",
         )
 
-        assert result == "550 Account locked due to sender reputation"
+        assert result == "550 Account suspended due to sender reputation"
         assert not await OutgoingMessage.objects.filter(org=org).aexists()
 
     async def test_process_message__allows_member_recipient_case_insensitively(

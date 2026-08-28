@@ -332,10 +332,6 @@ class Domain(TimeStamped):
         return f"{settings.RELAY_TLS_REPORT_LOCAL_PART}@{self.sender_domain}"
 
     @property
-    def fbl_reporting_address(self):
-        return f"{settings.RELAY_FBL_LOCAL_PART}@{self.sender_domain}"
-
-    @property
     def dmarc_record(self):
         """Return the DMARC record for the root domain, with rua/ruf pointing to the sender subdomain."""
         return (

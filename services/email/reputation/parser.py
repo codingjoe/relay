@@ -41,8 +41,7 @@ def parse_fbl(raw_bytes):
     }
 
     for part in msg.walk():
-        ct = part.get_content_type()
-        match ct:
+        match part.get_content_type():
             case "message/feedback-report":
                 body = extract_part_text(part)
                 if body:

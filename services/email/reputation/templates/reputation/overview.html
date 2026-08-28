@@ -14,9 +14,9 @@
         <tr>
           <th>{% translate "status"|capfirst %}</th>
           <td>
-            {% if org.reputation_locked %}
+            {% if org.suspended_at %}
               <span class="badge" data-size="sm" data-variant="destructive">
-                {% translate "locked"|capfirst %}
+                {% translate "suspended"|capfirst %}
               </span>
             {% else %}
               <span class="badge" data-size="sm" data-variant="primary">
@@ -25,10 +25,10 @@
             {% endif %}
           </td>
         </tr>
-        {% if org.reputation_locked %}
+        {% if org.suspended_at %}
           <tr>
-            <th>{% translate "locked at"|capfirst %}</th>
-            <td>{{ org.reputation_locked_at }}</td>
+            <th>{% translate "suspended at"|capfirst %}</th>
+            <td>{{ org.suspended_at }}</td>
           </tr>
           <tr>
             <th class="w-0 whitespace-nowrap">{% translate "what this means"|capfirst %}</th>

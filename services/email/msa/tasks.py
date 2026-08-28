@@ -6,7 +6,7 @@ import dns.resolver
 import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.tasks import task
 from threadmill.retry import ExponentialBackoff
 
@@ -26,9 +26,17 @@ def deliver_message(message_id):
     from .models import OutgoingMessage, SuppressionEntry, Transmission
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
-    if message.org.reputation_locked:
+    if message.org.suspended_at:
+        from .models import Transmission
+
         message.status = OutgoingMessage.Status.DROPPED
         message.save(update_fields=["status", "modified_at"])
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.FAILED,
+            code=550,
+            output="550 Account suspended due to sender reputation",
+        )
         return
 
     try:
@@ -60,10 +68,8 @@ def deliver_message(message_id):
             f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
             f"@{message.domain.sender_domain}"
         )
-        message.raw_body.save(
-            message.raw_body.name.split("/")[-1],
-            ContentFile(raw_bytes),
-            save=False,
+        message.raw_body = SimpleUploadedFile(
+            message.raw_body.name.split("/")[-1], raw_bytes
         )
         message.save(update_fields=["raw_body"])
 
@@ -170,9 +176,17 @@ def check_outgoing_spam(message_pk, client_ip):
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
-    if message.org.reputation_locked:
+    if message.org.suspended_at:
+        from .models import Transmission
+
         message.status = OutgoingMessage.Status.DROPPED
         message.save(update_fields=["status", "modified_at"])
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.FAILED,
+            code=550,
+            output="550 Account suspended due to sender reputation",
+        )
         return
 
     raw_bytes = message.raw_body.read()

@@ -10,7 +10,6 @@
           <thead>
             <tr>
               <th>{% translate "status"|capfirst context "noun" %}</th>
-              <th>{% translate "bounce type"|capfirst %}</th>
               <th>{% translate "code"|capfirst context "noun" %}</th>
               <th>{% translate "sent"|capfirst %}</th>
               <th>{% translate "SSL"|capfirst %}</th>
@@ -31,7 +30,6 @@
                     {{ transmission.get_status_display }}
                   </span>
                 </td>
-                <td>{{ transmission.bounce_type|default:"-" }}</td>
                 <td>{{ transmission.code|default:"-" }}</td>
                 <td>
                   {% timestamp transmission.created_at %}
@@ -74,6 +72,15 @@
     {% if message.credential %}
       <dt class="font-semibold">{% translate "credential"|capfirst context "noun" %}</dt>
       <dd><code>{{ message.credential.key_prefix }}…</code> ({{ message.credential.get_type_display }})</dd>
+    {% endif %}
+    {% if message.spam_action %}
+      <dt class="font-semibold">{% translate "spam check"|capfirst %}</dt>
+      <dd>
+        <span class="badge" data-size="sm" data-variant="destructive">
+          {{ message.get_spam_action_display }}
+        </span>
+        {{ message.spam_score }}
+      </dd>
     {% endif %}
   </dl>
 
