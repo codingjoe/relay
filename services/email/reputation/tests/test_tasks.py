@@ -123,6 +123,30 @@ class TestParseFblReport:
         assert message.org == sender_org
         assert message.domain == domain
 
+    def test_parse_fbl_report__routes_report_by_envelope_sender_token(self, org):
+        sender_org = Organization.objects.create(slug="sender")
+        domain = Domain.objects.create(name="sender.test", org=sender_org)
+        original = OutgoingMessage.objects.create(
+            org=sender_org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+        )
+        report = make_report(
+            org,
+            make_arf_email(
+                original_mail_from=f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@sender.test"
+            ),
+        )
+
+        parse_fbl_report.func(report_pk=report.pk)
+
+        report.refresh_from_db()
+        assert report.org == sender_org
+        assert report.domain == domain
+
     def test_parse_fbl_report__routes_report_by_original_mail_from(self, org):
         sender_org = Organization.objects.create(slug="sender")
         domain = Domain.objects.create(name="sender.test", org=sender_org)

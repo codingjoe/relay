@@ -19,17 +19,23 @@ logger = logging.getLogger(__name__)
 def resolve_fbl_owner(rcpt_to, original_mail_from):
     """Return the org and domain that sent the message a report is about.
 
-    FBL reports usually arrive on a single reporting address, regardless
-    of the recipient. Preference is a VERP token in the report recipient
-    (fbl+<message-id>@<domain>) that references the original outgoing
-    message. Without a token, the original envelope sender domain from
-    the report payload resolves the customer domain; managed domains are
-    excluded.
+    FBL reports arrive on a registered reporting address, which for abuse
+    reporting format (RFC 5965) carries no per-message identity in the
+    recipient. Preference is a VERP token that references the original
+    outgoing message: either in the report recipient
+    (fbl+<message-id>@...) or in the original envelope sender echoed by
+    the report (bounce+<message-id>@...). Without a token, the original
+    envelope sender domain resolves the customer domain; managed domains
+    are excluded.
 
     Returns `None` when the report cannot be attributed to an org.
     """
-    local_part = rcpt_to.split("@", 1)[0]
-    token = local_part.split("+", 1)[1] if "+" in local_part else ""
+    token = ""
+    for address in (rcpt_to, original_mail_from):
+        local_part = address.split("@", 1)[0]
+        token = local_part.split("+", 1)[1] if "+" in local_part else ""
+        if token:
+            break
     if token:
         try:
             original = OutgoingMessage.objects.select_related(
