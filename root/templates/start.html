@@ -121,6 +121,59 @@
       </div>
     </section>
 
+    <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
+      <div class="pledge relative isolate overflow-hidden rounded-3xl px-6 py-12 sm:px-16 sm:py-16 text-center flex flex-col items-center gap-6 sm:gap-8">
+        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight m-0">
+          {% translate "the open-source pledge"|capfirst %}
+        </h2>
+        <p class="pledge__lead text-lg sm:text-xl leading-relaxed m-0 max-w-2xl">
+          {% blocktranslate trimmed %}
+            Everything is public: the nameserver, the mail server, and the dashboard you are looking at. relay is built
+            in the open, and our contributions grow over time.
+          {% endblocktranslate %}
+        </p>
+        <div class="pledge__commitments w-full grid gap-8 sm:grid-cols-3 sm:gap-0 pt-2">
+          <article class="flex flex-col items-center gap-2 px-4">
+            <i data-lucide="scale" class="size-5" aria-hidden="true"></i>
+            <h3 class="text-lg font-semibold m-0">{% translate "AGPL-3.0" %}</h3>
+            <p class="pledge__muted text-sm leading-relaxed m-0">
+              {% blocktranslate trimmed %}
+                The full stack, licensed copyleft. No hidden closed parts.
+              {% endblocktranslate %}
+            </p>
+          </article>
+          <article class="flex flex-col items-center gap-2 px-4">
+            <i data-lucide="git-fork" class="size-5" aria-hidden="true"></i>
+            <h3 class="text-lg font-semibold m-0">{% translate "community-built"|capfirst %}</h3>
+            <p class="pledge__muted text-sm leading-relaxed m-0">
+              {% blocktranslate trimmed %}
+                Shaped by the people who build on it, in the open.
+              {% endblocktranslate %}
+            </p>
+          </article>
+          <article class="flex flex-col items-center gap-2 px-4">
+            <i data-lucide="infinity" class="size-5" aria-hidden="true"></i>
+            <h3 class="text-lg font-semibold m-0">{% translate "free for open source"|capfirst %}</h3>
+            <p class="pledge__muted text-sm leading-relaxed m-0">
+              {% blocktranslate trimmed %}
+                Every service, free forever for open-source communities.
+              {% endblocktranslate %}
+            </p>
+          </article>
+        </div>
+        <a
+          href="https://github.com/codingjoe/relay"
+          target="_blank"
+          rel="noopener"
+          class="btn pledge__cta"
+          data-size="lg"
+        >
+          <i data-lucide="github" class="size-4" aria-hidden="true"></i>
+          {% translate "read the source"|capfirst %}
+        </a>
+      </div>
+    </section>
+
     <section class="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-8">
       <h2 class="text-center text-1xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
         {% translate "start free. pay as you go."|capfirst %}
@@ -185,6 +238,10 @@
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
               {% translate "unlimited team members"|capfirst %}
+            </li>
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="infinity" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "free forever for open-source communities"|capfirst %}
             </li>
           </ul>
         </section>
@@ -291,6 +348,43 @@
 
     .landing-cli {
       box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    .pledge {
+      background-color: var(--color-primary);
+      color: var(--color-primary-foreground);
+    }
+
+    .pledge__lead {
+      color: color-mix(in srgb, var(--color-primary-foreground) 88%, transparent);
+    }
+
+    .pledge__muted {
+      color: color-mix(in srgb, var(--color-primary-foreground) 80%, transparent);
+    }
+
+    .pledge__commitments > * + * {
+      padding-block-start: 2rem;
+      border-top: 1px solid color-mix(in srgb, var(--color-primary-foreground) 20%, transparent);
+    }
+
+    @media (min-width: 640px) {
+      .pledge__commitments > * + * {
+        padding-inline-start: 2rem;
+        padding-block-start: 0;
+        border-top: 0;
+        border-inline-start: 1px solid color-mix(in srgb, var(--color-primary-foreground) 20%, transparent);
+      }
+    }
+
+    .pledge__cta {
+      background-color: var(--color-primary-foreground);
+      color: var(--color-primary);
+    }
+
+    .pledge__cta:hover {
+      background-color: color-mix(in srgb, var(--color-primary-foreground) 90%, var(--color-primary));
+      color: var(--color-primary);
     }
 
     @keyframes pulse-travel {
