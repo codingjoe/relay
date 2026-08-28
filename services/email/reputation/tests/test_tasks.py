@@ -1,6 +1,7 @@
 from email.message import EmailMessage
 
 import pytest
+from django.conf import settings
 from django.core.files.base import ContentFile
 
 from accounts.models import Organization
@@ -61,6 +62,14 @@ class TestParseFblReport:
         assert report.original_rcpt_to == "victim@gmail.com"
         assert not Organization.objects.get(pk=org.pk).reputation_locked
 
+    def test_parse_fbl_report__leaves_non_arf_report_unparsed(self, org):
+        report = make_report(org, b"Not an ARF email")
+
+        parse_fbl_report.func(report_pk=report.pk)
+
+        report.refresh_from_db()
+        assert report.feedback_type == FblReport.FeedbackType.ABUSE
+
     def test_parse_fbl_report__checks_org_reputation(
         self, org, user, settings, mailoutbox
     ):
@@ -90,3 +99,30 @@ class TestParseFblReport:
         assert org.reputation_locked_at is not None
         assert len(mailoutbox) == 1
         assert mailoutbox[0].to == ["alice@example.com"]
+
+
+class TestFblReportIngress:
+    @pytest.mark.django_db(transaction=True)
+    async def test_fbl_recipient__creates_and_parses_report(self, org):
+        from services.email.mta.handlers import process_incoming_message
+        from services.email.mta.models import IncomingMessage
+
+        domain = Domain.objects.create(name="example.com", org=org)
+        result = await process_incoming_message(
+            "feedback@gmail.com",
+            f"{settings.RELAY_FBL_LOCAL_PART}@example.com",
+            make_arf_email(),
+            True,
+            domain,
+            IncomingMessage.Status.RECEIVED,
+            "",
+        )
+
+        assert result == "250 OK"
+        report = await FblReport.objects.aget(org=org)
+        assert report.mail_from == "feedback@gmail.com"
+        assert report.domain == domain
+        assert report.receiving_domain == "example.com"
+        assert report.received_with_tls is True
+        assert report.feedback_type == "fraud"
+        assert report.original_mail_from == "sender@acme.com"

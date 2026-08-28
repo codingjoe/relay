@@ -196,6 +196,31 @@ class TestDeliverMessage:
         mock_sign.assert_not_called()
         mock_send.assert_not_called()
 
+    def test_deliver_message__drops_message_of_locked_org(self, user, org):
+        from services.email.msa.tasks import deliver_message
+
+        domain = Domain.objects.get(org=org)
+        message = OutgoingMessage.objects.create(
+            sender=user,
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        message.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        message.save()
+
+        org.reputation_locked = True
+        org.save(update_fields=["reputation_locked", "modified_at"])
+
+        with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
+            deliver_message.func(message_id=str(message.id))
+
+        mock_send.assert_not_called()
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.DROPPED
+        assert not Transmission.objects.filter(message=message).exists()
+
 
 @pytest.mark.django_db(transaction=True)
 class TestCheckOutgoingSpam:
@@ -222,11 +247,8 @@ class TestCheckOutgoingSpam:
         assert msg.status == OutgoingMessage.Status.DROPPED
         assert not Transmission.objects.filter(message=msg).exists()
 
-    def test_check_outgoing_spam__holds_spam_and_creates_relay_fbl_report(
-        self, user, org
-    ):
+    def test_check_outgoing_spam__holds_spam(self, user, org):
         from services.email.msa.tasks import check_outgoing_spam
-        from services.email.reputation.models import FblReport
         from services.email.spam import SpamAction, SpamResult
 
         domain = Domain.objects.get(org=org)
@@ -255,13 +277,9 @@ class TestCheckOutgoingSpam:
         assert msg.status == OutgoingMessage.Status.HELD
         assert msg.spam_score == 10.0
         assert msg.spam_action == SpamAction.REJECT
-        report = FblReport.objects.get(org=org)
-        assert report.source == FblReport.Source.RELAY
-        assert report.original_rcpt_to == "bob@example.com"
 
     def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
         from services.email.msa.tasks import check_outgoing_spam
-        from services.email.reputation.models import FblReport
         from services.email.spam import SpamResult
 
         domain = Domain.objects.get(org=org)
@@ -288,5 +306,4 @@ class TestCheckOutgoingSpam:
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.PENDING
         assert msg.spam_score == 0.0
-        assert not FblReport.objects.exists()
         assert not Transmission.objects.filter(message=msg).exists()

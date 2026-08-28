@@ -25,7 +25,6 @@ def build_reputation_chart(org):
     """
     start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
 
-    # Daily sent counts
     sent_rows = (
         OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
         .annotate(day=TruncDate("created_at"))
@@ -34,7 +33,6 @@ def build_reputation_chart(org):
     )
     sent_counts = {row["day"]: row["count"] for row in sent_rows}
 
-    # Daily hard bounce counts (5xx)
     hard_bounce_rows = (
         Transmission.objects.filter(
             message__org=org,
@@ -48,7 +46,6 @@ def build_reputation_chart(org):
     )
     hard_bounce_counts = {row["day"]: row["count"] for row in hard_bounce_rows}
 
-    # Daily soft bounce counts (4xx)
     soft_bounce_rows = (
         Transmission.objects.filter(
             message__org=org,
@@ -62,9 +59,12 @@ def build_reputation_chart(org):
     )
     soft_bounce_counts = {row["day"]: row["count"] for row in soft_bounce_rows}
 
-    # Daily FBL complaint and spam-held counts
     complaint_rows = (
-        FblReport.objects.filter(org=org, created_at__date__gte=start)
+        FblReport.objects.filter(
+            org=org,
+            created_at__date__gte=start,
+            source=FblReport.Source.PROVIDER,
+        )
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(count=Count("id"))

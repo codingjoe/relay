@@ -82,16 +82,17 @@ def check_org_reputation(org: Organization) -> ReputationStats:
     if stats["total_sent"] < settings.RELAY_REPUTATION_MIN_VOLUME:
         return stats
 
-    exceeds = (
+    if not (
         stats["hard_bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
         or stats["complaint_rate"] > settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
+    ):
+        return stats
+
+    now = timezone.now()
+    updated = Organization.objects.filter(pk=org.pk, reputation_locked=False).update(
+        reputation_locked=True, reputation_locked_at=now, modified_at=now
     )
-    if exceeds and not org.reputation_locked:
-        org.reputation_locked = True
-        org.reputation_locked_at = timezone.now()
-        org.save(
-            update_fields=["reputation_locked", "reputation_locked_at", "modified_at"]
-        )
+    if updated:
         notify_org_locked(org, stats)
     return stats
 

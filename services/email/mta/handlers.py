@@ -129,10 +129,7 @@ def process_incoming_message(
             return "250 OK"
 
         case settings.RELAY_FBL_LOCAL_PART:
-            from services.email.reputation.models import FblReport
-            from services.email.reputation.tasks import parse_fbl_report
-
-            report = FblReport(
+            message = IncomingMessage(
                 org=domain.org,
                 domain=domain,
                 receiving_domain=rcpt_domain,
@@ -141,12 +138,14 @@ def process_incoming_message(
                 subject=msg.get("Subject", ""),
                 message_id=msg.get("Message-ID", ""),
                 received_with_tls=bool(tls),
+                status=status,
             )
-            report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
-            report.save(force_insert=True)
-            transaction.on_commit(
-                lambda: parse_fbl_report.enqueue(report_pk=str(report.pk))
+            message.raw_body.save(
+                f"{message.id}.eml",
+                ContentFile(raw_bytes),
+                save=False,
             )
+            message.save(force_insert=True)
             return "250 OK"
 
     is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (

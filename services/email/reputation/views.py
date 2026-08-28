@@ -52,9 +52,15 @@ class FblReportDetailView(OrganizationScopedView, generic.DetailView):
         context = super().get_context_data(**kwargs)
         parsed = self.object.parsed_email()
         headers = list(parsed.items())
+        payload = parsed.get_payload(decode=True)
+        body = (
+            payload.decode(parsed.get_content_charset() or "utf-8", errors="replace")
+            if isinstance(payload, bytes)
+            else ""
+        )
         return context | {
             "headers": headers,
-            "body": parsed.get_payload(decode=True) or "",
+            "body": body,
         }
 
 

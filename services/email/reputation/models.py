@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.mail import EmailMessage
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -149,6 +150,30 @@ class FblReport(IncomingMessage):
         )
 
     @classmethod
+    def create_for_incoming(cls, message):
+        """Store an FBL report email received at the FBL reporting address.
+
+        The report is stored un-parsed and filled in later by the
+        `parse_fbl_report` task. Returns the created FblReport.
+        """
+        from django.core.files.base import ContentFile
+
+        report = cls(
+            org=message.org,
+            domain=message.domain,
+            receiving_domain=message.receiving_domain,
+            mail_from=message.mail_from,
+            rcpt_to=message.rcpt_to,
+            subject=message.subject,
+            message_id=message.message_id,
+            received_with_tls=message.received_with_tls,
+        )
+        raw_bytes = message.raw_body.read() if message.raw_body else b""
+        report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
+        report.save(force_insert=True)
+        return report
+
+    @classmethod
     def create_for_spam(cls, message):
         """Create and store an FBL report for a message flagged as spam.
 
@@ -189,13 +214,14 @@ class FblReport(IncomingMessage):
 
     @classmethod
     def send_fbl_report(cls, message):
-        """Send an ARF FBL report email to the sender domain's FBL address.
+        """Send an RFC 5965 FBL report email to the sender domain's FBL address.
 
-        Looks up the sender's domain and sends an ARF-formatted complaint
-        report to its FBL reporting address. Does nothing if the sender
-        domain is not registered.
+        Looks up the sender's domain and sends a multipart/report complaint
+        to its FBL reporting address. Does nothing if the sender domain is
+        not registered.
         """
-        from django.core.mail import EmailMessage
+        from email import message_from_bytes
+        from email.message import MIMEPart
 
         from domains.models import Domain
 
@@ -205,63 +231,59 @@ class FblReport(IncomingMessage):
                 sender_domain, include_managed=True
             ).fbl_reporting_address
         except Domain.DoesNotExist:
-            address = ""
+            address = None
 
         if address:
             raw_headers = ""
             if message.raw_body:
-                from email import message_from_bytes
-
                 parsed = message_from_bytes(message.raw_body.read())
-                raw_headers = "".join(f"{k}: {v}\r\n" for k, v in parsed.items())[:2000]
+                raw_headers = (
+                    "".join(f"{k}: {v}\r\n" for k, v in parsed.items())
+                    .encode("ascii", "backslashreplace")
+                    .decode("ascii")[:2000]
+                )
 
-            body = cls.build_arf_body(
-                source_ip="unknown",
-                arrival_date=message.created_at.isoformat(),
-                envelope_from=message.mail_from,
-                rcpt_to=message.rcpt_to,
-                delivery_result="spam",
-                original_headers=raw_headers,
+            feedback_part = MIMEPart()
+            feedback_part["Content-Type"] = "message/feedback-report"
+            feedback_part.set_payload(
+                "".join(
+                    f"{key}: {value}\r\n"
+                    for key, value in {
+                        "Feedback-Type": "abuse",
+                        "User-Agent": "relay",
+                        "Version": "1",
+                        "Arrival-Date": message.created_at.isoformat(),
+                        "Original-Mail-From": message.mail_from,
+                        "Original-Rcpt-To": message.rcpt_to.split(",")[0],
+                        "Source-IP": getattr(message, "source_ip_address", "") or "",
+                        "Delivery-Result": "spam",
+                    }.items()
+                    if value
+                )
             )
-            email = EmailMessage(
+            headers_part = MIMEPart()
+            headers_part["Content-Type"] = "text/rfc822-headers"
+            headers_part.set_payload(raw_headers)
+            email = MultipartReportEmail(
                 subject=f"FBL report for {sender_domain}",
-                body=body,
+                body="Feedback loop complaint report.",
                 from_email=f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
                 to=[address],
             )
+            email.attach(feedback_part)
+            email.attach(headers_part)
             email.send()
 
-    @staticmethod
-    def build_arf_body(**fields):
-        """Build an ARF (RFC 5965) multipart body for an FBL report."""
-        lines = [
-            "This is an email abuse report for an email message received from",
-            f"IP {fields.get('source_ip', 'unknown')} on {fields.get('arrival_date', 'unknown')}.",
-            "",
-            "The message was flagged as spam.",
-            "",
-            "--boundary",
-            "Content-Type: text/plain",
-            "",
-            "Feedback loop complaint report.",
-            "",
-            "--boundary",
-            "Content-Type: message/feedback-report",
-            "",
-            "Feedback-Type: abuse",
-            "User-Agent: relay",
-            "Version: 1",
-            f"Original-Mail-From: {fields.get('envelope_from', '')}",
-            f"Original-Rcpt-To: {fields.get('rcpt_to', '')}",
-            f"Arrival-Date: {fields.get('arrival_date', '')}",
-            f"Source-IP: {fields.get('source_ip', '')}",
-            f"Delivery-Result: {fields.get('delivery_result', 'spam')}",
-            "",
-            "--boundary",
-            "Content-Type: text/rfc822-headers",
-            "",
-            fields.get("original_headers", ""),
-            "",
-            "--boundary--",
-        ]
-        return "\n".join(lines)
+
+class MultipartReportEmail(EmailMessage):
+    """EmailMessage with a multipart/report; report-type=feedback-loop body."""
+
+    def message(self):
+        msg = super().message()
+        msg.replace_header(
+            "Content-Type",
+            str(msg["Content-Type"]).replace(
+                "multipart/mixed", "multipart/report; report-type=feedback-loop"
+            ),
+        )
+        return msg

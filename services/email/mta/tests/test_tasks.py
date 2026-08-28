@@ -195,11 +195,8 @@ def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
 
 @pytest.mark.django_db(transaction=True)
 class TestCheckIncomingSpam:
-    def test_check_incoming_spam__quarantines_spam_and_creates_relay_fbl_report(
-        self, org
-    ):
+    def test_check_incoming_spam__quarantines_spam(self, org):
         from services.email.mta.tasks import check_incoming_spam
-        from services.email.reputation.models import FblReport
         from services.email.spam import SpamAction, SpamResult
 
         msg = make_incoming_message(org)
@@ -215,16 +212,11 @@ class TestCheckIncomingSpam:
         msg.refresh_from_db()
         assert msg.status == IncomingMessage.Status.QUARANTINED
         assert msg.spam_score == 20.0
-        report = FblReport.objects.get(org=org)
-        assert report.source == FblReport.Source.RELAY
-        assert report.domain == msg.domain
-        assert report.receiving_domain == "example.com"
         mock_webhook.enqueue.assert_not_called()
         assert len(mail.outbox) == 0
 
     def test_check_incoming_spam__dispatches_webhook_for_clean_message(self, org):
         from services.email.mta.tasks import check_incoming_spam
-        from services.email.reputation.models import FblReport
         from services.email.spam import SpamResult
 
         msg = make_incoming_message(org)
@@ -240,7 +232,6 @@ class TestCheckIncomingSpam:
         msg.refresh_from_db()
         assert msg.status == IncomingMessage.Status.RECEIVED
         mock_webhook.enqueue.assert_called_once_with(message_id=str(msg.pk))
-        assert not FblReport.objects.exists()
 
     def test_check_incoming_spam__skips_webhook_for_already_quarantined(self, org):
         from services.email.mta.tasks import check_incoming_spam

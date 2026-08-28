@@ -1,10 +1,13 @@
+from django.conf import settings
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.mta.models import IncomingMessage
 
 from . import tasks
+from .models import FblReport
 
 
 def enqueue_org_reputation_check(org_id):
@@ -25,6 +28,29 @@ def check_reputation_on_hard_bounce(sender, instance, **kwargs):
 
 @receiver(post_save, sender=OutgoingMessage)
 def check_reputation_on_held_message(sender, instance, **kwargs):
-    """Queue a reputation check when an outgoing message is held as spam."""
-    if instance.status == OutgoingMessage.Status.HELD:
+    """Create and send a relay FBL report for an outgoing message held as spam."""
+    held_as_spam = instance.status == OutgoingMessage.Status.HELD and "status" in (
+        kwargs.get("update_fields") or ()
+    )
+    if held_as_spam:
+        FblReport.create_for_spam(instance)
+        FblReport.send_fbl_report(instance)
         enqueue_org_reputation_check(instance.org_id)
+
+
+@receiver(post_save, sender=IncomingMessage)
+def check_reputation_on_incoming_message(sender, instance, created, **kwargs):
+    """Store provider FBL reports and report quarantined incoming spam."""
+    local_part = (
+        instance.rcpt_to.split("@", 1)[0].lower() if "@" in instance.rcpt_to else ""
+    )
+    if created and local_part == settings.RELAY_FBL_LOCAL_PART:
+        report = FblReport.create_for_incoming(instance)
+        transaction.on_commit(
+            lambda: tasks.parse_fbl_report.enqueue(report_pk=str(report.pk))
+        )
+    elif instance.status == IncomingMessage.Status.QUARANTINED and "status" in (
+        kwargs.get("update_fields") or ()
+    ):
+        FblReport.create_for_spam(instance)
+        FblReport.send_fbl_report(instance)

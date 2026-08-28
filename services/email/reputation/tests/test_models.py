@@ -45,11 +45,8 @@ class TestFblReportParseFromEmail:
         msg = EmailMessage()
         msg["Subject"] = "Not a report"
         msg.set_content("Regular email")
-        try:
+        with pytest.raises(ValueError):
             FblReport.parse_from_email(msg.as_bytes())
-            assert False, "Should have raised ValueError"
-        except ValueError:
-            pass
 
 
 class TestFblReportProperties:
@@ -202,9 +199,16 @@ class TestFblReportSendFblReport:
         assert email.from_email == (
             f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}"
         )
-        assert "Feedback-Type: abuse" in email.body
-        assert "Original-Mail-From: spam@acme.com" in email.body
-        assert "Subject: Buy now" in email.body
+        mime = email.message()
+        assert mime.get_content_type() == "multipart/report"
+        assert mime.get_param("report-type") == "feedback-loop"
+        text_part, feedback_part, headers_part = mime.get_payload()
+        assert text_part.get_content_type() == "text/plain"
+        assert feedback_part.get_content_type() == "message/feedback-report"
+        assert "Feedback-Type: abuse" in feedback_part.get_payload()
+        assert "Original-Mail-From: spam@acme.com" in feedback_part.get_payload()
+        assert headers_part.get_content_type() == "text/rfc822-headers"
+        assert "Subject: Buy now" in headers_part.get_payload()
 
     def test_send_fbl_report__without_raw_body_omits_original_headers(
         self, org, mailoutbox
@@ -215,5 +219,6 @@ class TestFblReportSendFblReport:
         FblReport.send_fbl_report(message)
 
         assert len(mailoutbox) == 1
-        assert "Feedback-Type: abuse" in mailoutbox[0].body
-        assert "Subject: Buy now" not in mailoutbox[0].body
+        _, feedback_part, headers_part = mailoutbox[0].message().get_payload()
+        assert "Feedback-Type: abuse" in feedback_part.get_payload()
+        assert "Subject: Buy now" not in headers_part.get_payload()

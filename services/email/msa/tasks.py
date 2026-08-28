@@ -25,7 +25,11 @@ def deliver_message(message_id):
     """Deliver a queued outgoing message to its recipients."""
     from .models import OutgoingMessage, SuppressionEntry, Transmission
 
-    message = OutgoingMessage.objects.select_related("domain").get(pk=message_id)
+    message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
+    if message.org.reputation_locked:
+        message.status = OutgoingMessage.Status.DROPPED
+        message.save(update_fields=["status", "modified_at"])
+        return
 
     try:
         if message.domain is None:
@@ -168,7 +172,7 @@ def check_outgoing_spam(message_pk, client_ip):
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
     if message.org.reputation_locked:
         message.status = OutgoingMessage.Status.DROPPED
-        message.save(update_fields=["status"])
+        message.save(update_fields=["status", "modified_at"])
         return
 
     raw_bytes = message.raw_body.read()
@@ -182,9 +186,5 @@ def check_outgoing_spam(message_pk, client_ip):
     if is_spam:
         message.status = OutgoingMessage.Status.HELD
     message.save(update_fields=["spam_score", "spam_action", "status"])
-    if is_spam:
-        from services.email.reputation.models import FblReport
-
-        FblReport.create_for_spam(message)
-    else:
+    if not is_spam:
         deliver_message.enqueue(message_id=str(message.pk))

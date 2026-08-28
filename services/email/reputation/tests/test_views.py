@@ -100,7 +100,7 @@ class TestFblReportDetailView:
         )
         assert response.status_code == 200
         assert ("From", "feedback@gmail.com") in response.context["headers"]
-        assert b"User marked the message as spam." in response.context["body"]
+        assert "User marked the message as spam." in response.context["body"]
 
     def test_get__shows_report_without_body(self, admin_client, org):
         report = self.make_report_with_body(org, b"")

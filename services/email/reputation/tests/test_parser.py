@@ -1,5 +1,7 @@
 from email.message import EmailMessage
 
+import pytest
+
 from services.email.reputation.parser import parse_fbl
 
 
@@ -8,11 +10,8 @@ class TestParseFbl:
         msg = EmailMessage()
         msg["Subject"] = "Not a report"
         msg.set_content("Just a regular email")
-        try:
+        with pytest.raises(ValueError):
             parse_fbl(msg.as_bytes())
-            assert False, "Should have raised ValueError"
-        except ValueError:
-            pass
 
     def test_parse_fbl__extracts_abuse_complaint(self):
         msg = EmailMessage()

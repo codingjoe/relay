@@ -2,6 +2,7 @@ import pytest
 
 from domains.models import Domain
 from services.email.msa.models import OutgoingMessage
+from services.email.reputation.models import FblReport
 
 
 @pytest.mark.django_db
@@ -52,3 +53,29 @@ class TestDashboardView:
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.context["total_domains"] == 1
         assert response.context["total_messages"] == 0
+
+
+@pytest.mark.django_db
+class TestReportListView:
+    def test_get__fbl_type_lists_fbl_reports(self, admin_client, org, user):
+        from services.email.dmarc.models import DmarcReport
+
+        domain = Domain.objects.create(name="acme.com", org=org)
+        report = FblReport.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="feedback@gmail.com",
+            rcpt_to="fbl@acme.com",
+            source_ip_address="10.0.0.1",
+        )
+        DmarcReport.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="dmarc@gmail.com",
+            rcpt_to="dmarc@acme.com",
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=fbl")
+
+        assert response.status_code == 200
+        assert list(response.context["reports"]) == [report]
