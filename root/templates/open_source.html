@@ -16,9 +16,9 @@
     purple primary, mono for indices, divider rules instead of cards, the
     network motif quieted to stars and dot grid (no pulses).
     STORY: the visitor reads what relay gives back, believes the commitment
-    is structural, and acts: fund the maintainers, apply for the free service, or start free.
+    is structural, and acts: apply for the free service, or see who we fund.
     FIRST VIEWPORT: quiet network ground; "← relay" link top-left; centered
-    h1 "the open-source charter"; mono chip linking the GitHub funding page;
+    h1 "the open-source charter"; mono chip linking the GitHub sponsoring page;
     one lead line. No primary action yet, reading comes first: the band
     closes the page. FORM: single document, left-aligned reading column:
     five numbered pledges, founder pledge in we voice, closing primary band.
@@ -42,12 +42,12 @@
 
     <header class="flex flex-col items-center text-center gap-6 pt-10 sm:pt-16 pb-16 sm:pb-24 max-w-3xl mx-auto px-4 sm:px-8">
       <a
-        href="https://github.com/sponsors/codingjoe"
+        href="https://github.com/codingjoe?tab=sponsoring"
         target="_blank"
         rel="noopener"
         class="charter__chip inline-flex items-center font-mono text-sm shadow-sm"
       >
-        github.com/sponsors/codingjoe
+        github.com/codingjoe?tab=sponsoring
       </a>
       <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0">
         {% translate "the open-source charter"|capfirst %}
@@ -192,29 +192,17 @@
           {% endblocktranslate %}
         </p>
         <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <a href="{% url 'accounts:application-create' %}" class="btn charter__cta" data-size="lg">
+            {% translate "apply for the free service"|capfirst %}
+          </a>
           <a
-            href="https://github.com/sponsors/codingjoe"
+            href="https://github.com/codingjoe?tab=sponsoring"
             target="_blank"
             rel="noopener"
-            class="btn charter__cta"
+            class="btn charter__cta-ghost"
             data-size="lg"
           >
-            <svg
-              class="size-4 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-            </svg>
-            {% translate "fund the maintainers"|capfirst %}
-          </a>
-          <a href="{% url 'accounts:org-list' %}" class="btn charter__cta-ghost" data-size="lg">
-            {% translate "start for free"|capfirst %}
+            {% translate "see who we fund"|capfirst %}
           </a>
         </div>
       </div>
