@@ -179,7 +179,7 @@ class FblReport(IncomingMessage):
             reporting_org="relay",
             reporting_email=f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
             original_mail_from=message.mail_from,
-            original_rcpt_to=message.rcpt_to.split(",")[0] if message.rcpt_to else "",
+            original_rcpt_to=message.rcpt_to.split(",")[0],
             original_message_id=message.message_id,
         )
         raw_bytes = message.raw_body.read() if message.raw_body else b""
@@ -193,50 +193,43 @@ class FblReport(IncomingMessage):
 
         Looks up the sender's domain and sends an ARF-formatted complaint
         report to its FBL reporting address. Does nothing if the sender
-        domain is not registered or has no FBL address.
+        domain is not registered.
         """
         from django.core.mail import EmailMessage
 
         from domains.models import Domain
 
-        sender_domain = (
-            message.mail_from.split("@")[-1] if "@" in message.mail_from else ""
-        )
+        sender_domain = message.mail_from.rsplit("@", 1)[-1]
         try:
-            domain = Domain.objects.root_for(sender_domain, include_managed=True)
-            address = domain.fbl_reporting_address
-        except Domain.DoesNotExist, ValueError:
+            address = Domain.objects.root_for(
+                sender_domain, include_managed=True
+            ).fbl_reporting_address
+        except Domain.DoesNotExist:
             address = ""
 
-        match address:
-            case "":
-                return
-            case _:
-                raw_headers = ""
-                if message.raw_body:
-                    from email import message_from_bytes
+        if address:
+            raw_headers = ""
+            if message.raw_body:
+                from email import message_from_bytes
 
-                    parsed = message_from_bytes(message.raw_body.read())
-                    raw_headers = "".join(f"{k}: {v}\r\n" for k, v in parsed.items())[
-                        :2000
-                    ]
+                parsed = message_from_bytes(message.raw_body.read())
+                raw_headers = "".join(f"{k}: {v}\r\n" for k, v in parsed.items())[:2000]
 
-                body = cls.build_arf_body(
-                    source_ip="unknown",
-                    arrival_date=message.created_at.isoformat(),
-                    envelope_from=message.mail_from,
-                    rcpt_to=message.rcpt_to,
-                    delivery_result="spam",
-                    original_headers=raw_headers,
-                )
-                email = EmailMessage(
-                    subject=f"FBL report for {sender_domain}",
-                    body=body,
-                    from_email=f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
-                    to=[address],
-                )
-                email.send()
-                return
+            body = cls.build_arf_body(
+                source_ip="unknown",
+                arrival_date=message.created_at.isoformat(),
+                envelope_from=message.mail_from,
+                rcpt_to=message.rcpt_to,
+                delivery_result="spam",
+                original_headers=raw_headers,
+            )
+            email = EmailMessage(
+                subject=f"FBL report for {sender_domain}",
+                body=body,
+                from_email=f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
+                to=[address],
+            )
+            email.send()
 
     @staticmethod
     def build_arf_body(**fields):

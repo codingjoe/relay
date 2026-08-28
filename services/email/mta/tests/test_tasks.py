@@ -1,6 +1,7 @@
 import itertools
 import json
 import time
+from unittest.mock import patch
 
 import pytest
 from django.conf import settings
@@ -175,3 +176,86 @@ class TestNotifyPostmasterRecipients:
             f"http://{settings.RELAY_PLATFORM_DOMAIN}{msg.get_absolute_url()}"
         )
         assert expected_url in mail.outbox[0].body
+
+
+def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
+    domain = Domain.objects.get(org=org)
+    msg = IncomingMessage(
+        org=org,
+        domain=domain,
+        receiving_domain="example.com",
+        mail_from="spam@acme.com",
+        rcpt_to="inbox@example.com",
+        status=status,
+    )
+    msg.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
+    msg.save()
+    return msg
+
+
+@pytest.mark.django_db(transaction=True)
+class TestCheckIncomingSpam:
+    def test_check_incoming_spam__quarantines_spam_and_creates_relay_fbl_report(
+        self, org
+    ):
+        from services.email.mta.tasks import check_incoming_spam
+        from services.email.reputation.models import FblReport
+        from services.email.spam import SpamAction, SpamResult
+
+        msg = make_incoming_message(org)
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                return_value=SpamResult(score=20.0, action=SpamAction.REJECT),
+            ),
+            patch("services.email.mta.tasks.dispatch_webhook") as mock_webhook,
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        msg.refresh_from_db()
+        assert msg.status == IncomingMessage.Status.QUARANTINED
+        assert msg.spam_score == 20.0
+        report = FblReport.objects.get(org=org)
+        assert report.source == FblReport.Source.RELAY
+        assert report.domain == msg.domain
+        assert report.receiving_domain == "example.com"
+        mock_webhook.enqueue.assert_not_called()
+        assert len(mail.outbox) == 0
+
+    def test_check_incoming_spam__dispatches_webhook_for_clean_message(self, org):
+        from services.email.mta.tasks import check_incoming_spam
+        from services.email.reputation.models import FblReport
+        from services.email.spam import SpamResult
+
+        msg = make_incoming_message(org)
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.mta.tasks.dispatch_webhook") as mock_webhook,
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        msg.refresh_from_db()
+        assert msg.status == IncomingMessage.Status.RECEIVED
+        mock_webhook.enqueue.assert_called_once_with(message_id=str(msg.pk))
+        assert not FblReport.objects.exists()
+
+    def test_check_incoming_spam__skips_webhook_for_already_quarantined(self, org):
+        from services.email.mta.tasks import check_incoming_spam
+        from services.email.spam import SpamResult
+
+        msg = make_incoming_message(org, status=IncomingMessage.Status.QUARANTINED)
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.mta.tasks.dispatch_webhook") as mock_webhook,
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        msg.refresh_from_db()
+        assert msg.status == IncomingMessage.Status.QUARANTINED
+        mock_webhook.enqueue.assert_not_called()

@@ -44,8 +44,7 @@ def parse_fbl_report(report_pk):
         ]
     )
 
-    if report.org_id:
-        check_org_reputation.enqueue(org_id=report.org_id)
+    check_org_reputation.enqueue(org_id=report.org_id)
 
 
 @task

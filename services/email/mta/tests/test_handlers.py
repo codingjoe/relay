@@ -10,6 +10,7 @@ from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.mta.handlers import MXHandler, process_incoming_message
 from services.email.mta.models import IncomingMessage, TlsReport
+from services.email.reputation.models import FblReport
 
 
 def make_raw_email(subject="Postmaster alert"):
@@ -18,6 +19,22 @@ def make_raw_email(subject="Postmaster alert"):
     msg["To"] = "postmaster@example.com"
     msg["Subject"] = subject
     msg.set_content("Something happened")
+    return msg.as_bytes()
+
+
+def make_fbl_report_email():
+    msg = EmailMessage()
+    msg["From"] = "feedback@gmail.com"
+    msg["To"] = "fbl@example.com"
+    msg["Subject"] = "Complaint report"
+    msg.set_content("Abuse report")
+    msg.add_attachment(
+        b"Feedback-Type: fraud\n"
+        b"Source-IP: 192.0.2.1\n"
+        b"Original-Mail-From: spammer@acme.com\n",
+        maintype="message",
+        subtype="feedback-report",
+    )
     return msg.as_bytes()
 
 
@@ -226,3 +243,27 @@ class TestProcessIncomingMessageReports:
         report = await report_model.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
+
+
+class TestProcessIncomingMessageFbl:
+    @pytest.mark.django_db(transaction=True)
+    async def test_fbl__creates_fbl_report_and_parses_it(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        result = await process_incoming_message(
+            "feedback@gmail.com",
+            f"{settings.RELAY_FBL_LOCAL_PART}@example.com",
+            make_fbl_report_email(),
+            True,
+            domain,
+            IncomingMessage.Status.RECEIVED,
+            "",
+        )
+
+        assert result == "250 OK"
+        report = await FblReport.objects.aget(org=org)
+        assert report.mail_from == "feedback@gmail.com"
+        assert report.domain == domain
+        assert report.receiving_domain == "example.com"
+        assert report.received_with_tls is True
+        assert report.feedback_type == "fraud"
+        assert report.original_mail_from == "spammer@acme.com"

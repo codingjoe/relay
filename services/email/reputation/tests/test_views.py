@@ -1,44 +1,142 @@
 import pytest
+from django.core.files.base import ContentFile
+from django.urls import reverse
+from django.utils import timezone
 
+from domains.models import Domain
+from services.email.msa.models import OutgoingMessage
 from services.email.reputation.models import FblReport
 
 
+def make_report(org, **kwargs):
+    defaults = {
+        "org": org,
+        "mail_from": "feedback@gmail.com",
+        "rcpt_to": "fbl@acme.com",
+        "reporting_org": "gmail",
+        "feedback_type": "abuse",
+        "original_mail_from": "sender@acme.com",
+    }
+    return FblReport.objects.create(**(defaults | kwargs))
+
+
+def overview_url(org):
+    return reverse("reputation:overview", kwargs={"org_slug": org.slug})
+
+
+@pytest.mark.django_db
 class TestFblReportListView:
-    @pytest.mark.django_db
-    def test_get__lists_fbl_reports(self, client):
-        from django.contrib.auth import get_user_model
+    def test_get__lists_fbl_reports(self, admin_client, org):
+        make_report(org)
+        response = admin_client.get(
+            reverse("reputation:fbl-report-list", kwargs={"org_slug": org.slug})
+        )
+        assert response.status_code == 200
+        assert b"sender@acme.com" in response.content
 
-        from accounts.models import Membership, Organization
+    def test_get__filters_by_domain(self, admin_client, org):
+        acme = Domain.objects.create(name="acme.com", org=org)
+        globex = Domain.objects.create(name="globex.com", org=org)
+        make_report(org, domain=acme, original_mail_from="one@acme.com")
+        make_report(org, domain=globex, original_mail_from="two@globex.com")
+        response = admin_client.get(
+            reverse("reputation:fbl-report-list", kwargs={"org_slug": org.slug}),
+            {"domain": "globex.com"},
+        )
+        assert response.status_code == 200
+        assert b"two@globex.com" in response.content
+        assert b"one@acme.com" not in response.content
 
-        User = get_user_model()
-        user = User.objects.create(username="testuser", email="test@example.com")
-        org = Organization.objects.create(slug="testorg")
-        Membership.objects.create(org=org, user=user, role="write")
-        FblReport.objects.create(
+    def test_get__filters_by_feedback_type(self, admin_client, org):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        make_report(
+            org,
+            domain=domain,
+            feedback_type="abuse",
+            original_mail_from="abuse@acme.com",
+        )
+        make_report(
+            org,
+            domain=domain,
+            feedback_type="fraud",
+            original_mail_from="fraud@acme.com",
+        )
+        response = admin_client.get(
+            reverse("reputation:fbl-report-list", kwargs={"org_slug": org.slug}),
+            {"feedback_type": "fraud"},
+        )
+        assert response.status_code == 200
+        assert b"fraud@acme.com" in response.content
+        assert b"abuse@acme.com" not in response.content
+
+
+@pytest.mark.django_db
+class TestFblReportDetailView:
+    def make_report_with_body(self, org, body: bytes):
+        report = FblReport(
             org=org,
             mail_from="feedback@gmail.com",
             rcpt_to="fbl@acme.com",
             reporting_org="gmail",
-            feedback_type="abuse",
+            arrival_at=timezone.now(),
             original_mail_from="sender@acme.com",
         )
-        client.force_login(user)
-        response = client.get(f"/org/{org.slug}/email/reputation/fbl/")
+        report.raw_body.save("report.eml", ContentFile(body), save=False)
+        report.save(force_insert=True)
+        return report
+
+    def test_get__shows_report_headers_and_body(self, admin_client, org):
+        report = self.make_report_with_body(
+            org,
+            b"From: feedback@gmail.com\r\n"
+            b"Subject: Complaint\r\n\r\n"
+            b"User marked the message as spam.",
+        )
+        response = admin_client.get(
+            reverse(
+                "reputation:fbl-report-detail",
+                kwargs={"org_slug": org.slug, "pk": report.pk},
+            )
+        )
         assert response.status_code == 200
-        assert b"sender@acme.com" in response.content
+        assert ("From", "feedback@gmail.com") in response.context["headers"]
+        assert b"User marked the message as spam." in response.context["body"]
+
+    def test_get__shows_report_without_body(self, admin_client, org):
+        report = self.make_report_with_body(org, b"")
+        response = admin_client.get(
+            reverse(
+                "reputation:fbl-report-detail",
+                kwargs={"org_slug": org.slug, "pk": report.pk},
+            )
+        )
+        assert response.status_code == 200
+        assert response.context["body"] == ""
 
 
+@pytest.mark.django_db
 class TestReputationOverviewView:
-    @pytest.mark.django_db
-    def test_get__shows_overview(self, client):
-        from django.contrib.auth import get_user_model
-
-        from accounts.models import Membership, Organization
-
-        User = get_user_model()
-        user = User.objects.create(username="testuser2", email="test2@example.com")
-        org = Organization.objects.create(slug="testorg2")
-        Membership.objects.create(org=org, user=user, role="write")
-        client.force_login(user)
-        response = client.get(f"/org/{org.slug}/email/reputation/")
+    def test_get__shows_overview(self, admin_client, org):
+        response = admin_client.get(overview_url(org))
         assert response.status_code == 200
+        assert response.context["stats"]["total_sent"] == 0
+
+    def test_get__counts_held_spam_as_complaints_in_chart(
+        self, admin_client, org, user
+    ):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        message = OutgoingMessage(
+            sender=user,
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            status=OutgoingMessage.Status.HELD,
+        )
+        message.raw_body.save("held.eml", ContentFile(b"body"), save=False)
+        message.save(force_insert=True)
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert any(row["complained"] == 1 for row in response.context["chart"]["rows"])

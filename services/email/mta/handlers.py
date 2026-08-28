@@ -144,7 +144,9 @@ def process_incoming_message(
             )
             report.raw_body.save(f"{report.id}.eml", ContentFile(raw_bytes), save=False)
             report.save(force_insert=True)
-            transaction.on_commit(lambda: parse_fbl_report.enqueue(report_pk=report.pk))
+            transaction.on_commit(
+                lambda: parse_fbl_report.enqueue(report_pk=str(report.pk))
+            )
             return "250 OK"
 
     is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (

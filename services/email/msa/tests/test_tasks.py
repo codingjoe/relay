@@ -221,3 +221,72 @@ class TestCheckOutgoingSpam:
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.DROPPED
         assert not Transmission.objects.filter(message=msg).exists()
+
+    def test_check_outgoing_spam__holds_spam_and_creates_relay_fbl_report(
+        self, user, org
+    ):
+        from services.email.msa.tasks import check_outgoing_spam
+        from services.email.reputation.models import FblReport
+        from services.email.spam import SpamAction, SpamResult
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            sender=user,
+            org=org,
+            rcpt_to="bob@example.com, carol@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
+        msg.save()
+
+        with (
+            patch(
+                "services.email.msa.tasks.check_message",
+                return_value=SpamResult(score=10.0, action=SpamAction.REJECT),
+            ) as mock_check,
+            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
+        ):
+            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="1.2.3.4")
+
+        mock_check.assert_awaited_once_with(b"spam body", client_ip="1.2.3.4")
+        mock_deliver.enqueue.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.HELD
+        assert msg.spam_score == 10.0
+        assert msg.spam_action == SpamAction.REJECT
+        report = FblReport.objects.get(org=org)
+        assert report.source == FblReport.Source.RELAY
+        assert report.original_rcpt_to == "bob@example.com"
+
+    def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
+        from services.email.msa.tasks import check_outgoing_spam
+        from services.email.reputation.models import FblReport
+        from services.email.spam import SpamResult
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            sender=user,
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"clean body"), save=False)
+        msg.save()
+
+        with (
+            patch(
+                "services.email.msa.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
+        ):
+            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
+
+        mock_deliver.enqueue.assert_called_once_with(message_id=str(msg.pk))
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert msg.spam_score == 0.0
+        assert not FblReport.objects.exists()
+        assert not Transmission.objects.filter(message=msg).exists()
