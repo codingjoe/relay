@@ -47,55 +47,7 @@
 
   {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation: sent, bounces, and complaints")|capfirst chart=chart class="mt-6" %}
 
-  <div class="table-container mt-6">
-    <table class="table">
-      <tbody>
-        <tr>
-          <th>{% translate "status"|capfirst %}</th>
-          <td>
-            {% if org.suspended_at %}
-              <span class="badge" data-size="sm" data-variant="destructive">
-                {% translate "suspended"|capfirst %}
-              </span>
-            {% else %}
-              <span class="badge" data-size="sm" data-variant="primary">
-                {% translate "ok"|capfirst %}
-              </span>
-            {% endif %}
-          </td>
-        </tr>
-        {% if org.suspended_at %}
-          <tr>
-            <th>{% translate "suspended at"|capfirst %}</th>
-            <td>{{ org.suspended_at }}</td>
-          </tr>
-          <tr>
-            <th class="w-0 whitespace-nowrap">{% translate "what this means"|capfirst %}</th>
-            <td>
-              {% translate "new submissions are rejected and queued messages are dropped. staff will review your account."|capfirst %}
-            </td>
-          </tr>
-        {% endif %}
-        <tr>
-          <th>{% translate "sent"|capfirst %}</th>
-          <td>{{ stats.total_sent }}</td>
-        </tr>
-        <tr>
-          <th>{% translate "hard bounces"|capfirst %}</th>
-          <td>{{ stats.hard_bounces }}</td>
-        </tr>
-        <tr>
-          <th>{% translate "soft bounces"|capfirst %}</th>
-          <td>{{ stats.soft_bounces }}</td>
-        </tr>
-        <tr>
-          <th>{% translate "complaints"|capfirst %}</th>
-          <td>{{ stats.complaints }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="text-sm text-muted-foreground mt-2">
+  <p class="text-sm text-muted-foreground mt-6">
     {% blocktranslate count days=window_days trimmed %}
       Counts accumulate over the last day.
     {% plural %}Counts accumulate over the last {{ days }} days.
