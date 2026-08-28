@@ -19,9 +19,9 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
 
 
 class OpenSourceView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
-    """Render the open-source charter."""
+    """Render the open-source pledge."""
 
     template_name = "open_source.html"
-    title = _("the open-source charter")
+    title = _("the open-source pledge")
     parent = "home"
     cache_control = {"public": True, "max_age": 300}
