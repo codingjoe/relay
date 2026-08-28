@@ -16,7 +16,11 @@ import os
 from pathlib import Path
 
 import environ
+import sentry_sdk
 from cryptography.fernet import Fernet
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.threading import ThreadingIntegration
 
 env = environ.Env(
     # set casting, default value
@@ -388,11 +392,6 @@ THREADMILL = {
 
 # Error monitoring (Sentry)
 if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DEBUG:
-    import sentry_sdk
-    from sentry_sdk.integrations.asyncio import AsyncioIntegration
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.threading import ThreadingIntegration
-
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=env("SENTRY_ENVIRONMENT", default="").strip() or "production",

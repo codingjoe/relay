@@ -11,6 +11,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
 
+from .charts import build_tls_chart
 from .forms import WebhookForm
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
@@ -147,8 +148,6 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
         return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
-        from .charts import build_tls_chart
-
         return super().get_context_data(**kwargs) | {
             "domains": Domain.objects.filter(org=self.org),
             "filters": {

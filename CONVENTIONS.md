@@ -93,8 +93,10 @@ Update it based on review feedback.
 
 ## Imports
 
-- All imports at the top of a file, except inside Celery/Django tasks where
-  late imports are needed to avoid import cycles.
+- All imports at the top of a file. Enforced by relint ("No indented
+  imports"). Exceptions: `tasks.py`, where late imports avoid import
+  cycles, and `apps.py`, where Django requires importing signal and check
+  modules inside `AppConfig.ready()`.
 - Import views as `from . import views` in URL configs, then reference
   `views.MyView.as_view()`.
 - Do not import with different names (no `import x as y`) unless necessary.

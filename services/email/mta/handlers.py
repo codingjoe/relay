@@ -7,6 +7,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 
 from domains.models import Domain
+from services.email.dmarc.models import DmarcFailureReport, DmarcReport
+from services.email.dmarc.tasks import (
+    parse_dmarc_failure_report,
+    parse_dmarc_report,
+)
 from services.email.dmarc.types import Disposition, DmarcEvaluation
 
 from .models import IncomingMessage, TlsReport
@@ -71,9 +76,6 @@ def process_incoming_message(
 
     match local_part:
         case settings.RELAY_DMARC_REPORT_LOCAL_PART:
-            from services.email.dmarc.models import DmarcReport
-            from services.email.dmarc.tasks import parse_dmarc_report
-
             report = DmarcReport.objects.create(
                 org=domain.org,
                 domain=domain,
@@ -112,9 +114,6 @@ def process_incoming_message(
             return "250 OK"
 
         case settings.RELAY_DMARC_RUF_LOCAL_PART:
-            from services.email.dmarc.models import DmarcFailureReport
-            from services.email.dmarc.tasks import parse_dmarc_failure_report
-
             report = DmarcFailureReport.objects.create(
                 org=domain.org,
                 domain=domain,
