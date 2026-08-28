@@ -72,9 +72,18 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
+        chart = build_reputation_chart(self.org)
+        chart_rates = {
+            "series": chart["rate_series"],
+            "rows": chart["rows"],
+            "y_scale": {"stacked": "false"},
+        }
         return super().get_context_data(**kwargs) | {
             "stats": compute_org_reputation(self.org),
-            "chart": build_reputation_chart(self.org),
+            "chart": chart,
+            "chart_rates": chart_rates,
             "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
             "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
+            "min_volume": settings.RELAY_REPUTATION_MIN_VOLUME,
+            "window_days": settings.RELAY_REPUTATION_WINDOW_DAYS,
         }

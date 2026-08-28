@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -14,14 +15,19 @@ REPUTATION_CHART_COLORS = {
     "hard_bounced": "var(--color-destructive)",
     "soft_bounced": "var(--color-warning)",
     "complained": "var(--color-destructive)",
+    "hard_bounce_rate": "var(--color-destructive)",
+    "complaint_rate": "var(--color-primary)",
+    "hard_bounce_limit": "var(--color-muted-foreground)",
+    "complaint_limit": "var(--color-muted-foreground)",
 }
 
 
 def build_reputation_chart(org):
-    """Return sent, hard-bounce, soft-bounce, and complaint counts per day.
+    """Return per-day message counts, rates, and rate limits for one org.
 
     Counts provider FBL reports and outgoing messages held as spam as
-    complaints over the `CHART_DAYS` window.
+    complaints over the `CHART_DAYS` window. Rates and limits are per
+    cent, so they share one axis and can be plotted next to each other.
     """
     start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
 
@@ -109,8 +115,46 @@ def build_reputation_chart(org):
             "color": REPUTATION_CHART_COLORS["complained"],
         },
     ]
+    bounce_limit = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD * 100
+    complaint_limit = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD * 100
+
+    def rate(counts):
+        return [
+            round(counts.get(day, 0) / sent_counts[day] * 100, 4)
+            if sent_counts.get(day)
+            else None
+            for day in days_list
+        ]
+
+    hard_bounce_rates = rate(hard_bounce_counts)
+    complaint_rates = rate(complaint_counts)
+    rate_series = [
+        {
+            "key": "hard_bounce_rate",
+            "label": "Hard bounce rate",
+            "color": REPUTATION_CHART_COLORS["hard_bounce_rate"],
+        },
+        {
+            "key": "complaint_rate",
+            "label": "Complaint rate",
+            "color": REPUTATION_CHART_COLORS["complaint_rate"],
+        },
+        {
+            "key": "hard_bounce_limit",
+            "label": "Hard bounce limit",
+            "color": REPUTATION_CHART_COLORS["hard_bounce_limit"],
+            "dataset": "stack: null, fill: false",
+        },
+        {
+            "key": "complaint_limit",
+            "label": "Complaint limit",
+            "color": REPUTATION_CHART_COLORS["complaint_limit"],
+            "dataset": "stack: null, fill: false",
+        },
+    ]
     return {
         "series": series,
+        "rate_series": rate_series,
         "rows": [
             {
                 "day": day.isoformat(),
@@ -118,7 +162,11 @@ def build_reputation_chart(org):
                 "hard_bounced": hard_bounce_counts.get(day, 0),
                 "soft_bounced": soft_bounce_counts.get(day, 0),
                 "complained": complaint_counts.get(day, 0),
+                "hard_bounce_rate": hard_bounce_rates[index],
+                "complaint_rate": complaint_rates[index],
+                "hard_bounce_limit": bounce_limit,
+                "complaint_limit": complaint_limit,
             }
-            for day in days_list
+            for index, day in enumerate(days_list)
         ],
     }
