@@ -4,7 +4,7 @@ include:
 services:
   web:
     pull_policy: build
-    image: !reset
+    image: app
     build:
       context: .
       dockerfile: Dockerfile
@@ -49,27 +49,75 @@ services:
     extends:
       service: web
     labels: !reset
-    deploy: !reset
-    command: ["-m", "manage", "dns"]
+    command: ["-m", "manage", "dns", "--port", "5353"]
+    networks: !override
+      - app
+      - dnsdist
+  dnsdist:
+    image: powerdns/dnsdist-21:2.1.1
     ports:
-      - "53:53/udp"
-      - "53:53/tcp"
-  smtp:
+      - "0.0.0.0:53:53/udp"
+      - "0.0.0.0:53:53/tcp"
+    networks:
+      - dnsdist
+      - dnsdist-wan
+    configs:
+      - source: dnsdist
+        target: /etc/dnsdist/dnsdist.conf
+    depends_on:
+      dns:
+        condition: service_started
+  msa:
     extends:
       service: web
-    labels: !reset
+    labels: !override
+      - "caddy=smtp.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
     deploy: !reset
-    command: ["-m", "manage", "smtp"]
+    command: ["-m", "manage", "msa"]
     ports:
-      - "587:587"
-  mx:
+      - "0.0.0.0:587:587"
+      - "0.0.0.0:465:465"
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+    volumes:
+      - caddy_data:/data:ro
+    networks: !override
+      - app
+      - app-wan
+  mta:
     extends:
       service: web
-    labels: !reset
+    labels: !override
+      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
     deploy: !reset
-    command: ["-m", "manage", "mx"]
+    command: ["-m", "manage", "mta"]
     ports:
-      - "25:25"
+      - "0.0.0.0:25:25"
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
+    volumes:
+      - caddy_data:/data:ro
+    networks: !override
+      - app
+      - app-wan
+  rspamd:
+    image: rspamd/rspamd:4.1
+    configs:
+      - source: rspamd_redis
+        target: /etc/rspamd/local.d/redis.conf
+      - source: rspamd_worker
+        target: /etc/rspamd/local.d/worker-normal.inc
+    networks:
+      - app
+    depends_on:
+      redis:
+        condition: service_healthy
   worker:
     extends:
       service: web
@@ -87,8 +135,50 @@ services:
       postgres:
         condition: service_healthy
         required: true
-        restart: true
+        restart: false
       redis:
         condition: service_healthy
         required: true
-        restart: true
+        restart: false
+volumes:
+  caddy_data:
+    name: the-box_caddy_data
+    external: true
+networks:
+  dnsdist:
+    internal: true
+  dnsdist-wan:
+configs:
+  rspamd_redis:
+    content: |
+      servers = "redis";
+      password = "${REDIS_PASSWORD}";
+      database = 1;
+  rspamd_worker:
+    content: |
+      bind_socket = "*:11334";
+  dnsdist:
+    content: |
+      -- Listen on port 53 (UDP + TCP)
+      addLocal("0.0.0.0:53")
+
+      -- Authoritative nameserver: allow queries from all sources
+      setACL({"0.0.0.0/0", "::/0"})
+
+      -- Resolve all 'dns' service replicas via Docker's embedded DNS
+      local handle = io.popen("getent ahosts dns")
+      local result = handle:read("*a")
+      handle:close()
+
+      -- Add each unique replica as a downstream server for redundancy
+      local seen = {}
+      for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
+          if not seen[ip] then
+              seen[ip] = true
+              newServer({address=ip .. ":5353", name="authoritative"})
+          end
+      end
+
+      -- Cache responses to reduce upstream load
+      pc = newPacketCache(10000, {maxTTL=86400, minTTL=0})
+      getPool(""):setCache(pc)

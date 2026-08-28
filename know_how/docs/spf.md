@@ -6,7 +6,7 @@ author: Johannes Maron
 
 # SPF
 
-> **TL;DR**: SPF is a DNS record that lists the mail servers authorized to send email for your domain. Receiving servers check this record to verify the sender. relay publishes the SPF record for you automatically.
+> **TL;DR**: SPF is a DNS record that lists the mail servers authorized to send email for your domain. Receiving servers check this record to verify the sender.
 
 ## What is SPF?
 
@@ -74,11 +74,15 @@ The `all` mechanism is usually the last one in the record. It defines the defaul
 
 SPF has a DNS lookup limit of 10. Each `include`, `a`, `mx`, `exists`, or `redirect` mechanism counts as one lookup. If a record exceeds 10 lookups, the result is `permerror`.[^lookup-limit] This limit prevents DNS-based denial-of-service attacks.
 
-## How relay uses SPF
+## How to set up SPF
 
-relay publishes the SPF record on the sender subdomain automatically. The record includes the SMTP server IP addresses through the `a` and `mx` mechanisms. You do not need to configure SPF manually.
+1. Collect the IP addresses of all servers that send email for your domain.
+1. Create a TXT record that starts with `v=spf1`.
+1. Add the `a` and `mx` mechanisms to authorize your mail servers.
+1. Add `ip4:` and `ip6:` mechanisms for each additional sending IP address.
+1. End the record with `~all` to soft-fail all other senders.
 
-The SPF record on the sender subdomain uses `~all` (soft fail) for all other senders. This means that unauthorized senders get a soft fail result, which most receivers treat as a spam signal but not a hard rejection.[^softfail-vs-fail]
+Use `-all` for hard fail only after you confirm that all legitimate senders pass SPF.[^softfail-vs-fail]
 
 ## Further reading
 

@@ -16,3 +16,12 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
         }
+
+
+class OpenSourceView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
+    """Render the open-source pledge."""
+
+    template_name = "open_source.html"
+    title = _("the open-source pledge")
+    parent = "home"
+    cache_control = {"public": True, "max_age": 300}

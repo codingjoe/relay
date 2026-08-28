@@ -1,5 +1,5 @@
 {% load i18n accounts %}
-<header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0">
+<header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0 z-30">
   {% if current_org %}
     <button
       type="button"
@@ -40,7 +40,7 @@
         title='{% translate "coming soon" %}'
       >
         {% translate "VoIP" context "acronym" %}
-        <span class="badge" data-size="sm">{% translate "coming soon" %}</span>
+        <span class="badge" data-size="sm">{% translate "soon" %}</span>
       </button>
     </nav>
   {% else %}
@@ -55,6 +55,7 @@
             type="button"
             class="btn"
             data-size="sm"
+            data-variant="secondary"
             id="org-switcher-trigger"
             aria-controls="org-switcher-menu"
             aria-haspopup="menu"

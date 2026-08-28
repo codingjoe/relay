@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{% translate "webhooks"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "webhooks"|capfirst %}</h2>
+    <button
+      type="button"
+      class="btn"
+      onclick="document.getElementById('dlg-new-webhook').showModal()"
+    >
+      {% translate "new webhook"|title %}
+    </button>
+  </header>
+
+  <dialog class="dialog" id="dlg-new-webhook">
+    <div>
+      <header>
+        <h2>{% translate "new webhook"|title %}</h2>
+        <p>{% translate "configure a webhook endpoint for incoming email."|capfirst %}</p>
+      </header>
+      <section>
+        <form method="post" action="{% url 'mta:webhook-create' org.slug %}" id="dlg-new-webhook-form">
+          {% csrf_token %}
+          <fieldset class="fieldset">
+            <div role="group" class="field">
+              <label for="id_url">URL</label>
+              <input
+                type="url"
+                name="url"
+                id="id_url"
+                placeholder="https://example.com/webhooks/relay"
+                pattern="https://.*"
+                required
+                class="input"
+              >
+            </div>
+            <div role="group" class="field">
+              <label for="id_name">{% translate "name"|capfirst context "noun" %}</label>
+              <input
+                type="text"
+                name="name"
+                id="id_name"
+                placeholder='{% translate "for example, production webhook"|title %}'
+                class="input"
+              >
+            </div>
+            <div role="group" class="field">
+              <label for="id_domain">{% translate "domain"|capfirst context "noun" %}</label>
+              <select
+                name="domain"
+                id="id_domain"
+                class="select w-full"
+                required
+                onchange="document.getElementById('id-pattern-suffix').textContent = '@' + this.options[this.selectedIndex].text"
+              >
+                {% for domain in domain_choices %}
+                  <option value="{{ domain.pk }}">{{ domain.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div role="group" class="field">
+              <label for="id_pattern_prefix">{% translate "address pattern"|capfirst %}</label>
+              <div class="input-group">
+                <input
+                  type="text"
+                  name="pattern_prefix"
+                  id="id_pattern_prefix"
+                  value="*"
+                  placeholder="*"
+                  required
+                >
+                <span
+                  data-align="end"
+                  id="id-pattern-suffix"
+                >{% if domain_choices %}@{{ domain_choices.0.name }}{% else %}@{% endif %}</span>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </section>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          onclick="document.getElementById('dlg-new-webhook').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <button type="submit" form="dlg-new-webhook-form" class="btn">
+          {% translate "create"|capfirst context "verb" %}
+        </button>
+      </footer>
+    </div>
+  </dialog>
+
+  {% if webhooks %}
+    <div class="item-group">
+      {% for webhook in webhooks %}
+        <article class="item" data-variant="outline">
+          <section>
+            <h3>{{ webhook.name|default:webhook.url }}</h3>
+            <p class="flex items-center gap-2 flex-wrap">
+              <code>{{ webhook.url|truncatechars:60 }}</code>
+              {% if webhook.is_active %}
+                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+              {% else %}
+                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+              {% endif %}
+              <span aria-hidden="true">·</span>
+              <code>{{ webhook.address_pattern }}</code>
+            </p>
+            <p class="flex items-center gap-2 flex-wrap mt-2 text-sm text-muted-foreground">
+              {% translate "public key"|capfirst %}
+              <code class="text-foreground">{{ webhook.public_key_serialized }}</code>
+              <button
+                type="button"
+                class="btn"
+                data-variant="ghost"
+                data-size="icon-sm"
+                onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized|escapejs }}')"
+                aria-label="{% translate 'copy public key'|capfirst %}"
+              >
+                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+              </button>
+            </p>
+          </section>
+          <aside class="flex items-center gap-2">
+            <form method="post" action="{% url 'mta:webhook-test' org.slug webhook.pk %}" style="display: inline">
+              {% csrf_token %}
+              <button type="submit" class="btn" data-variant="secondary" data-size="sm">
+                {% translate "test"|capfirst context "verb" %}
+              </button>
+            </form>
+            <form method="post" action="{% url 'mta:webhook-delete' org.slug webhook.pk %}" style="display: inline">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="btn"
+                data-variant="destructive"
+                data-size="sm"
+                onclick="return confirm('{% translate "delete this webhook?"|capfirst context "verb" %}')"
+              >
+                {% translate "delete"|capfirst context "verb" %}
+              </button>
+            </form>
+          </aside>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted-foreground">
+      {% blocktranslate trimmed %}
+        No webhooks configured. create one to receive incoming email deliveries.
+      {% endblocktranslate %}
+    </p>
+  {% endif %}
+
+  <section class="card mt-6 p-6">
+    <header>
+      <h3 class="m-0">{% translate "webhook format"|capfirst %}</h3>
+    </header>
+    <p>
+      {% blocktranslate with docs_url="https://docs.standardwebhooks.com" sdk_url="https://github.com/standard-webhooks/standard-webhooks" trimmed %}
+        Webhooks follow the
+        <a href="https://standardwebhooks.com">Standard Webhooks</a> specification. Each delivery includes <code
+        >webhook-id</code>, <code>webhook-timestamp</code>, and <code>webhook-signature</code> headers. Use the
+        per-webhook public key (shown above) with any <a href="{{ sdk_url }}">Standard Webhooks SDK</a> to verify
+        signatures. No custom code needed. See the
+        <a href="{{ docs_url }}">documentation</a> for details.
+      {% endblocktranslate %}
+    </p>
+    {{ webhook_payload|highlight_code:"json" }}
+  </section>
+{% endblock %}

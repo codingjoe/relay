@@ -236,3 +236,6 @@ terraform/*.tfstate
 terraform/*.tfstate.*
 terraform/terraform.tfvars
 terraform/*.tfplan
+
+# Backup encryption private keys
+.box/*.key

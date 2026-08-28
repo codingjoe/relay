@@ -36,19 +36,22 @@ class TestDnsCommand:
             ),
             pytest.raises(SystemExit) as error,
         ):
+            stdout = StringIO()
             call_command(
                 "dns",
                 "--host",
                 "127.0.0.1",
                 "--port",
                 "5353",
-                stdout=StringIO(),
+                stdout=stdout,
             )
 
         resolver = resolver_class.return_value
         logger = logger_class.return_value
         resolver_class.assert_called_once_with()
-        logger_class.assert_called_once_with(log="-request,-reply,-truncated,-error")
+        logger_class.assert_called_once()
+        assert logger_class.call_args.kwargs["log"] == "-request,-reply"
+        assert logger_class.call_args.kwargs["logf"].__self__._out is stdout
         assert server_class.call_args_list == [
             call(resolver, address="127.0.0.1", port=5353, logger=logger),
             call(

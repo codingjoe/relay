@@ -1,25 +1,14 @@
-# Relay: B2B SaaS Communication Platform
+# relay: Developer-First IT Infrastructure
 
-A B2B SaaS communication platform for AI applications.
-The platform has a **built-in authoritative nameserver**
-that removes manual DNS configuration.
-
-## How It Works
-
-Users only need to set **two DNS records**:
-
-1. **NS delegation**. Delegate the sender subdomain to our nameservers
-1. **DMARC record**. On the root domain
-
-Everything else (MX, SPF, DKIM, Return-Path) is **served automatically**
-by the built-in nameserver. You do not need to use the DNS provider dashboard.
+A developer-first IT infrastructure provider. We build superior products and
+enable our clients to build AAA applications on top of them.
 
 ## Managed Sender Domain
 
 Every organization gets a **managed sender domain**. It is a subdomain of the
 platform domain, and relay manages it automatically. The domain is
-set via `RELAY_MANAGED_SENDER_DOMAIN` (defaults to
-`open.{RELAY_PLATFORM_DOMAIN}`, for example `open.localhost` in development).
+derived from the platform domain as `open.{RELAY_PLATFORM_DOMAIN}` (for
+example `open.localhost` in development).
 When an organization is created, a `Domain` is auto-created with the name
 `{org.slug}.{RELAY_MANAGED_SENDER_DOMAIN}` (for example `acme.open.localhost`).
 The domain is DKIM-signed and pre-verified. No user DNS configuration needed.
@@ -37,9 +26,9 @@ The platform operator must set up the following records on the
    `ns1.{platform_domain}`, `ns2.{platform_domain}`).
 1. **A/AAAA record for the web server**. The platform domain itself needs
    an A/AAAA record for the web UI.
-1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS` and
-   `RELAY_SMTP_PUBLIC_HOSTNAME` (defaults to `smtp.{platform_domain}`). The
-   public hostname and sender subdomains resolve to the SMTP server IPs.
+1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
+   public hostname (`smtp.{platform_domain}`) and sender subdomains resolve
+   to the SMTP server IPs.
 1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
    record with the hosting provider. Outbound SMTP must use the corresponding
    hostname for EHLO.
@@ -75,13 +64,64 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                          |
-| ------- | ------------ | ------------------------------------ |
-| Web     | 8000         | Django web UI (Granian)              |
-| DNS     | 53 (UDP+TCP) | Authoritative nameserver (dnslib)    |
-| SMTP    | 587          | Outgoing SMTP submissions (aiosmtpd) |
-| MX      | 25           | Incoming MX delivery (aiosmtpd)      |
-| Worker  | N/A          | Threadmill task worker               |
+| Service | Port         | Description                                      |
+| ------- | ------------ | ------------------------------------------------ |
+| Web     | 8000         | Django web UI (Granian)                          |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)              |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only) |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, TLS direct) |
+| MX      | 25           | Incoming MX delivery (aiosmtpd, STARTTLS direct) |
+| rspamd  | 11334        | Spam detection (internal only)                   |
+| Worker  | N/A          | Threadmill task worker                           |
+
+```mermaid
+flowchart TD
+    subgraph internet[Internet]
+        client[SMTP clients]
+        sender[Remote MTAs]
+        browser[Browsers]
+    end
+
+    subgraph caddy[Caddy reverse proxy + TLS]
+        caddy_proxy[Caddy docker-proxy]
+    end
+
+    subgraph app[app network]
+        web[Web Django + Granian :8000]
+        msa[SMTP aiosmtpd :587 :465]
+        mta[MX aiosmtpd :25]
+        worker[Worker Threadmill]
+        rspamd[rspamd :11334]
+        minio[MinIO S3 :9000]
+    end
+
+    subgraph data[data services]
+        pg[PostgreSQL 18+]
+        redis[Redis]
+    end
+
+    subgraph dns[dnsdist network]
+        dnsdist[dnsdist :53 UDP+TCP]
+        dns_ns[DNS dnslib :5353]
+    end
+
+    browser --> caddy_proxy
+    caddy_proxy --> web
+    client -->|STARTTLS :587 / TLS :465| msa
+    sender -->|STARTTLS :25| mta
+    msa --> rspamd
+    mta --> rspamd
+    rspamd --> redis
+    web --> pg
+    web --> redis
+    web --> minio
+    msa --> pg
+    msa --> minio
+    mta --> pg
+    mta --> minio
+    dnsdist --> dns_ns
+    sender -->|DNS :53| dnsdist
+```
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
@@ -95,11 +135,6 @@ has its own keypair, so clients verify with the webhook's public key
 data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
-
-> **STARTTLS cert provisioning**: in production, mount the same certificate
-> the Caddy reverse proxy uses into the MX container. Then point
-> `RELAY_MX_TLS_CERT_PATH` and `RELAY_MX_TLS_KEY_PATH` at the certificate. The cert must
-> include the MX hostname (for example, `mail.relay.acme.com`).
 
 ### Tech Stack
 
@@ -161,25 +196,25 @@ graph BT
  direction BT
  dashboard[dashboard]
  message[message]
- smtp
- mx
+ msa
+ mta
  dmarc
  message --> accounts
  message --> domains
- smtp --> message
- smtp --> accounts
- smtp --> domains
- smtp --> kms
- mx --> message
- mx --> accounts
- mx --> domains
- mx --> kms
+ msa --> message
+ msa --> accounts
+ msa --> domains
+ msa --> kms
+ mta --> message
+ mta --> accounts
+ mta --> domains
+ mta --> kms
  dmarc --> accounts
  dmarc --> domains
- dmarc --> mx
+ dmarc --> mta
  dashboard --> message
- dashboard --> smtp
- dashboard --> mx
+ dashboard --> msa
+ dashboard --> mta
  dashboard --> dmarc
  end
  subgraph voip

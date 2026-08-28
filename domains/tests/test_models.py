@@ -266,3 +266,22 @@ class TestMtaStsRecord:
     def test_mta_sts_record__includes_policy_id(self):
         record = Domain(name="example.com").mta_sts_record
         assert "id=" in record
+
+
+class TestDmarcRecord:
+    def test_dmarc_record__uses_quarantine_policy(self):
+        assert "p=quarantine" in Domain(name="example.com").dmarc_record
+
+    def test_dmarc_record__uses_quarantine_subdomain_policy(self):
+        assert "sp=quarantine" in Domain(name="example.com").dmarc_record
+
+    def test_dmarc_record__does_not_use_none_policy(self):
+        assert "p=none" not in Domain(name="example.com").dmarc_record
+
+
+class TestSenderDmarcRecord:
+    def test_sender_dmarc_record__uses_quarantine_policy(self):
+        assert "p=quarantine" in Domain(name="example.com").sender_dmarc_record
+
+    def test_sender_dmarc_record__does_not_use_none_policy(self):
+        assert "p=none" not in Domain(name="example.com").sender_dmarc_record

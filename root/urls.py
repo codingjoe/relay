@@ -45,6 +45,7 @@ urlpatterns = [
         ),
     ),
     path("", views.HomeView.as_view(), name="home"),
+    path("open-source/", views.OpenSourceView.as_view(), name="open-source"),
     # Platform (not org-scoped)
     path("", include("accounts.urls")),
     path("legal/", include("legal.urls")),
@@ -59,8 +60,8 @@ urlpatterns = [
             [
                 path("", include("services.email.message.urls")),
                 path("", include("services.email.dashboard.urls")),
-                path("", include("services.email.smtp.urls")),
-                path("", include("services.email.mx.urls")),
+                path("", include("services.email.msa.urls")),
+                path("", include("services.email.mta.urls")),
                 path("", include("services.email.dmarc.urls")),
                 path("domains/", include("domains.urls")),
             ]
