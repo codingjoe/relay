@@ -64,12 +64,15 @@ lint.ignore = [
 ]
 
 [tool.pytest]
-addopts = [ "--cov", "--tb=line", "--fail-on-template-vars", "--reuse-db", "-q" ]
+addopts = [ "--tb=native", "--fail-on-template-vars", "--reuse-db", "-n", "auto", "-q" ]
 asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "root.settings"
 env = [
   "DJANGO_ALLOW_ASYNC_UNSAFE=1",
   "TEST=1",
+]
+filterwarnings = [
+  "ignore:Setting ModelAdmin.list_select_related:django.utils.deprecation.RemovedInDjango70Warning",
 ]
 norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".worktrees" ]
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
