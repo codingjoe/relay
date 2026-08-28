@@ -9,7 +9,7 @@ from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
 
 
-class TestFblReportParseFromEmail:
+class TestFblReport:
     def test_parse_from_email__returns_fbl_report(self):
         msg = EmailMessage()
         msg["Subject"] = "FBL Report"
@@ -37,8 +37,6 @@ class TestFblReportParseFromEmail:
         with pytest.raises(ValueError):
             FblReport.parse_from_email(msg.as_bytes())
 
-
-class TestFblReportProperties:
     def test_status_badge_variant__is_destructive(self):
         report = FblReport()
         assert report.status_badge_variant == "destructive"
@@ -58,9 +56,7 @@ class TestFblReportProperties:
         )
         assert str(report) == "gmail → ? (sender@acme.com)"
 
-
-@pytest.mark.django_db
-class TestFblReportGetAbsoluteUrl:
+    @pytest.mark.django_db
     def test_get_absolute_url__reverses_to_detail(self, org):
         report = FblReport.objects.create(
             org=org,
@@ -71,8 +67,6 @@ class TestFblReportGetAbsoluteUrl:
             kwargs={"org_slug": org.slug, "pk": report.pk},
         )
 
-
-class TestFblReportCreateForSpamWithoutDomain:
     def test_create_for_spam__returns_none_without_domain(self):
         message = IncomingMessage(
             mail_from="spam@example.com",
@@ -81,9 +75,6 @@ class TestFblReportCreateForSpamWithoutDomain:
         result = FblReport.create_for_spam(message)
         assert result is None
 
-
-@pytest.mark.django_db
-class TestFblReportCreateForSpam:
     def make_outgoing_message(self, org, **kwargs):
         defaults = {
             "org": org,
@@ -93,6 +84,7 @@ class TestFblReportCreateForSpam:
         }
         return OutgoingMessage.objects.create(**defaults | kwargs)
 
+    @pytest.mark.django_db
     def test_create_for_spam__creates_report_with_spam_fields(self, org):
         domain = Domain.objects.create(name="acme.com", org=org)
         message = self.make_outgoing_message(
@@ -114,6 +106,7 @@ class TestFblReportCreateForSpam:
         assert report.org == org
         assert report.message == message
 
+    @pytest.mark.django_db
     def test_create_for_spam__records_referenced_incoming_message(self, org, user):
         domain = Domain.objects.create(name="acme.com", org=org)
         message = IncomingMessage.objects.create(
@@ -132,9 +125,7 @@ class TestFblReportCreateForSpam:
         assert report.source == "relay"
         assert report.original_rcpt_to == "inbox@relay.local"
 
-
-@pytest.mark.django_db
-class TestFblReportCreateForIncoming:
+    @pytest.mark.django_db
     def test_create_for_incoming__stores_provider_report(self, org, user):
         domain = Domain.objects.create(name="acme.com", org=org)
         message = IncomingMessage.objects.create(

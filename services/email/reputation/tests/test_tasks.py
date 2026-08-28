@@ -99,9 +99,9 @@ class TestParseFblReport:
         assert mailoutbox[0].to == ["alice@example.com"]
 
 
-class TestFblReportIngress:
+class TestProcessIncomingMessage:
     @pytest.mark.django_db(transaction=True)
-    async def test_fbl_recipient__creates_and_parses_report(self, org):
+    async def test_process_incoming_message__fbl_recipient_creates_report(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
         result = await process_incoming_message(
             "feedback@gmail.com",
