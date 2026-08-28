@@ -1,22 +1,57 @@
+import uuid
+
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from services.email.mta.models import IncomingMessage
+from accounts.models import OrganizationOwned
 
 from .parser import parse_fbl
 
 
-class FblReport(IncomingMessage):
-    """Feedback Loop (FBL) complaint report received from an email provider.
+class FblReport(OrganizationOwned):
+    """Feedback Loop (FBL) complaint report.
 
     FBL reports use the ARF (Abuse Reporting Format, RFC 5965) MIME structure.
     They are similar to DMARC RUF reports but carry complaint feedback
     (for example, a user clicked "mark as spam") rather than authentication
     failure details.
+
+    Reports are records only. Relay does not send reports anywhere. The
+    `message` foreign key references the report email received from a
+    provider, or the message Relay flagged itself. Reports without a
+    referenced message are legacy rows from before the foreign key was
+    introduced.
     """
+
+    id = models.UUIDField(
+        _("ID"),
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+
+    message = models.ForeignKey(
+        "message.Message",
+        on_delete=models.SET_NULL,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_(
+            "Referenced message: the ARF email received from a provider for "
+            "provider reports, or the message Relay flagged for "
+            "relay-generated reports."
+        ),
+    )
+    domain = models.ForeignKey(
+        "domains.Domain",
+        on_delete=models.SET_NULL,
+        related_name="+",
+        null=True,
+        blank=True,
+        help_text=_("Domain the report is about."),
+    )
 
     class FeedbackType(models.TextChoices):
         ABUSE = "abuse", _("abuse")
@@ -108,8 +143,10 @@ class FblReport(IncomingMessage):
 
     class Meta:
         indexes = [
-            models.Index(fields=["arrival_at"]),
-            models.Index(fields=["feedback_type"]),
+            models.Index(fields=["arrival_at"], name="reputation__arrival_8495bd_idx"),
+            models.Index(
+                fields=["feedback_type"], name="reputation__feedbac_bddb85_idx"
+            ),
         ]
 
     @property
@@ -158,18 +195,10 @@ class FblReport(IncomingMessage):
         `parse_fbl_report` task.
         """
         return cls.objects.create(
+            source=cls.Source.PROVIDER,
             org=message.org,
             domain=message.domain,
-            receiving_domain=message.receiving_domain,
-            mail_from=message.mail_from,
-            rcpt_to=message.rcpt_to,
-            subject=message.subject,
-            message_id=message.message_id,
-            received_with_tls=message.received_with_tls,
-            raw_body=SimpleUploadedFile(
-                f"{message.message_id or 'message'}.eml",
-                message.raw_body.read() if message.raw_body else b"",
-            ),
+            message=message,
         )
 
     @classmethod
@@ -189,12 +218,7 @@ class FblReport(IncomingMessage):
             source=cls.Source.RELAY,
             org=message.org,
             domain=message.domain,
-            receiving_domain=getattr(message, "receiving_domain", ""),
-            mail_from=message.mail_from,
-            rcpt_to=message.rcpt_to,
-            subject=message.subject,
-            message_id=message.message_id,
-            received_with_tls=message.received_with_tls,
+            message=message,
             feedback_type=cls.FeedbackType.ABUSE,
             user_agent="relay",
             version="1",
@@ -203,8 +227,4 @@ class FblReport(IncomingMessage):
             original_mail_from=message.mail_from,
             original_rcpt_to=message.rcpt_to.split(",")[0],
             original_message_id=message.message_id,
-            raw_body=SimpleUploadedFile(
-                f"{message.message_id or 'message'}.eml",
-                message.raw_body.read() if message.raw_body else b"",
-            ),
         )

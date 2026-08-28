@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from domains.models import Domain
 from services.email.msa.models import OutgoingMessage
+from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
 
 
@@ -73,14 +74,18 @@ class TestFblReportListView:
 @pytest.mark.django_db
 class TestFblReportDetailView:
     def make_report_with_body(self, org, body: bytes):
-        return FblReport.objects.create(
+        message = IncomingMessage.objects.create(
             org=org,
             mail_from="feedback@gmail.com",
             rcpt_to="fbl@acme.com",
+            raw_body=SimpleUploadedFile("report.eml", body),
+        )
+        return FblReport.objects.create(
+            org=org,
+            message=message,
             reporting_org="gmail",
             arrival_at=timezone.now(),
             original_mail_from="sender@acme.com",
-            raw_body=SimpleUploadedFile("report.eml", body),
         )
 
     def test_get__shows_report_headers_and_body(self, admin_client, org):

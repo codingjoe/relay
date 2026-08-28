@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 @task
 def parse_fbl_report(report_pk):
-    """Fill stored report fields from the raw ARF body, then queue an org
-    evaluation.
+    """Fill stored report fields from the referenced message's raw ARF
+    body, then queue an org evaluation.
 
     Logs and keeps the stored fields when the body is not an ARF email.
     """
     report = FblReport.objects.get(pk=report_pk)
-    raw_bytes = report.raw_body.read()
+    raw_bytes = report.message.raw_body.read() if report.message else b""
     try:
         parsed = FblReport.parse_from_email(raw_bytes)
     except ValueError:

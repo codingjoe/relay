@@ -280,10 +280,9 @@ class TestReputationSignals:
         org.refresh_from_db()
         assert org.suspended_at is None
 
-    def test_held_message_creates_and_sends_relay_fbl_report(
+    def test_held_message_creates_relay_fbl_report(
         self, org, user, mailoutbox, settings
     ):
-        settings.RELAY_FBL_REPORTING_ADDRESS = "fbl@relay.local"
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
@@ -300,7 +299,8 @@ class TestReputationSignals:
         report = FblReport.objects.get(org=org)
         assert report.source == FblReport.Source.RELAY
         assert report.original_rcpt_to == "rcpt@example.com"
-        assert len(mailoutbox) == 1
+        assert report.message == message
+        assert len(mailoutbox) == 0
 
     @pytest.mark.django_db(transaction=True)
     def test_quarantined_incoming_message_creates_relay_fbl_report(self, org):
@@ -323,7 +323,7 @@ class TestReputationSignals:
         report = FblReport.objects.get(org=org)
         assert report.source == FblReport.Source.RELAY
         assert report.domain == domain
-        assert report.receiving_domain == "example.com"
+        assert report.message == message
 
     @pytest.mark.django_db(transaction=True)
     def test_outgoing_spam_held_creates_relay_fbl_report(self, org, user):

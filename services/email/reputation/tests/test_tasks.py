@@ -36,12 +36,13 @@ def make_arf_email(feedback_type="fraud"):
 
 
 def make_report(org, raw_bytes):
-    return FblReport.objects.create(
+    message = IncomingMessage.objects.create(
         org=org,
         mail_from="feedback@gmail.com",
         rcpt_to="fbl@acme.com",
         raw_body=SimpleUploadedFile("report.eml", raw_bytes),
     )
+    return FblReport.create_for_incoming(message)
 
 
 @pytest.mark.django_db
@@ -114,9 +115,7 @@ class TestFblReportIngress:
 
         assert result == "250 OK"
         report = await FblReport.objects.aget(org=org)
-        assert report.mail_from == "feedback@gmail.com"
+        assert report.source == "provider"
         assert report.domain == domain
-        assert report.receiving_domain == "example.com"
-        assert report.received_with_tls is True
         assert report.feedback_type == "fraud"
         assert report.original_mail_from == "sender@acme.com"

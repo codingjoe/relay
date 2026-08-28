@@ -7,7 +7,6 @@ from services.email.msa.models import OutgoingMessage, Transmission
 from services.email.mta.models import IncomingMessage
 
 from . import tasks
-from .emails import send_fbl_report
 from .models import FblReport
 
 
@@ -26,14 +25,13 @@ def check_reputation_on_hard_bounce(sender, instance, **kwargs):
 
 @receiver(post_save, sender=OutgoingMessage)
 def check_reputation_on_held_message(sender, instance, **kwargs):
-    """Record and send a relay FBL report and queue an org evaluation when
+    """Record a relay FBL report and queue an org evaluation when
     Relay flags a submission as spam."""
     held_as_spam = instance.status == OutgoingMessage.Status.HELD and "status" in (
         kwargs.get("update_fields") or ()
     )
     if held_as_spam:
         FblReport.create_for_spam(instance)
-        send_fbl_report(instance)
         transaction.on_commit(
             lambda: tasks.check_org_reputation.enqueue(org_id=instance.org_id)
         )
@@ -55,4 +53,3 @@ def check_reputation_on_incoming_message(sender, instance, created, **kwargs):
         kwargs.get("update_fields") or ()
     ):
         FblReport.create_for_spam(instance)
-        send_fbl_report(instance)
