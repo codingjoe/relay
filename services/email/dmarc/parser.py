@@ -98,9 +98,12 @@ def parse_arf(raw_bytes):
                             if key_lower in ARF_FIELD_MAP:
                                 report_data[ARF_FIELD_MAP[key_lower]] = value
                             elif key_lower == "arrival-date":
-                                report_data["arrival_at"] = datetime.fromisoformat(
-                                    value
-                                )
+                                try:
+                                    report_data["arrival_at"] = (
+                                        datetime.datetime.fromisoformat(value)
+                                    )
+                                except ValueError:
+                                    pass
                             elif key_lower == "delivery-result":
                                 result = value.lower().replace(" ", "-")
                                 if result in VALID_DELIVERY_RESULTS:

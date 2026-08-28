@@ -83,7 +83,7 @@ class ReportListView(OrganizationScopedView, generic.ListView):
             case self.ReportType.DMARC:
                 qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
                 if ip:
-                    qs = qs.filter(source_ip_address=ip)
+                    qs = qs.filter(records__source_ip_address=ip)
             case self.ReportType.FAILURES:
                 qs = DmarcFailureReport.objects.filter(org=self.org).select_related(
                     "domain"
