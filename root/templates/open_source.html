@@ -1,27 +1,30 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: the open-source charter"|title %}{% endblock %}
 {% block meta_description %}
-  relay's open-source charter: rooted in the open-source community and giving back. Free services, code upstream, funded
-  security, and support that grows.
+  relay's open-source pledge, signed by founder Johannes Hoppe: free services for open-source communities, donations
+  back, and contributions upstream.
 {% endblock meta_description %}
 {% block content %}
   <!--
     DESIGN CONTRACT
-    THESIS: the charter is a signed document, not a pitch: numbered pledges
-    written to be held to. Refuses the marketing-page default of buzzword
-    cards. OWN-WORLD: relay's established landing world, neutral ground, one
-    purple primary, mono for indices, divider rules instead of cards, the
-    network motif quieted to stars and dot grid (no pulses).
-    STORY: the visitor reads what relay gives back, believes the commitment
-    is structural, and acts: apply for the free service, or see who we fund.
+    THESIS: the pledge is a personal, signed document, not a pitch: three
+    commitments in the founder's own words, written to be held to. Refuses
+    the marketing-page default of buzzword cards. OWN-WORLD: relay's
+    established landing world, neutral ground, one purple primary, mono for
+    indices, divider rules instead of cards, the network motif quieted to
+    stars and dot grid (no pulses).
+    STORY: the visitor meets the founder, reads his three pledges, believes
+    the commitment is personal, and acts: apply for the free service, or see
+    who we fund.
     FIRST VIEWPORT: quiet network ground; "← relay" link top-left; centered
-    h1 "the open-source charter"; mono chip linking the GitHub sponsoring page;
-    one lead line. No primary action yet, reading comes first: the band
-    closes the page. FORM: single document, left-aligned reading column:
-    five numbered pledges, founder pledge in we voice, closing primary band.
+    founder chip (avatar photo plus name, links to his GitHub); h1 "I owe
+    open source everything"; one lead line. No primary action yet, reading
+    comes first: the band closes the page. FORM: single document, left-
+    aligned reading column: three numbered pledges in we voice, the
+    founder's signature with photo, closing primary band.
     Built directly: the request was precisely specified.
   -->
   <div class="charter relative isolate -mx-6 sm:-mx-8">
@@ -42,44 +45,51 @@
 
     <header class="flex flex-col items-center text-center gap-6 pt-10 sm:pt-16 pb-16 sm:pb-24 max-w-3xl mx-auto px-4 sm:px-8">
       <a
-        href="https://github.com/codingjoe?tab=sponsoring"
+        href="https://github.com/codingjoe"
         target="_blank"
         rel="noopener"
-        class="charter__chip inline-flex items-center font-mono text-sm shadow-sm"
+        class="charter__chip inline-flex items-center gap-2.5 font-mono text-sm shadow-sm"
       >
-        github.com/codingjoe?tab=sponsoring
+        <img
+          src="{% static 'img/johannes-hoppe.jpg' %}"
+          alt=""
+          width="28"
+          height="28"
+          class="charter__avatar size-7 rounded-full object-cover"
+        >
+        Johannes Hoppe, founder
       </a>
-      <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0">
-        {% translate "the open-source charter"|capfirst %}
+      <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0 max-w-2xl text-balance">
+        {% translate "I owe open source everything"|capfirst %}
       </h1>
       <p class="text-lg sm:text-xl text-muted-foreground leading-relaxed m-0 max-w-2xl">
         {% blocktranslate trimmed %}
-          Relay exists because open source exists. We are rooted in the communities that build the software the world
-          runs on, and giving back is the whole point: free services, code upstream, and money for security.
+          Relay exists because open source exists. Everything it is stands on work that communities built and gave away.
+          My name is Johannes Hoppe, I build relay, and giving that back is the whole point of this page.
         {% endblocktranslate %}
       </p>
     </header>
 
     <section class="pb-16 sm:pb-24 max-w-3xl mx-auto px-4 sm:px-8">
       <h2 class="text-2xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
-        {% translate "the pledges"|capfirst %}
+        {% translate "I pledge three things"|capfirst %}
       </h2>
       <p class="text-muted-foreground leading-relaxed m-0 mb-10">
         {% blocktranslate trimmed %}
-          Five commitments, accepted today, in public.
+          Three commitments, accepted today, in public.
         {% endblocktranslate %}
       </p>
       <div class="charter__pledges">
         <article class="charter__pledge grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-4 sm:gap-x-8 py-8">
           <span class="font-mono text-lg text-primary" aria-hidden="true">01</span>
           <div class="flex flex-col gap-2">
-            <h3 class="text-lg font-semibold m-0">
-              {% translate "free for open source"|capfirst %}
+            <h3 class="text-xl sm:text-2xl font-semibold tracking-tight m-0 text-balance">
+              {% translate "we are free for open source projects"|capfirst %}
             </h3>
             <p class="text-muted-foreground leading-relaxed m-0">
               {% blocktranslate trimmed %}
-                Every relay service is free, forever, for open-source projects and the communities that maintain them.
-                Giving back starts here, with the people who build the software we all run on.
+                Every relay service, forever, at no cost for open-source projects and the communities that maintain
+                them. Giving back starts with the people who build the software the world runs on.
               {% endblocktranslate %}
             </p>
             <a href="{% url 'accounts:application-create' %}" class="link w-fit">
@@ -90,22 +100,8 @@
         <article class="charter__pledge grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-4 sm:gap-x-8 py-8">
           <span class="font-mono text-lg text-primary" aria-hidden="true">02</span>
           <div class="flex flex-col gap-2">
-            <h3 class="text-lg font-semibold m-0">
-              {% translate "upstream first"|capfirst %}
-            </h3>
-            <p class="text-muted-foreground leading-relaxed m-0">
-              {% blocktranslate trimmed %}
-                When we find a bug, we fix it. When we improve something, it goes upstream. We contribute back to every
-                project our stack runs on, copyleft or not. Code before cash.
-              {% endblocktranslate %}
-            </p>
-          </div>
-        </article>
-        <article class="charter__pledge grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-4 sm:gap-x-8 py-8">
-          <span class="font-mono text-lg text-primary" aria-hidden="true">03</span>
-          <div class="flex flex-col gap-2">
-            <h3 class="text-lg font-semibold m-0">
-              {% translate "funded security"|capfirst %}
+            <h3 class="text-xl sm:text-2xl font-semibold tracking-tight m-0 text-balance">
+              {% translate "we will donate back to the community"|capfirst %}
             </h3>
             <p class="text-muted-foreground leading-relaxed m-0">
               {% blocktranslate trimmed %}
@@ -124,29 +120,15 @@
           </div>
         </article>
         <article class="charter__pledge grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-4 sm:gap-x-8 py-8">
-          <span class="font-mono text-lg text-primary" aria-hidden="true">04</span>
+          <span class="font-mono text-lg text-primary" aria-hidden="true">03</span>
           <div class="flex flex-col gap-2">
-            <h3 class="text-lg font-semibold m-0">
-              {% translate "support that grows"|capfirst %}
+            <h3 class="text-xl sm:text-2xl font-semibold tracking-tight m-0 text-balance">
+              {% translate "we will contribute back to projects as if they had copyleft licenses"|capfirst %}
             </h3>
             <p class="text-muted-foreground leading-relaxed m-0">
               {% blocktranslate trimmed %}
-                We back the foundations we build on with real money, and that support grows as relay grows. The day
-                relay earns money, part of it goes back to the community that made it possible.
-              {% endblocktranslate %}
-            </p>
-          </div>
-        </article>
-        <article class="charter__pledge grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-4 sm:gap-x-8 py-8">
-          <span class="font-mono text-lg text-primary" aria-hidden="true">05</span>
-          <div class="flex flex-col gap-2">
-            <h3 class="text-lg font-semibold m-0">
-              {% translate "open to suggestions"|capfirst %}
-            </h3>
-            <p class="text-muted-foreground leading-relaxed m-0">
-              {% blocktranslate trimmed %}
-                The community knows best what it needs. If your project needs something we have not thought of, tell us
-                on GitHub. If we can help, we will.
+                Fixes, features, and documentation flow upstream to every project we depend on, because that is how we
+                want to be treated. Code before cash.
               {% endblocktranslate %}
             </p>
           </div>
@@ -156,31 +138,37 @@
 
     <section class="pb-16 sm:pb-24 max-w-3xl mx-auto px-4 sm:px-8">
       <h2 class="text-2xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
-        {% translate "we are these people"|capfirst %}
+        {% translate "signed by the founder"|capfirst %}
       </h2>
-      <div class="flex flex-col gap-4">
-        <p class="text-muted-foreground leading-relaxed m-0">
-          {% blocktranslate trimmed %}
-            We come from these communities. Our founder is a member of the Django and Python projects, a frequent Django
-            contributor, and the maintainer of packages relay itself runs on, django-health-check among them.
-          {% endblocktranslate %}
-        </p>
-        <p class="leading-relaxed m-0">
-          {% blocktranslate trimmed %}
-            This charter is who we already are. It is how relay will keep paying its debts to the commons.
-          {% endblocktranslate %}
-        </p>
-        <a
-          href="https://github.com/codingjoe"
-          target="_blank"
-          rel="noopener"
-          class="charter__sign inline-flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
+      <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 mt-8">
+        <img
+          src="{% static 'img/johannes-hoppe.jpg' %}"
+          alt='{% translate "portrait of Johannes Hoppe"|capfirst %}'
+          width="112"
+          height="112"
+          class="charter__avatar size-24 sm:size-28 rounded-full object-cover shrink-0"
         >
-          <svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
-          </svg>
-          github.com/codingjoe
-        </a>
+        <div class="flex flex-col gap-4 text-center sm:text-left">
+          <p class="text-xl font-semibold m-0">Johannes Hoppe</p>
+          <p class="text-muted-foreground leading-relaxed m-0">
+            {% blocktranslate trimmed %}
+              Member of the Django and Python projects, frequent Django contributor, and the maintainer of packages
+              relay itself runs on, django-health-check among them. These pledges are mine to keep, so I sign my name
+              under them.
+            {% endblocktranslate %}
+          </p>
+          <a
+            href="https://github.com/codingjoe"
+            target="_blank"
+            rel="noopener"
+            class="charter__sign inline-flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors w-fit mx-auto sm:mx-0"
+          >
+            <svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
+            </svg>
+            github.com/codingjoe
+          </a>
+        </div>
       </div>
     </section>
 
@@ -272,6 +260,10 @@
     .charter__chip:hover {
       color: var(--color-foreground);
       text-decoration: none;
+    }
+
+    .charter__avatar {
+      box-shadow: 0 0 0 1px var(--color-border);
     }
 
     .charter__pledges > * + * {
