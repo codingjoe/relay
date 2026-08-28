@@ -78,6 +78,9 @@ env = [
   "DJANGO_ALLOW_ASYNC_UNSAFE=1",
   "TEST=1",
 ]
+filterwarnings = [
+  "ignore:Setting ModelAdmin.list_select_related:django.utils.deprecation.RemovedInDjango70Warning",
+]
 norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".worktrees" ]
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
 
