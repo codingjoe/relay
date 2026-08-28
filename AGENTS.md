@@ -93,6 +93,8 @@ Before you finish, always:
 
 ## Running tests
 
+- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput`
+  must run in advance; the Django checks and templates tests fail without it.
 - `uv run --group test pytest`. The last line is always the outcome summary, e.g.
   `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
   to assert results. Nothing is measured by default.
