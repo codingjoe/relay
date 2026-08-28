@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import aiosmtplib
 import pytest
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -7,11 +8,16 @@ from django.utils import timezone
 
 from domains.models import Domain
 from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.msa.tasks import (
+    check_outgoing_spam,
+    deliver_message,
+    fetch_mx_hosts,
+)
+from services.email.spam import SpamAction, SpamResult
 
 
 class TestFetchMxHosts:
     def test_fetch_mx_hosts__sorted_by_priority(self, dns_resolver):
-        from services.email.msa.tasks import fetch_mx_hosts
 
         dns_resolver.add(
             "example.com", "MX", "20 mx2.example.com.", "10 mx1.example.com."
@@ -20,14 +26,12 @@ class TestFetchMxHosts:
         assert hosts == ["mx1.example.com", "mx2.example.com"]
 
     def test_fetch_mx_hosts__strips_trailing_dot(self, dns_resolver):
-        from services.email.msa.tasks import fetch_mx_hosts
 
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
         hosts = fetch_mx_hosts("example.com")
         assert hosts == ["mx.example.com"]
 
     def test_fetch_mx_hosts__empty_on_error(self):
-        from services.email.msa.tasks import fetch_mx_hosts
 
         assert fetch_mx_hosts("nonexistent.invalid") == []
 
@@ -35,7 +39,6 @@ class TestFetchMxHosts:
 @pytest.mark.django_db(transaction=True)
 class TestDeliverMessage:
     def test_deliver_message__no_mx_records(self, user, org, dns_resolver):
-        from services.email.msa.tasks import deliver_message
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
@@ -60,7 +63,6 @@ class TestDeliverMessage:
     def test_deliver_message__sends_with_bounce_return_path(
         self, user, org, dns_resolver
     ):
-        from services.email.msa.tasks import deliver_message
 
         domain = Domain.objects.create(name="example.com", org=org)
         msg = OutgoingMessage.objects.create(
@@ -97,9 +99,6 @@ class TestDeliverMessage:
     def test_deliver_message__permanent_failure_marks_bounced(
         self, user, org, dns_resolver
     ):
-        import aiosmtplib
-
-        from services.email.msa.tasks import deliver_message
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
@@ -126,7 +125,6 @@ class TestDeliverMessage:
         ).exists()
 
     def test_deliver_message__fails_closed_without_sender_domain(self, user, org):
-        from services.email.msa.tasks import deliver_message
 
         msg = OutgoingMessage.objects.create(
             org=org,
@@ -155,7 +153,6 @@ class TestDeliverMessage:
         write_org,
         other_user,
     ):
-        from services.email.msa.tasks import deliver_message
 
         _, child = Domain.objects.bulk_create(
             [
@@ -189,7 +186,6 @@ class TestDeliverMessage:
         mock_send.assert_not_called()
 
     def test_deliver_message__drops_message_of_locked_org(self, user, org):
-        from services.email.msa.tasks import deliver_message
 
         domain = Domain.objects.get(org=org)
         message = OutgoingMessage.objects.create(
@@ -228,7 +224,6 @@ class TestDeliverMessage:
         return msg
 
     def test_deliver_message__fails_for_non_canonical_sender_domain(self, user, org):
-        from services.email.msa.tasks import deliver_message
 
         # bulk_create bypasses save()/clean(), so the stored name stays
         # non-canonical and no longer matches the resolved root domain.
@@ -254,7 +249,6 @@ class TestDeliverMessage:
     def test_deliver_message__skips_hosts_blocked_by_mta_sts(
         self, user, org, dns_resolver
     ):
-        from services.email.msa.tasks import deliver_message
 
         domain = Domain.objects.create(name="example.com", org=org)
         msg = self.make_message(user, org, domain)
@@ -284,9 +278,6 @@ class TestDeliverMessage:
     def test_deliver_message__temporary_smtp_error_fails_message(
         self, user, org, dns_resolver
     ):
-        import aiosmtplib
-
-        from services.email.msa.tasks import deliver_message
 
         domain = Domain.objects.create(name="example.com", org=org)
         msg = self.make_message(user, org, domain)
@@ -308,9 +299,6 @@ class TestDeliverMessage:
     def test_deliver_message__exhausts_all_mx_hosts_on_smtp_exception(
         self, user, org, dns_resolver
     ):
-        import aiosmtplib
-
-        from services.email.msa.tasks import deliver_message
 
         domain = Domain.objects.create(name="example.com", org=org)
         msg = self.make_message(user, org, domain)
@@ -342,7 +330,6 @@ class TestCheckOutgoingSpam:
     def test_check_outgoing_spam__drops_queued_messages_of_suspended_org(
         self, user, org
     ):
-        from services.email.msa.tasks import check_outgoing_spam
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
@@ -367,8 +354,6 @@ class TestCheckOutgoingSpam:
         assert transmission.output == "550 Account suspended due to sender reputation"
 
     def test_check_outgoing_spam__holds_spam(self, user, org):
-        from services.email.msa.tasks import check_outgoing_spam
-        from services.email.spam import SpamAction, SpamResult
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
@@ -397,8 +382,6 @@ class TestCheckOutgoingSpam:
         assert msg.spam_action == SpamAction.REJECT
 
     def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
-        from services.email.msa.tasks import check_outgoing_spam
-        from services.email.spam import SpamResult
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(

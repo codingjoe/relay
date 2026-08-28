@@ -10,7 +10,12 @@ from django.core import mail
 
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
-from services.email.dmarc.types import Disposition, DmarcEvaluation
+from services.email.dmarc.types import (
+    Alignment,
+    AuthResult,
+    Disposition,
+    DmarcEvaluation,
+)
 from services.email.mta.handlers import MXHandler, process_incoming_message
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.reputation.models import FblReport
@@ -262,7 +267,6 @@ class TestProcessIncomingMessageReports:
 
 
 def make_dmarc_evaluation(disposition):
-    from services.email.dmarc.types import Alignment, AuthResult
 
     return DmarcEvaluation(
         source_ip_address="192.0.2.1",

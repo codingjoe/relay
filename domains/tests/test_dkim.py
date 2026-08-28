@@ -3,6 +3,7 @@ from email.message import EmailMessage
 import pytest
 
 from accounts.models import Organization
+from domains.dkim import sign_message, verify_signature
 from domains.models import Domain
 
 
@@ -20,7 +21,6 @@ def make_email():
 class TestSignMessage:
     @pytest.mark.django_db
     def test_sign_message__returns_signed_bytes(self):
-        from domains.dkim import sign_message
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -29,7 +29,6 @@ class TestSignMessage:
 
     @pytest.mark.django_db
     def test_sign_message__signs_with_all_three_ciphers(self):
-        from domains.dkim import sign_message
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -38,7 +37,6 @@ class TestSignMessage:
 
     @pytest.mark.django_db
     def test_sign_message__includes_all_selectors(self):
-        from domains.dkim import sign_message
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -49,7 +47,6 @@ class TestSignMessage:
 
     @pytest.mark.django_db
     def test_sign_message__includes_domain(self):
-        from domains.dkim import sign_message
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -57,7 +54,6 @@ class TestSignMessage:
         assert b"d=example.com" in signed
 
     def test_sign_message__returns_original_when_no_keys(self):
-        from domains.dkim import sign_message
 
         domain = Domain(name="example.com")
         original = make_email().as_bytes()
@@ -67,13 +63,11 @@ class TestSignMessage:
 
 class TestVerifySignature:
     def test_verify_signature__handles_signed_message(self):
-        from domains.dkim import verify_signature
 
         verified, _ = verify_signature(make_email().as_bytes())
         assert isinstance(verified, bool | type(None))
 
     def test_verify_signature__rejects_unsigned(self):
-        from domains.dkim import verify_signature
 
         verified, _ = verify_signature(make_email().as_bytes())
         assert verified is not True

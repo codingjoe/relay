@@ -3,13 +3,23 @@ import pytest
 from django.utils import timezone
 
 from accounts.models import Organization
+from domains import services
 from domains.models import Domain
+from domains.services import (
+    check_dkim_cname,
+    check_dmarc,
+    check_mta_sts,
+    check_spf,
+    check_tls_rpt,
+    parse_mta_sts_txt_record,
+    verify_domain_dns,
+    verify_nameserver_delegation,
+)
 
 
 @pytest.mark.django_db
 class TestVerifyNameserverDelegation:
     def test_verify_nameserver_delegation__ok(self, dns_resolver):
-        from domains.services import verify_nameserver_delegation
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -17,7 +27,6 @@ class TestVerifyNameserverDelegation:
         assert verify_nameserver_delegation(domain) is True
 
     def test_verify_nameserver_delegation__mismatch(self, dns_resolver):
-        from domains.services import verify_nameserver_delegation
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -25,7 +34,6 @@ class TestVerifyNameserverDelegation:
         assert verify_nameserver_delegation(domain) is False
 
     def test_verify_nameserver_delegation__nxdomain(self, dns_resolver):
-        from domains.services import verify_nameserver_delegation
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -35,7 +43,6 @@ class TestVerifyNameserverDelegation:
 @pytest.mark.django_db
 class TestCheckDmarc:
     def test_check_dmarc__present(self, dns_resolver):
-        from domains.services import check_dmarc
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -43,14 +50,12 @@ class TestCheckDmarc:
         assert check_dmarc(domain) is True
 
     def test_check_dmarc__absent(self, dns_resolver):
-        from domains.services import check_dmarc
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         assert check_dmarc(domain) is False
 
     def test_check_dmarc__wrong_prefix(self, dns_resolver):
-        from domains.services import check_dmarc
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -61,7 +66,6 @@ class TestCheckDmarc:
 @pytest.mark.django_db
 class TestCheckSpf:
     def test_check_spf__present(self, dns_resolver):
-        from domains.services import check_spf
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -71,7 +75,6 @@ class TestCheckSpf:
         assert check_spf(domain) is True
 
     def test_check_spf__absent(self, dns_resolver):
-        from domains.services import check_spf
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -79,7 +82,6 @@ class TestCheckSpf:
         assert check_spf(domain) is False
 
     def test_check_spf__nxdomain(self, dns_resolver):
-        from domains.services import check_spf
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -89,7 +91,6 @@ class TestCheckSpf:
 @pytest.mark.django_db
 class TestCheckDkimCname:
     def test_check_dkim_cname__present(self, dns_resolver):
-        from domains.services import check_dkim_cname
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -102,7 +103,6 @@ class TestCheckDkimCname:
         assert check_dkim_cname(domain) is True
 
     def test_check_dkim_cname__fails_if_any_cname_missing(self, dns_resolver):
-        from domains.services import check_dkim_cname
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -116,7 +116,6 @@ class TestCheckDkimCname:
         assert check_dkim_cname(domain) is False
 
     def test_check_dkim_cname__nxdomain(self, dns_resolver):
-        from domains.services import check_dkim_cname
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -124,7 +123,6 @@ class TestCheckDkimCname:
 
 
 def test_parse_mta_sts_txt_record__rejects_control_whitespace():
-    from domains.services import parse_mta_sts_txt_record
 
     assert parse_mta_sts_txt_record("v=STSv1;\rid=test") is None
 
@@ -132,7 +130,6 @@ def test_parse_mta_sts_txt_record__rejects_control_whitespace():
 @pytest.mark.django_db
 class TestCheckMtaSts:
     def test_check_mta_sts__requires_txt_and_expected_cname(self, dns_resolver):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -146,7 +143,6 @@ class TestCheckMtaSts:
         assert check_mta_sts(domain) is True
 
     def test_check_mta_sts__joins_split_txt_strings(self, dns_resolver):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -164,7 +160,6 @@ class TestCheckMtaSts:
         assert check_mta_sts(domain) is True
 
     def test_check_mta_sts__rejects_other_cname(self, dns_resolver):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -178,7 +173,6 @@ class TestCheckMtaSts:
         assert check_mta_sts(domain) is False
 
     def test_check_mta_sts__rejects_version_prefix(self, dns_resolver):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -192,7 +186,6 @@ class TestCheckMtaSts:
         assert check_mta_sts(domain) is False
 
     def test_check_mta_sts__requires_non_empty_policy_id(self, dns_resolver):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -218,7 +211,6 @@ class TestCheckMtaSts:
         dns_resolver,
         record,
     ):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -235,7 +227,6 @@ class TestCheckMtaSts:
         self,
         dns_resolver,
     ):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -254,7 +245,6 @@ class TestCheckMtaSts:
         assert check_mta_sts(domain) is True
 
     def test_check_mta_sts__rejects_multiple_candidate_records(self, dns_resolver):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -282,7 +272,6 @@ class TestCheckMtaSts:
         dns_resolver,
         record,
     ):
-        from domains.services import check_mta_sts
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -294,7 +283,6 @@ class TestCheckMtaSts:
 @pytest.mark.django_db
 class TestCheckTlsRpt:
     def test_check_tls_rpt__accepts_matching_uri_with_size_limit(self, dns_resolver):
-        from domains.services import check_tls_rpt
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -308,7 +296,6 @@ class TestCheckTlsRpt:
         assert check_tls_rpt(domain) is True
 
     def test_check_tls_rpt__joins_split_txt_strings(self, dns_resolver):
-        from domains.services import check_tls_rpt
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -321,7 +308,6 @@ class TestCheckTlsRpt:
         assert check_tls_rpt(domain) is True
 
     def test_check_tls_rpt__rejects_reporting_uri_prefix(self, dns_resolver):
-        from domains.services import check_tls_rpt
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -334,7 +320,6 @@ class TestCheckTlsRpt:
         assert check_tls_rpt(domain) is False
 
     def test_check_tls_rpt__requires_exact_version(self, dns_resolver):
-        from domains.services import check_tls_rpt
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -360,7 +345,6 @@ class TestCheckTlsRpt:
     ],
 )
 def test_dns_record_check__no_nameservers_returns_false(monkeypatch, check_name):
-    from domains import services
 
     org = Organization.objects.create(slug="o")
     domain = Domain.objects.create(name="example.com", org=org)
@@ -376,7 +360,6 @@ def test_dns_record_check__no_nameservers_returns_false(monkeypatch, check_name)
 @pytest.mark.django_db
 class TestVerifyDomainDns:
     def test_verify_domain_dns__records_unhandled_dns_error(self, monkeypatch):
-        from domains import services
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -393,7 +376,6 @@ class TestVerifyDomainDns:
         assert "nameservers" in domain.tls_rpt_error.lower()
 
     def test_verify_domain_dns__all_ok_sets_verified(self, dns_resolver):
-        from domains.services import verify_domain_dns
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -431,7 +413,6 @@ class TestVerifyDomainDns:
         assert domain.verified_at is not None
 
     def test_verify_domain_dns__all_fail_sets_errors(self, dns_resolver):
-        from domains.services import verify_domain_dns
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -453,7 +434,6 @@ class TestVerifyDomainDns:
         assert domain.tls_rpt_error
 
     def test_verify_domain_dns__partial_pass(self, dns_resolver):
-        from domains.services import verify_domain_dns
 
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -476,7 +456,6 @@ class TestVerifyDomainDns:
         assert domain.verified_at is None
 
     def test_verify_domain_dns__does_not_re_verify(self, dns_resolver):
-        from domains.services import verify_domain_dns
 
         org = Organization.objects.create(slug="o")
         old_verified = timezone.now()

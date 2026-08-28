@@ -2,10 +2,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from services.email.msa.server import SMTPServer
+
 
 class TestSmtpServerInit:
     def test_init__defaults(self):
-        from services.email.msa.server import SMTPServer
 
         server = SMTPServer()
         assert server.host == "0.0.0.0"
@@ -14,7 +15,6 @@ class TestSmtpServerInit:
         assert server.controllers == []
 
     def test_init__custom(self):
-        from services.email.msa.server import SMTPServer
 
         server = SMTPServer(host="127.0.0.1", ports=(587,))
         assert server.host == "127.0.0.1"
@@ -25,7 +25,6 @@ class TestSmtpServerLifecycle:
     @patch("services.email.msa.server.build_tls_context")
     @patch("services.email.msa.server.Controller")
     def test_start__creates_controller(self, mock_controller_cls, mock_build_tls):
-        from services.email.msa.server import SMTPServer
 
         mock_controller = MagicMock()
         mock_controller_cls.return_value = mock_controller
@@ -38,7 +37,6 @@ class TestSmtpServerLifecycle:
     @patch("services.email.msa.server.build_tls_context")
     @patch("services.email.msa.server.Controller")
     def test_stop__calls_controller_stop(self, mock_controller_cls, mock_build_tls):
-        from services.email.msa.server import SMTPServer
 
         mock_controller = MagicMock()
         mock_controller_cls.return_value = mock_controller
@@ -49,14 +47,12 @@ class TestSmtpServerLifecycle:
         assert mock_controller.stop.call_count == 2
 
     def test_stop__without_start(self):
-        from services.email.msa.server import SMTPServer
 
         server = SMTPServer()
         server.stop()
         assert server.controllers == []
 
     def test_start__raises_when_implicit_tls_without_cert(self):
-        from services.email.msa.server import SMTPServer
 
         server = SMTPServer()
         with pytest.raises(ValueError, match="Implicit TLS ports require"):
@@ -67,7 +63,6 @@ class TestSmtpServerLifecycle:
     def test_start__does_not_raise_when_no_implicit_tls_ports(
         self, mock_controller_cls, mock_build_tls
     ):
-        from services.email.msa.server import SMTPServer
 
         mock_build_tls.return_value = None
         server = SMTPServer(ports=(587,), implicit_tls_ports=())

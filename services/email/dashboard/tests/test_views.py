@@ -1,8 +1,9 @@
 import pytest
 
 from domains.models import Domain
+from services.email.dmarc.models import DmarcFailureReport, DmarcRecord, DmarcReport
 from services.email.msa.models import OutgoingMessage
-from services.email.mta.models import IncomingMessage
+from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.reputation.models import FblReport
 
 
@@ -84,7 +85,6 @@ class TestReportListView:
 
     @pytest.fixture
     def dmarc_report(self, org, domain):
-        from services.email.dmarc.models import DmarcRecord, DmarcReport
 
         report = DmarcReport.objects.create(
             org=org,
@@ -101,7 +101,6 @@ class TestReportListView:
 
     @pytest.fixture
     def failure_report(self, org, domain):
-        from services.email.dmarc.models import DmarcFailureReport
 
         return DmarcFailureReport.objects.create(
             org=org,
@@ -113,7 +112,6 @@ class TestReportListView:
 
     @pytest.fixture
     def tls_report(self, org, domain):
-        from services.email.mta.models import TlsReport
 
         return TlsReport.objects.create(
             org=org,

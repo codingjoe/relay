@@ -28,6 +28,7 @@ from services.email.mta.tasks import (
     WebhookDeliveryError,
     WebhookEvent,
     WebhookJSONEncoder,
+    check_incoming_spam,
     deliver_to_webhook,
     deliver_webhook,
     dispatch_webhook,
@@ -36,6 +37,7 @@ from services.email.mta.tasks import (
     parse_tls_report,
     webhook_retry,
 )
+from services.email.spam import SpamAction, SpamResult
 
 
 class TestWebhookEventFromTest:
@@ -235,8 +237,6 @@ def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
 @pytest.mark.django_db(transaction=True)
 class TestCheckIncomingSpam:
     def test_check_incoming_spam__quarantines_spam(self, org):
-        from services.email.mta.tasks import check_incoming_spam
-        from services.email.spam import SpamAction, SpamResult
 
         msg = make_incoming_message(org)
         with (
@@ -255,8 +255,6 @@ class TestCheckIncomingSpam:
         assert len(mail.outbox) == 0
 
     def test_check_incoming_spam__dispatches_webhook_for_clean_message(self, org):
-        from services.email.mta.tasks import check_incoming_spam
-        from services.email.spam import SpamResult
 
         msg = make_incoming_message(org)
         with (
@@ -273,8 +271,6 @@ class TestCheckIncomingSpam:
         mock_webhook.enqueue.assert_called_once_with(message_id=str(msg.pk))
 
     def test_check_incoming_spam__skips_webhook_for_already_quarantined(self, org):
-        from services.email.mta.tasks import check_incoming_spam
-        from services.email.spam import SpamResult
 
         msg = make_incoming_message(org, status=IncomingMessage.Status.QUARANTINED)
         with (

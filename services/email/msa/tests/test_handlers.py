@@ -7,6 +7,12 @@ import pytest
 from django.utils import timezone
 
 from domains.models import Domain
+from services.email.msa.handlers import (
+    ImplicitTLSHandler,
+    SMTPHandler,
+    authenticate,
+    process_message,
+)
 from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
@@ -25,7 +31,6 @@ def make_email(mail_from, rcpt_to):
 
 class TestHandleData:
     async def test_handle_data__rejects_unauthenticated(self):
-        from services.email.msa.handlers import SMTPHandler
 
         handler = SMTPHandler()
         session = SimpleNamespace(credential=None)
@@ -33,7 +38,6 @@ class TestHandleData:
         assert result == "530 Authentication required"
 
     async def test_handle_auth__invalid_base64(self):
-        from services.email.msa.handlers import SMTPHandler
 
         handler = SMTPHandler()
         session = SimpleNamespace()
@@ -46,7 +50,6 @@ class TestHandleData:
         user,
         org,
     ):
-        from services.email.msa.handlers import SMTPHandler
 
         domain = await Domain.objects.aget(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
@@ -76,7 +79,6 @@ class TestHandleData:
         user,
         org,
     ):
-        from services.email.msa.handlers import SMTPHandler
 
         domain = await Domain.objects.aget(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
@@ -97,7 +99,6 @@ class TestHandleData:
 
 class TestHandleAuth:
     async def test_handle_auth__unrecognized_type(self):
-        from services.email.msa.handlers import SMTPHandler
 
         handler = SMTPHandler()
         session = SimpleNamespace()
@@ -105,7 +106,6 @@ class TestHandleAuth:
         assert result == "504 Unrecognized authentication type"
 
     async def test_handle_auth__malformed_plain(self):
-        from services.email.msa.handlers import SMTPHandler
 
         handler = SMTPHandler()
         session = SimpleNamespace()
@@ -117,7 +117,6 @@ class TestHandleAuth:
 
     @pytest.mark.django_db(transaction=True)
     async def test_handle_auth__wrong_key(self, user, org):
-        from services.email.msa.handlers import SMTPHandler
 
         MsaCredential.objects.create_with_key(org=org, name="test")
         handler = SMTPHandler()
@@ -130,7 +129,6 @@ class TestHandleAuth:
 
     @pytest.mark.django_db(transaction=True)
     async def test_handle_auth__success(self, user, org):
-        from services.email.msa.handlers import SMTPHandler
 
         _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         handler = SMTPHandler()
@@ -150,7 +148,6 @@ class TestProcessMessage:
         user,
         org,
     ):
-        from services.email.msa.handlers import process_message
 
         credential, _ = MsaCredential.objects.create_with_key(org=org)
         message = make_email("noatsign", user.email)
@@ -173,7 +170,6 @@ class TestProcessMessage:
         user,
         org,
     ):
-        from services.email.msa.handlers import process_message
 
         await Domain.objects.abulk_create(
             [
@@ -204,7 +200,6 @@ class TestProcessMessage:
         org,
         write_org,
     ):
-        from services.email.msa.handlers import process_message
 
         domain = Domain.objects.create(name="other.example.com", org=write_org)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
@@ -229,7 +224,6 @@ class TestProcessMessage:
         write_org,
         other_user,
     ):
-        from services.email.msa.handlers import process_message
 
         _, child = await Domain.objects.abulk_create(
             [
@@ -259,7 +253,6 @@ class TestProcessMessage:
         user,
         org,
     ):
-        from services.email.msa.handlers import process_message
 
         org.billing_is_active = False
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -284,7 +277,6 @@ class TestProcessMessage:
         user,
         org,
     ):
-        from services.email.msa.handlers import process_message
 
         org.suspended_at = timezone.now()
         await org.asave(update_fields=["suspended_at", "modified_at"])
@@ -310,7 +302,6 @@ class TestProcessMessage:
         user,
         org,
     ):
-        from services.email.msa.handlers import process_message
 
         domain = Domain.objects.get(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
@@ -342,7 +333,6 @@ class TestProcessMessage:
         user,
         org,
     ):
-        from services.email.msa.handlers import process_message
 
         org.billing_is_active = True
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -368,7 +358,6 @@ class TestProcessMessage:
         user,
         org,
     ):
-        from services.email.msa.handlers import process_message
 
         domain = Domain.objects.get(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
@@ -397,7 +386,6 @@ class TestProcessMessage:
 @pytest.mark.django_db(transaction=True)
 class TestAuthenticate:
     async def test_authenticate__finds_credential(self, user, org):
-        from services.email.msa.handlers import authenticate
 
         _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         result = await authenticate(org.slug, raw_key)
@@ -405,21 +393,18 @@ class TestAuthenticate:
         assert result.org == org
 
     async def test_authenticate__returns_none_for_wrong_key(self, user, org):
-        from services.email.msa.handlers import authenticate
 
         MsaCredential.objects.create_with_key(org=org, name="test")
         result = await authenticate(org.slug, "wrongkey12345678")
         assert result is None
 
     async def test_authenticate__returns_none_for_unknown_org(self, user, org):
-        from services.email.msa.handlers import authenticate
 
         _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         result = await authenticate("unknown-org", raw_key)
         assert result is None
 
     async def test_authenticate__returns_none_for_held_credential(self, user, org):
-        from services.email.msa.handlers import authenticate
 
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         cred.hold = True
@@ -432,7 +417,6 @@ class TestAuthenticate:
         user,
         org,
     ):
-        from services.email.msa.handlers import authenticate
 
         _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         stale = MsaCredential(org=org, name="stale")
@@ -445,7 +429,6 @@ class TestAuthenticate:
 
 class TestImplicitTLSHandler:
     async def test_handle_data__marks_session_encrypted(self):
-        from services.email.msa.handlers import ImplicitTLSHandler
 
         handler = ImplicitTLSHandler()
         session = SimpleNamespace(credential=None, ssl=False)

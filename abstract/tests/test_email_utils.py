@@ -2,9 +2,12 @@ import base64
 import gzip
 import io
 import zipfile
-from email.message import EmailMessage
+from email import message_from_string
+from email.message import EmailMessage, Message
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 
-from abstract.email_utils import iter_attachments
+from abstract.email_utils import extract_part_text, iter_attachments
 
 
 def make_email_with_attachment(filename, data, content_type="application/gzip"):
@@ -65,8 +68,6 @@ class TestIterAttachments:
 
     def test_iter_attachments__skips_multipart_attachment_parts(self):
         """An attachment-disposed multipart container yields no payload."""
-        from email.mime.application import MIMEApplication
-        from email.mime.multipart import MIMEMultipart
 
         outer = MIMEMultipart()
         nested = MIMEMultipart()
@@ -90,9 +91,6 @@ def make_multipart_with_sub_part(sub_part):
 
 class TestExtractPartText:
     def test_extract_part_text__decodes_plain_sub_part(self):
-        from email import message_from_string
-
-        from abstract.email_utils import extract_part_text
 
         raw = make_multipart_with_sub_part(
             "Content-Type: text/plain\r\n\r\nhello world"
@@ -100,9 +98,6 @@ class TestExtractPartText:
         assert extract_part_text(message_from_string(raw)) == "hello world"
 
     def test_extract_part_text__decodes_base64_sub_part(self):
-        from email import message_from_string
-
-        from abstract.email_utils import extract_part_text
 
         encoded = base64.b64encode(b"encoded body").decode()
         raw = make_multipart_with_sub_part(
@@ -113,9 +108,6 @@ class TestExtractPartText:
         assert extract_part_text(message_from_string(raw)) == "encoded body"
 
     def test_extract_part_text__skips_nested_multipart_sub_part(self):
-        from email import message_from_string
-
-        from abstract.email_utils import extract_part_text
 
         raw = make_multipart_with_sub_part(
             "Content-Type: multipart/alternative; boundary=INNER\r\n\r\n"
@@ -127,9 +119,6 @@ class TestExtractPartText:
         assert extract_part_text(message_from_string(raw)) == ""
 
     def test_extract_part_text__decodes_non_multipart_base64(self):
-        from email import message_from_string
-
-        from abstract.email_utils import extract_part_text
 
         encoded = base64.b64encode(b"direct body").decode()
         raw = (
@@ -140,17 +129,11 @@ class TestExtractPartText:
         assert extract_part_text(message_from_string(raw)) == "direct body"
 
     def test_extract_part_text__returns_empty_string_without_payload(self):
-        from email.message import Message
-
-        from abstract.email_utils import extract_part_text
 
         assert extract_part_text(Message()) == ""
 
     def test_extract_part_text__decodes_base64_body_without_cte(self):
         """A sub-part may carry base64 text even when its CTE does not honor it."""
-        from email import message_from_string
-
-        from abstract.email_utils import extract_part_text
 
         encoded = base64.b64encode(b"undetected base64").decode()
         raw = make_multipart_with_sub_part(f"Content-Type: text/plain\r\n\r\n{encoded}")
@@ -158,9 +141,6 @@ class TestExtractPartText:
 
     def test_extract_part_text__keeps_payload_when_base64_round_trip_fails(self):
         """A 7-bit body that decodes but does not round-trip is used as-is."""
-        from email import message_from_string
-
-        from abstract.email_utils import extract_part_text
 
         raw = make_multipart_with_sub_part("Content-Type: text/plain\r\n\r\naGVs bG8=")
         assert extract_part_text(message_from_string(raw)) == "aGVs bG8="
