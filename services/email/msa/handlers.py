@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
+from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
 
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
@@ -162,6 +163,8 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
 
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
+
+    raw_bytes = sign_message(raw_bytes, domain)
 
     message = OutgoingMessage.objects.create(
         org=credential.org,

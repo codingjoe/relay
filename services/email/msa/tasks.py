@@ -6,7 +6,6 @@ import dns.resolver
 import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.tasks import task
 from threadmill.retry import ExponentialBackoff
 
@@ -62,18 +61,10 @@ def deliver_message(message_id):
             raise ValueError("Outgoing message sender domain does not match")
 
         raw_bytes = message.raw_body.read()
-        from domains.dkim import sign_message
-
-        raw_bytes = sign_message(raw_bytes, message.domain)
         return_path = (
             f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
             f"@{message.domain.sender_domain}"
         )
-        message.raw_body = SimpleUploadedFile(
-            message.raw_body.name.split("/")[-1], raw_bytes
-        )
-        message.save(update_fields=["raw_body"])
-
         rcpt_domain = message.rcpt_to.split("@")[-1]
         mx_hosts = fetch_mx_hosts(rcpt_domain)
 
