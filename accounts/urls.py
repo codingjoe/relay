@@ -24,23 +24,6 @@ urlpatterns = [
         ),
     ),
     path(
-        "open-source/",
-        include(
-            [
-                path(
-                    "apply",
-                    views.OpenSourceApplicationCreateView.as_view(),
-                    name="application-create",
-                ),
-                path(
-                    "apply/sent",
-                    views.OpenSourceApplicationCreatedView.as_view(),
-                    name="application-created",
-                ),
-            ]
-        ),
-    ),
-    path(
         "org/<slug:org_slug>/",
         include(
             [
