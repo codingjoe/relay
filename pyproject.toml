@@ -40,6 +40,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "pytest-pretty>=1.3",
   "pyyaml>=6.0.3",
   "threadmill[inspector]>=0.6.1",
   { include-group = "test" },
@@ -63,7 +64,7 @@ lint.ignore = [
 ]
 
 [tool.pytest]
-addopts = [ "--tb=short", "--fail-on-template-vars", "--reuse-db", "-n", "auto", "-q" ]
+addopts = [ "--tb=line", "--fail-on-template-vars", "--reuse-db", "-n", "auto", "-q" ]
 asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "root.settings"
 env = [
