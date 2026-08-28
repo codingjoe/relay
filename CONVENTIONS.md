@@ -2,9 +2,7 @@
 
 This document records coding conventions for the Relay project.
 Update it based on review feedback.
-Rules documented here are not enforced by relint and vice versa;
-the two are mutually exclusive. A rule enforced by relint lives only
-in `.relint.yml`.
+A rule lives either in this document or in `.relint.yml`, never both.
 
 ## URLs
 
