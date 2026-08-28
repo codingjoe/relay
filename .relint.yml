@@ -109,6 +109,7 @@
     dependencies, repeat work, and defeat static analysis. Exceptions:
     `tasks.py` (late imports avoid import cycles), `apps.py` (Django
     requires importing signal and check modules inside `AppConfig.ready()`),
-    and `settings.py` (imports are guarded by configuration checks such as
-    `SENTRY_DSN`).
-  filePattern: '(?!.*(?:/tasks\.py$|/apps\.py$|/settings\.py$|/tests/|/test_|conftest\.py$)).*\.py$'
+    `settings.py` (imports are guarded by configuration checks such as
+    `SENTRY_DSN`), and `manage.py` (Django's standard scaffold guards the
+    import with a friendly `ImportError` message).
+  filePattern: '(?!.*(?:/tasks\.py$|/apps\.py$|/settings\.py$|manage\.py$|/tests/|/test_|conftest\.py$)).*\.py$'
