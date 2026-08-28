@@ -99,8 +99,6 @@ Before you finish, always:
 - `uv run pytest --cov` adds the coverage table. Use
   `--cov --cov-report=xml` for machine-readable coverage.
 - `--maxfail=3` stops after three failures.
-- `--collect-only` lists tests without running them; it never reports
-  passed or failed. Outcomes appear only in executed runs.
 - Collection, setup, or usage errors print tracebacks without an outcome
   summary; environment errors (missing Postgres, missing env vars) are a
   likely cause. Start the database before reading failures as app bugs.
