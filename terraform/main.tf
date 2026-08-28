@@ -8,10 +8,6 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.2"
-    }
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
@@ -67,7 +63,7 @@ variable "ssh_public_keys" {
 
 variable "smtp_floating_ip_count" {
   type    = number
-  default = 2
+  default = 1
 }
 
 # Hetzner S3 Object Storage
@@ -120,20 +116,25 @@ resource "hcloud_server" "relay" {
   image       = "ubuntu-24.04"
   location    = var.server_location
   ssh_keys    = concat(var.ssh_public_keys, [hcloud_ssh_key.deploy_key.id])
-  user_data = templatefile("${path.module}/cloud-init.yaml", {
+  user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
     deploy_public_key = tls_private_key.deploy_key.public_key_openssh
+    smtp_ips          = [for ip in hcloud_floating_ip.smtp : ip.ip_address]
   })
 }
 
-# Floating IPs for SMTP (blacklist rotation)
-resource "hcloud_primary_ip" "smtp" {
+# Floating IPs for SMTP (blacklist rotation). Hetzner allows only one primary
+# IPv4 per server, so extra egress IPs must be floating IPs.
+resource "hcloud_floating_ip" "smtp" {
   count         = var.smtp_floating_ip_count
   name          = "${var.hostname}-smtp-${count.index + 1}"
   type          = "ipv4"
-  assignee_type = "server"
-  assignee_id   = hcloud_server.relay.id
-  auto_delete   = false
-  location      = var.server_location
+  home_location = var.server_location
+}
+
+resource "hcloud_floating_ip_assignment" "smtp" {
+  count          = var.smtp_floating_ip_count
+  floating_ip_id = hcloud_floating_ip.smtp[count.index].id
+  server_id      = hcloud_server.relay.id
 }
 
 # PTR records — must match forward A records
@@ -144,40 +145,10 @@ resource "hcloud_rdns" "server" {
 }
 
 resource "hcloud_rdns" "smtp" {
-  count      = var.smtp_floating_ip_count
-  server_id  = hcloud_server.relay.id
-  ip_address = hcloud_primary_ip.smtp[count.index].ip_address
-  dns_ptr    = "smtp${count.index + 1}.${var.hostname}"
-}
-
-# Configure floating IPs on the server's network interface
-resource "null_resource" "floating_ip_config" {
-  triggers = {
-    ips = join(",", [for ip in hcloud_primary_ip.smtp : ip.ip_address])
-  }
-
-  connection {
-    host        = hcloud_server.relay.ipv4_address
-    type        = "ssh"
-    user        = "github"
-    private_key = tls_private_key.deploy_key.private_key_openssh
-  }
-
-  provisioner "remote-exec" {
-    inline = concat(
-      ["sudo ip addr add ${hcloud_primary_ip.smtp[0].ip_address}/32 dev eth0 2>/dev/null || true"],
-      [for i in range(1, var.smtp_floating_ip_count) : "sudo ip addr add ${hcloud_primary_ip.smtp[i].ip_address}/32 dev eth0 2>/dev/null || true"],
-      [
-        "sudo tee /etc/networkd-dispatcher/routable.d/10-floating-ips.sh << 'SCRIPT'",
-        "#!/bin/bash",
-        [for ip in hcloud_primary_ip.smtp : "ip addr add ${ip}/32 dev eth0 2>/dev/null || true"],
-        "SCRIPT",
-        "sudo chmod +x /etc/networkd-dispatcher/routable.d/10-floating-ips.sh",
-      ]
-    )
-  }
-
-  depends_on = [hcloud_primary_ip.smtp]
+  count          = var.smtp_floating_ip_count
+  floating_ip_id = hcloud_floating_ip.smtp[count.index].id
+  ip_address     = hcloud_floating_ip.smtp[count.index].ip_address
+  dns_ptr        = "smtp${count.index + 1}.${var.hostname}"
 }
 
 # S3 bucket for message storage (Hetzner Object Storage)
@@ -197,7 +168,7 @@ output "server_ip" {
 }
 
 output "smtp_ips" {
-  value = [for ip in hcloud_primary_ip.smtp : ip.ip_address]
+  value = [for ip in hcloud_floating_ip.smtp : ip.ip_address]
 }
 
 output "ssh_private_key" {

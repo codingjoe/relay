@@ -31,6 +31,7 @@ services:
       AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-nbg1}
       AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-path}
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
+      RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
     command: ["-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application"]
     healthcheck:
       test: ["CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https"]
@@ -106,8 +107,17 @@ services:
     networks: !override
       - app
       - app-wan
+  # Loopback ports for the host-networked worker.
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
   rspamd:
     image: rspamd/rspamd:4.1
+    ports:
+      - "127.0.0.1:11334:11334"
     configs:
       - source: rspamd_redis
         target: /etc/rspamd/local.d/redis.conf
@@ -118,12 +128,26 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+  # Host networking lets the worker bind egress IPs from RELAY_SMTP_SOURCE_IPS.
   worker:
     extends:
       service: web
     labels: !reset
     deploy: !reset
+    network_mode: host
+    networks: !reset
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/postgres
+      REDIS_URL: redis://:${REDIS_PASSWORD}@127.0.0.1:6379/
+      RELAY_RSPAMD_URL: http://127.0.0.1:11334
     command: ["-m", "manage", "threadmill", "worker"]
+    # No HTTP listener on the host network; probe in-process instead.
+    healthcheck:
+      test: ["CMD", "python", "-m", "manage", "health_check"]
+      interval: 60s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
   migration:
     extends:
       service: web

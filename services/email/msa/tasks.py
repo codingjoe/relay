@@ -1,5 +1,6 @@
 import datetime
 import logging
+import random
 
 import aiosmtplib
 import dns.resolver
@@ -96,6 +97,11 @@ def deliver_message(message_id):
                     local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
                     sender=return_path,
                     recipients=[message.rcpt_to],
+                    source_address=(
+                        (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)
+                        if settings.RELAY_SMTP_SOURCE_IPS
+                        else None
+                    ),
                 )
                 Transmission.objects.create(
                     message=message,
@@ -142,7 +148,7 @@ def deliver_message(message_id):
 
 
 def fetch_mx_hosts(domain):
-    """Fetch MX records for a domain."""
+    """Return the recipient domain's MX hosts, ordered by preference."""
     try:
         records = dns.resolver.resolve(domain, "MX")
         return [
