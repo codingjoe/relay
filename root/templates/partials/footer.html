@@ -7,6 +7,10 @@
     </span>
     <nav class="flex gap-3">
       <a
+        href="{% url 'open-source' %}"
+        class="text-muted-foreground hover:text-foreground transition-colors"
+      >{% translate "open source"|capfirst %}</a>
+      <a
         href="{% url 'legal:imprint' %}"
         class="text-muted-foreground hover:text-foreground transition-colors"
       >{% translate "imprint"|capfirst %}</a>
