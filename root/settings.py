@@ -65,7 +65,6 @@ INSTALLED_APPS = [
     "abstract",
     "django.forms",
     # Django
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -80,6 +79,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "threadmill",
     # First-party apps
+    "accounts.admin_config.RelayAdminConfig",
     "accounts",
     "kms",
     "domains",
