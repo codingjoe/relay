@@ -6,7 +6,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
 from .charts import build_reputation_chart
-from .evaluation import compute_domain_reputation
+from .evaluation import compute_org_reputation
 from .models import FblReport
 
 
@@ -58,24 +58,16 @@ class FblReportDetailView(OrganizationScopedView, generic.DetailView):
         }
 
 
-class ReputationOverviewView(OrganizationScopedView, generic.ListView):
+class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
     def get_template_names(self):
         return ["reputation/overview.html"]
 
-    context_object_name = "domains"
     title = _("Reputation")
     parent = "accounts:org-home"
 
-    def get_queryset(self):
-        return Domain.objects.filter(org=self.org, verified_at__isnull=False)
-
     def get_context_data(self, **kwargs):
-        domains = list(self.get_queryset())
-        domain_reputations = [
-            (domain, compute_domain_reputation(domain)) for domain in domains
-        ]
         return super().get_context_data(**kwargs) | {
-            "domain_reputations": domain_reputations,
+            "stats": compute_org_reputation(self.org),
             "chart": build_reputation_chart(self.org),
             "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
             "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,

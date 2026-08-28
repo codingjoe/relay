@@ -165,7 +165,12 @@ def check_outgoing_spam(message_pk, client_ip):
     """Check an outgoing message for spam and enqueue delivery if clean."""
     from .models import OutgoingMessage
 
-    message = OutgoingMessage.objects.get(pk=message_pk)
+    message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
+    if message.org.reputation_locked:
+        message.status = OutgoingMessage.Status.DROPPED
+        message.save(update_fields=["status"])
+        return
+
     raw_bytes = message.raw_body.read()
     spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
     is_spam = (

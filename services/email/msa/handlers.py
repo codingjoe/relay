@@ -168,8 +168,8 @@ def process_message(
     ):
         return "550 Recipient not allowed without active billing"
 
-    if domain and domain.reputation_hold:
-        return "550 Sender reputation suspended"
+    if credential.org.reputation_locked:
+        return "550 Account locked due to sender reputation"
 
     message = OutgoingMessage.objects.create(
         sender=sender,

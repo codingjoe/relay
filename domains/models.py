@@ -179,17 +179,6 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Last DNS check timestamp."),
     )
-    reputation_hold = models.BooleanField(
-        _("reputation hold"),
-        default=False,
-        help_text=_("Suspended domains cannot send outgoing messages."),
-    )
-    reputation_hold_at = models.DateTimeField(
-        _("reputation hold at"),
-        null=True,
-        blank=True,
-        help_text=_("When the reputation hold was applied."),
-    )
 
     dkim_key_rsa2048 = models.ForeignKey(
         "kms.SigningKey",

@@ -44,26 +44,13 @@ def parse_fbl_report(report_pk):
         ]
     )
 
-    if report.domain_id:
-        check_domain_reputation.enqueue(domain_id=report.domain_id)
+    if report.org_id:
+        check_org_reputation.enqueue(org_id=report.org_id)
 
 
 @task
-def check_domain_reputation(domain_id):
-    """Evaluate bounce and complaint rates for a domain and set or clear the hold."""
-    from domains.models import Domain
+def check_org_reputation(org_id):
+    """Evaluate bounce and complaint rates for an org and lock on breach."""
+    from accounts.models import Organization
 
-    domain = Domain.objects.get(pk=domain_id)
-    evaluation.check_domain_reputation(domain)
-
-
-@task
-def check_all_reputations():
-    """Check reputation for all verified, non-system domains."""
-    from domains.models import Domain
-
-    for domain in Domain.objects.filter(
-        verified_at__isnull=False,
-        org__isnull=False,
-    ):
-        evaluation.check_domain_reputation(domain)
+    evaluation.check_org_reputation(Organization.objects.get(pk=org_id))

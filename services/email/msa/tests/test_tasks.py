@@ -195,3 +195,29 @@ class TestDeliverMessage:
         ).exists()
         mock_sign.assert_not_called()
         mock_send.assert_not_called()
+
+
+@pytest.mark.django_db(transaction=True)
+class TestCheckOutgoingSpam:
+    def test_check_outgoing_spam__drops_queued_messages_of_locked_org(self, user, org):
+        from services.email.msa.tasks import check_outgoing_spam
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            sender=user,
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        org.reputation_locked = True
+        org.save(update_fields=["reputation_locked", "modified_at"])
+
+        check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.DROPPED
+        assert not Transmission.objects.filter(message=msg).exists()

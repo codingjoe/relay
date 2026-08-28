@@ -23,6 +23,20 @@ class FblReport(IncomingMessage):
         OPT_OUT = "opt-out", _("opt-out")
         OTHER = "other", _("other")
 
+    class Source(models.TextChoices):
+        PROVIDER = "provider", _("provider")
+        RELAY = "relay", _("relay")
+
+    source = models.TextField(
+        _("source"),
+        choices=Source,
+        default=Source.PROVIDER,
+        help_text=_(
+            "Provider reports were received from a mailbox provider and count "
+            "as complaints. Relay-generated reports are records of spam Relay "
+            "detected itself and are for visibility only."
+        ),
+    )
     feedback_type = models.TextField(
         _("feedback type"),
         choices=FeedbackType,
@@ -138,9 +152,11 @@ class FblReport(IncomingMessage):
     def create_for_spam(cls, message):
         """Create and store an FBL report for a message flagged as spam.
 
-        Used for both MSA-held outgoing messages and MTA-quarantined
-        incoming messages. Returns the created FblReport, or None if
-        the message has no associated domain.
+        Used for messages flagged as spam by Relay's own spam checks, both
+        MSA-held outgoing messages and MTA-quarantined incoming messages.
+        Relay-generated reports are for visibility only and do not count as
+        complaints. Returns the created FblReport, or None if the message
+        has no associated domain.
         """
         from django.core.files.base import ContentFile
 
@@ -148,6 +164,7 @@ class FblReport(IncomingMessage):
             return None
 
         report = cls(
+            source=cls.Source.RELAY,
             org=message.org,
             domain=message.domain,
             receiving_domain=getattr(message, "receiving_domain", ""),

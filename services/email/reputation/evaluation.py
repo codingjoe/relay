@@ -1,54 +1,63 @@
 from datetime import timedelta
+from typing import TypedDict
 
 from django.conf import settings
+from django.core.mail import mail_admins, send_mail
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
+from accounts.models import Membership, Organization
 from services.email.msa.models import OutgoingMessage, Transmission
 
 from .models import FblReport
 
 
-def compute_domain_reputation(domain):
-    """Return bounce and complaint rates for a domain over the rolling window.
+class ReputationStats(TypedDict):
+    total_sent: int
+    hard_bounces: int
+    soft_bounces: int
+    complaints: int
+    hard_bounce_rate: float
+    complaint_rate: float
 
-    Returns a dict with keys: `total_sent`, `hard_bounces`,
-    `soft_bounces`, `complaints`, `hard_bounce_rate`,
-    `soft_bounce_rate`, `complaint_rate`, `bounce_rate`.
-    Rates are floats (0.0-1.0). Returns zero counts and rates when
-    the domain has no outgoing messages in the window.
+
+def compute_org_reputation(org: Organization) -> ReputationStats:
+    """Return bounce and complaint rates for an organization over the rolling window.
+
+    Returns zero counts and rates when the organization has no outgoing
+    messages in the window. Only SMTP 5xx bounces count toward the
+    bounce rate; soft bounces are for display only.
     """
     window_start = timezone.now() - timedelta(
         days=settings.RELAY_REPUTATION_WINDOW_DAYS
     )
     total_sent = OutgoingMessage.objects.filter(
-        domain=domain,
+        org=org,
         created_at__gte=window_start,
     ).count()
 
     transmissions = Transmission.objects.filter(
-        message__domain=domain,
+        message__org=org,
         message__created_at__gte=window_start,
         status=Transmission.Status.BOUNCED,
     )
     hard_bounces = transmissions.filter(code__gte=500).count()
     soft_bounces = transmissions.filter(code__lt=500).count()
 
-    complaints = FblReport.objects.filter(
-        domain=domain,
-        created_at__gte=window_start,
-    ).count()
+    complaints = (
+        FblReport.objects.filter(
+            org=org,
+            created_at__gte=window_start,
+            source=FblReport.Source.PROVIDER,
+        ).count()
+        + OutgoingMessage.objects.filter(
+            org=org,
+            created_at__gte=window_start,
+            status=OutgoingMessage.Status.HELD,
+        ).count()
+    )
 
-    held_spam = OutgoingMessage.objects.filter(
-        domain=domain,
-        created_at__gte=window_start,
-        status=OutgoingMessage.Status.HELD,
-    ).count()
-
-    complaints += held_spam
-
-    bounce_rate = (hard_bounces + soft_bounces) / total_sent if total_sent else 0.0
     hard_bounce_rate = hard_bounces / total_sent if total_sent else 0.0
-    soft_bounce_rate = soft_bounces / total_sent if total_sent else 0.0
     complaint_rate = complaints / total_sent if total_sent else 0.0
 
     return {
@@ -56,43 +65,63 @@ def compute_domain_reputation(domain):
         "hard_bounces": hard_bounces,
         "soft_bounces": soft_bounces,
         "complaints": complaints,
-        "bounce_rate": bounce_rate,
         "hard_bounce_rate": hard_bounce_rate,
-        "soft_bounce_rate": soft_bounce_rate,
         "complaint_rate": complaint_rate,
     }
 
 
-def check_domain_reputation(domain):
-    """Evaluate bounce and complaint rates and set or clear the reputation hold.
+def check_org_reputation(org: Organization) -> ReputationStats:
+    """Evaluate rates and lock the organization permanently on a threshold breach.
 
-    Sets `reputation_hold=True` when bounce rate or complaint rate
-    exceeds the configured thresholds and the domain has sent at least
-    `RELAY_REPUTATION_MIN_VOLUME` messages in the window. Clears the
-    hold when rates have recovered.
-
-    Returns the computed reputation dict.
+    Locks the organization when the hard-bounce rate or complaint rate
+    exceeds the configured thresholds and the organization has sent at
+    least `RELAY_REPUTATION_MIN_VOLUME` messages in the window. The lock
+    is never cleared automatically. Returns the computed reputation stats.
     """
-    stats = compute_domain_reputation(domain)
+    stats = compute_org_reputation(org)
     if stats["total_sent"] < settings.RELAY_REPUTATION_MIN_VOLUME:
         return stats
 
     exceeds = (
-        stats["bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
+        stats["hard_bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
         or stats["complaint_rate"] > settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
     )
-
-    if exceeds and not domain.reputation_hold:
-        domain.reputation_hold = True
-        domain.reputation_hold_at = timezone.now()
-        domain.save(
-            update_fields=["reputation_hold", "reputation_hold_at", "modified_at"]
+    if exceeds and not org.reputation_locked:
+        org.reputation_locked = True
+        org.reputation_locked_at = timezone.now()
+        org.save(
+            update_fields=["reputation_locked", "reputation_locked_at", "modified_at"]
         )
-    elif not exceeds and domain.reputation_hold:
-        domain.reputation_hold = False
-        domain.reputation_hold_at = None
-        domain.save(
-            update_fields=["reputation_hold", "reputation_hold_at", "modified_at"]
-        )
-
+        notify_org_locked(org, stats)
     return stats
+
+
+def notify_org_locked(org: Organization, stats: ReputationStats):
+    """Email the organization admins and platform staff about the lock."""
+    subject = _("Your account was locked due to sender reputation")
+    message = _(
+        "Your organization was locked because outgoing messages exceeded "
+        "the bounce or complaint rate threshold. Bounces: %(hard_bounces)s, "
+        "complaints: %(complaints)s, messages sent: %(total_sent)s over the "
+        "last %(days)s days. New submissions are rejected and queued "
+        "messages are dropped. Staff will review your account."
+    ) % {
+        "hard_bounces": stats["hard_bounces"],
+        "complaints": stats["complaints"],
+        "total_sent": stats["total_sent"],
+        "days": settings.RELAY_REPUTATION_WINDOW_DAYS,
+    }
+    recipients = [
+        membership.user.email
+        for membership in Membership.objects.filter(
+            org=org,
+            role=Membership.Role.ADMIN,
+        ).select_related("user")
+    ]
+    send_mail(
+        subject,
+        message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=recipients,
+    )
+    mail_admins(subject, message)

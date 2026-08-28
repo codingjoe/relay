@@ -8,58 +8,70 @@
 
   {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation: sent, bounces, and complaints")|capfirst chart=chart class="" %}
 
-  {% if domain_reputations %}
-    <div class="table-container mt-6">
-      <table class="table">
-        <thead>
+  <div class="table-container mt-6">
+    <table class="table">
+      <tbody>
+        <tr>
+          <th>{% translate "status"|capfirst %}</th>
+          <td>
+            {% if org.reputation_locked %}
+              <span class="badge" data-size="sm" data-variant="destructive">
+                {% translate "locked"|capfirst %}
+              </span>
+            {% else %}
+              <span class="badge" data-size="sm" data-variant="primary">
+                {% translate "ok"|capfirst %}
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% if org.reputation_locked %}
           <tr>
-            <th>{% translate "domain"|capfirst context "noun" %}</th>
-            <th>{% translate "sent"|capfirst %}</th>
-            <th>{% translate "hard bounces"|capfirst %}</th>
-            <th>{% translate "soft bounces"|capfirst %}</th>
-            <th>{% translate "complaints"|capfirst %}</th>
-            <th>{% translate "bounce rate"|capfirst %}</th>
-            <th>{% translate "complaint rate"|capfirst %}</th>
-            <th>{% translate "status"|capfirst %}</th>
+            <th>{% translate "locked at"|capfirst %}</th>
+            <td>{{ org.reputation_locked_at }}</td>
           </tr>
-        </thead>
-        <tbody>
-          {% for domain, stats in domain_reputations %}
-            <tr>
-              <td>{{ domain.name }}</td>
-              <td>{{ stats.total_sent }}</td>
-              <td>{{ stats.hard_bounces }}</td>
-              <td>{{ stats.soft_bounces }}</td>
-              <td>{{ stats.complaints }}</td>
-              <td>
-                {{ stats.bounce_rate|floatformat:4 }}
-                {% if stats.bounce_rate > bounce_threshold %}
-                  <i data-lucide="triangle-alert" class="size-3.5 text-destructive" aria-hidden="true"></i>
-                {% endif %}
-              </td>
-              <td>
-                {{ stats.complaint_rate|floatformat:5 }}
-                {% if stats.complaint_rate > complaint_threshold %}
-                  <i data-lucide="triangle-alert" class="size-3.5 text-destructive" aria-hidden="true"></i>
-                {% endif %}
-              </td>
-              <td>
-                {% if domain.reputation_hold %}
-                  <span class="badge" data-size="sm" data-variant="destructive">
-                    {% translate "suspended"|capfirst %}
-                  </span>
-                {% else %}
-                  <span class="badge" data-size="sm" data-variant="primary">
-                    {% translate "ok"|capfirst %}
-                  </span>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p class="text-muted-foreground">{% translate "no verified domains yet."|capfirst %}</p>
-  {% endif %}
+          <tr>
+            <th class="w-0 whitespace-nowrap">{% translate "what this means"|capfirst %}</th>
+            <td>
+              {% translate "new submissions are rejected and queued messages are dropped. staff will review your account."|capfirst %}
+            </td>
+          </tr>
+        {% endif %}
+        <tr>
+          <th>{% translate "sent"|capfirst %}</th>
+          <td>{{ stats.total_sent }}</td>
+        </tr>
+        <tr>
+          <th>{% translate "hard bounces"|capfirst %}</th>
+          <td>{{ stats.hard_bounces }}</td>
+        </tr>
+        <tr>
+          <th>{% translate "soft bounces"|capfirst %}</th>
+          <td>{{ stats.soft_bounces }}</td>
+        </tr>
+        <tr>
+          <th>{% translate "complaints"|capfirst %}</th>
+          <td>{{ stats.complaints }}</td>
+        </tr>
+        <tr>
+          <th>{% translate "hard bounce rate"|capfirst %}</th>
+          <td>
+            {{ stats.hard_bounce_rate|floatformat:4 }}
+            {% if stats.hard_bounce_rate > bounce_threshold %}
+              <i data-lucide="triangle-alert" class="size-3.5 text-destructive" aria-hidden="true"></i>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>{% translate "complaint rate"|capfirst %}</th>
+          <td>
+            {{ stats.complaint_rate|floatformat:5 }}
+            {% if stats.complaint_rate > complaint_threshold %}
+              <i data-lucide="triangle-alert" class="size-3.5 text-destructive" aria-hidden="true"></i>
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

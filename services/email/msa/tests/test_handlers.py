@@ -167,6 +167,33 @@ class TestProcessMessage:
         assert result == "550 Recipient not allowed without active billing"
         assert not await OutgoingMessage.objects.filter(org=org).aexists()
 
+    async def test_process_message__rejects_submission_when_org_locked(
+        self,
+        user,
+        org,
+    ):
+        from services.email.msa.handlers import process_message
+
+        org.reputation_locked = True
+        await org.asave(update_fields=["reputation_locked", "modified_at"])
+        domain = Domain.objects.get(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        message = make_email(f"alice@{domain.name}", user.email)
+
+        result = await process_message(
+            f"alice@{domain.name}",
+            user.email,
+            message.as_bytes(),
+            message,
+            credential,
+            user,
+            False,
+            "",
+        )
+
+        assert result == "550 Account locked due to sender reputation"
+        assert not await OutgoingMessage.objects.filter(org=org).aexists()
+
     async def test_process_message__allows_member_recipient_case_insensitively(
         self,
         user,
