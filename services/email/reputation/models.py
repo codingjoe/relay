@@ -133,7 +133,7 @@ class FblReport(IncomingMessage):
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return an FblReport instance parsed from a raw ARF email.
+        """Return an unsaved instance built from a raw ARF message.
 
         Raises `ValueError` if no ARF feedback-report content is found.
         """
@@ -159,7 +159,7 @@ class FblReport(IncomingMessage):
         """Store an FBL report email received at the FBL reporting address.
 
         The report is stored un-parsed and filled in later by the
-        `parse_fbl_report` task. Returns the created FblReport.
+        `parse_fbl_report` task.
         """
         return cls.objects.create(
             org=message.org,
@@ -178,13 +178,13 @@ class FblReport(IncomingMessage):
 
     @classmethod
     def create_for_spam(cls, message):
-        """Create and store an FBL report for a message flagged as spam.
+        """Store a relay-generated FBL report for a message that Relay's own
+        checks flagged.
 
-        Used for messages flagged as spam by Relay's own spam checks, both
-        MSA-held outgoing messages and MTA-quarantined incoming messages.
-        Relay-generated reports are for visibility only and do not count as
-        complaints. Returns the created FblReport, or None if the message
-        has no associated domain.
+        Covers MSA-held outgoing messages and MTA-quarantined incoming
+        messages. Relay-generated reports are for visibility only and do
+        not count as complaints. Returns `None` when the message has no
+        associated domain.
         """
         if message.domain_id is None:
             return None
@@ -215,7 +215,8 @@ class FblReport(IncomingMessage):
 
     @classmethod
     def send_fbl_report(cls, message):
-        """Send an RFC 5965 FBL report email to the platform FBL address.
+        """Deliver an ARF complaint report to the platform-wide FBL
+        reporting address.
 
         FBL agreements exist between mailbox providers, not individual
         sender domains. Relay sends one ARF complaint per detected spam
@@ -270,7 +271,8 @@ class FblReport(IncomingMessage):
 
 
 class MultipartReportEmail(EmailMessage):
-    """EmailMessage with a multipart/report; report-type=feedback-loop body."""
+    """Serialize the MIME payload as `multipart/report;
+    report-type=feedback-loop`."""
 
     def message(self):
         msg = super().message()

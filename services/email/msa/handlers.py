@@ -124,7 +124,8 @@ def process_suppressed_message(
 
 @sync_to_async
 def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_ip):
-    """Store a submitted outgoing message and enqueue its delivery."""
+    """Store a submitted outgoing message and enqueue its delivery unless
+    the org is suspended."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
 

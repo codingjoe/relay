@@ -22,7 +22,8 @@ class MxHostsExhausted(Exception):
 
 @task
 def deliver_message(message_id):
-    """Deliver a queued outgoing message to its recipients."""
+    """Deliver a queued outgoing message to its recipients, or drop it when
+    the org is suspended."""
     from .models import OutgoingMessage, SuppressionEntry, Transmission
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
@@ -172,7 +173,8 @@ def fetch_mx_hosts(domain):
     )
 )
 def check_outgoing_spam(message_pk, client_ip):
-    """Check an outgoing message for spam and enqueue delivery if clean."""
+    """Drop messages for suspended orgs, then check for spam and enqueue
+    delivery if clean."""
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)

@@ -18,10 +18,10 @@ REPUTATION_CHART_COLORS = {
 
 
 def build_reputation_chart(org):
-    """Return chart data for reputation metrics grouped by day.
+    """Return sent, hard-bounce, soft-bounce, and complaint counts per day.
 
-    Tracks sent, hard bounces, soft bounces, and FBL complaints over the
-    chart window.
+    Counts provider FBL reports and outgoing messages held as spam as
+    complaints over the `CHART_DAYS` window.
     """
     start = timezone.localdate() - timedelta(days=CHART_DAYS - 1)
 

@@ -19,7 +19,7 @@ VALID_FEEDBACK_TYPES = frozenset(
 
 
 def parse_fbl(raw_bytes):
-    """Return the parsed FBL (Feedback Loop) complaint report as a dict.
+    """Return FBL (Feedback Loop) complaint report fields as a dict.
 
     The report uses the ARF (Abuse Reporting Format, RFC 5965) MIME structure.
     Raises `ValueError` if no ARF feedback-report content is found.

@@ -12,7 +12,8 @@ from .models import FblReport
 
 @receiver(post_save, sender=Transmission)
 def check_reputation_on_hard_bounce(sender, instance, **kwargs):
-    """Queue a reputation check when a transmission hard bounces."""
+    """Enqueue an org evaluation after commit when a transmission bounces
+    with SMTP 5xx."""
     if (
         instance.status == Transmission.Status.BOUNCED
         and instance.code
@@ -24,7 +25,8 @@ def check_reputation_on_hard_bounce(sender, instance, **kwargs):
 
 @receiver(post_save, sender=OutgoingMessage)
 def check_reputation_on_held_message(sender, instance, **kwargs):
-    """Create and send a relay FBL report for an outgoing message held as spam."""
+    """Record and send a relay FBL report and queue an org evaluation when
+    Relay flags a submission as spam."""
     held_as_spam = instance.status == OutgoingMessage.Status.HELD and "status" in (
         kwargs.get("update_fields") or ()
     )
@@ -38,7 +40,8 @@ def check_reputation_on_held_message(sender, instance, **kwargs):
 
 @receiver(post_save, sender=IncomingMessage)
 def check_reputation_on_incoming_message(sender, instance, created, **kwargs):
-    """Store provider FBL reports and report quarantined incoming spam."""
+    """Store provider FBL reports sent to the FBL inbox and record relay
+    reports for quarantined mail."""
     local_part = (
         instance.rcpt_to.split("@", 1)[0].lower() if "@" in instance.rcpt_to else ""
     )

@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 
 @task
 def parse_fbl_report(report_pk):
-    """Parse a received FBL complaint report and update its fields."""
+    """Fill stored report fields from the raw ARF body, then queue an org
+    evaluation.
+
+    Logs and keeps the stored fields when the body is not an ARF email.
+    """
     report = FblReport.objects.get(pk=report_pk)
     raw_bytes = report.raw_body.read()
     try:
@@ -55,5 +59,6 @@ def parse_fbl_report(report_pk):
 
 @task
 def check_org_reputation(org_id):
-    """Evaluate bounce and complaint rates for an org and lock on breach."""
+    """Evaluate rates for an organization and lock it permanently on a
+    threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))
