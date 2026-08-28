@@ -21,7 +21,6 @@ def make_email():
 class TestSignMessage:
     @pytest.mark.django_db
     def test_sign_message__returns_signed_bytes(self):
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
@@ -29,7 +28,6 @@ class TestSignMessage:
 
     @pytest.mark.django_db
     def test_sign_message__signs_with_all_three_ciphers(self):
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
@@ -37,7 +35,6 @@ class TestSignMessage:
 
     @pytest.mark.django_db
     def test_sign_message__includes_all_selectors(self):
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
@@ -47,14 +44,12 @@ class TestSignMessage:
 
     @pytest.mark.django_db
     def test_sign_message__includes_domain(self):
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"d=example.com" in signed
 
     def test_sign_message__returns_original_when_no_keys(self):
-
         domain = Domain(name="example.com")
         original = make_email().as_bytes()
         signed = sign_message(original, domain)
@@ -63,11 +58,9 @@ class TestSignMessage:
 
 class TestVerifySignature:
     def test_verify_signature__handles_signed_message(self):
-
         verified, _ = verify_signature(make_email().as_bytes())
         assert isinstance(verified, bool | type(None))
 
     def test_verify_signature__rejects_unsigned(self):
-
         verified, _ = verify_signature(make_email().as_bytes())
         assert verified is not True

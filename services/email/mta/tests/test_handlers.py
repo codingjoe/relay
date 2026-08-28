@@ -267,7 +267,6 @@ class TestProcessIncomingMessageReports:
 
 
 def make_dmarc_evaluation(disposition):
-
     return DmarcEvaluation(
         source_ip_address="192.0.2.1",
         header_from="example.com",

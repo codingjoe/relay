@@ -85,7 +85,6 @@ class TestReportListView:
 
     @pytest.fixture
     def dmarc_report(self, org, domain):
-
         report = DmarcReport.objects.create(
             org=org,
             domain=domain,
@@ -101,7 +100,6 @@ class TestReportListView:
 
     @pytest.fixture
     def failure_report(self, org, domain):
-
         return DmarcFailureReport.objects.create(
             org=org,
             domain=domain,
@@ -112,7 +110,6 @@ class TestReportListView:
 
     @pytest.fixture
     def tls_report(self, org, domain):
-
         return TlsReport.objects.create(
             org=org,
             domain=domain,

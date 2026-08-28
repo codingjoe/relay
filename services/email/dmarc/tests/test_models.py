@@ -83,7 +83,6 @@ class TestDmarcReportParseFromEmail:
 @pytest.mark.django_db
 class TestDmarcReportStr:
     def test_str__shows_reporting_org_and_domain(self, org):
-
         domain = Domain.objects.create(name="example.com", org=org)
         report = DmarcReport(
             org=org,
@@ -97,7 +96,6 @@ class TestDmarcReportStr:
 
 class TestDmarcRecordStr:
     def test_str__shows_ip_count_disposition(self):
-
         record = DmarcRecord(
             source_ip_address="192.168.1.1",
             count=5,

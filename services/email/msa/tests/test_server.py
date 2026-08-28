@@ -7,7 +7,6 @@ from services.email.msa.server import SMTPServer
 
 class TestSmtpServerInit:
     def test_init__defaults(self):
-
         server = SMTPServer()
         assert server.host == "0.0.0.0"
         assert server.ports == (587, 465)
@@ -15,7 +14,6 @@ class TestSmtpServerInit:
         assert server.controllers == []
 
     def test_init__custom(self):
-
         server = SMTPServer(host="127.0.0.1", ports=(587,))
         assert server.host == "127.0.0.1"
         assert server.ports == (587,)
@@ -25,7 +23,6 @@ class TestSmtpServerLifecycle:
     @patch("services.email.msa.server.build_tls_context")
     @patch("services.email.msa.server.Controller")
     def test_start__creates_controller(self, mock_controller_cls, mock_build_tls):
-
         mock_controller = MagicMock()
         mock_controller_cls.return_value = mock_controller
         mock_build_tls.return_value = MagicMock()
@@ -37,7 +34,6 @@ class TestSmtpServerLifecycle:
     @patch("services.email.msa.server.build_tls_context")
     @patch("services.email.msa.server.Controller")
     def test_stop__calls_controller_stop(self, mock_controller_cls, mock_build_tls):
-
         mock_controller = MagicMock()
         mock_controller_cls.return_value = mock_controller
         mock_build_tls.return_value = MagicMock()
@@ -47,13 +43,11 @@ class TestSmtpServerLifecycle:
         assert mock_controller.stop.call_count == 2
 
     def test_stop__without_start(self):
-
         server = SMTPServer()
         server.stop()
         assert server.controllers == []
 
     def test_start__raises_when_implicit_tls_without_cert(self):
-
         server = SMTPServer()
         with pytest.raises(ValueError, match="Implicit TLS ports require"):
             server.start()

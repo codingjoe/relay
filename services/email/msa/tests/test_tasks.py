@@ -18,7 +18,6 @@ from services.email.spam import SpamAction, SpamResult
 
 class TestFetchMxHosts:
     def test_fetch_mx_hosts__sorted_by_priority(self, dns_resolver):
-
         dns_resolver.add(
             "example.com", "MX", "20 mx2.example.com.", "10 mx1.example.com."
         )
@@ -26,20 +25,17 @@ class TestFetchMxHosts:
         assert hosts == ["mx1.example.com", "mx2.example.com"]
 
     def test_fetch_mx_hosts__strips_trailing_dot(self, dns_resolver):
-
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
         hosts = fetch_mx_hosts("example.com")
         assert hosts == ["mx.example.com"]
 
     def test_fetch_mx_hosts__empty_on_error(self):
-
         assert fetch_mx_hosts("nonexistent.invalid") == []
 
 
 @pytest.mark.django_db(transaction=True)
 class TestDeliverMessage:
     def test_deliver_message__no_mx_records(self, user, org, dns_resolver):
-
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
             org=org,
@@ -125,7 +121,6 @@ class TestDeliverMessage:
         ).exists()
 
     def test_deliver_message__fails_closed_without_sender_domain(self, user, org):
-
         msg = OutgoingMessage.objects.create(
             org=org,
             rcpt_to="bob@example.com",
@@ -186,7 +181,6 @@ class TestDeliverMessage:
         mock_send.assert_not_called()
 
     def test_deliver_message__drops_message_of_locked_org(self, user, org):
-
         domain = Domain.objects.get(org=org)
         message = OutgoingMessage.objects.create(
             org=org,
@@ -224,7 +218,6 @@ class TestDeliverMessage:
         return msg
 
     def test_deliver_message__fails_for_non_canonical_sender_domain(self, user, org):
-
         # bulk_create bypasses save()/clean(), so the stored name stays
         # non-canonical and no longer matches the resolved root domain.
         (domain,) = Domain.objects.bulk_create([Domain(name="Example.com", org=org)])
@@ -354,7 +347,6 @@ class TestCheckOutgoingSpam:
         assert transmission.output == "550 Account suspended due to sender reputation"
 
     def test_check_outgoing_spam__holds_spam(self, user, org):
-
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
             org=org,
@@ -382,7 +374,6 @@ class TestCheckOutgoingSpam:
         assert msg.spam_action == SpamAction.REJECT
 
     def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
-
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
             org=org,

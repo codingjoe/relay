@@ -91,14 +91,12 @@ def make_multipart_with_sub_part(sub_part):
 
 class TestExtractPartText:
     def test_extract_part_text__decodes_plain_sub_part(self):
-
         raw = make_multipart_with_sub_part(
             "Content-Type: text/plain\r\n\r\nhello world"
         )
         assert extract_part_text(message_from_string(raw)) == "hello world"
 
     def test_extract_part_text__decodes_base64_sub_part(self):
-
         encoded = base64.b64encode(b"encoded body").decode()
         raw = make_multipart_with_sub_part(
             "Content-Type: text/plain\r\n"
@@ -108,7 +106,6 @@ class TestExtractPartText:
         assert extract_part_text(message_from_string(raw)) == "encoded body"
 
     def test_extract_part_text__skips_nested_multipart_sub_part(self):
-
         raw = make_multipart_with_sub_part(
             "Content-Type: multipart/alternative; boundary=INNER\r\n\r\n"
             "--INNER\r\n"
@@ -119,7 +116,6 @@ class TestExtractPartText:
         assert extract_part_text(message_from_string(raw)) == ""
 
     def test_extract_part_text__decodes_non_multipart_base64(self):
-
         encoded = base64.b64encode(b"direct body").decode()
         raw = (
             "Content-Type: text/plain\r\n"
@@ -129,7 +125,6 @@ class TestExtractPartText:
         assert extract_part_text(message_from_string(raw)) == "direct body"
 
     def test_extract_part_text__returns_empty_string_without_payload(self):
-
         assert extract_part_text(Message()) == ""
 
     def test_extract_part_text__decodes_base64_body_without_cte(self):

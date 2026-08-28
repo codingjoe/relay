@@ -94,7 +94,6 @@ class TestIsSuppressed:
 
     @pytest.mark.django_db
     def test_bounce_entry_suppresses_globally_within_30_days(self):
-
         org1 = Organization.objects.create(slug="o1")
         org2 = Organization.objects.create(slug="o2")
         SuppressionEntry.objects.create_or_update(
@@ -104,7 +103,6 @@ class TestIsSuppressed:
 
     @pytest.mark.django_db
     def test_bounce_entry_does_not_suppress_after_30_days(self):
-
         org1 = Organization.objects.create(slug="o1")
         org2 = Organization.objects.create(slug="o2")
         entry, _ = SuppressionEntry.objects.create_or_update(

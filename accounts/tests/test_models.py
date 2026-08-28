@@ -101,7 +101,6 @@ class TestOrganization:
 
     @pytest.mark.django_db
     def test_get_absolute_url__returns_detail_url(self):
-
         org = Organization.objects.create(slug="acme")
         assert org.get_absolute_url() == reverse(
             "accounts:org-home", kwargs={"org_slug": "acme"}

@@ -54,7 +54,6 @@ def make_report_email(xml_bytes):
 
 @pytest.fixture
 def dmarc_report(org):
-
     domain = Domain.objects.create(name="example.com", org=org)
     raw = make_report_email(SAMPLE_XML)
     report = DmarcReport(
