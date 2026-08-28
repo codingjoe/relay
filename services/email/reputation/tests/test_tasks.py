@@ -2,11 +2,13 @@ from email.message import EmailMessage
 
 import pytest
 from django.conf import settings
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from accounts.models import Organization
 from domains.models import Domain
 from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.mta.handlers import process_incoming_message
+from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
 from services.email.reputation.tasks import parse_fbl_report
 
@@ -34,14 +36,12 @@ def make_arf_email(feedback_type="fraud"):
 
 
 def make_report(org, raw_bytes):
-    report = FblReport(
+    return FblReport.objects.create(
         org=org,
         mail_from="feedback@gmail.com",
         rcpt_to="fbl@acme.com",
+        raw_body=SimpleUploadedFile("report.eml", raw_bytes),
     )
-    report.raw_body.save("report.eml", ContentFile(raw_bytes), save=False)
-    report.save(force_insert=True)
-    return report
 
 
 @pytest.mark.django_db
@@ -75,15 +75,14 @@ class TestParseFblReport:
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@gmail.com",
             domain=domain,
             status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
         )
-        message.raw_body.save("sent.eml", ContentFile(b"body"), save=False)
-        message.save(force_insert=True)
         Transmission.objects.create(
             message=message,
             code=550,
@@ -102,9 +101,6 @@ class TestParseFblReport:
 class TestFblReportIngress:
     @pytest.mark.django_db(transaction=True)
     async def test_fbl_recipient__creates_and_parses_report(self, org):
-        from services.email.mta.handlers import process_incoming_message
-        from services.email.mta.models import IncomingMessage
-
         domain = Domain.objects.create(name="example.com", org=org)
         result = await process_incoming_message(
             "feedback@gmail.com",

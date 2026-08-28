@@ -66,44 +66,48 @@ def process_incoming_message(
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
+    subject = msg.get("Subject", "")
+    message_id = msg.get("Message-ID", "")
 
     match local_part:
         case settings.RELAY_DMARC_REPORT_LOCAL_PART:
             from services.email.dmarc.models import DmarcReport
             from services.email.dmarc.tasks import parse_dmarc_report
 
-            report = DmarcReport(
+            report = DmarcReport.objects.create(
                 org=domain.org,
                 domain=domain,
                 receiving_domain=rcpt_domain,
                 mail_from=mail_from,
                 rcpt_to=rcpt_to,
-                subject=msg.get("Subject", ""),
-                message_id=msg.get("Message-ID", ""),
+                subject=subject,
+                message_id=message_id,
                 received_with_tls=bool(tls),
                 report_id="",
+                raw_body=SimpleUploadedFile(
+                    f"{message_id or 'message'}.eml", raw_bytes
+                ),
             )
-            report.raw_body = SimpleUploadedFile(f"{report.id}.eml", raw_bytes)
-            report.save(force_insert=True)
             transaction.on_commit(
                 lambda: parse_dmarc_report.enqueue(report_pk=report.pk)
             )
             return "250 OK"
 
         case settings.RELAY_TLS_REPORT_LOCAL_PART:
-            report = TlsReport(
+            report = TlsReport.objects.create(
                 org=domain.org,
                 domain=domain,
                 receiving_domain=rcpt_domain,
                 mail_from=mail_from,
                 rcpt_to=rcpt_to,
-                subject=msg.get("Subject", ""),
-                message_id=msg.get("Message-ID", ""),
+                subject=subject,
+                message_id=message_id,
                 received_with_tls=bool(tls),
                 report_id="",
+                raw_body=SimpleUploadedFile(
+                    f"{message_id or 'message'}.eml", raw_bytes
+                ),
             )
-            report.raw_body = SimpleUploadedFile(f"{report.id}.eml", raw_bytes)
-            report.save(force_insert=True)
             transaction.on_commit(lambda: parse_tls_report.enqueue(report_pk=report.pk))
             return "250 OK"
 
@@ -111,55 +115,56 @@ def process_incoming_message(
             from services.email.dmarc.models import DmarcFailureReport
             from services.email.dmarc.tasks import parse_dmarc_failure_report
 
-            report = DmarcFailureReport(
+            report = DmarcFailureReport.objects.create(
                 org=domain.org,
                 domain=domain,
                 receiving_domain=rcpt_domain,
                 mail_from=mail_from,
                 rcpt_to=rcpt_to,
-                subject=msg.get("Subject", ""),
-                message_id=msg.get("Message-ID", ""),
+                subject=subject,
+                message_id=message_id,
                 received_with_tls=bool(tls),
+                raw_body=SimpleUploadedFile(
+                    f"{message_id or 'message'}.eml", raw_bytes
+                ),
             )
-            report.raw_body = SimpleUploadedFile(f"{report.id}.eml", raw_bytes)
-            report.save(force_insert=True)
             transaction.on_commit(
                 lambda: parse_dmarc_failure_report.enqueue(report_pk=report.pk)
             )
             return "250 OK"
 
         case settings.RELAY_FBL_LOCAL_PART:
-            message = IncomingMessage(
+            IncomingMessage.objects.create(
                 org=domain.org,
                 domain=domain,
                 receiving_domain=rcpt_domain,
                 mail_from=mail_from,
                 rcpt_to=rcpt_to,
-                subject=msg.get("Subject", ""),
-                message_id=msg.get("Message-ID", ""),
+                subject=subject,
+                message_id=message_id,
                 received_with_tls=bool(tls),
                 status=status,
+                raw_body=SimpleUploadedFile(
+                    f"{message_id or 'message'}.eml", raw_bytes
+                ),
             )
-            message.raw_body = SimpleUploadedFile(f"{message.id}.eml", raw_bytes)
-            message.save(force_insert=True)
             return "250 OK"
 
     is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (
         local_part.startswith(f"{settings.RELAY_POSTMASTER_LOCAL_PART}+")
     )
-    message = IncomingMessage(
+    message = IncomingMessage.objects.create(
         org=domain.org,
         domain=domain,
         receiving_domain=rcpt_domain,
         mail_from=mail_from,
         rcpt_to=rcpt_to,
-        subject=msg.get("Subject", ""),
-        message_id=msg.get("Message-ID", ""),
+        subject=subject,
+        message_id=message_id,
         received_with_tls=bool(tls),
         status=status,
+        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
-    message.raw_body = SimpleUploadedFile(f"{message.id}.eml", raw_bytes)
-    message.save(force_insert=True)
     transaction.on_commit(
         lambda: check_incoming_spam.enqueue(
             message_pk=str(message.id), client_ip=client_ip

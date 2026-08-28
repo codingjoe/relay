@@ -1,7 +1,7 @@
 from email.message import EmailMessage
 
 import pytest
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from domains.models import Domain
@@ -95,26 +95,26 @@ class TestFblReportCreateForSpamWithoutDomain:
 
 @pytest.mark.django_db
 class TestFblReportCreateForSpam:
-    def make_outgoing_message(self, org, **kwargs):
+    def make_outgoing_message(self, org, raw_bytes=None, **kwargs):
         defaults = {
             "org": org,
             "mail_from": "sender@acme.com",
             "rcpt_to": "rcpt@example.com",
             "status": OutgoingMessage.Status.HELD,
         }
-        message = OutgoingMessage(**defaults | kwargs)
-        return message
+        if raw_bytes is not None:
+            defaults["raw_body"] = SimpleUploadedFile("test.eml", raw_bytes)
+        return OutgoingMessage.objects.create(**defaults | kwargs)
 
     def test_create_for_spam__creates_report_with_spam_fields(self, org):
         domain = Domain.objects.create(name="acme.com", org=org)
         message = self.make_outgoing_message(
             org,
+            raw_bytes=b"spam content",
             subject="Spam subject",
             message_id="<abc@acme.com>",
             domain=domain,
         )
-        message.raw_body.save("test.eml", ContentFile(b"spam content"), save=False)
-        message.save(force_insert=True)
 
         report = FblReport.create_for_spam(message)
         assert report is not None
@@ -128,7 +128,6 @@ class TestFblReportCreateForSpam:
     def test_create_for_spam__without_raw_body_stores_empty_file(self, org):
         domain = Domain.objects.create(name="acme.com", org=org)
         message = self.make_outgoing_message(org, domain=domain)
-        message.save(force_insert=True)
 
         report = FblReport.create_for_spam(message)
 
@@ -139,16 +138,15 @@ class TestFblReportCreateForSpam:
         self, org, user
     ):
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = IncomingMessage(
+        message = IncomingMessage.objects.create(
             org=org,
             domain=domain,
             receiving_domain="app.acme.com",
             mail_from="spam@acme.com",
             rcpt_to="inbox@relay.local",
             status=IncomingMessage.Status.QUARANTINED,
+            raw_body=SimpleUploadedFile("test.eml", b"spam"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"spam"), save=False)
-        message.save(force_insert=True)
 
         report = FblReport.create_for_spam(message)
 
@@ -160,18 +158,17 @@ class TestFblReportCreateForSpam:
 @pytest.mark.django_db
 class TestFblReportSendFblReport:
     def make_quarantined_message(self, org, domain, raw_bytes=None):
-        message = IncomingMessage(
-            org=org,
-            domain=domain,
-            receiving_domain="example.com",
-            mail_from="spam@acme.com",
-            rcpt_to="victim@example.com",
-            status=IncomingMessage.Status.QUARANTINED,
-        )
+        defaults = {
+            "org": org,
+            "domain": domain,
+            "receiving_domain": "example.com",
+            "mail_from": "spam@acme.com",
+            "rcpt_to": "victim@example.com",
+            "status": IncomingMessage.Status.QUARANTINED,
+        }
         if raw_bytes is not None:
-            message.raw_body.save("quarantined.eml", ContentFile(raw_bytes), save=False)
-        message.save(force_insert=True)
-        return message
+            defaults["raw_body"] = SimpleUploadedFile("quarantined.eml", raw_bytes)
+        return IncomingMessage.objects.create(**defaults)
 
     def test_send_fbl_report__skips_when_no_reporting_address(
         self, org, mailoutbox, settings

@@ -161,7 +161,7 @@ class FblReport(IncomingMessage):
         The report is stored un-parsed and filled in later by the
         `parse_fbl_report` task. Returns the created FblReport.
         """
-        report = cls(
+        return cls.objects.create(
             org=message.org,
             domain=message.domain,
             receiving_domain=message.receiving_domain,
@@ -170,12 +170,11 @@ class FblReport(IncomingMessage):
             subject=message.subject,
             message_id=message.message_id,
             received_with_tls=message.received_with_tls,
+            raw_body=SimpleUploadedFile(
+                f"{message.message_id or 'message'}.eml",
+                message.raw_body.read() if message.raw_body else b"",
+            ),
         )
-        report.raw_body = SimpleUploadedFile(
-            f"{report.id}.eml", message.raw_body.read() if message.raw_body else b""
-        )
-        report.save(force_insert=True)
-        return report
 
     @classmethod
     def create_for_spam(cls, message):
@@ -190,7 +189,7 @@ class FblReport(IncomingMessage):
         if message.domain_id is None:
             return None
 
-        report = cls(
+        return cls.objects.create(
             source=cls.Source.RELAY,
             org=message.org,
             domain=message.domain,
@@ -208,12 +207,11 @@ class FblReport(IncomingMessage):
             original_mail_from=message.mail_from,
             original_rcpt_to=message.rcpt_to.split(",")[0],
             original_message_id=message.message_id,
+            raw_body=SimpleUploadedFile(
+                f"{message.message_id or 'message'}.eml",
+                message.raw_body.read() if message.raw_body else b"",
+            ),
         )
-        report.raw_body = SimpleUploadedFile(
-            f"{report.id}.eml", message.raw_body.read() if message.raw_body else b""
-        )
-        report.save(force_insert=True)
-        return report
 
     @classmethod
     def send_fbl_report(cls, message):

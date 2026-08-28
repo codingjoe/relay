@@ -95,3 +95,10 @@
     How-to docs are brand-agnostic. Do not mention "relay" (the brand).
     Write about the email topic generically instead.
   filePattern: 'know_how/docs/.*\.md$'
+- name: Create models with raw_body in one objects.create() call
+  pattern: '\.\w*raw_body(?:\s*=|\.save\()'
+  hint: |
+    Pass `raw_body=SimpleUploadedFile(...)` directly to `objects.create()`
+    instead of constructing the instance, assigning the file, and saving
+    it in multiple steps.
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$|msa/tasks\.py$)).*\.py$'

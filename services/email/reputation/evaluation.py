@@ -97,7 +97,7 @@ def check_org_reputation(org: Organization) -> ReputationStats:
     return stats
 
 
-def notify_org_locked(org: Organization, stats: ReputationStats):
+def notify_org_locked(org: Organization, stats: ReputationStats) -> None:
     """Email the organization admins and platform staff about the suspension."""
     subject = _("Your account was suspended due to sender reputation")
     message = _(

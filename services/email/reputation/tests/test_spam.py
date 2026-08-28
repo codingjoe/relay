@@ -1,14 +1,26 @@
 from unittest.mock import patch
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
+from accounts.models import Organization
+from domains.models import Domain
+from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.msa.tasks import check_outgoing_spam
+from services.email.mta.models import IncomingMessage
+from services.email.mta.tasks import check_incoming_spam
+from services.email.reputation.charts import build_reputation_chart
+from services.email.reputation.evaluation import (
+    check_org_reputation,
+    compute_org_reputation,
+)
 from services.email.reputation.models import FblReport
+from services.email.spam import SpamAction, SpamResult
 
 
 class TestFblReportCreateForSpam:
     def test_create_for_spam__returns_none_without_domain(self):
-        from services.email.mta.models import IncomingMessage
-
         message = IncomingMessage(
             mail_from="spam@example.com",
             rcpt_to="rcpt@example.com",
@@ -18,13 +30,8 @@ class TestFblReportCreateForSpam:
 
     @pytest.mark.django_db
     def test_create_for_spam__creates_report_with_spam_fields(self, org, user):
-        from django.core.files.base import ContentFile
-
-        from domains.models import Domain
-        from services.email.msa.models import OutgoingMessage
-
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -32,9 +39,8 @@ class TestFblReportCreateForSpam:
             message_id="<abc@acme.com>",
             domain=domain,
             status=OutgoingMessage.Status.HELD,
+            raw_body=SimpleUploadedFile("test.eml", b"spam content"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"spam content"), save=False)
-        message.save(force_insert=True)
 
         report = FblReport.create_for_spam(message)
         assert report is not None
@@ -49,24 +55,16 @@ class TestFblReportCreateForSpam:
 @pytest.mark.django_db
 class TestComputeOrgReputationSpamHeld:
     def test_compute_org_reputation__counts_held_spam_as_complaints(self, org, user):
-
-        from django.core.files.base import ContentFile
-
-        from domains.models import Domain
-        from services.email.msa.models import OutgoingMessage
-        from services.email.reputation.evaluation import compute_org_reputation
-
         domain = Domain.objects.create(name="acme.com", org=org)
         for _ in range(3):
-            message = OutgoingMessage(
+            OutgoingMessage.objects.create(
                 org=org,
                 mail_from="sender@acme.com",
                 rcpt_to="rcpt@example.com",
                 domain=domain,
                 status=OutgoingMessage.Status.HELD,
+                raw_body=SimpleUploadedFile("test.eml", b"x"),
             )
-            message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-            message.save(force_insert=True)
 
         stats = compute_org_reputation(org)
         assert stats["complaints"] == 3
@@ -78,20 +76,14 @@ class TestCheckOrgReputationLock:
     def test_check_org_reputation__locks_on_threshold_breach(
         self, org, user, mailoutbox, settings
     ):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage, Transmission
-        from services.email.reputation.evaluation import check_org_reputation
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
         Transmission.objects.create(
             message=message,
             status=Transmission.Status.BOUNCED,
@@ -106,20 +98,14 @@ class TestCheckOrgReputationLock:
         assert mailoutbox[0].to == ["alice@example.com"]
 
     def test_check_org_reputation__ignores_soft_bounces(self, org, user, settings):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage, Transmission
-        from services.email.reputation.evaluation import check_org_reputation
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
         Transmission.objects.create(
             message=message,
             status=Transmission.Status.BOUNCED,
@@ -134,24 +120,15 @@ class TestCheckOrgReputationLock:
     def test_check_org_reputation__skips_notification_when_already_locked(
         self, org, user, mailoutbox, settings
     ):
-        from django.core.files.base import ContentFile
-
-        from accounts.models import Organization
-        from services.email.msa.models import OutgoingMessage, Transmission
-        from services.email.reputation.evaluation import check_org_reputation
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        from django.utils import timezone
-
         Organization.objects.filter(pk=org.pk).update(suspended_at=timezone.now())
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
         Transmission.objects.create(
             message=message,
             status=Transmission.Status.BOUNCED,
@@ -168,19 +145,13 @@ class TestCheckOrgReputationLock:
 @pytest.mark.django_db
 class TestComputeOrgReputationComplaintSources:
     def test_compute_org_reputation__counts_provider_fbl_as_complaint(self, org, user):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage
-        from services.email.reputation.evaluation import compute_org_reputation
-
-        message = OutgoingMessage(
+        OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
         FblReport.objects.create(
             org=org,
             mail_from="feedback@gmail.com",
@@ -194,19 +165,13 @@ class TestComputeOrgReputationComplaintSources:
         assert stats["complaints"] == 1
 
     def test_compute_org_reputation__ignores_relay_generated_fbl(self, org, user):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage
-        from services.email.reputation.evaluation import compute_org_reputation
-
-        message = OutgoingMessage(
+        OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
         FblReport.objects.create(
             org=org,
             mail_from="fbl@relay.local",
@@ -222,19 +187,13 @@ class TestComputeOrgReputationComplaintSources:
     def test_compute_org_reputation__held_message_not_double_counted_by_fbl(
         self, org, user
     ):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage
-        from services.email.reputation.evaluation import compute_org_reputation
-
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.HELD,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
         FblReport.create_for_spam(message)
 
         stats = compute_org_reputation(org)
@@ -244,28 +203,20 @@ class TestComputeOrgReputationComplaintSources:
 
 @pytest.mark.django_db
 class TestReputationSignals:
-    def make_sent_message(self, user, org):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage
-
-        message = OutgoingMessage(
+    def make_sent_message(self, org):
+        return OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
-        return message
 
     def test_hard_bounce_triggers_lock(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        from services.email.msa.models import Transmission
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = self.make_sent_message(user, org)
+        message = self.make_sent_message(org)
 
         with django_capture_on_commit_callbacks(execute=True):
             Transmission.objects.create(
@@ -280,10 +231,8 @@ class TestReputationSignals:
     def test_soft_bounce_does_not_trigger_check(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        from services.email.msa.models import Transmission
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = self.make_sent_message(user, org)
+        message = self.make_sent_message(org)
 
         with django_capture_on_commit_callbacks(execute=True):
             Transmission.objects.create(
@@ -298,19 +247,14 @@ class TestReputationSignals:
     def test_held_message_triggers_lock(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             status=OutgoingMessage.Status.PENDING,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
 
         with django_capture_on_commit_callbacks(execute=True):
             message.status = OutgoingMessage.Status.HELD
@@ -322,21 +266,16 @@ class TestReputationSignals:
     def test_regular_send_does_not_trigger_check(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        from django.core.files.base import ContentFile
-
-        from services.email.msa.models import OutgoingMessage
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
 
         with django_capture_on_commit_callbacks(execute=True):
-            message = OutgoingMessage(
+            OutgoingMessage.objects.create(
                 org=org,
                 mail_from="sender@acme.com",
                 rcpt_to="rcpt@example.com",
                 status=OutgoingMessage.Status.SENT,
+                raw_body=SimpleUploadedFile("test.eml", b"x"),
             )
-            message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-            message.save(force_insert=True)
 
         org.refresh_from_db()
         assert org.suspended_at is None
@@ -344,22 +283,16 @@ class TestReputationSignals:
     def test_held_message_creates_and_sends_relay_fbl_report(
         self, org, user, mailoutbox, settings
     ):
-        from django.core.files.base import ContentFile
-
-        from domains.models import Domain
-        from services.email.msa.models import OutgoingMessage
-
         settings.RELAY_FBL_REPORTING_ADDRESS = "fbl@relay.local"
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             domain=domain,
             status=OutgoingMessage.Status.PENDING,
+            raw_body=SimpleUploadedFile("test.eml", b"spam body"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
-        message.save(force_insert=True)
 
         message.status = OutgoingMessage.Status.HELD
         message.save(update_fields=["status"])
@@ -371,23 +304,15 @@ class TestReputationSignals:
 
     @pytest.mark.django_db(transaction=True)
     def test_quarantined_incoming_message_creates_relay_fbl_report(self, org):
-        from django.core.files.base import ContentFile
-
-        from domains.models import Domain
-        from services.email.mta.models import IncomingMessage
-        from services.email.mta.tasks import check_incoming_spam
-        from services.email.spam import SpamAction, SpamResult
-
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = IncomingMessage(
+        message = IncomingMessage.objects.create(
             org=org,
             domain=domain,
             receiving_domain="example.com",
             mail_from="spam@acme.com",
             rcpt_to="inbox@example.com",
+            raw_body=SimpleUploadedFile("test.eml", b"spam body"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
-        message.save(force_insert=True)
 
         with patch(
             "services.email.mta.tasks.check_message",
@@ -402,23 +327,15 @@ class TestReputationSignals:
 
     @pytest.mark.django_db(transaction=True)
     def test_outgoing_spam_held_creates_relay_fbl_report(self, org, user):
-        from django.core.files.base import ContentFile
-
-        from domains.models import Domain
-        from services.email.msa.models import OutgoingMessage
-        from services.email.msa.tasks import check_outgoing_spam
-        from services.email.spam import SpamAction, SpamResult
-
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="bob@example.com, carol@example.com",
             domain=domain,
             status=OutgoingMessage.Status.PENDING,
+            raw_body=SimpleUploadedFile("test.eml", b"spam body"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
-        message.save(force_insert=True)
 
         with patch(
             "services.email.msa.tasks.check_message",
@@ -436,24 +353,16 @@ class TestBuildReputationChart:
     def test_build_reputation_chart__matches_evaluation_complaint_semantics(
         self, org, user, settings
     ):
-        from django.core.files.base import ContentFile
-
-        from domains.models import Domain
-        from services.email.msa.models import OutgoingMessage
-        from services.email.reputation.charts import build_reputation_chart
-        from services.email.reputation.evaluation import compute_org_reputation
-
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = OutgoingMessage(
+        message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             domain=domain,
             status=OutgoingMessage.Status.HELD,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        message.raw_body.save("test.eml", ContentFile(b"x"), save=False)
-        message.save(force_insert=True)
         FblReport.create_for_spam(message)
         FblReport.objects.create(
             org=org,

@@ -1,5 +1,5 @@
 import pytest
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
@@ -73,17 +73,15 @@ class TestFblReportListView:
 @pytest.mark.django_db
 class TestFblReportDetailView:
     def make_report_with_body(self, org, body: bytes):
-        report = FblReport(
+        return FblReport.objects.create(
             org=org,
             mail_from="feedback@gmail.com",
             rcpt_to="fbl@acme.com",
             reporting_org="gmail",
             arrival_at=timezone.now(),
             original_mail_from="sender@acme.com",
+            raw_body=SimpleUploadedFile("report.eml", body),
         )
-        report.raw_body.save("report.eml", ContentFile(body), save=False)
-        report.save(force_insert=True)
-        return report
 
     def test_get__shows_report_headers_and_body(self, admin_client, org):
         report = self.make_report_with_body(
@@ -125,15 +123,14 @@ class TestReputationOverviewView:
         self, admin_client, org, user
     ):
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = OutgoingMessage(
+        OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
             domain=domain,
             status=OutgoingMessage.Status.HELD,
+            raw_body=SimpleUploadedFile("held.eml", b"body"),
         )
-        message.raw_body.save("held.eml", ContentFile(b"body"), save=False)
-        message.save(force_insert=True)
 
         response = admin_client.get(overview_url(org))
 
