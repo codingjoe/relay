@@ -25,7 +25,6 @@ class TestFblReportCreateForSpam:
 
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -60,7 +59,6 @@ class TestComputeOrgReputationSpamHeld:
         domain = Domain.objects.create(name="acme.com", org=org)
         for _ in range(3):
             message = OutgoingMessage(
-                sender=user,
                 org=org,
                 mail_from="sender@acme.com",
                 rcpt_to="rcpt@example.com",
@@ -87,7 +85,6 @@ class TestCheckOrgReputationLock:
 
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -117,7 +114,6 @@ class TestCheckOrgReputationLock:
 
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -148,7 +144,6 @@ class TestCheckOrgReputationLock:
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         Organization.objects.filter(pk=org.pk).update(reputation_locked=True)
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -178,7 +173,6 @@ class TestComputeOrgReputationComplaintSources:
         from services.email.reputation.evaluation import compute_org_reputation
 
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -205,7 +199,6 @@ class TestComputeOrgReputationComplaintSources:
         from services.email.reputation.evaluation import compute_org_reputation
 
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -234,7 +227,6 @@ class TestComputeOrgReputationComplaintSources:
         from services.email.reputation.evaluation import compute_org_reputation
 
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -257,7 +249,6 @@ class TestReputationSignals:
         from services.email.msa.models import OutgoingMessage
 
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -312,7 +303,6 @@ class TestReputationSignals:
 
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -339,7 +329,6 @@ class TestReputationSignals:
 
         with django_capture_on_commit_callbacks(execute=True):
             message = OutgoingMessage(
-                sender=user,
                 org=org,
                 mail_from="sender@acme.com",
                 rcpt_to="rcpt@example.com",
@@ -361,7 +350,6 @@ class TestReputationSignals:
 
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -421,7 +409,6 @@ class TestReputationSignals:
 
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="bob@example.com, carol@example.com",
@@ -457,7 +444,6 @@ class TestBuildReputationChart:
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",

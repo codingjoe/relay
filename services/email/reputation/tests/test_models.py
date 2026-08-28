@@ -96,9 +96,8 @@ class TestFblReportCreateForSpamWithoutDomain:
 
 @pytest.mark.django_db
 class TestFblReportCreateForSpam:
-    def make_outgoing_message(self, user, org, **kwargs):
+    def make_outgoing_message(self, org, **kwargs):
         defaults = {
-            "sender": user,
             "org": org,
             "mail_from": "sender@acme.com",
             "rcpt_to": "rcpt@example.com",
@@ -107,10 +106,9 @@ class TestFblReportCreateForSpam:
         message = OutgoingMessage(**defaults | kwargs)
         return message
 
-    def test_create_for_spam__creates_report_with_spam_fields(self, org, user):
+    def test_create_for_spam__creates_report_with_spam_fields(self, org):
         domain = Domain.objects.create(name="acme.com", org=org)
         message = self.make_outgoing_message(
-            user,
             org,
             subject="Spam subject",
             message_id="<abc@acme.com>",
@@ -128,9 +126,9 @@ class TestFblReportCreateForSpam:
         assert report.domain == domain
         assert report.org == org
 
-    def test_create_for_spam__without_raw_body_stores_empty_file(self, org, user):
+    def test_create_for_spam__without_raw_body_stores_empty_file(self, org):
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = self.make_outgoing_message(user, org, domain=domain)
+        message = self.make_outgoing_message(org, domain=domain)
         message.save(force_insert=True)
 
         report = FblReport.create_for_spam(message)

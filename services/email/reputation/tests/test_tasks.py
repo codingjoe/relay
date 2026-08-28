@@ -76,7 +76,6 @@ class TestParseFblReport:
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage(
-            sender=user,
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@gmail.com",

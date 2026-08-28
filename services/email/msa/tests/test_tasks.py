@@ -196,7 +196,6 @@ class TestDeliverMessage:
 
         domain = Domain.objects.get(org=org)
         message = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
@@ -224,7 +223,6 @@ class TestCheckOutgoingSpam:
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
@@ -248,7 +246,6 @@ class TestCheckOutgoingSpam:
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="bob@example.com, carol@example.com",
             mail_from="alice@example.com",
@@ -279,7 +276,6 @@ class TestCheckOutgoingSpam:
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
@@ -309,7 +305,6 @@ class TestDeliverMessageFailureModes:
     @staticmethod
     def make_message(user, org, domain, rcpt_to="bob@example.com"):
         msg = OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to=rcpt_to,
             mail_from="alice@example.com",

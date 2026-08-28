@@ -98,7 +98,6 @@ class TestProcessMessage:
             message.as_bytes(),
             message,
             credential,
-            user,
             False,
             "",
         )
@@ -129,7 +128,6 @@ class TestProcessMessage:
             message.as_bytes(),
             message,
             credential,
-            user,
             False,
             "",
         )
@@ -237,7 +235,6 @@ class TestProcessMessage:
             message.as_bytes(),
             message,
             credential,
-            user,
             False,
             "",
         )
@@ -380,7 +377,7 @@ class TestHandleDataSubmission:
         domain = await Domain.objects.aget(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
         session = SimpleNamespace(
-            credential=credential, sender=user, peer=("127.0.0.1", 2525), ssl=True
+            credential=credential, peer=("127.0.0.1", 2525), ssl=True
         )
         message = make_email(f"alice@{domain.name}", user.email)
         envelope = SimpleNamespace(
@@ -408,7 +405,7 @@ class TestHandleDataSubmission:
 
         domain = await Domain.objects.aget(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
-        session = SimpleNamespace(credential=credential, sender=user, peer=None)
+        session = SimpleNamespace(credential=credential, peer=None)
         message = make_email(f"alice@{domain.name}", user.email)
         envelope = SimpleNamespace(
             mail_from=f"alice@{domain.name}",
@@ -438,7 +435,7 @@ class TestImplicitTlsHandler:
         from services.email.msa.handlers import ImplicitTLSHandler
 
         handler = ImplicitTLSHandler()
-        session = SimpleNamespace(credential=None, sender=None, ssl=False)
+        session = SimpleNamespace(credential=None, ssl=False)
         result = await handler.handle_DATA(None, session, SimpleNamespace())
         assert result == "530 Authentication required"
         assert session.ssl is True
