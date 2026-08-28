@@ -18,7 +18,7 @@ def parse_fbl_report(report_pk):
     Logs and keeps the stored fields when the body is not an ARF email.
     """
     report = FblReport.objects.get(pk=report_pk)
-    raw_bytes = report.message.raw_body.read() if report.message else b""
+    raw_bytes = report.message.raw_body.read()
     try:
         parsed = FblReport.parse_from_email(raw_bytes)
     except ValueError:

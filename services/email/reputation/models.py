@@ -20,9 +20,7 @@ class FblReport(OrganizationOwned):
 
     Reports are records only. Relay does not send reports anywhere. The
     `message` foreign key references the report email received from a
-    provider, or the message Relay flagged itself. Reports without a
-    referenced message are legacy rows from before the foreign key was
-    introduced.
+    provider, or the message Relay flagged itself.
     """
 
     id = models.UUIDField(
@@ -34,10 +32,8 @@ class FblReport(OrganizationOwned):
 
     message = models.ForeignKey(
         "message.Message",
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="+",
-        null=True,
-        blank=True,
         help_text=_(
             "Referenced message: the ARF email received from a provider for "
             "provider reports, or the message Relay flagged for "

@@ -50,7 +50,7 @@ class FblReportDetailView(OrganizationScopedView, generic.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        parsed = self.object.message.parsed_email() if self.object.message else None
+        parsed = self.object.message.parsed_email()
         headers = list(parsed.items()) if parsed else []
         payload = parsed.get_payload(decode=True) if parsed else None
         body = (
