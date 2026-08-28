@@ -186,3 +186,43 @@ class Credential(OrganizationOwned):
             self.save(update_fields=["last_used_at", "modified_at"])
             return True
         return False
+
+
+class OpenSourceApplication(TimeStamped):
+    """Application from an open-source community for the free service."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("pending")
+        APPROVED = "approved", _("approved")
+        DECLINED = "declined", _("declined")
+
+    name = models.TextField(
+        _("name"),
+        help_text=_("Project or community applying for the free service."),
+    )
+    website = models.URLField(
+        _("website"),
+        help_text=_("Where the project or community lives online."),
+    )
+    repository = models.URLField(
+        _("repository"),
+        blank=True,
+        help_text=_("Link to the public source code, if any."),
+    )
+    contact_email = models.EmailField(
+        _("contact email"),
+        help_text=_("Address we reply to."),
+    )
+    message = models.TextField(
+        _("message"),
+        help_text=_("What the community runs and what it needs."),
+    )
+    status = models.TextField(
+        _("status"),
+        choices=Status,
+        default=Status.PENDING,
+        help_text=_("Review state of the application."),
+    )
+
+    def __str__(self):
+        return self.name

@@ -16,7 +16,7 @@
     purple primary, mono for indices, divider rules instead of cards, the
     network motif quieted to stars and dot grid (no pulses).
     STORY: the visitor reads what relay gives back, believes the commitment
-    is structural, and acts: fund the maintainers or start free.
+    is structural, and acts: fund the maintainers, apply for the free service, or start free.
     FIRST VIEWPORT: quiet network ground; "← relay" link top-left; centered
     h1 "the open-source charter"; mono chip linking the GitHub funding page;
     one lead line. No primary action yet, reading comes first: the band
@@ -82,6 +82,9 @@
                 Giving back starts here, with the people who build the software we all run on.
               {% endblocktranslate %}
             </p>
+            <a href="{% url 'accounts:application-create' %}" class="link w-fit">
+              {% translate "apply for the free service"|capfirst %}
+            </a>
           </div>
         </article>
         <article class="charter__pledge grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-4 sm:gap-x-8 py-8">

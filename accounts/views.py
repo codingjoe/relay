@@ -3,15 +3,22 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
-from django.forms import CharField, ModelForm, SlugField, TextInput
+from django.forms import (
+    CharField,
+    HiddenInput,
+    ModelForm,
+    SlugField,
+    TextInput,
+)
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import NoReverseMatch, reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import BreadcrumbViewMixin
+from abstract.views import BreadcrumbViewMixin, CacheControlMixin
 
-from .models import Membership, Organization
+from .models import Membership, OpenSourceApplication, Organization
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
@@ -294,3 +301,38 @@ class MembershipUpdateView(OrganizationScopedView, generic.UpdateView):
             % {"user": self.object.user.username, "role": form.cleaned_data["role"]},
         )
         return super().form_valid(form)
+
+
+class OpenSourceApplicationForm(ModelForm):
+    honeypot = CharField(
+        required=False,
+        widget=HiddenInput,
+        label="",
+        help_text="",
+    )
+
+    class Meta:
+        model = OpenSourceApplication
+        fields = ["name", "website", "repository", "contact_email", "message"]
+
+
+class OpenSourceApplicationCreateView(
+    CacheControlMixin, BreadcrumbViewMixin, generic.CreateView
+):
+    model = OpenSourceApplication
+    form_class = OpenSourceApplicationForm
+    success_url = reverse_lazy("accounts:application-created")
+    title = _("apply for the free service")
+    parent = "open-source"
+    cache_control = {"private": True, "no_store": True}
+
+    def form_valid(self, form):
+        if form.cleaned_data["honeypot"]:
+            return HttpResponseRedirect(self.success_url)
+        return super().form_valid(form)
+
+
+class OpenSourceApplicationCreatedView(BreadcrumbViewMixin, generic.TemplateView):
+    template_name = "accounts/opensourceapplication_created.html"
+    title = _("application received")
+    parent = "accounts:application-create"
