@@ -71,12 +71,14 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
 
 
 def check_org_reputation(org: Organization) -> ReputationStats:
-    """Evaluate rates and lock the organization permanently on a threshold breach.
+    """Evaluate rates and suspend the organization permanently on a
+    threshold breach.
 
-    Locks the organization when the hard-bounce rate or complaint rate
+    Suspends the organization when the hard-bounce rate or complaint rate
     exceeds the configured thresholds and the organization has sent at
-    least `RELAY_REPUTATION_MIN_VOLUME` messages in the window. The lock
-    is never cleared automatically. Returns the computed reputation stats.
+    least `RELAY_REPUTATION_MIN_VOLUME` messages in the window. The
+    suspension is never cleared automatically. Returns the computed
+    reputation stats.
     """
     stats = compute_org_reputation(org)
     if stats["total_sent"] < settings.RELAY_REPUTATION_MIN_VOLUME:

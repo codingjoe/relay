@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 @task
 def parse_fbl_report(report_pk):
-    """Fill stored report fields from the referenced message's raw ARF
-    body, then queue an org evaluation.
+    """Fill the stored fields from the referenced message's raw ARF body,
+    then queue an org evaluation.
 
     Logs and keeps the stored fields when the body is not an ARF email.
     """
@@ -59,6 +59,6 @@ def parse_fbl_report(report_pk):
 
 @task
 def check_org_reputation(org_id):
-    """Evaluate rates for an organization and lock it permanently on a
+    """Evaluate rates for an organization and suspend it permanently on a
     threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))
