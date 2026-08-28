@@ -27,8 +27,6 @@ def deliver_message(message_id):
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
     if message.org.suspended_at:
-        from .models import Transmission
-
         message.status = OutgoingMessage.Status.DROPPED
         message.save(update_fields=["status", "modified_at"])
         Transmission.objects.create(

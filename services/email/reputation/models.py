@@ -138,6 +138,7 @@ class FblReport(OrganizationOwned):
     )
 
     class Meta:
+        ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["arrival_at"], name="reputation__arrival_8495bd_idx"),
             models.Index(
