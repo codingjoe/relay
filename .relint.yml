@@ -105,11 +105,7 @@
 - name: No indented imports
   pattern: '\n[ \t]+(?:from[ \t]+\S+[ \t]+import[ \t]|import[ \t]+[\w.]+)'
   hint: |
-    All imports at the top of a file. Function- or branch-local imports hide
-    dependencies, repeat work, and defeat static analysis. Exceptions:
-    `tasks.py` (late imports avoid import cycles), `apps.py` (Django
-    requires importing signal and check modules inside `AppConfig.ready()`),
-    `settings.py` (imports are guarded by configuration checks such as
-    `SENTRY_DSN`), and `manage.py` (Django's standard scaffold guards the
-    import with a friendly `ImportError` message).
+    Move all imports to the top of the file. Exceptions for Django
+    scaffold and import cycles: `tasks.py`, `apps.py`, `settings.py`,
+    `manage.py`.
   filePattern: '(?!.*(?:/tasks\.py$|/apps\.py$|/settings\.py$|manage\.py$|/tests/|/test_|conftest\.py$)).*\.py$'
