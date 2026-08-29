@@ -1,6 +1,8 @@
 import datetime
 import logging
 import random
+import re
+from html import escape
 
 import markdown
 from django.utils import timezone
@@ -8,8 +10,52 @@ from django.utils.safestring import SafeText, mark_safe
 from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.md_in_html import MarkdownInHtmlExtension
 from markdown.extensions.toc import TocExtension
+from markdown.preprocessors import Preprocessor
 
 logger = logging.getLogger(__name__)
+
+MERMAID_FENCE = re.compile(r"^(```|~~~)mermaid[ \t]*$")
+FENCE_END = re.compile(r"^(```|~~~)[ \t]*$")
+
+
+class MermaidPreprocessor(Preprocessor):
+    """Convert fenced ```mermaid blocks into raw HTML Mermaid targets.
+
+    Runs before the fenced_code preprocessor, which would otherwise
+    highlight the diagram source as code.
+    """
+
+    def run(self, lines):
+        output = []
+        content: list[str] = []
+        inside = False
+        for line in lines:
+            if not inside:
+                if MERMAID_FENCE.match(line):
+                    inside = True
+                    content = []
+                else:
+                    output.append(line)
+            elif FENCE_END.match(line):
+                inside = False
+                code = escape("\n".join(content).strip("\n"))
+                # Emit raw HTML on its own line. The html_block preprocessor
+                # stashes and restores it.
+                output.append(f'<pre class="mermaid">{code}</pre>')
+            else:
+                content.append(line)
+        if inside:
+            # Unterminated fence. Restore the opening fence for other handlers.
+            output.append("```mermaid")
+            output.extend(content)
+        return output
+
+
+class MermaidExtension(markdown.Extension):
+    """Render fenced ```mermaid blocks as diagrams with the Mermaid runtime."""
+
+    def extendMarkdown(self, md):
+        md.preprocessors.register(MermaidPreprocessor(md), "mermaid", 31)
 
 
 def strip_frontmatter(text: str) -> str:
@@ -75,6 +121,7 @@ def md_2_html(document: str, baselevel: int = 1) -> SafeText:
     html = markdown.markdown(
         document,
         extensions=[
+            MermaidExtension(),
             TocExtension(baselevel=baselevel),
             MarkdownInHtmlExtension(),
             "admonition",

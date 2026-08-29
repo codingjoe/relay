@@ -2,13 +2,20 @@ from django.contrib.sitemaps.views import sitemap
 from django.urls import path
 
 from . import views
-from .sitemaps import AlternativeToSitemap, HomeSitemap, KnowHowSitemap, LegalSitemap
+from .sitemaps import (
+    AlternativeToSitemap,
+    DocsSitemap,
+    HomeSitemap,
+    KnowHowSitemap,
+    LegalSitemap,
+)
 
 app_name = "well_known"
 
 sitemaps = {
     "home": HomeSitemap,
     "legal": LegalSitemap,
+    "docs": DocsSitemap,
     "know-how": KnowHowSitemap,
     "alternative-to": AlternativeToSitemap,
 }

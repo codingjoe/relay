@@ -2,15 +2,115 @@ include:
   - oci://docker.io/codingjoe/the-box-postgres:main
   - oci://docker.io/codingjoe/the-box-redis:main
 services:
+  dns:
+    networks: !override
+      - app
+      - dnsdist
+    command: [ "-m", "manage", "dns", "--port", "5353" ]
+    labels: !reset []
+    extends:
+      service: web
+  dnsdist:
+    image: powerdns/dnsdist-21:2.1.1
+    depends_on:
+      dns:
+        condition: service_started
+    configs:
+      - source: dnsdist
+        target: /etc/dnsdist/dnsdist.conf
+    ports:
+      - '0.0.0.0:53:53/udp'
+      - '0.0.0.0:53:53/tcp'
+    networks:
+      - dnsdist
+      - dnsdist-wan
+  migration:
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+        required: true
+        restart: false
+      redis:
+        condition: service_healthy
+        required: true
+        restart: false
+    command: [ "-m", "manage", "migrate", "--noinput" ]
+    restart: no
+    labels: !reset []
+    deploy: !reset {}
+    extends:
+      service: web
+  msa:
+    volumes:
+      - caddy_data:/data:ro
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+    ports:
+      - '0.0.0.0:465:465'
+      - '0.0.0.0:587:587'
+    networks: !override
+      - app
+      - app-wan
+    command: [ "-m", "manage", "msa" ]
+    labels: !override
+      - "caddy=smtp.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+    deploy: !reset {}
+    extends:
+      service: web
+  mta:
+    volumes:
+      - caddy_data:/data:ro
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
+    ports:
+      - '0.0.0.0:25:25'
+    networks: !override
+      - app
+      - app-wan
+    command: [ "-m", "manage", "mta" ]
+    labels: !override
+      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+    deploy: !reset {}
+    extends:
+      service: web
+  # Loopback ports for the host-networked worker.
+  postgres:
+    ports:
+      - '127.0.0.1:5432:5432'
+  redis:
+    ports:
+      - '127.0.0.1:6379:6379'
+  rspamd:
+    image: rspamd/rspamd:4.1
+    depends_on:
+      redis:
+        condition: service_healthy
+    configs:
+      - source: rspamd_redis
+        target: /etc/rspamd/local.d/redis.conf
+      - source: rspamd_worker
+        target: /etc/rspamd/local.d/worker-normal.inc
+    ports:
+      - '127.0.0.1:11334:11334'
+    networks:
+      - app
   web:
-    pull_policy: build
-    image: app
+    image: app # dclint disable-line service-image-require-explicit-tag
     build:
       context: .
       dockerfile: Dockerfile
       target: ${TARGET:-production}
       args:
         UV_NO_DEV: 0
+    depends_on:
+      migration:
+        condition: service_completed_successfully
     environment:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
@@ -32,146 +132,46 @@ services:
       AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-path}
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
       RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
-    command: ["-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application"]
+    command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
     healthcheck:
-      test: ["CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https"]
+      test: [ "CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https" ]
       interval: 10s
       retries: 5
       start_period: 30s
       timeout: 10s
-    depends_on:
-      migration:
-        condition: service_completed_successfully
     labels:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
-  dns:
-    extends:
-      service: web
-    labels: !reset
-    command: ["-m", "manage", "dns", "--port", "5353"]
-    networks: !override
-      - app
-      - dnsdist
-  dnsdist:
-    image: powerdns/dnsdist-21:2.1.1
-    ports:
-      - "0.0.0.0:53:53/udp"
-      - "0.0.0.0:53:53/tcp"
-    networks:
-      - dnsdist
-      - dnsdist-wan
-    configs:
-      - source: dnsdist
-        target: /etc/dnsdist/dnsdist.conf
-    depends_on:
-      dns:
-        condition: service_started
-  msa:
-    extends:
-      service: web
-    labels: !override
-      - "caddy=smtp.${HOSTNAME:-localhost}"
-      - "caddy.respond=OK"
-    deploy: !reset
-    command: ["-m", "manage", "msa"]
-    ports:
-      - "0.0.0.0:587:587"
-      - "0.0.0.0:465:465"
-    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
-    environment:
-      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
-      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
-    volumes:
-      - caddy_data:/data:ro
-    networks: !override
-      - app
-      - app-wan
-  mta:
-    extends:
-      service: web
-    labels: !override
-      - "caddy=mail.${HOSTNAME:-localhost}"
-      - "caddy.respond=OK"
-    deploy: !reset
-    command: ["-m", "manage", "mta"]
-    ports:
-      - "0.0.0.0:25:25"
-    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
-    environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
-    volumes:
-      - caddy_data:/data:ro
-    networks: !override
-      - app
-      - app-wan
-  # Loopback ports for the host-networked worker.
-  postgres:
-    ports:
-      - "127.0.0.1:5432:5432"
-  redis:
-    ports:
-      - "127.0.0.1:6379:6379"
-  rspamd:
-    image: rspamd/rspamd:4.1
-    ports:
-      - "127.0.0.1:11334:11334"
-    configs:
-      - source: rspamd_redis
-        target: /etc/rspamd/local.d/redis.conf
-      - source: rspamd_worker
-        target: /etc/rspamd/local.d/worker-normal.inc
-    networks:
-      - app
-    depends_on:
-      redis:
-        condition: service_healthy
+    pull_policy: build
   # Host networking lets the worker bind egress IPs from RELAY_SMTP_SOURCE_IPS.
   worker:
-    extends:
-      service: web
-    labels: !reset
-    deploy: !reset
-    network_mode: host
-    networks: !reset
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/postgres
       REDIS_URL: redis://:${REDIS_PASSWORD}@127.0.0.1:6379/
       RELAY_RSPAMD_URL: http://127.0.0.1:11334
-    command: ["-m", "manage", "threadmill", "worker"]
+    networks: !reset []
+    network_mode: host
+    command: [ "-m", "manage", "threadmill", "worker" ]
     # No HTTP listener on the host network; probe in-process instead.
     healthcheck:
-      test: ["CMD", "python", "-m", "manage", "health_check"]
+      test: [ "CMD", "python", "-m", "manage", "health_check" ]
       interval: 60s
       retries: 3
       start_period: 30s
       timeout: 30s
-  migration:
+    labels: !reset []
+    deploy: !reset {}
     extends:
       service: web
-    restart: no
-    command: ["-m", "manage", "migrate", "--noinput"]
-    deploy: !reset
-    labels: !reset
-    depends_on: !override
-      postgres:
-        condition: service_healthy
-        required: true
-        restart: false
-      redis:
-        condition: service_healthy
-        required: true
-        restart: false
-volumes:
-  caddy_data:
-    name: the-box_caddy_data
-    external: true
 networks:
   dnsdist:
     internal: true
   dnsdist-wan:
+volumes:
+  caddy_data:
+    name: the-box_caddy_data
+    external: true
 configs:
   rspamd_redis:
     content: |
