@@ -46,7 +46,7 @@ class TestDocsListView:
         response = client.get(reverse("docs:list"))
         assert response.status_code == 200
         assert "articles" in response.context
-        assert len(response.context["articles"]) == 6
+        assert len(response.context["articles"]) == 10
 
 
 class TestDocsDetailView:
@@ -83,7 +83,7 @@ class TestDocsDetailView:
         assert "text/markdown" in response["Content-Type"]
         body = response.content.decode()
         assert "# Security" in body
-        assert "TL;DR" in body
+        assert "GitHub OAuth" in body
 
     def test_get__returns_markdown_with_url_param(self, client):
         response = client.get(reverse("docs:detail", args=["security"]) + "?md=1")

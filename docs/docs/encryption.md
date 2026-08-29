@@ -1,33 +1,126 @@
 ---
 name: Encryption
-description: How relay encrypts messages in transit and protects key material at rest
+description: How relay encrypts messages in transit and protects signers key material at rest
 author: Johannes Maron
 ---
 
 # Encryption
 
-> **TL;DR**: Your messages travel over TLS on every connection. relay enforces MTA-STS for recipient domains that publish a policy. relay encrypts every DKIM private key at rest.
+relay cannot make email end-to-end encrypted, because email is a
+store-and-forward system and every mail server on the path reads the message.
+What relay can do, and does, is encrypt every transmission hop, enforce the
+policy that forbids downgrades, and keep every secret key encrypted at rest.
+This page explains each mechanism and the limits of all of them.
 
-## Submission: your application to relay
+## TLS on every hop
 
-Your application submits outgoing email over an encrypted connection. Port 465 uses implicit TLS. Port 587 uses STARTTLS, and relay accepts no message before STARTTLS. relay accepts no plaintext submission.
+A relay message crosses up to three TLS-protected hops:
 
-## Delivery: relay to the recipient
+```mermaid
+sequenceDiagram
+    participant App as Your application
+    participant MSA as relay SMTP (587/465)
+    participant Remote as Recipient mail server
+    participant Sender as Remote sending server
+    participant MX as relay MX (25)
 
-relay delivers your message to the recipient mail server with STARTTLS on port 25. Some recipient domains publish an MTA-STS policy. For those domains, relay downloads the policy and delivers only to hosts that the policy permits. A network attacker cannot force the connection back to plaintext for these domains.
+    App->>MSA: TLS on 465, or STARTTLS on 587
+    App->>MSA: AUTH and message submission
+    MSA->>Remote: STARTTLS on port 25, then message
+    Sender->>MX: STARTTLS on port 25
+    MX->>MX: DMARC evaluation of the message
+```
 
-## Inbound: remote senders to relay
+### Submission: your application to relay
 
-Remote mail servers deliver incoming email to the relay MX server with STARTTLS on port 25. relay publishes an MTA-STS policy for every managed domain. The policy tells senders to use TLS and lists the valid hosts. relay also collects TLS-RPT reports and shows TLS failures in the dashboard.
+Port 465 speaks TLS from the first byte. Port 587 requires the client to
+negotiate STARTTLS before any AUTH or message exchange. relay accepts no
+plaintext submission on either port. The stored message records whether the
+submission arrived over TLS, so you can audit your own clients.
 
-## Key material at rest
+### Delivery: relay to the recipient
 
-relay encrypts every DKIM private key with Fernet before storage. Only the public keys appear in DNS. See <a href="{% url 'docs:detail' slug='security' %}">Security</a> for the details.
+relay delivers with STARTTLS on port 25 to every MX host of the recipient
+domain. If the recipient domain publishes an MTA-STS policy, relay fetches and
+applies it before delivery. In `enforce` mode the policy forbids delivery to
+hosts outside the list and allows only certificate-validated TLS. A network
+attacker on the path to a protected domain cannot force plaintext.
+
+The policy itself is standard: `v=STSv1` with a policy identifier, a
+max-age of 7 days (604800 seconds), and the list of valid MX hostnames. See
+the know-how article on <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>
+for the full protocol details.
+
+### Inbound: senders to relay
+
+Remote servers deliver inbound email to the relay MX on port 25 with
+STARTTLS. relay publishes the TLS certificate for the MX host and records for
+each message whether it arrived over TLS. relay publishes MTA-STS and TLS-RPT
+records for your domains, which asks all senders to use TLS as well.
+
+## The MTA-STS policy
+
+For every managed or delegated domain, relay serves the DNS record and the
+policy file:
+
+- the TXT record `v=STSv1; id={RELAY_MTA_STS_POLICY_ID}` at
+  `_mta-sts.{your-domain}`,
+- a CNAME at `mta-sts.{your-domain}` into the relay policy host,
+- the policy document at
+  `https://mta-sts.{your-domain}/.well-known/mta-sts.txt`.
+
+The policy document sets `mode: enforce`, a max-age of 7 days, and the relay
+MX hostnames as the only valid delivery targets. The policy id changes when
+the policy changes. A sender that caches the policy therefore trusts relay
+MX names and rejects downgrade attempts for your domain.
+
+## DMARC: consent on the receiving side
+
+When a remote server submits a message to your delegated domain, relay
+evaluates the sender's own DMARC policy before acceptance. A domain that
+publishes `p=reject` gets its failing messages rejected at the SMTP level.
+This protects you from spoofed-looking inbound mail and protects senders from
+being quoted as senders of failing mail.
+
+## Authentication in transit
+
+Transport encryption protects the connection, and DKIM protects the message
+itself. relay signs every outgoing message with DKIM over the headers From,
+To, Subject, Date, and Message-ID, with SHA-256. A receiving server verifies
+the signature against your public key in DNS. Any change to these headers in
+transit breaks the signature and becomes visible. See the know-how article on
+<a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>.
+
+## Signers key material at rest
+
+relay keeps every private signing key encrypted at rest:
+
+- DKIM private keys (one RSA-2048, one RSA-1024, and one Ed25519 key per
+  domain) are Fernet-encrypted before storage,
+- each webhook carries its own Ed25519 signing keypair, encrypted the same
+  way,
+- only public keys appear in DNS or the dashboard.
+
+An attacker with database access obtains ciphertexts, not signing power.
 
 ## Message storage
 
-relay stores each raw message body in S3-compatible object storage in the EU. relay stores the message metadata in PostgreSQL. relay keeps a raw body only as long as delivery requires it. See the <a href="{% url 'legal:privacy' %}">privacy policy</a> for the retention periods.
+relay stores message metadata in PostgreSQL and raw message bodies in
+object storage, in the same Hetzner Falkenstein region as everything else.
+Bodies are not stored longer than delivery needs. See the
+<a href="{% url 'legal:privacy' %}">privacy policy</a> for retention rules.
 
-## What relay does not encrypt
+## What relay cannot encrypt
 
-Email is a store-and-forward system. relay cannot encrypt message content end to end, because every mail server on the path must read the message. If you need end-to-end confidentiality, encrypt the content in your application before you submit it.
+Email is designed for relaying: every server on the path reads the message.
+relay cannot create end-to-end confidentiality without breaking the protocol.
+If your threat model requires it, encrypt at the application layer before
+submission, for example with S/MIME or PGP, and let relay carry the
+ciphertext. Signing and auth still work on the carrier envelope.
+
+## Related pages
+
+- <a href="{% url 'docs:detail' slug='sending' %}">Sending</a>. The delivery
+  pipeline in detail.
+- <a href="{% url 'docs:detail' slug='receiving' %}">Receiving</a>. Inbound
+  DMARC and spam handling.

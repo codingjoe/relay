@@ -1,33 +1,127 @@
 ---
 name: Sender reputation
-description: How relay builds and protects your sender reputation
+description: How relay builds per-domain reputation and turns mailbox-provider reports into action
 author: Johannes Maron
 ---
 
 # Sender reputation
 
-> **TL;DR**: Your reputation is tied to your own domain. relay keeps your authentication aligned, stops sends to bounced addresses, and shows you the reports from mailbox providers.
+Mailbox providers grade each sending domain on authentication, complaint
+rates, bounce rates, spam rates, and infrastructure hygiene. Those grades
+decide whether your mail lands in the inbox, in a quarantine folder, or in
+the void. relay manages the infrastructure half of that list directly and
+gives you visibility on the rest. This page explains how reputation is built
+and monitored under relay.
 
-## Your domain, your reputation
+## Your domain carries your reputation
 
-Every organization sends from its own domain. Mailbox providers track your domain through DKIM and DMARC. Your reputation reflects your own sending behavior, separately from other relay customers.
+relay signs each outgoing message with your own domain's DKIM keys. A
+receiving server attributes the message to your DKIM domain, not to the
+platform. The envelope sender lives on your sender subdomain, so SPF
+attribute as well, and DMARC alignment for `p=quarantine` and stricter
+policies is the default case, not an achievement.
 
-## Attribution on every message
+```mermaid
+graph LR
+    A[relay SMTP hosts] --> B[Your message]
+    B --> C[DKIM d: your domain]
+    C --> D[Receiver grades your domain]
+    A --> E[Relay infra identity]
+    E --> D
+```
 
-relay signs every outgoing message with a DKIM key for your domain. Mailbox providers attribute the message to your domain, not to the relay platform. The envelope sender lives on your sender subdomain, so SPF and DKIM work together on every send.
+Two things matter in that graph:
 
-## No sends to dead addresses
+- **Your domain carries your reputation.** Other relay customers cannot
+  harm your domain's grade, because signatures are not shared and the sending
+  identity differs.
+- **The infrastructure identity stays consistent.** The relay SMTP servers
+  identify with hostnames that match their PTR records, so receivers see one
+  stable, verified platform identity, which also protects your domain from
+  strangers sending as "you".
 
-A high bounce rate damages a domain quickly. When a recipient server rejects a message permanently, relay adds the address to the suppression list. relay then stops all sends to that address. This keeps your bounce rate low.
+Consequences for migration: a domain that switches to relay does inherit its
+domain reputation, not a platform record, so make sure the domain is in good
+standing first.
 
-## Spam-free output
+## Keeping bounce rates near zero
 
-Mailbox providers penalize domains that send spam. relay scans all outgoing mail with rspamd and holds suspicious messages before they leave. Your domain sends only clean mail.
+Bounce rates are the fastest reputation killer. The suppression list keeps
+yours low:
 
-## Reports you can use
+- every Return-Path carries a per-message id, so bounces map to one message,
+- a permanent 5xx adds the address to the suppression list immediately,
+- all further submissions to that address store as suppressed, with no error
+  back to your application, so retry loops cannot amplify the bounce rate,
 
-Mailbox providers send aggregate DMARC reports for your domain every day. relay collects these reports, parses them, and shows you who sends as your domain. You can find misconfigured senders and spoofing attempts early. Forensic DMARC reports and TLS-RPT reports add detail on failures. See <a href="{% url 'docs:detail' slug='deliverability' %}">Deliverability</a> for the full monitoring story.
+Pre-warm an address list with a suppression import or use org-member
+recipient mode before billing goes live. Suppression import and API removal
+are on the roadmap. The dashboard covers adding and removing entries today.
 
-## Consistent infrastructure
+## Keeping spam from your assets
 
-The relay SMTP servers send with a hostname that matches their PTR records. Forward and reverse DNS agree, which is a common requirement of mailbox providers. Managed sender domains inherit this setup automatically.
+Outbound mail is scanned before it leaves, and held messages do not reach a
+recipient. This gate exists because a single compromised credential or a
+single broken template can damage a domain for weeks. See the
+<a href="{% url 'docs:detail' slug='deliverability' %}">delivery
+pipeline</a> for where the gate sits.
+
+## Protocol completeness
+
+Receivers grade partially-configured domains harshly. relay removes the
+partial-configuration failure mode:
+
+- All records get served from one nameserver, so records exist on first send
+  and no stale DNS haunts a domain.
+- MTA-STS ships in enforce mode: receivers that trust the policy reject
+  downgrade paths.
+- TLS-RPT reporting gives receivers a signal channel, and failures show
+  themselves in your dashboard as actionable rows.
+- DMARC publishes reporting to relay's collectors, so the spoofing picture is
+  always visible.
+
+## The reporting loop
+
+Mailbox providers report back to the addresses in your DMARC and TLS-RPT
+records. relay collects and processes them:
+
+```mermaid
+flowchart LR
+    A[Mailbox provider sends reports] --> B[relay MX: dmarc@, ruf@, tls@]
+    B --> C[Parser stores the report]
+    C --> D[Dashboard rows: authorized senders, failing sources, TLS failures]
+    D --> E[You decide: policy change, key rotation, host fixes]
+```
+
+Three report types arrive:
+
+- **DMARC aggregate (RUA)**. Daily XML with every check result of a
+  provider's inbound for your domain.
+- **DMARC forensic (RUF/ARF)**. A failing message sample, redacted or not
+  per policy.
+- **TLS-RPT.** JSON with the success and failure counts of sender TLS
+  attempts against your MTA-STS surface.
+
+The dashboard surfaces each report type, per domain, and records whether a
+report arrived over TLS.
+
+## The reputation loop in practice
+
+1. Send under your domain. relay signs, aligns the envelope, and scores
+   content.
+1. Suppression keeps the bounce rate low, and the spam gate keeps the content
+   clean.
+1. Providers send aggregate reports every day. relay parses them.
+1. You read your report rows, and correct what you see. Policy updates and
+   key rotation are dashboard operations.
+1. Misconfigured senders become visible quickly. Fix or block them early.
+
+Reputation is a set of boring signals, done consistently. relay runs the
+boring parts.
+
+## Related pages
+
+- <a href="{% url 'docs:detail' slug='deliverability' %}">Deliverability</a>.
+  The signals that receivers grade.
+- <a href="{% url 'docs:detail' slug='receiving' %}">Receiving</a>. How the
+  reports arrive.

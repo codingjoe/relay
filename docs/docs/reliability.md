@@ -1,40 +1,114 @@
 ---
 name: Reliability
-description: How relay tracks every message and what happens when delivery fails
+description: Queued delivery, transmission records, retry schedules, and health monitoring
 author: Johannes Maron
 ---
 
 # Reliability
 
-> **TL;DR**: relay queues every message and tries each MX host in turn. Webhook deliveries retry for about three days. The dashboard shows the status of every message.
+Email must survive restarts, dead MX hosts, failing endpoints, and slow
+recipients. relay queues everything, records every attempt, and retries
+according to definable schedules. This page is the reliability manual: what
+happens when something fails, and how you observe it.
 
-## Queued delivery
+## The queue model
 
-Your application submits a message, and relay stores it and enqueues the delivery. relay scans the message for spam first. A clean message goes to the recipient mail server. Every delivery attempt gets a record with the SMTP transcript of the remote server.
+Your submission is durable before it is processed:
 
-## A status for every message
+```mermaid
+flowchart TD
+    A[250 OK: message stored as pending] --> B[rspamd outbound scan]
+    B -- held --> C[Status held]
+    B -- clean --> D[DKIM sign all three keys]
+    D --> E[MX lookup, MTA-STS filter]
+    E --> F[Attempt 1]
+    F --> G[Status sent, transcript stored]
+    E -- all hosts fail --> H[Status failed, transcript stored]
+    E -- permanent 5xx --> I[Status bounced + suppression]
+```
 
-Each message shows one status in the dashboard: held, sent, bounced, or failed. Each delivery attempt shows the SMTP response from the remote server. You can see what happened to every message without a support ticket.
+Message storage comes before any delivery logic. If a process dies between
+acceptance and delivery, the message is still there: the worker picks it up
+from the queue state, performs through an attempt, and records the attempt.
 
-## MX failover
+## Transmission records
 
-relay resolves the MX records of the recipient domain. relay tries every MX host in order of preference. If one host does not respond, delivery continues with the next host.
+Every delivery attempt produces one immutable transmission row with:
 
-## Automatic retries
+- the attempted MX host and transport flag (TLS or not),
+- the SMTP status code and the complete answer text,
+- a log reference for later inspection.
 
-Some work retries on its own, with growing delays between the attempts:
+Failures become visible with their reasons instead of disappearing. Support
+starts from those facts, not from memories.
 
-- Spam scans retry with exponential backoff, up to five times.
-- Webhook deliveries follow the Standard Webhooks schedule. relay tries a webhook ten times over about three days, with delays from 5 seconds up to 24 hours.
+## How failure path work
 
-## Health checks
+```mermaid
+flowchart TD
+    A[Attempt to MX host 1, preference order] -- fail --> B[Attempt host 2]
+    B -- fail --> C[Attempt host n]
+    C -- fail --> D[Mark failed]
+    A -- 5xx permanent --> E[Mark bounced, suppress the address]
+    A -- 2xx-ish success --> F[Mark sent]
+```
 
-relay exposes health endpoints under `/health/`. The endpoints report the state of the database, the cache, the disk, and the memory. An operator or a monitoring service can watch them.
+- **Multiple MX hosts.** relay walks the MX list by preference and skips
+  hosts that MTA-STS rejects, so a single broken host does not block
+  delivery.
+- **No MX records found** results in a clear failure, not in a silent drop.
+- **Permanent (5xx) answers bounce immediately** and feed the automatic
+  suppression list. No retry storm at an unwilling receiver.
+- **Transient failures** surface in the transcript list, and the message
+  ending in failed keeps the last answer for diagnosis.
 
-## Error monitoring
+## Automatic retry schedules
 
-All relay processes report errors to Sentry. The reports contain no message bodies and no credentials.
+relay defines explicit retry behavior for external systems:
 
-## Inbound filtering
+| Action             | Schedule                                                 | Notes                                   |
+| ------------------ | -------------------------------------------------------- | --------------------------------------- |
+| Outbound spam scan | Backoff 1 s to 5 min, up to 5 attempts                   | Only network errors (HTTP and OS) retry |
+| Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry         |
+| Inbound spam scan  | 1 s to 5 min backoff, up to 5 attempts                   | Same error classes as outbound          |
 
-relay scans every incoming message with rspamd. relay quarantines a message with a high spam score and shows the score in the dashboard. Clean messages go to your webhooks.
+Webhook retries stop early on success. Every delivery attempt carries its
+URL, response code, and a response excerpt of 2,000 characters, so an
+endpoint misbehavior shows as data.
+
+## Health endpoints
+
+The web process exposes two health endpoints for load balancers and uptime
+monitors:
+
+| Endpoint          | Checks                        | Use                    |
+| ----------------- | ----------------------------- | ---------------------- |
+| `/health/`        | Disk, memory                  | Lightweight outer loop |
+| `/health/django/` | Database, Redis, disk, memory | Full stack probe       |
+
+Both answer with a status and an HTTP 200 when healthy. Monitor them with
+whatever you use elsewhere. No special headers are needed.
+
+## Observability of failures
+
+- **Errors go to Sentry**, all processes share one project, off by default.
+  No message bodies, no credentials, no tokens travel there.
+- **Dashboard transmissions** show each outbound attempt with its SMTP
+  conversation.
+- **Webhook delivery rows** show inbound webhook status.
+- **Inbound quarantine** contents stay readable, with the spam score visible.
+
+## Operational notes for high-volume senders
+
+- Answer webhook endpoints fast. The retry schedule shows why slow endpoints
+  cost you minutes-to-days of redelivery delay.
+- Distinguish bounce types where it matters: a "550 mailbox unknown" answer
+  in the dashboard transcript is final, do not wait it out. The suppression
+  already protects you.
+
+## Related pages
+
+- <a href="{% url 'docs:detail' slug='sending' %}">Sending</a>. Statuses and
+  SMTP replies in detail.
+- <a href="{% url 'docs:detail' slug='webhooks' %}">Webhooks</a>. The full
+  retry table and verification code.
