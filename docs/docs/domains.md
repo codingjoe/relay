@@ -51,8 +51,8 @@ Nothing in this path touches DNS configuration. The nameserver serves the
 zone, the platform signs, and you send.
 
 The platform signature comes from a `Domain` row that the operator
-registers for an organization and flags with `is_platform`. Exactly one row
-carries the flag, and at most one organization owns it. The name of that row
+registers for an organization and flags with `is_platform`. At most one row
+carries the flag. The name of that row
 equals `RELAY_PLATFORM_DOMAIN`, and the flag, not the name, marks the trust
 boundary. Once the row exists, the nameserver serves the
 `{RELAY_DNS_DKIM_IDENTIFIER}-{algorithm}` selectors through the ordinary
