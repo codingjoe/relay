@@ -1,6 +1,6 @@
 import base64
-import datetime
 import re
+import secrets
 from email import message_from_bytes
 from email.message import EmailMessage
 from types import SimpleNamespace
@@ -524,15 +524,16 @@ class TestAuthenticate:
         org,
     ):
 
-        _, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
+        # Iterate-then-fail requires the stale credential to come first,
+        # so mint the key here and create the stale credential before it.
+        raw_key = secrets.token_urlsafe(15)
         stale = MsaCredential(org=org, name="stale")
         stale.set_key(raw_key[:8] + "stale-tail")
         stale.save()
-        # Credentials are ordered by recency; pin stale as newest so the
-        # mismatching credential is verified (and fails) before the valid one.
-        MsaCredential.objects.filter(name="stale").update(
-            modified_at=timezone.now() + datetime.timedelta(seconds=1)
-        )
+        credential = MsaCredential(org=org, name="test")
+        credential.set_key(raw_key)
+        credential.save()
+
         result = await authenticate(org.slug, raw_key)
         assert result is not None
         assert result.name == "test"
