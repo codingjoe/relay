@@ -163,8 +163,7 @@ class FblReport(OrganizationOwned):
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return an unsaved instance and the claimed Feedback-ID parsed
-        from a raw ARF message.
+        """Return an unsaved FblReport and the claimed Feedback-ID string.
 
         Raises `ValueError` if no ARF feedback-report content is found.
         """
