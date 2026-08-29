@@ -6,6 +6,7 @@ from dnslib.dns import QTYPE
 from accounts.models import Organization
 from domains.models import Domain
 from domains.resolver import DNSResolver, txt
+from kms import keys as kms_keys
 
 
 class TestTxt:
@@ -235,6 +236,17 @@ class TestResolve:
             assert len(records) == 1, base
             assert b"v=DKIM1" in b"".join(records[0].rdata.data)
 
+    def test_resolve_records__no_platform_dkim_txt_without_key(self, settings):
+        settings.RELAY_DNS_DKIM_IDENTIFIER = "relay"
+        selector = f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-platform-rsa1024"
+
+        records = DNSResolver().resolve_records(
+            DNSLabel(f"{selector}._domainkey.{settings.RELAY_PLATFORM_DOMAIN}"),
+            QTYPE.TXT,
+        )
+
+        assert records == []
+
     def test_resolve_records__unknown_domain_returns_empty(self):
         assert DNSResolver().resolve_records(DNSLabel("unknown.com"), QTYPE.A) == []
 
@@ -274,3 +286,19 @@ class TestResolve:
             DNSLabel("mta-sts.other.example.com"), QTYPE.CNAME
         )
         assert records == []
+
+
+class TestPlatformRecords:
+    def test_resolve_records__publishes_platform_dkim_txt(self, settings):
+        settings.RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY = (
+            kms_keys.generate_rsa_private_key(1024)
+        )
+        selector = f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-platform-rsa1024"
+
+        records = DNSResolver().resolve_records(
+            DNSLabel(f"{selector}._domainkey.{settings.RELAY_PLATFORM_DOMAIN}"),
+            QTYPE.TXT,
+        )
+
+        assert len(records) == 1
+        assert b"v=DKIM1" in b"".join(records[0].rdata.data)

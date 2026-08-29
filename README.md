@@ -43,6 +43,17 @@ All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
 per-domain delegation is necessary.
 
+Outgoing mail is dual-signed with DKIM: once for the org domain and once
+for the platform domain. FBL partners dispatch complaint reports based on
+the DKIM `d=` domain, so a single FBL registration per partner covers all
+customers. Configure the platform private keys (unencrypted PEM) with
+`RELAY_DKIM_PLATFORM_RSA2048_PRIVATE_KEY`,
+`RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY`, and
+`RELAY_DKIM_PLATFORM_ED25519_PRIVATE_KEY`. An empty value skips that
+cipher. Each message also carries a `Feedback-ID` header that identifies
+the organization for FBL complaint aggregation. If the customer already
+set a `Feedback-ID`, it is preserved and none is added.
+
 ## Architecture
 
 ```

@@ -11,6 +11,7 @@ from dnslib.server import BaseResolver
 
 from kms.models import SigningKey
 
+from . import dkim as dkim_module
 from .models import Domain
 
 
@@ -19,6 +20,17 @@ def txt(value: str) -> TXT:
     if len(value) <= 255:
         return TXT(value)
     return TXT([value[i : i + 255] for i in range(0, len(value), 255)])
+
+
+def dkim_record(key) -> str:
+    """Render the DKIM public key record value for a signing key."""
+    match key.algorithm:
+        case SigningKey.Algorithm.ED25519:
+            public_key_b64 = base64.b64encode(key.public_bytes_raw()).decode("ascii")
+            return f"v=DKIM1; k=ed25519; t=s; h=sha256; p={public_key_b64};"
+        case _:
+            public_key_b64 = base64.b64encode(key.public_bytes_der()).decode("ascii")
+            return f"v=DKIM1; k=rsa; t=s; h=sha256; p={public_key_b64};"
 
 
 class DNSResolver(BaseResolver):
@@ -56,6 +68,9 @@ class DNSResolver(BaseResolver):
                     for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS
                 ]
             case _:
+                records = self.resolve_platform_records(qname, qtype, query_name)
+                if records:
+                    return records
                 try:
                     domain = Domain.objects.root_for(query_name, include_managed=True)
                 except Domain.DoesNotExist:
@@ -63,6 +78,25 @@ class DNSResolver(BaseResolver):
                 return list(
                     self.resolve_domain_records(qname, qtype, query_name, domain)
                 )
+
+    def resolve_platform_records(
+        self, qname: DNSLabel, qtype: int, query_name: str
+    ) -> list[RR]:
+        """Build TXT records for the DKIM keys of the platform sending domain."""
+        if qtype not in (QTYPE.TXT, QTYPE.ANY):
+            return []
+        for selector, key in dkim_module.platform_dkim_ciphers():
+            name = f"{selector}._domainkey.{settings.RELAY_PLATFORM_DOMAIN}"
+            if query_name == name:
+                return [
+                    RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(dkim_record(key)),
+                        ttl=self.RECORD_TTL,
+                    )
+                ]
+        return []
 
     def resolve_domain_records(
         self,
@@ -138,25 +172,17 @@ class DNSResolver(BaseResolver):
         # DKIM. Serve public-key for each cipher at its selector name.
         for selector, key in domain.dkim_ciphers:
             if key:
-                match key.algorithm:
-                    case SigningKey.Algorithm.ED25519:
-                        public_key_b64 = base64.b64encode(
-                            key.public_bytes_raw()
-                        ).decode("ascii")
-                        record = (
-                            f"v=DKIM1; k=ed25519; t=s; h=sha256; p={public_key_b64};"
-                        )
-                    case _:
-                        public_key_b64 = base64.b64encode(
-                            key.public_bytes_der()
-                        ).decode("ascii")
-                        record = f"v=DKIM1; k=rsa; t=s; h=sha256; p={public_key_b64};"
                 dkim_names = [
                     f"{selector}._domainkey.{domain.sender_domain}",
                     f"{selector}._domainkey.{domain.name}",
                 ]
                 if query_name in dkim_names:
-                    yield RR(qname, QTYPE.TXT, rdata=txt(record), ttl=self.RECORD_TTL)
+                    yield RR(
+                        qname,
+                        QTYPE.TXT,
+                        rdata=txt(dkim_record(key)),
+                        ttl=self.RECORD_TTL,
+                    )
 
         # Records served at the domain apex (root SPF, sender DMARC, root TLS-RPT)
         match query_name:

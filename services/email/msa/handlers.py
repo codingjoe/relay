@@ -2,6 +2,7 @@
 
 import base64
 import logging
+import secrets
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
@@ -16,6 +17,14 @@ from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
+
+
+def add_feedback_id(raw_bytes: bytes, msg, org) -> bytes:
+    """Prepend a Feedback-ID header for FBL complaint aggregation per org."""
+    if msg.get("Feedback-ID"):
+        return raw_bytes
+    feedback_id = f"{org.pk}::{secrets.token_hex(12)}:relay"
+    return f"Feedback-ID: {feedback_id}\015\012".encode("ascii") + raw_bytes
 
 
 class SMTPHandler:
@@ -164,6 +173,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
+    raw_bytes = add_feedback_id(raw_bytes, msg, credential.org)
     raw_bytes = sign_message(raw_bytes, domain)
 
     message = OutgoingMessage.objects.create(

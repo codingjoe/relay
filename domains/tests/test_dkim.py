@@ -5,6 +5,7 @@ import pytest
 from accounts.models import Organization
 from domains.dkim import sign_message, verify_signature
 from domains.models import Domain
+from kms import keys as kms_keys
 
 
 def make_email():
@@ -54,6 +55,36 @@ class TestSignMessage:
         original = make_email().as_bytes()
         signed = sign_message(original, domain)
         assert signed == original
+
+    @pytest.mark.django_db
+    def test_sign_message__adds_platform_signatures(self, settings):
+        settings.RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY = (
+            kms_keys.generate_rsa_private_key(1024)
+        )
+        settings.RELAY_DKIM_PLATFORM_ED25519_PRIVATE_KEY = (
+            kms_keys.generate_ed25519_private_key()
+        )
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        signed = sign_message(make_email().as_bytes(), domain)
+
+        assert signed.count(b"DKIM-Signature:") == 5
+        assert b"s=relay-platform-rsa1024" in signed
+        assert b"s=relay-platform-ed25519" in signed
+        assert f"d={settings.RELAY_PLATFORM_DOMAIN}".encode("ascii") in signed
+
+    @pytest.mark.django_db
+    def test_sign_message__customer_signature_stays_on_top(self, settings):
+        settings.RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY = (
+            kms_keys.generate_rsa_private_key(1024)
+        )
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        signed = sign_message(make_email().as_bytes(), domain)
+
+        assert signed.index(b"d=example.com") < signed.index(b"d=localhost")
 
 
 class TestVerifySignature:

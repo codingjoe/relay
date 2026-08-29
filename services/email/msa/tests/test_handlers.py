@@ -1,4 +1,5 @@
 import base64
+from email import message_from_bytes
 from email.message import EmailMessage
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -69,6 +70,37 @@ class TestHandleData:
         outgoing = await OutgoingMessage.objects.aget(org=org)
         assert result == "250 OK"
         assert outgoing.received_with_tls is True
+        stored = message_from_bytes(outgoing.raw_body.read())
+        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(outgoing.id), client_ip="127.0.0.1"
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__preserves_existing_feedback_id(self, user, org):
+
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        session = SimpleNamespace(
+            credential=credential, peer=("127.0.0.1", 2525), ssl=True
+        )
+        message = make_email(f"alice@{domain.name}", user.email)
+        message["Feedback-ID"] = "customer-id"
+        envelope = SimpleNamespace(
+            mail_from=f"alice@{domain.name}",
+            rcpt_tos=[user.email],
+            content=message.as_bytes(),
+        )
+
+        with patch("services.email.msa.handlers.check_outgoing_spam") as spam_task:
+            result = await SMTPHandler().handle_DATA(None, session, envelope)
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        assert result == "250 OK"
+        raw = outgoing.raw_body.read()
+        stored = message_from_bytes(raw)
+        assert stored.get_all("Feedback-ID") == ["customer-id"]
+        assert raw.count(b"Feedback-ID") == 1
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip="127.0.0.1"
         )
