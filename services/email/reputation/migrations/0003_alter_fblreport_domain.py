@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("domains", "0002_domain_is_platform_domain_unique_platform_domain"),
+        ("domains", "0001_initial"),
         ("reputation", "0002_alter_fblreport_options"),
     ]
 

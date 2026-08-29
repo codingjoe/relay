@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("domains", "0002_domain_is_platform_domain_unique_platform_domain"),
+        ("domains", "0001_initial"),
         ("message", "0002_message_spam_action_message_spam_score"),
     ]
 

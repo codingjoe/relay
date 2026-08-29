@@ -64,11 +64,12 @@ class DomainQuerySet(models.QuerySet):
         if not include_managed:
             qs = qs.filter(is_managed=False)
         domains = list(qs.select_related("org").order_by(Length("name").desc()))
-        # The platform domain row is by design the ancestor of every
-        # managed sender domain, so it may share an ancestor chain with
+        # The platform domain is the ancestor of every managed sender
+        # domain by design, so it may share an ancestor chain with
         # domains of other organizations without making the match ambiguous.
         if len({domain.org_id for domain in domains}) > 1:
-            domains = [domain for domain in domains if not domain.is_platform]
+            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+            domains = [domain for domain in domains if domain.name != platform_name]
         if not domains or len({domain.org_id for domain in domains}) > 1:
             raise self.model.DoesNotExist
         return domains[0]
@@ -213,13 +214,6 @@ class Domain(TimeStamped):
         indexes = [
             models.Index(Lower("name"), name="domain_name_lower_idx"),
         ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["is_platform"],
-                condition=models.Q(is_platform=True),
-                name="unique_platform_domain",
-            ),
-        ]
 
     objects = models.Manager.from_queryset(DomainQuerySet)()
 
@@ -255,51 +249,19 @@ class Domain(TimeStamped):
         default=False,
         help_text=_("Whether relay manages this domain's DNS automatically."),
     )
-    is_platform = models.BooleanField(
-        _("platform"),
-        default=False,
-        db_default=False,
-        help_text=_(
-            "Whether this domain is the platform identity that cosigns "
-            "outgoing mail; at most one domain carries the flag, and its "
-            "name equals RELAY_PLATFORM_DOMAIN."
-        ),
-    )
 
     def clean(self):
         name = canonicalize_domain_name(self.name)
         self.name = name
-        platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
-        if self.is_platform and name != platform_name:
-            raise ValidationError(
-                {
-                    "name": _("The platform identity is the domain named %(platform)s.")
-                    % {"platform": platform_name}
-                }
-            )
-        managed_name = canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN)
-        in_platform_zone = name == platform_name or name.endswith(f".{platform_name}")
-        in_managed_zone = name == managed_name or name.endswith(f".{managed_name}")
-        # relay reserves the platform domain zone: only the flagged row
-        # may use the apex, and only managed sender domains live beneath
-        # the managed sender domain.
-        if in_platform_zone and not self.is_platform and not in_managed_zone:
-            raise ValidationError(
-                {
-                    "name": _(
-                        "relay reserves the platform domain %(platform)s and "
-                        "its subdomains."
+        if not self.is_managed:
+            root = canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN)
+            if name == root or name.endswith(f".{root}"):
+                raise ValidationError(
+                    _(
+                        "Cannot add a subdomain of %(base)s. relay manages these automatically."
                     )
-                    % {"platform": platform_name}
-                }
-            )
-        if not self.is_managed and in_managed_zone:
-            raise ValidationError(
-                _(
-                    "Cannot add a subdomain of %(base)s. relay manages these automatically."
+                    % {"base": root}
                 )
-                % {"base": managed_name}
-            )
 
         if self.org_id:
             parts = name.split(".")
@@ -308,16 +270,16 @@ class Domain(TimeStamped):
                 reduce(or_, (models.Q(name__iexact=value) for value in ancestors))
                 | models.Q(name__iendswith=f".{name}")
             )
-            managed_beneath = models.Q(name=managed_name) | models.Q(
-                name__iendswith=f".{managed_name}"
-            )
-            # An overlap is exempt only when the pair contains the
-            # platform domain row and the other row's canonical name is
-            # beneath the managed sender domain.
-            if self.is_platform:
-                overlapping_domains = overlapping_domains.exclude(managed_beneath)
-            elif in_managed_zone:
-                overlapping_domains = overlapping_domains.exclude(is_platform=True)
+            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+            # The platform domain is the ancestor of every managed sender
+            # domain by design, so a conflict is skipped exactly when one
+            # of the two rows' canonical name is the platform domain.
+            if name == platform_name:
+                overlapping_domains = Domain.objects.none()
+            else:
+                overlapping_domains = overlapping_domains.exclude(
+                    name__iexact=platform_name
+                )
             if self.pk:
                 overlapping_domains = overlapping_domains.exclude(pk=self.pk)
             if overlapping_domains.exists():

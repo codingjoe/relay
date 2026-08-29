@@ -362,7 +362,7 @@ class TestMXHandler:
     ):
         settings.RELAY_PLATFORM_DOMAIN = "example.com"
         settings.RELAY_FBL_SENDERS = ["gmail.com"]
-        domain = Domain.objects.create(name="example.com", org=org, is_platform=True)
+        domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="feedback@gmail.com",
             rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],
@@ -392,7 +392,7 @@ class TestMXHandler:
     async def test_handle_data__fbl_spf_lookup_error_checks_spam(self, org, settings):
         settings.RELAY_PLATFORM_DOMAIN = "example.com"
         settings.RELAY_FBL_SENDERS = ["gmail.com"]
-        domain = Domain.objects.create(name="example.com", org=org, is_platform=True)
+        domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="feedback@gmail.com",
             rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],
@@ -428,7 +428,7 @@ class TestMXHandler:
     ):
         settings.RELAY_PLATFORM_DOMAIN = "example.com"
         settings.RELAY_FBL_SENDERS = ["gmail.com"]
-        domain = Domain.objects.create(name="example.com", org=org, is_platform=True)
+        domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="forged@example.org",
             rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],

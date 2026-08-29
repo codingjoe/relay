@@ -25,35 +25,31 @@ def add_dkim_signature(raw_bytes, selector, domain_name, key, include_headers):
 
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM for the signing domain, then cosign with the
-    platform domain when its Domain row exists and the signer is another domain."""
+    """Sign a message with DKIM for the sender domain, plus the domain named
+    RELAY_PLATFORM_DOMAIN when it exists."""
     signed = raw_bytes
-    # Cosigning lets FBL partners dispatch reports based on the DKIM d=
-    # domain, which serves all customers from a single FBL registration
-    # per partner. Signatures are prepended, so the customer's signature
-    # ends up on top, the way SES dual-signs.
+    # Signatures are prepended, so the customer's signature ends up on
+    # top, the way SES dual-signs. FBL partners dispatch reports based on
+    # the DKIM d= domain, which serves all customers from a single FBL
+    # registration per partner.
     try:
-        platform_domain = Domain.objects.select_related(
-            "dkim_key_rsa2048",
-            "dkim_key_rsa1024",
-            "dkim_key_ed25519",
-        ).get(
-            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
-            is_platform=True,
+        platform_domains = (
+            Domain.objects.select_related(
+                "dkim_key_rsa2048",
+                "dkim_key_rsa1024",
+                "dkim_key_ed25519",
+            )
+            .filter(name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN))
+            .exclude(pk=domain.pk)
         )
-    except Domain.DoesNotExist, ValidationError:
-        platform_domain = None
-    if platform_domain and domain.name != platform_domain.name:
-        for selector, key in platform_domain.dkim_ciphers:
+    except ValidationError:
+        platform_domains = Domain.objects.none()
+    for sign_domain in [*platform_domains, domain]:
+        for selector, key in sign_domain.dkim_ciphers:
             if key:
                 signed = add_dkim_signature(
-                    signed, selector, platform_domain.name, key, INCLUDE_HEADERS
+                    signed, selector, sign_domain.name, key, INCLUDE_HEADERS
                 )
-    for selector, key in domain.dkim_ciphers:
-        if key:
-            signed = add_dkim_signature(
-                signed, selector, domain.name, key, INCLUDE_HEADERS
-            )
     return signed
 
 

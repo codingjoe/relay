@@ -385,7 +385,7 @@ class TestProcessIncomingMessage:
     ):
         settings.RELAY_PLATFORM_DOMAIN = "example.com"
         settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
-        domain = Domain.objects.create(name="example.com", org=org, is_platform=True)
+        domain = Domain.objects.create(name="example.com", org=org)
         with (
             patch(
                 "services.email.mta.models.is_spf_pass",
@@ -416,7 +416,7 @@ class TestProcessIncomingMessage:
     ):
         settings.RELAY_PLATFORM_DOMAIN = "example.com"
         settings.RELAY_FBL_SENDERS = ["gmail.com"]
-        domain = Domain.objects.create(name="example.com", org=org, is_platform=True)
+        domain = Domain.objects.create(name="example.com", org=org)
         with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
             result = await process_incoming_message(
                 "forged@example.org",
