@@ -295,3 +295,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Keep `know_how/docs` brand-agnostic. Write relay-specific user docs in
   `docs/docs`.
+
+- Write `docs/docs` for relay users, not developers. Environment variable
+  names, setting keys, and other code references have no place there.
+  Describe behavior and configuration in product terms: the platform
+  domain, the dashboard, a submission host. Internal names such as
+  `RELAY_*` belong in `README.md`.

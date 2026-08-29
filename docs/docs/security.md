@@ -31,7 +31,7 @@ both rules before it saves the domain.
 
 ## SMTP credential security
 
-Your application submits email over `smtp.{RELAY_PLATFORM_DOMAIN}` with an
+Your application submits email over the relay submission host with an
 SMTP credential. A credential belongs to exactly one organization. Each
 credential carries a visible key prefix, so you can tell credentials apart in
 the dashboard and in support conversations.

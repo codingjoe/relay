@@ -50,12 +50,11 @@ flowchart TD
 Nothing in this path touches DNS configuration. The nameserver serves the
 zone, the platform signs, and you send.
 
-The platform signature comes from a `Domain` row registered for the
-operator's organization. The row name equals `RELAY_PLATFORM_DOMAIN`.
-Once the row exists, the nameserver serves the
-`{RELAY_DNS_DKIM_IDENTIFIER}-{algorithm}` selectors through the ordinary
-record path, and relay cosigns customer mail. Until the row exists,
-relay signs with the sending domain only.
+The platform signature comes from a platform domain row registered for the
+operator's organization. Relay matches that platform domain by its name.
+Once the platform domain exists, the nameserver serves its DKIM selectors
+through the ordinary record path, and relay cosigns customer mail. Until
+then, relay signs with the sending domain only.
 
 ## Adding your own domain
 

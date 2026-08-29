@@ -63,8 +63,8 @@ records for your domains, which asks all senders to use TLS as well.
 For every managed or delegated domain, relay serves the DNS record and the
 policy file:
 
-- the TXT record `v=STSv1; id={RELAY_MTA_STS_POLICY_ID}` at
-  `_mta-sts.{your-domain}`,
+- the TXT record at `_mta-sts.{your-domain}` carrying the policy id that
+  matches the policy host,
 - a CNAME at `mta-sts.{your-domain}` into the relay policy host,
 - the policy document at
   `https://mta-sts.{your-domain}/.well-known/mta-sts.txt`.

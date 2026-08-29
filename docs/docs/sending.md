@@ -150,7 +150,7 @@ import smtplib, ssl
 
 with smtplib.SMTP("smtp.relay.example.com", 587) as server:
     server.starttls(context=ssl.create_default_context())
-    server.login("acme", get_env("RELAY_API_KEY"))
+    server.login("acme", "your-smtp-credential-key")
     server.sendmail(
         "billing@acme.com",
         ["kim@example.net"],

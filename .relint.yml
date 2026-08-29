@@ -113,3 +113,7 @@
   pattern: '\n(?P<i>[ \t]*)[^\n:]+:[ \t]*!(?:reset|override)[ \t]*(?=\n(?!(?P=i)[ \t]+\S))'
   hint: 'Bare `!reset` or `!override` tags parse as empty strings outside Docker Compose and fail dclint''s schema validation. Provide a value the parser can resolve, e.g. `!reset null`, `!reset []`, `!reset {}`, or a block collection for `!override`. Docker Compose ignores the value.'
   filePattern: '.*(?:docker-)?compose.*\.ya?ml$'
+- name: No code references in user docs
+  pattern: '(?i)\bRELAY_[A-Z_]+\b'
+  hint: 'docs/docs pages are for relay users, not developers. Replace environment variable and setting names with product wording (the platform domain, the submission host, the dashboard). Internal names live in README.md.'
+  filePattern: '^docs/docs/.*\.md$'
