@@ -152,6 +152,7 @@ class TestDomainClean:
         platform = Domain.objects.create(
             name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
             org=platform_org,
+            is_platform=True,
         )
 
         assert platform.pk is not None
@@ -163,12 +164,75 @@ class TestDomainClean:
         platform = Domain.objects.create(
             name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
             org=platform_org,
+            is_platform=True,
         )
 
         org = Organization.objects.create(slug="acme")
         managed = Domain.objects.get(org=org, is_managed=True)
 
         assert managed.name == f"acme.open.{platform.name}"
+
+    @pytest.mark.django_db
+    def test_save__rejects_platform_subdomain_not_beneath_managed_root(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+            is_platform=True,
+        )
+        org = Organization.objects.create(slug="acme")
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(name=f"evil.{platform.name}", org=org)
+
+    @pytest.mark.django_db
+    def test_save__allows_managed_sender_beneath_platform_domain(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+            is_platform=True,
+        )
+        org = Organization.objects.create(slug="acme")
+
+        domain = Domain.objects.create(
+            name=f"delegation.open.{platform.name}",
+            org=org,
+            is_managed=True,
+        )
+
+        assert domain.pk is not None
+
+    @pytest.mark.django_db
+    def test_save__rejects_platform_domain_for_other_org(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+            is_platform=True,
+        )
+        other_org = Organization.objects.create(slug="other")
+
+        with pytest.raises(ValidationError):
+            Domain.objects.create(
+                name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+                org=other_org,
+            )
+
+    @pytest.mark.django_db
+    def test_save__rejects_second_platform_domain(self):
+        first_org = Organization.objects.create(slug="first")
+        second_org = Organization.objects.create(slug="second")
+        Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=first_org,
+            is_platform=True,
+        )
+
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Domain.objects.create(
+                name="platform.example", org=second_org, is_platform=True
+            )
 
 
 @pytest.mark.django_db

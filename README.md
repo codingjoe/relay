@@ -45,11 +45,14 @@ per-domain delegation is necessary.
 
 Outgoing mail is dual-signed with DKIM: once for the sender's own domain
 and once for the platform domain. The platform domain is the `Domain`
-row whose name equals `RELAY_PLATFORM_DOMAIN`. The operator owns it as a
+row the operator flagged as the platform identity; at most one domain
+carries the flag, and its name equals `RELAY_PLATFORM_DOMAIN`. The flag,
+not the name, is the platform trust mark: a domain named like the
+platform is nothing by itself. The operator owns the flagged row as a
 regular organization's domain: it holds the platform DKIM keys, and the
 internal nameserver serves its DKIM TXT records from the ordinary
-domain record path. A missing `Domain` row or missing keys skips the
-cosign, and a message signed by the platform domain itself is not
+domain record path. A missing flag, `Domain` row, or missing keys skips
+the cosign, and a message signed by the platform domain itself is not
 cosigned. FBL partners dispatch complaint reports based on the DKIM
 `d=` domain, so a single FBL registration per partner covers all
 customers. Each signature also covers a `Feedback-ID` header that

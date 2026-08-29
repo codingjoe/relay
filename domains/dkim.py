@@ -37,7 +37,10 @@ def sign_message(raw_bytes, domain):
             "dkim_key_rsa2048",
             "dkim_key_rsa1024",
             "dkim_key_ed25519",
-        ).get(name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN))
+        ).get(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            is_platform=True,
+        )
     except Domain.DoesNotExist, ValidationError:
         platform_domain = None
     if platform_domain and domain.name != platform_domain.name:

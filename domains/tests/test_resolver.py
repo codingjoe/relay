@@ -68,6 +68,7 @@ class TestDomainQuerySet:
         Domain.objects.create(
             name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
             org=platform_org,
+            is_platform=True,
         )
         org = Organization.objects.create(slug="acme")
 
@@ -253,6 +254,7 @@ class TestResolve:
         platform = Domain.objects.create(
             name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
             org=platform_org,
+            is_platform=True,
         )
         selector, _ = platform.dkim_ciphers[0]
 
