@@ -106,7 +106,7 @@ An attacker with database access obtains ciphertexts, not signing power.
 ## Message storage
 
 relay stores message metadata in PostgreSQL and raw message bodies in
-object storage, in the same Hetzner Falkenstein region as everything else.
+object storage, in the same Hetzner Nuremberg region as everything else.
 Bodies are not stored longer than delivery needs. See the
 <a href="{% url 'legal:privacy' %}">privacy policy</a> for retention rules.
 

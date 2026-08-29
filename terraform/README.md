@@ -27,7 +27,7 @@ flowchart LR
     end
 
     s3["S3 Object Storage
-    fsn1.your-objectstorage.com"]
+    nbg1.your-objectstorage.com"]
   end
 
   internet --> caddy --> web
@@ -67,14 +67,14 @@ cat > terraform.tfvars <<EOF
 hcloud_token    = "<your-hetzner-api-token>"
 hostname        = "relay.example.com"
 server_type     = "cx22"
-server_location = "fsn1"
+server_location = "nbg1"
 ssh_public_keys = ["$(cat ~/.ssh/id_ed25519.pub)"]
 smtp_floating_ip_count = 2
 
 # S3 credentials from Hetzner Console -> Object Storage -> Credentials
 s3_access_key  = "<your-s3-access-key>"
 s3_secret_key  = "<your-s3-secret-key>"
-s3_endpoint    = "fsn1.your-objectstorage.com"
+s3_endpoint    = "nbg1.your-objectstorage.com"
 # s3_bucket_name is optional; by default it is derived from the hostname
 # (bucket names must be unique across all of Hetzner Object Storage)
 EOF
@@ -150,7 +150,7 @@ dotenvx set AWS_S3_ENDPOINT_URL "$S3_ENDPOINT" -f .env.production
 dotenvx set AWS_S3_ACCESS_KEY_ID "<s3-access-key>" -f .env.production
 dotenvx set AWS_S3_SECRET_ACCESS_KEY "<s3-secret-key>" -f .env.production
 dotenvx set AWS_STORAGE_BUCKET_NAME "$S3_BUCKET" -f .env.production
-dotenvx set AWS_S3_REGION_NAME "fsn1" -f .env.production
+dotenvx set AWS_S3_REGION_NAME "nbg1" -f .env.production
 dotenvx set AWS_S3_ADDRESSING_STYLE "path" -f .env.production
 
 dotenvx get DOTENV_PRIVATE_KEY_PRODUCTION -f .env.keys | gh secret set DOTENV_PRIVATE_KEY_PRODUCTION
