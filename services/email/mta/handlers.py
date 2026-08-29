@@ -17,7 +17,6 @@ from services.email.dmarc.tasks import (
 from .models import (
     IncomingMessage,
     TlsReport,
-    is_fbl_report,
 )
 from .signals import fbl_report_received
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
@@ -139,7 +138,10 @@ def process_incoming_message(
             )
             return "250 OK"
 
-        case _ if is_fbl_report(mail_from, rcpt_to):
+        case _ if (
+            rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
+            and mail_from.lower() in settings.RELAY_FBL_SENDERS
+        ):
             message = IncomingMessage.objects.create(
                 org=domain.org,
                 domain=domain,

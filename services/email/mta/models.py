@@ -3,7 +3,6 @@ import uuid
 from enum import nonmember
 from fnmatch import fnmatch
 
-from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -16,18 +15,6 @@ from kms.models import SigningKey
 from services.email.message.models import Message
 
 from .serializers import TlsReportSerializer
-
-
-def is_fbl_report(mail_from: str, rcpt_to: str) -> bool:
-    """Tell whether an incoming message is a feedback loop report from a listed sender.
-
-    The platform ingestion address must be the recipient, and the sender
-    must be listed in `RELAY_FBL_SENDERS`, matched case-insensitively.
-    """
-    return (
-        rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
-        and mail_from.lower() in settings.RELAY_FBL_SENDERS
-    )
 
 
 class IncomingMessage(Message):

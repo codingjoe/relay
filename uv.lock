@@ -720,12 +720,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyspf"
-version = "2.0.14"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d4/dc/5b3838ff90474e21fe0914920c53430f73402e07d6598ea228e61b74963e/pyspf-2.0.14.tar.gz", hash = "sha256:57a7ef01bda090173aafb6af0106251686ed73f03db4e911fcd34c57fc347186", size = 69446, upload-time = "2020-01-02T02:54:37.109Z" }
-
-[[package]]
 name = "pytest"
 version = "9.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -935,7 +929,6 @@ dependencies = [
     { name = "psycopg", extra = ["binary"] },
     { name = "pygments" },
     { name = "pynacl" },
-    { name = "pyspf" },
     { name = "python-frontmatter" },
     { name = "pyyaml" },
     { name = "redis" },
@@ -991,7 +984,6 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4" },
     { name = "pygments", specifier = ">=2.21" },
     { name = "pynacl", specifier = ">=1.6.2" },
-    { name = "pyspf", specifier = ">=2.0.14" },
     { name = "python-frontmatter", specifier = ">=1.3" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "redis", specifier = ">=8.1" },

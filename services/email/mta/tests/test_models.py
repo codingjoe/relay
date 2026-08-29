@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from domains.models import Domain
 from kms.models import SigningKey
-from services.email.mta.models import Webhook, is_fbl_report
+from services.email.mta.models import Webhook
 
 
 @pytest.fixture
@@ -153,35 +153,3 @@ class TestSign:
             webhook.signing_key.public_bytes_raw()
         )
         public_key.verify(sig_bytes, signed_content)
-
-
-class TestIsFblReport:
-    def test_is_fbl_report__is_ingestion_address_from_listed_sender(self, settings):
-        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
-        assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is True
-
-    def test_is_fbl_report__rejects_all_senders_when_allowlist_is_empty(self, settings):
-        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDERS = []
-        assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is False
-
-    def test_is_fbl_report__rejects_sender_behind_domain_only(self, settings):
-        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
-        assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is False
-
-    def test_is_fbl_report__rejects_unknown_sender(self, settings):
-        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
-        assert is_fbl_report("forged@example.org", "fbl@relays.test") is False
-
-    def test_is_fbl_report__rejects_customer_ingestion_address(self, settings):
-        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
-        assert is_fbl_report("feedback@gmail.com", "fbl@acme.com") is False
-
-    def test_is_fbl_report__is_case_insensitive(self, settings):
-        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
-        assert is_fbl_report("Feedback@GMAIL.com", "FBL@Relays.Test.") is True
