@@ -4,9 +4,9 @@ import logging
 
 import dkim
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.db.models import Q
 
-from .models import Domain, canonicalize_domain_name
+from .models import Domain
 
 logger = logging.getLogger(__name__)
 
@@ -32,24 +32,16 @@ def sign_message(raw_bytes, domain):
     # top, the way SES dual-signs. FBL partners dispatch reports based on
     # the DKIM d= domain, which serves all customers from a single FBL
     # registration per partner.
-    try:
-        platform_domains = (
-            Domain.objects.select_related(
-                "dkim_key_rsa2048",
-                "dkim_key_rsa1024",
-                "dkim_key_ed25519",
-            )
-            .filter(name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN))
-            .exclude(pk=domain.pk)
-        )
-    except ValidationError:
-        platform_domains = Domain.objects.none()
-    for sign_domain in [*platform_domains, domain]:
+    signing_domains = Domain.objects.select_related(
+        "dkim_key_rsa2048",
+        "dkim_key_rsa1024",
+        "dkim_key_ed25519",
+    ).filter(Q(name=settings.RELAY_PLATFORM_DOMAIN) | Q(pk=domain.pk))
+    for sign_domain in signing_domains:
         for selector, key in sign_domain.dkim_ciphers:
-            if key:
-                signed = add_dkim_signature(
-                    signed, selector, sign_domain.name, key, INCLUDE_HEADERS
-                )
+            signed = add_dkim_signature(
+                signed, selector, sign_domain.name, key, INCLUDE_HEADERS
+            )
     return signed
 
 

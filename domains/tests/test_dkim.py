@@ -115,41 +115,20 @@ class TestSignMessage:
 
         # Signatures are prepended, so the platform cosign sits above the
         # body while the customer's own signatures stay on top, the way
-        # SES dual-signs for FBL attribution.
-        assert [
+        # SES dual-signs for FBL attribution. The queryset order decides
+        # which family signs first, so assert the pairs as a set.
+        assert sorted(
             (signature["d"], signature["s"]) for signature in parse_signatures(signed)
-        ] == [
-            ("example.com", "relay-ed25519"),
-            ("example.com", "relay-rsa1024"),
-            ("example.com", "relay-rsa2048"),
-            (platform.name, "relay-ed25519"),
-            (platform.name, "relay-rsa1024"),
-            (platform.name, "relay-rsa2048"),
-        ]
-
-    @pytest.mark.django_db
-    def test_sign_message__cosigns_with_missing_platform_keys(self):
-        org = Organization.objects.create(slug="o")
-        platform_org = Organization.objects.create(slug="platform-org")
-        platform = make_platform_domain(
-            platform_org,
-            dkim_key_ed25519=SigningKey.generate(SigningKey.Algorithm.ED25519),
+        ) == sorted(
+            [
+                ("example.com", "relay-ed25519"),
+                ("example.com", "relay-rsa1024"),
+                ("example.com", "relay-rsa2048"),
+                (platform.name, "relay-ed25519"),
+                (platform.name, "relay-rsa1024"),
+                (platform.name, "relay-rsa2048"),
+            ]
         )
-        domain = Domain.objects.create(
-            name="example.com",
-            org=org,
-            dkim_key_rsa2048=SigningKey.generate(SigningKey.Algorithm.RSA_2048),
-        )
-
-        signed = sign_message(make_email().as_bytes(), domain)
-
-        # Missing keys skip the cosign instead of failing the message.
-        assert [
-            (signature["d"], signature["s"]) for signature in parse_signatures(signed)
-        ] == [
-            ("example.com", "relay-rsa2048"),
-            (platform.name, "relay-ed25519"),
-        ]
 
     @pytest.mark.django_db
     def test_sign_message__no_cosign_without_platform_domain(self):

@@ -2,7 +2,6 @@ from email.message import EmailMessage
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import dns.exception
 import pytest
 from django.conf import settings
 from django.core import mail
@@ -357,45 +356,15 @@ class TestMXHandler:
         )
 
     @pytest.mark.django_db(transaction=True)
-    async def test_handle_data__fbl_recipient_without_client_ip_checks_spam(
+    async def test_handle_data__fbl_recipient_from_listed_sender_creates_report(
         self, org, settings
     ):
-        settings.RELAY_PLATFORM_DOMAIN = "example.com"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="feedback@gmail.com",
-            rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],
-            content=make_raw_email(),
-            recipient_domain=domain,
-        )
-        session = SimpleNamespace(peer=None, ssl=False)
-
-        with (
-            patch(
-                "abstract.mailauth.DmarcEvaluation.from_bytes",
-                return_value=make_dmarc_evaluation(Disposition.NONE),
-            ),
-            patch(
-                "abstract.mailauth.DmarcEvaluation.verify_dkim",
-                return_value=(AuthResult.FAIL, ""),
-            ),
-            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
-        ):
-            result = await MXHandler().handle_DATA(None, session, envelope)
-
-        assert result == "250 OK"
-        assert not await FblReport.objects.aexists()
-        spam_task.enqueue.assert_called_once()
-
-    @pytest.mark.django_db(transaction=True)
-    async def test_handle_data__fbl_spf_lookup_error_checks_spam(self, org, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "example.com"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
-        domain = Domain.objects.create(name="example.com", org=org)
-        envelope = SimpleNamespace(
-            mail_from="feedback@gmail.com",
-            rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],
+            rcpt_tos=["fbl@example.com"],
             content=make_raw_email(),
             recipient_domain=domain,
         )
@@ -407,31 +376,27 @@ class TestMXHandler:
                 return_value=make_dmarc_evaluation(Disposition.NONE),
             ),
             patch(
-                "services.email.mta.models.spf.check2",
-                side_effect=dns.exception.DNSException("resolver unavailable"),
-            ),
-            patch(
-                "abstract.mailauth.DmarcEvaluation.verify_dkim",
-                return_value=(AuthResult.FAIL, ""),
-            ),
-            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+                "services.email.reputation.signals.tasks.create_provider_fbl_report"
+            ) as report_task,
         ):
             result = await MXHandler().handle_DATA(None, session, envelope)
 
         assert result == "250 OK"
         assert not await FblReport.objects.aexists()
-        spam_task.enqueue.assert_called_once()
+        report_task.enqueue.assert_called_once_with(
+            message_pk=str((await IncomingMessage.objects.aget()).id)
+        )
 
     @pytest.mark.django_db(transaction=True)
     async def test_handle_data__fbl_recipient_unknown_sender_checks_spam(
         self, org, settings
     ):
-        settings.RELAY_PLATFORM_DOMAIN = "example.com"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="forged@example.org",
-            rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],
+            rcpt_tos=["fbl@example.com"],
             content=make_raw_email(),
             recipient_domain=domain,
         )
@@ -452,12 +417,12 @@ class TestMXHandler:
 
     @pytest.mark.django_db(transaction=True)
     async def test_handle_data__fbl_on_customer_domain_checks_spam(self, org, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="feedback@gmail.com",
-            rcpt_tos=[f"{settings.RELAY_FBL_LOCAL_PART}@example.com"],
+            rcpt_tos=["fbl@example.com"],
             content=make_raw_email(),
             recipient_domain=domain,
         )

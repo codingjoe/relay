@@ -273,7 +273,7 @@ RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dmarc")
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
-RELAY_FBL_LOCAL_PART = env("RELAY_FBL_LOCAL_PART", default="fbl")
+RELAY_FBL_ADDRESS = env("RELAY_FBL_ADDRESS", default=f"fbl@{RELAY_PLATFORM_DOMAIN}")
 RELAY_FBL_SENDERS = [
     s.strip().lower() for s in env.list("RELAY_FBL_SENDERS", default=[]) if s.strip()
 ]

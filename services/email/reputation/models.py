@@ -217,7 +217,7 @@ class FblReport(OrganizationOwned):
             user_agent="relay",
             version="1",
             reporting_org="relay",
-            reporting_email=f"{settings.RELAY_FBL_LOCAL_PART}@{settings.RELAY_PLATFORM_DOMAIN}",
+            reporting_email=settings.RELAY_FBL_ADDRESS,
             original_mail_from=message.mail_from,
             original_rcpt_to=message.rcpt_to.split(",")[0],
             original_message_id=message.message_id,

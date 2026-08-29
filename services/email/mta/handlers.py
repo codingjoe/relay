@@ -18,7 +18,6 @@ from .models import (
     IncomingMessage,
     TlsReport,
     is_fbl_report,
-    is_fbl_sender_authenticated,
 )
 from .signals import fbl_report_received
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
@@ -140,9 +139,7 @@ def process_incoming_message(
             )
             return "250 OK"
 
-        case _ if is_fbl_report(mail_from, rcpt_to) and is_fbl_sender_authenticated(
-            mail_from, client_ip, raw_bytes
-        ):
+        case _ if is_fbl_report(mail_from, rcpt_to):
             message = IncomingMessage.objects.create(
                 org=domain.org,
                 domain=domain,

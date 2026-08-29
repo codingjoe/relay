@@ -3,8 +3,6 @@ import uuid
 from enum import nonmember
 from fnmatch import fnmatch
 
-import dns.exception
-import spf
 from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
@@ -12,7 +10,6 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import iter_attachments
-from abstract.mailauth import AuthResult, DmarcEvaluation
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
 from kms.models import SigningKey
@@ -24,55 +21,13 @@ from .serializers import TlsReportSerializer
 def is_fbl_report(mail_from: str, rcpt_to: str) -> bool:
     """Tell whether an incoming message is a feedback loop report from a listed sender.
 
-    The platform reporting address must be the recipient, and the sender
-    must be one of the exact mail addresses listed in `RELAY_FBL_SENDERS`,
-    matched case-insensitively.
+    The platform ingestion address must be the recipient, and the sender
+    must be listed in `RELAY_FBL_SENDERS`, matched case-insensitively.
     """
-    recipient_local, _, recipient_domain = rcpt_to.partition("@")
-    if (
-        recipient_local.lower() != settings.RELAY_FBL_LOCAL_PART
-        or recipient_domain.rstrip(".").lower() != settings.RELAY_PLATFORM_DOMAIN
-    ):
-        return False
-    return mail_from.lower() in {
-        allowed.lower() for allowed in settings.RELAY_FBL_SENDERS
-    }
-
-
-def is_spf_pass(mail_from: str, client_ip: str) -> bool:
-    """Tell whether the envelope sender passes SPF on the client IP per RFC 7208.
-
-    Returns False without a client IP. DNS and policy errors count as
-    failures.
-    """
-    if not client_ip:
-        return False
-    try:
-        result, _ = spf.check2(
-            client_ip, mail_from, DmarcEvaluation.extract_domain(mail_from)
-        )
-    except dns.exception.DNSException, spf.PermError:
-        return False
-    return result == AuthResult.PASS
-
-
-def is_fbl_sender_authenticated(
-    mail_from: str, client_ip: str, raw_bytes: bytes
-) -> bool:
-    """Tell whether the host reporting as an FBL sender authenticated.
-
-    Acceptance requires an SPF pass for the envelope sender evaluated on
-    the connecting client IP address per RFC 7208. Otherwise a DKIM pass
-    must have a `d=` domain equal to the envelope sender's domain.
-
-    Results are computed here and never reuse the DMARC evaluation from
-    spam classification, which relies on untrusted `Received:` headers.
-    """
-    if is_spf_pass(mail_from, client_ip):
-        return True
-    envelope_domain = DmarcEvaluation.extract_domain(mail_from)
-    dkim_result, dkim_domain = DmarcEvaluation.verify_dkim(raw_bytes)
-    return dkim_result == AuthResult.PASS and dkim_domain.lower() == envelope_domain
+    return (
+        rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
+        and mail_from.lower() in settings.RELAY_FBL_SENDERS
+    )
 
 
 class IncomingMessage(Message):

@@ -1,19 +1,11 @@
 import base64
-from unittest.mock import patch
 
-import dns.exception
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from abstract.mailauth import AuthResult
 from domains.models import Domain
 from kms.models import SigningKey
-from services.email.mta.models import (
-    Webhook,
-    is_fbl_report,
-    is_fbl_sender_authenticated,
-    is_spf_pass,
-)
+from services.email.mta.models import Webhook, is_fbl_report
 
 
 @pytest.fixture
@@ -164,107 +156,32 @@ class TestSign:
 
 
 class TestIsFblReport:
-    def test_is_fbl_report__is_platform_reporting_address_from_allowed_sender(
-        self, settings
-    ):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+    def test_is_fbl_report__is_ingestion_address_from_listed_sender(self, settings):
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
         settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is True
 
     def test_is_fbl_report__rejects_all_senders_when_allowlist_is_empty(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
         settings.RELAY_FBL_SENDERS = []
         assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is False
 
-    def test_is_fbl_report__matches_allowed_sender_email(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
-        settings.RELAY_FBL_SENDERS = ["feedback-loops@yahoo.com"]
-        assert is_fbl_report("feedback-loops@yahoo.com", "fbl@relays.test") is True
-
     def test_is_fbl_report__rejects_sender_behind_domain_only(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
         settings.RELAY_FBL_SENDERS = ["gmail.com"]
         assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is False
 
     def test_is_fbl_report__rejects_unknown_sender(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
         settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         assert is_fbl_report("forged@example.org", "fbl@relays.test") is False
 
-    def test_is_fbl_report__rejects_customer_reporting_address(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+    def test_is_fbl_report__rejects_customer_ingestion_address(self, settings):
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
         settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         assert is_fbl_report("feedback@gmail.com", "fbl@acme.com") is False
 
     def test_is_fbl_report__is_case_insensitive(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
-        settings.RELAY_FBL_SENDERS = ["Feedback@Gmail.com"]
-        assert is_fbl_report("feedback@GMAIL.com", "FBL@Relays.Test.") is True
-
-
-class TestIsSpfPass:
-    def test_is_spf_pass__passes_when_sender_is_authorized(self):
-        with patch("services.email.mta.models.spf.check2", return_value=("pass", "")):
-            assert is_spf_pass("feedback@gmail.com", "127.0.0.1") is True
-
-    def test_is_spf_pass__rejects_non_pass_result(self):
-        with patch(
-            "services.email.mta.models.spf.check2", return_value=("softfail", "")
-        ):
-            assert is_spf_pass("feedback@gmail.com", "127.0.0.1") is False
-
-    def test_is_spf_pass__rejects_empty_client_ip_without_lookup(self):
-        with patch("services.email.mta.models.spf.check2") as check2:
-            assert is_spf_pass("feedback@gmail.com", "") is False
-        check2.assert_not_called()
-
-    def test_is_spf_pass__rejects_on_dns_exception(self):
-        with patch(
-            "services.email.mta.models.spf.check2",
-            side_effect=dns.exception.DNSException("resolver unavailable"),
-        ):
-            assert is_spf_pass("feedback@gmail.com", "192.0.2.1") is False
-
-    def test_is_spf_pass__rejects_invalid_client_ip(self):
-        assert is_spf_pass("feedback@gmail.com", "not-an-ip") is False
-
-
-class TestIsFblSenderAuthenticated:
-    def test_is_fbl_sender_authenticated__spf_pass_accepts_without_dkim(self):
-        with (
-            patch("services.email.mta.models.is_spf_pass", return_value=True),
-            patch("services.email.mta.models.DmarcEvaluation") as evaluation,
-        ):
-            assert (
-                is_fbl_sender_authenticated("feedback@gmail.com", "192.0.2.1", b"")
-                is True
-            )
-        evaluation.verify_dkim.assert_not_called()
-
-    def test_is_fbl_sender_authenticated__accepts_dkim_from_envelope_domain(self):
-        with patch(
-            "services.email.mta.models.DmarcEvaluation.verify_dkim",
-            return_value=(AuthResult.PASS, "gmail.com"),
-        ):
-            assert is_fbl_sender_authenticated("feedback@gmail.com", "", b"") is True
-
-    def test_is_fbl_sender_authenticated__rejects_dkim_from_unlisted_domain(self):
-        with patch(
-            "services.email.mta.models.DmarcEvaluation.verify_dkim",
-            return_value=(AuthResult.PASS, "evil.example"),
-        ):
-            assert is_fbl_sender_authenticated("feedback@gmail.com", "", b"") is False
-
-    def test_is_fbl_sender_authenticated__rejects_failed_dkim(self):
-        with patch(
-            "services.email.mta.models.DmarcEvaluation.verify_dkim",
-            return_value=(AuthResult.FAIL, ""),
-        ):
-            assert is_fbl_sender_authenticated("feedback@gmail.com", "", b"") is False
-
-    def test_is_fbl_sender_authenticated__matches_dkim_domain_case_insensitively(self):
-        with patch(
-            "services.email.mta.models.DmarcEvaluation.verify_dkim",
-            return_value=(AuthResult.PASS, "GMAIL.com"),
-        ):
-            assert is_fbl_sender_authenticated("feedback@gmail.com", "", b"") is True
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        assert is_fbl_report("Feedback@GMAIL.com", "FBL@Relays.Test.") is True

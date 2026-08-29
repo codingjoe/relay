@@ -383,19 +383,13 @@ class TestProcessIncomingMessage:
     async def test_process_incoming_message__fbl_recipient_creates_report(
         self, org, settings
     ):
-        settings.RELAY_PLATFORM_DOMAIN = "example.com"
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
         settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
-        with (
-            patch(
-                "services.email.mta.models.is_spf_pass",
-                return_value=True,
-            ),
-            patch("services.email.mta.handlers.check_incoming_spam"),
-        ):
+        with patch("services.email.mta.handlers.check_incoming_spam"):
             result = await process_incoming_message(
                 "feedback@gmail.com",
-                f"{settings.RELAY_FBL_LOCAL_PART}@example.com",
+                "fbl@example.com",
                 make_arf_email(),
                 True,
                 domain,
@@ -414,13 +408,13 @@ class TestProcessIncomingMessage:
     async def test_process_incoming_message__fbl_recipient_unknown_sender_checks_spam(
         self, org, settings
     ):
-        settings.RELAY_PLATFORM_DOMAIN = "example.com"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
             result = await process_incoming_message(
                 "forged@example.org",
-                f"{settings.RELAY_FBL_LOCAL_PART}@example.com",
+                "fbl@example.com",
                 make_arf_email(),
                 True,
                 domain,

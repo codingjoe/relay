@@ -236,18 +236,12 @@ A rule lives either in this document or in `.relint.yml`, never both.
     `test_get__arbitrary_suffix` / `test_post__arbitrary_suffix`
     (for example, `test_get__not_found`, `test_post__creates_org`).
 
-- Test classes mirror their public API counterpart:
-  `FblReportListView` -> `TestFblReportListView`,
-  `compute_org_reputation` -> `TestComputeOrgReputation`. There is no
-  test class without a counterpart class or function. Split test
-  classes by the API entity they exercise, not by scenario.
+- One test per scenario. Do not write parametrised mega-tests that obscure individual
+  assertions.
 
 - Group related tests in classes. No comment headlines (`# ── … ──`).
   Use plain `class TestSomething:` with no decorator unless a class-level
   `@pytest.mark.django_db` is needed.
-
-- One test per scenario. Do not write parametrised mega-tests that obscure individual
-  assertions.
 
 - Avoid mocking and patching unless the code under test performs external I/O
   (DNS lookups, SMTP delivery, HTTP requests). Mocks can diverge from the real

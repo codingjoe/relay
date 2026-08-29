@@ -54,11 +54,7 @@ gets no cosign. FBL partners dispatch complaint reports based on the
 DKIM `d=` domain, so a single FBL registration per partner covers all
 customers. Each signature covers a `Feedback-ID` header that
 identifies the organization and the message relay minted it for. relay
-stores the ID on the outgoing message, so FBL complaints can be
-attributed even when a provider such as Google echoes only the
-`Feedback-ID`. relay replaces any customer-supplied `Feedback-ID` with
-its own token before signing. The relay token is the attribution key
-that complaint reports echo.
+stores the ID on the outgoing message.
 
 ## Architecture
 
@@ -156,31 +152,17 @@ address glob pattern.
 
 ### Feedback loop (FBL) reports
 
-Mailbox providers send FBL reports when their users mark relay-sent mail as
-spam. Reports arrive at the platform reporting address
-`{RELAY_FBL_LOCAL_PART}@{RELAY_PLATFORM_DOMAIN}` (default `fbl`). Ingestion
-is opt-in: reports are accepted only from the envelope senders in
-`RELAY_FBL_SENDERS`. The empty default keeps ingestion off until an
-operator adds verified senders.
+Mailbox providers send FBL reports to one platform ingestion mailbox,
+`RELAY_FBL_ADDRESS` (default `fbl@<platform domain>`). Register that
+address with each provider and allowlist the provider's exact report
+sender in `RELAY_FBL_SENDERS`; reports from anyone else take the normal
+spam-scored incoming path. Reports attribute via the per-message VERP
+envelope sender or the echoed `Feedback-ID`.
 
-| Variable            | Default        | Description                                                                                                                                                                                                                                                           |
-| ------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RELAY_FBL_SENDERS` | _(empty: off)_ | Comma-separated exact envelope mail addresses, matched case-insensitively. One address per provider; the provider sends every report from that single address to the one platform reporting address. Verify the envelope sender of a live report before you allow it. |
-
-The platform also requires sender authentication. The connecting IP
-address must pass SPF for the envelope sender per RFC 7208. Otherwise
-a DKIM pass must carry a `d=` domain equal to the envelope sender
-domain. Mail with neither proof follows
-the normal incoming path with spam scoring.
-
-Attribution requires per-message proof from the provider: the echo of
-the exact original VERP envelope sender
-(`bounce+<message-id>@<sender-domain>`), or the echo of the
-`Feedback-ID` that relay minted when the message was submitted. Providers
-such as Google do not echo the envelope sender, but do echo the
-`Feedback-ID`. Either proof moves the report to the organization and
-domain that sent the original outgoing message. Reports without
-per-message proof stay on the organization hosting the reporting inbox.
+| Variable            | Default                          | Description                                                                                                                            |
+| ------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The one platform FBL ingestion mailbox. Register it with your providers.                                                               |
+| `RELAY_FBL_SENDERS` | _(empty: off)_                   | Comma-separated exact provider envelope addresses. One address per provider, verified against a live report. Empty disables ingestion. |
 
 ### Tech Stack
 
