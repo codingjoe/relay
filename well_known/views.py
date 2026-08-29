@@ -1,4 +1,3 @@
-from django.contrib.staticfiles.storage import staticfiles_storage
 from django.template import loader
 from django.urls import reverse
 from django.views import generic
@@ -8,21 +7,6 @@ from abstract.views import CacheControlMixin
 from alternative_to.views import AlternativeToListView
 from docs.views import DocsListView
 from know_how.views import KnowHowListView
-
-
-class FaviconIcoView(CacheControlMixin, generic.RedirectView):
-    """Redirect /favicon.ico to the static icon."""
-
-    # 302, not 301: the target URL is content-hashed in production
-    # (ManifestStaticFilesStorage), so a permanent redirect would pin
-    # clients to a hash that stops existing with the next icon change.
-    permanent = False
-
-    @property
-    def url(self):
-        return staticfiles_storage.url("img/favicon.ico")
-
-    cache_control = {"public": True, "max_age": 86400}
 
 
 class RobotsTxtView(CacheControlMixin, generic.TemplateView):

@@ -228,6 +228,10 @@ AWS_S3_MESSAGE_PREFIX = env("AWS_S3_MESSAGE_PREFIX", default="messages/")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
+# Files under `public/` are served from the domain root by WhiteNoise,
+# e.g. public/favicon.ico is served at /favicon.ico.
+WHITENOISE_ROOT = BASE_DIR / "public"
+WHITENOISE_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"

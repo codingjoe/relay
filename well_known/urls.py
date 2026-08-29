@@ -21,7 +21,6 @@ sitemaps = {
 }
 
 urlpatterns = [
-    path("favicon.ico", views.FaviconIcoView.as_view(), name="favicon-ico"),
     path("robots.txt", views.RobotsTxtView.as_view(), name="robots-txt"),
     path("llms.txt", views.LlmsTxtView.as_view(), name="llms-txt"),
     path("llms-full.txt", views.LlmsFullTxtView.as_view(), name="llms-full-txt"),
