@@ -33,6 +33,17 @@ sign every message with `h=sha256`. Multiple algorithms exist because some
 older verifiers do not read Ed25519 names yet. All three signatures ride on
 every outgoing message, so stricter receivers find a signature they accept.
 
+Your message carries one more identity besides your domain keys. relay signs
+every message a second time with its platform keys. The platform signatures
+verify against records under the platform domain, so a receiver can tell the
+platform apart from your domain.
+
+The platform signatures cover the same message headers, plus the
+`Feedback-ID` header. A mailbox provider copies this header into spam
+complaints, so the complaint points back at one message. The complaint path
+is on the <a href="{% url 'docs:detail' slug='reputation' %}">Sender
+reputation</a> page.
+
 ## A working sender domain from signup
 
 Every organization gets a managed sender domain at `{org}.open.{platform}`,
