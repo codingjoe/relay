@@ -15,7 +15,7 @@ sender reputation. Their agents consume the product over SMTP, API, or MCP.
 
 ## Product Purpose
 
-relay is communication infrastructure as a service, not just email. Create
+relay is communication as a service, not just email. Create
 an account and you can send an email immediately; VoIP will follow the same
 pattern. Email sending, receiving, and reputation monitoring are live today.
 Every organization gets a managed sender domain
