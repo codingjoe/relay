@@ -273,10 +273,7 @@ RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
 RELAY_FBL_LOCAL_PART = env("RELAY_FBL_LOCAL_PART", default="fbl")
 RELAY_FBL_SENDERS = [
-    s.lower()
-    for s in env.list(
-        "RELAY_FBL_SENDERS", default=["gmail.com", "hotmail.com", "yahoo.com"]
-    )
+    s.strip().lower() for s in env.list("RELAY_FBL_SENDERS", default=[]) if s.strip()
 ]
 RELAY_POSTMASTER_LOCAL_PART = "postmaster"
 RELAY_BOUNCE_LOCAL_PART = "bounce"

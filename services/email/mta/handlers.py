@@ -6,15 +6,21 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 
+from abstract.mailauth import Disposition, DmarcEvaluation
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.dmarc.tasks import (
     parse_dmarc_failure_report,
     parse_dmarc_report,
 )
-from services.email.dmarc.types import Disposition, DmarcEvaluation
 
-from .models import IncomingMessage, TlsReport, is_fbl_report
+from .models import (
+    IncomingMessage,
+    TlsReport,
+    is_fbl_report,
+    is_fbl_sender_authenticated,
+)
+from .signals import fbl_report_received
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
@@ -134,8 +140,10 @@ def process_incoming_message(
             )
             return "250 OK"
 
-        case _ if is_fbl_report(mail_from, rcpt_to):
-            IncomingMessage.objects.create(
+        case _ if is_fbl_report(mail_from, rcpt_to) and is_fbl_sender_authenticated(
+            mail_from, client_ip, raw_bytes
+        ):
+            message = IncomingMessage.objects.create(
                 org=domain.org,
                 domain=domain,
                 receiving_domain=rcpt_domain,
@@ -149,6 +157,7 @@ def process_incoming_message(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
             )
+            fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
     is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (

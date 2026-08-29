@@ -3,7 +3,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from services.email.msa.models import OutgoingMessage, Transmission
-from services.email.mta.models import IncomingMessage, is_fbl_report
+from services.email.mta.models import IncomingMessage
+from services.email.mta.signals import fbl_report_received
 
 from . import tasks
 from .models import FblReport
@@ -37,15 +38,23 @@ def check_reputation_on_held_message(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=IncomingMessage)
-def check_reputation_on_incoming_message(sender, instance, created, **kwargs):
-    """Store provider FBL reports sent to the FBL inbox and record relay
-    reports for quarantined mail."""
-    if created and is_fbl_report(instance.mail_from, instance.rcpt_to):
-        report = FblReport.create_for_incoming(instance)
-        transaction.on_commit(
-            lambda: tasks.parse_fbl_report.enqueue(report_pk=str(report.pk))
-        )
-    elif instance.status == IncomingMessage.Status.QUARANTINED and "status" in (
+def check_reputation_on_incoming_message(sender, instance, **kwargs):
+    """Record a relay FBL report when the MTA quarantines incoming mail.
+
+    The report is visibility-only. Quarantined incoming mail does not
+    affect the organization's sending reputation, so no evaluation
+    follows.
+    """
+    if instance.status == IncomingMessage.Status.QUARANTINED and "status" in (
         kwargs.get("update_fields") or ()
     ):
         FblReport.create_for_spam(instance)
+
+
+@receiver(fbl_report_received)
+def create_provider_fbl_report(sender, message, **kwargs):
+    """Record a provider FBL report and queue its parsing after commit."""
+    report = FblReport.create_for_incoming(message)
+    transaction.on_commit(
+        lambda: tasks.parse_fbl_report.enqueue(report_pk=str(report.pk))
+    )

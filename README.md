@@ -137,6 +137,32 @@ data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
 
+### Feedback loop (FBL) reports
+
+Mailbox providers send FBL reports when their users mark relay-sent mail as
+spam. Reports arrive at the platform reporting address
+`{RELAY_FBL_LOCAL_PART}@{RELAY_PLATFORM_DOMAIN}` (default `fbl`). Ingestion
+is opt-in: reports are accepted only from the envelope senders in
+`RELAY_FBL_SENDERS`. The empty default keeps ingestion off until an
+operator adds verified senders.
+
+| Variable            | Default        | Description                                                                                                                                                                                                        |
+| ------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RELAY_FBL_SENDERS` | _(empty: off)_ | Comma-separated exact envelope addresses or bare domains, matched case-insensitively. Provider FBL envelope senders are undocumented and mutable. Verify the envelope sender of a live report before you allow it. |
+
+The platform also requires sender authentication. The connecting IP
+address must pass SPF for the envelope sender per RFC 7208. Otherwise
+a DKIM pass must carry a `d=` domain equal to the envelope sender
+domain or a `RELAY_FBL_SENDERS` entry. Mail with neither proof follows
+the normal incoming path with spam scoring.
+
+Attribution requires the provider to echo the exact original VERP
+envelope sender (`bounce+<message-id>@<sender-domain>`). That echo
+proves the per-message identity, so the report moves to the
+organization and domain that sent the original outgoing message.
+Reports without that proof stay on the organization hosting the
+reporting inbox.
+
 ### Tech Stack
 
 - **Django** with the task framework for async message delivery

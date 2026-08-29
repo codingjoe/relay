@@ -191,7 +191,8 @@ class FblReport(OrganizationOwned):
         Reports usually arrive on a single reporting address such as
         `fbl@relays.to`, regardless of the original recipient. The report
         is stored un-parsed and filled in later by the `parse_fbl_report`
-        task, which also routes the report to the sending organization.
+        task, which attributes it only when the provider echoes the exact
+        VERP envelope sender.
         """
         return cls.objects.create(
             source=cls.Source.PROVIDER,

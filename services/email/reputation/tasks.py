@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.tasks import task
@@ -16,47 +17,39 @@ from .models import FblReport
 logger = logging.getLogger(__name__)
 
 
-def resolve_fbl_owner(original_mail_from):
+def resolve_fbl_owner(original_mail_from: str) -> tuple[Organization, Domain] | None:
     """Return the org and domain that sent the message a report is about.
 
-    FBL reports arrive on a single reporting address, which for abuse
-    reporting format (RFC 5965) carries no per-message identity in the
-    recipient. The per-message identity arrives in the payload: the
-    reporting provider echoes the original envelope sender, which may
-    carry a VERP token (bounce+<message-id>@...) that references the
-    original outgoing message. Without a token or with an unknown token,
-    the envelope sender domain resolves the customer domain; managed
-    domains are excluded.
-
-    Returns `None` when the report cannot be attributed to an org.
+    The only per-message proof is the full VERP envelope sender
+    (`bounce+<message-id>@<sender-domain>`) that the provider echoes.
+    Anything else returns `None`.
     """
-    local_part = original_mail_from.split("@", 1)[0]
-    token = local_part.split("+", 1)[1] if "+" in local_part else ""
-    if token:
-        try:
-            original = OutgoingMessage.objects.select_related(
-                "org",
-                "domain",
-            ).get(pk=token)
-        except ValueError, ValidationError, OutgoingMessage.DoesNotExist:
-            original = None
-        else:
-            return original.org, original.domain
-    mail_from_domain = original_mail_from.split("@")[-1]
-    if not mail_from_domain:
-        return None
+    token = original_mail_from.partition("@")[0].partition("+")[2]
     try:
-        domain = Domain.objects.root_for(mail_from_domain, include_managed=False)
-    except Domain.DoesNotExist:
+        original = OutgoingMessage.objects.select_related(
+            "org",
+            "domain",
+        ).get(pk=token)
+    except ValidationError, OutgoingMessage.DoesNotExist:
         return None
-    return domain.org, domain
+    if original.domain is None:
+        return None
+    return_path = (
+        f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
+        f"@{original.domain.sender_domain}"
+    )
+    if original_mail_from != return_path:
+        return None
+    return original.org, original.domain
 
 
 @task
 def parse_fbl_report(report_pk):
-    """Fill the stored fields from the referenced message's raw ARF body,
-    route the report to the sending organization, then queue an org
-    evaluation.
+    """Fill the stored fields from the referenced message's raw ARF body.
+
+    Attribute the report to the sending organization only when the
+    provider echoes the exact original VERP envelope sender, then queue
+    an org evaluation.
 
     Logs and keeps the stored fields when the body is not an ARF email.
     """
