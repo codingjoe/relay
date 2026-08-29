@@ -46,7 +46,7 @@ class TestDocsListView:
         response = client.get(reverse("docs:list"))
         assert response.status_code == 200
         assert "articles" in response.context
-        assert len(response.context["articles"]) == 10
+        assert len(response.context["articles"]) == 11
 
 
 class TestDocsDetailView:
