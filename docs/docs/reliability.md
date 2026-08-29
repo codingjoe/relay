@@ -81,10 +81,10 @@ endpoint misbehavior shows as data.
 The web process exposes two health endpoints for load balancers and uptime
 monitors:
 
-| Endpoint          | Checks                        | Use                    |
-| ----------------- | ----------------------------- | ---------------------- |
-| `/health/`        | Disk, memory                  | Lightweight outer loop |
-| `/health/django/` | Database, Redis, disk, memory | Full stack probe       |
+| Endpoint          | Checks                               | Use                    |
+| ----------------- | ------------------------------------ | ---------------------- |
+| `/health/`        | Disk, memory                         | Lightweight outer loop |
+| `/health/django/` | Cache, database, Redis, disk, memory | Full stack probe       |
 
 Both answer with a status and an HTTP 200 when healthy. Monitor them with
 whatever you use elsewhere. You need no special headers.

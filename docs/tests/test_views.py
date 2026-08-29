@@ -23,7 +23,7 @@ class TestSlugUniqueness:
             | LEGAL_SLUGS
         )
         assert not SLUGS & other_slugs
-        assert pathlib.Path(DOCS_DIR).glob("*.md")
+        assert list(pathlib.Path(DOCS_DIR).glob("*.md"))
 
 
 class TestListArticles:
