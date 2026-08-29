@@ -99,12 +99,12 @@ sequenceDiagram
 Important details of the pipeline:
 
 - **Signing covers the message as stored.** relay signs with the private
-  keys of the sender domain for RSA-2048, RSA-1024, and Ed25519 at once, over
-  From, To, Subject, Date, and Message-ID.
-- **relay also signs with its platform keys.** The signatures cover the same
-  message headers, plus the `Feedback-ID` header. When the message has no
-  `Feedback-ID` header, relay adds one. When you set your own, relay keeps
-  it unchanged.
+  keys of the sender domain for RSA-2048, RSA-1024, and Ed25519 at once.
+  All signatures cover the same headers: From, To, Subject, Date,
+  Message-ID, and `Feedback-ID`.
+- **Customers' messages carry a platform cosign.** relay cosigns with the
+  keys of the platform domain. When the message has no `Feedback-ID`
+  header, relay adds one. When you set your own, relay keeps it unchanged.
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
   message and the envelope domain aligns with your DKIM.
