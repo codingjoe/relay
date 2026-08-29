@@ -46,8 +46,7 @@ class TestDeliverMessage:
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
 
-        with patch("domains.dkim.sign_message", return_value=b"signed"):
-            deliver_message.func(message_id=str(msg.id))
+        deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
@@ -108,10 +107,7 @@ class TestDeliverMessage:
 
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
         exc = aiosmtplib.SMTPResponseException(550, b"User unknown")
-        with (
-            patch("services.email.msa.tasks.aiosmtplib.send", side_effect=exc),
-            patch("domains.dkim.sign_message", return_value=b"signed"),
-        ):
+        with patch("services.email.msa.tasks.aiosmtplib.send", side_effect=exc):
             deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
@@ -164,10 +160,7 @@ class TestDeliverMessage:
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
 
-        with (
-            patch("domains.dkim.sign_message") as mock_sign,
-            patch("services.email.msa.tasks.aiosmtplib.send") as mock_send,
-        ):
+        with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
             deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
@@ -177,7 +170,6 @@ class TestDeliverMessage:
             status=Transmission.Status.FAILED,
             details__contains="ambiguous",
         ).exists()
-        mock_sign.assert_not_called()
         mock_send.assert_not_called()
 
     def test_deliver_message__drops_message_of_locked_org(self, user, org):
@@ -223,13 +215,9 @@ class TestDeliverMessage:
         (domain,) = Domain.objects.bulk_create([Domain(name="Example.com", org=org)])
         msg = self.make_message(user, org, domain)
 
-        with (
-            patch("domains.dkim.sign_message") as mock_sign,
-            patch("services.email.msa.tasks.aiosmtplib.send") as mock_send,
-        ):
+        with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
             deliver_message.func(message_id=str(msg.id))
 
-        mock_sign.assert_not_called()
         mock_send.assert_not_called()
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
@@ -250,7 +238,6 @@ class TestDeliverMessage:
         with (
             patch("services.email.msa.tasks.MtaStsPolicy") as mock_policy,
             patch("services.email.msa.tasks.aiosmtplib.send") as mock_send,
-            patch("domains.dkim.sign_message", return_value=b"signed"),
         ):
             mock_policy.get.return_value.allows.return_value = (
                 False,
@@ -277,10 +264,7 @@ class TestDeliverMessage:
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
 
         exc = aiosmtplib.SMTPResponseException(450, b"Try again later")
-        with (
-            patch("services.email.msa.tasks.aiosmtplib.send", side_effect=exc),
-            patch("domains.dkim.sign_message", return_value=b"signed"),
-        ):
+        with patch("services.email.msa.tasks.aiosmtplib.send", side_effect=exc):
             deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
@@ -299,13 +283,10 @@ class TestDeliverMessage:
             "example.com", "MX", "10 mx1.example.com.", "20 mx2.example.com."
         )
 
-        with (
-            patch(
-                "services.email.msa.tasks.aiosmtplib.send",
-                side_effect=aiosmtplib.SMTPException("nope"),
-            ) as mock_send,
-            patch("domains.dkim.sign_message", return_value=b"signed"),
-        ):
+        with patch(
+            "services.email.msa.tasks.aiosmtplib.send",
+            side_effect=aiosmtplib.SMTPException("nope"),
+        ) as mock_send:
             deliver_message.func(message_id=str(msg.id))
 
         assert mock_send.call_count == 2

@@ -4,8 +4,9 @@ from dnslib import DNSLabel
 from dnslib.dns import QTYPE
 
 from accounts.models import Organization
-from domains.models import Domain
+from domains.models import Domain, canonicalize_domain_name
 from domains.resolver import DNSResolver, txt
+from kms.models import SigningKey
 
 
 class TestTxt:
@@ -235,16 +236,27 @@ class TestResolve:
             assert len(records) == 1, base
             assert b"v=DKIM1" in b"".join(records[0].rdata.data)
 
-    def test_resolve_records__no_platform_dkim_txt_without_key(self, settings):
-        settings.RELAY_DNS_DKIM_IDENTIFIER = "relay"
-        selector = f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-platform-rsa1024"
-
-        records = DNSResolver().resolve_records(
-            DNSLabel(f"{selector}._domainkey.{settings.RELAY_PLATFORM_DOMAIN}"),
-            QTYPE.TXT,
+    def test_resolve_records__publishes_platform_dkim_txt(self):
+        # bulk_create bypasses clean(), which would reject the platform
+        # domain as an ancestor of the org's own managed sender domain.
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = Domain(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+            dkim_key_rsa2048=SigningKey.generate(SigningKey.Algorithm.RSA_2048),
+            dkim_key_rsa1024=SigningKey.generate(SigningKey.Algorithm.RSA_1024),
+            dkim_key_ed25519=SigningKey.generate(SigningKey.Algorithm.ED25519),
         )
+        (platform,) = Domain.objects.bulk_create([platform])
+        selector, _ = platform.dkim_ciphers[0]
 
-        assert records == []
+        for base in (platform.name, platform.sender_domain):
+            records = DNSResolver().resolve_records(
+                DNSLabel(f"{selector}._domainkey.{base}"),
+                QTYPE.TXT,
+            )
+            assert len(records) == 1, base
+            assert b"v=DKIM1" in b"".join(records[0].rdata.data)
 
     def test_resolve_records__unknown_domain_returns_empty(self):
         assert DNSResolver().resolve_records(DNSLabel("unknown.com"), QTYPE.A) == []

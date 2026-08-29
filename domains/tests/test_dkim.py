@@ -1,6 +1,8 @@
+import email
 from email.message import EmailMessage
 
 import pytest
+from django.conf import settings
 
 from accounts.models import Organization
 from domains.dkim import (
@@ -9,7 +11,7 @@ from domains.dkim import (
     sign_message,
     verify_signature,
 )
-from domains.models import Domain
+from domains.models import Domain, canonicalize_domain_name
 from kms import keys as kms_keys
 from kms.models import SigningKey
 
@@ -21,6 +23,7 @@ def make_email():
     msg["Subject"] = "Test"
     msg["Date"] = "Mon, 01 Jan 2024 00:00:00 +0000"
     msg["Message-ID"] = "<test@example.com>"
+    msg["Feedback-ID"] = "9::000000000000000000000000:relay"
     msg.set_content("Hello world")
     return msg
 
@@ -28,6 +31,42 @@ def make_email():
 def make_signing_key(algorithm, private_algorithm=None):
     pair = kms_keys.generate(private_algorithm or algorithm)
     return SigningKey(algorithm=algorithm, encrypted_private_key=pair.ciphertext)
+
+
+def parse_signatures(signed):
+    """Return the tag dict of every DKIM-Signature, topmost first."""
+    return [
+        dict(
+            tag.split("=", 1)
+            for tag in " ".join(signature.split()).split("; ")
+            if "=" in tag
+        )
+        for signature in email.message_from_bytes(signed).get_all("DKIM-Signature")
+    ]
+
+
+def make_platform_domain(org, **dkim_keys):
+    """Create the Domain row named RELAY_PLATFORM_DOMAIN with explicit keys.
+
+    bulk_create bypasses save()/clean(), because the platform domain is
+    an ancestor of every managed sender domain, so saving it through the
+    ordinary path would trip the domain overlap validator.
+    """
+    domain = Domain(
+        name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+        org=org,
+        **dkim_keys,
+    )
+    (domain,) = Domain.objects.bulk_create([domain])
+    return domain
+
+
+def make_platform_keys():
+    return {
+        "dkim_key_rsa2048": SigningKey.generate(SigningKey.Algorithm.RSA_2048),
+        "dkim_key_rsa1024": SigningKey.generate(SigningKey.Algorithm.RSA_1024),
+        "dkim_key_ed25519": SigningKey.generate(SigningKey.Algorithm.ED25519),
+    }
 
 
 class TestSignMessage:
@@ -60,6 +99,91 @@ class TestSignMessage:
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"d=example.com" in signed
+
+    @pytest.mark.django_db
+    def test_sign_message__cosigns_with_platform_domain(self):
+        org = Organization.objects.create(slug="o")
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = make_platform_domain(platform_org, **make_platform_keys())
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        signed = sign_message(make_email().as_bytes(), domain)
+
+        # Signatures are prepended, so the platform cosign sits above the
+        # body while the customer's own signatures stay on top, the way
+        # SES dual-signs for FBL attribution.
+        assert [
+            (signature["d"], signature["s"]) for signature in parse_signatures(signed)
+        ] == [
+            ("example.com", "relay-ed25519"),
+            ("example.com", "relay-rsa1024"),
+            ("example.com", "relay-rsa2048"),
+            (platform.name, "relay-ed25519"),
+            (platform.name, "relay-rsa1024"),
+            (platform.name, "relay-rsa2048"),
+        ]
+
+    @pytest.mark.django_db
+    def test_sign_message__cosigns_with_missing_platform_keys(self):
+        org = Organization.objects.create(slug="o")
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = make_platform_domain(
+            platform_org,
+            dkim_key_ed25519=SigningKey.generate(SigningKey.Algorithm.ED25519),
+        )
+        domain = Domain.objects.create(
+            name="example.com",
+            org=org,
+            dkim_key_rsa2048=SigningKey.generate(SigningKey.Algorithm.RSA_2048),
+        )
+
+        signed = sign_message(make_email().as_bytes(), domain)
+
+        # Missing keys skip the cosign instead of failing the message.
+        assert [
+            (signature["d"], signature["s"]) for signature in parse_signatures(signed)
+        ] == [
+            ("example.com", "relay-rsa2048"),
+            (platform.name, "relay-ed25519"),
+        ]
+
+    @pytest.mark.django_db
+    def test_sign_message__no_cosign_without_platform_domain(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        signed = sign_message(make_email().as_bytes(), domain)
+
+        signatures = parse_signatures(signed)
+        assert len(signatures) == 3
+        assert {signature["d"] for signature in signatures} == {"example.com"}
+
+    @pytest.mark.django_db
+    def test_sign_message__signs_platform_domain_once(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        domain = make_platform_domain(platform_org, **make_platform_keys())
+
+        signed = sign_message(make_email().as_bytes(), domain)
+
+        signatures = parse_signatures(signed)
+        assert len(signatures) == 3
+        assert {signature["d"] for signature in signatures} == {domain.name}
+
+    @pytest.mark.django_db
+    def test_sign_message__covers_feedback_id_in_every_signature(self):
+        org = Organization.objects.create(slug="o")
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = make_platform_domain(platform_org, **make_platform_keys())
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        signed = sign_message(make_email().as_bytes(), domain)
+
+        signatures = parse_signatures(signed)
+        assert {signature["d"] for signature in signatures} == {
+            "example.com",
+            platform.name,
+        }
+        assert all("feedback-id" in signature["h"].lower() for signature in signatures)
 
     @pytest.mark.django_db
     def test_sign_message__returns_original_when_no_keys(self):
@@ -108,3 +232,8 @@ class TestVerifySignature:
     def test_verify_signature__rejects_unsigned(self):
         verified, _ = verify_signature(make_email().as_bytes())
         assert verified is not True
+
+    def test_verify_signature__returns_false_for_malformed_message(self):
+        verified, _ = verify_signature(b"garbage\r\n")
+
+        assert verified is False
