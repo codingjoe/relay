@@ -15,7 +15,12 @@ from services.email.reputation.models import FblReport
 from services.email.reputation.tasks import parse_fbl_report, resolve_fbl_owner
 
 
-def make_arf_email(feedback_type="fraud", original_mail_from="sender@acme.com"):
+def make_arf_email(
+    feedback_type="fraud",
+    original_mail_from="sender@acme.com",
+    feedback_id=None,
+    original_headers=None,
+):
     message = EmailMessage()
     message["From"] = "feedback@gmail.com"
     message["Subject"] = "FBL Report"
@@ -29,11 +34,17 @@ def make_arf_email(feedback_type="fraud", original_mail_from="sender@acme.com"):
         f"Original-Mail-From: {original_mail_from}\n"
         "Original-Rcpt-To: victim@gmail.com\n"
     )
+    if feedback_id:
+        report += f"Feedback-ID: {feedback_id}\n"
     message.add_attachment(
         report.encode(),
         maintype="message",
         subtype="feedback-report",
     )
+    if original_headers is not None:
+        message.add_attachment(
+            original_headers, maintype="text", subtype="rfc822-headers"
+        )
     return message.as_bytes()
 
 
@@ -152,6 +163,38 @@ class TestParseFblReport:
         report.refresh_from_db()
         assert report.org == org
 
+    def test_parse_fbl_report__routes_report_by_feedback_id(self, org):
+        sender_org = Organization.objects.create(slug="sender")
+        domain = Domain.objects.create(name="sender.test", org=sender_org)
+        OutgoingMessage.objects.create(
+            org=sender_org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="9999::aabbccddeeff001122334455:relay",
+        )
+        report = make_report(
+            org,
+            make_arf_email(
+                original_headers=(
+                    b"From: sender@acme.com\r\n"
+                    b"Feedback-ID: 9999::aabbccddeeff001122334455:relay\r\n"
+                ),
+            ),
+        )
+
+        parse_fbl_report.func(report_pk=report.pk)
+
+        report.refresh_from_db()
+        assert report.org == sender_org
+        assert report.domain == domain
+        message = report.message
+        message.refresh_from_db()
+        assert message.org == sender_org
+        assert message.domain == domain
+
 
 @pytest.mark.django_db
 class TestResolveFblOwner:
@@ -217,6 +260,135 @@ class TestResolveFblOwner:
 
     def test_resolve_fbl_owner__returns_none_for_malformed_token(self, org):
         assert resolve_fbl_owner("bounce+not-a-uuid@sender.test") is None
+
+    def test_resolve_fbl_owner__attributes_by_feedback_id(self, org):
+        domain = Domain.objects.create(name="sender.test", org=org)
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="9999::aabbccddeeff001122334455:relay",
+        )
+
+        assert resolve_fbl_owner(
+            "sender@acme.com", "9999::aabbccddeeff001122334455:relay"
+        ) == (org, domain)
+
+    def test_resolve_fbl_owner__rejects_case_shifted_feedback_id(self, org):
+        domain = Domain.objects.create(name="sender.test", org=org)
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="9999::aabbccddeeff001122334455:relay",
+        )
+
+        assert (
+            resolve_fbl_owner("sender@acme.com", "9999::AABBCCDDEEFF001122334455:RELAY")
+            is None
+        )
+
+    def test_resolve_fbl_owner__returns_none_for_unknown_feedback_id(self, org):
+        domain = Domain.objects.create(name="sender.test", org=org)
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="9999::aabbccddeeff001122334455:relay",
+        )
+
+        assert (
+            resolve_fbl_owner("sender@acme.com", "9999::0000000000000000000000:relay")
+            is None
+        )
+
+    def test_resolve_fbl_owner__never_matches_empty_feedback_id_claim(self, org):
+        domain = Domain.objects.create(name="sender.test", org=org)
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="",
+        )
+
+        assert resolve_fbl_owner("sender@acme.com", "") is None
+
+    def test_resolve_fbl_owner__returns_none_when_feedback_match_has_no_domain(
+        self, org
+    ):
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=None,
+            mail_from="sender@example.com",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="9999::aabbccddeeff001122334455:relay",
+        )
+
+        assert (
+            resolve_fbl_owner("sender@acme.com", "9999::aabbccddeeff001122334455:relay")
+            is None
+        )
+
+    def test_resolve_fbl_owner__verp_hit_does_not_consult_feedback_id(self, org):
+        domain = Domain.objects.create(name="sender.test", org=org)
+        original = OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="9999::aabbccddeeff001122334455:relay",
+        )
+        other_org = Organization.objects.create(slug="other-sender")
+        other_domain = Domain.objects.create(name="other.test", org=other_org)
+        OutgoingMessage.objects.create(
+            org=other_org,
+            domain=other_domain,
+            mail_from="sender@other.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="8888::001122334455aabbccddeeff:relay",
+        )
+
+        assert resolve_fbl_owner(
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@{domain.sender_domain}",
+            "8888::001122334455aabbccddeeff:relay",
+        ) == (org, domain)
+
+    def test_resolve_fbl_owner__attributes_by_feedback_id_after_return_path_mismatch(
+        self, org
+    ):
+        domain = Domain.objects.create(name="sender.test", org=org)
+        original = OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+            feedback_id="9999::aabbccddeeff001122334455:relay",
+        )
+
+        assert resolve_fbl_owner(
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@evil.test",
+            "9999::aabbccddeeff001122334455:relay",
+        ) == (org, domain)
 
 
 class TestProcessIncomingMessage:

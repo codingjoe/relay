@@ -51,8 +51,11 @@ customers. Configure the platform private keys (unencrypted PEM) with
 `RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY`, and
 `RELAY_DKIM_PLATFORM_ED25519_PRIVATE_KEY`. An empty value skips that
 cipher. Each message also carries a `Feedback-ID` header that identifies
-the organization for FBL complaint aggregation. If the customer already
-set a `Feedback-ID`, it is preserved and none is added.
+the organization and the message relay minted it for. relay stores the ID
+on the outgoing message, so FBL complaints can be attributed even when a
+provider (for example, Google) echoes only the `Feedback-ID`. If the
+customer already set a `Feedback-ID`, it is preserved and the message
+stores no attribution token.
 
 ## Architecture
 
@@ -167,12 +170,14 @@ a DKIM pass must carry a `d=` domain equal to the envelope sender
 domain or a `RELAY_FBL_SENDERS` entry. Mail with neither proof follows
 the normal incoming path with spam scoring.
 
-Attribution requires the provider to echo the exact original VERP
-envelope sender (`bounce+<message-id>@<sender-domain>`). That echo
-proves the per-message identity, so the report moves to the
-organization and domain that sent the original outgoing message.
-Reports without that proof stay on the organization hosting the
-reporting inbox.
+Attribution requires per-message proof from the provider: the echo of
+the exact original VERP envelope sender
+(`bounce+<message-id>@<sender-domain>`), or the echo of the
+`Feedback-ID` that relay minted when the message was submitted. Providers
+such as Google do not echo the envelope sender, but do echo the
+`Feedback-ID`. Either proof moves the report to the organization and
+domain that sent the original outgoing message. Reports without
+per-message proof stay on the organization hosting the reporting inbox.
 
 ### Tech Stack
 

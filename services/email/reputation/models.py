@@ -163,25 +163,28 @@ class FblReport(OrganizationOwned):
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return an unsaved instance built from a raw ARF message.
+        """Return an unsaved instance and the claimed Feedback-ID parsed
+        from a raw ARF message.
 
         Raises `ValueError` if no ARF feedback-report content is found.
         """
-
         parsed = parse_fbl(raw_bytes)
-        return cls(
-            feedback_type=parsed["feedback_type"],
-            user_agent=parsed["user_agent"],
-            version=parsed["version"],
-            reporting_org=parsed["reporting_org"],
-            reporting_email=parsed["reporting_email"],
-            source_ip_address=parsed["source_ip_address"] or None,
-            arrival_at=parsed["arrival_at"],
-            original_mail_from=parsed["original_mail_from"],
-            original_rcpt_to=parsed["original_rcpt_to"],
-            original_message_id=parsed["original_message_id"],
-            authentication_results=parsed["authentication_results"],
-            original_headers=parsed["original_headers"],
+        return (
+            cls(
+                feedback_type=parsed["feedback_type"],
+                user_agent=parsed["user_agent"],
+                version=parsed["version"],
+                reporting_org=parsed["reporting_org"],
+                reporting_email=parsed["reporting_email"],
+                source_ip_address=parsed["source_ip_address"] or None,
+                arrival_at=parsed["arrival_at"],
+                original_mail_from=parsed["original_mail_from"],
+                original_rcpt_to=parsed["original_rcpt_to"],
+                original_message_id=parsed["original_message_id"],
+                authentication_results=parsed["authentication_results"],
+                original_headers=parsed["original_headers"],
+            ),
+            parsed["feedback_id"],
         )
 
     @classmethod
@@ -192,7 +195,7 @@ class FblReport(OrganizationOwned):
         `fbl@relays.to`, regardless of the original recipient. The report
         is stored un-parsed and filled in later by the `parse_fbl_report`
         task, which attributes it only when the provider echoes the exact
-        VERP envelope sender.
+        VERP envelope sender or the message's Feedback-ID.
         """
         return cls.objects.create(
             source=cls.Source.PROVIDER,

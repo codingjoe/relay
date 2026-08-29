@@ -25,10 +25,11 @@ class TestFblReport:
             maintype="message",
             subtype="feedback-report",
         )
-        report = FblReport.parse_from_email(msg.as_bytes())
+        report, feedback_id = FblReport.parse_from_email(msg.as_bytes())
         assert report.feedback_type == "abuse"
         assert report.user_agent == "Gmail/FBL"
         assert report.original_mail_from == "sender@acme.com"
+        assert feedback_id == ""
 
     def test_parse_from_email__raises_on_no_feedback(self):
         msg = EmailMessage()
@@ -150,3 +151,38 @@ class TestFblReport:
         assert report.org == org
         assert report.domain == domain
         assert report.message == message
+
+    def test_parse_from_email__carries_feedback_id(self):
+        msg = EmailMessage()
+        msg["Subject"] = "FBL Report"
+        msg["From"] = "feedback@gmail.com"
+        msg.set_content("Complaint")
+        msg.add_attachment(
+            b"Feedback-Type: abuse\n"
+            b"Feedback-ID: 9::aabbccddeeff001122334455:relay\n"
+            b"Source-IP: 10.0.0.1\n"
+            b"Original-Mail-From: sender@acme.com\n",
+            maintype="message",
+            subtype="feedback-report",
+        )
+
+        _, feedback_id = FblReport.parse_from_email(msg.as_bytes())
+
+        assert feedback_id == "9::aabbccddeeff001122334455:relay"
+
+    def test_parse_from_email__defaults_feedback_id_to_empty(self):
+        msg = EmailMessage()
+        msg["Subject"] = "FBL Report"
+        msg["From"] = "feedback@gmail.com"
+        msg.set_content("Complaint")
+        msg.add_attachment(
+            b"Feedback-Type: abuse\n"
+            b"Source-IP: 10.0.0.1\n"
+            b"Original-Mail-From: sender@acme.com\n",
+            maintype="message",
+            subtype="feedback-report",
+        )
+
+        _, feedback_id = FblReport.parse_from_email(msg.as_bytes())
+
+        assert feedback_id == ""

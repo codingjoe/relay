@@ -19,6 +19,7 @@ FBL_FIELD_MAP = {
     "original-message-id": "original_message_id",
     "user-agent": "user_agent",
     "version": "version",
+    "feedback-id": "feedback_id",
 }
 VALID_FEEDBACK_TYPES = frozenset(
     {"abuse", "fraud", "virus", "not-spam", "other", "opt-out"}
@@ -37,8 +38,10 @@ def parse_fbl(raw_bytes):
     Feedback-Type defaults to "abuse" when absent or unrecognized,
     `arrival_at` stays `None` when Arrival-Date is missing or invalid, and
     `reporting_org` and `reporting_email` come from the message's From
-    header. Raises `ValueError` if the message contains no feedback-report
-    content.
+    header. Feedback-ID comes from the feedback-report body or, when it is
+    absent, from the echoed original message headers, stripped of all
+    whitespace either way. Raises `ValueError` if the message contains no
+    feedback-report content.
     """
     msg = message_from_bytes(raw_bytes)
     report_data = {
@@ -54,6 +57,7 @@ def parse_fbl(raw_bytes):
         "original_message_id": "",
         "authentication_results": "",
         "original_headers": "",
+        "feedback_id": "",
     }
 
     for part in msg.walk():
@@ -100,6 +104,11 @@ def parse_fbl(raw_bytes):
             case "text/rfc822-headers" | "message/rfc822":
                 if body := extract_part_text(part):
                     report_data["original_headers"] = body
+
+    if not report_data["feedback_id"] and report_data["original_headers"]:
+        echoed = message_from_bytes(report_data["original_headers"].encode())
+        report_data["feedback_id"] = echoed.get("Feedback-ID", "")
+    report_data["feedback_id"] = "".join(report_data["feedback_id"].split())
 
     if not report_data["source_ip_address"] and not report_data["original_mail_from"]:
         raise ValueError("No ARF feedback-report content found.")

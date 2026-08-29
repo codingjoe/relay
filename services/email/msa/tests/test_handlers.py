@@ -37,20 +37,25 @@ class TestAddFeedbackId:
         message = make_email("alice@example.com", "bob@example.com")
         original = message.as_bytes()
 
-        result = add_feedback_id(original, message, SimpleNamespace(pk=9))
+        result, feedback_id = add_feedback_id(original, message, SimpleNamespace(pk=9))
 
         assert result.endswith(original)
-        assert re.fullmatch(
-            rb"Feedback-ID: 9::[0-9a-f]{24}:relay\r\n" + re.escape(original),
+        header = re.fullmatch(
+            rb"Feedback-ID: (9::[0-9a-f]{24}:relay)\r\n" + re.escape(original),
             result,
         )
+        assert header
+        assert feedback_id == header.group(1).decode()
 
     def test_add_feedback_id__preserves_customer_header(self):
         message = make_email("alice@example.com", "bob@example.com")
         message["Feedback-ID"] = "customer-id"
         original = message.as_bytes()
 
-        assert add_feedback_id(original, message, SimpleNamespace(pk=9)) == original
+        assert add_feedback_id(original, message, SimpleNamespace(pk=9)) == (
+            original,
+            "",
+        )
 
 
 class TestHandleData:
@@ -95,6 +100,7 @@ class TestHandleData:
         assert outgoing.received_with_tls is True
         stored = message_from_bytes(outgoing.raw_body.read())
         assert stored["Feedback-ID"].startswith(f"{org.pk}::")
+        assert outgoing.feedback_id == stored["Feedback-ID"]
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip="127.0.0.1"
         )
@@ -124,6 +130,7 @@ class TestHandleData:
         stored = message_from_bytes(raw)
         assert stored.get_all("Feedback-ID") == ["customer-id"]
         assert raw.count(b"Feedback-ID") == 1
+        assert outgoing.feedback_id == ""
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip="127.0.0.1"
         )
@@ -434,6 +441,8 @@ class TestProcessMessage:
         outgoing = await OutgoingMessage.objects.aget(org=org)
         assert result == "250 OK"
         assert outgoing.status == OutgoingMessage.Status.SUPPRESSED
+        assert outgoing.feedback_id == ""
+        assert b"Feedback-ID" not in outgoing.raw_body.read()
         assert outgoing.domain == domain
         spam_task.enqueue.assert_not_called()
 

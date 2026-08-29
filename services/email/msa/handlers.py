@@ -4,12 +4,14 @@ import base64
 import logging
 import secrets
 from email import message_from_bytes
+from email.message import Message
 
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
+from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
 
@@ -19,12 +21,23 @@ from .tasks import check_outgoing_spam
 logger = logging.getLogger(__name__)
 
 
-def add_feedback_id(raw_bytes: bytes, msg, org) -> bytes:
-    """Prepend a Feedback-ID header for FBL complaint aggregation per org."""
+def add_feedback_id(
+    raw_bytes: bytes, msg: Message, org: Organization
+) -> tuple[bytes, str]:
+    """Prepend a Feedback-ID header for FBL complaint aggregation per org.
+
+    Return the message bytes and the minted Feedback-ID, so FBL complaints
+    can be attributed per message. When the customer already set a
+    Feedback-ID, it is preserved and no relay Feedback-ID is minted (the
+    second item is empty).
+    """
     if msg.get("Feedback-ID"):
-        return raw_bytes
+        return raw_bytes, ""
     feedback_id = f"{org.pk}::{secrets.token_hex(12)}:relay"
-    return f"Feedback-ID: {feedback_id}\015\012".encode("ascii") + raw_bytes
+    return (
+        f"Feedback-ID: {feedback_id}\015\012".encode("ascii") + raw_bytes,
+        feedback_id,
+    )
 
 
 class SMTPHandler:
@@ -113,7 +126,11 @@ def authenticate(username: str, key: str):
 def process_suppressed_message(
     mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
 ):
-    """Store a suppressed message without enqueuing delivery."""
+    """Store a suppressed message without enqueuing delivery.
+
+    Suppressed mail is never sent, so it gets no Feedback-ID and FBL
+    complaints can never be attributed to it.
+    """
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
     OutgoingMessage.objects.create(
@@ -173,7 +190,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    raw_bytes = add_feedback_id(raw_bytes, msg, credential.org)
+    raw_bytes, feedback_id = add_feedback_id(raw_bytes, msg, credential.org)
     raw_bytes = sign_message(raw_bytes, domain)
 
     message = OutgoingMessage.objects.create(
@@ -184,6 +201,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
         message_id=message_id,
         domain=domain,
         credential=credential,
+        feedback_id=feedback_id,
         received_with_tls=bool(ssl),
         status=OutgoingMessage.Status.PENDING,
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
