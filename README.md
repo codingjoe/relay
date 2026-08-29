@@ -43,19 +43,21 @@ All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
 per-domain delegation is necessary.
 
-Outgoing mail is dual-signed with DKIM: once for the org domain and once
-for the platform domain. FBL partners dispatch complaint reports based on
-the DKIM `d=` domain, so a single FBL registration per partner covers all
-customers. Configure the platform private keys (unencrypted PEM) with
-`RELAY_DKIM_PLATFORM_RSA2048_PRIVATE_KEY`,
-`RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY`, and
-`RELAY_DKIM_PLATFORM_ED25519_PRIVATE_KEY`. An empty value skips that
-cipher. Each message also carries a `Feedback-ID` header that identifies
-the organization and the message relay minted it for. relay stores the ID
-on the outgoing message, so FBL complaints can be attributed even when a
-provider (for example, Google) echoes only the `Feedback-ID`. If the
-customer already set a `Feedback-ID`, it is preserved and the message
-stores no attribution token.
+Outgoing mail is dual-signed with DKIM: once for the sender's own domain
+and once for the platform domain. The platform domain is the `Domain`
+row whose name equals `RELAY_PLATFORM_DOMAIN`. The operator owns it as a
+regular organization's domain: it holds the platform DKIM keys, and the
+internal nameserver serves its DKIM TXT records from the ordinary
+domain record path. A missing `Domain` row or missing keys skips the
+cosign, and a message signed by the platform domain itself is not
+cosigned. FBL partners dispatch complaint reports based on the DKIM
+`d=` domain, so a single FBL registration per partner covers all
+customers. Each signature also covers a `Feedback-ID` header that
+identifies the organization and the message relay minted it for. relay
+stores the ID on the outgoing message, so FBL complaints can be
+attributed even when a provider (for example, Google) echoes only the
+`Feedback-ID`. If the customer already set a `Feedback-ID`, it is
+preserved and the message stores no attribution token.
 
 ## Architecture
 

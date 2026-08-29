@@ -1,15 +1,11 @@
-import base64
-
 import pytest
 from django.conf import settings
 from dnslib import DNSLabel
 from dnslib.dns import QTYPE
 
 from accounts.models import Organization
-from domains.dkim import PlatformSigningKey
 from domains.models import Domain
 from domains.resolver import DNSResolver, txt
-from kms import keys as kms_keys
 
 
 class TestTxt:
@@ -289,68 +285,3 @@ class TestResolve:
             DNSLabel("mta-sts.other.example.com"), QTYPE.CNAME
         )
         assert records == []
-
-
-class TestPlatformRecords:
-    def test_resolve_records__publishes_platform_dkim_txt(self, settings):
-        settings.RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY = (
-            kms_keys.generate_rsa_private_key(1024)
-        )
-        selector = f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-platform-rsa1024"
-
-        records = DNSResolver().resolve_records(
-            DNSLabel(f"{selector}._domainkey.{settings.RELAY_PLATFORM_DOMAIN}"),
-            QTYPE.TXT,
-        )
-
-        assert len(records) == 1
-        assert b"v=DKIM1" in b"".join(records[0].rdata.data)
-
-    def test_resolve_records__publishes_platform_ed25519_dkim_txt(self, settings):
-        settings.RELAY_DKIM_PLATFORM_ED25519_PRIVATE_KEY = (
-            kms_keys.generate_ed25519_private_key()
-        )
-        selector = f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-platform-ed25519"
-
-        records = DNSResolver().resolve_records(
-            DNSLabel(f"{selector}._domainkey.{settings.RELAY_PLATFORM_DOMAIN}"),
-            QTYPE.TXT,
-        )
-
-        assert len(records) == 1
-        record = b"".join(records[0].rdata.data)
-        assert b"v=DKIM1" in record
-        assert b"k=ed25519" in record
-
-    @pytest.mark.django_db
-    def test_resolve_records__platform_dkim_takes_precedence_over_domain_records(
-        self, settings
-    ):
-        key = PlatformSigningKey(
-            kms_keys.Algorithm.RSA_1024, kms_keys.generate_rsa_private_key(1024)
-        )
-        settings.RELAY_DKIM_PLATFORM_RSA1024_PRIVATE_KEY = key.private_pem
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name=settings.RELAY_PLATFORM_DOMAIN, org=org)
-        resolver = DNSResolver()
-
-        platform_records = resolver.resolve_records(
-            DNSLabel(
-                f"{settings.RELAY_DNS_DKIM_IDENTIFIER}"
-                f"-platform-rsa1024._domainkey.{domain.name}"
-            ),
-            QTYPE.TXT,
-        )
-
-        assert len(platform_records) == 1
-        platform_record = b"".join(platform_records[0].rdata.data)
-        assert base64.b64encode(key.public_bytes_der()) in platform_record
-
-        selector, domain_key = domain.dkim_ciphers[1]
-        domain_records = resolver.resolve_records(
-            DNSLabel(f"{selector}._domainkey.{domain.name}"), QTYPE.TXT
-        )
-
-        assert len(domain_records) == 1
-        domain_record = b"".join(domain_records[0].rdata.data)
-        assert base64.b64encode(domain_key.public_bytes_der()) in domain_record

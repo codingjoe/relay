@@ -11,7 +11,6 @@ from dnslib.server import BaseResolver
 
 from kms.models import SigningKey
 
-from . import dkim as dkim_module
 from .models import Domain
 
 
@@ -68,9 +67,6 @@ class DNSResolver(BaseResolver):
                     for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS
                 ]
             case _:
-                records = self.resolve_platform_records(qname, qtype, query_name)
-                if records:
-                    return records
                 try:
                     domain = Domain.objects.root_for(query_name, include_managed=True)
                 except Domain.DoesNotExist:
@@ -78,25 +74,6 @@ class DNSResolver(BaseResolver):
                 return list(
                     self.resolve_domain_records(qname, qtype, query_name, domain)
                 )
-
-    def resolve_platform_records(
-        self, qname: DNSLabel, qtype: int, query_name: str
-    ) -> list[RR]:
-        """Build TXT records for the DKIM keys of the platform sending domain."""
-        if qtype not in (QTYPE.TXT, QTYPE.ANY):
-            return []
-        for selector, key in dkim_module.platform_dkim_ciphers():
-            name = f"{selector}._domainkey.{settings.RELAY_PLATFORM_DOMAIN}"
-            if query_name == name:
-                return [
-                    RR(
-                        qname,
-                        QTYPE.TXT,
-                        rdata=txt(dkim_record(key)),
-                        ttl=self.RECORD_TTL,
-                    )
-                ]
-        return []
 
     def resolve_domain_records(
         self,
