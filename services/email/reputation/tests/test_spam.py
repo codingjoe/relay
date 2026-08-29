@@ -38,20 +38,24 @@ class TestComputeOrgReputation:
         assert stats["total_sent"] == 3
 
     def test_compute_org_reputation__counts_provider_fbl_as_complaint(self, org, user):
+        domain = Domain.objects.create(name="reputation.test", org=org)
         OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
+            domain=domain,
             status=OutgoingMessage.Status.SENT,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
         message = IncomingMessage.objects.create(
             org=org,
+            domain=domain,
             mail_from="feedback@gmail.com",
             rcpt_to="postmaster@acme.com",
         )
         FblReport.objects.create(
             org=org,
+            domain=domain,
             message=message,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.PROVIDER,
@@ -62,15 +66,18 @@ class TestComputeOrgReputation:
         assert stats["complaints"] == 1
 
     def test_compute_org_reputation__ignores_relay_generated_fbl(self, org, user):
+        domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
+            domain=domain,
             status=OutgoingMessage.Status.SENT,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
         FblReport.objects.create(
             org=org,
+            domain=domain,
             message=message,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.RELAY,
@@ -83,10 +90,12 @@ class TestComputeOrgReputation:
     def test_compute_org_reputation__held_message_not_double_counted_by_fbl(
         self, org, user
     ):
+        domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
+            domain=domain,
             status=OutgoingMessage.Status.HELD,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
@@ -103,10 +112,12 @@ class TestCheckOrgReputation:
         self, org, user, mailoutbox, settings
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
+            domain=domain,
             status=OutgoingMessage.Status.SENT,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
@@ -125,10 +136,12 @@ class TestCheckOrgReputation:
 
     def test_check_org_reputation__ignores_soft_bounces(self, org, user, settings):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
+            domain=domain,
             status=OutgoingMessage.Status.SENT,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
@@ -148,10 +161,12 @@ class TestCheckOrgReputation:
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
         Organization.objects.filter(pk=org.pk).update(suspended_at=timezone.now())
+        domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
+            domain=domain,
             status=OutgoingMessage.Status.SENT,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
@@ -169,10 +184,12 @@ class TestCheckOrgReputation:
 
 
 def make_sent_message(org):
+    domain = Domain.objects.create(name="reputation.test", org=org)
     return OutgoingMessage.objects.create(
         org=org,
         mail_from="sender@acme.com",
         rcpt_to="rcpt@example.com",
+        domain=domain,
         status=OutgoingMessage.Status.SENT,
         raw_body=SimpleUploadedFile("test.eml", b"x"),
     )
@@ -220,10 +237,12 @@ class TestCheckReputationOnHeldMessage:
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
+            domain=domain,
             status=OutgoingMessage.Status.PENDING,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
@@ -249,7 +268,7 @@ class TestCheckReputationOnHeldMessage:
 
     @pytest.mark.django_db
     def test_check_reputation_on_held_message__creates_relay_fbl_report(
-        self, org, user, mailoutbox, settings
+        self, django_capture_on_commit_callbacks, org, user, mailoutbox, settings
     ):
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage.objects.create(
@@ -261,8 +280,9 @@ class TestCheckReputationOnHeldMessage:
             raw_body=SimpleUploadedFile("test.eml", b"spam body"),
         )
 
-        message.status = OutgoingMessage.Status.HELD
-        message.save(update_fields=["status"])
+        with django_capture_on_commit_callbacks(execute=True):
+            message.status = OutgoingMessage.Status.HELD
+            message.save(update_fields=["status"])
 
         report = FblReport.objects.get(org=org)
         assert report.source == FblReport.Source.RELAY
@@ -338,11 +358,13 @@ class TestBuildReputationChart:
         FblReport.create_for_spam(message)
         report_email = IncomingMessage.objects.create(
             org=org,
+            domain=domain,
             mail_from="feedback@gmail.com",
             rcpt_to="postmaster@acme.com",
         )
         FblReport.objects.create(
             org=org,
+            domain=domain,
             message=report_email,
             original_mail_from="sender@acme.com",
         )

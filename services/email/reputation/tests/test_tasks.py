@@ -155,7 +155,9 @@ class TestParseFblReport:
 
         report.refresh_from_db()
         assert report.org == org
-        assert report.domain is None
+        # Unattributed reports keep the receiving domain; the sender's
+        # "sender.test" domain must not claim the report.
+        assert report.domain == report.message.domain
 
     def test_parse_fbl_report__keeps_receiving_org_when_unroutable(self, org):
         report = make_report(org, make_arf_email())
@@ -234,9 +236,10 @@ class TestResolveFblOwner:
         )
 
     def test_resolve_fbl_owner__returns_none_without_domain(self, org):
+        domain = Domain.objects.create(name="sender.test", org=org)
         original = OutgoingMessage.objects.create(
             org=org,
-            domain=None,
+            domain=domain,
             mail_from="sender@example.com",
             rcpt_to="rcpt@gmail.com",
             status=OutgoingMessage.Status.SENT,
@@ -327,24 +330,6 @@ class TestResolveFblOwner:
 
         assert resolve_fbl_owner("sender@acme.com", "") is None
 
-    def test_resolve_fbl_owner__returns_none_when_feedback_match_has_no_domain(
-        self, org
-    ):
-        OutgoingMessage.objects.create(
-            org=org,
-            domain=None,
-            mail_from="sender@example.com",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-            feedback_id="9999::aabbccddeeff001122334455:relay",
-        )
-
-        assert (
-            resolve_fbl_owner("sender@acme.com", "9999::aabbccddeeff001122334455:relay")
-            is None
-        )
-
     def test_resolve_fbl_owner__verp_hit_does_not_consult_feedback_id(self, org):
         domain = Domain.objects.create(name="sender.test", org=org)
         original = OutgoingMessage.objects.create(
@@ -399,7 +384,7 @@ class TestProcessIncomingMessage:
         self, org, settings
     ):
         settings.RELAY_PLATFORM_DOMAIN = "example.com"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         domain = Domain.objects.create(name="example.com", org=org, is_platform=True)
         with (
             patch(

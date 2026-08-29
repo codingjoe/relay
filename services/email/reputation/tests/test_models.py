@@ -55,6 +55,7 @@ class TestFblReport:
         domain = Domain.objects.create(name="acme.com", org=org)
         message = IncomingMessage.objects.create(
             org=org,
+            domain=domain,
             mail_from="feedback@gmail.com",
             rcpt_to="postmaster@acme.com",
         )

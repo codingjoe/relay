@@ -116,28 +116,6 @@ class TestDeliverMessage:
             message=msg, status=Transmission.Status.BOUNCED
         ).exists()
 
-    def test_deliver_message__fails_closed_without_sender_domain(self, user, org):
-        msg = OutgoingMessage.objects.create(
-            org=org,
-            rcpt_to="bob@example.com",
-            mail_from="alice@example.com",
-            domain=None,
-        )
-        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
-        msg.save()
-
-        with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
-            deliver_message.func(message_id=str(msg.id))
-
-        msg.refresh_from_db()
-        assert msg.status == OutgoingMessage.Status.FAILED
-        assert Transmission.objects.filter(
-            message=msg,
-            status=Transmission.Status.FAILED,
-            details__contains="no sender domain",
-        ).exists()
-        mock_send.assert_not_called()
-
     def test_deliver_message__fails_closed_for_ambiguous_cross_org_domain(
         self,
         org,

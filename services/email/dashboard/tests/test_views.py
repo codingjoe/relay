@@ -123,6 +123,7 @@ class TestReportListView:
     def fbl_report(self, org, domain):
         message = IncomingMessage.objects.create(
             org=org,
+            domain=domain,
             mail_from="feedback@gmail.com",
             rcpt_to="postmaster@acme.com",
         )

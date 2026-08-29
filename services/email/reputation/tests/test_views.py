@@ -10,13 +10,18 @@ from services.email.reputation.models import FblReport
 
 
 def make_report(org, **kwargs):
+    domain = kwargs.pop("domain", None) or Domain.objects.create(
+        name="reports.test", org=org
+    )
     message = IncomingMessage.objects.create(
         org=org,
+        domain=domain,
         mail_from="feedback@gmail.com",
         rcpt_to="postmaster@acme.com",
     )
     defaults = {
         "org": org,
+        "domain": domain,
         "message": message,
         "reporting_org": "gmail",
         "feedback_type": "abuse",
@@ -78,14 +83,17 @@ class TestFblReportListView:
 @pytest.mark.django_db
 class TestFblReportDetailView:
     def make_report_with_body(self, org, body: bytes):
+        domain = Domain.objects.create(name="feedback.test", org=org)
         message = IncomingMessage.objects.create(
             org=org,
+            domain=domain,
             mail_from="feedback@gmail.com",
             rcpt_to="fbl@acme.com",
             raw_body=SimpleUploadedFile("report.eml", body),
         )
         return FblReport.objects.create(
             org=org,
+            domain=domain,
             message=message,
             reporting_org="gmail",
             arrival_at=timezone.now(),
