@@ -1,4 +1,5 @@
 import base64
+import re
 from email import message_from_bytes
 from email.message import EmailMessage
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ from domains.models import Domain
 from services.email.msa.handlers import (
     ImplicitTLSHandler,
     SMTPHandler,
+    add_feedback_id,
     authenticate,
     process_message,
 )
@@ -28,6 +30,27 @@ def make_email(mail_from, rcpt_to):
     message["Subject"] = "Test"
     message.set_content("Hello")
     return message
+
+
+class TestAddFeedbackId:
+    def test_add_feedback_id__prepends_org_feedback_id(self):
+        message = make_email("alice@example.com", "bob@example.com")
+        original = message.as_bytes()
+
+        result = add_feedback_id(original, message, SimpleNamespace(pk=9))
+
+        assert result.endswith(original)
+        assert re.fullmatch(
+            rb"Feedback-ID: 9::[0-9a-f]{24}:relay\r\n" + re.escape(original),
+            result,
+        )
+
+    def test_add_feedback_id__preserves_customer_header(self):
+        message = make_email("alice@example.com", "bob@example.com")
+        message["Feedback-ID"] = "customer-id"
+        original = message.as_bytes()
+
+        assert add_feedback_id(original, message, SimpleNamespace(pk=9)) == original
 
 
 class TestHandleData:
