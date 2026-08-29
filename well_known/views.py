@@ -13,7 +13,10 @@ from know_how.views import KnowHowListView
 class FaviconIcoView(CacheControlMixin, generic.RedirectView):
     """Redirect /favicon.ico to the static icon."""
 
-    permanent = True
+    # 302, not 301: the target URL is content-hashed in production
+    # (ManifestStaticFilesStorage), so a permanent redirect would pin
+    # clients to a hash that stops existing with the next icon change.
+    permanent = False
 
     @property
     def url(self):

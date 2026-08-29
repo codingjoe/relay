@@ -71,7 +71,8 @@ Developer workflow, confirmed from product code and copy:
 
 None binding except the name casing. Confirmed on 2026-08-28: the name is
 "relay", always lowercase, a binding commitment. Everything else visual and
-verbal remains open to change; the incumbent voice "for nerds by nerds" with
+verbal remains open to change; the incumbent voice "made with \<3 and
+German engineering" with
 monospace accents is evidence of the incumbent look, not a commitment.
 
 ## Evidence on Hand
