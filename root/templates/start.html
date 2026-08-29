@@ -195,7 +195,7 @@
 
     <section class="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-8">
       <h2 class="text-center text-1xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
-        {% translate "start free. pay as you go."|capfirst %}
+        {% translate "start free. pay per relay."|capfirst %}
       </h2>
       <p class="text-center text-muted-foreground m-0 mb-10">
         {% blocktranslate trimmed %}
@@ -204,21 +204,21 @@
       </p>
       <div class="card p-8 shadow-sm border-primary/20 max-w-lg mx-auto">
         <header class="m-0">
-          <p class="text-sm font-medium text-muted-foreground m-0">{% translate "pay as you go"|capfirst %}</p>
-          <p class="m-0 mt-1 flex items-baseline gap-1">
-            <span class="text-6xl font-bold tracking-tight font-mono" id="price-amount">€0</span>
-            <span class="text-muted-foreground" id="price-period">
-              {% blocktranslate trimmed %}
-                / month.
-              {% endblocktranslate %}
-            </span>
+          <p class="text-sm font-medium text-muted-foreground m-0">
+            {% translate "you pay when relay relays"|capfirst %}
+          </p>
+          <p class="m-0 mt-2">
+            <output for="price-slider" class="text-6xl font-bold tracking-tight font-mono">
+              <span id="price-volume">1,000</span>
+              <span class="text-lg font-medium text-muted-foreground">{% translate "emails / month" %}</span>
+            </output>
+          </p>
+          <p class="m-0 mt-3 text-2xl font-mono">
+            <span id="price-amount" class="font-semibold">€0</span>
+            <span class="text-muted-foreground">{% translate "/ month" %}</span>
           </p>
         </header>
         <section class="m-0 mt-6 flex flex-col gap-3">
-          <div class="flex items-center justify-between gap-2 text-sm font-mono">
-            <label for="price-slider" class="text-muted-foreground">{% translate "monthly volume"|capfirst %}</label>
-            <output for="price-slider" id="price-volume" class="font-semibold">0</output>
-          </div>
           <input
             type="range"
             id="price-slider"
@@ -227,7 +227,7 @@
             max="100000"
             step="1000"
             value="1000"
-            aria-label="monthly email volume"
+            aria-label="emails you send per month"
           >
           <p class="text-xs text-muted-foreground m-0 font-mono">
             {% blocktranslate trimmed %}
@@ -448,9 +448,8 @@
   <script>
     const slider = document.getElementById("price-slider");
     const amount = document.getElementById("price-amount");
-    const period = document.getElementById("price-period");
     const volume = document.getElementById("price-volume");
-    if (slider && amount && period && volume) {
+    if (slider && amount && volume) {
       const formatVolume = (n) => n.toLocaleString("en-US");
       const formatEur = (n) =>
         new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(n);
@@ -458,9 +457,8 @@
         const v = Number(slider.value);
         const billable = Math.max(0, v - 1000);
         const total = billable * 0.00075;
-        volume.textContent = `${formatVolume(v)} emails / month`;
+        volume.textContent = formatVolume(v);
         amount.textContent = formatEur(total);
-        period.textContent = `/ month`;
       };
       slider.addEventListener("input", update);
       update();
