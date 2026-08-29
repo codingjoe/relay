@@ -25,6 +25,26 @@ def test_md_2_html():
     assert utils.md_2_html("How much is the fish?") == "<p>How much is the fish?</p>"
 
 
+def test_md_2_html__mermaid_block():
+    fence = 3 * "`"
+    html = str(utils.md_2_html(f"{fence}mermaid\nflowchart TD\n  A --> B\n{fence}"))
+    assert '<pre class="mermaid">flowchart TD\n  A --&gt; B</pre>' in html
+    assert fence not in html
+
+
+def test_md_2_html__mermaid_block_preserved_in_untouched_fences():
+    fence = 3 * "`"
+    html = str(utils.md_2_html(f"{fence}python\nprint('hi')\n{fence}"))
+    assert "print" in html
+    assert 'class="mermaid"' not in html
+
+
+def test_md_2_html__unclosed_mermaid_block():
+    fence = 3 * "`"
+    html = str(utils.md_2_html(f"{fence}mermaid\nflowchart TD\n A --> B"))
+    assert "flowchart" in html
+
+
 def test_md_toc():
     assert utils.md_toc("# Level 1\n## Level 2\n###Level 3") == (
         '<div class="toc">\n'
