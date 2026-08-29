@@ -269,6 +269,14 @@ class Domain(TimeStamped):
     def clean(self):
         name = canonicalize_domain_name(self.name)
         self.name = name
+        platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+        if self.is_platform and name != platform_name:
+            raise ValidationError(
+                {
+                    "name": _("The platform identity is the domain named %(platform)s.")
+                    % {"platform": platform_name}
+                }
+            )
         if not self.is_managed:
             root = canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN)
             if name == root or name.endswith(f".{root}"):

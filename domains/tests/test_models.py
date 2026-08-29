@@ -229,7 +229,7 @@ class TestDomainClean:
             is_platform=True,
         )
 
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(ValidationError):
             Domain.objects.create(
                 name="platform.example", org=second_org, is_platform=True
             )
