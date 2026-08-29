@@ -10,6 +10,7 @@ from accounts.models import Organization
 from domains.models import Domain
 from services.email.message.models import Message
 from services.email.msa.models import OutgoingMessage
+from services.email.mta.models import IncomingMessage
 
 from . import evaluation
 from .models import FblReport
@@ -36,7 +37,7 @@ def resolve_fbl_owner(
     except ValidationError, OutgoingMessage.DoesNotExist:
         original = None
     else:
-        if original.domain is None or original_mail_from != (
+        if original_mail_from != (
             f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
             f"@{original.domain.sender_domain}"
         ):
@@ -53,9 +54,37 @@ def resolve_fbl_owner(
             )
         except OutgoingMessage.DoesNotExist:
             return None
-    if original.domain is None:
-        return None
     return original.org, original.domain
+
+
+@task
+def create_held_outgoing_fbl_report(message_pk, org_id):
+    """Store a relay-generated FBL report for a held outgoing message.
+
+    The held message counts as spam against the organization's quota even
+    though it was never relayed. Queues an org evaluation after the
+    report is stored.
+    """
+    message = OutgoingMessage.objects.get(pk=message_pk)
+    report = FblReport.create_for_spam(message)
+    check_org_reputation.enqueue(org_id=org_id)
+    return report.pk
+
+
+@task
+def create_quarantined_incoming_fbl_report(message_pk):
+    """Store a visibility-only relay FBL report for a quarantined message."""
+    message = IncomingMessage.objects.get(pk=message_pk)
+    return FblReport.create_for_spam(message)
+
+
+@task
+def create_provider_fbl_report(message_pk):
+    """Store a provider FBL report for an ingested message and queue parsing."""
+    message = IncomingMessage.objects.get(pk=message_pk)
+    report = FblReport.create_for_incoming(message)
+    parse_fbl_report.enqueue(report_pk=str(report.pk))
+    return report
 
 
 @task

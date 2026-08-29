@@ -168,14 +168,14 @@ is opt-in: reports are accepted only from the envelope senders in
 `RELAY_FBL_SENDERS`. The empty default keeps ingestion off until an
 operator adds verified senders.
 
-| Variable            | Default        | Description                                                                                                                                                                                                        |
-| ------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `RELAY_FBL_SENDERS` | _(empty: off)_ | Comma-separated exact envelope addresses or bare domains, matched case-insensitively. Provider FBL envelope senders are undocumented and mutable. Verify the envelope sender of a live report before you allow it. |
+| Variable            | Default        | Description                                                                                                                                                                                                                                                           |
+| ------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RELAY_FBL_SENDERS` | _(empty: off)_ | Comma-separated exact envelope mail addresses, matched case-insensitively. One address per provider; the provider sends every report from that single address to the one platform reporting address. Verify the envelope sender of a live report before you allow it. |
 
 The platform also requires sender authentication. The connecting IP
 address must pass SPF for the envelope sender per RFC 7208. Otherwise
 a DKIM pass must carry a `d=` domain equal to the envelope sender
-domain or a `RELAY_FBL_SENDERS` entry. Mail with neither proof follows
+domain. Mail with neither proof follows
 the normal incoming path with spam scoring.
 
 Attribution requires per-message proof from the provider: the echo of

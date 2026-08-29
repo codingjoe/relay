@@ -168,7 +168,7 @@ class TestIsFblReport:
         self, settings
     ):
         settings.RELAY_PLATFORM_DOMAIN = "relays.test"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is True
 
     def test_is_fbl_report__rejects_all_senders_when_allowlist_is_empty(self, settings):
@@ -181,20 +181,25 @@ class TestIsFblReport:
         settings.RELAY_FBL_SENDERS = ["feedback-loops@yahoo.com"]
         assert is_fbl_report("feedback-loops@yahoo.com", "fbl@relays.test") is True
 
-    def test_is_fbl_report__rejects_unknown_sender(self, settings):
+    def test_is_fbl_report__rejects_sender_behind_domain_only(self, settings):
         settings.RELAY_PLATFORM_DOMAIN = "relays.test"
         settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        assert is_fbl_report("feedback@gmail.com", "fbl@relays.test") is False
+
+    def test_is_fbl_report__rejects_unknown_sender(self, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relays.test"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         assert is_fbl_report("forged@example.org", "fbl@relays.test") is False
 
     def test_is_fbl_report__rejects_customer_reporting_address(self, settings):
         settings.RELAY_PLATFORM_DOMAIN = "relays.test"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
         assert is_fbl_report("feedback@gmail.com", "fbl@acme.com") is False
 
     def test_is_fbl_report__is_case_insensitive(self, settings):
         settings.RELAY_PLATFORM_DOMAIN = "relays.test"
-        settings.RELAY_FBL_SENDERS = ["gmail.com"]
-        assert is_fbl_report("Feedback@GMAIL.com", "FBL@Relays.Test.") is True
+        settings.RELAY_FBL_SENDERS = ["Feedback@Gmail.com"]
+        assert is_fbl_report("feedback@GMAIL.com", "FBL@Relays.Test.") is True
 
 
 class TestIsSpfPass:
@@ -242,16 +247,6 @@ class TestIsFblSenderAuthenticated:
             return_value=(AuthResult.PASS, "gmail.com"),
         ):
             assert is_fbl_sender_authenticated("feedback@gmail.com", "", b"") is True
-
-    def test_is_fbl_sender_authenticated__accepts_dkim_from_listed_sender(
-        self, settings
-    ):
-        settings.RELAY_FBL_SENDERS = ["fbl.partner.example"]
-        with patch(
-            "services.email.mta.models.DmarcEvaluation.verify_dkim",
-            return_value=(AuthResult.PASS, "fbl.partner.example"),
-        ):
-            assert is_fbl_sender_authenticated("abuse@other.example", "", b"") is True
 
     def test_is_fbl_sender_authenticated__rejects_dkim_from_unlisted_domain(self):
         with patch(

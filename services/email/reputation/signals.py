@@ -7,7 +7,6 @@ from services.email.mta.models import IncomingMessage
 from services.email.mta.signals import fbl_report_received
 
 from . import tasks
-from .models import FblReport
 
 
 @receiver(post_save, sender=Transmission)
@@ -25,21 +24,26 @@ def check_reputation_on_hard_bounce(sender, instance, **kwargs):
 
 @receiver(post_save, sender=OutgoingMessage)
 def check_reputation_on_held_message(sender, instance, **kwargs):
-    """Record a relay FBL report and queue an org evaluation when
-    Relay flags a submission as spam."""
+    """Queue the ingest task when Relay flags a submission as spam.
+
+    The relay-generated report and the org evaluation are recorded in the
+    task, after the message is fully ingested.
+    """
     held_as_spam = instance.status == OutgoingMessage.Status.HELD and "status" in (
         kwargs.get("update_fields") or ()
     )
     if held_as_spam:
-        FblReport.create_for_spam(instance)
         transaction.on_commit(
-            lambda: tasks.check_org_reputation.enqueue(org_id=instance.org_id)
+            lambda: tasks.create_held_outgoing_fbl_report.enqueue(
+                message_pk=str(instance.id),
+                org_id=instance.org_id,
+            )
         )
 
 
 @receiver(post_save, sender=IncomingMessage)
 def check_reputation_on_incoming_message(sender, instance, **kwargs):
-    """Record a relay FBL report when the MTA quarantines incoming mail.
+    """Queue the ingest task when the MTA quarantines incoming mail.
 
     The report is visibility-only. Quarantined incoming mail does not
     affect the organization's sending reputation, so no evaluation
@@ -48,13 +52,19 @@ def check_reputation_on_incoming_message(sender, instance, **kwargs):
     if instance.status == IncomingMessage.Status.QUARANTINED and "status" in (
         kwargs.get("update_fields") or ()
     ):
-        FblReport.create_for_spam(instance)
+        transaction.on_commit(
+            lambda: tasks.create_quarantined_incoming_fbl_report.enqueue(
+                message_pk=str(instance.id)
+            )
+        )
 
 
 @receiver(fbl_report_received)
 def create_provider_fbl_report(sender, message, **kwargs):
-    """Record a provider FBL report and queue its parsing after commit."""
-    report = FblReport.create_for_incoming(message)
+    """Queue the ingest task for a provider FBL report after commit.
+
+    The task stores the report and queues its parsing.
+    """
     transaction.on_commit(
-        lambda: tasks.parse_fbl_report.enqueue(report_pk=str(report.pk))
+        lambda: tasks.create_provider_fbl_report.enqueue(message_pk=str(message.id))
     )

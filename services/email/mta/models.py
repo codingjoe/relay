@@ -24,9 +24,9 @@ from .serializers import TlsReportSerializer
 def is_fbl_report(mail_from: str, rcpt_to: str) -> bool:
     """Tell whether an incoming message is a feedback loop report from a listed sender.
 
-    The platform reporting address must be the recipient, and the
-    sender must be listed in `RELAY_FBL_SENDERS` as an exact address or
-    bare domain, matched case-insensitively.
+    The platform reporting address must be the recipient, and the sender
+    must be one of the exact mail addresses listed in `RELAY_FBL_SENDERS`,
+    matched case-insensitively.
     """
     recipient_local, _, recipient_domain = rcpt_to.partition("@")
     if (
@@ -34,11 +34,9 @@ def is_fbl_report(mail_from: str, rcpt_to: str) -> bool:
         or recipient_domain.rstrip(".").lower() != settings.RELAY_PLATFORM_DOMAIN
     ):
         return False
-    mail_from = mail_from.lower()
-    return any(
-        mail_from == allowed or mail_from.endswith(f"@{allowed}")
-        for allowed in settings.RELAY_FBL_SENDERS
-    )
+    return mail_from.lower() in {
+        allowed.lower() for allowed in settings.RELAY_FBL_SENDERS
+    }
 
 
 def is_spf_pass(mail_from: str, client_ip: str) -> bool:
@@ -65,8 +63,7 @@ def is_fbl_sender_authenticated(
 
     Acceptance requires an SPF pass for the envelope sender evaluated on
     the connecting client IP address per RFC 7208. Otherwise a DKIM pass
-    must have a `d=` domain equal to the envelope sender domain or a
-    `RELAY_FBL_SENDERS` entry, compared case-insensitively.
+    must have a `d=` domain equal to the envelope sender's domain.
 
     Results are computed here and never reuse the DMARC evaluation from
     spam classification, which relies on untrusted `Received:` headers.
@@ -75,10 +72,7 @@ def is_fbl_sender_authenticated(
         return True
     envelope_domain = DmarcEvaluation.extract_domain(mail_from)
     dkim_result, dkim_domain = DmarcEvaluation.verify_dkim(raw_bytes)
-    if dkim_result != AuthResult.PASS:
-        return False
-    allowed_domains = {envelope_domain, *settings.RELAY_FBL_SENDERS}
-    return dkim_domain.lower() in allowed_domains
+    return dkim_result == AuthResult.PASS and dkim_domain.lower() == envelope_domain
 
 
 class IncomingMessage(Message):

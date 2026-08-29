@@ -42,10 +42,8 @@ class FblReport(OrganizationOwned):
     )
     domain = models.ForeignKey(
         "domains.Domain",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name="+",
-        null=True,
-        blank=True,
         help_text=_("Domain the report is about."),
     )
 
@@ -151,9 +149,7 @@ class FblReport(OrganizationOwned):
         return "destructive"
 
     def __str__(self):
-        return (
-            f"{self.reporting_org} → {self.domain or '?'} ({self.original_mail_from})"
-        )
+        return f"{self.reporting_org} → {self.domain.name} ({self.original_mail_from})"
 
     def get_absolute_url(self):
         return reverse(
@@ -210,12 +206,8 @@ class FblReport(OrganizationOwned):
 
         Covers MSA-held outgoing messages and MTA-quarantined incoming
         messages. Relay-generated reports are for visibility only and do
-        not count as complaints. Returns `None` when the message has no
-        associated domain.
+        not count as complaints.
         """
-        if message.domain_id is None:
-            return None
-
         return cls.objects.create(
             source=cls.Source.RELAY,
             org=message.org,

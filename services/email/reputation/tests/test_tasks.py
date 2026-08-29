@@ -49,8 +49,10 @@ def make_arf_email(
 
 
 def make_report(org, raw_bytes):
+    domain = Domain.objects.create(name="fbl.example", org=org)
     message = IncomingMessage.objects.create(
         org=org,
+        domain=domain,
         mail_from="feedback@gmail.com",
         rcpt_to="fbl@acme.com",
         raw_body=SimpleUploadedFile("report.eml", raw_bytes),

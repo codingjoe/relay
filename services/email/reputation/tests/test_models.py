@@ -50,15 +50,9 @@ class TestFblReport:
         )
         assert str(report) == "gmail → acme.com (sender@acme.com)"
 
-    def test_str__without_domain(self):
-        report = FblReport(
-            reporting_org="gmail",
-            original_mail_from="sender@acme.com",
-        )
-        assert str(report) == "gmail → ? (sender@acme.com)"
-
     @pytest.mark.django_db
     def test_get_absolute_url__reverses_to_detail(self, org):
+        domain = Domain.objects.create(name="acme.com", org=org)
         message = IncomingMessage.objects.create(
             org=org,
             mail_from="feedback@gmail.com",
@@ -66,6 +60,7 @@ class TestFblReport:
         )
         report = FblReport.objects.create(
             org=org,
+            domain=domain,
             message=message,
             reporting_org="gmail",
         )
@@ -73,14 +68,6 @@ class TestFblReport:
             "reputation:fbl-report-detail",
             kwargs={"org_slug": org.slug, "pk": report.pk},
         )
-
-    def test_create_for_spam__returns_none_without_domain(self):
-        message = IncomingMessage(
-            mail_from="spam@example.com",
-            rcpt_to="rcpt@example.com",
-        )
-        result = FblReport.create_for_spam(message)
-        assert result is None
 
     def make_outgoing_message(self, org, **kwargs):
         defaults = {
