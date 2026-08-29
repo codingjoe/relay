@@ -57,9 +57,11 @@ Developer workflow, confirmed from product code and copy:
   bodies are never inlined.
 - Multi-organization accounts with memberships; GitHub OAuth is the only
   confirmed auth method.
-- Pay-per-work pricing shown on the landing page: no licenses, seats, or
-  subscriptions; a user pays when relay relays. First 1,000 emails/month
-  free, then €0.75 per 1,000; pricing is pre-launch and unvalidated.
+- Pay-per-relay pricing shown on the landing page: no licenses, seats, or
+  subscriptions; you pay when relay relays. The coined line "no seats, no
+  licenses. You pay when relay relays" (hero subhead) is the accepted verbal
+  handling of the scheme. First 1,000 emails/month free, then €0.75 per
+  1,000; pricing is pre-launch and unvalidated.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
 - Tech constraints that shape UI work: Django templates + basecoat CSS
