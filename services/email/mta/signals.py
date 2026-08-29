@@ -1,9 +1,11 @@
 from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.dispatch import Signal, receiver
 
 from domains.models import Domain
 
 from .models import Webhook
+
+fbl_report_received = Signal()  # senders provide a `message` kwarg
 
 
 @receiver(post_save, sender=Domain)

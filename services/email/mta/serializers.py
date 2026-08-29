@@ -5,29 +5,35 @@ import json
 from rest_framework import serializers
 
 
+def snake_case_keys(value):
+    """Recursively convert dashed TLS-RPT keys to snake_case field names.
+
+    RFC 8460 uses dashed key names ("organization-name"), while DRF looks up
+    incoming data by field name, not by `source`.
+    """
+    if isinstance(value, list):
+        return [snake_case_keys(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    return {key.replace("-", "_"): snake_case_keys(item) for key, item in value.items()}
+
+
 class TlsReportDateRangeSerializer(serializers.Serializer):
     """Date range within a TLS-RPT report."""
 
-    start_datetime = serializers.DateTimeField(source="start-datetime", required=False)
-    end_datetime = serializers.DateTimeField(source="end-datetime", required=False)
+    start_datetime = serializers.DateTimeField(required=False)
+    end_datetime = serializers.DateTimeField(required=False)
 
 
 class TlsFailureDetailSerializer(serializers.Serializer):
     """TLS failure record within a TLS-RPT report."""
 
-    result_type = serializers.CharField(source="result-type", default="other")
-    sending_mta_ip_address = serializers.CharField(
-        source="sending-mta-ip", required=False, allow_blank=True
-    )
-    receiving_mx_hostname = serializers.CharField(
-        source="receiving-mx-hostname", required=False, allow_blank=True
-    )
-    receiving_mx_ip_address = serializers.CharField(
-        source="receiving-mx-ip", required=False, allow_null=True
-    )
-    count = serializers.IntegerField(source="failed-session-count", default=0)
-    additional_info = serializers.CharField(
-        source="additional-information",
+    result_type = serializers.CharField(default="other")
+    sending_mta_ip = serializers.CharField(required=False, allow_blank=True)
+    receiving_mx_hostname = serializers.CharField(required=False, allow_blank=True)
+    receiving_mx_ip = serializers.CharField(required=False, allow_null=True)
+    failed_session_count = serializers.IntegerField(default=0)
+    additional_information = serializers.CharField(
         required=False,
         allow_blank=True,
         default="",
@@ -37,21 +43,15 @@ class TlsFailureDetailSerializer(serializers.Serializer):
 class TlsPolicySerializer(serializers.Serializer):
     """Policy metadata within a TLS-RPT report."""
 
-    policy_type = serializers.CharField(source="policy-type", default="sts")
-    policy_domain = serializers.CharField(
-        source="policy-domain", required=False, allow_blank=True, default=""
-    )
+    policy_type = serializers.CharField(default="sts")
+    policy_domain = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class TlsPolicySummarySerializer(serializers.Serializer):
     """Session count summary for a policy."""
 
-    successful_session_count = serializers.IntegerField(
-        source="successful-session-count", default=0
-    )
-    failed_session_count = serializers.IntegerField(
-        source="failed-session-count", default=0
-    )
+    successful_session_count = serializers.IntegerField(default=0)
+    failed_session_count = serializers.IntegerField(default=0)
 
 
 class TlsPolicyEntrySerializer(serializers.Serializer):
@@ -59,20 +59,16 @@ class TlsPolicyEntrySerializer(serializers.Serializer):
 
     policy = TlsPolicySerializer(required=False, default=dict)
     summary = TlsPolicySummarySerializer(required=False, default=dict)
-    failure_details = TlsFailureDetailSerializer(
-        source="failure-details", many=True, default=list
-    )
+    failure_details = TlsFailureDetailSerializer(many=True, default=list)
 
 
 class TlsReportSerializer(serializers.Serializer):
     """Top-level TLS-RPT report (RFC 8460)."""
 
-    organization_name = serializers.CharField(source="organization-name", default="")
-    contact_info = serializers.CharField(source="contact-info", default="")
-    report_id = serializers.CharField(source="report-id", default="")
-    date_range = TlsReportDateRangeSerializer(
-        source="date-range", required=False, default=dict
-    )
+    organization_name = serializers.CharField(default="")
+    contact_info = serializers.CharField(default="")
+    report_id = serializers.CharField(default="")
+    date_range = TlsReportDateRangeSerializer(required=False, default=dict)
     policies = TlsPolicyEntrySerializer(many=True, default=list)
 
     @property
@@ -96,15 +92,17 @@ class TlsReportSerializer(serializers.Serializer):
             policy = entry.get("policy", {})
             summary = entry.get("summary", {})
             failures = []
-            for fd in entry.get("failure_details", []):
+            for detail in entry.get("failure_details", []):
                 failures.append(
                     {
-                        "result_type": fd.get("result_type", "other"),
-                        "sending_mta_ip_address": fd.get("sending_mta_ip_address", ""),
-                        "receiving_mx_hostname": fd.get("receiving_mx_hostname", ""),
-                        "receiving_mx_ip_address": fd.get("receiving_mx_ip_address"),
-                        "count": fd.get("count", 0),
-                        "additional_info": fd.get("additional_info", ""),
+                        "result_type": detail.get("result_type", "other"),
+                        "sending_mta_ip_address": detail.get("sending_mta_ip", ""),
+                        "receiving_mx_hostname": detail.get(
+                            "receiving_mx_hostname", ""
+                        ),
+                        "receiving_mx_ip_address": detail.get("receiving_mx_ip"),
+                        "count": detail.get("failed_session_count", 0),
+                        "additional_info": detail.get("additional_information", ""),
                     }
                 )
             policies.append(
@@ -123,6 +121,6 @@ class TlsReportSerializer(serializers.Serializer):
     @classmethod
     def parse_json(cls, data):
         """Return metadata and policies from a TLS-RPT JSON byte string."""
-        serializer = cls(data=json.loads(data))
+        serializer = cls(data=snake_case_keys(json.loads(data)))
         serializer.is_valid(raise_exception=True)
         return serializer.metadata, serializer.parsed_policies

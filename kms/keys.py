@@ -106,12 +106,12 @@ def load(ciphertext: str):
     return serialization.load_pem_private_key(pem, password=None)
 
 
-def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:
+def dkim_key_material_from_pem(private_pem: str, algorithm: str) -> tuple[bytes, bytes]:
     match algorithm:
         case Algorithm.RSA_2048 | Algorithm.RSA_1024:
-            return decrypt(ciphertext).encode("ascii"), b"rsa-sha256"
+            return private_pem.encode("ascii"), b"rsa-sha256"
         case Algorithm.ED25519:
-            private = load(ciphertext)
+            private = serialization.load_pem_private_key(private_pem.encode(), None)
             raw_seed = private.private_bytes(
                 encoding=serialization.Encoding.Raw,
                 format=serialization.PrivateFormat.Raw,
@@ -120,3 +120,7 @@ def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:
             return base64.b64encode(raw_seed), b"ed25519-sha256"
         case _:
             raise ValueError(f"Unsupported algorithm for DKIM: {algorithm}")
+
+
+def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:
+    return dkim_key_material_from_pem(decrypt(ciphertext), algorithm)

@@ -6,10 +6,17 @@ import pytest
 from django.conf import settings
 from django.core import mail
 
+from abstract.mailauth import (
+    Alignment,
+    AuthResult,
+    Disposition,
+    DmarcEvaluation,
+)
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.mta.handlers import MXHandler, process_incoming_message
 from services.email.mta.models import IncomingMessage, TlsReport
+from services.email.reputation.models import FblReport
 
 
 def make_raw_email(subject="Postmaster alert"):
@@ -147,6 +154,35 @@ class TestHandleRcpt:
         assert envelope.recipient_domain == domain
 
     @pytest.mark.django_db(transaction=True)
+    async def test_handle_rcpt__keeps_recipient_domain_for_multiple_recipients(
+        self,
+        org,
+    ):
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        envelope = SimpleNamespace(rcpt_tos=[])
+        handler = MXHandler()
+
+        first = await handler.handle_RCPT(
+            None,
+            None,
+            envelope,
+            f"alice@{domain.name}",
+            None,
+        )
+        second = await handler.handle_RCPT(
+            None,
+            None,
+            envelope,
+            f"bob@{domain.name}",
+            None,
+        )
+
+        assert first == "250 OK"
+        assert second == "250 OK"
+        assert envelope.recipient_domain == domain
+        assert envelope.rcpt_tos == [f"alice@{domain.name}", f"bob@{domain.name}"]
+
+    @pytest.mark.django_db(transaction=True)
     async def test_handle_rcpt__selects_most_specific_domain(self, org):
         Domain.objects.create(name="example.com", org=org)
         child = Domain.objects.create(name="app.example.com", org=org)
@@ -226,3 +262,181 @@ class TestProcessIncomingMessageReports:
         report = await report_model.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
+
+
+def make_dmarc_evaluation(disposition):
+    return DmarcEvaluation(
+        source_ip_address="192.0.2.1",
+        header_from="example.com",
+        envelope_from="example.org",
+        dkim_domain="",
+        dkim_result=AuthResult.FAIL,
+        dkim_alignment=Alignment.FAIL,
+        spf_domain="example.org",
+        spf_result=AuthResult.FAIL,
+        spf_alignment=Alignment.FAIL,
+        disposition=disposition,
+    )
+
+
+class TestMXHandler:
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__rejects_on_dmarc_reject(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.REJECT),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "550 Message rejected by DMARC policy"
+        assert not await IncomingMessage.objects.aexists()
+        spam_task.enqueue.assert_not_called()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__quarantines_on_dmarc_quarantine(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.QUARANTINE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam"),
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert message.status == IncomingMessage.Status.QUARANTINED
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__accepts_on_dmarc_none(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert message.status == IncomingMessage.Status.RECEIVED
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(message.id), client_ip="127.0.0.1"
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__fbl_recipient_from_listed_sender_creates_report(
+        self, org, settings
+    ):
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="feedback@gmail.com",
+            rcpt_tos=["fbl@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch(
+                "services.email.reputation.signals.tasks.create_provider_fbl_report"
+            ) as report_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        assert not await FblReport.objects.aexists()
+        report_task.enqueue.assert_called_once_with(
+            message_pk=str((await IncomingMessage.objects.aget()).id)
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__fbl_recipient_unknown_sender_checks_spam(
+        self, org, settings
+    ):
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="forged@example.org",
+            rcpt_tos=["fbl@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        assert not await FblReport.objects.aexists()
+        spam_task.enqueue.assert_called_once()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__fbl_on_customer_domain_checks_spam(self, org, settings):
+        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
+        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="feedback@gmail.com",
+            rcpt_tos=["fbl@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        assert not await FblReport.objects.aexists()
+        spam_task.enqueue.assert_called_once()

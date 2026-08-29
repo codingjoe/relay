@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n abstract message %}
+{% block title %}{% translate "FBL report"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">
+      {% translate "FBL report"|capfirst %}
+      {% if report.domain %}- {{ report.domain }}{% endif %}
+    </h2>
+  </header>
+
+  <div class="card mb-6">
+    <dl class="grid grid-cols-2 gap-4 m-0">
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
+        <dd class="m-0">{{ report.reporting_org }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "feedback type"|capfirst %}</dt>
+        <dd class="m-0">
+          <span class="badge" data-size="sm" data-variant="destructive">
+            {{ report.get_feedback_type_display }}
+          </span>
+        </dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
+        <dd class="m-0">{{ report.source_ip_address|default:"-" }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
+        <dd class="m-0">{% timestamp report.arrival_at %}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "original from"|capfirst %}</dt>
+        <dd class="m-0">
+          {% if report.original_mail_from %}
+            <a
+              class="link"
+              href="{% url 'message:message-list' org.slug %}?email={{ report.original_mail_from|urlencode }}"
+            >{{ report.original_mail_from }}</a>
+          {% else %}
+            -
+          {% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "original to"|capfirst %}</dt>
+        <dd class="m-0">
+          {% if report.original_rcpt_to %}
+            <a
+              class="link"
+              href="{% url 'message:message-list' org.slug %}?email={{ report.original_rcpt_to|urlencode }}"
+            >{{ report.original_rcpt_to }}</a>
+          {% else %}
+            -
+          {% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "original message ID"|capfirst %}</dt>
+        <dd class="m-0">{{ report.original_message_id|truncatechars:60|default:"-" }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "user agent"|capfirst %}</dt>
+        <dd class="m-0">{{ report.user_agent|default:"-" }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  {% if report.authentication_results %}
+    <div class="card mb-6">
+      <header>
+        <h3 class="m-0">{% translate "authentication results"|capfirst %}</h3>
+      </header>
+      <pre class="text-sm whitespace-pre-wrap">{{ report.authentication_results }}</pre>
+    </div>
+  {% endif %}
+
+  {% if report.original_headers %}
+    <div class="card mb-6">
+      <header>
+        <h3 class="m-0">{% translate "original headers"|capfirst %}</h3>
+      </header>
+      {{ report.original_headers|truncatechars:2000|highlight_email }}
+    </div>
+  {% endif %}
+{% endblock %}

@@ -2,6 +2,7 @@
 
 import base64
 import logging
+import secrets
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
@@ -9,12 +10,47 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
+from accounts.models import Organization
+from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
 
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
+
+
+def add_feedback_id(raw_bytes: bytes, org: Organization) -> tuple[bytes, str]:
+    """Prepend a relay Feedback-ID header for FBL complaint attribution per org.
+
+    relay's token replaces any customer-supplied Feedback-ID because the
+    token is the attribution key for complaint reports. Return the
+    message bytes and the minted Feedback-ID.
+    """
+    feedback_id = f"{org.pk}::{secrets.token_hex(12)}:relay"
+    header = f"Feedback-ID: {feedback_id}\015\012".encode("ascii")
+    return header + remove_feedback_id_headers(raw_bytes), feedback_id
+
+
+def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
+    """Return raw_bytes without customer-supplied Feedback-ID headers."""
+    kept = []
+    in_headers = True
+    deleting = False
+    for line in raw_bytes.splitlines(keepends=True):
+        if in_headers and not line.strip(b"\r\n"):
+            in_headers = False
+            deleting = False
+        if not in_headers:
+            kept.append(line)
+        elif deleting and line[:1] in b" \t":
+            pass
+        else:
+            name = line.partition(b":")[0]
+            deleting = name.lower().rstrip(b" \t") == b"feedback-id"
+            if not deleting:
+                kept.append(line)
+    return b"".join(kept)
 
 
 class SMTPHandler:
@@ -103,7 +139,11 @@ def authenticate(username: str, key: str):
 def process_suppressed_message(
     mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
 ):
-    """Store a suppressed message without enqueuing delivery."""
+    """Store a suppressed message without enqueuing delivery.
+
+    Suppressed mail is never sent, so it gets no Feedback-ID and FBL
+    complaints can never be attributed to it.
+    """
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
     OutgoingMessage.objects.create(
@@ -124,7 +164,8 @@ def process_suppressed_message(
 
 @sync_to_async
 def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_ip):
-    """Store a submitted outgoing message and enqueue its delivery."""
+    """Store a submitted outgoing message and enqueue its delivery unless
+    the org is suspended."""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
 
@@ -159,6 +200,12 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
     ):
         return "550 Recipient not allowed without active billing"
 
+    if credential.org.suspended_at:
+        return "550 Account suspended due to sender reputation"
+
+    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
+    raw_bytes = sign_message(raw_bytes, domain)
+
     message = OutgoingMessage.objects.create(
         org=credential.org,
         rcpt_to=rcpt_to,
@@ -167,6 +214,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
         message_id=message_id,
         domain=domain,
         credential=credential,
+        feedback_id=feedback_id,
         received_with_tls=bool(ssl),
         status=OutgoingMessage.Status.PENDING,
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),

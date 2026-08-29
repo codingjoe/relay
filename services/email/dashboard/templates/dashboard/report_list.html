@@ -91,6 +91,12 @@
                   class="size-4 text-muted-foreground"
                   aria-label='{% translate "DMARC failures"|capfirst %}'
                 ></i>
+              {% elif type == 'fbl' %}
+                <i
+                  data-lucide="flag"
+                  class="size-4 text-muted-foreground"
+                  aria-label='{% translate "FBL"|capfirst %}'
+                ></i>
               {% else %}
                 <i data-lucide="lock" class="size-4 text-muted-foreground" aria-label="TLS"></i>
               {% endif %}
@@ -104,7 +110,7 @@
             </td>
             <td>
               <code
-              >{% if type == 'tls' %}{{ report.reporting_email|default:"-" }}{% else %}{{ report.mail_from }}{% endif %}</code>
+              >{% if type == 'tls' %}{{ report.reporting_email|default:"-" }}{% elif type == 'fbl' %}{{ report.original_mail_from|default:"-" }}{% else %}{{ report.mail_from }}{% endif %}</code>
             </td>
           </tr>
         {% empty %}

@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import iter_attachments
 from abstract.models import TimeStamped
+from domains.models import Domain
 from services.email.mta.models import IncomingMessage
 
 from .parser import parse_arf, parse_dmarc_xml
@@ -308,11 +309,6 @@ class DmarcFailureReport(IncomingMessage):
     @classmethod
     def send_ruf_report(cls, incoming_message, evaluation):
         """Generate and deliver a DMARC forensic (RUF) report for a failed message."""
-        from django.conf import settings
-        from django.core.mail import EmailMessage
-
-        from domains.models import Domain
-
         try:
             domain = Domain.objects.root_for(
                 incoming_message.receiving_domain,

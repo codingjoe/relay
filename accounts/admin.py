@@ -7,7 +7,7 @@ from .models import Membership, Organization
 
 @admin.register(Organization)
 class OrganizationAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = ["slug", "created_at"]
+    list_display = ["slug", "created_at", "suspended_at"]
     search_fields = ["slug"]
 
 

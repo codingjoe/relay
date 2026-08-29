@@ -9,6 +9,7 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
+  "abnf>=2.9",
   "aiosmtpd>=1.4.6",
   "aiosmtplib>=5.1.2",
   "boto3>=1.43.78",

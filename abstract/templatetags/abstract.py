@@ -1,7 +1,8 @@
 import datetime
+import decimal
 
 from django.contrib.humanize.templatetags import humanize
-from django.template import loader
+from django.template import defaultfilters, loader
 from django.template.defaulttags import register
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
@@ -130,3 +131,14 @@ def include_md_toc(template_name, depth=None, **context):
     """Render a table of contents for a Markdown template, stripping frontmatter."""
     rendered = loader.get_template(template_name).render(context=context)
     return utils.md_toc(utils.strip_frontmatter(rendered), depth=depth)
+
+
+@register.filter(is_safe=True)
+def percent(text, arg=-1):
+    """Like floatformat, but shifted by two decimals and with a percent sign."""
+    if text is None:
+        return None
+    text = decimal.Decimal(str(text)) * decimal.Decimal("100.00")
+    return mark_safe(
+        f"{defaultfilters.floatformat(text, arg=arg)}&nbsp;&percnt;",
+    )

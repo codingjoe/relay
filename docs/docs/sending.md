@@ -99,8 +99,13 @@ sequenceDiagram
 Important details of the pipeline:
 
 - **Signing covers the message as stored.** relay signs with the private
-  keys of the sender domain for RSA-2048, RSA-1024, and Ed25519 at once, over
-  From, To, Subject, Date, and Message-ID.
+  keys of the sender domain for RSA-2048, RSA-1024, and Ed25519 at once.
+  All signatures cover the same headers: From, To, Subject, Date,
+  Message-ID, and `Feedback-ID`.
+- **Customers' messages carry a platform cosign.** relay cosigns with the
+  keys of the platform domain. relay also sets a `Feedback-ID` header with
+  its own token. This token replaces a customer-supplied `Feedback-ID`, so
+  complaint reports echo relay's key and the complaint maps to one message.
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
   message and the envelope domain aligns with your DKIM.
@@ -145,7 +150,7 @@ import smtplib, ssl
 
 with smtplib.SMTP("smtp.relay.example.com", 587) as server:
     server.starttls(context=ssl.create_default_context())
-    server.login("acme", get_env("RELAY_API_KEY"))
+    server.login("acme", "your-smtp-credential-key")
     server.sendmail(
         "billing@acme.com",
         ["kim@example.net"],

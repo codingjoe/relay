@@ -3,7 +3,8 @@ from email.message import EmailMessage
 
 import pytest
 
-from services.email.dmarc.models import DmarcReport
+from domains.models import Domain
+from services.email.dmarc.models import DmarcRecord, DmarcReport
 
 SAMPLE_XML = b"""<?xml version="1.0"?>
 <feedback>
@@ -82,8 +83,6 @@ class TestDmarcReportParseFromEmail:
 @pytest.mark.django_db
 class TestDmarcReportStr:
     def test_str__shows_reporting_org_and_domain(self, org):
-        from domains.models import Domain
-
         domain = Domain.objects.create(name="example.com", org=org)
         report = DmarcReport(
             org=org,
@@ -97,8 +96,6 @@ class TestDmarcReportStr:
 
 class TestDmarcRecordStr:
     def test_str__shows_ip_count_disposition(self):
-        from services.email.dmarc.models import DmarcRecord
-
         record = DmarcRecord(
             source_ip_address="192.168.1.1",
             count=5,

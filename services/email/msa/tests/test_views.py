@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 
 from domains.models import Domain
-from services.email.msa.models import MsaCredential, OutgoingMessage
+from services.email.msa.models import MsaCredential, OutgoingMessage, SuppressionEntry
 
 
 def make_message(org, user, **kwargs):
@@ -195,8 +195,6 @@ class TestSuppressionListView:
 
     @pytest.mark.django_db
     def test_get__filters_by_org(self, admin_client, org, write_org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
@@ -222,8 +220,6 @@ class TestSuppressionListView:
 class TestSuppressionCreateView:
     @pytest.mark.django_db
     def test_post__creates_entry(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         response = admin_client.post(
             f"/org/{org.slug}/email/suppression/add",
             {"email": "bob@example.com"},
@@ -234,8 +230,6 @@ class TestSuppressionCreateView:
 
     @pytest.mark.django_db
     def test_post__updates_existing_entry(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
@@ -258,8 +252,6 @@ class TestSuppressionCreateView:
 class TestSuppressionRemoveView:
     @pytest.mark.django_db
     def test_post__removes_entry(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
@@ -284,8 +276,6 @@ class TestSuppressionRemoveView:
 class TestSuppressionCheckView:
     @pytest.mark.django_db
     def test_post__suppressed_returns_warning(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )

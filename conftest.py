@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth.models import User
+from django.db import connections
 
 from accounts.models import Membership, Organization
 
@@ -18,8 +19,6 @@ def assert_django_db_used(request, _django_db_marker):
     if not request.node.get_closest_marker("django_db"):
         yield
         return
-
-    from django.db import connections
 
     query_count = 0
 

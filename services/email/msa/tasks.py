@@ -6,7 +6,6 @@ import dns.resolver
 import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.core.files.base import ContentFile
 from django.tasks import task
 from threadmill.retry import ExponentialBackoff
 
@@ -22,15 +21,23 @@ class MxHostsExhausted(Exception):
 
 @task
 def deliver_message(message_id):
-    """Deliver a queued outgoing message to its recipients."""
+    """Deliver a queued outgoing message to its recipients, or drop it when
+    the org is suspended."""
     from .models import OutgoingMessage, SuppressionEntry, Transmission
 
-    message = OutgoingMessage.objects.select_related("domain").get(pk=message_id)
+    message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
+    if message.org.suspended_at:
+        message.status = OutgoingMessage.Status.DROPPED
+        message.save(update_fields=["status", "modified_at"])
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.FAILED,
+            code=550,
+            output="550 Account suspended due to sender reputation",
+        )
+        return
 
     try:
-        if message.domain is None:
-            raise ValueError("Outgoing message has no sender domain")
-
         from domains.models import Domain, canonicalize_domain_name
 
         canonical_name = canonicalize_domain_name(message.domain.name)
@@ -49,20 +56,10 @@ def deliver_message(message_id):
             raise ValueError("Outgoing message sender domain does not match")
 
         raw_bytes = message.raw_body.read()
-        from domains.dkim import sign_message
-
-        raw_bytes = sign_message(raw_bytes, message.domain)
         return_path = (
             f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
             f"@{message.domain.sender_domain}"
         )
-        message.raw_body.save(
-            message.raw_body.name.split("/")[-1],
-            ContentFile(raw_bytes),
-            save=False,
-        )
-        message.save(update_fields=["raw_body"])
-
         rcpt_domain = message.rcpt_to.split("@")[-1]
         mx_hosts = fetch_mx_hosts(rcpt_domain)
 
@@ -162,10 +159,24 @@ def fetch_mx_hosts(domain):
     )
 )
 def check_outgoing_spam(message_pk, client_ip):
-    """Check an outgoing message for spam and enqueue delivery if clean."""
+    """Drop messages for suspended orgs, then check for spam and enqueue
+    delivery if clean."""
     from .models import OutgoingMessage
 
-    message = OutgoingMessage.objects.get(pk=message_pk)
+    message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
+    if message.org.suspended_at:
+        from .models import Transmission
+
+        message.status = OutgoingMessage.Status.DROPPED
+        message.save(update_fields=["status", "modified_at"])
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.FAILED,
+            code=550,
+            output="550 Account suspended due to sender reputation",
+        )
+        return
+
     raw_bytes = message.raw_body.read()
     spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
     is_spam = (

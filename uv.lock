@@ -3,6 +3,15 @@ revision = 3
 requires-python = "==3.14.*"
 
 [[package]]
+name = "abnf"
+version = "2.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/55/5514e564539e23a4948795695d5f25c184f0e02ac18695db1c8d5e6f3d05/abnf-2.9.0.tar.gz", hash = "sha256:45af3643da2281e34b03fba467bdeb09797f5552d140907a578c2d8ec10fcdd5", size = 1088572, upload-time = "2026-08-27T11:12:45.963Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/4c/cb77419f4dd5e6086550a05f4bce9eb521c80a2b877215065331c2b476b7/abnf-2.9.0-py3-none-any.whl", hash = "sha256:8592e174c05cc6010f5250f2292b832993f92e2ae136d7618368ee89d649435e", size = 78100, upload-time = "2026-08-27T11:12:44.185Z" },
+]
+
+[[package]]
 name = "aiosmtpd"
 version = "1.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -900,6 +909,7 @@ name = "relay"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "abnf" },
     { name = "aiosmtpd" },
     { name = "aiosmtplib" },
     { name = "boto3" },
@@ -954,6 +964,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
+    { name = "abnf", specifier = ">=2.9" },
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "aiosmtplib", specifier = ">=5.1.2" },
     { name = "boto3", specifier = ">=1.43.78" },
@@ -990,7 +1001,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-django", specifier = ">=4.14" },
     { name = "pytest-env", specifier = ">=1.7" },
-    { name = "pytest-pretty", specifier = ">=1.3.0" },
+    { name = "pytest-pretty", specifier = ">=1.3" },
     { name = "pytest-randomly", specifier = ">=4.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
     { name = "pyyaml", specifier = ">=6.0.3" },

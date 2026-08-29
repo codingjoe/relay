@@ -1,4 +1,6 @@
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from django.db import IntegrityError
 
@@ -65,7 +67,6 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_raw__matches_public_pem(self):
         """Raw bytes must correspond to the public PEM."""
-        from cryptography.hazmat.primitives import serialization
 
         key = SigningKey.generate("ed25519")
         raw = key.public_bytes_raw()
@@ -79,13 +80,11 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_der__for_rsa(self):
         """RSA public keys must encode to SPKI DER (used for the DKIM p= tag)."""
-        from cryptography.hazmat.primitives import serialization
 
         key = SigningKey.generate("rsa-2048")
         der = key.public_bytes_der()
         # Should decode back to the same RSA public key.
         loaded = serialization.load_der_public_key(der)
-        from cryptography.hazmat.primitives.asymmetric import rsa
 
         assert isinstance(loaded, rsa.RSAPublicKey)
         assert loaded.key_size == 2048

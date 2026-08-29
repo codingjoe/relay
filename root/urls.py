@@ -64,6 +64,7 @@ urlpatterns = [
                 path("", include("services.email.msa.urls")),
                 path("", include("services.email.mta.urls")),
                 path("", include("services.email.dmarc.urls")),
+                path("", include("services.email.reputation.urls")),
                 path("domains/", include("domains.urls")),
             ]
         ),
