@@ -244,7 +244,11 @@ RELAY_DNS_NS_NAMESERVERS = [
     f"ns2.{RELAY_PLATFORM_DOMAIN}",
 ]
 RELAY_DNS_SMTP_IPS = [
-    ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
+    ip
+    for ip in (
+        ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
+    )
+    if ip
 ]
 # Egress pool for the worker's outgoing SMTP; empty sends from the primary IP.
 # Blank entries must not slip through: source_address="" binds 0.0.0.0.
