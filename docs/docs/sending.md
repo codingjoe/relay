@@ -103,8 +103,9 @@ Important details of the pipeline:
   All signatures cover the same headers: From, To, Subject, Date,
   Message-ID, and `Feedback-ID`.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
-  keys of the platform domain. When the message has no `Feedback-ID`
-  header, relay adds one. When you set your own, relay keeps it unchanged.
+  keys of the platform domain. relay also sets a `Feedback-ID` header with
+  its own token. This token replaces a customer-supplied `Feedback-ID`, so
+  complaint reports echo relay's key and the complaint maps to one message.
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
   message and the envelope domain aligns with your DKIM.
