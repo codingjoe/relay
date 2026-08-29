@@ -4,14 +4,12 @@ import base64
 import logging
 import secrets
 from email import message_from_bytes
-from email.message import Message
 
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
-from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
 
@@ -21,23 +19,36 @@ from .tasks import check_outgoing_spam
 logger = logging.getLogger(__name__)
 
 
-def add_feedback_id(
-    raw_bytes: bytes, msg: Message, org: Organization
-) -> tuple[bytes, str]:
-    """Prepend a Feedback-ID header for FBL complaint aggregation per org.
+def add_feedback_id(raw_bytes, org):
+    """Prepend a relay Feedback-ID header for FBL complaint attribution per org.
 
-    Return the message bytes and the minted Feedback-ID, so FBL complaints
-    can be attributed per message. When the customer already set a
-    Feedback-ID, it is preserved and no relay Feedback-ID is minted (the
-    second item is empty).
+    relay's token replaces any customer-supplied Feedback-ID because the
+    token is the attribution key for complaint reports. Return the
+    message bytes and the minted Feedback-ID.
     """
-    if msg.get("Feedback-ID"):
-        return raw_bytes, ""
     feedback_id = f"{org.pk}::{secrets.token_hex(12)}:relay"
-    return (
-        f"Feedback-ID: {feedback_id}\015\012".encode("ascii") + raw_bytes,
-        feedback_id,
-    )
+    header = f"Feedback-ID: {feedback_id}\015\012".encode("ascii")
+    return header + remove_feedback_id_headers(raw_bytes), feedback_id
+
+
+def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
+    """Return raw_bytes without customer-supplied Feedback-ID headers."""
+    kept = []
+    in_headers = True
+    deleting = False
+    for line in raw_bytes.splitlines(keepends=True):
+        if in_headers and not line.strip(b"\r\n"):
+            in_headers = False
+            deleting = False
+        if not in_headers:
+            kept.append(line)
+        elif deleting and line[:1] in b" \t":
+            pass
+        else:
+            deleting = line[:12].lower() == b"feedback-id:"
+            if not deleting:
+                kept.append(line)
+    return b"".join(kept)
 
 
 class SMTPHandler:
@@ -190,7 +201,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    raw_bytes, feedback_id = add_feedback_id(raw_bytes, msg, credential.org)
+    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
     raw_bytes = sign_message(raw_bytes, domain)
 
     message = OutgoingMessage.objects.create(

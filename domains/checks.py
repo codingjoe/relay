@@ -1,6 +1,56 @@
 import dns.resolver
 from django.conf import settings
-from django.core.checks import Error, register
+from django.core.checks import Error, Warning, register
+from django.db.utils import DatabaseError
+
+from .models import Domain
+
+
+@register()
+def check_platform_domain(app_configs, **kwargs):
+    """Warn when relay is missing a flagged platform domain or its DKIM keys."""
+    warnings = []
+    try:
+        platform_domain = Domain.objects.select_related(
+            "dkim_key_rsa2048",
+            "dkim_key_rsa1024",
+            "dkim_key_ed25519",
+        ).get(is_platform=True)
+    except Domain.DoesNotExist:
+        warnings.append(
+            Warning(
+                "No domain is flagged as the platform identity, so relay does "
+                "not cosign outgoing mail with the platform identity or "
+                "publish its DKIM records. Flag the platform domain.",
+                hint="Set is_platform on the Domain named RELAY_PLATFORM_DOMAIN.",
+                id="domains.W001",
+            )
+        )
+    except DatabaseError:
+        return warnings
+    else:
+        missing = [
+            name
+            for name in (
+                "dkim_key_rsa2048",
+                "dkim_key_rsa1024",
+                "dkim_key_ed25519",
+            )
+            if getattr(platform_domain, f"{name}_id") is None
+        ]
+        if missing:
+            warnings.append(
+                Warning(
+                    f"The platform domain {platform_domain.name} is missing DKIM "
+                    f"keys ({', '.join(missing)}), so relay cosigns outgoing mail "
+                    "only with the configured ciphers and does not publish the "
+                    "missing DKIM TXT records. Generate the DKIM signing keys "
+                    "for the platform domain.",
+                    obj=platform_domain,
+                    id="domains.W002",
+                )
+            )
+    return warnings
 
 
 @register("domains", deploy=True)

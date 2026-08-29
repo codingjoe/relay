@@ -51,16 +51,19 @@ not the name, is the platform trust mark: a domain named like the
 platform is nothing by itself. The operator owns the flagged row as a
 regular organization's domain: it holds the platform DKIM keys, and the
 internal nameserver serves its DKIM TXT records from the ordinary
-domain record path. A missing flag, `Domain` row, or missing keys skips
-the cosign, and a message signed by the platform domain itself is not
-cosigned. FBL partners dispatch complaint reports based on the DKIM
+domain record path. relay reserves the platform domain and its
+subdomains: only the flagged row and managed sender domains can
+register names there. A missing flag, `Domain` row, or missing keys
+skips the cosign, and a message signed by the platform domain itself is
+not cosigned. FBL partners dispatch complaint reports based on the DKIM
 `d=` domain, so a single FBL registration per partner covers all
 customers. Each signature also covers a `Feedback-ID` header that
 identifies the organization and the message relay minted it for. relay
 stores the ID on the outgoing message, so FBL complaints can be
 attributed even when a provider (for example, Google) echoes only the
-`Feedback-ID`. If the customer already set a `Feedback-ID`, it is
-preserved and the message stores no attribution token.
+`Feedback-ID`. relay replaces any customer-supplied `Feedback-ID` with
+its own token before signing: the relay token is the attribution key
+that complaint reports echo.
 
 ## Architecture
 

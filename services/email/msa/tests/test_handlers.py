@@ -37,7 +37,7 @@ class TestAddFeedbackId:
         message = make_email("alice@example.com", "bob@example.com")
         original = message.as_bytes()
 
-        result, feedback_id = add_feedback_id(original, message, SimpleNamespace(pk=9))
+        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
 
         assert result.endswith(original)
         header = re.fullmatch(
@@ -47,15 +47,18 @@ class TestAddFeedbackId:
         assert header
         assert feedback_id == header.group(1).decode()
 
-    def test_add_feedback_id__preserves_customer_header(self):
+    def test_add_feedback_id__replaces_customer_header(self):
         message = make_email("alice@example.com", "bob@example.com")
         message["Feedback-ID"] = "customer-id"
         original = message.as_bytes()
 
-        assert add_feedback_id(original, message, SimpleNamespace(pk=9)) == (
-            original,
-            "",
-        )
+        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+
+        assert result.count(b"Feedback-ID:") == 1
+        assert b"customer-id" not in result
+        assert feedback_id.startswith("9::")
+        body = original.split(b"\n\n", 1)[1]
+        assert result.endswith(b"\n\n" + body)
 
 
 class TestHandleData:
@@ -106,7 +109,7 @@ class TestHandleData:
         )
 
     @pytest.mark.django_db(transaction=True)
-    async def test_handle_data__preserves_existing_feedback_id(self, user, org):
+    async def test_handle_data__replaces_existing_feedback_id(self, user, org):
 
         domain = await Domain.objects.aget(org=org, is_managed=True)
         credential, _ = MsaCredential.objects.create_with_key(org=org)
@@ -128,9 +131,10 @@ class TestHandleData:
         assert result == "250 OK"
         raw = outgoing.raw_body.read()
         stored = message_from_bytes(raw)
-        assert stored.get_all("Feedback-ID") == ["customer-id"]
+        assert b"customer-id" not in raw
         assert raw.count(b"Feedback-ID") == 1
-        assert outgoing.feedback_id == ""
+        assert stored.get_all("Feedback-ID") == [outgoing.feedback_id]
+        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip="127.0.0.1"
         )
