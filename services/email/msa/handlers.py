@@ -46,7 +46,8 @@ def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
         elif deleting and line[:1] in b" \t":
             pass
         else:
-            deleting = line[:12].lower() == b"feedback-id:"
+            name = line.partition(b":")[0]
+            deleting = name.lower().rstrip(b" \t") == b"feedback-id"
             if not deleting:
                 kept.append(line)
     return b"".join(kept)
