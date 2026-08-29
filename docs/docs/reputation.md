@@ -60,7 +60,7 @@ are on the roadmap. The dashboard covers adding and removing entries today.
 
 ## Keeping spam from your assets
 
-Outbound mail is scanned before it leaves, and held messages do not reach a
+relay scans outbound mail before it leaves, and held messages do not reach a
 recipient. This gate exists because a single compromised credential or a
 single broken template can damage a domain for weeks. See the
 <a href="{% url 'docs:detail' slug='deliverability' %}">delivery

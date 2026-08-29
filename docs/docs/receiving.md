@@ -16,8 +16,8 @@ the result to your webhooks. This page explains each stage.
 Point the MX record of your receiving domain at your sender subdomain, for
 example `MX app.acme.com` to `mail.relay.acme.com`. The relay nameserver
 serves that subdomain's zone, so the MX host and its TLS records exist
-without further work. The dashboard's webhook check tells you if the MX
-record is wrong, with the observed value and the time of the last check.
+without further work. The dashboard's webhook check shows a wrong MX
+record, with the observed value and the time of the last check.
 
 Inbound flow:
 
@@ -54,7 +54,7 @@ platform. Quarantine policies mark the stored message as quarantined. This
 protects senders that publish strict policies from having their name abused,
 and it protects your inbox from spoofing attempts.
 
-**Spam scan.** Every accepted message is scored by rspamd. A message whose
+**Spam scan.** rspamd scores every accepted message. A message whose
 score reaches the reject threshold, or whose action is reject, lands as
 quarantined and never reaches your webhook. You can see the score in the
 dashboard.
@@ -74,8 +74,9 @@ These addresses exist because your DMARC and DNS records must name a
 collector, and relay is that collector. You see who authenticates as your
 domain, who fails, and which servers have TLS trouble.
 
-The MAIL-lifetime of a normal message begins at acceptance. It is stored with
-its metadata, marked received (or quarantined), and processed asynchronously.
+The MAIL-lifetime of a normal message begins at acceptance. relay stores
+it with its metadata, marks it received (or quarantined), and processes it
+asynchronously.
 
 ## What happens after the spam scan
 
@@ -84,7 +85,8 @@ The dispatch rules:
 
 - the webhook must belong to the receiving domain, and its address pattern,
   for example `*@app.acme.com` or `support@acme.com`, matches the recipient,
-- the message is delivered per matching webhook with the Standard Webhooks
+- relay delivers the message to each matching webhook with the Standard
+  Webhooks
   signature scheme,
 - without active billing the status becomes dropped, without matching
   webhooks it becomes dropped as well.
@@ -94,8 +96,8 @@ you can still read it in the dashboard.
 
 ## Postmaster handling
 
-Messages to `postmaster@{your-domain}` are stored and dispatched like any
-other, with one addition: relay notifies the organization's members about
+relay stores messages to `postmaster@{your-domain}` and dispatches them
+like any other, with one addition: relay notifies the organization's members about
 postmaster mail, because RFC 5321 requires postmaster to be reachable.
 
 ## Reading arriving mail

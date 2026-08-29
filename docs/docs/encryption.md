@@ -112,7 +112,8 @@ Bodies are not stored longer than delivery needs. See the
 
 ## What relay cannot encrypt
 
-Email is designed for relaying: every server on the path reads the message.
+Email is a store-and-forward system. Every server on the path reads the
+message.
 relay cannot create end-to-end confidentiality without breaking the protocol.
 If your threat model requires it, encrypt at the application layer before
 submission, for example with S/MIME or PGP, and let relay carry the

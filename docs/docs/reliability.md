@@ -8,12 +8,12 @@ author: Johannes Maron
 
 Email must survive restarts, dead MX hosts, failing endpoints, and slow
 recipients. relay queues everything, records every attempt, and retries
-according to definable schedules. This page is the reliability manual: what
-happens when something fails, and how you observe it.
+according to definable schedules. This page is the reliability manual. It explains
+the failure paths, and how you observe each of them.
 
 ## The queue model
 
-Your submission is durable before it is processed:
+relay stores your submission before any processing:
 
 ```mermaid
 flowchart TD
@@ -87,7 +87,7 @@ monitors:
 | `/health/django/` | Database, Redis, disk, memory | Full stack probe       |
 
 Both answer with a status and an HTTP 200 when healthy. Monitor them with
-whatever you use elsewhere. No special headers are needed.
+whatever you use elsewhere. You need no special headers.
 
 ## Observability of failures
 

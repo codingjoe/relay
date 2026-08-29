@@ -106,7 +106,7 @@ Important details of the pipeline:
   message and the envelope domain aligns with your DKIM.
 - **EHLO identifies the relay sending host**, whose name matches its
   reverse DNS record. Receivers grade that consistency.
-- **MTA-STS is enforced.** For recipient domains with a policy, relay skips
+- **Enforced MTA-STS.** For recipient domains with a policy, relay skips
   hosts the policy does not permit. See
   <a href="{% url 'docs:detail' slug='encryption' %}">Encryption</a>.
 - **relay tries every MX host** in preference order and records one
@@ -133,8 +133,8 @@ the SMTP status code, the answer text, and whether TLS was in use.
 On a permanent 5xx rejection relay records the bounce and adds the
 recipient's address as a suppressions entry with the reason *bounce*.
 Suppressed addresses reject silently on later submissions. There is no
-automatic removal. A human decides in the dashboard when an address can
-receive again. Manual entries can carry reason *manual*.
+automatic removal. A human can release an address again in the
+dashboard. Manual entries can carry reason *manual*.
 
 ## A minimal client
 

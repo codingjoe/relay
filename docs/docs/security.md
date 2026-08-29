@@ -19,14 +19,14 @@ are on every sign-in. A password leak from the relay database is impossible
 by design, because relay holds no passwords.
 
 Sign-in creates your personal organization on the first use. An organization
-owns domains, SMTP credentials, webhooks, and messages. Organization data is
-isolated at the database level. Every query of org-owned data filters on the
+owns domains, SMTP credentials, webhooks, and messages. relay isolates
+organization data at the database level. Every query of org-owned data filters on the
 organization, so one organization cannot read the messages of another
 organization.
 
 relay also blocks domain hijacking between organizations: a domain that
-overlaps a domain of another organization cannot be registered. Subdomains
-of the managed sender domain are reserved for the platform. relay enforces
+overlaps a domain of another organization cannot be registered. relay reserves subdomains
+of the managed sender domain for the platform. relay enforces
 both rules before it saves the domain.
 
 ## SMTP credential security

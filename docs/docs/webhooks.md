@@ -25,7 +25,7 @@ glob pattern, and points at one HTTPS URL:
 - **One keypair per webhook**. Each webhook derives its own Ed25519 signing
   key. Public keys display in `whpk_` form, and you use them to verify.
 
-The webhook's MX health is checked automatically. A broken MX record is
+relay checks the MX record of the webhook automatically. A broken MX record is
 visible on the webhook page.
 
 ## The payload
@@ -94,7 +94,7 @@ deliveries fail as well.
 
 ## The delivery record
 
-Each POST attempt is stored as a webhook delivery: the target URL, the
+relay stores each POST attempt as a webhook delivery: the target URL, the
 response code, the response body excerpt (2,000 characters), and the
 delivery status. The dashboard shows these per inbound message, so every
 delivery is auditable afterwards.
@@ -119,15 +119,15 @@ seconds of jitter added to each delay:
 | 10      | 24 h      | 75 h, about 3 days |
 
 Ten attempts, spread over roughly three days, with jitter on every delay.
-Failure marks the message as `webhook_failed` only if no attempt ever
-succeeded. Successful deliveries mark the message as `webhook_sent`.
+If no attempt ever succeeds, relay marks the message as
+`webhook_failed`. Successful deliveries mark the message as `webhook_sent`.
 
 ## Handling and re-delivery
 
 A webhook that answers 2xx within the timeout is done. Anything else
 (connection refusal, 4xx, 5xx, timeout) is a failure and retries on the
-schedule above. Idempotent handling with `webhook-id` dedupe is recommended,
-since deliveries can be retried.
+schedule above. Handle deliveries idempotently, and dedupe on `webhook-id`, because
+relay can retry deliveries.
 Trigger test deliveries with `email.test` from the dashboard without waiting
 for real inbound mail.
 

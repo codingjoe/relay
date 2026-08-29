@@ -7,8 +7,8 @@ author: Johannes Maron
 # Message statuses
 
 Every message in the dashboard carries exactly one status. The status tells
-you where the message stands, what relay will still do with it, and whether a
-human decision is needed. This page shows both state machines as diagrams and
+you where the message stands, what relay will still do with it, and which steps need a
+human decision. This page shows both state machines as diagrams and
 explains each transition. Every transition in the diagrams maps to real code
 paths.
 
@@ -36,12 +36,12 @@ stateDiagram-v2
     suppressed --> [*]
 ```
 
-| Status     | Set when                                                                                  | What happens next                                              |
+| Status     | Trigger                                                                                   | What happens next                                              |
 | ---------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | pending    | Stored after a `250` acceptance, before the spam scan finishes                            | The worker scans, signs, and delivers                          |
 | suppressed | The recipient address is on the suppression list at submission                            | Terminal state, no delivery attempt, visible in the dashboard  |
 | sent       | At least one recipient MX host accepted the message after STARTTLS                        | Final state, the transmission records keep the SMTP transcript |
-| bounced    | A recipient server answered with a permanent 5xx rejection                                | Final state, the address is suppressed automatically           |
+| bounced    | A recipient server answered with a permanent 5xx rejection                                | Final state, relay suppresses the address automatically        |
 | failed     | No MX records, every MX host failed, or a transport or storage error stopped the pipeline | Final state, the last transcript explains why                  |
 | held       | rspamd rejects the action or the score reaches the hold threshold                         | Final state until a human sees the dashboard                   |
 
@@ -75,7 +75,7 @@ stateDiagram-v2
     webhook_failed --> [*]
 ```
 
-| Status         | Set when                                                                                              | What happens next                                                 |
+| Status         | Trigger                                                                                               | What happens next                                                 |
 | -------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | received       | Stored after acceptance, before the inbound spam check finishes                                       | The spam scan runs, then webhooks fire                            |
 | quarantined    | A DMARC quarantine disposition at acceptance, or a spam score at or above the reject threshold        | Final state, no webhook, readable in the dashboard with its score |
