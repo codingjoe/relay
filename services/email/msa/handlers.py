@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
+from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
 
@@ -19,7 +20,7 @@ from .tasks import check_outgoing_spam
 logger = logging.getLogger(__name__)
 
 
-def add_feedback_id(raw_bytes, org):
+def add_feedback_id(raw_bytes: bytes, org: Organization) -> tuple[bytes, str]:
     """Prepend a relay Feedback-ID header for FBL complaint attribution per org.
 
     relay's token replaces any customer-supplied Feedback-ID because the

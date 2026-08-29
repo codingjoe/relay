@@ -1,4 +1,5 @@
 import base64
+import datetime
 import re
 from email import message_from_bytes
 from email.message import EmailMessage
@@ -59,6 +60,43 @@ class TestAddFeedbackId:
         assert feedback_id.startswith("9::")
         body = original.split(b"\n\n", 1)[1]
         assert result.endswith(b"\n\n" + body)
+
+    def test_add_feedback_id__removes_folded_customer_header(self):
+        original = (
+            b"From: alice@example.com\r\n"
+            b"Feedback-ID: customer\r\n one\r\n"
+            b"To: bob@example.com\r\n"
+            b"\r\n"
+            b"Hello"
+        )
+
+        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+
+        assert result.count(b"Feedback-ID:") == 1
+        assert b"customer" not in result
+        assert b" one" not in result
+        assert feedback_id.startswith("9::")
+        assert result.endswith(b"To: bob@example.com\r\n\r\nHello")
+
+    def test_add_feedback_id__removes_every_customer_header(self):
+        original = (
+            b"Feedback-ID: first\r\n"
+            b"Feedback-ID: second\r\n"
+            b"From: alice@example.com\r\n"
+            b"To: bob@example.com\r\n"
+            b"\r\n"
+            b"Hello"
+        )
+
+        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+
+        assert result.count(b"Feedback-ID:") == 1
+        assert b"first" not in result
+        assert b"second" not in result
+        assert feedback_id.startswith("9::")
+        assert result.endswith(
+            b"From: alice@example.com\r\nTo: bob@example.com\r\n\r\nHello"
+        )
 
 
 class TestHandleData:
@@ -490,6 +528,11 @@ class TestAuthenticate:
         stale = MsaCredential(org=org, name="stale")
         stale.set_key(raw_key[:8] + "stale-tail")
         stale.save()
+        # Credentials are ordered by recency; pin stale as newest so the
+        # mismatching credential is verified (and fails) before the valid one.
+        MsaCredential.objects.filter(name="stale").update(
+            modified_at=timezone.now() + datetime.timedelta(seconds=1)
+        )
         result = await authenticate(org.slug, raw_key)
         assert result is not None
         assert result.name == "test"

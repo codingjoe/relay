@@ -204,6 +204,23 @@ class TestDomainClean:
         assert domain.pk is not None
 
     @pytest.mark.django_db
+    def test_save__enforces_unique_platform_domain_constraint(self):
+        """The partial unique constraint catches writes bypassing clean()."""
+        platform_org = Organization.objects.create(slug="platform-org")
+        Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+            is_platform=True,
+        )
+        other = Domain.objects.create(name="other.example", org=platform_org)
+
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Domain.objects.filter(pk=other.pk).update(is_platform=True)
+
+        other.refresh_from_db()
+        assert other.is_platform is False
+
+    @pytest.mark.django_db
     def test_save__rejects_platform_domain_for_other_org(self):
         platform_org = Organization.objects.create(slug="platform-org")
         Domain.objects.create(
