@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     "legal",
     "know_how",
     "alternative_to",
+    "docs",
     "well_known",
     "root",
     "services.email.msa",
@@ -126,6 +127,7 @@ TEMPLATES = [
             BASE_DIR / "legal" / "docs",
             BASE_DIR / "know_how" / "docs",
             BASE_DIR / "alternative_to" / "docs",
+            BASE_DIR / "docs" / "docs",
         ],
         "OPTIONS": {
             "context_processors": (

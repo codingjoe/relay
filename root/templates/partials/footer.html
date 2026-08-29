@@ -23,6 +23,10 @@
         class="text-muted-foreground hover:text-foreground transition-colors"
       >{% translate "privacy policy"|title %}</a>
       <a
+        href="{% url 'docs:list' %}"
+        class="text-muted-foreground hover:text-foreground transition-colors"
+      >{% translate "docs"|capfirst %}</a>
+      <a
         href="{% url 'know_how:list' %}"
         class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
       >{% translate "know how"|capfirst %}</a>

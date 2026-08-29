@@ -278,3 +278,18 @@ Update it based on review feedback.
 
 - The shared app owns the merged list views and the template-tag
   library. Siblings keep their own detail views.
+
+## Markdown docs apps
+
+- Each content area is one app with a `docs/` folder: `legal/docs`,
+  `know_how/docs`, `alternative_to/docs`, `docs/docs`. List and detail
+  views extend `MarkdownArticleMixin` from `abstract.views`.
+
+- Article slugs must be unique across all docs apps. The template loader
+  resolves `<slug>.md` against all `TEMPLATES["DIRS"]` entries in order,
+  so a duplicate slug (for example `privacy` in `legal` and `docs`)
+  silently renders the wrong file.
+
+- `know_how/docs` holds brand-agnostic education about email technology
+  (relint forbids "relay" mentions there). `docs/docs` holds
+  relay-specific product documentation from the user perspective.

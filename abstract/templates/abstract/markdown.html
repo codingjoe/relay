@@ -2,18 +2,18 @@
 {% load i18n abstract %}
 {% block topbar %}{% include "partials/topbar_static.html" %}{% endblock %}
 {% block title %}{{ title }}{% endblock %}
-{% block meta_description %}{{ meta_description|default:"relay: know how articles about email terms and technologies." }}{% endblock %}
+{% block meta_description %}{{ meta_description|default:"relay: developer-first email infrastructure." }}{% endblock %}
 {% block meta_tags %}
   {{ block.super }}
   <meta property="og:title" content="{{ title }}">
   <meta
     property="og:description"
-    content='{{ meta_description|default:"relay: know how articles about email terms and technologies." }}'
+    content='{{ meta_description|default:"relay: developer-first email infrastructure." }}'
   >
   <meta name="twitter:title" content="{{ title }}">
   <meta
     name="twitter:description"
-    content='{{ meta_description|default:"relay: know how articles about email terms and technologies." }}'
+    content='{{ meta_description|default:"relay: developer-first email infrastructure." }}'
   >
 {% endblock meta_tags %}
 

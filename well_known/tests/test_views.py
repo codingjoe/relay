@@ -45,6 +45,13 @@ class TestLlmsTxt:
         assert "/alternative-to/ses/" in body
         assert "/alternative-to/sendgrid/" in body
 
+    def test_get__contains_docs_section(self, client):
+        response = client.get(reverse("well_known:llms-txt"))
+        body = response.content.decode()
+        assert "## Docs" in body
+        assert "/docs/security/" in body
+        assert "/docs/deliverability/" in body
+
 
 class TestLlmsFullTxt:
     def test_get__returns_full_text(self, client):
@@ -52,7 +59,7 @@ class TestLlmsFullTxt:
         assert response.status_code == 200
         assert "text/plain" in response["Content-Type"]
         body = response.content.decode()
-        assert "relay. Know how (full text)" in body
+        assert "relay. Docs (full text)" in body
         assert "DMARC" in body
         assert "SPF" in body
 
@@ -61,6 +68,13 @@ class TestLlmsFullTxt:
         body = response.content.decode()
         assert "TL;DR" in body
         assert "RFC 7489" in body
+
+    def test_get__includes_docs_content(self, client):
+        response = client.get(reverse("well_known:llms-full-txt"))
+        body = response.content.decode()
+        assert "# Security" in body
+        assert "store-and-forward" in body
+        assert "/docs/security/" in body
 
     def test_get__includes_comparison_content(self, client):
         response = client.get(reverse("well_known:llms-full-txt"))
@@ -97,3 +111,9 @@ class TestSitemap:
         body = response.content.decode()
         assert "/alternative-to/ses/" in body
         assert "/alternative-to/sendgrid/" in body
+
+    def test_get__contains_docs_articles(self, client):
+        response = client.get(reverse("well_known:sitemap"))
+        body = response.content.decode()
+        assert "/docs/security/" in body
+        assert "/docs/reliability/" in body
