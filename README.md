@@ -45,16 +45,10 @@ per-domain delegation is necessary.
 
 Outgoing mail is dual-signed with DKIM: once for the sender's own domain
 and once for the platform domain. The platform domain is the `Domain`
-row whose name equals `RELAY_PLATFORM_DOMAIN`. The operator owns that
-row as a regular organization's domain. It holds the platform DKIM
-keys, and the internal nameserver serves its DKIM TXT records from the
-ordinary domain record path. Until the row exists, relay signs with the
-sending domain only. A message signed by the platform domain itself
-gets no cosign. FBL partners dispatch complaint reports based on the
-DKIM `d=` domain, so a single FBL registration per partner covers all
-customers. Each signature covers a `Feedback-ID` header that
-identifies the organization and the message relay minted it for. relay
-stores the ID on the outgoing message.
+row whose name equals `RELAY_PLATFORM_DOMAIN`; until you register it,
+relay signs with the sending domain only. Each signature covers a per-message
+`Feedback-ID` header so FBL complaints attribute to the sending
+organization.
 
 ## Architecture
 
@@ -152,17 +146,14 @@ address glob pattern.
 
 ### Feedback loop (FBL) reports
 
-Mailbox providers send FBL reports to one platform ingestion mailbox,
-`RELAY_FBL_ADDRESS` (default `fbl@<platform domain>`). Register that
-address with each provider and allowlist the provider's exact report
-sender in `RELAY_FBL_SENDERS`; reports from anyone else take the normal
-spam-scored incoming path. Reports attribute via the per-message VERP
-envelope sender or the echoed `Feedback-ID`.
+FBL complaints arrive at `RELAY_FBL_ADDRESS` and count only for senders
+listed in `RELAY_FBL_SENDERS`. Register the address with each provider and
+allowlist their report sender.
 
-| Variable            | Default                          | Description                                                                                                                            |
-| ------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The one platform FBL ingestion mailbox. Register it with your providers.                                                               |
-| `RELAY_FBL_SENDERS` | _(empty: off)_                   | Comma-separated exact provider envelope addresses. One address per provider, verified against a live report. Empty disables ingestion. |
+| Variable            | Default                          | Description                                                                    |
+| ------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
+| `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                    |
+| `RELAY_FBL_SENDERS` | _(empty: off)_                   | Exact provider envelope addresses, one per provider. Empty disables ingestion. |
 
 ### Tech Stack
 
