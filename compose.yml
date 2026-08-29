@@ -3,56 +3,56 @@ include:
       - compose.production.yml
 #      - oci://docker.io/codingjoe/the-box:main
 services:
-  web:
-    build:
-      target: development
-    command: ["-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}"]
-    volumes:
-      - .:/app:cached
   dns:
     build:
       target: development
-    volumes:
-      - .:/app:cached
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
   dnsdist:
     ports: !override
-      - "127.0.0.1:53:53/udp"
-      - "127.0.0.1:53:53/tcp"
+      - '127.0.0.1:53:53/udp'
+      - '127.0.0.1:53:53/tcp'
   msa:
     build:
       target: development
-    volumes:
-      - .:/app:cached
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
   mta:
     build:
       target: development
-    volumes:
-      - .:/app:cached
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-  worker:
+  web:
     build:
       target: development
     volumes:
       - .:/app:cached
+    command: [ "-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}" ]
+  worker:
+    build:
+      target: development
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-    command: ["-m", "manage", "threadmill", "worker"]
+    command: [ "-m", "manage", "threadmill", "worker" ]
