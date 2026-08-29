@@ -1,11 +1,12 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from accounts.models import Organization
-from domains.models import Domain, validate_domain_name
+from domains.models import Domain, canonicalize_domain_name, validate_domain_name
 from kms import keys as kms_keys
 
 
@@ -142,6 +143,32 @@ class TestDomainClean:
 
         with pytest.raises(ValidationError):
             Domain.objects.create(name="app。example.com", org=child_org)
+
+    @pytest.mark.django_db
+    def test_save__allows_platform_domain_with_existing_managed_domains(self):
+        managed_org = Organization.objects.create(slug="acme")
+        platform_org = Organization.objects.create(slug="platform-org")
+
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+
+        assert platform.pk is not None
+        assert Domain.objects.filter(org=managed_org, is_managed=True).exists()
+
+    @pytest.mark.django_db
+    def test_save__creates_new_org_after_platform_domain(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+
+        org = Organization.objects.create(slug="acme")
+        managed = Domain.objects.get(org=org, is_managed=True)
+
+        assert managed.name == f"acme.open.{platform.name}"
 
 
 @pytest.mark.django_db

@@ -46,18 +46,22 @@ def parse_signatures(signed):
 
 
 def make_platform_domain(org, **dkim_keys):
-    """Create the Domain row named RELAY_PLATFORM_DOMAIN with explicit keys.
-
-    bulk_create bypasses save()/clean(), because the platform domain is
-    an ancestor of every managed sender domain, so saving it through the
-    ordinary path would trip the domain overlap validator.
-    """
-    domain = Domain(
+    """Create the Domain row named RELAY_PLATFORM_DOMAIN with explicit keys."""
+    domain = Domain.objects.create(
         name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
         org=org,
-        **dkim_keys,
     )
-    (domain,) = Domain.objects.bulk_create([domain])
+    if dkim_keys:
+        domain.dkim_key_rsa2048 = dkim_keys.get("dkim_key_rsa2048")
+        domain.dkim_key_rsa1024 = dkim_keys.get("dkim_key_rsa1024")
+        domain.dkim_key_ed25519 = dkim_keys.get("dkim_key_ed25519")
+        domain.save(
+            update_fields=[
+                "dkim_key_rsa2048",
+                "dkim_key_rsa1024",
+                "dkim_key_ed25519",
+            ]
+        )
     return domain
 
 

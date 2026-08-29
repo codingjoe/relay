@@ -4,8 +4,9 @@ import logging
 
 import dkim
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
-from .models import Domain
+from .models import Domain, canonicalize_domain_name
 
 logger = logging.getLogger(__name__)
 
@@ -24,22 +25,22 @@ def add_dkim_signature(raw_bytes, selector, domain_name, key, include_headers):
 
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM using every cipher that has an available key."""
+    """Sign a message with DKIM for the signing domain, then cosign with the
+    platform domain when its Domain row exists and the signer is another domain."""
     signed = raw_bytes
-    # Cosign with the platform domain, the Domain row named
-    # RELAY_PLATFORM_DOMAIN. A missing row or missing keys skips the
-    # cosign, and relay never cosigns when the signing domain already is
-    # the platform domain. Signatures are prepended, so the customer's
-    # signature ends up on top, the way SES dual-signs. FBL partners
-    # dispatch reports based on the DKIM d= domain, which lets us serve
-    # all customers from a single FBL registration per partner.
+    # Cosigning lets FBL partners dispatch reports based on the DKIM d=
+    # domain, which serves all customers from a single FBL registration
+    # per partner. Signatures are prepended, so the customer's signature
+    # ends up on top, the way SES dual-signs.
     try:
-        platform_domain = Domain.objects.get(
-            name__iexact=settings.RELAY_PLATFORM_DOMAIN
-        )
-    except Domain.DoesNotExist:
+        platform_domain = Domain.objects.select_related(
+            "dkim_key_rsa2048",
+            "dkim_key_rsa1024",
+            "dkim_key_ed25519",
+        ).get(name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN))
+    except Domain.DoesNotExist, ValidationError:
         platform_domain = None
-    if platform_domain and platform_domain.pk != domain.pk:
+    if platform_domain and domain.name != platform_domain.name:
         for selector, key in platform_domain.dkim_ciphers:
             if key:
                 signed = add_dkim_signature(

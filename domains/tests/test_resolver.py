@@ -6,7 +6,6 @@ from dnslib.dns import QTYPE
 from accounts.models import Organization
 from domains.models import Domain, canonicalize_domain_name
 from domains.resolver import DNSResolver, txt
-from kms.models import SigningKey
 
 
 class TestTxt:
@@ -62,6 +61,19 @@ class TestDomainQuerySet:
         )
         assert domain is not None
         assert domain.name == "example.com"
+
+    @pytest.mark.django_db
+    def test_root_for__managed_domain_beneath_platform_domain(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+        org = Organization.objects.create(slug="acme")
+
+        domain = Domain.objects.root_for("acme.open.localhost", include_managed=True)
+
+        assert domain == Domain.objects.get(org=org, is_managed=True)
 
     @pytest.mark.django_db
     def test_root_for__selects_nested_domain_for_same_org(self):
@@ -237,17 +249,11 @@ class TestResolve:
             assert b"v=DKIM1" in b"".join(records[0].rdata.data)
 
     def test_resolve_records__publishes_platform_dkim_txt(self):
-        # bulk_create bypasses clean(), which would reject the platform
-        # domain as an ancestor of the org's own managed sender domain.
         platform_org = Organization.objects.create(slug="platform-org")
-        platform = Domain(
+        platform = Domain.objects.create(
             name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
             org=platform_org,
-            dkim_key_rsa2048=SigningKey.generate(SigningKey.Algorithm.RSA_2048),
-            dkim_key_rsa1024=SigningKey.generate(SigningKey.Algorithm.RSA_1024),
-            dkim_key_ed25519=SigningKey.generate(SigningKey.Algorithm.ED25519),
         )
-        (platform,) = Domain.objects.bulk_create([platform])
         selector, _ = platform.dkim_ciphers[0]
 
         for base in (platform.name, platform.sender_domain):
