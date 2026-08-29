@@ -98,6 +98,42 @@ class TestAddFeedbackId:
             b"From: alice@example.com\r\nTo: bob@example.com\r\n\r\nHello"
         )
 
+    def test_add_feedback_id__removes_obs_form_customer_header_with_fold(self):
+        original = (
+            b"From: alice@example.com\r\n"
+            b"Feedback-ID : tenant\r\n"
+            b"\tcontinuation\r\n"
+            b"To: bob@example.com\r\n"
+            b"\r\n"
+            b"Hello"
+        )
+
+        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+
+        assert b"tenant" not in result
+        assert b"continuation" not in result
+        assert b"Feedback-ID: 9::" in result
+        assert feedback_id.startswith("9::")
+        assert result.endswith(b"To: bob@example.com\r\n\r\nHello")
+
+    def test_add_feedback_id__keeps_lookalike_headers(self):
+        original = (
+            b"From: alice@example.com\r\n"
+            b"X-Feedback-ID: x-tenant\r\n"
+            b"Feedback-ID-Legacy: legacy\r\n"
+            b"To: bob@example.com\r\n"
+            b"\r\n"
+            b"Hello"
+        )
+
+        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+
+        assert b"X-Feedback-ID: x-tenant\r\n" in result
+        assert b"Feedback-ID-Legacy: legacy\r\n" in result
+        assert result.count(b"Feedback-ID: 9::") == 1
+        assert feedback_id.startswith("9::")
+        assert result.endswith(b"To: bob@example.com\r\n\r\nHello")
+
 
 class TestHandleData:
     async def test_handle_data__rejects_unauthenticated(self):
