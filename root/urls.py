@@ -49,6 +49,7 @@ urlpatterns = [
     # Platform (not org-scoped)
     path("", include("accounts.urls")),
     path("legal/", include("legal.urls")),
+    path("docs/", include("docs.urls")),
     path("know-how/", include("know_how.urls")),
     path("alternative-to/", include("alternative_to.urls")),
     # Well-known endpoints. Robots.txt, llms.txt, sitemap.xml

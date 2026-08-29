@@ -67,6 +67,9 @@ with wireit).
   Linting/formatting via pre-commit is the current quality gate.
 - **Update `CONVENTIONS.md`** when a reviewer identifies a new convention or
   corrects a pattern. This file is the authoritative coding-conventions source.
+- **Update `docs/docs/`** when a change alters documented behavior (sending,
+  receiving, DNS, webhooks, message statuses, hosting, security, privacy).
+  The user-facing docs describe how relay works and must not fall behind the code.
 - **Extend `.relint.yml`** when a convention can be enforced by regex. Move
   enforced rules out of `CONVENTIONS.md`: `CONVENTIONS.md` documents for
   humans, `.relint.yml` enforces for machines.
@@ -88,6 +91,8 @@ Before you finish, always:
   missing migrations for model changes.
 - Verify that URL reversals work for any changed or added routes.
 - Update `CONVENTIONS.md` if a review introduces a new convention.
+- Update `docs/docs/` when the change touches documented behavior
+  (sending, receiving, DNS, webhooks, statuses, hosting, privacy, reliability).
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
 
@@ -144,6 +149,7 @@ developer still has the same UX without needing a superuser.
 - `REVIEW.md`. The reviewer's standing rules (conventions, dependency
   direction). `CLAUDE.md` and `.github/copilot-instructions.md` symlink to it.
 - `root/settings.py`. All `RELAY_*` config and environment variables.
+- `docs/docs/`. User-facing product documentation, served at `/docs/`.
 - `legal/docs/`. Legal page Markdown sources (imprint, privacy, terms).
 
 ## Examples
