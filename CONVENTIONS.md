@@ -278,3 +278,15 @@ Update it based on review feedback.
 
 - The shared app owns the merged list views and the template-tag
   library. Siblings keep their own detail views.
+
+## Markdown docs apps
+
+- Serve each markdown docs area from one app with a `docs/` folder.
+  Extend `MarkdownArticleMixin` from `abstract.views`.
+
+- Keep article slugs unique across all docs apps. The template loader
+  resolves `<slug>.md` against every TEMPLATES DIRS entry in order, so a
+  duplicate slug renders the wrong file.
+
+- Keep `know_how/docs` brand-agnostic. Write relay-specific user docs in
+  `docs/docs`.

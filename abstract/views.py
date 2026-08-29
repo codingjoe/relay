@@ -34,16 +34,18 @@ class MarkdownArticleMixin:
 
     @classmethod
     def get_articles(cls):
-        """Yield (slug, metadata) for each article in the docs directory."""
-        for slug in sorted(cls.slugs):
+        """Yield (slug, metadata) for each article that exists on disk."""
+        slugs = cls.slugs & {p.stem for p in cls.docs_dir.glob("*.md")}
+        for slug in sorted(slugs):
             metadata, _ = frontmatter.parse((cls.docs_dir / f"{slug}.md").read_text())
             yield slug, metadata
 
     @classmethod
     def get_article_path(cls, slug: str) -> pathlib.Path:
         """Resolve the filesystem path for an article or raise Http404."""
-        if slug in cls.slugs:
-            return cls.docs_dir / f"{slug}.md"
+        path = cls.docs_dir / f"{slug}.md"
+        if slug in cls.slugs and path.is_file():
+            return path
         raise Http404("Article not found")
 
     @classmethod

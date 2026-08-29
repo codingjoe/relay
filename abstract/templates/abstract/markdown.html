@@ -2,18 +2,18 @@
 {% load i18n abstract %}
 {% block topbar %}{% include "partials/topbar_static.html" %}{% endblock %}
 {% block title %}{{ title }}{% endblock %}
-{% block meta_description %}{{ meta_description|default:"relay: know how articles about email terms and technologies." }}{% endblock %}
+{% block meta_description %}{{ meta_description|default:"relay: developer-first email infrastructure." }}{% endblock %}
 {% block meta_tags %}
   {{ block.super }}
   <meta property="og:title" content="{{ title }}">
   <meta
     property="og:description"
-    content='{{ meta_description|default:"relay: know how articles about email terms and technologies." }}'
+    content='{{ meta_description|default:"relay: developer-first email infrastructure." }}'
   >
   <meta name="twitter:title" content="{{ title }}">
   <meta
     name="twitter:description"
-    content='{{ meta_description|default:"relay: know how articles about email terms and technologies." }}'
+    content='{{ meta_description|default:"relay: developer-first email infrastructure." }}'
   >
 {% endblock meta_tags %}
 
@@ -36,4 +36,109 @@
       {{ license }}
     </footer>
   {% endif %}
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+    const isDark = () => document.documentElement.classList.contains("dark");
+    const raw = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+    // Mermaid parses theme colors with d3-color, which cannot read
+    // oklch(), color-mix(), or light-dark(). Normalize every value:
+    // a style probe resolves var() and light-dark(), then one painted
+    // pixel reads the concrete sRGB values back through getImageData().
+    const probe = document.createElement("span");
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const resolve = (cssColor) => {
+      probe.style.color = cssColor;
+      document.body.appendChild(probe);
+      const computed = getComputedStyle(probe).color;
+      probe.remove();
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = "transparent";
+      context.fillStyle = computed;
+      context.fillRect(0, 0, 1, 1);
+      const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+      if (alpha === 255) return `rgb(${red} ${green} ${blue})`;
+      return `rgb(${red} ${green} ${blue} / ${alpha / 255})`;
+    };
+
+    const themeVariables = () => {
+      const dark = isDark();
+      const primary = raw(dark ? "--color-primary-text" : "--color-primary");
+      const card = resolve(dark ? "oklch(0.145 0 0)" : "white");
+      const background = resolve(dark ? "oklch(0.145 0 0)" : "white");
+      const fill = resolve(
+        `color-mix(in srgb, ${primary} ${dark ? 24 : 8}%, ${dark ? background : card})`
+      );
+      const border = resolve(`color-mix(in srgb, ${primary} 55%, ${raw("--color-border")})`);
+      const foreground = resolve(raw("--color-foreground"));
+      const muted = resolve(raw("--color-muted"));
+      const mutedBorder = resolve(raw("--color-border"));
+      const mutedForeground = resolve(raw("--color-muted-foreground"));
+      return {
+        background: "transparent",
+        fontSize: "15px",
+        fontFamily: getComputedStyle(document.body).fontFamily,
+        textColor: foreground,
+        titleColor: foreground,
+        primaryColor: fill,
+        primaryTextColor: foreground,
+        primaryBorderColor: border,
+        mainBkg: fill,
+        nodeBorder: border,
+        lineColor: resolve(`color-mix(in srgb, ${primary} 40%, ${mutedForeground})`),
+        edgeLabelBackground: background,
+        secondaryColor: muted,
+        secondaryTextColor: foreground,
+        secondaryBorderColor: mutedBorder,
+        tertiaryColor: resolve(raw("--color-secondary")),
+        tertiaryTextColor: foreground,
+        clusterBkg: resolve(`color-mix(in srgb, ${primary} 5%, ${background})`),
+        clusterBorder: resolve(`color-mix(in srgb, ${primary} 25%, ${mutedBorder})`),
+        actorBkg: fill,
+        actorBorder: border,
+        actorTextColor: foreground,
+        signalTextColor: foreground,
+        labelBoxBkgColor: muted,
+        labelBoxBorderColor: mutedBorder,
+        labelTextColor: mutedForeground,
+        loopTextColor: mutedForeground,
+        altBackground: muted,
+        noteBkgColor: muted,
+        noteTextColor: foreground,
+        noteBorderColor: mutedBorder,
+      };
+    };
+
+    const render = async () => {
+      const nodes = [...document.querySelectorAll("pre.mermaid")];
+      if (!nodes.length) return;
+      for (const node of nodes) {
+        node.dataset.mermaidSource ??= node.textContent;
+        node.removeAttribute("data-processed");
+        node.textContent = node.dataset.mermaidSource;
+      }
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: "strict",
+        theme: "base",
+        themeVariables: themeVariables(),
+        flowchart: { curve: "basis", padding: 14 },
+        sequence: { useMaxWidth: true, diagramMarginX: 16, diagramMarginY: 12 },
+      });
+      try {
+        await mermaid.run({ nodes });
+      } catch (error) {
+        console.error("mermaid", error);
+      }
+    };
+
+    render();
+    new MutationObserver(render).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  </script>
 {% endblock %}
