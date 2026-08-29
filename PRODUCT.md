@@ -15,7 +15,7 @@ sender reputation. Their agents consume the product over SMTP, API, or MCP.
 
 ## Product Purpose
 
-relay is communication infrastructure as a service, not just email. Create
+relay is communication as a service, not just email. Create
 an account and you can send an email immediately; VoIP will follow the same
 pattern. Email sending, receiving, and reputation monitoring are live today.
 Every organization gets a managed sender domain
@@ -57,8 +57,10 @@ Developer workflow, confirmed from product code and copy:
   bodies are never inlined.
 - Multi-organization accounts with memberships; GitHub OAuth is the only
   confirmed auth method.
-- Pay-per-work pricing shown on the landing page: no licenses, seats, or
-  subscriptions; a user pays when relay relays. First 1,000 emails/month
+- Pay-per-relay pricing shown on the landing page: no licenses, seats, or
+  subscriptions; you pay when relay relays. The hero claims the product,
+  not the price: "Email sending, receiving, monitoring, and sandboxes. So
+  good you'll check the dashboard for fun." First 1,000 emails/month
   free, then €0.75 per 1,000; pricing is pre-launch and unvalidated.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
@@ -69,7 +71,8 @@ Developer workflow, confirmed from product code and copy:
 
 None binding except the name casing. Confirmed on 2026-08-28: the name is
 "relay", always lowercase, a binding commitment. Everything else visual and
-verbal remains open to change; the incumbent voice "for nerds by nerds" with
+verbal remains open to change; the incumbent voice "made with \<3 and
+German engineering" with
 monospace accents is evidence of the incumbent look, not a commitment.
 
 ## Evidence on Hand
