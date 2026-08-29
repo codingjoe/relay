@@ -2,14 +2,13 @@ import pytest
 
 from domains.models import Domain
 from services.email.message.models import Message
-from services.email.mx.models import IncomingMessage
-from services.email.smtp.models import OutgoingMessage
+from services.email.msa.models import OutgoingMessage
+from services.email.mta.models import IncomingMessage
 
 
 def create_outgoing(user, org, status=None):
     domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage.objects.create(
-        sender=user,
         org=org,
         domain=domain,
         rcpt_to="bob@example.com",

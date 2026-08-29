@@ -1,11 +1,12 @@
 FROM node:26-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm ci --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY ./ /app
-RUN pnpm run build
+RUN mkdir -p root/static/css && pnpm run build
 
-FROM ghcr.io/astral-sh/uv:0.12.3-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.12.5-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
 LABEL url="https://github.com/codingjoe/the-box"
@@ -32,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-editable
 
-FROM gcr.io/distroless/cc:debug-nonroot AS development
+FROM gcr.io/distroless/cc:debug AS development
 
 # Copy binary dependencies
 COPY --from=build /dpkg /

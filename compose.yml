@@ -13,7 +13,11 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-  mx:
+  dnsdist:
+    ports: !override
+      - '127.0.0.1:53:53/udp'
+      - '127.0.0.1:53:53/tcp'
+  msa:
     build:
       target: development
     depends_on:
@@ -23,7 +27,7 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-  smtp:
+  mta:
     build:
       target: development
     depends_on:

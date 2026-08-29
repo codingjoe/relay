@@ -139,7 +139,7 @@
     created_at: 2026-08-01 18:21:34.813584+00:00
     org: 1
     content_type:
-      - smtp
+      - msa
       - outgoingmessage
     mail_from: sender1@acme.com
     rcpt_to: recipient1@example.com
@@ -156,7 +156,7 @@
     created_at: 2026-08-01 18:21:34.816255+00:00
     org: 1
     content_type:
-      - smtp
+      - msa
       - outgoingmessage
     mail_from: sender2@acme.com
     rcpt_to: recipient2@example.com
@@ -173,7 +173,7 @@
     created_at: 2026-08-01 18:21:34.817520+00:00
     org: 1
     content_type:
-      - smtp
+      - msa
       - outgoingmessage
     mail_from: sender3@acme.com
     rcpt_to: recipient3@example.com
@@ -183,31 +183,25 @@
     received_with_tls: false
     status: sent
     domain: 1
-- model: smtp.outgoingmessage
+- model: msa.outgoingmessage
   pk: 019fbe8f-5ee1-7145-951c-cd8ae282af25
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: sent
-- model: smtp.outgoingmessage
+- model: msa.outgoingmessage
   pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: sent
-- model: smtp.outgoingmessage
+- model: msa.outgoingmessage
   pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: sent
-- model: smtp.transmission
+- model: msa.transmission
   pk: 019fbe8f-5ede-773a-8790-f0386847a6ac
   fields:
     modified_at: 2026-08-01 18:21:34.814544+00:00
@@ -219,7 +213,7 @@
     details: Test transmission 1
     sent_with_ssl: true
     log_id: ''
-- model: smtp.transmission
+- model: msa.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
   fields:
     modified_at: 2026-08-01 18:21:34.816771+00:00
@@ -231,7 +225,7 @@
     details: Test transmission 2
     sent_with_ssl: true
     log_id: ''
-- model: smtp.transmission
+- model: msa.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
   fields:
     modified_at: 2026-08-01 18:21:34.818656+00:00
@@ -243,7 +237,7 @@
     details: Test transmission 3
     sent_with_ssl: true
     log_id: ''
-- model: smtp.smtpcredential
+- model: msa.msacredential
   pk: 1
   fields:
     modified_at: 2026-08-01 18:21:34.811298+00:00
@@ -255,7 +249,7 @@
     last_used_at: null
     hold: false
     type: smtp
-- model: smtp.suppressionentry
+- model: msa.suppressionentry
   pk: 1
   fields:
     modified_at: 2026-08-01 18:21:34.820000+00:00
@@ -263,7 +257,7 @@
     org: 1
     address_hash: efb95c768d4911cea647baaefb30051786052927d2145aa84d07ea0bc1db55eb
     reason: bounce
-- model: smtp.suppressionentry
+- model: msa.suppressionentry
   pk: 2
   fields:
     modified_at: 2026-08-01 18:21:34.821000+00:00
@@ -344,7 +338,7 @@
     dkim_key_rsa2048: 1
     dkim_key_rsa1024: 2
     dkim_key_ed25519: 3
-- model: mx.webhook
+- model: mta.webhook
   pk: 1
   fields:
     modified_at: 2026-08-01 18:21:34.830000+00:00
@@ -367,7 +361,7 @@
     created_at: 2026-08-01 18:21:34.835000+00:00
     org: 1
     content_type:
-      - mx
+      - mta
       - incomingmessage
     mail_from: external@sender.com
     rcpt_to: user@app.acme.com
@@ -377,7 +371,7 @@
     received_with_tls: true
     status: webhook_sent
     domain: 1
-- model: mx.incomingmessage
+- model: mta.incomingmessage
   pk: 019fbe8f-5edc-71e1-c414-e1481852cc47
   fields:
     receiving_domain: app.acme.com
@@ -388,7 +382,7 @@
     created_at: 2026-08-01 18:21:34.840000+00:00
     org: 1
     content_type:
-      - mx
+      - mta
       - incomingmessage
     mail_from: newsletter@marketing.com
     rcpt_to: billing@app.acme.com
@@ -398,7 +392,7 @@
     received_with_tls: true
     status: webhook_failed
     domain: 1
-- model: mx.incomingmessage
+- model: mta.incomingmessage
   pk: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
   fields:
     receiving_domain: app.acme.com
@@ -419,7 +413,7 @@
     received_with_tls: true
     status: received
     domain: 1
-- model: mx.incomingmessage
+- model: mta.incomingmessage
   pk: 019fbe8f-5efc-70c3-995b-59556bf2aa13
   fields:
     receiving_domain: acme.com
@@ -482,7 +476,7 @@
     received_with_tls: true
     status: received
     domain: 1
-- model: mx.incomingmessage
+- model: mta.incomingmessage
   pk: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
   fields:
     receiving_domain: acme.com
@@ -508,7 +502,7 @@
     created_at: 2026-08-01 18:21:34.865000+00:00
     org: 1
     content_type:
-      - mx
+      - mta
       - tlsreport
     mail_from: tls-reports@google.com
     rcpt_to: tls@acme.com
@@ -518,11 +512,11 @@
     received_with_tls: true
     status: received
     domain: 1
-- model: mx.incomingmessage
+- model: mta.incomingmessage
   pk: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
   fields:
     receiving_domain: acme.com
-- model: mx.tlsreport
+- model: mta.tlsreport
   pk: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
   fields:
     reporting_org: google.com
@@ -532,7 +526,7 @@
     end_at: 2026-07-31 23:59:59+00:00
     successful_session_count: 128
     failed_session_count: 3
-- model: mx.tlsfailure
+- model: mta.tlsfailure
   pk: 019fbe8f-5f4c-70a3-aad7-fddd78d8403d
   fields:
     modified_at: 2026-08-01 18:21:34.870000+00:00
@@ -546,7 +540,7 @@
     receiving_mx_ip_address: null
     count: 2
     additional_info: ''
-- model: mx.tlsfailure
+- model: mta.tlsfailure
   pk: 019fbe8f-5f5c-72aa-deba-628ccd9645cc
   fields:
     modified_at: 2026-08-01 18:21:34.875000+00:00
@@ -567,7 +561,7 @@
     created_at: 2026-08-01 18:21:34.880000+00:00
     org: 1
     content_type:
-      - smtp
+      - msa
       - outgoingmessage
     mail_from: sender4@acme.com
     rcpt_to: recipient4@example.com
@@ -577,11 +571,9 @@
     received_with_tls: false
     status: pending
     domain: 1
-- model: smtp.outgoingmessage
+- model: msa.outgoingmessage
   pk: 019fbe8f-5f6c-7190-8625-4fb14169749e
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: pending
@@ -592,7 +584,7 @@
     created_at: 2026-08-01 18:21:34.885000+00:00
     org: 1
     content_type:
-      - smtp
+      - msa
       - outgoingmessage
     mail_from: sender5@acme.com
     rcpt_to: no-reply@example.com
@@ -602,11 +594,9 @@
     received_with_tls: false
     status: bounced
     domain: 1
-- model: smtp.outgoingmessage
+- model: msa.outgoingmessage
   pk: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
   fields:
-    sender:
-      - test
     domain: 1
     credential: 1
     status: bounced
@@ -617,7 +607,7 @@
     created_at: 2026-08-01 18:21:34.890000+00:00
     org: 1
     content_type:
-      - smtp
+      - msa
       - outgoingmessage
     mail_from: sender6@acme.io
     rcpt_to: recipient6@example.com
@@ -627,15 +617,13 @@
     received_with_tls: true
     status: failed
     domain: 2
-- model: smtp.outgoingmessage
+- model: msa.outgoingmessage
   pk: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
   fields:
-    sender:
-      - test
     domain: 2
     credential: 1
     status: failed
-- model: mx.webhookdelivery
+- model: mta.webhookdelivery
   pk: 019fbe8f-5f9c-7328-8cc2-6ea752104818
   fields:
     modified_at: 2026-08-01 18:21:34.895000+00:00
@@ -646,7 +634,7 @@
     status: sent
     response_code: 200
     response_body: '{"status":"ok"}'
-- model: mx.webhookdelivery
+- model: mta.webhookdelivery
   pk: 019fbe8f-5fac-707a-f305-a5efec930ead
   fields:
     modified_at: 2026-08-01 18:21:34.900000+00:00
@@ -657,7 +645,7 @@
     status: failed
     response_code: 500
     response_body: '{"error":"internal server error"}'
-- model: mx.webhookdelivery
+- model: mta.webhookdelivery
   pk: 019fbe8f-5fbc-700b-c97d-f8266050e60e
   fields:
     modified_at: 2026-08-01 18:21:34.905000+00:00
@@ -668,7 +656,7 @@
     status: sent
     response_code: 200
     response_body: '{"status":"ok"}'
-- model: smtp.transmission
+- model: msa.transmission
   pk: 019fbe8f-5fcc-710b-a02b-fcc22eed5854
   fields:
     modified_at: 2026-08-01 18:21:34.910000+00:00
@@ -680,7 +668,7 @@
     details: Delivered to recipient1@example.com
     sent_with_ssl: true
     log_id: ''
-- model: smtp.transmission
+- model: msa.transmission
   pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
   fields:
     modified_at: 2026-08-01 18:21:34.915000+00:00
@@ -692,7 +680,7 @@
     details: Recipient address rejected
     sent_with_ssl: true
     log_id: ''
-- model: smtp.transmission
+- model: msa.transmission
   pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
   fields:
     modified_at: 2026-08-01 18:21:34.920000+00:00
@@ -704,7 +692,7 @@
     details: Bounce received after retry
     sent_with_ssl: false
     log_id: ''
-- model: smtp.transmission
+- model: msa.transmission
   pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
   fields:
     modified_at: 2026-08-01 18:21:34.925000+00:00

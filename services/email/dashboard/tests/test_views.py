@@ -1,7 +1,7 @@
 import pytest
 
 from domains.models import Domain
-from services.email.smtp.models import OutgoingMessage
+from services.email.msa.models import OutgoingMessage
 
 
 @pytest.mark.django_db
@@ -24,7 +24,6 @@ class TestDashboardView:
         Domain.objects.create(name="b.com", org=org)
         domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         OutgoingMessage.objects.create(
-            sender=user,
             org=org,
             rcpt_to="x@example.com",
             mail_from="y@example.com",
@@ -43,7 +42,6 @@ class TestDashboardView:
         Domain.objects.create(name="other.com", org=write_org)
         domain = Domain.objects.filter(org=write_org).first()  # noqa: multiple domains per org
         OutgoingMessage.objects.create(
-            sender=user,
             org=write_org,
             rcpt_to="x@example.com",
             mail_from="y@example.com",

@@ -68,3 +68,11 @@ def test_md_toc__plain_depth():
         "</ul>\n"
         "</div>\n"
     )
+
+
+def test_md_2_html__fenced_code():
+    backticks = "`" * 3
+    markdown = f"{backticks}python\nprint('hello')\n{backticks}"
+    html = utils.md_2_html(markdown)
+    assert '<div class="codehilite">' in html
+    assert "<pre>" in html

@@ -1,19 +1,18 @@
-"""Template context processors."""
-
-from django.conf import settings
+"""Add organization context for the navbar switcher."""
 
 
 def organizations(request):
-    """Expose the user's organizations and the current org to every template.
+    """Expose the current org and the user's organizations to templates.
 
     `OrganizationScopedView` sets `current_org` on the request. On non-org
-    pages, `current_org` is absent.
+    pages, nothing is added to the context because the org switcher only
+    appears when an org is active.
     """
-    if not request.COOKIES.get(settings.SESSION_COOKIE_NAME):
-        return {}
-    if not getattr(request, "user", None) or not request.user.is_authenticated:
-        return {}
-    return {
-        "user_orgs": request.user.organizations.all(),
-        "current_org": getattr(request, "current_org", None),
-    }
+    user = getattr(request, "user", None)
+    current_org = getattr(request, "current_org", None)
+    if getattr(user, "is_authenticated", False) and current_org is not None:
+        return {
+            "user_orgs": user.organizations.all(),
+            "current_org": current_org,
+        }
+    return {}

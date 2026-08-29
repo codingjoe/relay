@@ -3,24 +3,37 @@ include:
   - oci://docker.io/codingjoe/the-box-redis:main
 services:
   dns:
+    networks: !override
+      - app
+      - dnsdist
+    command: [ "-m", "manage", "dns", "--port", "5353" ]
+    labels: !reset []
+    extends:
+      service: web
+  dnsdist:
+    image: powerdns/dnsdist-21:2.1.1
+    depends_on:
+      dns:
+        condition: service_started
+    configs:
+      - source: dnsdist
+        target: /etc/dnsdist/dnsdist.conf
     ports:
       - '0.0.0.0:53:53/udp'
       - '0.0.0.0:53:53/tcp'
-    command: [ "-m", "manage", "dns" ]
-    labels: !reset []
-    deploy: !reset {}
-    extends:
-      service: web
+    networks:
+      - dnsdist
+      - dnsdist-wan
   migration:
     depends_on: !override
       postgres:
         condition: service_healthy
         required: true
-        restart: true
+        restart: false
       redis:
         condition: service_healthy
         required: true
-        restart: true
+        restart: false
     command: [ "-m", "manage", "migrate", "--noinput" ]
     restart: no
     labels: !reset []
@@ -34,8 +47,6 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    ports:
-      - '0.0.0.0:9001:9001'
     networks:
       - app
       - app-wan
@@ -59,24 +70,59 @@ services:
       - mc alias set root http://minio:9000 minioadmin ${MINIO_ROOT_PASSWORD} && mc mb root/relay --ignore-existing
     entrypoint: [ "/bin/sh", "-c" ]
     restart: "no"
-  mx:
+  msa:
+    volumes:
+      - caddy_data:/data:ro
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+    ports:
+      - '0.0.0.0:465:465'
+      - '0.0.0.0:587:587'
+    networks: !override
+      - app
+      - app-wan
+    command: [ "-m", "manage", "msa" ]
+    labels: !override
+      - "caddy=smtp.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+    deploy: !reset {}
+    extends:
+      service: web
+  mta:
+    volumes:
+      - caddy_data:/data:ro
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
     ports:
       - '0.0.0.0:25:25'
-    command: [ "-m", "manage", "mx" ]
-    labels: !reset []
+    networks: !override
+      - app
+      - app-wan
+    command: [ "-m", "manage", "mta" ]
+    labels: !override
+      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
     deploy: !reset {}
     extends:
       service: web
-  smtp:
-    ports:
-      - '0.0.0.0:587:587'
-    command: [ "-m", "manage", "smtp" ]
-    labels: !reset []
-    deploy: !reset {}
-    extends:
-      service: web
+  rspamd:
+    image: rspamd/rspamd:4.1
+    depends_on:
+      redis:
+        condition: service_healthy
+    configs:
+      - source: rspamd_redis
+        target: /etc/rspamd/local.d/redis.conf
+      - source: rspamd_worker
+        target: /etc/rspamd/local.d/worker-normal.inc
+    networks:
+      - app
   web:
-    image: !reset "null" # dclint disable-line service-image-require-explicit-tag
+    image: app # dclint disable-line service-image-require-explicit-tag
     build:
       context: .
       dockerfile: Dockerfile
@@ -127,5 +173,46 @@ services:
     deploy: !reset {}
     extends:
       service: web
+networks:
+  dnsdist:
+    internal: true
+  dnsdist-wan:
 volumes:
   s3:
+  caddy_data:
+    name: the-box_caddy_data
+    external: true
+configs:
+  rspamd_redis:
+    content: |
+      servers = "redis";
+      password = "${REDIS_PASSWORD}";
+      database = 1;
+  rspamd_worker:
+    content: |
+      bind_socket = "*:11334";
+  dnsdist:
+    content: |
+      -- Listen on port 53 (UDP + TCP)
+      addLocal("0.0.0.0:53")
+
+      -- Authoritative nameserver: allow queries from all sources
+      setACL({"0.0.0.0/0", "::/0"})
+
+      -- Resolve all 'dns' service replicas via Docker's embedded DNS
+      local handle = io.popen("getent ahosts dns")
+      local result = handle:read("*a")
+      handle:close()
+
+      -- Add each unique replica as a downstream server for redundancy
+      local seen = {}
+      for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
+          if not seen[ip] then
+              seen[ip] = true
+              newServer({address=ip .. ":5353", name="authoritative"})
+          end
+      end
+
+      -- Cache responses to reduce upstream load
+      pc = newPacketCache(10000, {maxTTL=86400, minTTL=0})
+      getPool(""):setCache(pc)

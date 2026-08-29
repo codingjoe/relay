@@ -15,22 +15,24 @@ Three services from one codebase, each a separate Docker container:
 - **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
 - **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
   builds DNS records from `Domain` model properties. No zone files.
-- **SMTP**: Outgoing mail submissions (aiosmtpd). `smtp/handlers.py`
-  authenticates via `SmtpCredential`, stores the raw body as a `FileField`,
-  and dispatches delivery via the Django task framework. Incoming (MX)
-  mail is out of scope for now.
+- **MSA**: Outgoing mail submissions (aiosmtpd). `msa/handlers.py`
+  authenticates via `MsaCredential`, stores the raw body as a `FileField`,
+  and dispatches delivery via the Django task framework. Incoming (MTA)
+  mail is handled by the `mta` app.
 
 Apps: `root` (settings, root URLs, base templates. No cross-app model
 imports), `accounts` (Organization, Membership, abstract Credential, OAuth,
 org CRUD), `domains` (Domain, DNS resolver/server/services, domain
 views), `kms` (SigningKey, Fernet ciphertext, public/private keypair
-generation, signing. No app-specific knowledge), `smtp` (OutgoingMessage, Transmission, SmtpCredential, delivery
-task, handler/server, message + credential views), `services.email.dashboard` (the unified
+generation, signing. No app-specific knowledge), `msa` (OutgoingMessage, Transmission, MsaCredential, delivery
+task, handler/server, message + credential views), `mta` (IncomingMessage, Webhook,
+WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
+`services.email.dashboard` (the unified
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
 App dependencies flow in one direction. See the graph in `README.md`:
-`dashboard → smtp, mx, dmarc, message`, `smtp, mx, dmarc → message, domains, accounts, kms`, `message → domains, accounts`, `domains → accounts, kms`, `accounts → kms`. Apps
+`dashboard → msa, mta, dmarc, message`, `msa, mta, dmarc → message, domains, accounts, kms`, `message → domains, accounts`, `domains → accounts, kms`, `accounts → kms`. Apps
 must not import from their dependents.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
@@ -48,7 +50,8 @@ with wireit).
 - `uv run python manage.py migrate`. Apply migrations.
 - `uv run python manage.py runserver`. Dev web server.
 - `uv run python manage.py dns`. Start DNS server.
-- `uv run python manage.py smtp`. Start SMTP server.
+- `uv run python manage.py msa`. Start MSA (SMTP submission) server.
+- `uv run python manage.py mta`. Start MTA (MX receiving) server.
 - `uv run pre-commit run --all-files`. Lint/format (ruff, djangofmt, pyupgrade,
   mdformat, dockerfmt).
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
@@ -87,6 +90,15 @@ Before you finish, always:
 - Update `CONVENTIONS.md` if a review introduces a new convention.
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
+
+## Running tests
+
+- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput`
+  must run in advance; the Django checks and templates tests fail without it.
+- `uv run --group test pytest`. The last line is always the outcome summary, e.g.
+  `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
+  to assert results. Nothing is measured by default.
+- `--maxfail=3` stops after three failures.
 
 ## Browser automation
 
