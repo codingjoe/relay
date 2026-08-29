@@ -32,7 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: write
+      contents: read
+      code-quality: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7.0.0
       - uses: astral-sh/setup-uv@v8.2.0
