@@ -38,9 +38,6 @@ def deliver_message(message_id):
         return
 
     try:
-        if message.domain is None:
-            raise ValueError("Outgoing message has no sender domain")
-
         from domains.models import Domain, canonicalize_domain_name
 
         canonical_name = canonicalize_domain_name(message.domain.name)
