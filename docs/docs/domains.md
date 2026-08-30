@@ -77,7 +77,7 @@ Verification reads the live DNS for seven records and splits the result
 into two independent purposes:
 
 - Sending: NS delegation on the sender subdomain, SPF authorization, the
-  three DKIM CNAMEs, and the DMARC record at the root.
+  two DKIM CNAMEs, and the DMARC record at the root.
 - Receiving: the MX record at the root, the MTA-STS record and CNAME, and
   the TLS-RPT record with the relay reporting address.
 

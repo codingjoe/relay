@@ -87,7 +87,7 @@ sequenceDiagram
     alt score reaches the hold threshold
         Queue->>Queue: status held, stop
     else clean
-        Queue->>Sign: sign with all three domain keys
+        Queue->>Sign: sign with all domain keys
         Sign-->>Queue: signed message
         Queue->>DNS: MX lookup for the recipient domain
         DNS-->>Queue: MX hosts by preference

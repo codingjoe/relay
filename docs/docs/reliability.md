@@ -19,7 +19,7 @@ relay stores your submission before any processing:
 flowchart TD
     A[250 OK: message stored as pending] --> B[rspamd outbound scan]
     B -- held --> C[Status held]
-    B -- clean --> D[DKIM sign all three keys]
+    B -- clean --> D[DKIM sign all keys]
     D --> E[MX lookup, MTA-STS filter]
     E --> F[Attempt 1]
     F --> G[Status sent, transcript stored]
