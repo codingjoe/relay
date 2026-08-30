@@ -13,13 +13,11 @@ from . import keystore
 
 class Algorithm:
     RSA_2048 = "rsa-2048"
-    RSA_1024 = "rsa-1024"
     ED25519 = "ed25519"
 
 
 DEFAULT_DKIM_ALGORITHMS: tuple[str, ...] = (
     Algorithm.RSA_2048,
-    Algorithm.RSA_1024,
     Algorithm.ED25519,
 )
 
@@ -82,8 +80,6 @@ def generate(algorithm: str) -> KeyPair:
     match algorithm:
         case "rsa-2048":
             private_pem = generate_rsa_private_key(2048)
-        case "rsa-1024":
-            private_pem = generate_rsa_private_key(1024)
         case "ed25519":
             private_pem = generate_ed25519_private_key()
         case _:
@@ -108,7 +104,7 @@ def load(ciphertext: str):
 
 def dkim_key_material_from_pem(private_pem: str, algorithm: str) -> tuple[bytes, bytes]:
     match algorithm:
-        case Algorithm.RSA_2048 | Algorithm.RSA_1024:
+        case Algorithm.RSA_2048:
             return private_pem.encode("ascii"), b"rsa-sha256"
         case Algorithm.ED25519:
             private = serialization.load_pem_private_key(private_pem.encode(), None)

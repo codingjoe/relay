@@ -28,7 +28,6 @@ class TestSynchronizeManagedDomain:
         domain_id = domain.pk
         key_ids = (
             domain.dkim_key_rsa2048_id,
-            domain.dkim_key_rsa1024_id,
             domain.dkim_key_ed25519_id,
         )
 
@@ -40,7 +39,6 @@ class TestSynchronizeManagedDomain:
         assert domain.name == f"renamed.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
         assert (
             domain.dkim_key_rsa2048_id,
-            domain.dkim_key_rsa1024_id,
             domain.dkim_key_ed25519_id,
         ) == key_ids
         assert Domain.objects.filter(org=org, is_managed=True).count() == 1

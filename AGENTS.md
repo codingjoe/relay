@@ -119,7 +119,7 @@ requests are auto-authenticated as the bundled `test` user).
 
 Bundle: one user (`test`, password `test`), one org (`acme`), one
 domain (`acme.com`), one SMTP credential, three outgoing messages,
-three transmissions, three SigningKeys. Load with
+three transmissions, two SigningKeys. Load with
 `manage.py loaddata fixtures/initial_data.yaml`. Refresh with:
 
 1. Wipe the database and re-apply migrations:

@@ -180,7 +180,7 @@
             {% if domain.dkim_status == 'error' %}
               <p class="text-sm text-destructive">{{ domain.dkim_error }}</p>
               <p class="text-sm text-muted-foreground">
-                {% translate "Publish all three DKIM CNAME records below, then verify DNS again." %}
+                {% translate "Publish all DKIM CNAME records below, then verify DNS again." %}
               </p>
             {% endif %}
             {% for cname in dkim_cnames %}

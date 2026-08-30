@@ -52,7 +52,9 @@ domain. A `p=reject` policy fails the SMTP transaction with
 `550 Message rejected by DMARC policy`. The message never enters the
 platform. Quarantine policies mark the stored message as quarantined. This
 protects senders that publish strict policies from having their name abused,
-and it protects your inbox from spoofing attempts.
+and it protects your inbox from spoofing attempts. relay signs outgoing mail
+with RSA-2048 and Ed25519 keys, but inbound DKIM verification still accepts
+signatures from older senders that use RSA-1024 keys.
 
 **Spam scan.** rspamd scores every accepted message. A message whose
 score reaches the reject threshold, or whose action is reject, lands as
