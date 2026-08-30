@@ -68,16 +68,17 @@ Developer workflow, confirmed from product code and copy:
   future work).
 - Landing page proof sections: a brand banner ("backed by builders from")
   carrying real, owner-attested endorsements (Henkel, Porsche, Thermondo,
-  Fizard, voiio, Sparkasse) fed from `root/views.py` (`BRANDS`), and testimonials
-  ("early supporters") still fed from placeholder data (`TESTIMONIALS`)
-  pending real quotes; real email-log screenshots captured from the product,
-  overview and detail (`root/static/img/email-overview.png`,
-  `root/static/img/email-detail.png`);
-  a real code-example tabs section (Django and Next, sending and
-  receiving each, the Django send using the MAILERS setting); and a "no black box" trust band (SPF,
-  DKIM, DMARC, MTA-STS, TLS-RPT, FBL, ARC, Standard Webhooks linked to
-  the spec) that carries the
-  open-source pledge as one muted line instead of a full-bleed panel.
+  Fizard, voiio, Sparkasse) fed from `root/views.py` (`BRANDS`), and
+  testimonials ("early supporters") still fed from placeholder data
+  (`TESTIMONIALS`) pending real quotes; real email-log screenshots
+  captured from the product, overview and detail
+  (`root/static/img/email-overview.png`,
+  `root/static/img/email-detail.png`); a code-example tabs section
+  (Django and Next, sending and receiving each, the Django send using
+  the `MAILERS` setting); and a "no black box" trust band (SPF, DKIM,
+  DMARC, MTA-STS, TLS-RPT, FBL, ARC, Standard Webhooks linked to the
+  spec) that carries the open-source pledge as one muted line instead
+  of a full-bleed panel.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
 - Tech constraints that shape UI work: Django templates + basecoat CSS
@@ -94,9 +95,9 @@ monospace accents is evidence of the incumbent look, not a commitment.
 ## Evidence on Hand
 
 - Landing page copy: `root/templates/start.html` (feature cards, brand
-  banner, dashboard screenshots, SMTP snippet, testimonials, trust band,
-  interactive pricing slider, EU/GDPR claims) and `root/views.py`
-  (`BRANDS`, `TESTIMONIALS` placeholder data).
+  banner, email-log screenshots, code-example tabs (Django and Next),
+  testimonials, trust band, interactive pricing slider, EU/GDPR claims)
+  and `root/views.py` (`BRANDS`, `TESTIMONIALS` placeholder data).
 - Legal pages: `legal/docs/` (imprint, privacy, terms).
 - Architecture documentation: `README.md`; conventions: `CONVENTIONS.md`.
 - Test data bundle: `fixtures/initial_data.yaml`.

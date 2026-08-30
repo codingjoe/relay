@@ -284,7 +284,6 @@
           id="stack-ex-django-panel"
           aria-labelledby="stack-ex-django"
           tabindex="-1"
-          aria-selected="true"
           class="min-w-0"
         >
           <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
@@ -325,7 +324,6 @@ def email_received(request):
           id="stack-ex-next-panel"
           aria-labelledby="stack-ex-next"
           tabindex="-1"
-          aria-selected="false"
           hidden
           class="min-w-0"
         >
@@ -695,8 +693,10 @@ export async function POST(req: Request) {
   </script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script>
-    document.querySelectorAll("pre code[class*='language-']").forEach((block) => {
-      hljs.highlightElement(block);
-    });
+    if (typeof hljs !== "undefined") {
+      document.querySelectorAll("pre code[class*='language-']").forEach((block) => {
+        hljs.highlightElement(block);
+      });
+    }
   </script>
 {% endblock %}
