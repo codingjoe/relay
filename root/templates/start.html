@@ -307,8 +307,7 @@ from django.core.mail import send_mail
 send_mail("Invoice 42", "Attached.", "billing@acme.com", ["kim@example.net"])
 
 
-# --- receive inbound email via standard webhooks ---
-# views.py
+# views.py: receive inbound email via standard webhooks
 import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -347,8 +346,7 @@ await transport.sendMail({
 });
 
 
-// --- receive inbound email via standard webhooks ---
-// app/api/email/route.ts
+// app/api/email/route.ts: receive inbound email via standard webhooks
 import { Webhook } from "standardwebhooks";
 
 export async function POST(req: Request) {
