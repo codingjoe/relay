@@ -166,14 +166,14 @@
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
       <h2 class="text-center text-2xl sm:text-4xl font-bold m-0">
-        {% translate "see the dashboard"|capfirst %}
+        {% translate "see the email log"|capfirst %}
       </h2>
       <p class="text-center text-lg text-muted-foreground leading-relaxed m-0 mt-4 mb-12 max-w-2xl mx-auto">
         {% blocktranslate trimmed %}
-          Delivery, reputation, and DNS: live in your browser, not in a support ticket.
+          Every message in and out, every transmission and webhook delivery. In your browser, not in a support ticket.
         {% endblocktranslate %}
       </p>
-      <div class="grid gap-8 sm:grid-cols-2">
+      <div class="grid gap-8 sm:grid-cols-2 items-start">
         <figure class="m-0 flex flex-col gap-4">
           <div class="card p-0 overflow-hidden shadow-sm">
             <div class="flex items-center gap-1.5 border-b border-border px-4 py-3" aria-hidden="true">
@@ -182,15 +182,15 @@
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
             <img
-              src="{% static 'img/dashboard.png' %}"
-              alt="relay email dashboard with charts for outgoing and incoming messages by status"
+              src="{% static 'img/email-overview.png' %}"
+              alt="relay email message list with filters and delivery statuses"
               loading="lazy"
               class="block w-full h-auto"
             >
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}
-              Charts for outgoing, incoming, reputation, DMARC, and TLS, all at a glance.
+              One list for everything that moved: sent, bounced, received, delivered.
             {% endblocktranslate %}
           </figcaption>
         </figure>
@@ -202,15 +202,15 @@
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
             <img
-              src="{% static 'img/domain-detail.png' %}"
-              alt="relay domain detail page showing DNS checks for SPF, DKIM, DMARC, and MTA-STS passing"
+              src="{% static 'img/email-detail.png' %}"
+              alt="relay message detail with transmission log and SMTP response codes"
               loading="lazy"
               class="block w-full h-auto"
             >
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}
-              Every DNS check verified for you. Nothing to hand-configure.
+              Down to the last SMTP code and webhook response.
             {% endblocktranslate %}
           </figcaption>
         </figure>
@@ -292,12 +292,19 @@ with smtplib.SMTP_SSL("smtp.relay.example.com", 465) as smtp:
           <li><span class="badge" data-variant="outline" data-size="sm">DMARC</span></li>
           <li><span class="badge" data-variant="outline" data-size="sm">MTA-STS</span></li>
           <li><span class="badge" data-variant="outline" data-size="sm">TLS-RPT</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">FBL</span></li>
+          <li>
+            <span class="badge" data-variant="outline" data-size="sm">ARC · <span
+                class="text-muted-foreground"
+              >{% translate "soon" %}</span></span>
+          </li>
           <li><span class="badge" data-variant="outline" data-size="sm">Standard Webhooks</span></li>
         </ul>
         <p class="m-0 text-muted-foreground leading-relaxed max-w-2xl">
           {% blocktranslate trimmed %}
             Open standards, verified and visible in the dashboard: triple DKIM signatures with RSA-2048, RSA-1024, and
-            Ed25519 keys. No mystery bounces, no hidden reputation score.
+            Ed25519 keys, feedback-loop complaint reports, and ARC sealing on the way. No mystery bounces, no hidden
+            reputation score.
           {% endblocktranslate %}
         </p>
         <p class="m-0 text-muted-foreground">

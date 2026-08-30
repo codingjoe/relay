@@ -69,10 +69,12 @@ Developer workflow, confirmed from product code and copy:
 - Landing page proof sections: a brand banner ("backed by builders from")
   and testimonials ("early supporters"), both fed from placeholder data in
   `root/views.py` (`BRANDS`, `TESTIMONIALS`) that the founder replaces with
-  real endorsements; real dashboard screenshots captured from the product
-  (`root/static/img/dashboard.png`, `root/static/img/domain-detail.png`);
+  real endorsements; real email-log screenshots captured from the product,
+  overview and detail (`root/static/img/email-overview.png`,
+  `root/static/img/email-detail.png`);
   a real SMTP first-send snippet; and a "no black box" trust band (SPF,
-  DKIM, DMARC, MTA-STS, TLS-RPT, Standard Webhooks) that carries the
+  DKIM, DMARC, MTA-STS, TLS-RPT, FBL, ARC marked as soon, Standard
+  Webhooks) that carries the
   open-source pledge as one muted line instead of a full-bleed panel.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
