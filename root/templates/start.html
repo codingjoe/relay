@@ -188,22 +188,20 @@
       </p>
       <div class="grid gap-8 sm:grid-cols-2 items-start">
         <figure class="m-0 flex flex-col gap-4">
-          <div class="card p-0 overflow-hidden shadow-sm">
+          <div class="card gap-0 p-0 overflow-hidden shadow-sm">
             <div class="flex items-center gap-1.5 border-b border-border px-4 py-3" aria-hidden="true">
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
-            <div class="p-1.5">
-              <img
-                src="{% static 'img/email-overview.png' %}"
-                alt="relay email message list with filters and delivery statuses"
-                width="1182"
-                height="788"
-                loading="lazy"
-                class="block w-full h-auto"
-              >
-            </div>
+            <img
+              src="{% static 'img/email-overview.png' %}"
+              alt="relay email message list with filters and delivery statuses"
+              width="1182"
+              height="788"
+              loading="lazy"
+              class="block w-full h-auto"
+            >
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}
@@ -212,22 +210,20 @@
           </figcaption>
         </figure>
         <figure class="m-0 flex flex-col gap-4">
-          <div class="card p-0 overflow-hidden shadow-sm">
+          <div class="card gap-0 p-0 overflow-hidden shadow-sm">
             <div class="flex items-center gap-1.5 border-b border-border px-4 py-3" aria-hidden="true">
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
-            <div class="p-1.5">
-              <img
-                src="{% static 'img/email-detail.png' %}"
-                alt="relay message detail with transmission log, headers, and email body"
-                width="1182"
-                height="788"
-                loading="lazy"
-                class="block w-full h-auto"
-              >
-            </div>
+            <img
+              src="{% static 'img/email-detail.png' %}"
+              alt="relay message detail with transmission log, headers, and email body"
+              width="1182"
+              height="788"
+              loading="lazy"
+              class="block w-full h-auto"
+            >
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}
@@ -261,7 +257,7 @@
         </p>
       </div>
       <div class="tabs min-w-0 max-w-3xl mx-auto mt-10" id="stack-examples">
-        <nav role="tablist" aria-orientation="horizontal">
+        <nav role="tablist" aria-orientation="horizontal" class="self-center">
           <button
             type="button"
             role="tab"
