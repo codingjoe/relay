@@ -82,6 +82,8 @@ Developer workflow, confirmed from product code and copy:
   (Hetzner Falkenstein, documented in `docs/docs/data-privacy.md`),
   GDPR, and the ISO/IEC 27001 / BSI C5 attestations of those data
   centers, linked to the privacy policy and the data-privacy docs page.
+  The privacy section also states the open-source AGPL-3.0 codebase as
+  the audit trail for the processing claims.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
 - Tech constraints that shape UI work: Django templates + basecoat CSS
