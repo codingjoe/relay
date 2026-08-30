@@ -244,7 +244,47 @@
             {% endblocktranslate %}
           </p>
         </div>
-        <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code>import smtplib
+        <div class="tabs" id="stack-examples">
+          <nav role="tablist" aria-orientation="horizontal">
+            <button
+              type="button"
+              role="tab"
+              id="stack-ex-python"
+              aria-controls="stack-ex-python-panel"
+              aria-selected="true"
+              tabindex="0"
+            >
+              {% translate "SMTP · Python"|capfirst %}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="stack-ex-node"
+              aria-controls="stack-ex-node-panel"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              {% translate "SMTP · Node"|capfirst %}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="stack-ex-webhook"
+              aria-controls="stack-ex-webhook-panel"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              {% translate "Receive a webhook"|capfirst %}
+            </button>
+          </nav>
+          <div
+            role="tabpanel"
+            id="stack-ex-python-panel"
+            aria-labelledby="stack-ex-python"
+            tabindex="-1"
+            aria-selected="true"
+          >
+            <pre class="m-0 overflow-x-auto font-mono text-sm leading-relaxed"><code>import smtplib
 from email.message import EmailMessage
 
 message = EmailMessage()
@@ -255,6 +295,51 @@ message["Subject"] = "Invoice 42"
 with smtplib.SMTP_SSL("smtp.relay.example.com", 465) as smtp:
     smtp.login("acme", "&lt;credential key&gt;")
     smtp.send_message(message)</code></pre>
+          </div>
+          <div
+            role="tabpanel"
+            id="stack-ex-node-panel"
+            aria-labelledby="stack-ex-node"
+            tabindex="-1"
+            aria-selected="false"
+            hidden
+          >
+            <pre class="m-0 overflow-x-auto font-mono text-sm leading-relaxed"><code>import nodemailer from "nodemailer";
+
+const transport = nodemailer.createTransport({
+  host: "smtp.relay.example.com",
+  port: 465,
+  secure: true,
+  auth: { user: "acme", pass: "&lt;credential key&gt;" },
+});
+
+await transport.sendMail({
+  from: "billing@acme.com",
+  to: "kim@example.net",
+  subject: "Invoice 42",
+  text: "Your invoice 42 is attached.",
+});</code></pre>
+          </div>
+          <div
+            role="tabpanel"
+            id="stack-ex-webhook-panel"
+            aria-labelledby="stack-ex-webhook"
+            tabindex="-1"
+            aria-selected="false"
+            hidden
+          >
+            <pre class="m-0 overflow-x-auto font-mono text-sm leading-relaxed"><code>from standardwebhooks import Webhook
+import json
+
+wh = Webhook("&lt;whsec_...&gt;")
+
+def handler(payload: bytes, headers: dict[str, str]) -> None:
+    wh.verify(payload, headers)
+    event = json.loads(payload)
+    if event["type"] == "email.received":
+        fetch(event["body_url"])</code></pre>
+          </div>
+        </div>
       </div>
     </section>
 
