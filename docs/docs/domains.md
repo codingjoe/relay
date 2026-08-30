@@ -28,9 +28,9 @@ Facts to understand about this model:
   addresses, the DKIM zone, and the report collectors live under
   `{prefix}.{root}`. You delegate exactly that subdomain to the relay
   nameservers, and you add one DMARC record at your root.
-- **Every root domain gets its own signing keys**: RSA-2048, RSA-1024, and
-  Ed25519 keys, one selector each, at `relay-rsa2048`, `relay-rsa1024`, and
-  `relay-ed25519` under `_domainkey`. Your domain signs with its own keys, so
+- **Every root domain gets its own signing keys**: RSA-2048 and Ed25519
+  keys, one selector each, at `relay-rsa2048` and `relay-ed25519` under
+  `_domainkey`. Your domain signs with its own keys, so
   reputation attaches to your domain and not to someone else's.
 - **Managed domains cannot be deleted** in the dashboard, and custom domains can.
 - There can be no overlap: you cannot register a subdomain of the managed

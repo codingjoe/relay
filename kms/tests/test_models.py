@@ -22,10 +22,6 @@ class TestSigningKeyGenerate:
         key = SigningKey.generate("rsa-2048")
         assert key.algorithm == SigningKey.Algorithm.RSA_2048
 
-    def test_generate__rsa_1024(self):
-        key = SigningKey.generate("rsa-1024")
-        assert key.algorithm == SigningKey.Algorithm.RSA_1024
-
     def test_generate__produces_unique_keys(self):
         k1 = SigningKey.generate("ed25519")
         k2 = SigningKey.generate("ed25519")

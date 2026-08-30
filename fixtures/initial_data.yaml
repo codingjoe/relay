@@ -48,27 +48,6 @@
 '
     key_id: 8a2831719d612373
 - model: kms.signingkey
-  pk: 2
-  fields:
-    modified_at: 2026-08-01 18:21:34.805840+00:00
-    created_at: 2026-08-01 18:21:34.805849+00:00
-    algorithm: rsa-1024
-    encrypted_private_key: gAAAAABqbjkusdcPLXdSl7zpx4_oOmZgJyUHaUN5McfAXOwcYrU0aCSPhiEWPzYwYJ4zrPffadwDQ5XPpYCHr-DUPBAiFOWno93drq8W98rK3OL2oE5ZHtXR8jPCyPMeq5bs4DKX1krkvybAi232FiNMheoagBEwdprXmNrj6rXKyPsm5nlbKJLLyEIar99pjTdvLxcHMf-3XNakkxn8PeMUU1uHTbrzJ_CXgADArcN-9IsQVL4hLOLyAOqMdy8vlyBFoIlDkXLssP99v3EfYXfZLKMpRw8suw3bcPcN7UGXPF9lZT55OlMTE7doGJMxLEkp-9BA3kuqsAdTzYd9l8LkdfniU4Za866XStXgCTsSYyN5A8VyPuRUHLtQ6RtN6mrJ5c2HejJg1_NlZprsbI60wMTFtoTEOZ0o5g0YkF2FQmkKC8rblI3XfO2q033cJ2zfcRH4eXbHW3We9aERDGNw9k8qXCFy_yd7683dkKMoK0HgIRd1CiZXeIhlDWH9vRuccA1BKI0qoGgkY3BlOSL8Fe2VpOcspm2Phizim_Sjw3JbiDXV7-QdNlO5xCTZX4jFRhuhvC0JnsTfZS9SfYeAMHsQEa90BapY-_7FzSDA1sDL37WnWXe_rIBIxr3mI7ysqWddQliieRPqhzNwptItOTrJjIc_vVB93pBlsXHLY3PbEjbl8TjjJMGLNuIql6RdAndBuDkpV-0jxA--CwoYjsKirpO53ji3FEjDy3ME1w_W3vPZ_3RHvWXyWTDUyLtaXKhyRVOvnSauieNENu44j9grm8BA8rA0qNBONHdgyEqTwVedA34KjM1C_PNt9nlVklpnx_Op6OWkxzO1Jya2GEhFukOhbB0cYFvJBjwmWJ7Pvoz0Dh8IFWffnDCm5zoPpmd0cEWK0ejSv7pX_9Vsv_CyOWxZR9nQHcKGYpfmzmgD5tzbaHTwrbW5wL2siirDa5P8omYmRns6_vTM-mGJ61KbAHJQ6M5X_EGSZj_AEdloRgOroU9wakRhYOLCsD9mMpDw4gsx3JplU1S_9e3x_u6tl5C9Qrdl8PlKvl2pv1OhETwuQlbDrjwvwBWWp_-AJ6o9etlk2i9Pd_A1AbFwau7OxCF2a-jzlO_t8qWMHcauicr_Cd2nRw6Wm5KsCz1f0s0BFvJ8tUclHSGoQ9oIcv7VDeWucqS52gpW5CrIGeSoJBIf3FrY5wkdOQ-ToAIwSj0adiNUWcn6xggJf117CHpZZCkZGT29DE4-QJwdliwU4qAahoY64saqk106L4vMUPeboXxC8T9IyePVOek0yx2_ojTJBg==
-    public_key: '-----BEGIN PUBLIC KEY-----
-
-      MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDPW4+Ada53XAxd8AEPSz9AJIKz
-
-      nU7PUaHixJRoW/o94cja7BNvp6MR6f1frKAC1qiorCTvHMSNIGZIIUyCtgB0r/GL
-
-      YDM3YUuEc/zcmIkgclK2/ZU7QSRHD1K4DHUrh13sqfMm8XxwP1/tJtWehn49Tr9l
-
-      uusBNQ0VPsS2p41QNwIDAQAB
-
-      -----END PUBLIC KEY-----
-
-'
-    key_id: 7da0737728c594b3
-- model: kms.signingkey
   pk: 3
   fields:
     modified_at: 2026-08-01 18:21:34.807064+00:00
@@ -105,7 +84,6 @@
     tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
-    dkim_key_rsa1024: 2
     dkim_key_ed25519: 3
 - model: domains.domain
   pk: 4
@@ -130,7 +108,6 @@
     tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
-    dkim_key_rsa1024: 2
     dkim_key_ed25519: 3
 - model: message.message
   pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
@@ -287,7 +264,6 @@
     tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: 1
-    dkim_key_rsa1024: 2
     dkim_key_ed25519: 3
 - model: domains.domain
   pk: 3
@@ -311,7 +287,6 @@
     tls_rpt_error: ''
     dns_checked_at: null
     dkim_key_rsa2048: null
-    dkim_key_rsa1024: null
     dkim_key_ed25519: null
 - model: domains.domain
   pk: 5
@@ -336,7 +311,6 @@
     tls_rpt_error: ''
     dns_checked_at: 2026-07-15 00:00:00+00:00
     dkim_key_rsa2048: 1
-    dkim_key_rsa1024: 2
     dkim_key_ed25519: 3
 - model: mta.webhook
   pk: 1

@@ -99,7 +99,7 @@ sequenceDiagram
 Important details of the pipeline:
 
 - **Signing covers the message as stored.** relay signs with the private
-  keys of the sender domain for RSA-2048, RSA-1024, and Ed25519 at once.
+  keys of the sender domain for RSA-2048 and Ed25519 at once.
   All signatures cover the same headers: From, To, Subject, Date,
   Message-ID, and `Feedback-ID`.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
