@@ -2,11 +2,13 @@
 
 ## Project overview
 
-Relay is a B2B SaaS communication platform (email, VoIP, and more) on
-Django 6.0 / Python 3.14. The key feature is a **built-in authoritative
-nameserver**. Users only set NS delegation and DMARC. The nameserver
-serves MX, SPF, DKIM, and Return-Path automatically. GitHub OAuth
-handles authentication.
+relay is a B2B SaaS communication platform (email, VoIP, and more) on
+Django 6.0 / Python 3.14. Its differentiator is simplicity: relay handles
+the DNS and email plumbing, so sending and receiving work with near-zero
+configuration. A built-in authoritative nameserver delivers this: users
+only set NS delegation and DMARC, and relay serves MX, SPF, DKIM,
+Return-Path, MTA-STS, and TLS-RPT automatically. GitHub OAuth handles
+authentication.
 
 ## Architecture & tech stack
 

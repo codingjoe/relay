@@ -62,6 +62,18 @@ Developer workflow, confirmed from product code and copy:
   not the price: "Email sending, receiving, monitoring, and sandboxes. So
   good you'll check the dashboard for fun." First 1,000 emails/month
   free, then €0.75 per 1,000; pricing is pre-launch and unvalidated.
+- Landing page stage framing: pre-launch/early access. The primary CTA is
+  "get early access"; signup currently stays open via GitHub OAuth (the
+  invite-only/waitlist framing is copy-only; a real gate and waitlist are
+  future work).
+- Landing page proof sections: a brand banner ("backed by builders from")
+  and testimonials ("early supporters"), both fed from placeholder data in
+  `root/views.py` (`BRANDS`, `TESTIMONIALS`) that the founder replaces with
+  real endorsements; real dashboard screenshots captured from the product
+  (`root/static/img/dashboard.png`, `root/static/img/domain-detail.png`);
+  a real SMTP first-send snippet; and a "no black box" trust band (SPF,
+  DKIM, DMARC, MTA-STS, TLS-RPT, Standard Webhooks) that carries the
+  open-source pledge as one muted line instead of a full-bleed panel.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
 - Tech constraints that shape UI work: Django templates + basecoat CSS
@@ -77,13 +89,18 @@ monospace accents is evidence of the incumbent look, not a commitment.
 
 ## Evidence on Hand
 
-- Landing page copy: `root/templates/start.html` (feature cards, interactive
-  pricing slider, EU/GDPR claims).
+- Landing page copy: `root/templates/start.html` (feature cards, brand
+  banner, dashboard screenshots, SMTP snippet, testimonials, trust band,
+  interactive pricing slider, EU/GDPR claims) and `root/views.py`
+  (`BRANDS`, `TESTIMONIALS` placeholder data).
 - Legal pages: `legal/docs/` (imprint, privacy, terms).
 - Architecture documentation: `README.md`; conventions: `CONVENTIONS.md`.
 - Test data bundle: `fixtures/initial_data.yaml`.
-- No testimonials, case studies, customer logos, benchmarks, or press exist.
-  Future work must not fabricate any of these.
+- No testimonials, case studies, customer logos, benchmarks, or press exist
+  yet. The founder's network (open-source and company founders) will supply
+  real endorsements. Until then the landing page ships clearly-marked
+  sample entries, which must be replaced before launch. Future work must
+  not fabricate any of these.
 
 ## Product Principles
 

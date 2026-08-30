@@ -3,6 +3,37 @@ from django.views import generic
 
 from abstract.views import BreadcrumbViewMixin, CacheControlMixin
 
+# Sample entries. Replace with real endorsements before launch:
+# brands accept "logo" (static path) and "url", testimonials accept "url".
+BRANDS = [
+    {"name": "Sample Company"},
+    {"name": "Sample Project"},
+    {"name": "Sample Labs"},
+    {"name": "Sample Ventures"},
+    {"name": "Sample Foundation"},
+]
+
+TESTIMONIALS = [
+    {
+        "quote": "Sample endorsement. relay collects real quotes from friends in tech before launch.",
+        "name": "Sample Supporter",
+        "initials": "SS",
+        "role": "Founder, Sample Company",
+    },
+    {
+        "quote": "Sample endorsement. Replace this card with a real quote from the open-source community.",
+        "name": "Sample Maintainer",
+        "initials": "SM",
+        "role": "Maintainer, Sample Project",
+    },
+    {
+        "quote": "Sample endorsement. relay asks its friends in tech for honest feedback, not marketing copy.",
+        "name": "Sample Engineer",
+        "initials": "SE",
+        "role": "Staff Engineer, Sample Corp",
+    },
+]
+
 
 class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
     """Render the marketing landing page."""
@@ -15,6 +46,8 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
         platform = self.request.get_host().split(":")[0]
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
+            "brands": BRANDS,
+            "testimonials": TESTIMONIALS,
         }
 
 

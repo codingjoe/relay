@@ -17,11 +17,22 @@
     </div>
 
     <section class="flex flex-col items-center text-center gap-8 pt-20 sm:pt-28 pb-16 sm:pb-20 max-w-5xl mx-auto px-4 sm:px-8">
-      <span
-        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-mono font-medium text-muted-foreground shadow-sm"
-      >
-        {% translate "made with &lt;3 and German engineering"|capfirst %}
-      </span>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-sm font-mono font-medium text-primary shadow-sm"
+        >
+          <span class="relative flex size-2" aria-hidden="true">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60"></span>
+            <span class="relative inline-flex size-2 rounded-full bg-primary"></span>
+          </span>
+          {% translate "early access"|capfirst %}
+        </span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-mono font-medium text-muted-foreground shadow-sm"
+        >
+          {% translate "made with &lt;3 and German engineering"|capfirst %}
+        </span>
+      </div>
       <h1 class="text-3xl sm:text-5xl font-bold leading-[0.96] m-0">
         Communication <span class="landing-accent">as a Service</span>
       </h1>
@@ -37,10 +48,10 @@
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
           <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
-          {% translate "get started free"|capfirst %}
+          {% translate "get early access"|capfirst %}
         </a>
       </div>
-      <p class="text-sm text-muted-foreground flex items-center gap-3 m-0 font-mono">
+      <p class="text-sm text-muted-foreground flex flex-wrap items-center justify-center gap-x-3 gap-y-2 m-0 font-mono">
         <span class="inline-flex items-center gap-1.5">
           <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
           {% translate "no credit card required"|capfirst %}
@@ -50,7 +61,36 @@
           <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
           {% translate "no setup required"|capfirst %}
         </span>
+        <span aria-hidden="true">·</span>
+        <span class="inline-flex items-center gap-1.5">
+          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% translate "first 1,000 emails free every month"|capfirst %}
+        </span>
       </p>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-4 sm:px-8 pb-8 sm:pb-12">
+      <p class="text-center text-xs font-mono uppercase tracking-widest text-muted-foreground m-0">
+        {% translate "backed by builders from"|capfirst %}
+      </p>
+      <ul class="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 mt-6 p-0 m-0 list-none">
+        {% for brand in brands %}
+          <li>
+            {% if brand.logo %}
+              <img src="{% static brand.logo %}" alt="{{ brand.name }}" class="h-8 w-auto opacity-80" loading="lazy">
+            {% elif brand.url %}
+              <a
+                href="{{ brand.url }}"
+                target="_blank"
+                rel="noopener"
+                class="font-mono text-lg font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >{{ brand.name }}</a>
+            {% else %}
+              <span class="font-mono text-lg font-semibold text-muted-foreground">{{ brand.name }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
     </section>
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
@@ -125,71 +165,154 @@
     </section>
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
-      <div class="pledge relative isolate overflow-hidden rounded-3xl px-6 py-12 sm:px-16 sm:py-16 text-center flex flex-col items-center gap-6 sm:gap-8">
-        <h2 class="text-3xl sm:text-4xl font-bold m-0">
-          {% translate "the open-source pledge"|capfirst %}
+      <h2 class="text-center text-2xl sm:text-4xl font-bold m-0">
+        {% translate "see the dashboard"|capfirst %}
+      </h2>
+      <p class="text-center text-lg text-muted-foreground leading-relaxed m-0 mt-4 mb-12 max-w-2xl mx-auto">
+        {% blocktranslate trimmed %}
+          Delivery, reputation, and DNS: live in your browser, not in a support ticket.
+        {% endblocktranslate %}
+      </p>
+      <div class="grid gap-8 sm:grid-cols-2">
+        <figure class="m-0 flex flex-col gap-4">
+          <div class="card p-0 overflow-hidden shadow-sm">
+            <div class="flex items-center gap-1.5 border-b border-border px-4 py-3" aria-hidden="true">
+              <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
+              <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
+              <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
+            </div>
+            <img
+              src="{% static 'img/dashboard.png' %}"
+              alt="relay email dashboard with charts for outgoing and incoming messages by status"
+              loading="lazy"
+              class="block w-full h-auto"
+            >
+          </div>
+          <figcaption class="text-sm text-muted-foreground text-center m-0">
+            {% blocktranslate trimmed %}
+              Charts for outgoing, incoming, reputation, DMARC, and TLS, all at a glance.
+            {% endblocktranslate %}
+          </figcaption>
+        </figure>
+        <figure class="m-0 flex flex-col gap-4">
+          <div class="card p-0 overflow-hidden shadow-sm">
+            <div class="flex items-center gap-1.5 border-b border-border px-4 py-3" aria-hidden="true">
+              <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
+              <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
+              <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
+            </div>
+            <img
+              src="{% static 'img/domain-detail.png' %}"
+              alt="relay domain detail page showing DNS checks for SPF, DKIM, DMARC, and MTA-STS passing"
+              loading="lazy"
+              class="block w-full h-auto"
+            >
+          </div>
+          <figcaption class="text-sm text-muted-foreground text-center m-0">
+            {% blocktranslate trimmed %}
+              Every DNS check verified for you. Nothing to hand-configure.
+            {% endblocktranslate %}
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
+      <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div class="flex flex-col gap-4">
+          <h2 class="text-2xl sm:text-4xl font-bold m-0">
+            {% translate "works with your stack"|capfirst %}
+          </h2>
+          <p class="text-lg text-muted-foreground leading-relaxed m-0">
+            {% blocktranslate trimmed %}
+              SMTP is the interface every language already speaks. Point your app at relay and keep your code.
+            {% endblocktranslate %}
+          </p>
+          <ul class="flex flex-wrap gap-2 m-0 p-0 list-none">
+            <li><span class="badge" data-variant="outline">SMTP</span></li>
+            <li><span class="badge" data-variant="outline">MCP</span></li>
+            <li><span class="badge" data-variant="outline">Standard Webhooks</span></li>
+            <li><span class="badge" data-variant="outline">API</span></li>
+          </ul>
+          <p class="text-sm text-muted-foreground m-0">
+            {% blocktranslate trimmed %}
+              Your first send needs no DNS work. The managed sender domain is verified from signup.
+            {% endblocktranslate %}
+          </p>
+        </div>
+        <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code>import smtplib
+from email.message import EmailMessage
+
+message = EmailMessage()
+message["From"] = "billing@acme.com"
+message["To"] = "kim@example.net"
+message["Subject"] = "Invoice 42"
+
+with smtplib.SMTP_SSL("smtp.relay.example.com", 465) as smtp:
+    smtp.login("acme", "&lt;credential key&gt;")
+    smtp.send_message(message)</code></pre>
+      </div>
+    </section>
+
+    <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
+      <h2 class="text-center text-2xl sm:text-4xl font-bold m-0">
+        {% translate "early supporters"|capfirst %}
+      </h2>
+      <p class="text-center text-lg text-muted-foreground leading-relaxed m-0 mt-4 mb-12 max-w-2xl mx-auto">
+        {% blocktranslate trimmed %}
+          Builders and maintainers from the open-source and founder community.
+        {% endblocktranslate %}
+      </p>
+      <div class="grid gap-6 sm:grid-cols-3">
+        {% for testimonial in testimonials %}
+          <figure class="card p-6 m-0 flex flex-col gap-4">
+            <blockquote class="m-0 leading-relaxed text-foreground">
+              “{{ testimonial.quote }}”
+            </blockquote>
+            <figcaption class="mt-auto flex items-center gap-3 m-0">
+              <span class="avatar" data-size="sm"><span>{{ testimonial.initials }}</span></span>
+              <span class="text-sm leading-snug">
+                <span class="block font-medium text-foreground">{{ testimonial.name }}</span>
+                <span class="block text-muted-foreground">{{ testimonial.role }}</span>
+              </span>
+            </figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
+      <div class="card p-8 sm:p-10 flex flex-col items-center gap-5 text-center">
+        <h2 class="text-xl sm:text-2xl font-bold m-0">
+          {% translate "no black box"|capfirst %}
         </h2>
-        <p class="pledge__lead text-lg sm:text-xl leading-relaxed m-0 max-w-2xl">
+        <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none">
+          <li><span class="badge" data-variant="outline" data-size="sm">SPF</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">DKIM</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">DMARC</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">MTA-STS</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">TLS-RPT</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">Standard Webhooks</span></li>
+        </ul>
+        <p class="m-0 text-muted-foreground leading-relaxed max-w-2xl">
           {% blocktranslate trimmed %}
-            We stand on the work of the open-source community, and we give it back: free services, donations, and code
-            upstream.
+            Open standards, verified and visible in the dashboard: triple DKIM signatures with RSA-2048, RSA-1024, and
+            Ed25519 keys. No mystery bounces, no hidden reputation score.
           {% endblocktranslate %}
         </p>
-        <div class="pledge__commitments w-full grid gap-8 sm:grid-cols-3 sm:gap-0 pt-2">
-          <article class="flex flex-col items-center gap-2 px-4">
-            <i data-lucide="infinity" class="size-5" aria-hidden="true"></i>
-            <h3 class="text-lg font-semibold text-balance m-0">
-              {% translate "we are free for open source projects"|capfirst %}
-            </h3>
-            <p class="pledge__muted text-sm leading-relaxed m-0">
-              {% blocktranslate trimmed %}
-                Every service, free forever for open-source communities.
-              {% endblocktranslate %}
-            </p>
-          </article>
-          <article class="flex flex-col items-center gap-2 px-4">
-            <i data-lucide="heart-handshake" class="size-5" aria-hidden="true"></i>
-            <h3 class="text-lg font-semibold text-balance m-0">
-              {% translate "we will donate back to the community"|capfirst %}
-            </h3>
-            <p class="pledge__muted text-sm leading-relaxed m-0">
-              {% blocktranslate trimmed %}
-                Real money to the maintainers our work depends on, so they can keep their software secure.
-              {% endblocktranslate %}
-            </p>
-          </article>
-          <article class="flex flex-col items-center gap-2 px-4">
-            <i data-lucide="git-pull-request" class="size-5" aria-hidden="true"></i>
-            <h3 class="text-lg font-semibold text-balance m-0">
-              {% translate "we will contribute back to projects as if they had copyleft licenses"|capfirst %}
-            </h3>
-            <p class="pledge__muted text-sm leading-relaxed m-0">
-              {% blocktranslate trimmed %}
-                Fixes, features, and documentation flow upstream to every project we depend on. Code before cash.
-              {% endblocktranslate %}
-            </p>
-          </article>
-        </div>
-        <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 pt-1">
-          <a
-            href="{% url 'open-source' %}"
-            class="btn pledge__cta"
-            data-size="lg"
-          >
-            {% translate "read the pledge"|capfirst %}
-          </a>
+        <p class="m-0 text-muted-foreground">
+          {% blocktranslate trimmed %}
+            We stand on the work of the open-source community and give it back.
+          {% endblocktranslate %}
+          <a href="{% url 'open-source' %}" class="link">{% translate "read the pledge"|capfirst %}</a>
+          <span aria-hidden="true">·</span>
           <a
             href="https://github.com/codingjoe?tab=sponsoring"
             target="_blank"
             rel="noopener"
-            class="pledge__link inline-flex items-center gap-2"
-          >
-            <svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
-            </svg>
-            {% translate "see who we fund"|capfirst %}
-          </a>
-        </div>
+            class="link"
+          >{% translate "see who we fund"|capfirst %}</a>
+        </p>
       </div>
     </section>
 
@@ -267,7 +390,7 @@
         <footer class="m-0 mt-6">
           <a href="{% url 'accounts:org-list' %}" class="btn w-full" data-size="lg">
             <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
-            {% translate "get started free"|capfirst %}
+            {% translate "get early access"|capfirst %}
           </a>
         </footer>
       </div>
@@ -363,62 +486,6 @@
     .landing-network__pulse--c {
       offset-path: path('M -50 520 C 300 320, 500 560, 700 420 S 1100 260, 1250 500');
       animation-delay: -6s;
-    }
-
-    .landing-cli {
-      box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 6%, transparent);
-    }
-
-    .pledge {
-      background-color: var(--color-primary);
-      color: var(--color-primary-foreground);
-    }
-
-    .pledge__lead {
-      color: color-mix(in srgb, var(--color-primary-foreground) 88%, transparent);
-    }
-
-    .pledge__muted {
-      color: color-mix(in srgb, var(--color-primary-foreground) 80%, transparent);
-    }
-
-    .pledge__commitments > * + * {
-      padding-block-start: 2rem;
-      border-top: 1px solid color-mix(in srgb, var(--color-primary-foreground) 20%, transparent);
-    }
-
-    @media (min-width: 640px) {
-      .pledge__commitments > * + * {
-        padding-inline-start: 2rem;
-        padding-block-start: 0;
-        border-top: 0;
-        border-inline-start: 1px solid color-mix(in srgb, var(--color-primary-foreground) 20%, transparent);
-      }
-    }
-
-    .pledge__cta {
-      background-color: var(--color-primary-foreground);
-      color: var(--color-primary);
-    }
-
-    .pledge__cta:hover {
-      background-color: color-mix(in srgb, var(--color-primary-foreground) 90%, var(--color-primary));
-      color: var(--color-primary);
-    }
-
-    .pledge__link {
-      color: color-mix(in srgb, var(--color-primary-foreground) 85%, transparent);
-      font-weight: 600;
-      font-size: 0.875rem;
-      text-decoration: underline;
-      text-decoration-color: color-mix(in srgb, var(--color-primary-foreground) 40%, transparent);
-      text-underline-offset: 4px;
-      transition: color 150ms ease;
-    }
-
-    .pledge__link:hover {
-      color: var(--color-primary-foreground);
-      text-decoration-color: color-mix(in srgb, var(--color-primary-foreground) 80%, transparent);
     }
 
     @keyframes pulse-travel {
