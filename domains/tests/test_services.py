@@ -375,6 +375,7 @@ class TestVerifyDomainDns:
             "TXT",
             f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
+        dns_resolver.add(domain.name, "MX", f"10 {domain.sender_domain}.")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()
@@ -382,6 +383,7 @@ class TestVerifyDomainDns:
         assert domain.spf_status == Domain.Status.OK
         assert domain.dkim_status == Domain.Status.OK
         assert domain.dmarc_status == Domain.Status.OK
+        assert domain.mx_status == Domain.Status.OK
         assert domain.mta_sts_status == Domain.Status.OK
         assert domain.tls_rpt_status == Domain.Status.OK
         assert domain.verified_at is not None
@@ -396,6 +398,7 @@ class TestVerifyDomainDns:
         assert domain.spf_status == Domain.Status.ERROR
         assert domain.dkim_status == Domain.Status.ERROR
         assert domain.dmarc_status == Domain.Status.ERROR
+        assert domain.mx_status == Domain.Status.ERROR
         assert domain.mta_sts_status == Domain.Status.ERROR
         assert domain.tls_rpt_status == Domain.Status.ERROR
         assert domain.verified_at is None
@@ -403,6 +406,7 @@ class TestVerifyDomainDns:
         assert domain.spf_error
         assert domain.dkim_error
         assert domain.dmarc_error
+        assert domain.mx_error
         assert domain.mta_sts_error
         assert domain.tls_rpt_error
 
@@ -423,6 +427,7 @@ class TestVerifyDomainDns:
         assert domain.spf_status == Domain.Status.ERROR
         assert domain.dkim_status == Domain.Status.OK
         assert domain.dmarc_status == Domain.Status.ERROR
+        assert domain.mx_status == Domain.Status.ERROR
         assert domain.mta_sts_status == Domain.Status.ERROR
         assert domain.tls_rpt_status == Domain.Status.ERROR
         assert domain.verified_at is None
@@ -455,6 +460,7 @@ class TestVerifyDomainDns:
             "TXT",
             f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
+        dns_resolver.add(domain.name, "MX", f"10 {domain.sender_domain}.")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()

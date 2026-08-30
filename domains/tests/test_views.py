@@ -104,7 +104,7 @@ class TestDomainDetailView:
     def test_get__warns_about_apex_ns_delegation(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
-        assert b"Apex delegation replaces the current DNS service" in response.content
+        assert b"apex delegation replaces the current DNS service" in response.content
         assert (
             b"Websites and other services on this domain will stop" in response.content
         )

@@ -13,10 +13,13 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+    pull_policy: build
   dnsdist:
     ports: !override
       - '127.0.0.1:53:53/udp'
       - '127.0.0.1:53:53/tcp'
+  migration:
+    pull_policy: build
   msa:
     build:
       target: development
@@ -27,6 +30,7 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+    pull_policy: build
   mta:
     build:
       target: development
@@ -37,12 +41,14 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+    pull_policy: build
   web:
     build:
       target: development
     volumes:
       - .:/app:cached
     command: [ "-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}" ]
+    pull_policy: build
   worker:
     build:
       target: development
@@ -56,3 +62,4 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
     command: [ "-m", "manage", "threadmill", "worker" ]
+    pull_policy: build

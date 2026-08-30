@@ -28,6 +28,9 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
     title = _("New domain")
     parent = "domains:domain-list"
 
+    def get(self, request, *args, **kwargs):
+        return redirect("domains:domain-list", org_slug=self.org.slug)
+
     def get_form_kwargs(self):
         return super().get_form_kwargs() | {"instance": Domain(org=self.org)}
 
@@ -60,8 +63,18 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
         return super().get_context_data(**kwargs) | {
-            "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
+            "nameservers": [f"ns1.{platform}", "ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
+            "sending_passing": sum(
+                getattr(self.object, f"{field}_status") == Domain.Status.OK
+                for field in Domain.SENDING_CHECK_FIELDS
+            ),
+            "sending_total": len(Domain.SENDING_CHECK_FIELDS),
+            "receiving_passing": sum(
+                getattr(self.object, f"{field}_status") == Domain.Status.OK
+                for field in Domain.RECEIVING_CHECK_FIELDS
+            ),
+            "receiving_total": len(Domain.RECEIVING_CHECK_FIELDS),
         }
 
 
@@ -74,13 +87,31 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
             pk=pk,
         )
         verify_domain_dns(domain)
-        if all_ok := all(  # noqa: F841
-            getattr(domain, f"{field}_status") == Domain.Status.OK
-            for field in ("nameserver", "spf", "dkim", "dmarc", "mta_sts", "tls_rpt")
+
+        for label, fields in (
+            (_("sending"), Domain.SENDING_CHECK_FIELDS),
+            (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
         ):
-            messages.success(request, _("DNS verification passed."))
-        else:
-            messages.error(request, _("DNS verification failed."))
+            passing = sum(
+                getattr(domain, f"{field}_status") == Domain.Status.OK
+                for field in fields
+            )
+            total = len(fields)
+            if passing == total:
+                messages.success(
+                    request,
+                    _("%(label)s verification passed: all %(total)d checks pass.")
+                    % {"label": label, "total": total},
+                )
+            else:
+                messages.error(
+                    request,
+                    _(
+                        "%(label)s verification failed: %(failing)d of %(total)d "
+                        "checks are still failing."
+                    )
+                    % {"label": label, "failing": total - passing, "total": total},
+                )
         return redirect(domain.get_absolute_url())
 
 

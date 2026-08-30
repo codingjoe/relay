@@ -11,6 +11,7 @@ from services.email.dmarc.charts import build_dmarc_chart
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.message.models import Message
 from services.email.msa.charts import build_outgoing_chart
+from services.email.msa.models import OutgoingMessage
 from services.email.mta.charts import build_incoming_chart, build_tls_chart
 from services.email.mta.models import TlsReport
 from services.email.reputation.charts import build_reputation_chart
@@ -25,10 +26,23 @@ class DashboardView(OrganizationScopedView, generic.TemplateView):
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
+        try:
+            managed_domain = Domain.objects.get(
+                org=self.org, is_managed=True, verified_at__isnull=False
+            )
+        except Domain.DoesNotExist:
+            managed_domain = None
         return super().get_context_data(**kwargs) | {
             "domains": Domain.objects.filter(org=self.org),
             "total_domains": Domain.objects.filter(org=self.org).count(),
             "total_messages": Message.objects.filter(org=self.org).count(),
+            "managed_domain": managed_domain,
+            "has_custom_domain": Domain.objects.filter(
+                org=self.org, is_managed=False
+            ).exists(),
+            "has_outgoing_message": OutgoingMessage.objects.filter(
+                org=self.org
+            ).exists(),
             "outgoing_chart": build_outgoing_chart(self.org),
             "incoming_chart": build_incoming_chart(self.org),
             "dmarc_chart": build_dmarc_chart(self.org),

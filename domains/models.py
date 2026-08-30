@@ -78,6 +78,9 @@ class DomainQuerySet(models.QuerySet):
 class Domain(TimeStamped):
     """Root domain. Verified once with NS delegation, DMARC, SPF, and DKIM."""
 
+    SENDING_CHECK_FIELDS = ("nameserver", "spf", "dkim", "dmarc")
+    RECEIVING_CHECK_FIELDS = ("mx", "mta_sts", "tls_rpt")
+
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
         EMAIL = "email", _("email")
@@ -150,6 +153,17 @@ class Domain(TimeStamped):
         _("DMARC error"),
         blank=True,
         help_text=_("Failure detail if the DMARC record is incorrect."),
+    )
+    mx_status = models.TextField(
+        _("MX status"),
+        choices=Status,
+        default=Status.UNCHECKED,
+        help_text=_("MX record check result on the root domain."),
+    )
+    mx_error = models.TextField(
+        _("MX error"),
+        blank=True,
+        help_text=_("Failure detail if the MX record is incorrect."),
     )
     mta_sts_status = models.TextField(
         _("MTA-STS status"),
@@ -243,6 +257,34 @@ class Domain(TimeStamped):
     @property
     def is_verified(self):
         return self.verified_at is not None
+
+    @property
+    def is_sending_verified(self):
+        return all(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.SENDING_CHECK_FIELDS
+        )
+
+    @property
+    def is_receiving_verified(self):
+        return all(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.RECEIVING_CHECK_FIELDS
+        )
+
+    @property
+    def sending_checks_passing(self):
+        return sum(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.SENDING_CHECK_FIELDS
+        )
+
+    @property
+    def receiving_checks_passing(self):
+        return sum(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.RECEIVING_CHECK_FIELDS
+        )
 
     is_managed = models.BooleanField(
         _("managed"),
