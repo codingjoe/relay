@@ -291,11 +291,46 @@ with smtplib.SMTP_SSL("smtp.relay.example.com", 465) as smtp:
           {% translate "no black box"|capfirst %}
         </h2>
         <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none">
-          <li><span class="badge" data-variant="outline" data-size="sm">SPF</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">DKIM</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">DMARC</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">MTA-STS</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">TLS-RPT</span></li>
+          <li>
+            <a
+              href="{% url 'know_how:detail' 'spf' %}"
+              class="badge transition-colors hover:text-foreground"
+              data-variant="outline"
+              data-size="sm"
+            >SPF</a>
+          </li>
+          <li>
+            <a
+              href="{% url 'know_how:detail' 'dkim' %}"
+              class="badge transition-colors hover:text-foreground"
+              data-variant="outline"
+              data-size="sm"
+            >DKIM</a>
+          </li>
+          <li>
+            <a
+              href="{% url 'know_how:detail' 'dmarc' %}"
+              class="badge transition-colors hover:text-foreground"
+              data-variant="outline"
+              data-size="sm"
+            >DMARC</a>
+          </li>
+          <li>
+            <a
+              href="{% url 'know_how:detail' 'mta-sts' %}"
+              class="badge transition-colors hover:text-foreground"
+              data-variant="outline"
+              data-size="sm"
+            >MTA-STS</a>
+          </li>
+          <li>
+            <a
+              href="{% url 'know_how:detail' 'tls-rpt' %}"
+              class="badge transition-colors hover:text-foreground"
+              data-variant="outline"
+              data-size="sm"
+            >TLS-RPT</a>
+          </li>
           <li><span class="badge" data-variant="outline" data-size="sm">FBL</span></li>
           <li>
             <span class="badge" data-variant="outline" data-size="sm">ARC · <span
