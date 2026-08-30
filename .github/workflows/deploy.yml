@@ -21,7 +21,7 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Deploy with ${{ github.event.inputs.environment || 'production' }} configuration
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     environment:
       name: ${{ github.event.inputs.environment || 'production' }}
       url: https://${{ case(github.ref_name == 'main', vars.HOSTNAME, format('{0}.{1}', github.ref_name, vars.HOSTNAME)) }}
