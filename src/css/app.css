@@ -2,6 +2,8 @@
 @plugin "@tailwindcss/typography";
 @import "basecoat-css/maia";
 
+@import "./fonts.css";
+
 :root {
   --color-primary: hsl(268, 100%, 41%);
   --color-primary-foreground: hsl(0, 0%, 100%);
@@ -9,16 +11,29 @@
   --color-link: var(--color-primary-text);
 }
 
-/* ── Type roles ─────────────────────────────────────────────────────
-   One fixed rem scale on the incumbent Geist stack. No webfont is
-   fetched (see --font-sans in basecoat), so text never blocks or
-   swaps invisible; every weight used (400, 500, 600, 700) resolves
-   from the installation or the metric-similar ui-sans-serif fallback.
+/* Fira Sans (sans) and Fira Code (mono) for UI text, code, and numbers.
+   The relay wordmark is the exception and uses Space Mono italic.
+   The @font-face rules above serve the vendored files from
+   root/static/fonts/. Fira Sans has real 500 and 600 weights; Fira Code
+   also has 500/600 (and ligatures) as a variable font but no italic,
+   so slanted code text is synthesized. */
+@theme {
+  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
 
-   Tailwind preflight strips heading sizing (h1..h6 { font-size: inherit }),
-   so the page-title and section-title roles are defined here at the
-   element layer and win only where no component or utility claims the
-   heading (cards, dialogs, items, sidebar, prose keep basecoat styles).
+/* The relay wordmark. */
+.brand {
+  font-family: "Space Mono", monospace;
+  font-style: italic;
+}
+
+/* ── Type roles ─────────────────────────────────────────────────────
+   One fixed rem scale on the Fira Sans stack. Tailwind preflight strips
+   heading sizing (h1..h6 { font-size: inherit }), so the page-title and
+   section-title roles are defined here at the element layer and win only
+   where no component or utility claims the heading (cards, dialogs,
+   items, sidebar, prose keep basecoat styles).
 
    Roles, distinguishable by weight + tracking + tone, not size alone:
      page title    h2      1.375rem  600  -0.02em
