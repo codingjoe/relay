@@ -11,10 +11,20 @@ concurrency:
 jobs:
   container:
     name: Build and publish image
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read # Allow the job to check out the repository
       packages: write # Allow the job to push the image to the GitHub Container Registry
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
       - uses: docker/login-action@v4.6.0
@@ -29,18 +39,69 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: type=sha,format=long # Tag the image with the immutable git SHA
       - uses: docker/setup-buildx-action@v4
-      - uses: docker/build-push-action@v7
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           target: production # Mirror the compose build section
+          platforms: ${{ matrix.platform }}
           build-args: |
             UV_NO_DEV=0
-          push: ${{ github.ref == 'refs/heads/main' }} # Only publish images from the main branch
-          tags: ${{ steps.meta.outputs.tags }}
+          # Only publish images from the main branch, otherwise build without pushing
+          outputs: ${{ github.ref == 'refs/heads/main' && format('type=image,name=ghcr.io/{0},push-by-digest=true,name-canonical=true,push=true', github.repository) || '' }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=build-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=build-${{ matrix.arch }}
+      - name: Export digest
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+      - name: Upload digest
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+  merge:
+    name: Merge platform images
+    if: github.ref == 'refs/heads/main'
+    needs: [container]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write # Allow the job to push the image to the GitHub Container Registry
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+      - uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: type=sha,format=long # Tag the image with the immutable git SHA
+      - uses: docker/setup-buildx-action@v4
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ steps.meta.outputs.tags }} \
+            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+      - name: Inspect image
+        run: docker buildx imagetools inspect ${{ steps.meta.outputs.tags }}
   pytest:
     if: contains(github.head_ref, 'dependabot/npm_and_yarn') != true
     runs-on: ubuntu-latest
