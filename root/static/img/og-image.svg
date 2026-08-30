@@ -8,8 +8,23 @@
     </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#relay-gradient)" />
-  <g text-anchor="middle" font-family="Geist Sans, ui-sans-serif, system-ui, sans-serif">
-    <text x="600" y="352" font-size="170" font-weight="bold" fill="#fff">relay</text>
-    <text x="600" y="425" font-size="42" fill="#fff" fill-opacity="0.85">communication as a service</text>
+  <g text-anchor="middle">
+    <text
+      x="600"
+      y="352"
+      font-family="'Space Mono', monospace"
+      font-size="170"
+      font-style="italic"
+      font-weight="bold"
+      fill="#fff"
+    >relay</text>
+    <text
+      x="600"
+      y="425"
+      font-family="'Fira Sans', ui-sans-serif, system-ui, sans-serif"
+      font-size="42"
+      fill="#fff"
+      fill-opacity="0.85"
+    >communication as a service</text>
   </g>
 </svg>
