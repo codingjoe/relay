@@ -3,14 +3,14 @@ from django.views import generic
 
 from abstract.views import BreadcrumbViewMixin, CacheControlMixin
 
-# Sample entries. Replace with real endorsements before launch:
-# brands accept "logo" (static path) and "url", testimonials accept "url".
+# Wordmarks of companies that back relay, with owner-attested endorsement.
+# Optional keys: "url" (endorser link) and "logo" (static image path).
 BRANDS = [
-    {"name": "Sample Company"},
-    {"name": "Sample Project"},
-    {"name": "Sample Labs"},
-    {"name": "Sample Ventures"},
-    {"name": "Sample Foundation"},
+    {"name": "Henkel"},
+    {"name": "Porsche"},
+    {"name": "Thermondo"},
+    {"name": "Fizard"},
+    {"name": "voiio"},
 ]
 
 TESTIMONIALS = [

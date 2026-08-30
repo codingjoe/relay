@@ -67,9 +67,10 @@ Developer workflow, confirmed from product code and copy:
   invite-only/waitlist framing is copy-only; a real gate and waitlist are
   future work).
 - Landing page proof sections: a brand banner ("backed by builders from")
-  and testimonials ("early supporters"), both fed from placeholder data in
-  `root/views.py` (`BRANDS`, `TESTIMONIALS`) that the founder replaces with
-  real endorsements; real email-log screenshots captured from the product,
+  carrying real, owner-attested endorsements (Henkel, Porsche, Thermondo,
+  Fizard, voiio) fed from `root/views.py` (`BRANDS`), and testimonials
+  ("early supporters") still fed from placeholder data (`TESTIMONIALS`)
+  pending real quotes; real email-log screenshots captured from the product,
   overview and detail (`root/static/img/email-overview.png`,
   `root/static/img/email-detail.png`);
   a real SMTP first-send snippet; and a "no black box" trust band (SPF,
@@ -99,10 +100,10 @@ monospace accents is evidence of the incumbent look, not a commitment.
 - Architecture documentation: `README.md`; conventions: `CONVENTIONS.md`.
 - Test data bundle: `fixtures/initial_data.yaml`.
 - No testimonials, case studies, customer logos, benchmarks, or press exist
-  yet. The founder's network (open-source and company founders) will supply
-  real endorsements. Until then the landing page ships clearly-marked
-  sample entries, which must be replaced before launch. Future work must
-  not fabricate any of these.
+  beyond the owner-attested brand-banner endorsements (Henkel, Porsche,
+  Thermondo, Fizard, voiio). The testimonials section still ships
+  clearly-marked sample entries, which must be replaced with real quotes
+  before launch. Future work must not fabricate any of these.
 
 ## Product Principles
 
