@@ -4,16 +4,16 @@
 {% block content %}
   {% if webhook_deliveries %}
     <details open class="mb-4">
-      <summary class="cursor-pointer font-semibold">{% translate "webhook deliveries"|capfirst %}</summary>
+      <summary class="cursor-pointer font-semibold">{% translate "Webhook deliveries"|capfirst %}</summary>
       <div class="table-container mt-3">
         <table class="table">
           <thead>
             <tr>
-              <th>{% translate "webhook"|capfirst %}</th>
-              <th>{% translate "status"|capfirst context "noun" %}</th>
-              <th>{% translate "code"|capfirst context "noun" %}</th>
-              <th>{% translate "delivered at"|capfirst %}</th>
-              <th>{% translate "response"|capfirst context "noun" %}</th>
+              <th>{% translate "Webhook"|capfirst %}</th>
+              <th>{% translate "Status"|capfirst context "noun" %}</th>
+              <th>{% translate "Code"|capfirst context "noun" %}</th>
+              <th>{% translate "Delivered at"|capfirst %}</th>
+              <th>{% translate "Response"|capfirst context "noun" %}</th>
             </tr>
           </thead>
           <tbody>
@@ -43,13 +43,13 @@
   {% endif %}
 
   <details open class="mb-4">
-    <summary class="cursor-pointer font-semibold">{% translate "headers"|capfirst context "noun" %}</summary>
+    <summary class="cursor-pointer font-semibold">{% translate "Headers"|capfirst context "noun" %}</summary>
     <div class="table-container mt-3">
       <table class="table">
         <thead>
           <tr>
-            <th>{% translate "header"|capfirst context "noun" %}</th>
-            <th>{% translate "value"|capfirst context "noun" %}</th>
+            <th>{% translate "Header"|capfirst context "noun" %}</th>
+            <th>{% translate "Value"|capfirst context "noun" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -66,10 +66,10 @@
 
   <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 mb-6">
     {% if message.receiving_domain %}
-      <dt class="font-semibold">{% translate "domain"|capfirst context "noun" %}</dt>
+      <dt class="font-semibold">{% translate "Domain"|capfirst context "noun" %}</dt>
       <dd><code>{{ message.receiving_domain }}</code></dd>
     {% endif %}
-    <dt class="font-semibold">{% translate "received"|capfirst context "noun" %}</dt>
+    <dt class="font-semibold">{% translate "Received"|capfirst context "noun" %}</dt>
     <dd>
       {% timestamp message.created_at %}
     </dd>
@@ -85,7 +85,7 @@
 
   {% if body %}
     <details open class="mb-4">
-      <summary class="cursor-pointer font-semibold">{% translate "body"|capfirst context "noun" %}</summary>
+      <summary class="cursor-pointer font-semibold">{% translate "Body"|capfirst context "noun" %}</summary>
       <div class="mt-3">
         {{ body|highlight_email }}
       </div>

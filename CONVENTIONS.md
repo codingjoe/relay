@@ -137,6 +137,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Tables: wrap in `<div class="table-container"><table class="table">`.
   - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
     open with `.showModal()` and close with `.close()`.
+  - Translatable strings are natural English sentences. Every sentence in a
+    msgid starts with an uppercase letter, including sentences after the
+    first. Write `{% translate "Add domain" %}`, not
+    `{% translate "add domain" %}`. A msgid that starts with a placeholder is
+    exempt. `.relint.yml` enforces the casing.
   - Form controls: `<input class="input">`, `<select class="select w-full">`,
     `<textarea class="textarea">`. Always pair form controls with `w-full` so
     they fill the field width inside dialogs and filter rows. Wrap each form

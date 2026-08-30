@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block topbar %}{% include "partials/topbar_static.html" %}{% endblock %}
-{% block title %}{% translate "know how"|capfirst %}{% endblock %}
+{% block title %}{% translate "Know how"|capfirst %}{% endblock %}
 
 {% block content %}
   <div class="py-8 max-w-3xl mx-auto">
-    <h1 class="m-0 mb-2">{% translate "know how"|capfirst %}</h1>
+    <h1 class="m-0 mb-2">{% translate "Know how"|capfirst %}</h1>
     <p class="text-muted-foreground m-0 mb-8">
-      {% translate "learn about the email terms and technologies that relay uses."|capfirst %}
+      {% translate "Learn about the email terms and technologies that relay uses."|capfirst %}
     </p>
     <div class="item-group">
       {% for article in articles %}

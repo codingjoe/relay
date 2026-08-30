@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{% translate "reports"|capfirst %} | relay{% endblock %}
+{% block title %}{% translate "Reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "reports"|capfirst %}</h2>
+    <h2 class="m-0">{% translate "Reports"|capfirst %}</h2>
   </header>
 
   <nav
     role="navigation"
-    aria-label='{% translate "type"|capfirst %}'
+    aria-label='{% translate "Type"|capfirst %}'
     class="button-group mb-6"
   >
     <a
@@ -36,31 +36,31 @@
     <div class="flex flex-wrap items-end gap-4">
       {% if type == 'tls' %}
         <div role="group" class="field flex-1 min-w-48">
-          <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
+          <label for="filter-domain">{% translate "Domain"|capfirst context "noun" %}</label>
           <input
             id="filter-domain"
             type="search"
             name="domain"
             value="{{ domain }}"
             class="input"
-            placeholder='{% translate "search by domain" %}'
+            placeholder='{% translate "Search by domain" %}'
           >
         </div>
       {% endif %}
       {% if type != 'tls' %}
         <div role="group" class="field flex-1 min-w-48">
-          <label for="filter-ip">{% translate "source IP"|capfirst %}</label>
+          <label for="filter-ip">{% translate "Source IP"|capfirst %}</label>
           <input
             id="filter-ip"
             type="search"
             name="ip"
             value="{{ ip }}"
             class="input"
-            placeholder='{% translate "search by IP" %}'
+            placeholder='{% translate "Search by IP" %}'
           >
         </div>
       {% endif %}
-      <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+      <button type="submit" class="btn">{% translate "Filter"|capfirst context "verb" %}</button>
     </div>
   </form>
 
@@ -68,10 +68,10 @@
     <table class="table">
       <thead>
         <tr>
-          <th>{% translate "received at"|capfirst %}</th>
-          <th>{% translate "type"|capfirst context "noun" %}</th>
-          <th>{% translate "domain"|capfirst context "noun" %}</th>
-          <th>{% translate "from"|capfirst context "email" %}</th>
+          <th>{% translate "Received at"|capfirst %}</th>
+          <th>{% translate "Type"|capfirst context "noun" %}</th>
+          <th>{% translate "Domain"|capfirst context "noun" %}</th>
+          <th>{% translate "From"|capfirst context "email" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -114,7 +114,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="4">{% translate "no reports found." %}</td></tr>
+          <tr><td colspan="4">{% translate "No reports found." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

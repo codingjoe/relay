@@ -20,8 +20,8 @@
 {% block content %}
   <div class="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-8 max-w-5xl mx-auto py-8">
     <aside class="hidden lg:block">
-      <nav aria-label='{% translate "table of contents"|capfirst %}' class="sticky top-4">
-        <p class="text-sm font-medium text-muted-foreground m-0 mb-2">{% translate "on this page"|capfirst %}</p>
+      <nav aria-label='{% translate "Table of contents"|capfirst %}' class="sticky top-4">
+        <p class="text-sm font-medium text-muted-foreground m-0 mb-2">{% translate "On this page"|capfirst %}</p>
         <div class="prose prose-sm dark:prose-invert max-w-none [&_a]:no-underline [&_a]:text-muted-foreground hover:[&_a]:text-foreground">
           {% include_md_toc markdown_template toc_levels %}
         </div>

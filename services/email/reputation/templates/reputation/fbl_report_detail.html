@@ -12,11 +12,11 @@
   <div class="card mb-6">
     <dl class="grid grid-cols-2 gap-4 m-0">
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "Reporter"|capfirst %}</dt>
         <dd class="m-0">{{ report.reporting_org }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "feedback type"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "Feedback type"|capfirst %}</dt>
         <dd class="m-0">
           <span class="badge" data-size="sm" data-variant="destructive">
             {{ report.get_feedback_type_display }}
@@ -24,15 +24,15 @@
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "Source IP"|capfirst %}</dt>
         <dd class="m-0">{{ report.source_ip_address|default:"-" }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "Arrived"|capfirst %}</dt>
         <dd class="m-0">{% timestamp report.arrival_at %}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "original from"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "Original from"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_mail_from %}
             <a
@@ -45,7 +45,7 @@
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "original to"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "Original to"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_rcpt_to %}
             <a
@@ -58,11 +58,11 @@
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "original message ID"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "Original message ID"|capfirst %}</dt>
         <dd class="m-0">{{ report.original_message_id|truncatechars:60|default:"-" }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "user agent"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "User agent"|capfirst %}</dt>
         <dd class="m-0">{{ report.user_agent|default:"-" }}</dd>
       </div>
     </dl>
@@ -71,7 +71,7 @@
   {% if report.authentication_results %}
     <div class="card mb-6">
       <header>
-        <h3 class="m-0">{% translate "authentication results"|capfirst %}</h3>
+        <h3 class="m-0">{% translate "Authentication results"|capfirst %}</h3>
       </header>
       <pre class="text-sm whitespace-pre-wrap">{{ report.authentication_results }}</pre>
     </div>
@@ -80,7 +80,7 @@
   {% if report.original_headers %}
     <div class="card mb-6">
       <header>
-        <h3 class="m-0">{% translate "original headers"|capfirst %}</h3>
+        <h3 class="m-0">{% translate "Original headers"|capfirst %}</h3>
       </header>
       {{ report.original_headers|truncatechars:2000|highlight_email }}
     </div>

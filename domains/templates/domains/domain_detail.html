@@ -39,16 +39,16 @@
           data-variant="primary"
           formaction="{% url 'domains:domain-verify' org.slug domain.pk %}"
         >
-          {% translate "verify DNS"|capfirst %}
+          {% translate "Verify DNS"|capfirst %}
         </button>
         <button
           type="submit"
           class="btn"
           data-variant="destructive"
           formaction="{% url 'domains:domain-delete' org.slug domain.pk %}"
-          onclick="return confirm('{% translate "delete this domain?"|capfirst context "verb" %}')"
+          onclick="return confirm('{% translate "Delete this domain?"|capfirst context "verb" %}')"
         >
-          {% translate "delete"|capfirst context "verb" %}
+          {% translate "Delete"|capfirst context "verb" %}
         </button>
       </div>
     </form>
@@ -71,12 +71,12 @@
 
   <section class="accordion mb-6">
     <details open>
-      <summary>{% translate "subdomain NS + manual apex records"|capfirst %}</summary>
+      <summary>{% translate "Subdomain NS + manual apex records"|capfirst %}</summary>
       <section>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
             <p class="text-sm text-muted-foreground">
-              {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
+              {% translate "Delegate the sender subdomain to our nameservers."|capfirst %}
             </p>
             {% for ns in nameservers %}
               <div class="input-group flex-wrap min-h-11 max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
@@ -93,7 +93,7 @@
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ domain.sender_domain }}')"
-                  aria-label='{% translate "copy name"|capfirst %}'
+                  aria-label='{% translate "Copy name"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
@@ -105,7 +105,7 @@
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ ns }}.')"
-                  aria-label='{% translate "copy value"|capfirst %}'
+                  aria-label='{% translate "Copy value"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
@@ -114,9 +114,9 @@
           </div>
 
           <header class="border-t pt-4">
-            <h3 class="m-0">{% translate "sending records"|capfirst %}</h3>
+            <h3 class="m-0">{% translate "Sending records"|capfirst %}</h3>
             <p class="text-sm text-muted-foreground">
-              {% translate "authorize relay to send authenticated email for this domain."|capfirst %}
+              {% translate "Authorize relay to send authenticated email for this domain."|capfirst %}
             </p>
           </header>
 
@@ -127,7 +127,7 @@
               {% know_how_badge "spf" "SPF" %}
             </div>
             <p class="text-sm text-muted-foreground">
-              {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
+              {% translate "Authorizes our mail servers to send on behalf of your domain."|capfirst %}
             </p>
             {% if domain.spf_status == 'error' %}
               <p class="text-sm text-destructive">{{ domain.spf_error }}</p>
@@ -149,7 +149,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.name }}')"
-                aria-label='{% translate "copy name"|capfirst %}'
+                aria-label='{% translate "Copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -161,7 +161,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.root_spf_record }}')"
-                aria-label='{% translate "copy value"|capfirst %}'
+                aria-label='{% translate "Copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -198,7 +198,7 @@
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ cname.0 }}')"
-                  aria-label='{% translate "copy name"|capfirst %}'
+                  aria-label='{% translate "Copy name"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
@@ -210,7 +210,7 @@
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ cname.1 }}.')"
-                  aria-label='{% translate "copy value"|capfirst %}'
+                  aria-label='{% translate "Copy value"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
@@ -247,7 +247,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('_dmarc.{{ domain.name }}')"
-                aria-label='{% translate "copy name"|capfirst %}'
+                aria-label='{% translate "Copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -264,7 +264,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.dmarc_record }}')"
-                aria-label='{% translate "copy value"|capfirst %}'
+                aria-label='{% translate "Copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -272,9 +272,9 @@
           </div>
 
           <header class="border-t pt-4">
-            <h3 class="m-0">{% translate "receiving records"|capfirst %}</h3>
+            <h3 class="m-0">{% translate "Receiving records"|capfirst %}</h3>
             <p class="text-sm text-muted-foreground">
-              {% translate "route incoming email to relay and require secure delivery."|capfirst %}
+              {% translate "Route incoming email to relay and require secure delivery."|capfirst %}
             </p>
           </header>
 
@@ -284,7 +284,7 @@
               <label>MX</label>
             </div>
             <p class="text-sm text-muted-foreground">
-              {% translate "routes incoming email for this domain to relay."|capfirst %}
+              {% translate "Routes incoming email for this domain to relay."|capfirst %}
             </p>
             {% if domain.mx_error %}
               <p class="text-sm text-destructive">{{ domain.mx_error }}</p>
@@ -303,7 +303,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.name }}')"
-                aria-label='{% translate "copy name"|capfirst %}'
+                aria-label='{% translate "Copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -315,7 +315,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('10 {{ domain.sender_domain }}.')"
-                aria-label='{% translate "copy value"|capfirst %}'
+                aria-label='{% translate "Copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -351,7 +351,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('_smtp._tls.{{ domain.name }}')"
-                aria-label='{% translate "copy name"|capfirst %}'
+                aria-label='{% translate "Copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -368,7 +368,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.tls_rpt_record }}')"
-                aria-label='{% translate "copy value"|capfirst %}'
+                aria-label='{% translate "Copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -404,7 +404,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('_mta-sts.{{ domain.name }}')"
-                aria-label='{% translate "copy name"|capfirst %}'
+                aria-label='{% translate "Copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -421,7 +421,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.mta_sts_record }}')"
-                aria-label='{% translate "copy value"|capfirst %}'
+                aria-label='{% translate "Copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -440,7 +440,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('mta-sts.{{ domain.name }}')"
-                aria-label='{% translate "copy name"|capfirst %}'
+                aria-label='{% translate "Copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -452,7 +452,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('mta-sts.{{ domain.sender_domain }}.')"
-                aria-label='{% translate "copy value"|capfirst %}'
+                aria-label='{% translate "Copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -463,7 +463,7 @@
     </details>
 
     <details>
-      <summary>{% translate "apex NS delegation"|capfirst %}</summary>
+      <summary>{% translate "Apex NS delegation"|capfirst %}</summary>
       <section>
         <div class="alert mb-4" data-variant="destructive">
           <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
@@ -488,7 +488,7 @@
               data-variant="ghost"
               data-size="icon-sm"
               onclick="navigator.clipboard.writeText('{{ domain.name }}')"
-              aria-label='{% translate "copy name"|capfirst %}'
+              aria-label='{% translate "Copy name"|capfirst %}'
             >
               <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
             </button>
@@ -500,7 +500,7 @@
               data-variant="ghost"
               data-size="icon-sm"
               onclick="navigator.clipboard.writeText('{{ ns }}.')"
-              aria-label='{% translate "copy value"|capfirst %}'
+              aria-label='{% translate "Copy value"|capfirst %}'
             >
               <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
             </button>

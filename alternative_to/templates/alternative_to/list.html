@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "alternative to"|capfirst %}{% endblock %}
+{% block title %}{% translate "Alternative to"|capfirst %}{% endblock %}
 
 {% block content %}
   <div class="py-8 max-w-3xl mx-auto">
-    <h1 class="m-0 mb-2">{% translate "alternative to"|capfirst %}</h1>
+    <h1 class="m-0 mb-2">{% translate "Alternative to"|capfirst %}</h1>
     <p class="text-muted-foreground m-0 mb-8">
-      {% translate "side-by-side comparisons of relay with other email service providers."|capfirst %}
+      {% translate "Side-by-side comparisons of relay with other email service providers."|capfirst %}
     </p>
     <div class="item-group">
       {% for article in articles %}

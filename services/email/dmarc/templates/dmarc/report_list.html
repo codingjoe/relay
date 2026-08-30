@@ -11,9 +11,9 @@
   <form method="get" class="fieldset mb-6">
     <div class="grid gap-4">
       <div role="group" class="field">
-        <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
+        <label for="filter-domain">{% translate "Domain"|capfirst context "noun" %}</label>
         <select id="filter-domain" name="domain" class="select w-full">
-          <option value="">{% translate "all"|capfirst %}</option>
+          <option value="">{% translate "All"|capfirst %}</option>
           {% for domain in domains %}
             <option value="{{ domain.name }}" {% if filters.domain == domain.name %}selected{% endif %}>
               {{ domain.name }}
@@ -22,19 +22,19 @@
         </select>
       </div>
       <div role="group" class="field">
-        <label for="filter-source-ip">{% translate "source IP"|capfirst %}</label>
+        <label for="filter-source-ip">{% translate "Source IP"|capfirst %}</label>
         <input
           id="filter-source-ip"
           type="text"
           name="source_ip"
           value="{{ filters.source_ip }}"
-          placeholder="{% translate 'for example, 192.168.1.1' %}"
+          placeholder="{% translate 'For example, 192.168.1.1' %}"
           class="input"
         >
       </div>
       <div role="group" class="field">
         <label>&nbsp;</label>
-        <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+        <button type="submit" class="btn">{% translate "Filter"|capfirst context "verb" %}</button>
       </div>
     </div>
   </form>
@@ -43,10 +43,10 @@
     <table class="table">
       <thead>
         <tr>
-          <th>{% translate "period"|capfirst %}</th>
-          <th>{% translate "domain"|capfirst context "noun" %}</th>
-          <th>{% translate "reporter"|capfirst %}</th>
-          <th>{% translate "report ID"|capfirst %}</th>
+          <th>{% translate "Period"|capfirst %}</th>
+          <th>{% translate "Domain"|capfirst context "noun" %}</th>
+          <th>{% translate "Reporter"|capfirst %}</th>
+          <th>{% translate "Report ID"|capfirst %}</th>
         </tr>
       </thead>
       <tbody>
@@ -61,7 +61,7 @@
             <td>{{ report.report_id|truncatechars:40 }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="4">{% translate "no reports received yet." %}</td></tr>
+          <tr><td colspan="4">{% translate "No reports received yet." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

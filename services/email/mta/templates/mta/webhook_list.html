@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "webhooks"|capfirst %} | relay{% endblock %}
+{% block title %}{% translate "Webhooks"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "webhooks"|capfirst %}</h2>
+    <h2 class="m-0">{% translate "Webhooks"|capfirst %}</h2>
     <button
       type="button"
       class="btn"
       onclick="document.getElementById('dlg-new-webhook').showModal()"
     >
-      {% translate "new webhook"|title %}
+      {% translate "New webhook"|title %}
     </button>
   </header>
 
   <dialog class="dialog" id="dlg-new-webhook">
     <div>
       <header>
-        <h2>{% translate "new webhook"|title %}</h2>
-        <p>{% translate "configure a webhook endpoint for incoming email."|capfirst %}</p>
+        <h2>{% translate "New webhook"|title %}</h2>
+        <p>{% translate "Configure a webhook endpoint for incoming email."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'mta:webhook-create' org.slug %}" id="dlg-new-webhook-form">
@@ -36,17 +36,17 @@
               >
             </div>
             <div role="group" class="field">
-              <label for="id_name">{% translate "name"|capfirst context "noun" %}</label>
+              <label for="id_name">{% translate "Name"|capfirst context "noun" %}</label>
               <input
                 type="text"
                 name="name"
                 id="id_name"
-                placeholder='{% translate "for example, production webhook"|title %}'
+                placeholder='{% translate "For example, production webhook"|title %}'
                 class="input"
               >
             </div>
             <div role="group" class="field">
-              <label for="id_domain">{% translate "domain"|capfirst context "noun" %}</label>
+              <label for="id_domain">{% translate "Domain"|capfirst context "noun" %}</label>
               <select
                 name="domain"
                 id="id_domain"
@@ -60,7 +60,7 @@
               </select>
             </div>
             <div role="group" class="field">
-              <label for="id_pattern_prefix">{% translate "address pattern"|capfirst %}</label>
+              <label for="id_pattern_prefix">{% translate "Address pattern"|capfirst %}</label>
               <div class="input-group">
                 <input
                   type="text"
@@ -86,10 +86,10 @@
           data-variant="secondary"
           onclick="document.getElementById('dlg-new-webhook').close()"
         >
-          {% translate "cancel"|capfirst context "verb" %}
+          {% translate "Cancel"|capfirst context "verb" %}
         </button>
         <button type="submit" form="dlg-new-webhook-form" class="btn">
-          {% translate "create"|capfirst context "verb" %}
+          {% translate "Create"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
@@ -112,7 +112,7 @@
               <code>{{ webhook.address_pattern }}</code>
             </p>
             <p class="flex items-center gap-2 flex-wrap mt-2 text-sm text-muted-foreground">
-              {% translate "public key"|capfirst %}
+              {% translate "Public key"|capfirst %}
               <code class="text-foreground">{{ webhook.public_key_serialized }}</code>
               <button
                 type="button"
@@ -120,7 +120,7 @@
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized|escapejs }}')"
-                aria-label="{% translate 'copy public key'|capfirst %}"
+                aria-label="{% translate 'Copy public key'|capfirst %}"
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
@@ -130,7 +130,7 @@
             <form method="post" action="{% url 'mta:webhook-test' org.slug webhook.pk %}" style="display: inline">
               {% csrf_token %}
               <button type="submit" class="btn" data-variant="secondary" data-size="sm">
-                {% translate "test"|capfirst context "verb" %}
+                {% translate "Test"|capfirst context "verb" %}
               </button>
             </form>
             <form method="post" action="{% url 'mta:webhook-delete' org.slug webhook.pk %}" style="display: inline">
@@ -140,9 +140,9 @@
                 class="btn"
                 data-variant="destructive"
                 data-size="sm"
-                onclick="return confirm('{% translate "delete this webhook?"|capfirst context "verb" %}')"
+                onclick="return confirm('{% translate "Delete this webhook?"|capfirst context "verb" %}')"
               >
-                {% translate "delete"|capfirst context "verb" %}
+                {% translate "Delete"|capfirst context "verb" %}
               </button>
             </form>
           </aside>
@@ -152,14 +152,14 @@
   {% else %}
     <p class="text-muted-foreground">
       {% blocktranslate trimmed %}
-        No webhooks configured. create one to receive incoming email deliveries.
+        No webhooks configured. Create one to receive incoming email deliveries.
       {% endblocktranslate %}
     </p>
   {% endif %}
 
   <section class="card mt-6 p-6">
     <header>
-      <h3 class="m-0">{% translate "webhook format"|capfirst %}</h3>
+      <h3 class="m-0">{% translate "Webhook format"|capfirst %}</h3>
     </header>
     <p>
       {% blocktranslate with docs_url="https://docs.standardwebhooks.com" sdk_url="https://github.com/standard-webhooks/standard-webhooks" trimmed %}

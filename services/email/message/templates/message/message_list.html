@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% load i18n message abstract %}
-{% block title %}{% translate "email messages"|capfirst %} | relay{% endblock %}
+{% block title %}{% translate "Email messages"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "email messages"|capfirst %}</h2>
+    <h2 class="m-0">{% translate "Email messages"|capfirst %}</h2>
   </header>
 
   <nav
     role="navigation"
-    aria-label='{% translate "direction"|capfirst %}'
+    aria-label='{% translate "Direction"|capfirst %}'
     class="button-group mb-6"
   >
     <a
@@ -16,47 +16,47 @@
       data-variant="{% if direction == 'all' %}default{% else %}secondary{% endif %}"
       href="?{% param_replace direction='all' %}"
       {% if direction == 'all' %}aria-current="page"{% endif %}
-    >{% translate "all"|capfirst %}</a>
+    >{% translate "All"|capfirst %}</a>
     <a
       class="btn"
       data-variant="{% if direction == 'sent' %}default{% else %}secondary{% endif %}"
       href="?{% param_replace direction='sent' %}"
       {% if direction == 'sent' %}aria-current="page"{% endif %}
-    >{% translate "sent"|capfirst %}</a>
+    >{% translate "Sent"|capfirst %}</a>
     <a
       class="btn"
       data-variant="{% if direction == 'received' %}default{% else %}secondary{% endif %}"
       href="?{% param_replace direction='received' %}"
       {% if direction == 'received' %}aria-current="page"{% endif %}
-    >{% translate "received"|capfirst %}</a>
+    >{% translate "Received"|capfirst %}</a>
   </nav>
 
   <form method="get" class="fieldset mb-6">
     <input type="hidden" name="direction" value="{{ direction }}">
     <div class="flex flex-wrap items-end gap-4">
       <div role="group" class="field flex-1 min-w-48">
-        <label for="filter-email">{% translate "email"|capfirst %}</label>
+        <label for="filter-email">{% translate "Email"|capfirst %}</label>
         <input
           id="filter-email"
           type="search"
           name="email"
           value="{{ email }}"
           class="input"
-          placeholder='{% translate "search by address" %}'
+          placeholder='{% translate "Search by address" %}'
         >
       </div>
       <div role="group" class="field flex-1 min-w-48">
-        <label for="filter-status">{% translate "status"|capfirst context "noun" %}</label>
+        <label for="filter-status">{% translate "Status"|capfirst context "noun" %}</label>
         <input
           id="filter-status"
           type="search"
           name="status"
           value="{{ status }}"
           class="input"
-          placeholder='{% translate "search by status" %}'
+          placeholder='{% translate "Search by status" %}'
         >
       </div>
-      <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+      <button type="submit" class="btn">{% translate "Filter"|capfirst context "verb" %}</button>
     </div>
   </form>
 
@@ -65,11 +65,11 @@
       <thead>
         <tr>
           <th></th>
-          <th>{% translate "status"|capfirst context "noun" %}</th>
-          <th>{% translate "sent"|capfirst %}</th>
-          <th>{% translate "from"|capfirst context "email" %}</th>
-          <th>{% translate "to"|capfirst context "email" %}</th>
-          <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th>{% translate "Status"|capfirst context "noun" %}</th>
+          <th>{% translate "Sent"|capfirst %}</th>
+          <th>{% translate "From"|capfirst context "email" %}</th>
+          <th>{% translate "To"|capfirst context "email" %}</th>
+          <th>{% translate "Domain"|capfirst context "noun" %}</th>
           <th></th>
         </tr>
       </thead>
@@ -127,7 +127,7 @@
                 data-variant="secondary"
                 href="{{ message.get_absolute_url }}"
               >
-                {% translate "detail"|capfirst %}
+                {% translate "Detail"|capfirst %}
               </a>
             </td>
           </tr>
@@ -139,15 +139,15 @@
                   <i data-lucide="inbox" class="size-5 text-muted-foreground" aria-hidden="true"></i>
                   <p class="m-0">
                     {% blocktranslate trimmed %}
-                      No messages yet. send a test email to see it arrive here.
+                      No messages yet. Send a test email to see it arrive here.
                     {% endblocktranslate %}
                   </p>
                   <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:dashboard' org.slug %}">
-                    {% translate "send test email"|title %}
+                    {% translate "Send test email"|title %}
                   </a>
                 </div>
               {% else %}
-                {% translate "no messages found." %}
+                {% translate "No messages found." %}
               {% endif %}
             </td>
           </tr>
