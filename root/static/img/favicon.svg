@@ -3,13 +3,13 @@
   <title>Relay</title>
   <desc>Relay logo, rounded tile with purple gradient and white chevrons.</desc>
   <defs>
-    <linearGradient id="relay-gradient" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#d825f4" />
-      <stop offset="1" stop-color="#4b0fb3" />
+    <linearGradient id="relay-gradient" x1="0.66" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#C225F5" />
+      <stop offset="1" stop-color="#1E448A" />
     </linearGradient>
   </defs>
   <rect width="24" height="24" rx="5" fill="url(#relay-gradient)" />
-  <g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M20 10H4l5.5 -6" />
     <path d="M4 14h16l-5.5 6" />
   </g>
