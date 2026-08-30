@@ -122,7 +122,7 @@ services:
     networks:
       - app
   web:
-    image: app # dclint disable-line service-image-require-explicit-tag
+    image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -166,7 +166,7 @@ services:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
-    pull_policy: build
+    pull_policy: always
   worker:
     command: [ "-m", "manage", "threadmill", "worker" ]
     labels: !reset []
