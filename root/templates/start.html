@@ -22,7 +22,7 @@
       >
         {% translate "made with &lt;3 and German engineering"|capfirst %}
       </span>
-      <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0">
+      <h1 class="text-3xl sm:text-5xl font-bold leading-[0.96] m-0">
         Communication <span class="landing-accent">as a Service</span>
       </h1>
       <p class="text-xl sm:text-2xl text-muted-foreground m-0 max-w-3xl leading-relaxed">
@@ -126,7 +126,7 @@
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
       <div class="pledge relative isolate overflow-hidden rounded-3xl px-6 py-12 sm:px-16 sm:py-16 text-center flex flex-col items-center gap-6 sm:gap-8">
-        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight m-0">
+        <h2 class="text-3xl sm:text-4xl font-bold m-0">
           {% translate "the open-source pledge"|capfirst %}
         </h2>
         <p class="pledge__lead text-lg sm:text-xl leading-relaxed m-0 max-w-2xl">
@@ -194,7 +194,7 @@
     </section>
 
     <section class="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-8">
-      <h2 class="text-center text-1xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
+      <h2 class="text-center text-1xl sm:text-3xl font-bold m-0 mb-3">
         {% translate "Start free. Pay per relay." %}
       </h2>
       <p class="text-center text-muted-foreground m-0 mb-10">
@@ -207,13 +207,13 @@
           <p class="text-sm font-medium text-muted-foreground m-0">
             {% translate "you pay when relay relays"|capfirst %}
           </p>
-          <p class="m-0 mt-2">
-            <output for="price-slider" class="text-4xl sm:text-6xl font-bold tracking-tight font-mono">
+          <p class="m-0 mt-2 flex items-baseline gap-x-1.5">
+            <output for="price-slider" class="text-4xl sm:text-6xl font-bold font-mono">
               <span id="price-volume">1,000</span>
-              <span class="text-lg font-medium text-muted-foreground tracking-normal">{% translate "emails" %}</span>
             </output>
+            <span class="text-lg font-medium text-muted-foreground font-mono">{% translate "emails" %}</span>
           </p>
-          <p class="m-0 mt-3 text-2xl font-mono">
+          <p class="m-0 mt-3 flex items-baseline gap-x-1.5 text-2xl font-mono">
             <span id="price-amount" class="font-semibold">€0</span>
             <span class="text-muted-foreground">{% translate "/ month" %}</span>
           </p>

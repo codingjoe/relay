@@ -9,6 +9,22 @@
   --color-link: var(--color-primary-text);
 }
 
+/* Fira Sans (sans) and Fira Code (mono) for UI text, code, and numbers.
+   The relay wordmark is the exception and uses Space Mono italic.
+   All three load from Google Fonts in base.html. Fira Sans has real
+   500 and 600 weights; Fira Code also has 500/600 (and ligatures) but
+   no italic, so slanted code text is synthesized. */
+@theme {
+  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* The relay wordmark. */
+.brand {
+  font-family: "Space Mono", monospace;
+  font-style: italic;
+}
+
 /* Lucide icons must sit inline with their label; Tailwind preflight forces
    display: block on every svg, which adds a line break after each icon. */
 svg.lucide {
