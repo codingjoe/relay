@@ -53,12 +53,10 @@ def make_platform_domain(org, **dkim_keys):
     )
     if dkim_keys:
         domain.dkim_key_rsa2048 = dkim_keys.get("dkim_key_rsa2048")
-        domain.dkim_key_rsa1024 = dkim_keys.get("dkim_key_rsa1024")
         domain.dkim_key_ed25519 = dkim_keys.get("dkim_key_ed25519")
         domain.save(
             update_fields=[
                 "dkim_key_rsa2048",
-                "dkim_key_rsa1024",
                 "dkim_key_ed25519",
             ]
         )
@@ -68,7 +66,6 @@ def make_platform_domain(org, **dkim_keys):
 def make_platform_keys():
     return {
         "dkim_key_rsa2048": SigningKey.generate(SigningKey.Algorithm.RSA_2048),
-        "dkim_key_rsa1024": SigningKey.generate(SigningKey.Algorithm.RSA_1024),
         "dkim_key_ed25519": SigningKey.generate(SigningKey.Algorithm.ED25519),
     }
 
@@ -82,11 +79,11 @@ class TestSignMessage:
         assert b"DKIM-Signature:" in signed
 
     @pytest.mark.django_db
-    def test_sign_message__signs_with_all_three_ciphers(self):
+    def test_sign_message__signs_with_all_ciphers(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
-        assert signed.count(b"DKIM-Signature:") == 3
+        assert signed.count(b"DKIM-Signature:") == 2
 
     @pytest.mark.django_db
     def test_sign_message__includes_all_selectors(self):
@@ -94,7 +91,6 @@ class TestSignMessage:
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"s=relay-rsa2048" in signed
-        assert b"s=relay-rsa1024" in signed
         assert b"s=relay-ed25519" in signed
 
     @pytest.mark.django_db
@@ -122,10 +118,8 @@ class TestSignMessage:
         ) == sorted(
             [
                 ("example.com", "relay-ed25519"),
-                ("example.com", "relay-rsa1024"),
                 ("example.com", "relay-rsa2048"),
                 (platform.name, "relay-ed25519"),
-                (platform.name, "relay-rsa1024"),
                 (platform.name, "relay-rsa2048"),
             ]
         )
@@ -138,7 +132,7 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
 
         signatures = parse_signatures(signed)
-        assert len(signatures) == 3
+        assert len(signatures) == 2
         assert {signature["d"] for signature in signatures} == {"example.com"}
 
     @pytest.mark.django_db
@@ -149,7 +143,7 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
 
         signatures = parse_signatures(signed)
-        assert len(signatures) == 3
+        assert len(signatures) == 2
         assert {signature["d"] for signature in signatures} == {domain.name}
 
     @pytest.mark.django_db
@@ -178,12 +172,12 @@ class TestSignMessage:
 
 class TestAddDkimSignature:
     def test_add_dkim_signature__prepends_signature(self):
-        key = make_signing_key(kms_keys.Algorithm.RSA_1024)
+        key = make_signing_key(kms_keys.Algorithm.RSA_2048)
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(
             original,
-            "relay-rsa1024",
+            "relay-rsa2048",
             "example.com",
             key,
             INCLUDE_HEADERS,
@@ -193,7 +187,7 @@ class TestAddDkimSignature:
         assert signed.endswith(original)
 
     def test_add_dkim_signature__returns_original_on_signing_failure(self):
-        key = make_signing_key(kms_keys.Algorithm.ED25519, kms_keys.Algorithm.RSA_1024)
+        key = make_signing_key(kms_keys.Algorithm.ED25519, kms_keys.Algorithm.RSA_2048)
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(

@@ -34,7 +34,6 @@ def sign_message(raw_bytes, domain):
     # registration per partner.
     signing_domains = Domain.objects.select_related(
         "dkim_key_rsa2048",
-        "dkim_key_rsa1024",
         "dkim_key_ed25519",
     ).filter(Q(name=settings.RELAY_PLATFORM_DOMAIN) | Q(pk=domain.pk))
     for sign_domain in signing_domains:

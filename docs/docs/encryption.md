@@ -95,7 +95,7 @@ transit breaks the signature and becomes visible. See the know-how article on
 
 relay keeps every private signing key encrypted at rest:
 
-- DKIM private keys (one RSA-2048, one RSA-1024, and one Ed25519 key per
+- DKIM private keys (one RSA-2048 and one Ed25519 key per
   domain) are Fernet-encrypted before storage,
 - each webhook carries its own Ed25519 signing keypair, encrypted the same
   way,

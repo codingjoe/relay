@@ -13,7 +13,6 @@ class SigningKey(TimeStamped):
 
     class Algorithm(models.TextChoices):
         RSA_2048 = "rsa-2048", "RSA 2048"
-        RSA_1024 = "rsa-1024", "RSA 1024"
         ED25519 = "ed25519", "Ed25519"
 
     algorithm = models.TextField(

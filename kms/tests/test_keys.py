@@ -19,12 +19,6 @@ class TestGenerateRsaPrivateKey:
         assert isinstance(private, rsa.RSAPrivateKey)
         assert private.key_size == 2048
 
-    def test_generate_rsa_private_key__1024(self):
-        pem = keys.generate_rsa_private_key(1024)
-        private = serialization.load_pem_private_key(pem.encode(), None)
-        assert isinstance(private, rsa.RSAPrivateKey)
-        assert private.key_size == 1024
-
     def test_generate_rsa_private_key__produces_unique_keys(self):
         """Two consecutive generations must yield distinct keys."""
         pem1 = keys.generate_rsa_private_key(2048)
@@ -106,12 +100,6 @@ class TestGenerate:
         public = keys.load_public_pem(pair.public_key_pem)
         assert isinstance(public, rsa.RSAPublicKey)
         assert public.key_size == 2048
-
-    def test_generate__rsa_1024(self):
-        pair = keys.generate("rsa-1024")
-        assert pair.algorithm == "rsa-1024"
-        public = keys.load_public_pem(pair.public_key_pem)
-        assert public.key_size == 1024
 
     def test_generate__unsupported_raises_value_error(self):
         with pytest.raises(ValueError, match="Unsupported algorithm"):
