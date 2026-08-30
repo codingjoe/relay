@@ -86,11 +86,7 @@
           <li class="flex items-center gap-2 flex-wrap">
             {% if has_outgoing_message %}
               <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              <span>
-                {% blocktranslate with recipient=request.user.email trimmed %}
-                  Sent a test email to {{ recipient }}.
-                {% endblocktranslate %}
-              </span>
+              <span>{% translate "sent your first email"|capfirst %}</span>
             {% else %}
               <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
               <span>
