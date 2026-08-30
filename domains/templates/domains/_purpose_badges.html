@@ -3,17 +3,17 @@
   {% if passing == total %}
     <span class="badge" data-size="sm">
       <i data-lucide="circle-check" class="size-3.5" aria-hidden="true"></i>
-      {% translate "Sending"|capfirst %}
+      {% translate "sending"|capfirst %}
     </span>
   {% elif passing %}
     <span class="badge" data-size="sm" data-variant="destructive">
       <i data-lucide="circle-x" class="size-3.5" aria-hidden="true"></i>
-      {% translate "Sending not verified"|capfirst %}
+      {% translate "sending not verified"|capfirst %}
     </span>
   {% else %}
     <span class="badge" data-size="sm" data-variant="outline">
       <i data-lucide="circle-dashed" class="size-3.5" aria-hidden="true"></i>
-      {% translate "Sending not set up"|capfirst %}
+      {% translate "sending not set up"|capfirst %}
     </span>
   {% endif %}
 {% endwith %}
@@ -21,17 +21,17 @@
   {% if passing == total %}
     <span class="badge" data-size="sm">
       <i data-lucide="circle-check" class="size-3.5" aria-hidden="true"></i>
-      {% translate "Receiving"|capfirst %}
+      {% translate "receiving"|capfirst %}
     </span>
   {% elif passing %}
     <span class="badge" data-size="sm" data-variant="destructive">
       <i data-lucide="circle-x" class="size-3.5" aria-hidden="true"></i>
-      {% translate "Receiving not verified"|capfirst %}
+      {% translate "receiving not verified"|capfirst %}
     </span>
   {% else %}
     <span class="badge" data-size="sm" data-variant="outline">
       <i data-lucide="circle-dashed" class="size-3.5" aria-hidden="true"></i>
-      {% translate "Receiving not set up"|capfirst %}
+      {% translate "receiving not set up"|capfirst %}
     </span>
   {% endif %}
 {% endwith %}

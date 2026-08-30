@@ -2,7 +2,7 @@
 {% load i18n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
-{% block title %}{% translate "Relay: communication as a service"|title %}{% endblock %}
+{% block title %}{% translate "relay: communication as a service"|title %}{% endblock %}
 {% block content %}
   <div class="start relative isolate -mx-6 sm:-mx-8">
     <div
@@ -20,7 +20,7 @@
       <span
         class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-mono font-medium text-muted-foreground shadow-sm"
       >
-        {% translate "Made with &lt;3 and German engineering"|capfirst %}
+        {% translate "made with &lt;3 and German engineering"|capfirst %}
       </span>
       <h1 class="text-3xl sm:text-5xl font-bold leading-[0.96] m-0">
         Communication <span class="landing-accent">as a Service</span>
@@ -37,18 +37,18 @@
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
           <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
-          {% translate "Get started free"|capfirst %}
+          {% translate "get started free"|capfirst %}
         </a>
       </div>
       <p class="text-sm text-muted-foreground flex items-center gap-3 m-0 font-mono">
         <span class="inline-flex items-center gap-1.5">
           <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
-          {% translate "No credit card required"|capfirst %}
+          {% translate "no credit card required"|capfirst %}
         </span>
         <span aria-hidden="true">·</span>
         <span class="inline-flex items-center gap-1.5">
           <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
-          {% translate "No setup required"|capfirst %}
+          {% translate "no setup required"|capfirst %}
         </span>
       </p>
     </section>
@@ -59,7 +59,7 @@
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
             <i data-lucide="send" class="size-6 text-primary" aria-hidden="true"></i>
           </div>
-          <h3 class="m-0 text-lg">{% translate "Email sending"|capfirst %}</h3>
+          <h3 class="m-0 text-lg">{% translate "email sending"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
               Send via SMTP or MCP with automated sender verification.
@@ -70,7 +70,7 @@
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
             <i data-lucide="inbox" class="size-6 text-primary" aria-hidden="true"></i>
           </div>
-          <h3 class="m-0 text-lg">{% translate "Email receiving"|capfirst %}</h3>
+          <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
               Receive incoming mail via webhooks, API, or MCP.
@@ -81,7 +81,7 @@
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
             <i data-lucide="line-chart" class="size-6 text-primary" aria-hidden="true"></i>
           </div>
-          <h3 class="m-0 text-lg">{% translate "Reputation monitoring"|capfirst %}</h3>
+          <h3 class="m-0 text-lg">{% translate "reputation monitoring"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
               Track delivery status, bounce rates, and sender reputation across all domains.
@@ -92,7 +92,7 @@
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
             <i data-lucide="terminal" class="size-6 text-primary" aria-hidden="true"></i>
           </div>
-          <h3 class="m-0 text-lg">{% translate "Dev sandbox"|capfirst %}</h3>
+          <h3 class="m-0 text-lg">{% translate "dev sandbox"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
               Test credentials and a free sender domain ready the moment you sign up.
@@ -103,7 +103,7 @@
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
             <i data-lucide="shield-check" class="size-6 text-primary" aria-hidden="true"></i>
           </div>
-          <h3 class="m-0 text-lg">{% translate "Hosted in the EU"|capfirst %}</h3>
+          <h3 class="m-0 text-lg">{% translate "hosted in the EU"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
               GDPR compliant, EU data sovereignty, no third-country transfer.
@@ -127,7 +127,7 @@
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
       <div class="pledge relative isolate overflow-hidden rounded-3xl px-6 py-12 sm:px-16 sm:py-16 text-center flex flex-col items-center gap-6 sm:gap-8">
         <h2 class="text-3xl sm:text-4xl font-bold m-0">
-          {% translate "The open-source pledge"|capfirst %}
+          {% translate "the open-source pledge"|capfirst %}
         </h2>
         <p class="pledge__lead text-lg sm:text-xl leading-relaxed m-0 max-w-2xl">
           {% blocktranslate trimmed %}
@@ -139,7 +139,7 @@
           <article class="flex flex-col items-center gap-2 px-4">
             <i data-lucide="infinity" class="size-5" aria-hidden="true"></i>
             <h3 class="text-lg font-semibold text-balance m-0">
-              {% translate "We are free for open source projects"|capfirst %}
+              {% translate "we are free for open source projects"|capfirst %}
             </h3>
             <p class="pledge__muted text-sm leading-relaxed m-0">
               {% blocktranslate trimmed %}
@@ -150,7 +150,7 @@
           <article class="flex flex-col items-center gap-2 px-4">
             <i data-lucide="heart-handshake" class="size-5" aria-hidden="true"></i>
             <h3 class="text-lg font-semibold text-balance m-0">
-              {% translate "We will donate back to the community"|capfirst %}
+              {% translate "we will donate back to the community"|capfirst %}
             </h3>
             <p class="pledge__muted text-sm leading-relaxed m-0">
               {% blocktranslate trimmed %}
@@ -161,7 +161,7 @@
           <article class="flex flex-col items-center gap-2 px-4">
             <i data-lucide="git-pull-request" class="size-5" aria-hidden="true"></i>
             <h3 class="text-lg font-semibold text-balance m-0">
-              {% translate "We will contribute back to projects as if they had copyleft licenses"|capfirst %}
+              {% translate "we will contribute back to projects as if they had copyleft licenses"|capfirst %}
             </h3>
             <p class="pledge__muted text-sm leading-relaxed m-0">
               {% blocktranslate trimmed %}
@@ -176,7 +176,7 @@
             class="btn pledge__cta"
             data-size="lg"
           >
-            {% translate "Read the pledge"|capfirst %}
+            {% translate "read the pledge"|capfirst %}
           </a>
           <a
             href="https://github.com/codingjoe?tab=sponsoring"
@@ -187,7 +187,7 @@
             <svg class="size-4 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
             </svg>
-            {% translate "See who we fund"|capfirst %}
+            {% translate "see who we fund"|capfirst %}
           </a>
         </div>
       </div>
@@ -205,13 +205,13 @@
       <div class="card p-8 shadow-sm border-primary/20 max-w-lg mx-auto">
         <header class="m-0">
           <p class="text-sm font-medium text-muted-foreground m-0">
-            {% translate "You pay when relay relays"|capfirst %}
+            {% translate "you pay when relay relays"|capfirst %}
           </p>
           <p class="m-0 mt-2 flex items-baseline gap-x-1.5">
             <output for="price-slider" class="text-4xl sm:text-6xl font-bold font-mono">
               <span id="price-volume">1,000</span>
             </output>
-            <span class="text-lg font-medium text-muted-foreground font-mono">{% translate "Emails" %}</span>
+            <span class="text-lg font-medium text-muted-foreground font-mono">{% translate "emails" %}</span>
           </p>
           <p class="m-0 mt-3 flex items-baseline gap-x-1.5 text-2xl font-mono">
             <span id="price-amount" class="font-semibold">€0</span>
@@ -244,7 +244,7 @@
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "Unlimited domains"|capfirst %}
+              {% translate "unlimited domains"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
@@ -252,22 +252,22 @@
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "Sender reputation monitoring"|capfirst %}
+              {% translate "sender reputation monitoring"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "Unlimited team members"|capfirst %}
+              {% translate "unlimited team members"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="infinity" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "Free forever for open-source communities"|capfirst %}
+              {% translate "free forever for open-source communities"|capfirst %}
             </li>
           </ul>
         </section>
         <footer class="m-0 mt-6">
           <a href="{% url 'accounts:org-list' %}" class="btn w-full" data-size="lg">
             <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
-            {% translate "Get started free"|capfirst %}
+            {% translate "get started free"|capfirst %}
           </a>
         </footer>
       </div>

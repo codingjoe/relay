@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "Domains"|capfirst context "noun" %} | relay{% endblock %}
+{% block title %}{% translate "domains"|capfirst context "noun" %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "Domains"|capfirst context "noun" %}</h2>
+    <h2 class="m-0">{% translate "domains"|capfirst context "noun" %}</h2>
     <button type="button" class="btn" onclick="document.getElementById('dlg-new-domain').showModal()">
-      {% translate "Add domain"|capfirst context "noun" %}
+      {% translate "add domain"|capfirst context "noun" %}
     </button>
   </header>
 
   <dialog class="dialog" id="dlg-new-domain">
     <div>
       <header>
-        <h2>{% translate "Add domain"|capfirst context "noun" %}</h2>
-        <p>{% translate "Add a domain you control to start sending email from it."|capfirst %}</p>
+        <h2>{% translate "add domain"|capfirst context "noun" %}</h2>
+        <p>{% translate "add a domain you control to start sending email from it."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'domains:domain-create' org.slug %}" id="dlg-new-domain-form">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
-              <label for="id_name">{% translate "Domain"|capfirst context "noun" %}</label>
+              <label for="id_name">{% translate "domain"|capfirst context "noun" %}</label>
               <input
                 type="text"
                 name="name"
@@ -42,10 +42,10 @@
           data-variant="secondary"
           onclick="document.getElementById('dlg-new-domain').close()"
         >
-          {% translate "Cancel"|capfirst context "verb" %}
+          {% translate "cancel"|capfirst context "verb" %}
         </button>
         <button type="submit" form="dlg-new-domain-form" class="btn">
-          {% translate "Add"|capfirst context "verb" %}
+          {% translate "add"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
@@ -59,7 +59,7 @@
             <h3>{{ domain.name }}</h3>
             <p class="flex items-center gap-2 flex-wrap">
               <code>{{ domain.sender_domain }}</code>
-              <span class="badge" data-size="sm" data-variant="outline">{% translate "Managed"|capfirst %}</span>
+              <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
             </p>
           </section>
         </article>
@@ -78,7 +78,7 @@
         </a>
       {% endif %}
     {% empty %}
-      <p class="text-muted-foreground">{% translate "No domains configured yet."|capfirst %}</p>
+      <p class="text-muted-foreground">{% translate "no domains configured yet."|capfirst %}</p>
     {% endfor %}
   </div>
 {% endblock %}

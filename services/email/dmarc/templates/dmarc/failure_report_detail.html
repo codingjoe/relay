@@ -12,11 +12,11 @@
   <div class="card mb-6">
     <dl class="grid grid-cols-2 gap-4 m-0">
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Reporter"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
         <dd class="m-0">{{ report.reporting_org }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Source IP"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.source_ip_address %}
             <a
@@ -29,17 +29,17 @@
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Arrived"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
         <dd class="m-0">
           {% timestamp report.arrival_at %}
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Delivery result"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "delivery result"|capfirst %}</dt>
         <dd class="m-0">{{ report.get_delivery_result_display }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Original from"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "original from"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_mail_from %}
             <a
@@ -52,7 +52,7 @@
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Original to"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "original to"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.original_rcpt_to %}
             <a
@@ -70,7 +70,7 @@
   {% if report.authentication_results %}
     <div class="card mb-6">
       <header>
-        <h3 class="m-0">{% translate "Authentication results"|capfirst %}</h3>
+        <h3 class="m-0">{% translate "authentication results"|capfirst %}</h3>
       </header>
       <pre class="text-sm whitespace-pre-wrap">{{ report.authentication_results }}</pre>
     </div>
@@ -79,7 +79,7 @@
   {% if report.original_headers %}
     <div class="card mb-6">
       <header>
-        <h3 class="m-0">{% translate "Original headers"|capfirst %}</h3>
+        <h3 class="m-0">{% translate "original headers"|capfirst %}</h3>
       </header>
       {{ report.original_headers|truncatechars:2000|highlight_email }}
     </div>

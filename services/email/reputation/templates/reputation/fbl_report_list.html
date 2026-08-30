@@ -9,9 +9,9 @@
   <form method="get" class="fieldset mb-6">
     <div class="grid gap-4">
       <div role="group" class="field">
-        <label for="filter-domain">{% translate "Domain"|capfirst context "noun" %}</label>
+        <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
         <select id="filter-domain" name="domain" class="select w-full">
-          <option value="">{% translate "All"|capfirst %}</option>
+          <option value="">{% translate "all"|capfirst %}</option>
           {% for domain in domains %}
             <option value="{{ domain.name }}" {% if filters.domain == domain.name %}selected{% endif %}>
               {{ domain.name }}
@@ -20,9 +20,9 @@
         </select>
       </div>
       <div role="group" class="field">
-        <label for="filter-feedback-type">{% translate "Feedback type"|capfirst %}</label>
+        <label for="filter-feedback-type">{% translate "feedback type"|capfirst %}</label>
         <select id="filter-feedback-type" name="feedback_type" class="select w-full">
-          <option value="">{% translate "All"|capfirst %}</option>
+          <option value="">{% translate "all"|capfirst %}</option>
           {% for ftype in feedback_types %}
             <option value="{{ ftype.value }}" {% if filters.feedback_type == ftype.value %}selected{% endif %}>
               {{ ftype.label }}
@@ -32,7 +32,7 @@
       </div>
       <div role="group" class="field">
         <label>&nbsp;</label>
-        <button type="submit" class="btn">{% translate "Filter"|capfirst context "verb" %}</button>
+        <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
       </div>
     </div>
   </form>
@@ -41,11 +41,11 @@
     <table class="table">
       <thead>
         <tr>
-          <th>{% translate "Arrived"|capfirst %}</th>
-          <th>{% translate "Domain"|capfirst context "noun" %}</th>
-          <th>{% translate "Feedback type"|capfirst %}</th>
-          <th>{% translate "From"|capfirst context "email" %}</th>
-          <th>{% translate "Reporter"|capfirst %}</th>
+          <th>{% translate "arrived"|capfirst %}</th>
+          <th>{% translate "domain"|capfirst context "noun" %}</th>
+          <th>{% translate "feedback type"|capfirst %}</th>
+          <th>{% translate "from"|capfirst context "email" %}</th>
+          <th>{% translate "reporter"|capfirst %}</th>
         </tr>
       </thead>
       <tbody>

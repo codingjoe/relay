@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% load i18n accounts abstract %}
-{% block title %}{% translate "Organizations"|capfirst context "noun" %} | relay{% endblock %}
+{% block title %}{% translate "organizations"|capfirst context "noun" %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "Organizations"|capfirst context "noun" %}</h2>
+    <h2 class="m-0">{% translate "organizations"|capfirst context "noun" %}</h2>
     <button type="button" class="btn" onclick="document.getElementById('dlg-new-org').showModal()">
-      {% translate "New organization"|title %}
+      {% translate "new organization"|title %}
     </button>
   </header>
 
   <dialog class="dialog" id="dlg-new-org">
     <div>
       <header>
-        <h2>{% translate "New organization"|title %}</h2>
-        <p>{% translate "Create a new organization to manage your email infrastructure."|capfirst %}</p>
+        <h2>{% translate "new organization"|title %}</h2>
+        <p>{% translate "create a new organization to manage your email infrastructure."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'accounts:org-list' %}" id="dlg-new-org-form">
@@ -30,10 +30,10 @@
           data-variant="secondary"
           onclick="document.getElementById('dlg-new-org').close()"
         >
-          {% translate "Cancel"|capfirst context "verb" %}
+          {% translate "cancel"|capfirst context "verb" %}
         </button>
         <button type="submit" form="dlg-new-org-form" class="btn">
-          {% translate "Create"|capfirst context "verb" %}
+          {% translate "create"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
@@ -85,7 +85,7 @@
           data-variant="secondary"
           data-size="sm"
         >
-          {% translate "Manage"|capfirst context "verb" %}
+          {% translate "manage"|capfirst context "verb" %}
         </a>
       </div>
     {% empty %}

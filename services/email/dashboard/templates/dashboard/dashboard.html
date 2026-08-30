@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "Dashboard"|capfirst %} | relay{% endblock %}
+{% block title %}{% translate "dashboard"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "Dashboard"|capfirst %}</h2>
+    <h2 class="m-0">{% translate "dashboard"|capfirst %}</h2>
     <button
       type="button"
       class="btn"
       onclick="document.getElementById('dlg-test-email').showModal()"
     >
-      {% translate "Send test email"|title %}
+      {% translate "send test email"|title %}
     </button>
   </header>
 
   <dialog class="dialog" id="dlg-test-email">
     <div>
       <header>
-        <h2>{% translate "Send test email"|title %}</h2>
-        <p>{% translate "Send a test message to verify your setup."|capfirst %}</p>
+        <h2>{% translate "send test email"|title %}</h2>
+        <p>{% translate "send a test message to verify your setup."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'msa:message-test' org.slug %}" id="dlg-test-email-form">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
-              <label for="te-domain">{% translate "Domain"|capfirst context "noun" %}</label>
+              <label for="te-domain">{% translate "domain"|capfirst context "noun" %}</label>
               <select id="te-domain" name="domain" class="select w-full" required>
                 {% for domain in domains %}
                   <option value="{{ domain.pk }}">{{ domain.name }}</option>
@@ -34,11 +34,11 @@
               </select>
             </div>
             <div role="group" class="field">
-              <label for="te-subject">{% translate "Subject"|capfirst context "email" %}</label>
+              <label for="te-subject">{% translate "subject"|capfirst context "email" %}</label>
               <input type="text" id="te-subject" name="subject" class="input">
             </div>
             <div role="group" class="field">
-              <label for="te-body">{% translate "Body"|capfirst context "noun" %}</label>
+              <label for="te-body">{% translate "body"|capfirst context "noun" %}</label>
               <textarea id="te-body" name="body" rows="10" class="textarea"></textarea>
             </div>
           </fieldset>
@@ -51,10 +51,10 @@
           data-variant="secondary"
           onclick="document.getElementById('dlg-test-email').close()"
         >
-          {% translate "Cancel"|capfirst context "verb" %}
+          {% translate "cancel"|capfirst context "verb" %}
         </button>
         <button type="submit" form="dlg-test-email-form" class="btn">
-          {% translate "Send"|capfirst context "verb" %}
+          {% translate "send"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
@@ -63,7 +63,7 @@
   {% if not managed_domain or not has_outgoing_message or not has_custom_domain %}
     <section class="card mb-6">
       <header>
-        <h3 class="m-0">{% translate "Get started"|capfirst %}</h3>
+        <h3 class="m-0">{% translate "get started"|capfirst %}</h3>
         <p class="m-0">
           {% blocktranslate trimmed %}
             Every organization gets a managed sender domain, pre-verified and DKIM-signed. No DNS setup required.
@@ -75,18 +75,18 @@
           <li class="flex items-center gap-2 flex-wrap">
             {% if managed_domain %}
               <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Your sender domain is live"|capfirst %}</span>
+              <span>{% translate "your sender domain is live"|capfirst %}</span>
               <code>{{ managed_domain.sender_domain }}</code>
-              <span class="badge" data-size="sm" data-variant="outline">{% translate "Managed"|capfirst %}</span>
+              <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
             {% else %}
               <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Setting up your sender domain"|capfirst %}</span>
+              <span>{% translate "setting up your sender domain"|capfirst %}</span>
             {% endif %}
           </li>
           <li class="flex items-center gap-2 flex-wrap">
             {% if has_outgoing_message %}
               <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Sent your first email"|capfirst %}</span>
+              <span>{% translate "sent your first email"|capfirst %}</span>
             {% else %}
               <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
               <span>
@@ -101,19 +101,19 @@
                 data-size="sm"
                 onclick="document.getElementById('dlg-test-email').showModal()"
               >
-                {% translate "Send test email"|title %}
+                {% translate "send test email"|title %}
               </button>
             {% endif %}
           </li>
           <li class="flex items-center gap-2 flex-wrap">
             {% if has_custom_domain %}
               <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Added your own domain"|capfirst %}</span>
+              <span>{% translate "added your own domain"|capfirst %}</span>
             {% else %}
               <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Add a domain you own to send from it"|capfirst %}</span>
+              <span>{% translate "add a domain you own to send from it"|capfirst %}</span>
               <a class="btn" data-variant="secondary" data-size="sm" href="{% url 'domains:domain-list' org.slug %}">
-                {% translate "Add domain"|title context "noun" %}
+                {% translate "add domain"|title context "noun" %}
               </a>
             {% endif %}
           </li>

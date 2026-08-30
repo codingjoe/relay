@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "Delete"|capfirst context "verb" %} {{ organization.slug }} | relay{% endblock %}
+{% block title %}{% translate "delete"|capfirst context "verb" %} {{ organization.slug }} | relay{% endblock %}
 {% block content %}
   <div class="max-w-md">
-    <h2 class="mb-4">{% translate "Delete"|capfirst context "verb" %} {{ organization.slug }}</h2>
+    <h2 class="mb-4">{% translate "delete"|capfirst context "verb" %} {{ organization.slug }}</h2>
     <p class="mb-6 text-muted-foreground">
       {% blocktranslate trimmed %}
         This will permanently delete the organization and all its resources (domains, credentials).
@@ -11,9 +11,9 @@
     </p>
     <form method="post" class="flex gap-2">
       {% csrf_token %}
-      <button type="submit" class="btn">{% translate "Delete"|capfirst context "verb" %}</button>
+      <button type="submit" class="btn">{% translate "delete"|capfirst context "verb" %}</button>
       <a href="{{ organization.get_absolute_url }}" class="btn" data-variant="secondary">
-        {% translate "Cancel"|capfirst context "verb" %}
+        {% translate "cancel"|capfirst context "verb" %}
       </a>
     </form>
   </div>

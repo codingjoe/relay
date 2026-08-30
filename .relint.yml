@@ -117,11 +117,11 @@
   pattern: '(?i)\bRELAY_[A-Z_]+\b'
   hint: 'docs/docs pages are for relay users, not developers. Replace environment variable and setting names with product wording (the platform domain, the submission host, the dashboard). Internal names live in README.md.'
   filePattern: '^docs/docs/.*\.md$'
-- name: Translation strings start with an uppercase letter
-  pattern: '\{%\s*translate\s+["''][a-z]|\{%\s*(?:blocktranslate\b[^%]*?|plural)\s*%\}\s*[a-z]'
-  hint: 'English sentences start with an uppercase letter. Write msgids in sentence case, for example `{% translate "Add domain" %}`. A msgid that starts with a placeholder is exempt.'
+- name: Unfiltered sentence msgids start with a capital letter
+  pattern: '\{%\s*translate\s+["''][a-z][^"'']*[.!?]["''][^|]*?%\}'
+  hint: 'A msgid that renders without `|capfirst` or `|title` is a sentence. Start it with a capital letter. Filtered labels keep their lowercase msgid.'
   filePattern: '.*\.html$'
-- name: Sentences inside translation strings start with an uppercase letter
-  pattern: '\{%\s*translate\s+(["''])(?:(?!\1)[^\n])*?[.!?] [a-z]|\{%\s*blocktranslate\b[^%]*?%\}[^%]*?[.!?] [a-z]|\{%\s*plural\s*%\}[^%]*?[.!?] [a-z]'
-  hint: 'Every sentence in a msgid starts with an uppercase letter. Do not write "No items yet. add one." Write "No items yet. Add one."'
+- name: Sentences after the first in translation strings start with a capital letter
+  pattern: '\{%\s*blocktranslate\b[^%]*?%\}[^%]*?[.!?] [a-z]|\{%\s*plural\s*%\}[^%]*?[.!?] [a-z]|\{%\s*translate\s+(["''])(?:(?!\1)[^\n])*?[.!?] [a-z]'
+  hint: 'No filter reaches sentences after the first. Start every sentence inside a msgid with a capital letter, including inside blocktranslate and plural blocks.'
   filePattern: '.*\.html$'

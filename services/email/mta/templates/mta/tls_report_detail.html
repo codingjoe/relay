@@ -12,11 +12,11 @@
   <div class="card mb-6">
     <dl class="grid grid-cols-2 gap-4 m-0">
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Reporter"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
         <dd class="m-0">{{ report.reporting_org }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Reporting email"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "reporting email"|capfirst %}</dt>
         <dd class="m-0">
           <a
             class="link"
@@ -25,27 +25,27 @@
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Report ID"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "report ID"|capfirst %}</dt>
         <dd class="m-0">{{ report.report_id }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Period start"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
         <dd class="m-0">
           {% timestamp report.begin_at %}
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Period end"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
         <dd class="m-0">
           {% timestamp report.end_at %}
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Successful sessions"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "successful sessions"|capfirst %}</dt>
         <dd class="m-0">{{ report.successful_session_count }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Failed sessions"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "failed sessions"|capfirst %}</dt>
         <dd class="m-0">{{ report.failed_session_count }}</dd>
       </div>
     </dl>
@@ -55,12 +55,12 @@
     <table class="table">
       <thead>
         <tr>
-          <th>{% translate "Failure type"|capfirst %}</th>
-          <th>{% translate "Sending MTA"|capfirst %}</th>
-          <th>{% translate "Receiving MX"|capfirst %}</th>
-          <th>{% translate "Receiving MX IP"|capfirst %}</th>
-          <th>{% translate "Count"|capfirst %}</th>
-          <th>{% translate "Policy"|capfirst %}</th>
+          <th>{% translate "failure type"|capfirst %}</th>
+          <th>{% translate "sending MTA"|capfirst %}</th>
+          <th>{% translate "receiving MX"|capfirst %}</th>
+          <th>{% translate "receiving MX IP"|capfirst %}</th>
+          <th>{% translate "count"|capfirst %}</th>
+          <th>{% translate "policy"|capfirst %}</th>
         </tr>
       </thead>
       <tbody>

@@ -1,11 +1,11 @@
 {% load i18n %}
 {% if status == 'ok' %}
   <i data-lucide="circle-check" class="size-4 shrink-0 text-primary" aria-hidden="true"></i>
-  <span class="sr-only">{% translate "Passing"|capfirst %}</span>
+  <span class="sr-only">{% translate "passing"|capfirst %}</span>
 {% elif status == 'error' %}
   <i data-lucide="circle-x" class="size-4 shrink-0 text-destructive" aria-hidden="true"></i>
-  <span class="sr-only">{% translate "Failing"|capfirst %}</span>
+  <span class="sr-only">{% translate "failing"|capfirst %}</span>
 {% else %}
   <i data-lucide="circle-dashed" class="size-4 shrink-0 text-muted-foreground" aria-hidden="true"></i>
-  <span class="sr-only">{% translate "Not checked"|capfirst %}</span>
+  <span class="sr-only">{% translate "not checked"|capfirst %}</span>
 {% endif %}

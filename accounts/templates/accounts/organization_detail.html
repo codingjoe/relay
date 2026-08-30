@@ -7,10 +7,10 @@
     {% if is_admin %}
       <div role="group" class="button-group">
         <a href="{% url 'accounts:org-update' organization.slug %}" class="btn" data-variant="secondary">
-          {% translate "Edit"|capfirst context "verb" %}
+          {% translate "edit"|capfirst context "verb" %}
         </a>
         <a href="{% url 'accounts:org-delete' organization.slug %}" class="btn" data-variant="destructive">
-          {% translate "Delete"|capfirst context "verb" %}
+          {% translate "delete"|capfirst context "verb" %}
         </a>
       </div>
     {% endif %}
@@ -18,7 +18,7 @@
 
   <section class="flex flex-col gap-3">
     <header class="flex items-center justify-between">
-      <h3 class="m-0">{% translate "Members"|capfirst context "noun" %}</h3>
+      <h3 class="m-0">{% translate "members"|capfirst context "noun" %}</h3>
       {% if is_admin %}
         <button
           type="button"
@@ -26,7 +26,7 @@
           data-size="sm"
           onclick="document.getElementById('dlg-add-member').showModal()"
         >
-          {% translate "Add member"|title %}
+          {% translate "add member"|title %}
         </button>
       {% endif %}
     </header>
@@ -35,8 +35,8 @@
       <dialog class="dialog" id="dlg-add-member">
         <div>
           <header>
-            <h2>{% translate "Add member"|title %}</h2>
-            <p>{% translate "Invite a user to this organization."|capfirst %}</p>
+            <h2>{% translate "add member"|title %}</h2>
+            <p>{% translate "invite a user to this organization."|capfirst %}</p>
           </header>
           <section>
             <form
@@ -57,10 +57,10 @@
               data-variant="secondary"
               onclick="document.getElementById('dlg-add-member').close()"
             >
-              {% translate "Cancel"|capfirst context "verb" %}
+              {% translate "cancel"|capfirst context "verb" %}
             </button>
             <button type="submit" form="dlg-add-member-form" class="btn">
-              {% translate "Add"|capfirst context "verb" %}
+              {% translate "add"|capfirst context "verb" %}
             </button>
           </footer>
         </div>
@@ -92,16 +92,16 @@
                     data-variant="secondary"
                     data-size="sm"
                   >
-                    {% translate "Edit"|capfirst context "verb" %}
+                    {% translate "edit"|capfirst context "verb" %}
                   </a>
                   <button
                     type="submit"
                     class="btn"
                     data-variant="destructive"
                     data-size="sm"
-                    onclick="return confirm('{% translate "Remove this member?"|capfirst context "verb" %}')"
+                    onclick="return confirm('{% translate "remove this member?"|capfirst context "verb" %}')"
                   >
-                    {% translate "Remove"|capfirst context "verb" %}
+                    {% translate "remove"|capfirst context "verb" %}
                   </button>
                 </div>
               </form>

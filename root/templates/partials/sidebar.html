@@ -1,36 +1,36 @@
 {% load i18n %}
 <aside id="app-sidebar" class="sidebar" data-side="left" data-breakpoint="md">
-  <nav aria-label='{% translate "Email"|capfirst %}'>
+  <nav aria-label='{% translate "email"|capfirst %}'>
     <section class="scrollbar-sm">
       <div role="group" aria-labelledby="app-sidebar-group-email">
-        <h3 id="app-sidebar-group-email">{% translate "Email"|capfirst %}</h3>
+        <h3 id="app-sidebar-group-email">{% translate "email"|capfirst %}</h3>
         <ul>
           <li>
             {% url 'email-dashboard:dashboard' current_org.slug as dashboard_url %}
             <a href="{{ dashboard_url }}" {% if request.path == dashboard_url %}aria-current="page"{% endif %}>
               <i data-lucide="layout-dashboard" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Dashboard"|capfirst %}</span>
+              <span>{% translate "dashboard"|capfirst %}</span>
             </a>
           </li>
           <li>
             {% url 'message:message-list' current_org.slug as messages_url %}
             <a href="{{ messages_url }}" {% if request.path == messages_url %}aria-current="page"{% endif %}>
               <i data-lucide="messages-square" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Email messages"|capfirst %}</span>
+              <span>{% translate "email messages"|capfirst %}</span>
             </a>
           </li>
           <li>
             {% url 'email-dashboard:report-list' current_org.slug as reports_url %}
             <a href="{{ reports_url }}" {% if request.path == reports_url %}aria-current="page"{% endif %}>
               <i data-lucide="shield" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Reports"|capfirst %}</span>
+              <span>{% translate "reports"|capfirst %}</span>
             </a>
           </li>
           <li>
             {% url 'reputation:overview' current_org.slug as reputation_url %}
             <a href="{{ reputation_url }}" {% if request.path == reputation_url %}aria-current="page"{% endif %}>
               <i data-lucide="gauge" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Reputation"|capfirst %}</span>
+              <span>{% translate "reputation"|capfirst %}</span>
             </a>
           </li>
           <li>
@@ -40,7 +40,7 @@
               {% if request.path == domain_list_url %}aria-current="page"{% endif %}
             >
               <i data-lucide="globe" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Domains"|capfirst context "noun" %}</span>
+              <span>{% translate "domains"|capfirst context "noun" %}</span>
             </a>
           </li>
           <li>
@@ -50,7 +50,7 @@
               {% if request.path == credential_list_url %}aria-current="page"{% endif %}
             >
               <i data-lucide="key-round" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Credentials"|capfirst context "noun" %}</span>
+              <span>{% translate "credentials"|capfirst context "noun" %}</span>
             </a>
           </li>
           <li>
@@ -60,7 +60,7 @@
               {% if request.path == suppression_list_url %}aria-current="page"{% endif %}
             >
               <i data-lucide="ban" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Suppression list"|capfirst %}</span>
+              <span>{% translate "suppression list"|capfirst %}</span>
             </a>
           </li>
           <li>
@@ -70,7 +70,7 @@
               {% if request.path == webhook_list_url %}aria-current="page"{% endif %}
             >
               <i data-lucide="webhook" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "Webhooks"|capfirst %}</span>
+              <span>{% translate "webhooks"|capfirst %}</span>
             </a>
           </li>
         </ul>

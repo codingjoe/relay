@@ -7,7 +7,7 @@
       data-size="icon"
       data-variant="ghost"
       onclick="document.getElementById('app-sidebar')?.toggle()"
-      aria-label='{% translate "Toggle sidebar"|capfirst %}'
+      aria-label='{% translate "toggle sidebar"|capfirst %}'
     >
       <i data-lucide="panel-left" aria-hidden="true"></i>
     </button>
@@ -21,7 +21,7 @@
     relay
   </a>
 
-  <nav class="flex items-center gap-1 grow" aria-label='{% translate "Main"|capfirst %}'>
+  <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
     {% if current_org %}
       {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
       <a
@@ -30,7 +30,7 @@
         data-size="sm"
         data-variant="ghost"
         {% if request.path == email_url %}aria-current="page"{% endif %}
-      >{% translate "Email"|capfirst context "noun" %}</a>
+      >{% translate "email"|capfirst context "noun" %}</a>
     {% endif %}
     <a
       href="{% url 'docs:list' %}"
@@ -38,7 +38,7 @@
       data-size="sm"
       data-variant="ghost"
       {% if "/docs" in request.path %}aria-current="page"{% endif %}
-    >{% translate "Docs"|capfirst %}</a>
+    >{% translate "docs"|capfirst %}</a>
   </nav>
 
   <div class="flex items-center gap-2 ms-auto">
@@ -62,7 +62,7 @@
           <div aria-hidden="true" data-align="end" data-popover data-side="bottom" id="org-switcher-popover">
             <div aria-labelledby="org-switcher-trigger" id="org-switcher-menu" role="menu">
               <div role="group">
-                <div role="heading">{% translate "Switch organization"|capfirst %}</div>
+                <div role="heading">{% translate "switch organization"|capfirst %}</div>
                 {% for o in user_orgs %}
                   <div
                     role="menuitem"
@@ -83,7 +83,7 @@
                 <div role="menuitem">
                   <a
                     href="{% url 'accounts:org-list' %}"
-                  >{% translate "All organizations"|capfirst context "noun" %}…</a>
+                  >{% translate "all organizations"|capfirst context "noun" %}…</a>
                 </div>
               </div>
             </div>
@@ -109,7 +109,7 @@
           <div aria-labelledby="user-menu-trigger" id="user-menu-menu" role="menu">
             <div role="group">
               <div role="heading">
-                {% translate "Signed in as"|capfirst %}
+                {% translate "signed in as"|capfirst %}
                 <div class="text-foreground font-semibold">@{{ user.username }}</div>
               </div>
             </div>
@@ -118,7 +118,7 @@
               <div role="menuitem">
                 <a href="{% url 'accounts:org-list' %}">
                   <i data-lucide="building-2" class="size-3.5" aria-hidden="true"></i>
-                  {% translate "Your organizations"|capfirst context "noun" %}
+                  {% translate "your organizations"|capfirst context "noun" %}
                 </a>
               </div>
             </div>
@@ -129,7 +129,7 @@
                   {% csrf_token %}
                   <button type="submit" class="w-full justify-start">
                     <i data-lucide="log-out" class="size-3.5" aria-hidden="true"></i>
-                    {% translate "Logout"|capfirst context "verb" %}
+                    {% translate "logout"|capfirst context "verb" %}
                   </button>
                 </form>
               </div>
@@ -139,7 +139,7 @@
       </div>
     {% else %}
       <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
-        {% translate "Login"|capfirst context "noun" %}
+        {% translate "login"|capfirst context "noun" %}
       </a>
     {% endif %}
   </div>

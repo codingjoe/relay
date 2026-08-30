@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "Edit"|capfirst context "verb" %}
-  {% translate "Organization"|capfirst context "noun" %} | relay{% endblock %}
+{% block title %}{% translate "edit"|capfirst context "verb" %}
+  {% translate "organization"|capfirst context "noun" %} | relay{% endblock %}
 {% block content %}
   <div class="max-w-md">
     <h2 class="mb-6">
-      {% translate "Edit"|capfirst context "verb" %}
-      {% translate "Organization"|capfirst context "noun" %}
+      {% translate "edit"|capfirst context "verb" %}
+      {% translate "organization"|capfirst context "noun" %}
     </h2>
     <form method="post">
       {% csrf_token %}
@@ -14,9 +14,9 @@
         {{ form }}
       </fieldset>
       <div class="flex gap-2 mt-6">
-        <button type="submit" class="btn">{% translate "Save"|capfirst context "verb" %}</button>
+        <button type="submit" class="btn">{% translate "save"|capfirst context "verb" %}</button>
         <a href="{{ object.get_absolute_url }}" class="btn" data-variant="secondary">
-          {% translate "Cancel"|capfirst context "verb" %}
+          {% translate "cancel"|capfirst context "verb" %}
         </a>
       </div>
     </form>

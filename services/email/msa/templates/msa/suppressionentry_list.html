@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "Suppression list"|capfirst %} | relay{% endblock %}
+{% block title %}{% translate "suppression list"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <div class="flex items-center gap-3">
-      <h2 class="m-0">{% translate "Suppression list"|capfirst %}</h2>
+      <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
       <span class="badge" data-size="sm" data-variant="outline">
         {% blocktranslate count counter=object_list|length trimmed %}
           {{ counter }} address{% plural %}{{ counter }} addresses
@@ -17,7 +17,7 @@
         class="btn"
         onclick="document.getElementById('dlg-add').showModal()"
       >
-        {% translate "Add address"|title %}
+        {% translate "add address"|title %}
       </button>
       <button
         type="button"
@@ -25,7 +25,7 @@
         data-variant="secondary"
         onclick="document.getElementById('dlg-check').showModal()"
       >
-        {% translate "Check address"|title %}
+        {% translate "check address"|title %}
       </button>
       <button
         type="button"
@@ -33,7 +33,7 @@
         data-variant="destructive"
         onclick="document.getElementById('dlg-remove').showModal()"
       >
-        {% translate "Remove address"|title %}
+        {% translate "remove address"|title %}
       </button>
     </div>
   </header>
@@ -58,15 +58,15 @@
   <dialog class="dialog" id="dlg-add">
     <div>
       <header>
-        <h2>{% translate "Add address"|title %}</h2>
-        <p>{% translate "Add an email address to the suppression list."|capfirst %}</p>
+        <h2>{% translate "add address"|title %}</h2>
+        <p>{% translate "add an email address to the suppression list."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'msa:suppression-add' org.slug %}" id="form-add">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
-              <label for="id_add_email">{% translate "Email address"|capfirst %}</label>
+              <label for="id_add_email">{% translate "email address"|capfirst %}</label>
               <input
                 type="email"
                 name="email"
@@ -86,10 +86,10 @@
           data-variant="secondary"
           onclick="document.getElementById('dlg-add').close()"
         >
-          {% translate "Cancel"|capfirst context "verb" %}
+          {% translate "cancel"|capfirst context "verb" %}
         </button>
         <button type="submit" form="form-add" class="btn">
-          {% translate "Add"|capfirst context "verb" %}
+          {% translate "add"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
@@ -98,15 +98,15 @@
   <dialog class="dialog" id="dlg-remove">
     <div>
       <header>
-        <h2>{% translate "Remove address"|title %}</h2>
-        <p>{% translate "Enter an email address to remove from the list."|capfirst %}</p>
+        <h2>{% translate "remove address"|title %}</h2>
+        <p>{% translate "enter an email address to remove from the list."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'msa:suppression-remove' org.slug %}" id="form-remove">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
-              <label for="id_remove_email">{% translate "Email address"|capfirst %}</label>
+              <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
               <input
                 type="email"
                 name="email"
@@ -126,10 +126,10 @@
           data-variant="secondary"
           onclick="document.getElementById('dlg-remove').close()"
         >
-          {% translate "Cancel"|capfirst context "verb" %}
+          {% translate "cancel"|capfirst context "verb" %}
         </button>
         <button type="submit" form="form-remove" class="btn" data-variant="destructive">
-          {% translate "Remove"|capfirst context "verb" %}
+          {% translate "remove"|capfirst context "verb" %}
         </button>
       </footer>
     </div>
@@ -138,15 +138,15 @@
   <dialog class="dialog" id="dlg-check">
     <div>
       <header>
-        <h2>{% translate "Check address"|title %}</h2>
-        <p>{% translate "Enter an email address to check if it is on the list."|capfirst %}</p>
+        <h2>{% translate "check address"|title %}</h2>
+        <p>{% translate "enter an email address to check if it is on the list."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'msa:suppression-check' org.slug %}" id="form-check">
           {% csrf_token %}
           <fieldset class="fieldset">
             <div role="group" class="field">
-              <label for="id_check_email">{% translate "Email address"|capfirst %}</label>
+              <label for="id_check_email">{% translate "email address"|capfirst %}</label>
               <input
                 type="email"
                 name="email"
@@ -166,10 +166,10 @@
           data-variant="secondary"
           onclick="document.getElementById('dlg-check').close()"
         >
-          {% translate "Cancel"|capfirst context "verb" %}
+          {% translate "cancel"|capfirst context "verb" %}
         </button>
         <button type="submit" form="form-check" class="btn">
-          {% translate "Check"|capfirst context "verb" %}
+          {% translate "check"|capfirst context "verb" %}
         </button>
       </footer>
     </div>

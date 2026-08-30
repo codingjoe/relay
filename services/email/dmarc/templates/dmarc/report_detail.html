@@ -12,25 +12,25 @@
   <div class="card mb-6">
     <dl class="grid grid-cols-2 gap-4 m-0">
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Reporter"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
         <dd class="m-0">{{ report.reporting_org }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Reporting email"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "reporting email"|capfirst %}</dt>
         <dd class="m-0"><code>{{ report.reporting_email }}</code></dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Report ID"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "report ID"|capfirst %}</dt>
         <dd class="m-0">{{ report.report_id }}</dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Period start"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
         <dd class="m-0">
           {% timestamp report.begin_at %}
         </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "Period end"|capfirst %}</dt>
+        <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
         <dd class="m-0">
           {% timestamp report.end_at %}
         </dd>
@@ -41,9 +41,9 @@
   {% if source_ip_filter %}
     <div class="card mb-6">
       <p class="m-0">
-        {% translate "Filtered by source IP"|capfirst %}: <code>{{ source_ip_filter }}</code>
+        {% translate "filtered by source IP"|capfirst %}: <code>{{ source_ip_filter }}</code>
         <a href="{% url 'dmarc:report-detail' org.slug report.pk %}" class="btn" data-variant="ghost" data-size="sm">
-          {% translate "Clear"|capfirst %}
+          {% translate "clear"|capfirst %}
         </a>
       </p>
     </div>
@@ -53,14 +53,14 @@
     <table class="table">
       <thead>
         <tr>
-          <th>{% translate "Source IP"|capfirst %}</th>
-          <th>{% translate "Count"|capfirst %}</th>
-          <th>{% translate "Disposition"|capfirst %}</th>
+          <th>{% translate "source IP"|capfirst %}</th>
+          <th>{% translate "count"|capfirst %}</th>
+          <th>{% translate "disposition"|capfirst %}</th>
           <th>DKIM</th>
           <th>SPF</th>
-          <th>{% translate "Header from"|capfirst %}</th>
-          <th>DKIM {% translate "Result"|capfirst %}</th>
-          <th>SPF {% translate "Result"|capfirst %}</th>
+          <th>{% translate "header from"|capfirst %}</th>
+          <th>DKIM {% translate "result"|capfirst %}</th>
+          <th>SPF {% translate "result"|capfirst %}</th>
         </tr>
       </thead>
       <tbody>

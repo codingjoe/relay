@@ -2,7 +2,7 @@
 {% if page_obj.has_other_pages %}
   <nav
     role="navigation"
-    aria-label='{% translate "Pagination"|capfirst %}'
+    aria-label='{% translate "pagination"|capfirst %}'
     class="mx-auto flex w-full justify-center"
   >
     <ul class="flex flex-row items-center gap-1">
@@ -15,7 +15,7 @@
             href="?{% param_replace page=page_obj.previous_page_number %}"
           >
             <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
-            {% translate "Previous"|capfirst %}
+            {% translate "previous"|capfirst %}
           </a>
         </li>
       {% endif %}
@@ -32,7 +32,7 @@
             data-size="sm"
             href="?{% param_replace page=page_obj.next_page_number %}"
           >
-            {% translate "Next"|capfirst %}
+            {% translate "next"|capfirst %}
             <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
           </a>
         </li>

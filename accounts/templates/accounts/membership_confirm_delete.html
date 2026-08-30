@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% translate "Remove member"|capfirst %} | {{ object.user.username }}{% endblock %}
+{% block title %}{% translate "remove member"|capfirst %} | {{ object.user.username }}{% endblock %}
 {% block content %}
   <div class="max-w-md">
-    <h2 class="mb-4">{% translate "Remove"|capfirst context "verb" %} {{ object.user.username }}</h2>
+    <h2 class="mb-4">{% translate "remove"|capfirst context "verb" %} {{ object.user.username }}</h2>
     <p class="mb-6 text-muted-foreground">
       {% blocktranslate with user=object.user.username trimmed %}
         This will remove {{ user }} from the organization.
@@ -11,9 +11,9 @@
     </p>
     <form method="post" class="flex gap-2">
       {% csrf_token %}
-      <button type="submit" class="btn">{% translate "Remove"|capfirst context "verb" %}</button>
+      <button type="submit" class="btn">{% translate "remove"|capfirst context "verb" %}</button>
       <a href="{{ object.org.get_absolute_url }}" class="btn" data-variant="secondary">
-        {% translate "Cancel"|capfirst context "verb" %}
+        {% translate "cancel"|capfirst context "verb" %}
       </a>
     </form>
   </div>
