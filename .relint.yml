@@ -117,3 +117,11 @@
   pattern: '(?i)\bRELAY_[A-Z_]+\b'
   hint: 'docs/docs pages are for relay users, not developers. Replace environment variable and setting names with product wording (the platform domain, the submission host, the dashboard). Internal names live in README.md.'
   filePattern: '^docs/docs/.*\.md$'
+- name: Unfiltered sentence msgids start with a capital letter
+  pattern: '\{%\s*translate\s+["''][a-z][^"'']*[.!?]["''][^|]*?%\}'
+  hint: 'A msgid that renders without `|capfirst` or `|title` is a sentence. Start it with a capital letter. Filtered labels keep their lowercase msgid.'
+  filePattern: '.*\.html$'
+- name: Sentences after the first in translation strings start with a capital letter
+  pattern: '\{%\s*blocktranslate\b[^%]*?%\}[^%]*?[.!?] [a-z]|\{%\s*plural\s*%\}[^%]*?[.!?] [a-z]|\{%\s*translate\s+(["''])(?:(?!\1)[^\n])*?[.!?] [a-z]'
+  hint: 'No filter reaches sentences after the first. Start every sentence inside a msgid with a capital letter, including inside blocktranslate and plural blocks.'
+  filePattern: '.*\.html$'

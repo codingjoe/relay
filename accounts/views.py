@@ -74,6 +74,12 @@ class OrganizationListView(LoginRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {"form": OrganizationForm()}
 
+    def get(self, request, *args, **kwargs):
+        organizations = self.get_queryset()
+        if len(organizations) == 1:
+            return redirect("accounts:org-home", org_slug=organizations[0].slug)
+        return super().get(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         form = OrganizationForm(request.POST)
         if not form.is_valid():
@@ -108,9 +114,9 @@ class OrganizationForm(ModelForm):
         fields = ["slug"]
 
 
-class OrganizationHomeView(OrganizationScopedView, generic.DetailView):
-    template_name_suffix = "_home"
-    context_object_name = "organization"
+class OrganizationHomeView(OrganizationScopedView, generic.View):
+    """Redirect to the only live product area until VoIP ships."""
+
     parent = ""
 
     @classmethod
@@ -120,8 +126,8 @@ class OrganizationHomeView(OrganizationScopedView, generic.DetailView):
             return str(request.current_org)
         return ""
 
-    def get_object(self, queryset=None):
-        return self.org
+    def get(self, request, *args, **kwargs):
+        return redirect("email-dashboard:dashboard", org_slug=self.org.slug)
 
 
 class OrganizationDetailView(OrganizationScopedView, generic.DetailView):

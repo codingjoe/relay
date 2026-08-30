@@ -11,7 +11,18 @@ class TestOrganizationListView:
         assert response.status_code == 302
         assert "/account/login" in response.url
 
-    def test_get__shows_user_orgs(self, admin_client, org):
+    def test_get__redirects_single_org_user(self, admin_client, org):
+        response = admin_client.get("/organizations/")
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/"
+
+    def test_get__shows_user_orgs(self, admin_client, user, org):
+        second_org = Organization.objects.create(slug="second-org")
+        Membership.objects.create(
+            org=second_org,
+            user=user,
+            role=Membership.Role.ADMIN,
+        )
         other_org = Organization.objects.create(slug="other")
         Membership.objects.create(
             org=other_org,
@@ -22,6 +33,7 @@ class TestOrganizationListView:
         assert response.status_code == 200
         orgs = list(response.context["organizations"])
         assert org in orgs
+        assert second_org in orgs
         assert other_org not in orgs
 
     def test_post__creates_org_and_admin_membership(self, admin_client, user):

@@ -85,6 +85,18 @@ def check_dkim_cname(domain):
         return False
 
 
+def check_mx(domain):
+    try:
+        mx_records = dns.resolver.resolve(domain.name, "MX")
+        expected_exchange = domain.sender_domain.lower()
+        return any(
+            str(record.exchange).rstrip(".").lower() == expected_exchange
+            for record in mx_records
+        )
+    except dns.exception.DNSException:
+        return False
+
+
 def check_mta_sts(domain):
     try:
         txt_records = dns.resolver.resolve(f"_mta-sts.{domain.name}", "TXT")
@@ -150,6 +162,7 @@ def verify_domain_dns(domain):
         "spf": check_spf,
         "dkim": check_dkim_cname,
         "dmarc": check_dmarc,
+        "mx": check_mx,
         "mta_sts": check_mta_sts,
         "tls_rpt": check_tls_rpt,
     }
@@ -174,7 +187,13 @@ def verify_domain_dns(domain):
     domain.dns_checked_at = timezone.now()
 
     if (
-        all(getattr(domain, f"{f}_status") == Domain.Status.OK for f in checks)
+        all(
+            getattr(domain, f"{field}_status") == Domain.Status.OK
+            for field in (
+                *Domain.SENDING_CHECK_FIELDS,
+                *Domain.RECEIVING_CHECK_FIELDS,
+            )
+        )
         and domain.verified_at is None
     ):
         domain.verified_at = timezone.now()
@@ -189,6 +208,8 @@ def verify_domain_dns(domain):
             "dkim_error",
             "dmarc_status",
             "dmarc_error",
+            "mx_status",
+            "mx_error",
             "mta_sts_status",
             "mta_sts_error",
             "tls_rpt_status",

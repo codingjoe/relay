@@ -1,6 +1,6 @@
 {% load i18n accounts %}
 <header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0 z-30">
-  {% if current_org %}
+  {% if current_org and request.resolver_match.namespace != 'accounts' %}
     <button
       type="button"
       class="btn"
@@ -21,8 +21,8 @@
     relay
   </a>
 
-  {% if current_org %}
-    <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
+  <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
+    {% if current_org %}
       {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
       <a
         href="{{ email_url }}"
@@ -31,21 +31,15 @@
         data-variant="ghost"
         {% if request.path == email_url %}aria-current="page"{% endif %}
       >{% translate "email"|capfirst context "noun" %}</a>
-      <button
-        type="button"
-        class="btn"
-        data-size="sm"
-        data-variant="ghost"
-        aria-disabled="true"
-        title='{% translate "coming soon" %}'
-      >
-        {% translate "VoIP" context "acronym" %}
-        <span class="badge" data-size="sm">{% translate "soon" %}</span>
-      </button>
-    </nav>
-  {% else %}
-    <div class="grow"></div>
-  {% endif %}
+    {% endif %}
+    <a
+      href="{% url 'docs:list' %}"
+      class="btn"
+      data-size="sm"
+      data-variant="ghost"
+      {% if "/docs" in request.path %}aria-current="page"{% endif %}
+    >{% translate "docs"|capfirst %}</a>
+  </nav>
 
   <div class="flex items-center gap-2 ms-auto">
     {% if user.is_authenticated %}

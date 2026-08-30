@@ -230,5 +230,8 @@ root/static/css/app.css
 # Playwright MCP
 .playwright-mcp/
 
+# Impeccable design critique artifacts
+.impeccable/
+
 # Backup encryption private keys
 .box/*.key

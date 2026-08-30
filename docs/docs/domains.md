@@ -66,18 +66,25 @@ flowchart TD
     B --> C[Dashboard shows the records to publish]
     C --> D[You publish NS records for the sender subdomain and one DMARC record]
     D --> E[Run verification]
-    E --> F{All checks ok?}
+    E --> F{Checks ok?}
     F -- No --> G[Fix shown record, check again]
     G --> E
-    F -- Yes --> H[Domain verified]
+    F -- Yes --> H[Verified for sending, receiving, or both]
     H --> I[Nameserver serves the DNS now]
 ```
 
-Verification reads the live DNS for six things: NS delegation on the sender
-subdomain, SPF authorization, the three DKIM CNAMEs, the DMARC record at the
-root, the MTA-STS record and CNAME, and the TLS-RPT record with the
-relay reporting address. Checks run per record, and the dashboard shows each
-of them, so a wrong record is identifiable. Re-check at any time.
+Verification reads the live DNS for seven records and splits the result
+into two independent purposes:
+
+- Sending: NS delegation on the sender subdomain, SPF authorization, the
+  three DKIM CNAMEs, and the DMARC record at the root.
+- Receiving: the MX record at the root, the MTA-STS record and CNAME, and
+  the TLS-RPT record with the relay reporting address.
+
+Each purpose verifies on its own. Publish only the sending records and the
+domain shows sending verified while receiving reads as not set up. Checks
+run per record, and the dashboard shows each of them, so a wrong record is
+identifiable. Re-check at any time.
 
 ## What the nameserver serves
 
@@ -103,7 +110,9 @@ the check state per record, so you never hand-edit names here.
 
 A domain can send and receive independently of each other. `app.acme.com` as
 a receiving domain needs only its MX record to point at your sender
-subdomain. The webhook health check shows the observed MX. Read the
+subdomain. Verification reflects this split: a setup without receiving
+records reads as not set up, not as a failure. The webhook health check
+shows the observed MX. Read the
 <a href="{% url 'docs:detail' slug='receiving' %}">receiving</a> page for
 the acceptance flow.
 

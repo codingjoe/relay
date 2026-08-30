@@ -137,6 +137,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Tables: wrap in `<div class="table-container"><table class="table">`.
   - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
     open with `.showModal()` and close with `.close()`.
+  - Translatable strings. Msgids start lowercase. `|capfirst` and `|title`
+    set the display casing. A msgid that renders without a casing filter is a
+    sentence, so it starts with a capital letter. Sentences after the first
+    inside a msgid also start with a capital letter, because no filter reaches
+    them.
   - Form controls: `<input class="input">`, `<select class="select w-full">`,
     `<textarea class="textarea">`. Always pair form controls with `w-full` so
     they fill the field width inside dialogs and filter rows. Wrap each form
