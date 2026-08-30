@@ -261,7 +261,7 @@
             {% endblocktranslate %}
           </p>
         </div>
-        <div class="tabs" id="stack-examples">
+        <div class="tabs min-w-0" id="stack-examples">
           <nav role="tablist" aria-orientation="horizontal">
             <button
               type="button"
@@ -290,13 +290,9 @@
             aria-labelledby="stack-ex-django"
             tabindex="-1"
             aria-selected="true"
+            class="min-w-0"
           >
-            <div class="flex flex-col gap-6">
-              <div class="flex flex-col gap-3">
-                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                  {% translate "sending"|capfirst %}
-                </h3>
-                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
 MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
@@ -318,27 +314,24 @@ send_mail(
     "Your invoice is attached.",
     "billing@acme.com",
     ["kim@example.net"],
-)</code></pre>
-              </div>
-              <div class="flex flex-col gap-3">
-                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                  {% translate "receiving"|capfirst %}
-                </h3>
-                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># views.py
+)
+
+
+# --- receive inbound email via standard webhooks ---
+
+# views.py
 import json
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from standardwebhooks import Webhook
 
 @csrf_exempt
-def email_received(request: HttpRequest) -&gt; HttpResponse:
+def email_received(request: HttpRequest) -> HttpResponse:
     Webhook("&lt;whsec_...&gt;").verify(request.body, request.headers)
     event = json.loads(request.body)
     if event["type"] == "email.received":
         ...  # download event["body_url"]
     return HttpResponse(status=204)</code></pre>
-              </div>
-            </div>
           </div>
           <div
             role="tabpanel"
@@ -347,13 +340,9 @@ def email_received(request: HttpRequest) -&gt; HttpResponse:
             tabindex="-1"
             aria-selected="false"
             hidden
+            class="min-w-0"
           >
-            <div class="flex flex-col gap-6">
-              <div class="flex flex-col gap-3">
-                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                  {% translate "sending"|capfirst %}
-                </h3>
-                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">import nodemailer from "nodemailer";
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">import nodemailer from "nodemailer";
 
 const transport = nodemailer.createTransport({
   host: "smtp.relay.example.com",
@@ -367,13 +356,12 @@ await transport.sendMail({
   to: "kim@example.net",
   subject: "Invoice 42",
   text: "Your invoice is attached.",
-});</code></pre>
-              </div>
-              <div class="flex flex-col gap-3">
-                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                  {% translate "receiving"|capfirst %}
-                </h3>
-                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">// app/api/email/route.ts
+});
+
+
+// --- receive inbound email via standard webhooks ---
+
+// app/api/email/route.ts
 import { Webhook } from "standardwebhooks";
 
 export async function POST(req: Request) {
@@ -389,8 +377,6 @@ export async function POST(req: Request) {
   }
   return new Response(null, { status: 204 });
 }</code></pre>
-              </div>
-            </div>
           </div>
         </div>
       </div>
