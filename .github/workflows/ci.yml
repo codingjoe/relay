@@ -44,24 +44,12 @@ jobs:
     if: contains(github.head_ref, 'dependabot/npm_and_yarn') != true
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: relay
-          POSTGRES_PASSWORD: relay
-          POSTGRES_DB: relay
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     permissions:
-      contents: write
-    env:
-      TESTING: true
-      DJANGO_DATABASE_URL: postgresql://relay:relay@localhost/relay
+      contents: read
+      code-quality: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7.0.0
-      - run: sudo apt install -y postgresql-client
       - uses: astral-sh/setup-uv@v8.2.0
       - uses: actions/setup-node@v7
         with:

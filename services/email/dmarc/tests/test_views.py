@@ -4,7 +4,8 @@ from email.message import EmailMessage
 import pytest
 from django.core.files.base import ContentFile
 
-from services.email.dmarc.models import DmarcReport
+from domains.models import Domain
+from services.email.dmarc.models import DmarcRecord, DmarcReport
 
 SAMPLE_XML = b"""<?xml version="1.0"?>
 <feedback>
@@ -53,8 +54,6 @@ def make_report_email(xml_bytes):
 
 @pytest.fixture
 def dmarc_report(org):
-    from domains.models import Domain
-
     domain = Domain.objects.create(name="example.com", org=org)
     raw = make_report_email(SAMPLE_XML)
     report = DmarcReport(
@@ -77,7 +76,6 @@ def dmarc_report(org):
     report.begin_at = parsed_report.begin_at
     report.end_at = parsed_report.end_at
     report.save(update_fields=["reporting_org", "report_id", "begin_at", "end_at"])
-    from services.email.dmarc.models import DmarcRecord
 
     for record in records:
         record.report = report

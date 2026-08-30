@@ -4,6 +4,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.urls import reverse
 
 from accounts.models import Membership, Organization
 from services.email.msa.models import MsaCredential
@@ -100,8 +101,6 @@ class TestOrganization:
 
     @pytest.mark.django_db
     def test_get_absolute_url__returns_detail_url(self):
-        from django.urls import reverse
-
         org = Organization.objects.create(slug="acme")
         assert org.get_absolute_url() == reverse(
             "accounts:org-home", kwargs={"org_slug": "acme"}

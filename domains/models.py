@@ -63,14 +63,14 @@ class DomainQuerySet(models.QuerySet):
         )
         if not include_managed:
             qs = qs.filter(is_managed=False)
-        if (
-            not (
-                domains := list(
-                    qs.select_related("org").order_by(Length("name").desc())
-                )
-            )
-            or len({domain.org_id for domain in domains}) > 1
-        ):
+        domains = list(qs.select_related("org").order_by(Length("name").desc()))
+        # The platform domain is the ancestor of every managed sender
+        # domain by design, so it may share an ancestor chain with
+        # domains of other organizations without making the match ambiguous.
+        if len({domain.org_id for domain in domains}) > 1:
+            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+            domains = [domain for domain in domains if domain.name != platform_name]
+        if not domains or len({domain.org_id for domain in domains}) > 1:
             raise self.model.DoesNotExist
         return domains[0]
 
@@ -270,6 +270,16 @@ class Domain(TimeStamped):
                 reduce(or_, (models.Q(name__iexact=value) for value in ancestors))
                 | models.Q(name__iendswith=f".{name}")
             )
+            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+            # The platform domain is the ancestor of every managed sender
+            # domain by design, so a conflict is skipped exactly when one
+            # of the two rows' canonical name is the platform domain.
+            if name == platform_name:
+                overlapping_domains = Domain.objects.none()
+            else:
+                overlapping_domains = overlapping_domains.exclude(
+                    name__iexact=platform_name
+                )
             if self.pk:
                 overlapping_domains = overlapping_domains.exclude(pk=self.pk)
             if overlapping_domains.exists():

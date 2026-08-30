@@ -2,6 +2,7 @@
 
 This document records coding conventions for the Relay project.
 Update it based on review feedback.
+A rule lives either in this document or in `.relint.yml`, never both.
 
 ## URLs
 
@@ -93,8 +94,6 @@ Update it based on review feedback.
 
 ## Imports
 
-- All imports at the top of a file, except inside Celery/Django tasks where
-  late imports are needed to avoid import cycles.
 - Import views as `from . import views` in URL configs, then reference
   `views.MyView.as_view()`.
 - Do not import with different names (no `import x as y`) unless necessary.
@@ -237,12 +236,12 @@ Update it based on review feedback.
     `test_get__arbitrary_suffix` / `test_post__arbitrary_suffix`
     (for example, `test_get__not_found`, `test_post__creates_org`).
 
+- One test per scenario. Do not write parametrised mega-tests that obscure individual
+  assertions.
+
 - Group related tests in classes. No comment headlines (`# ── … ──`).
   Use plain `class TestSomething:` with no decorator unless a class-level
   `@pytest.mark.django_db` is needed.
-
-- One test per scenario. Do not write parametrised mega-tests that obscure individual
-  assertions.
 
 - Avoid mocking and patching unless the code under test performs external I/O
   (DNS lookups, SMTP delivery, HTTP requests). Mocks can diverge from the real
@@ -290,3 +289,9 @@ Update it based on review feedback.
 
 - Keep `know_how/docs` brand-agnostic. Write relay-specific user docs in
   `docs/docs`.
+
+- Write `docs/docs` for relay users, not developers. Environment variable
+  names, setting keys, and other code references have no place there.
+  Describe behavior and configuration in product terms: the platform
+  domain, the dashboard, a submission host. Internal names such as
+  `RELAY_*` belong in `README.md`.

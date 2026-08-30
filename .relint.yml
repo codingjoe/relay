@@ -95,7 +95,25 @@
     How-to docs are brand-agnostic. Do not mention "relay" (the brand).
     Write about the email topic generically instead.
   filePattern: 'know_how/docs/.*\.md$'
+- name: Create models with raw_body in one objects.create() call
+  pattern: '\.\w*raw_body(?:\s*=|\.save\()'
+  hint: |
+    Pass `raw_body=SimpleUploadedFile(...)` directly to `objects.create()`
+    instead of constructing the instance, assigning the file, and saving
+    it in multiple steps.
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: No indented imports
+  pattern: '\n[ \t]+(?:from[ \t]+\S+[ \t]+import[ \t]|import[ \t]+[\w.]+)'
+  hint: |
+    Move all imports to the top of the file. To pick up changed settings,
+    reload the module with `importlib.reload` instead of importing
+    inside a function.
+  filePattern: '(?!.*(?:/tasks\.py$|/apps\.py$|/settings\.py$|manage\.py$)).*\.py$'
 - name: Compose "!reset" and "!override" tags must carry an explicit value
   pattern: '\n(?P<i>[ \t]*)[^\n:]+:[ \t]*!(?:reset|override)[ \t]*(?=\n(?!(?P=i)[ \t]+\S))'
   hint: 'Bare `!reset` or `!override` tags parse as empty strings outside Docker Compose and fail dclint''s schema validation. Provide a value the parser can resolve, e.g. `!reset null`, `!reset []`, `!reset {}`, or a block collection for `!override`. Docker Compose ignores the value.'
   filePattern: '.*(?:docker-)?compose.*\.ya?ml$'
+- name: No code references in user docs
+  pattern: '(?i)\bRELAY_[A-Z_]+\b'
+  hint: 'docs/docs pages are for relay users, not developers. Replace environment variable and setting names with product wording (the platform domain, the submission host, the dashboard). Internal names live in README.md.'
+  filePattern: '^docs/docs/.*\.md$'

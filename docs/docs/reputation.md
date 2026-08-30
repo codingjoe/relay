@@ -87,13 +87,13 @@ records. relay collects and processes them:
 
 ```mermaid
 flowchart LR
-    A[Mailbox provider sends reports] --> B[relay MX: dmarc@, ruf@, tls@]
+    A[Mailbox provider sends reports] --> B[relay MX: dmarc@, ruf@, tls@, fbl@]
     B --> C[Parser stores the report]
     C --> D[Dashboard rows: authorized senders, failing sources, TLS failures]
     D --> E[You decide: policy change, key rotation, host fixes]
 ```
 
-Three report types arrive:
+Four report types arrive:
 
 - **DMARC aggregate (RUA)**. Daily XML with every check result of a
   provider's inbound for your domain.
@@ -101,9 +101,28 @@ Three report types arrive:
   per policy.
 - **TLS-RPT.** JSON with the success and failure counts of sender TLS
   attempts against your MTA-STS surface.
+- **Feedback loop (FBL).** An abuse report in the ARF format. A provider
+  sends it when a recipient marks one of your messages as spam.
 
 The dashboard surfaces each report type, per domain, and records whether a
 report arrived over TLS.
+
+FBL complaints need a proof before they count against your organization.
+The report carries the per-message Return-Path, or the per-message
+`Feedback-ID` header of the reported message. relay matches that id, so a
+complaint maps to one message, one domain, and one organization. A complaint
+without this proof stays on record, and it does not count into the rates.
+
+## Reputation limits
+
+relay computes hard-bounce and complaint rates for your organization over a
+rolling window. Two rates drive the decision: the hard-bounce rate and the
+complaint rate. If one of the rates goes above its threshold, and the
+message volume in the window is large enough, relay suspends the
+organization. A suspension rejects new submissions with a 550 answer, and
+drops queued messages. The suspension never lifts by itself. relay sends
+mail to the organization admins and to relay staff when it suspends an
+organization.
 
 ## The reputation loop in practice
 
@@ -111,6 +130,9 @@ report arrived over TLS.
    content.
 1. Suppression keeps the bounce rate low, and the spam gate keeps the content
    clean.
+1. A recipient marks a message as spam, and the provider sends a complaint to
+   the FBL address. relay matches the complaint to your message through the
+   per-message ids on the Return-Path and the `Feedback-ID` header.
 1. Providers send aggregate reports every day. relay parses them.
 1. You read your report rows, and correct what you see. Policy updates and
    key rotation are dashboard operations.

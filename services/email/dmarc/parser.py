@@ -2,6 +2,8 @@ import datetime
 import xml.etree.ElementTree as ET
 from email import message_from_bytes
 
+from abstract.email_utils import extract_part_text
+
 ARF_FIELD_MAP = {
     "source-ip": "source_ip_address",
     "original-mail-from": "original_mail_from",
@@ -68,45 +70,6 @@ def parse_timestamp(parent, path):
     )
 
 
-def extract_part_text(part):
-    """Extract text content from a MIME part, including sub-messages and base64 data."""
-    import base64
-
-    if not part.is_multipart():
-        payload = part.get_payload(decode=True)
-        if payload is not None:
-            return payload.decode("utf-8", errors="replace")
-        raw = part.get_payload()
-        if isinstance(raw, str):
-            return raw
-        return ""
-    # Handle message/* parts parsed as multipart by Python's email parser
-    sub_parts = part.get_payload()
-    if isinstance(sub_parts, list):
-        for sub in sub_parts:
-            payload = sub.get_payload(decode=True)
-            if payload is None:
-                raw = sub.get_payload()
-                if isinstance(raw, str):
-                    try:
-                        payload = base64.b64decode(raw)
-                    except ValueError, TypeError:
-                        payload = raw.encode("utf-8", errors="replace")
-            if payload is not None:
-                # Python's email parser may return base64 bytes when CTE is set
-                # but the sub-message structure doesn't honor it
-                try:
-                    stripped = bytes(payload).strip()
-                    decoded = base64.b64decode(stripped)
-                    re_encoded = base64.b64encode(decoded)
-                    if re_encoded == stripped.replace(b"\n", b"").replace(b"\r", b""):
-                        payload = decoded
-                except ValueError, TypeError:
-                    pass  # payload is not base64-encoded, use as-is
-                return payload.decode("utf-8", errors="replace")
-    return ""
-
-
 def parse_arf(raw_bytes):
     """Return the parsed ARF (Abuse Reporting Format) DMARC RUF report as a dict."""
     msg = message_from_bytes(raw_bytes)
@@ -135,9 +98,12 @@ def parse_arf(raw_bytes):
                             if key_lower in ARF_FIELD_MAP:
                                 report_data[ARF_FIELD_MAP[key_lower]] = value
                             elif key_lower == "arrival-date":
-                                report_data["arrival_at"] = datetime.fromisoformat(
-                                    value
-                                )
+                                try:
+                                    report_data["arrival_at"] = (
+                                        datetime.datetime.fromisoformat(value)
+                                    )
+                                except ValueError:
+                                    pass
                             elif key_lower == "delivery-result":
                                 result = value.lower().replace(" ", "-")
                                 if result in VALID_DELIVERY_RESULTS:

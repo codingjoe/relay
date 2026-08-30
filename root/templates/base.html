@@ -6,16 +6,35 @@
     <title>{% block title %}relay{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
+    <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6200d1">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#bb80ff">
     {% block meta_tags %}
       <meta
         name="description"
-        content="{% block meta_description %}relay: infrastructure as a service. Email sending, receiving, and reputation monitoring with a built-in authoritative nameserver.{% endblock %}"
+        content="{% block meta_description %}relay: communication as a service. Email sending, receiving, and reputation monitoring with a built-in authoritative nameserver.{% endblock %}"
       >
       <link rel="canonical" href="{{ request.build_absolute_uri }}">
       <meta property="og:site_name" content="relay">
       <meta property="og:type" content="{% block og_type %}website{% endblock %}">
       <meta property="og:url" content="{{ request.build_absolute_uri }}">
-      <meta name="twitter:card" content="summary">
+      <meta
+        property="og:image"
+        content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/og-image.png' %}"
+      >
+      <meta property="og:image:width" content="1200">
+      <meta property="og:image:height" content="630">
+      <meta
+        property="og:image:alt"
+        content="relay logo and the tagline communication as a service"
+      >
+      <meta name="twitter:card" content="summary_large_image">
+      <meta
+        name="twitter:image"
+        content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/og-image.png' %}"
+      >
     {% endblock meta_tags %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>

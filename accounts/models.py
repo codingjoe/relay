@@ -32,6 +32,12 @@ class Organization(TimeStamped):
         through="Membership",
         related_name="organizations",
     )
+    suspended_at = models.DateTimeField(
+        _("suspended at"),
+        null=True,
+        blank=True,
+        help_text=_("Suspended organizations cannot send outgoing messages."),
+    )
 
     billing_is_active = True
 

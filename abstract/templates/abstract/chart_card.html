@@ -28,6 +28,7 @@
               stack: "status",
               pointRadius: 0,
               pointHoverRadius: 4,
+              {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
             },
           }{% if not forloop.last %},{% endif %}
         {% endfor %}
@@ -45,7 +46,11 @@
                 },
               },
             },
-            y: { stacked: true, beginAtZero: true },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              {% for key, value in chart.y_scale.items %}{{ key }}: {{ value }}, {% endfor %}
+            },
           },
           plugins: {
             tooltip: {

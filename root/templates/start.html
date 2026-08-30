@@ -2,7 +2,7 @@
 {% load i18n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
-{% block title %}{% translate "relay: infrastructure as a service"|title %}{% endblock %}
+{% block title %}{% translate "relay: communication as a service"|title %}{% endblock %}
 {% block content %}
   <div class="start relative isolate -mx-6 sm:-mx-8">
     <div
@@ -20,15 +20,18 @@
       <span
         class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-mono font-medium text-muted-foreground shadow-sm"
       >
-        {% translate "for nerds by nerds"|capfirst %}
-        <span class="text-muted-foreground/50">&lt;3</span>
+        {% translate "made with &lt;3 and German engineering"|capfirst %}
       </span>
-      <h1 class="text-3xl sm:text-5xl font-bold tracking-tighter leading-[0.96] m-0">
-        Infrastructure <span class="landing-accent">as a Service</span>
+      <h1 class="text-3xl sm:text-5xl font-bold leading-[0.96] m-0">
+        Communication <span class="landing-accent">as a Service</span>
       </h1>
       <p class="text-xl sm:text-2xl text-muted-foreground m-0 max-w-3xl leading-relaxed">
         {% blocktranslate trimmed %}
-          Email sending, receiving, reputation monitoring, and a dev sandbox. Ready the moment you sign up.
+          Email sending, receiving, monitoring, and sandboxes.
+        {% endblocktranslate %}
+        <br class="hidden sm:inline">
+        {% blocktranslate trimmed %}
+          So good you'll check the dashboard for fun.
         {% endblocktranslate %}
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -123,7 +126,7 @@
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
       <div class="pledge relative isolate overflow-hidden rounded-3xl px-6 py-12 sm:px-16 sm:py-16 text-center flex flex-col items-center gap-6 sm:gap-8">
-        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight m-0">
+        <h2 class="text-3xl sm:text-4xl font-bold m-0">
           {% translate "the open-source pledge"|capfirst %}
         </h2>
         <p class="pledge__lead text-lg sm:text-xl leading-relaxed m-0 max-w-2xl">
@@ -191,8 +194,8 @@
     </section>
 
     <section class="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-8">
-      <h2 class="text-center text-1xl sm:text-3xl font-bold tracking-tight m-0 mb-3">
-        {% translate "start free. pay as you go."|capfirst %}
+      <h2 class="text-center text-1xl sm:text-3xl font-bold m-0 mb-3">
+        {% translate "Start free. Pay per relay." %}
       </h2>
       <p class="text-center text-muted-foreground m-0 mb-10">
         {% blocktranslate trimmed %}
@@ -201,21 +204,21 @@
       </p>
       <div class="card p-8 shadow-sm border-primary/20 max-w-lg mx-auto">
         <header class="m-0">
-          <p class="text-sm font-medium text-muted-foreground m-0">{% translate "pay as you go"|capfirst %}</p>
-          <p class="m-0 mt-1 flex items-baseline gap-1">
-            <span class="text-6xl font-bold tracking-tight font-mono" id="price-amount">€0</span>
-            <span class="text-muted-foreground" id="price-period">
-              {% blocktranslate trimmed %}
-                / month.
-              {% endblocktranslate %}
-            </span>
+          <p class="text-sm font-medium text-muted-foreground m-0">
+            {% translate "you pay when relay relays"|capfirst %}
+          </p>
+          <p class="m-0 mt-2 flex items-baseline gap-x-1.5">
+            <output for="price-slider" class="text-4xl sm:text-6xl font-bold font-mono">
+              <span id="price-volume">1,000</span>
+            </output>
+            <span class="text-lg font-medium text-muted-foreground font-mono">{% translate "emails" %}</span>
+          </p>
+          <p class="m-0 mt-3 flex items-baseline gap-x-1.5 text-2xl font-mono">
+            <span id="price-amount" class="font-semibold">€0</span>
+            <span class="text-muted-foreground">{% translate "/ month" %}</span>
           </p>
         </header>
         <section class="m-0 mt-6 flex flex-col gap-3">
-          <div class="flex items-center justify-between gap-2 text-sm font-mono">
-            <label for="price-slider" class="text-muted-foreground">{% translate "monthly volume"|capfirst %}</label>
-            <output for="price-slider" id="price-volume" class="font-semibold">0</output>
-          </div>
           <input
             type="range"
             id="price-slider"
@@ -224,7 +227,7 @@
             max="100000"
             step="1000"
             value="1000"
-            aria-label="monthly email volume"
+            aria-label="emails you send per month"
           >
           <p class="text-xs text-muted-foreground m-0 font-mono">
             {% blocktranslate trimmed %}
@@ -445,9 +448,8 @@
   <script>
     const slider = document.getElementById("price-slider");
     const amount = document.getElementById("price-amount");
-    const period = document.getElementById("price-period");
     const volume = document.getElementById("price-volume");
-    if (slider && amount && period && volume) {
+    if (slider && amount && volume) {
       const formatVolume = (n) => n.toLocaleString("en-US");
       const formatEur = (n) =>
         new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(n);
@@ -455,9 +457,8 @@
         const v = Number(slider.value);
         const billable = Math.max(0, v - 1000);
         const total = billable * 0.00075;
-        volume.textContent = `${formatVolume(v)} emails / month`;
+        volume.textContent = formatVolume(v);
         amount.textContent = formatEur(total);
-        period.textContent = `/ month`;
       };
       slider.addEventListener("input", update);
       update();

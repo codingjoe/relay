@@ -4,7 +4,7 @@ from dnslib import DNSLabel
 from dnslib.dns import QTYPE
 
 from accounts.models import Organization
-from domains.models import Domain
+from domains.models import Domain, canonicalize_domain_name
 from domains.resolver import DNSResolver, txt
 
 
@@ -24,14 +24,15 @@ class TestDomainQuerySetSignature:
             Domain.objects.root_for("example.com", True)
 
 
-@pytest.mark.django_db
 class TestDomainQuerySet:
+    @pytest.mark.django_db
     def test_root_for__managed_domain(self):
         Organization.objects.create(slug="acme")
         domain = Domain.objects.root_for("acme.open.localhost", include_managed=True)
         assert domain is not None
         assert domain.name == "acme.open.localhost"
 
+    @pytest.mark.django_db
     def test_root_for__managed_subdomain(self):
         Organization.objects.create(slug="acme")
         domain = Domain.objects.root_for(
@@ -40,6 +41,7 @@ class TestDomainQuerySet:
         assert domain is not None
         assert domain.name == "acme.open.localhost"
 
+    @pytest.mark.django_db
     def test_root_for__can_exclude_managed_domain(self):
         Organization.objects.create(slug="acme")
 
@@ -49,6 +51,7 @@ class TestDomainQuerySet:
                 include_managed=False,
             )
 
+    @pytest.mark.django_db
     def test_root_for__user_domain(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
@@ -59,6 +62,20 @@ class TestDomainQuerySet:
         assert domain is not None
         assert domain.name == "example.com"
 
+    @pytest.mark.django_db
+    def test_root_for__managed_domain_beneath_platform_domain(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+        org = Organization.objects.create(slug="acme")
+
+        domain = Domain.objects.root_for("acme.open.localhost", include_managed=True)
+
+        assert domain == Domain.objects.get(org=org, is_managed=True)
+
+    @pytest.mark.django_db
     def test_root_for__selects_nested_domain_for_same_org(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
@@ -72,6 +89,7 @@ class TestDomainQuerySet:
             == child
         )
 
+    @pytest.mark.django_db
     def test_root_for__fails_closed_for_mixed_owners(self):
         parent_org = Organization.objects.create(slug="parent")
         child_org = Organization.objects.create(slug="child")
@@ -88,6 +106,7 @@ class TestDomainQuerySet:
                 include_managed=False,
             )
 
+    @pytest.mark.django_db
     def test_root_for__unknown_raises_does_not_exist(self):
         with pytest.raises(Domain.DoesNotExist):
             Domain.objects.root_for(
@@ -95,8 +114,20 @@ class TestDomainQuerySet:
                 include_managed=False,
             )
 
+    def test_root_for__invalid_idna_raises_does_not_exist(self):
+        with pytest.raises(Domain.DoesNotExist):
+            Domain.objects.root_for(
+                "\udcff",
+                include_managed=False,
+            )
 
-class TestResolvePublicHostname:
+    def test_root_for__empty_name_raises_does_not_exist(self):
+        with pytest.raises(Domain.DoesNotExist):
+            Domain.objects.root_for(
+                "",
+                include_managed=False,
+            )
+
     def test_resolve_records__public_smtp_hostname_a_records_without_domain(self):
         records = DNSResolver().resolve_records(
             DNSLabel(settings.RELAY_SMTP_PUBLIC_HOSTNAME),
@@ -217,12 +248,25 @@ class TestResolve:
             assert len(records) == 1, base
             assert b"v=DKIM1" in b"".join(records[0].rdata.data)
 
+    def test_resolve_records__publishes_platform_dkim_txt(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+        selector, _ = platform.dkim_ciphers[0]
+
+        for base in (platform.name, platform.sender_domain):
+            records = DNSResolver().resolve_records(
+                DNSLabel(f"{selector}._domainkey.{base}"),
+                QTYPE.TXT,
+            )
+            assert len(records) == 1, base
+            assert b"v=DKIM1" in b"".join(records[0].rdata.data)
+
     def test_resolve_records__unknown_domain_returns_empty(self):
         assert DNSResolver().resolve_records(DNSLabel("unknown.com"), QTYPE.A) == []
 
-
-@pytest.mark.django_db
-class TestResolveMtaStsCname:
     def test_resolve_records__mta_sts_cname(self):
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)

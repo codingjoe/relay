@@ -1,4 +1,4 @@
-from services.email.dmarc.types import Disposition, DmarcEvaluation, DmarcPolicy
+from abstract.mailauth import Disposition, DmarcEvaluation, DmarcPolicy
 
 
 class TestDmarcPolicyDisposition:

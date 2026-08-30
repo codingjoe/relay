@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     "services.email.dashboard",
     "services.email.mta",
     "services.email.dmarc",
+    "services.email.reputation",
 ]
 
 MIDDLEWARE = [
@@ -228,6 +229,10 @@ AWS_S3_MESSAGE_PREFIX = env("AWS_S3_MESSAGE_PREFIX", default="messages/")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
+# Files under `public/` are served from the domain root by WhiteNoise,
+# e.g. public/favicon.ico is served at /favicon.ico.
+WHITENOISE_ROOT = BASE_DIR / "public"
+WHITENOISE_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
@@ -283,8 +288,19 @@ RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dmarc")
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
+RELAY_FBL_ADDRESS = env("RELAY_FBL_ADDRESS", default=f"fbl@{RELAY_PLATFORM_DOMAIN}")
+RELAY_FBL_SENDERS = env.list("RELAY_FBL_SENDERS", default=[])
 RELAY_POSTMASTER_LOCAL_PART = "postmaster"
 RELAY_BOUNCE_LOCAL_PART = "bounce"
+
+RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD = env.float(
+    "RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD", default=0.05
+)
+RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
+    "RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD", default=0.001
+)
+RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7)
+RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
 
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)

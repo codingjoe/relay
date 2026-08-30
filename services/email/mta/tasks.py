@@ -289,8 +289,10 @@ def check_incoming_spam(message_pk, client_ip):
     )
     message.spam_score = spam.score
     message.spam_action = spam.action
+    update_fields = ["spam_score", "spam_action"]
     if is_spam:
         message.status = IncomingMessage.Status.QUARANTINED
-    message.save(update_fields=["spam_score", "spam_action", "status"])
+        update_fields.append("status")
+    message.save(update_fields=update_fields)
     if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
         dispatch_webhook.enqueue(message_id=str(message.pk))

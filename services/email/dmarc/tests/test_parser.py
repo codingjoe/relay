@@ -1,3 +1,4 @@
+import datetime
 import gzip
 from email.message import EmailMessage
 
@@ -120,3 +121,67 @@ class TestParseArf:
         assert result["original_mail_from"] == "sender@evil.com"
         assert result["delivery_result"] == "policy"
         assert "From: sender@evil.com" in result["original_headers"]
+
+    def test_parse_arf__parses_rfc3339_arrival_date(self):
+        msg = EmailMessage()
+        msg["Subject"] = "RUF Report"
+        msg["From"] = "reporter@example.com"
+        msg.set_content("This is a report")
+        msg.add_attachment(
+            b"Feedback-Type: auth-failure\n"
+            b"Source-IP: 10.0.0.1\n"
+            b"Arrival-Date: 2026-01-15T10:30:00Z\n",
+            maintype="message",
+            subtype="feedback-report",
+        )
+        result = parse_arf(msg.as_bytes())
+        assert result["arrival_at"] == datetime.datetime(
+            2026, 1, 15, 10, 30, tzinfo=datetime.UTC
+        )
+
+    def test_parse_arf__ignores_invalid_arrival_date(self):
+        msg = EmailMessage()
+        msg["Subject"] = "RUF Report"
+        msg["From"] = "reporter@example.com"
+        msg.set_content("This is a report")
+        msg.add_attachment(
+            b"Feedback-Type: auth-failure\n"
+            b"Source-IP: 10.0.0.1\n"
+            b"Arrival-Date: not-a-date\n",
+            maintype="message",
+            subtype="feedback-report",
+        )
+        result = parse_arf(msg.as_bytes())
+        assert result["arrival_at"] is None
+        assert result["source_ip_address"] == "10.0.0.1"
+
+    def test_parse_arf__keeps_default_delivery_result_for_unknown_value(self):
+        msg = EmailMessage()
+        msg["Subject"] = "RUF Report"
+        msg["From"] = "reporter@example.com"
+        msg.set_content("This is a report")
+        msg.add_attachment(
+            b"Feedback-Type: auth-failure\n"
+            b"Source-IP: 10.0.0.1\n"
+            b"Delivery-Result: something-weird\n",
+            maintype="message",
+            subtype="feedback-report",
+        )
+        result = parse_arf(msg.as_bytes())
+        assert result["delivery_result"] == "other"
+
+    def test_parse_arf__skips_empty_and_unparseable_parts(self):
+        msg = EmailMessage()
+        msg["Subject"] = "RUF Report"
+        msg["From"] = "reporter@example.com"
+        msg.set_content("This is a report")
+        msg.add_attachment(b"", maintype="message", subtype="feedback-report")
+        msg.add_attachment(
+            b"not a header line\nSource-IP: 10.0.0.7\n",
+            maintype="message",
+            subtype="feedback-report",
+        )
+        msg.add_attachment(b"", maintype="text", subtype="rfc822-headers")
+        result = parse_arf(msg.as_bytes())
+        assert result["source_ip_address"] == "10.0.0.7"
+        assert result["original_headers"] == ""

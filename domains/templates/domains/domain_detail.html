@@ -29,7 +29,7 @@
   </header>
 
   <p class="text-muted-foreground mb-6">
-    {% translate "publish these records at your DNS provider. relaxed DMARC alignment covers all subdomains."|capfirst %}
+    {% translate "Publish these records at your DNS provider. Relaxed DMARC alignment covers all subdomains." %}
   </p>
 
   <div class="flex items-center gap-2 mb-4">
@@ -149,7 +149,7 @@
               {% know_how_badge "dkim" "DKIM" %}
             </div>
             <p class="text-sm text-muted-foreground">
-              {% translate "cryptographic email signing. one CNAME per cipher."|capfirst %}
+              {% translate "Cryptographic email signing. One CNAME per cipher." %}
             </p>
             {% if domain.dkim_error %}
               <p class="text-sm text-destructive">{{ domain.dkim_error }}</p>
@@ -196,7 +196,7 @@
               {% know_how_badge "dmarc" "DMARC" %}
             </div>
             <p class="text-sm text-muted-foreground">
-              {% translate "email authentication policy. relaxed alignment covers subdomains."|capfirst %}
+              {% translate "Email authentication policy. Relaxed alignment covers subdomains." %}
             </p>
             {% if domain.dmarc_error %}
               <p class="text-sm text-destructive">{{ domain.dmarc_error }}</p>
@@ -288,7 +288,7 @@
               {% know_how_badge "tls-rpt" "TLS-RPT" %}
             </div>
             <p class="text-sm text-muted-foreground">
-              {% translate "receive TLS failure reports from senders. add this record at your DNS provider for the root domain."|capfirst %}
+              {% translate "Receive TLS failure reports from senders. Add this record at your DNS provider for the root domain." %}
             </p>
             {% if domain.tls_rpt_error %}
               <p class="text-sm text-destructive">{{ domain.tls_rpt_error }}</p>
@@ -338,7 +338,7 @@
               {% know_how_badge "mta-sts" "MTA-STS" %}
             </div>
             <p class="text-sm text-muted-foreground">
-              {% translate "enforce TLS for incoming mail. add the TXT record and the CNAME record at your DNS provider."|capfirst %}
+              {% translate "Enforce TLS for incoming mail. Add the TXT record and the CNAME record at your DNS provider." %}
             </p>
             {% if domain.mta_sts_error %}
               <p class="text-sm text-destructive">{{ domain.mta_sts_error }}</p>
