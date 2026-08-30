@@ -9,7 +9,7 @@
   </defs>
   <rect width="1200" height="630" fill="url(#relay-gradient)" />
   <g text-anchor="middle" font-family="Geist Sans, ui-sans-serif, system-ui, sans-serif">
-    <text x="600" y="380" font-size="170" font-weight="bold" fill="#fff">relay</text>
-    <text x="600" y="403" font-size="42" fill="#fff" fill-opacity="0.85">communication as a service</text>
+    <text x="600" y="352" font-size="170" font-weight="bold" fill="#fff">relay</text>
+    <text x="600" y="425" font-size="42" fill="#fff" fill-opacity="0.85">communication as a service</text>
   </g>
 </svg>
