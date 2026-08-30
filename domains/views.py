@@ -30,6 +30,9 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
     title = _("New domain")
     parent = "domains:domain-list"
 
+    def get(self, request, *args, **kwargs):
+        return redirect("domains:domain-list", org_slug=self.org.slug)
+
     def get_form_kwargs(self):
         return super().get_form_kwargs() | {"instance": Domain(org=self.org)}
 

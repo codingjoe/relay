@@ -1,6 +1,6 @@
 {% load i18n accounts %}
 <header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0 z-30">
-  {% if current_org %}
+  {% if current_org and request.resolver_match.namespace != 'accounts' %}
     <button
       type="button"
       class="btn"
