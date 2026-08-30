@@ -1,35 +1,14 @@
-<!--
-  Source for apple-touch-icon.png (180x180 home-screen icon).
-
-  Full-bleed: iOS masks its own squircle, so the tile ships without
-  corner rounding. Same mark and gradient as favicon.svg; re-render the
-  PNG at exactly 180x180 after edits.
--->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 24 24">
+  <title>Relay</title>
+  <desc>Relay logo, full-bleed purple gradient tile with white chevrons.</desc>
   <defs>
-    <linearGradient id="relay-gradient-apple" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="hsl(292, 90%, 55%)" />
-      <stop offset="1" stop-color="hsl(262, 85%, 38%)" />
+    <linearGradient id="relay-gradient-apple" x1="0.66" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#C225F5" />
+      <stop offset="1" stop-color="#1E448A" />
     </linearGradient>
-    <filter id="relay-glyph-shadow-apple" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow
-        dx="0"
-        dy="0.35"
-        stdDeviation="0.4"
-        flood-color="hsl(268, 100%, 15%)"
-        flood-opacity="0.45"
-      />
-    </filter>
   </defs>
   <rect width="24" height="24" fill="url(#relay-gradient-apple)" />
-  <g
-    fill="none"
-    stroke="#fff"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    filter="url(#relay-glyph-shadow-apple)"
-  >
+  <g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M20 10H4l5.5 -6" />
     <path d="M4 14h16l-5.5 6" />
   </g>
