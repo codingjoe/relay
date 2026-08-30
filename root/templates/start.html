@@ -2,7 +2,7 @@
 {% load i18n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
-{% block title %}{% translate "relay: communication as a service"|title %}{% endblock %}
+{% block title %}{% translate "relay: communication as a service" %}{% endblock %}
 {% block content %}
   <div class="start relative isolate -mx-6 sm:-mx-8">
     <div
@@ -184,6 +184,8 @@
             <img
               src="{% static 'img/email-overview.png' %}"
               alt="relay email message list with filters and delivery statuses"
+              width="1184"
+              height="876"
               loading="lazy"
               class="block w-full h-auto"
             >
@@ -204,6 +206,8 @@
             <img
               src="{% static 'img/email-detail.png' %}"
               alt="relay message detail with transmission log, headers, and email body"
+              width="1184"
+              height="1055"
               loading="lazy"
               class="block w-full h-auto"
             >
@@ -514,6 +518,11 @@ with smtplib.SMTP_SSL("smtp.relay.example.com", 465) as smtp:
 
     @media (prefers-reduced-motion: reduce) {
       .landing-network__pulse {
+        animation: none;
+        opacity: 0;
+      }
+
+      .start .animate-ping {
         animation: none;
         opacity: 0;
       }
