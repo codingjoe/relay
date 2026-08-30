@@ -21,10 +21,10 @@
     <text
       x="600"
       y="455"
-      font-family="'Fira Sans', ui-sans-serif, system-ui, sans-serif"
+      font-family="'Fira Sans SemiBold', 'Fira Sans', ui-sans-serif, system-ui, sans-serif"
       font-size="52"
+      font-weight="600"
       fill="#fff"
-      fill-opacity="0.85"
     >communication as a service</text>
   </g>
 </svg>
