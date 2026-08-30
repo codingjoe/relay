@@ -3,6 +3,19 @@
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: communication as a service" %}{% endblock %}
+{% block meta_tags %}
+  {{ block.super }}
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
+    media="(prefers-color-scheme: light)"
+  >
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github-dark.min.css"
+    media="(prefers-color-scheme: dark)"
+  >
+{% endblock %}
 {% block content %}
   <div class="start relative isolate -mx-6 sm:-mx-8">
     <div
@@ -181,14 +194,16 @@
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
-            <img
-              src="{% static 'img/email-overview.png' %}"
-              alt="relay email message list with filters and delivery statuses"
-              width="1184"
-              height="984"
-              loading="lazy"
-              class="block w-full h-auto"
-            >
+            <div class="p-1.5">
+              <img
+                src="{% static 'img/email-overview.png' %}"
+                alt="relay email message list with filters and delivery statuses"
+                width="1182"
+                height="788"
+                loading="lazy"
+                class="block w-full h-auto"
+              >
+            </div>
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}
@@ -203,14 +218,16 @@
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
-            <img
-              src="{% static 'img/email-detail.png' %}"
-              alt="relay message detail with transmission log, headers, and email body"
-              width="1184"
-              height="984"
-              loading="lazy"
-              class="block w-full h-auto"
-            >
+            <div class="p-1.5">
+              <img
+                src="{% static 'img/email-detail.png' %}"
+                alt="relay message detail with transmission log, headers, and email body"
+                width="1182"
+                height="788"
+                loading="lazy"
+                class="block w-full h-auto"
+              >
+            </div>
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}
@@ -249,57 +266,49 @@
             <button
               type="button"
               role="tab"
-              id="stack-ex-django-send"
-              aria-controls="stack-ex-django-send-panel"
+              id="stack-ex-django"
+              aria-controls="stack-ex-django-panel"
               aria-selected="true"
               tabindex="0"
             >
-              {% translate "django · send"|capfirst %}
+              Django
             </button>
             <button
               type="button"
               role="tab"
-              id="stack-ex-django-receive"
-              aria-controls="stack-ex-django-receive-panel"
+              id="stack-ex-next"
+              aria-controls="stack-ex-next-panel"
               aria-selected="false"
               tabindex="-1"
             >
-              {% translate "django · receive"|capfirst %}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-next-send"
-              aria-controls="stack-ex-next-send-panel"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              {% translate "next · send"|capfirst %}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-next-receive"
-              aria-controls="stack-ex-next-receive-panel"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              {% translate "next · receive"|capfirst %}
+              Next
             </button>
           </nav>
           <div
             role="tabpanel"
-            id="stack-ex-django-send-panel"
-            aria-labelledby="stack-ex-django-send"
+            id="stack-ex-django-panel"
+            aria-labelledby="stack-ex-django"
             tabindex="-1"
             aria-selected="true"
           >
-            <pre class="m-0 overflow-x-auto font-mono text-sm leading-relaxed"><code># settings.py
-EMAIL_HOST = "smtp.relay.example.com"
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_HOST_USER = "acme"
-EMAIL_HOST_PASSWORD = "&lt;credential key&gt;"
+            <div class="flex flex-col gap-6">
+              <div class="flex flex-col gap-3">
+                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  {% translate "sending"|capfirst %}
+                </h3>
+                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
+MAILERS = {
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": "smtp.relay.example.com",
+            "port": 465,
+            "use_ssl": True,
+            "username": "acme",
+            "password": "&lt;credential key&gt;",
+        },
+    },
+}
 
 # anywhere in your app
 from django.core.mail import send_mail
@@ -310,16 +319,12 @@ send_mail(
     "billing@acme.com",
     ["kim@example.net"],
 )</code></pre>
-          </div>
-          <div
-            role="tabpanel"
-            id="stack-ex-django-receive-panel"
-            aria-labelledby="stack-ex-django-receive"
-            tabindex="-1"
-            aria-selected="false"
-            hidden
-          >
-            <pre class="m-0 overflow-x-auto font-mono text-sm leading-relaxed"><code># views.py
+              </div>
+              <div class="flex flex-col gap-3">
+                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  {% translate "receiving"|capfirst %}
+                </h3>
+                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># views.py
 import json
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -332,16 +337,23 @@ def email_received(request: HttpRequest) -&gt; HttpResponse:
     if event["type"] == "email.received":
         ...  # download event["body_url"]
     return HttpResponse(status=204)</code></pre>
+              </div>
+            </div>
           </div>
           <div
             role="tabpanel"
-            id="stack-ex-next-send-panel"
-            aria-labelledby="stack-ex-next-send"
+            id="stack-ex-next-panel"
+            aria-labelledby="stack-ex-next"
             tabindex="-1"
             aria-selected="false"
             hidden
           >
-            <pre class="m-0 overflow-x-auto font-mono text-sm leading-relaxed"><code>import nodemailer from "nodemailer";
+            <div class="flex flex-col gap-6">
+              <div class="flex flex-col gap-3">
+                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  {% translate "sending"|capfirst %}
+                </h3>
+                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">import nodemailer from "nodemailer";
 
 const transport = nodemailer.createTransport({
   host: "smtp.relay.example.com",
@@ -356,16 +368,12 @@ await transport.sendMail({
   subject: "Invoice 42",
   text: "Your invoice is attached.",
 });</code></pre>
-          </div>
-          <div
-            role="tabpanel"
-            id="stack-ex-next-receive-panel"
-            aria-labelledby="stack-ex-next-receive"
-            tabindex="-1"
-            aria-selected="false"
-            hidden
-          >
-            <pre class="m-0 overflow-x-auto font-mono text-sm leading-relaxed"><code>// app/api/email/route.ts
+              </div>
+              <div class="flex flex-col gap-3">
+                <h3 class="m-0 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  {% translate "receiving"|capfirst %}
+                </h3>
+                <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">// app/api/email/route.ts
 import { Webhook } from "standardwebhooks";
 
 export async function POST(req: Request) {
@@ -381,6 +389,8 @@ export async function POST(req: Request) {
   }
   return new Response(null, { status: 204 });
 }</code></pre>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -460,12 +470,17 @@ export async function POST(req: Request) {
             >TLS-RPT</a>
           </li>
           <li><span class="badge" data-variant="outline" data-size="sm">FBL</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">ARC</span></li>
           <li>
-            <span class="badge" data-variant="outline" data-size="sm">ARC · <span
-                class="text-muted-foreground"
-              >{% translate "soon" %}</span></span>
+            <a
+              href="https://standardwebhooks.com"
+              target="_blank"
+              rel="noopener"
+              class="badge transition-colors hover:text-foreground"
+              data-variant="outline"
+              data-size="sm"
+            >Standard Webhooks</a>
           </li>
-          <li><span class="badge" data-variant="outline" data-size="sm">Standard Webhooks</span></li>
         </ul>
         <p class="m-0 text-muted-foreground leading-relaxed max-w-2xl">
           {% blocktranslate trimmed %}
@@ -576,6 +591,11 @@ export async function POST(req: Request) {
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       background-color: color-mix(in srgb, var(--color-card) 75%, transparent);
+    }
+
+    .start pre code.hljs {
+      padding: 0;
+      background: transparent;
     }
 
     .landing-accent {
@@ -708,5 +728,11 @@ export async function POST(req: Request) {
       slider.addEventListener("input", update);
       update();
     }
+  </script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script>
+    document.querySelectorAll("pre code[class*='language-']").forEach((block) => {
+      hljs.highlightElement(block);
+    });
   </script>
 {% endblock %}

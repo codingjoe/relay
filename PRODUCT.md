@@ -73,9 +73,10 @@ Developer workflow, confirmed from product code and copy:
   pending real quotes; real email-log screenshots captured from the product,
   overview and detail (`root/static/img/email-overview.png`,
   `root/static/img/email-detail.png`);
-  a real SMTP first-send snippet; and a "no black box" trust band (SPF,
-  DKIM, DMARC, MTA-STS, TLS-RPT, FBL, ARC marked as soon, Standard
-  Webhooks) that carries the
+  a real code-example tabs section (Django and Next, sending and
+  receiving each, the Django send using the MAILERS setting); and a "no black box" trust band (SPF,
+  DKIM, DMARC, MTA-STS, TLS-RPT, FBL, ARC, Standard Webhooks linked to
+  the spec) that carries the
   open-source pledge as one muted line instead of a full-bleed panel.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
