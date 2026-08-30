@@ -11,7 +11,7 @@
   <g text-anchor="middle">
     <text
       x="600"
-      y="352"
+      y="345"
       font-family="'Space Mono', monospace"
       font-size="170"
       font-style="italic"
@@ -20,9 +20,9 @@
     >relay</text>
     <text
       x="600"
-      y="425"
+      y="455"
       font-family="'Fira Sans', ui-sans-serif, system-ui, sans-serif"
-      font-size="42"
+      font-size="52"
       fill="#fff"
       fill-opacity="0.85"
     >communication as a service</text>
