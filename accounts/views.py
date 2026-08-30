@@ -114,9 +114,9 @@ class OrganizationForm(ModelForm):
         fields = ["slug"]
 
 
-class OrganizationHomeView(OrganizationScopedView, generic.DetailView):
-    template_name_suffix = "_home"
-    context_object_name = "organization"
+class OrganizationHomeView(OrganizationScopedView, generic.View):
+    """Redirect to the only live product area until VoIP ships."""
+
     parent = ""
 
     @classmethod
@@ -126,8 +126,8 @@ class OrganizationHomeView(OrganizationScopedView, generic.DetailView):
             return str(request.current_org)
         return ""
 
-    def get_object(self, queryset=None):
-        return self.org
+    def get(self, request, *args, **kwargs):
+        return redirect("email-dashboard:dashboard", org_slug=self.org.slug)
 
 
 class OrganizationDetailView(OrganizationScopedView, generic.DetailView):
