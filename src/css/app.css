@@ -2,11 +2,30 @@
 @plugin "@tailwindcss/typography";
 @import "basecoat-css/maia";
 
+@import "./fonts.css";
+
 :root {
   --color-primary: hsl(268, 100%, 41%);
   --color-primary-foreground: hsl(0, 0%, 100%);
   --color-primary-text: light-dark(hsl(268, 100%, 41%), hsl(268, 100%, 75%));
   --color-link: var(--color-primary-text);
+}
+
+/* Fira Sans (sans) and Fira Code (mono) for UI text, code, and numbers.
+   The relay wordmark is the exception and uses Space Mono italic.
+   The @font-face rules above serve the vendored files from
+   root/static/fonts/. Fira Sans has real 500 and 600 weights; Fira Code
+   also has 500/600 (and ligatures) as a variable font but no italic,
+   so slanted code text is synthesized. */
+@theme {
+  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* The relay wordmark. */
+.brand {
+  font-family: "Space Mono", monospace;
+  font-style: italic;
 }
 
 /* Lucide icons must sit inline with their label; Tailwind preflight forces
