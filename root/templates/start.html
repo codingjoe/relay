@@ -239,60 +239,59 @@
     </section>
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
-      <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
-        <div class="flex flex-col gap-4">
-          <h2 class="text-2xl sm:text-4xl font-bold m-0">
-            {% translate "works with your stack"|capfirst %}
-          </h2>
-          <p class="text-lg text-muted-foreground leading-relaxed m-0">
-            {% blocktranslate trimmed %}
-              SMTP is the interface every language already speaks. Point your app at relay and keep your code.
-            {% endblocktranslate %}
-          </p>
-          <ul class="flex flex-wrap gap-2 m-0 p-0 list-none">
-            <li><span class="badge" data-variant="outline" data-size="sm">SMTP</span></li>
-            <li><span class="badge" data-variant="outline" data-size="sm">MCP</span></li>
-            <li><span class="badge" data-variant="outline" data-size="sm">Standard Webhooks</span></li>
-            <li><span class="badge" data-variant="outline" data-size="sm">API</span></li>
-          </ul>
-          <p class="text-sm text-muted-foreground m-0">
-            {% blocktranslate trimmed %}
-              Your first send needs no DNS work. The managed sender domain is verified from signup.
-            {% endblocktranslate %}
-          </p>
-        </div>
-        <div class="tabs min-w-0" id="stack-examples">
-          <nav role="tablist" aria-orientation="horizontal">
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-django"
-              aria-controls="stack-ex-django-panel"
-              aria-selected="true"
-              tabindex="0"
-            >
-              Django
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-next"
-              aria-controls="stack-ex-next-panel"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              Next
-            </button>
-          </nav>
-          <div
-            role="tabpanel"
-            id="stack-ex-django-panel"
-            aria-labelledby="stack-ex-django"
-            tabindex="-1"
+      <div class="max-w-3xl mx-auto flex flex-col items-center text-center gap-4">
+        <h2 class="text-2xl sm:text-4xl font-bold m-0">
+          {% translate "works with your stack"|capfirst %}
+        </h2>
+        <p class="text-lg text-muted-foreground leading-relaxed m-0">
+          {% blocktranslate trimmed %}
+            SMTP is the interface every language already speaks. Point your app at relay and keep your code.
+          {% endblocktranslate %}
+        </p>
+        <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none">
+          <li><span class="badge" data-variant="outline" data-size="sm">SMTP</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">MCP</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">Standard Webhooks</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">API</span></li>
+        </ul>
+        <p class="text-sm text-muted-foreground m-0">
+          {% blocktranslate trimmed %}
+            Your first send needs no DNS work. The managed sender domain is verified from signup.
+          {% endblocktranslate %}
+        </p>
+      </div>
+      <div class="tabs min-w-0 max-w-3xl mx-auto mt-10" id="stack-examples">
+        <nav role="tablist" aria-orientation="horizontal">
+          <button
+            type="button"
+            role="tab"
+            id="stack-ex-django"
+            aria-controls="stack-ex-django-panel"
             aria-selected="true"
-            class="min-w-0"
+            tabindex="0"
           >
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
+            Django
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="stack-ex-next"
+            aria-controls="stack-ex-next-panel"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            Next
+          </button>
+        </nav>
+        <div
+          role="tabpanel"
+          id="stack-ex-django-panel"
+          aria-labelledby="stack-ex-django"
+          tabindex="-1"
+          aria-selected="true"
+          class="min-w-0"
+        >
+          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
 MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
@@ -306,43 +305,36 @@ MAILERS = {
     },
 }
 
-# anywhere in your app
+# send from anywhere
 from django.core.mail import send_mail
 
-send_mail(
-    "Invoice 42",
-    "Your invoice is attached.",
-    "billing@acme.com",
-    ["kim@example.net"],
-)
+send_mail("Invoice 42", "Attached.", "billing@acme.com", ["kim@example.net"])
 
 
 # --- receive inbound email via standard webhooks ---
-
 # views.py
 import json
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from standardwebhooks import Webhook
 
 @csrf_exempt
-def email_received(request: HttpRequest) -> HttpResponse:
+def email_received(request):
     Webhook("&lt;whsec_...&gt;").verify(request.body, request.headers)
-    event = json.loads(request.body)
-    if event["type"] == "email.received":
-        ...  # download event["body_url"]
+    event = json.loads(request.body)  # type == email.received
+    ...  # download event["body_url"]
     return HttpResponse(status=204)</code></pre>
-          </div>
-          <div
-            role="tabpanel"
-            id="stack-ex-next-panel"
-            aria-labelledby="stack-ex-next"
-            tabindex="-1"
-            aria-selected="false"
-            hidden
-            class="min-w-0"
-          >
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">import nodemailer from "nodemailer";
+        </div>
+        <div
+          role="tabpanel"
+          id="stack-ex-next-panel"
+          aria-labelledby="stack-ex-next"
+          tabindex="-1"
+          aria-selected="false"
+          hidden
+          class="min-w-0"
+        >
+          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">import nodemailer from "nodemailer";
 
 const transport = nodemailer.createTransport({
   host: "smtp.relay.example.com",
@@ -355,29 +347,21 @@ await transport.sendMail({
   from: "billing@acme.com",
   to: "kim@example.net",
   subject: "Invoice 42",
-  text: "Your invoice is attached.",
+  text: "Attached.",
 });
 
 
 // --- receive inbound email via standard webhooks ---
-
 // app/api/email/route.ts
 import { Webhook } from "standardwebhooks";
 
 export async function POST(req: Request) {
   const raw = await req.text();
-  new Webhook("&lt;whsec_...&gt;").verify(raw, {
-    "webhook-id": req.headers.get("webhook-id"),
-    "webhook-timestamp": req.headers.get("webhook-timestamp"),
-    "webhook-signature": req.headers.get("webhook-signature"),
-  });
-  const event = JSON.parse(raw);
-  if (event.type === "email.received") {
-    // download event.body_url
-  }
+  new Webhook("&lt;whsec_...&gt;").verify(raw, Object.fromEntries(req.headers));
+  const event = JSON.parse(raw);  // type == email.received
+  ...  // download event.body_url
   return new Response(null, { status: 204 });
 }</code></pre>
-          </div>
         </div>
       </div>
     </section>
