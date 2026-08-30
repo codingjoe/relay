@@ -9,6 +9,87 @@
   --color-link: var(--color-primary-text);
 }
 
+/* ── Type roles ─────────────────────────────────────────────────────
+   One fixed rem scale on the incumbent Geist stack. No webfont is
+   fetched (see --font-sans in basecoat), so text never blocks or
+   swaps invisible; every weight used (400, 500, 600, 700) resolves
+   from the installation or the metric-similar ui-sans-serif fallback.
+
+   Tailwind preflight strips heading sizing (h1..h6 { font-size: inherit }),
+   so the page-title and section-title roles are defined here at the
+   element layer and win only where no component or utility claims the
+   heading (cards, dialogs, items, sidebar, prose keep basecoat styles).
+
+   Roles, distinguishable by weight + tracking + tone, not size alone:
+     page title    h2      1.375rem  600  -0.02em
+     section title h3, h4  1rem      600  -0.01em
+     body          1rem    400
+     dense body    0.875rem basecoat component vocabulary
+     metadata      0.75rem muted tone (sidebar groups, badges, table headers)
+     code/data     --font-mono, tabular figures in tables */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: 1.375rem;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+
+  h3, h4 {
+    font-size: 1rem;
+  }
+}
+
+/* Dark scheme perceptual compensation: more leading, a touch more tracking. */
+html.dark {
+  line-height: 1.6;
+  letter-spacing: 0.002em;
+}
+
+/* Negative tracking breaks Arabic and Hebrew shaping. */
+html[dir="rtl"] :is(h1, h2, h3, h4, h5, h6) {
+  letter-spacing: 0;
+  text-wrap: initial;
+}
+
+@layer components {
+  /* Alert titles stay body-sized; basecoat only sets their weight. */
+  .alert > :is(h1, h2, h3, h4, h5, h6) {
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  /* Firm the section-title weight that basecoat sets to medium on card
+     headers, so titles match the 600 they carry in items and elsewhere. */
+  .card > header > :is(h2, h3, [data-title], .card-title) {
+    font-weight: 600;
+  }
+
+  /* Rates, counts, and dates scan in aligned columns. */
+  .table {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Reading measure: markdown templates set max-w-3xl (42rem, ~79ch);
+   hold prose at 65ch. The compound selector deterministically outranks
+   the template's max-width utility on the same layer. */
+.prose.prose {
+  max-width: 65ch;
+}
+
 /* Lucide icons must sit inline with their label; Tailwind preflight forces
    display: block on every svg, which adds a line break after each icon. */
 svg.lucide {

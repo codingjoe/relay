@@ -132,7 +132,25 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="7">{% translate "no messages found." %}</td></tr>
+          <tr>
+            <td colspan="7">
+              {% if not email and not status %}
+                <div class="flex flex-col items-center gap-3 py-6 text-center">
+                  <i data-lucide="inbox" class="size-5 text-muted-foreground" aria-hidden="true"></i>
+                  <p class="m-0">
+                    {% blocktranslate trimmed %}
+                      No messages yet. send a test email to see it arrive here.
+                    {% endblocktranslate %}
+                  </p>
+                  <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:dashboard' org.slug %}">
+                    {% translate "send test email"|title %}
+                  </a>
+                </div>
+              {% else %}
+                {% translate "no messages found." %}
+              {% endif %}
+            </td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>

@@ -2,8 +2,27 @@
 {% load i18n know_how %}
 {% block title %}{{ domain.name }} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{{ domain.name }}</h2>
+  <header class="flex items-center justify-between gap-4 mb-6">
+    <div class="min-w-0">
+      <h2 class="m-0">{{ domain.name }}</h2>
+      <p class="m-0 mt-2 flex items-center gap-2 flex-wrap text-sm">
+        {% include "domains/_domain_status_badge.html" %}
+        <span class="text-muted-foreground">
+          {% blocktranslate count counter=checks_total trimmed %}
+            {{ checks_passing }} of {{ counter }} check passing.
+          {% plural %}
+            {{ checks_passing }} of {{ counter }} checks passing.
+          {% endblocktranslate %}
+        </span>
+        {% if domain.dns_checked_at %}
+          <span class="text-muted-foreground">
+            {% blocktranslate with checked_at=domain.dns_checked_at|date:"DATETIME_FORMAT" trimmed %}
+              Last DNS check: {{ checked_at }}
+            {% endblocktranslate %}
+          </span>
+        {% endif %}
+      </p>
+    </div>
     <form method="post">
       {% csrf_token %}
       <div role="group" class="button-group">
@@ -13,7 +32,7 @@
           data-variant="primary"
           formaction="{% url 'domains:domain-verify' org.slug domain.pk %}"
         >
-          {% translate "verify DNS"|title %}
+          {% translate "verify DNS"|capfirst %}
         </button>
         <button
           type="submit"
@@ -32,17 +51,14 @@
     {% translate "Publish these records at your DNS provider. Relaxed DMARC alignment covers all subdomains." %}
   </p>
 
-  <div class="flex items-center gap-2 mb-4">
-    {% if domain.nameserver_status == 'ok' %}
-      <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-    {% elif domain.nameserver_status == 'error' %}
-      <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-    {% else %}
-      <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-    {% endif %}
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    {% include "domains/_check_status.html" with status=domain.nameserver_status %}
     <label>NS</label>
-    {% if domain.nameserver_error %}
-      <p class="text-sm text-destructive">{{ domain.nameserver_error }}</p>
+    {% if domain.nameserver_status == 'error' %}
+      <p class="text-sm text-destructive m-0">{{ domain.nameserver_error }}</p>
+      <p class="text-sm text-muted-foreground m-0">
+        {% translate "Publish the NS records below, then verify DNS again." %}
+      </p>
     {% endif %}
   </div>
 
@@ -56,11 +72,17 @@
               {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
             </p>
             {% for ns in nameservers %}
-              <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
-                <input type="text" readonly value="{{ domain.sender_domain }}" onfocus="this.select()">
+              <div class="input-group flex-wrap min-h-11 max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
+                <input
+                  class="max-sm:basis-[calc(100%-2.75rem)]"
+                  type="text"
+                  readonly
+                  value="{{ domain.sender_domain }}"
+                  onfocus="this.select()"
+                >
                 <button
                   type="button"
-                  class="btn"
+                  class="btn min-h-11 min-w-11"
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ domain.sender_domain }}')"
@@ -72,7 +94,7 @@
                 <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
                 <button
                   type="button"
-                  class="btn"
+                  class="btn min-h-11 min-w-11"
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ ns }}.')"
@@ -93,27 +115,30 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              {% if domain.spf_status == 'ok' %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% elif domain.spf_status == 'error' %}
-                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% endif %}
+              {% include "domains/_check_status.html" with status=domain.spf_status %}
               <label>SPF</label>
               {% know_how_badge "spf" "SPF" %}
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
             </p>
-            {% if domain.spf_error %}
+            {% if domain.spf_status == 'error' %}
               <p class="text-sm text-destructive">{{ domain.spf_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish the SPF TXT record below, then verify DNS again." %}
+              </p>
             {% endif %}
-            <div class="input-group">
-              <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
+            <div class="input-group flex-wrap min-h-11 max-sm:h-auto">
+              <input
+                class="max-sm:basis-[calc(100%-2.75rem)]"
+                type="text"
+                readonly
+                value="{{ domain.name }}"
+                onfocus="this.select()"
+              >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.name }}')"
@@ -125,7 +150,7 @@
               <input type="text" readonly value="&quot;{{ domain.root_spf_record }}&quot;" onfocus="this.select()">
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.root_spf_record }}')"
@@ -138,28 +163,31 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              {% if domain.dkim_status == 'ok' %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% elif domain.dkim_status == 'error' %}
-                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% endif %}
+              {% include "domains/_check_status.html" with status=domain.dkim_status %}
               <label>DKIM</label>
               {% know_how_badge "dkim" "DKIM" %}
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "Cryptographic email signing. One CNAME per cipher." %}
             </p>
-            {% if domain.dkim_error %}
+            {% if domain.dkim_status == 'error' %}
               <p class="text-sm text-destructive">{{ domain.dkim_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish all three DKIM CNAME records below, then verify DNS again." %}
+              </p>
             {% endif %}
             {% for cname in dkim_cnames %}
-              <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
-                <input type="text" readonly value="{{ cname.0 }}" onfocus="this.select()">
+              <div class="input-group flex-wrap min-h-11 max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
+                <input
+                  class="max-sm:basis-[calc(100%-2.75rem)]"
+                  type="text"
+                  readonly
+                  value="{{ cname.0 }}"
+                  onfocus="this.select()"
+                >
                 <button
                   type="button"
-                  class="btn"
+                  class="btn min-h-11 min-w-11"
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ cname.0 }}')"
@@ -171,7 +199,7 @@
                 <input type="text" readonly value="{{ cname.1 }}." onfocus="this.select()">
                 <button
                   type="button"
-                  class="btn"
+                  class="btn min-h-11 min-w-11"
                   data-variant="ghost"
                   data-size="icon-sm"
                   onclick="navigator.clipboard.writeText('{{ cname.1 }}.')"
@@ -185,27 +213,30 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              {% if domain.dmarc_status == 'ok' %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% elif domain.dmarc_status == 'error' %}
-                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% endif %}
+              {% include "domains/_check_status.html" with status=domain.dmarc_status %}
               <label>DMARC</label>
               {% know_how_badge "dmarc" "DMARC" %}
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "Email authentication policy. Relaxed alignment covers subdomains." %}
             </p>
-            {% if domain.dmarc_error %}
+            {% if domain.dmarc_status == 'error' %}
               <p class="text-sm text-destructive">{{ domain.dmarc_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish the DMARC TXT record below, then verify DNS again." %}
+              </p>
             {% endif %}
-            <div class="input-group">
-              <input type="text" readonly value="_dmarc.{{ domain.name }}" onfocus="this.select()">
+            <div class="input-group flex-wrap min-h-11 max-sm:h-auto">
+              <input
+                class="max-sm:basis-[calc(100%-2.75rem)]"
+                type="text"
+                readonly
+                value="_dmarc.{{ domain.name }}"
+                onfocus="this.select()"
+              >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('_dmarc.{{ domain.name }}')"
@@ -222,7 +253,7 @@
               >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.dmarc_record }}')"
@@ -242,17 +273,25 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
               <label>MX</label>
+              <span class="badge" data-size="sm" data-variant="outline">
+                {% translate "no automatic check"|capfirst %}
+              </span>
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "routes incoming email for this domain to relay."|capfirst %}
             </p>
-            <div class="input-group">
-              <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
+            <div class="input-group flex-wrap min-h-11 max-sm:h-auto">
+              <input
+                class="max-sm:basis-[calc(100%-2.75rem)]"
+                type="text"
+                readonly
+                value="{{ domain.name }}"
+                onfocus="this.select()"
+              >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.name }}')"
@@ -264,7 +303,7 @@
               <input type="text" readonly value="10 {{ domain.sender_domain }}." onfocus="this.select()">
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('10 {{ domain.sender_domain }}.')"
@@ -277,27 +316,30 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              {% if domain.tls_rpt_status == 'ok' %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% elif domain.tls_rpt_status == 'error' %}
-                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% endif %}
+              {% include "domains/_check_status.html" with status=domain.tls_rpt_status %}
               <label>TLS-RPT</label>
               {% know_how_badge "tls-rpt" "TLS-RPT" %}
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "Receive TLS failure reports from senders. Add this record at your DNS provider for the root domain." %}
             </p>
-            {% if domain.tls_rpt_error %}
+            {% if domain.tls_rpt_status == 'error' %}
               <p class="text-sm text-destructive">{{ domain.tls_rpt_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish the TLS-RPT TXT record below, then verify DNS again." %}
+              </p>
             {% endif %}
-            <div class="input-group">
-              <input type="text" readonly value="_smtp._tls.{{ domain.name }}" onfocus="this.select()">
+            <div class="input-group flex-wrap min-h-11 max-sm:h-auto">
+              <input
+                class="max-sm:basis-[calc(100%-2.75rem)]"
+                type="text"
+                readonly
+                value="_smtp._tls.{{ domain.name }}"
+                onfocus="this.select()"
+              >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('_smtp._tls.{{ domain.name }}')"
@@ -314,7 +356,7 @@
               >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.tls_rpt_record }}')"
@@ -327,27 +369,30 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              {% if domain.mta_sts_status == 'ok' %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% elif domain.mta_sts_status == 'error' %}
-                <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% endif %}
+              {% include "domains/_check_status.html" with status=domain.mta_sts_status %}
               <label>MTA-STS</label>
               {% know_how_badge "mta-sts" "MTA-STS" %}
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "Enforce TLS for incoming mail. Add the TXT record and the CNAME record at your DNS provider." %}
             </p>
-            {% if domain.mta_sts_error %}
+            {% if domain.mta_sts_status == 'error' %}
               <p class="text-sm text-destructive">{{ domain.mta_sts_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish the MTA-STS TXT and CNAME records below, then verify DNS again." %}
+              </p>
             {% endif %}
-            <div class="input-group">
-              <input type="text" readonly value="_mta-sts.{{ domain.name }}" onfocus="this.select()">
+            <div class="input-group flex-wrap min-h-11 max-sm:h-auto">
+              <input
+                class="max-sm:basis-[calc(100%-2.75rem)]"
+                type="text"
+                readonly
+                value="_mta-sts.{{ domain.name }}"
+                onfocus="this.select()"
+              >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('_mta-sts.{{ domain.name }}')"
@@ -364,7 +409,7 @@
               >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('{{ domain.mta_sts_record }}')"
@@ -373,11 +418,17 @@
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
             </div>
-            <div class="input-group mt-2">
-              <input type="text" readonly value="mta-sts.{{ domain.name }}" onfocus="this.select()">
+            <div class="input-group flex-wrap min-h-11 max-sm:h-auto mt-2">
+              <input
+                class="max-sm:basis-[calc(100%-2.75rem)]"
+                type="text"
+                readonly
+                value="mta-sts.{{ domain.name }}"
+                onfocus="this.select()"
+              >
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('mta-sts.{{ domain.name }}')"
@@ -389,7 +440,7 @@
               <input type="text" readonly value="mta-sts.{{ domain.sender_domain }}." onfocus="this.select()">
               <button
                 type="button"
-                class="btn"
+                class="btn min-h-11 min-w-11"
                 data-variant="ghost"
                 data-size="icon-sm"
                 onclick="navigator.clipboard.writeText('mta-sts.{{ domain.sender_domain }}.')"
@@ -410,16 +461,22 @@
           <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
           <h2>{% translate "DNS warning" %}</h2>
           <section>
-            <p>{% translate "CAUTION: Apex delegation replaces the current DNS service for this domain." %}</p>
+            <p>{% translate "Caution: apex delegation replaces the current DNS service for this domain." %}</p>
             <p>{% translate "We serve email records only. Websites and other services on this domain will stop." %}</p>
           </section>
         </div>
         {% for ns in nameservers %}
-          <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
-            <input type="text" readonly value="{{ domain.name }}" onfocus="this.select()">
+          <div class="input-group flex-wrap min-h-11 max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
+            <input
+              class="max-sm:basis-[calc(100%-2.75rem)]"
+              type="text"
+              readonly
+              value="{{ domain.name }}"
+              onfocus="this.select()"
+            >
             <button
               type="button"
-              class="btn"
+              class="btn min-h-11 min-w-11"
               data-variant="ghost"
               data-size="icon-sm"
               onclick="navigator.clipboard.writeText('{{ domain.name }}')"
@@ -431,7 +488,7 @@
             <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
             <button
               type="button"
-              class="btn"
+              class="btn min-h-11 min-w-11"
               data-variant="ghost"
               data-size="icon-sm"
               onclick="navigator.clipboard.writeText('{{ ns }}.')"

@@ -21,32 +21,6 @@
     relay
   </a>
 
-  {% if current_org %}
-    <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
-      {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
-      <a
-        href="{{ email_url }}"
-        class="btn"
-        data-size="sm"
-        data-variant="ghost"
-        {% if request.path == email_url %}aria-current="page"{% endif %}
-      >{% translate "email"|capfirst context "noun" %}</a>
-      <button
-        type="button"
-        class="btn"
-        data-size="sm"
-        data-variant="ghost"
-        aria-disabled="true"
-        title='{% translate "coming soon" %}'
-      >
-        {% translate "VoIP" context "acronym" %}
-        <span class="badge" data-size="sm">{% translate "soon" %}</span>
-      </button>
-    </nav>
-  {% else %}
-    <div class="grow"></div>
-  {% endif %}
-
   <div class="flex items-center gap-2 ms-auto">
     {% if user.is_authenticated %}
       {% if current_org %}

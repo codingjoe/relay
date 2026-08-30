@@ -5,14 +5,14 @@
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "domains"|capfirst context "noun" %}</h2>
     <button type="button" class="btn" onclick="document.getElementById('dlg-new-domain').showModal()">
-      {% translate "add domain"|title context "noun" %}
+      {% translate "add domain"|capfirst context "noun" %}
     </button>
   </header>
 
   <dialog class="dialog" id="dlg-new-domain">
     <div>
       <header>
-        <h2>{% translate "add domain"|title context "noun" %}</h2>
+        <h2>{% translate "add domain"|capfirst context "noun" %}</h2>
         <p>{% translate "add a domain you control to start sending email from it."|capfirst %}</p>
       </header>
       <section>
@@ -56,33 +56,21 @@
       {% if domain.is_managed %}
         <article class="item" data-variant="outline">
           <section>
-            <h3>
-              {% if domain.verified_at %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="loader-circle" class="size-4 text-muted-foreground animate-spin" aria-hidden="true"></i>
-              {% endif %}
-              {{ domain.name }}
-            </h3>
+            <h3>{{ domain.name }}</h3>
             <p class="flex items-center gap-2 flex-wrap">
               <code>{{ domain.sender_domain }}</code>
               <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
+              {% include "domains/_domain_status_badge.html" %}
             </p>
           </section>
         </article>
       {% else %}
         <a class="item" data-variant="outline" href="{% url 'domains:domain-detail' org.slug domain.pk %}">
           <section>
-            <h3>
-              {% if domain.verified_at %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
-              {% else %}
-                <i data-lucide="loader-circle" class="size-4 text-muted-foreground animate-spin" aria-hidden="true"></i>
-              {% endif %}
-              {{ domain.name }}
-            </h3>
+            <h3>{{ domain.name }}</h3>
             <p class="flex items-center gap-2 flex-wrap">
               <code>{{ domain.sender_domain }}</code>
+              {% include "domains/_domain_status_badge.html" %}
             </p>
           </section>
           <aside>
@@ -91,7 +79,7 @@
         </a>
       {% endif %}
     {% empty %}
-      <p class="text-muted-foreground">{% translate "no domains configured yet." %}</p>
+      <p class="text-muted-foreground">{% translate "no domains configured yet."|capfirst %}</p>
     {% endfor %}
   </div>
 {% endblock %}

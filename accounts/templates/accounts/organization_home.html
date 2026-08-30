@@ -21,6 +21,14 @@
           Send and receive email with zero-config DNS. built-in authoritative nameserver, DKIM, SPF, and DMARC.
         {% endblocktranslate %}
       </p>
+      {% for domain in organization.domains.all %}
+        {% if domain.is_managed and domain.verified_at %}
+          <p class="m-0 flex items-center gap-2">
+            <code>{{ domain.sender_domain }}</code>
+            <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
+          </p>
+        {% endif %}
+      {% endfor %}
     </a>
 
     <div class="card flex-col gap-4 p-6 opacity-60 cursor-not-allowed">
