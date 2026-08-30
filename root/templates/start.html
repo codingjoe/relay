@@ -306,9 +306,8 @@ with smtplib.SMTP_SSL("smtp.relay.example.com", 465) as smtp:
         </ul>
         <p class="m-0 text-muted-foreground leading-relaxed max-w-2xl">
           {% blocktranslate trimmed %}
-            Open standards, verified and visible in the dashboard: triple DKIM signatures with RSA-2048, RSA-1024, and
-            Ed25519 keys, feedback-loop complaint reports, and ARC sealing on the way. No mystery bounces, no hidden
-            reputation score.
+            Open standards, verified and visible in the dashboard: dual DKIM signatures with RSA-2048 and Ed25519 keys,
+            feedback-loop complaint reports, and ARC sealing on the way. No mystery bounces, no hidden reputation score.
           {% endblocktranslate %}
         </p>
         <p class="m-0 text-muted-foreground">
