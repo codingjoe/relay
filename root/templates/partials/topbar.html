@@ -21,6 +21,26 @@
     relay
   </a>
 
+  <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
+    {% if current_org %}
+      {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
+      <a
+        href="{{ email_url }}"
+        class="btn"
+        data-size="sm"
+        data-variant="ghost"
+        {% if request.path == email_url %}aria-current="page"{% endif %}
+      >{% translate "email"|capfirst context "noun" %}</a>
+    {% endif %}
+    <a
+      href="{% url 'docs:list' %}"
+      class="btn"
+      data-size="sm"
+      data-variant="ghost"
+      {% if "/docs" in request.path %}aria-current="page"{% endif %}
+    >{% translate "docs"|capfirst %}</a>
+  </nav>
+
   <div class="flex items-center gap-2 ms-auto">
     {% if user.is_authenticated %}
       {% if current_org %}
