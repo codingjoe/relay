@@ -1,12 +1,3 @@
-<!--
-  Source for apple-touch-icon.png (180x180 home-screen icon).
-
-  Full-bleed: iOS masks its own squircle, so the tile ships without
-  corner rounding. Same mark and gradient as favicon.svg; re-render the
-  PNG at exactly 180x180 after edits. Conforms to SVG Tiny PS
-  (BIMI-compatible, RFC draft-svg-tiny-ps), so filters and hsl()
-  colors are not allowed: colors are hex, the drop shadow was removed.
--->
 <svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 24 24">
   <title>Relay</title>
   <desc>Relay logo, full-bleed purple gradient tile with white chevrons.</desc>
