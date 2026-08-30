@@ -78,7 +78,10 @@ Developer workflow, confirmed from product code and copy:
   the `MAILERS` setting); and a "no black box" trust band (SPF, DKIM,
   DMARC, MTA-STS, TLS-RPT, FBL, ARC, Standard Webhooks linked to the
   spec) that carries the open-source pledge as one muted line instead
-  of a full-bleed panel.
+  of a full-bleed panel; and a privacy section stating German hosting
+  (Hetzner Falkenstein, documented in `docs/docs/data-privacy.md`),
+  GDPR, and the ISO/IEC 27001 / BSI C5 attestations of those data
+  centers, linked to the privacy policy and the data-privacy docs page.
 - VoIP and further communication services are planned; email is the first
   service on the platform.
 - Tech constraints that shape UI work: Django templates + basecoat CSS

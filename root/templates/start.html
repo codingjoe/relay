@@ -467,6 +467,39 @@ export async function POST(req: Request) {
       </div>
     </section>
 
+    <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
+      <div class="max-w-3xl mx-auto flex flex-col items-center text-center gap-4">
+        <h2 class="text-2xl sm:text-4xl font-bold m-0">
+          {% translate "your data stays in Germany"|capfirst %}
+        </h2>
+        <p class="text-lg text-muted-foreground leading-relaxed m-0">
+          {% blocktranslate trimmed %}
+            Your messages are processed in Germany, in ISO/IEC 27001 certified and BSI C5 attested Hetzner data centers.
+            No third-country transfers, no profiling, no data mining, no resale.
+          {% endblocktranslate %}
+        </p>
+        <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none">
+          <li><span class="badge" data-variant="outline" data-size="sm">Hosted in Germany</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">GDPR</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">ISO/IEC 27001</span></li>
+          <li><span class="badge" data-variant="outline" data-size="sm">BSI C5</span></li>
+        </ul>
+        <p class="text-sm text-muted-foreground m-0">
+          {% blocktranslate trimmed %}
+            Message metadata is kept for 30 days, raw bodies are deleted after delivery.
+          {% endblocktranslate %}
+        </p>
+        <p class="m-0 text-muted-foreground">
+          <a href="{% url 'legal:privacy' %}" class="link">{% translate "privacy policy"|capfirst %}</a>
+          <span aria-hidden="true">·</span>
+          <a
+            href="{% url 'docs:detail' 'data-privacy' %}"
+            class="link"
+          >{% translate "how relay handles data"|capfirst %}</a>
+        </p>
+      </div>
+    </section>
+
     <section class="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-8">
       <h2 class="text-center text-1xl sm:text-3xl font-bold m-0 mb-3">
         {% translate "Start free. Pay per relay." %}
