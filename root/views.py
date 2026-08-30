@@ -11,6 +11,7 @@ BRANDS = [
     {"name": "Thermondo"},
     {"name": "Fizard"},
     {"name": "voiio"},
+    {"name": "Sparkasse"},
 ]
 
 TESTIMONIALS = [
