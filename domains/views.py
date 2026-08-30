@@ -12,8 +12,6 @@ from accounts.views import OrganizationScopedView
 from .models import Domain
 from .services import verify_domain_dns
 
-CHECK_FIELDS = ("nameserver", "spf", "dkim", "dmarc", "mta_sts", "tls_rpt")
-
 
 class DomainListView(OrganizationScopedView, generic.ListView):
     context_object_name = "domains"
@@ -65,13 +63,18 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
         return super().get_context_data(**kwargs) | {
-            "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
+            "nameservers": [f"ns1.{platform}", "ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
-            "checks_passing": sum(
+            "sending_passing": sum(
                 getattr(self.object, f"{field}_status") == Domain.Status.OK
-                for field in CHECK_FIELDS
+                for field in Domain.SENDING_CHECK_FIELDS
             ),
-            "checks_total": len(CHECK_FIELDS),
+            "sending_total": len(Domain.SENDING_CHECK_FIELDS),
+            "receiving_passing": sum(
+                getattr(self.object, f"{field}_status") == Domain.Status.OK
+                for field in Domain.RECEIVING_CHECK_FIELDS
+            ),
+            "receiving_total": len(Domain.RECEIVING_CHECK_FIELDS),
         }
 
 
@@ -84,26 +87,31 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
             pk=pk,
         )
         verify_domain_dns(domain)
-        passing = sum(
-            getattr(domain, f"{field}_status") == Domain.Status.OK
-            for field in CHECK_FIELDS
-        )
-        total = len(CHECK_FIELDS)
-        if passing == total:
-            messages.success(
-                request,
-                _("DNS verification passed: all %(total)d checks pass.")
-                % {"total": total},
+
+        for label, fields in (
+            (_("sending"), Domain.SENDING_CHECK_FIELDS),
+            (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
+        ):
+            passing = sum(
+                getattr(domain, f"{field}_status") == Domain.Status.OK
+                for field in fields
             )
-        else:
-            messages.error(
-                request,
-                _(
-                    "DNS verification failed: %(failing)d of %(total)d checks "
-                    "are still failing."
+            total = len(fields)
+            if passing == total:
+                messages.success(
+                    request,
+                    _("%(label)s verification passed: all %(total)d checks pass.")
+                    % {"label": label, "total": total},
                 )
-                % {"failing": total - passing, "total": total},
-            )
+            else:
+                messages.error(
+                    request,
+                    _(
+                        "%(label)s verification failed: %(failing)d of %(total)d "
+                        "checks are still failing."
+                    )
+                    % {"label": label, "failing": total - passing, "total": total},
+                )
         return redirect(domain.get_absolute_url())
 
 

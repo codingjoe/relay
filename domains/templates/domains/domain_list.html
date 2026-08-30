@@ -60,7 +60,6 @@
             <p class="flex items-center gap-2 flex-wrap">
               <code>{{ domain.sender_domain }}</code>
               <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
-              {% include "domains/_domain_status_badge.html" %}
             </p>
           </section>
         </article>
@@ -70,7 +69,7 @@
             <h3>{{ domain.name }}</h3>
             <p class="flex items-center gap-2 flex-wrap">
               <code>{{ domain.sender_domain }}</code>
-              {% include "domains/_domain_status_badge.html" %}
+              {% include "domains/_purpose_badges.html" %}
             </p>
           </section>
           <aside>

@@ -6,12 +6,19 @@
     <div class="min-w-0">
       <h2 class="m-0">{{ domain.name }}</h2>
       <p class="m-0 mt-2 flex items-center gap-2 flex-wrap text-sm">
-        {% include "domains/_domain_status_badge.html" %}
+        {% include "domains/_purpose_badges.html" %}
         <span class="text-muted-foreground">
-          {% blocktranslate count counter=checks_total trimmed %}
-            {{ checks_passing }} of {{ counter }} check passing.
+          {% blocktranslate count counter=sending_total trimmed %}
+            Sending: {{ sending_passing }} of {{ counter }} check passing.
           {% plural %}
-            {{ checks_passing }} of {{ counter }} checks passing.
+            Sending: {{ sending_passing }} of {{ counter }} checks passing.
+          {% endblocktranslate %}
+        </span>
+        <span class="text-muted-foreground">
+          {% blocktranslate count counter=receiving_total trimmed %}
+            Receiving: {{ receiving_passing }} of {{ counter }} check passing.
+          {% plural %}
+            Receiving: {{ receiving_passing }} of {{ counter }} checks passing.
           {% endblocktranslate %}
         </span>
         {% if domain.dns_checked_at %}
@@ -273,14 +280,15 @@
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
+              {% include "domains/_check_status.html" with status=domain.mx_status %}
               <label>MX</label>
-              <span class="badge" data-size="sm" data-variant="outline">
-                {% translate "no automatic check"|capfirst %}
-              </span>
             </div>
             <p class="text-sm text-muted-foreground">
               {% translate "routes incoming email for this domain to relay."|capfirst %}
             </p>
+            {% if domain.mx_error %}
+              <p class="text-sm text-destructive">{{ domain.mx_error }}</p>
+            {% endif %}
             <div class="input-group flex-wrap min-h-11 max-sm:h-auto">
               <input
                 class="max-sm:basis-[calc(100%-2.75rem)]"

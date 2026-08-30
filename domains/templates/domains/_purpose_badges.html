@@ -1,0 +1,37 @@
+{% load i18n %}
+{% with total=domain.SENDING_CHECK_FIELDS|length passing=domain.sending_checks_passing %}
+  {% if passing == total %}
+    <span class="badge" data-size="sm">
+      <i data-lucide="circle-check" class="size-3.5" aria-hidden="true"></i>
+      {% translate "sending verified"|capfirst %}
+    </span>
+  {% elif passing %}
+    <span class="badge" data-size="sm" data-variant="destructive">
+      <i data-lucide="circle-x" class="size-3.5" aria-hidden="true"></i>
+      {% translate "sending not verified"|capfirst %}
+    </span>
+  {% else %}
+    <span class="badge" data-size="sm" data-variant="outline">
+      <i data-lucide="circle-dashed" class="size-3.5" aria-hidden="true"></i>
+      {% translate "sending not set up"|capfirst %}
+    </span>
+  {% endif %}
+{% endwith %}
+{% with total=domain.RECEIVING_CHECK_FIELDS|length passing=domain.receiving_checks_passing %}
+  {% if passing == total %}
+    <span class="badge" data-size="sm">
+      <i data-lucide="circle-check" class="size-3.5" aria-hidden="true"></i>
+      {% translate "receiving verified"|capfirst %}
+    </span>
+  {% elif passing %}
+    <span class="badge" data-size="sm" data-variant="destructive">
+      <i data-lucide="circle-x" class="size-3.5" aria-hidden="true"></i>
+      {% translate "receiving not verified"|capfirst %}
+    </span>
+  {% else %}
+    <span class="badge" data-size="sm" data-variant="outline">
+      <i data-lucide="circle-dashed" class="size-3.5" aria-hidden="true"></i>
+      {% translate "receiving not set up"|capfirst %}
+    </span>
+  {% endif %}
+{% endwith %}
