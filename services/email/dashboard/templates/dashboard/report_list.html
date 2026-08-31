@@ -60,7 +60,7 @@
         aria-expanded="false"
       >
         <i data-lucide="list-filter" aria-hidden="true"></i>
-        {% translate "filter"|capfirst context "verb" %}
+        {{ type_label }}
         {% if filter_count %}
           <span class="badge" data-size="sm">{{ filter_count }}</span>
         {% endif %}

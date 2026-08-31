@@ -125,9 +125,14 @@ class ReportListView(OrganizationScopedView, generic.ListView):
         filter_count = (
             int(report_type != self.ReportType.DMARC) + bool(domain) + bool(ip)
         )
+        try:
+            type_label = self.ReportType(report_type).label
+        except ValueError:
+            type_label = self.ReportType.DMARC.label
         return super().get_context_data(**kwargs) | {
             "type": report_type,
             "domain": domain,
             "ip": ip,
             "filter_count": filter_count,
+            "type_label": type_label,
         }

@@ -48,10 +48,15 @@ class MessageListView(OrganizationScopedView, generic.ListView):
         filter_count = sum(
             bool(value) for value in (email, status, direction != self.Direction.ALL)
         )
+        try:
+            direction_label = self.Direction(direction).label
+        except ValueError:
+            direction_label = self.Direction.ALL.label
         return super().get_context_data(**kwargs) | {
             "direction": direction,
             "email": email,
             "status": status,
             "status_choices": Message.status_choices(),
             "filter_count": filter_count,
+            "direction_label": direction_label,
         }
