@@ -146,10 +146,9 @@ class DmarcEvaluation:
     def from_bytes(cls, raw_bytes, mail_from, client_ip: str = ""):
         """Evaluate DMARC for a message from raw bytes.
 
-        SPF is evaluated against client_ip, the connecting address of the
-        SMTP session, so forged Received headers cannot authenticate a
-        sender. Callers without a session address, such as from_message,
-        fall back to the Received headers.
+        SPF is evaluated against client_ip, the SMTP session's connecting
+        address, so forged Received headers cannot authenticate a sender.
+        Callers without a session address fall back to the Received headers.
         """
         msg = message_from_bytes(raw_bytes)
         header_from_domain = cls.extract_domain(msg.get("From", ""))

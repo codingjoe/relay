@@ -48,13 +48,11 @@ def create_authentication_results(
 ) -> bytes:
     """Return the Authentication-Results header line for an evaluation.
 
-    Result properties whose domain is not a plain domain name are omitted,
-    so an attacker-controlled header value cannot inject clauses. The DMARC
-    result is `temperror` when the policy lookup failed transiently, `none`
-    when the sender domain publishes no DMARC policy, and `pass` only when
-    an aligned SPF or DKIM mechanism passed (RFC 7489 §6.6.2). A terminated
-    ARC chain is reported as `fail`, since RFC 8601 defines no `terminated`
-    result.
+    Result properties with an invalid domain are omitted, so an attacker-controlled
+    header value cannot inject clauses. The DMARC result is `temperror` when
+    the policy lookup failed, `none` when the sender publishes no policy, and
+    `pass` only when an aligned mechanism passed (RFC 7489 §6.6.2). A terminated
+    chain renders as `fail`, which RFC 8601 defines as a result.
     """
     if evaluation.dmarc_policy_temperror:
         dmarc_result = "temperror"
@@ -85,8 +83,8 @@ def create_authentication_results(
 def is_trusted_authentication_results(header_block: bytes, authserv_id: str) -> bool:
     """Return whether a multi-line header block may survive sealing.
 
-    An Authentication-Results header is trusted when it parses and does
-    not claim relay's authserv-id. All other header blocks are trusted.
+    A block is untrusted when it claims relay's authserv-id or does not
+    parse.
     """
     name, _, value = header_block.partition(b":")
     if name.lower().rstrip(b" \t") != b"authentication-results":
@@ -103,17 +101,11 @@ def is_trusted_authentication_results(header_block: bytes, authserv_id: str) -> 
 def remove_untrusted_authentication_results(
     raw_bytes: bytes, authserv_id: str
 ) -> bytes:
-    """Return the message without Authentication-Results headers relay
-    cannot vouch for.
+    """Return the message without untrusted Authentication-Results headers.
 
-    A header is dropped when it claims relay's authserv-id or when it
-    cannot be parsed, so a spoofed or broken verdict cannot enter the
-    seal. Header parsing ends like Python's email parser does, at a
-    blank line or at a colon-less line that is not a continuation, so
-    the body of a message without a header/body separator survives.
-    A unix-from line (mbox envelope, starting with "From ") does not
-    end the header section and is kept verbatim, since Python's email
-    parser and dkimpy continue parsing headers after it.
+    Header parsing ends like Python's email parser does: at a blank line,
+    at a colon-less line that is not a continuation, or never after a
+    unix-from line.
     """
     kept: list[bytes] = []
     block: list[bytes] = []
@@ -145,12 +137,9 @@ def remove_untrusted_authentication_results(
 def fetch_dkim_key_record(name: bytes, timeout: int = 5) -> bytes | None:
     """Return the first TXT record at a DKIM selector name, or None.
 
-    The first TXT record is returned with its strings joined and without
-    a v=DKIM1 filter, matching dkimpy's get_txt: RFC 6376 §3.6.1 makes
-    the tag optional, and dkimpy's tag validation rejects non-key
-    records itself. The timeout parameter is unused; it only exists to
-    satisfy dkimpy's dnsfunc protocol. DNS lookups are bounded by
-    DNS_LOOKUP_LIFETIME.
+    The record text is joined without a v=DKIM1 filter, which RFC 6376
+    §3.6.1 makes optional. The timeout parameter only exists to satisfy
+    dkimpy's dnsfunc protocol.
     """
     try:
         answer = dns.resolver.resolve(
@@ -168,8 +157,8 @@ def verify_arc_chain(
 ) -> ChainResult:
     """Return the ARC chain validation status of a message.
 
-    DNS lookups are capped by the total dns_budget; once it is
-    exhausted, further lookups return no key and the chain fails.
+    Chain verification stops when dns_budget is exhausted and reports a
+    failed chain.
     """
     deadline = time.monotonic() + dns_budget.total_seconds()
     budget_exhausted = False
