@@ -73,6 +73,12 @@ wheels = [
 ]
 
 [[package]]
+name = "authres"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/29/e28209b5d3d56c102845cca5a4a3abaf2724f79e83476a52b94d775ecce6/authres-1.2.0.tar.gz", hash = "sha256:93d1b995ad7ce21e62db649f361048125dd6022563a0ae8a23909465f1fd25b7", size = 23226, upload-time = "2019-08-03T19:38:00.494Z" }
+
+[[package]]
 name = "boto3"
 version = "1.43.83"
 source = { registry = "https://pypi.org/simple" }
@@ -912,6 +918,7 @@ dependencies = [
     { name = "abnf" },
     { name = "aiosmtpd" },
     { name = "aiosmtplib" },
+    { name = "authres" },
     { name = "boto3" },
     { name = "cryptography" },
     { name = "django" },
@@ -967,6 +974,7 @@ requires-dist = [
     { name = "abnf", specifier = ">=2.9" },
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "aiosmtplib", specifier = ">=5.1.2" },
+    { name = "authres", specifier = ">=1.2" },
     { name = "boto3", specifier = ">=1.43.83" },
     { name = "cryptography", specifier = ">=50.0.1" },
     { name = "django", specifier = ">=6.1,<6.2" },

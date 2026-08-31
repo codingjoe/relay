@@ -12,7 +12,7 @@ author: Johannes Maron
 
 MTA-STS (SMTP MTA Strict Transport Security) is a standard that lets a receiving mail server declare its support for TLS encryption. Sending mail servers read the MTA-STS policy and refuse to deliver over an unencrypted connection when the policy mode is `enforce`.
 
-MTA-STS is defined in [RFC 8461](https://datatracker.ietf.org/doc/html/rfc8461).
+MTA-STS is defined in [RFC 8461][rfc-8461].
 
 ## Why MTA-STS matters
 
@@ -62,13 +62,17 @@ Start with `mode: testing` and monitor the reports. Then switch to `mode: enforc
 
 ## Further reading
 
-- [RFC 8461: SMTP MTA Strict Transport Security (MTA-STS)](https://datatracker.ietf.org/doc/html/rfc8461)
-- [RFC 8461 Section 3.2: Policy file format](https://datatracker.ietf.org/doc/html/rfc8461#section-3.2)
+- [RFC 8461][rfc-8461]: SMTP MTA Strict Transport Security (MTA-STS)
+- [RFC 8461][rfc-8461] Section 3.2: Policy file format
 - <a href="{% url 'know_how:detail' slug='tls-rpt' %}">TLS-RPT</a>: TLS Reporting
 - <a href="{% url 'know_how:detail' slug='mx' %}">MX</a>: Mail Exchange records
 
-[^hsts]: HSTS is defined in [RFC 6797](https://datatracker.ietf.org/doc/html/rfc6797). The analogy is not exact because HSTS is enforced by browsers and MTA-STS is enforced by mail transfer agents.
+[^hsts]: HSTS is defined in [RFC 6797][rfc-6797]. The analogy is not exact because HSTS is enforced by browsers and MTA-STS is enforced by mail transfer agents.
 
 [^policy-id]: The policy ID can be any unique string. A common practice is to use a short random token or a version number. Update the ID whenever you change the policy file so that senders fetch the new version.
 
-[^dane-alternative]: DANE (DNS-Based Authentication of Named Entities) is an alternative approach to SMTP TLS that uses DNSSEC instead of certificate authorities. DANE is defined in [RFC 7672](https://datatracker.ietf.org/doc/html/rfc7672). MTA-STS and DANE can coexist, but MTA-STS is simpler to deploy because it does not require DNSSEC.
+[^dane-alternative]: DANE (DNS-Based Authentication of Named Entities) is an alternative approach to SMTP TLS that uses DNSSEC instead of certificate authorities. DANE is defined in [RFC 7672][rfc-7672]. MTA-STS and DANE can coexist, but MTA-STS is simpler to deploy because it does not require DNSSEC.
+
+[rfc-6797]: https://www.rfc-editor.org/info/rfc6797/
+[rfc-7672]: https://www.rfc-editor.org/info/rfc7672/
+[rfc-8461]: https://www.rfc-editor.org/info/rfc8461/

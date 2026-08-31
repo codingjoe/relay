@@ -12,7 +12,7 @@ author: Johannes Maron
 
 SPF (Sender Policy Framework) is a DNS-based email authentication standard. It lets a domain owner publish a list of IP addresses and mechanisms that identify the mail servers authorized to send email for that domain. Receiving mail servers check the SPF record to verify that the sending server is authorized.
 
-SPF is defined in [RFC 7208](https://datatracker.ietf.org/doc/html/rfc7208).
+SPF is defined in [RFC 7208][rfc-7208].
 
 ## Why SPF matters
 
@@ -86,14 +86,16 @@ Use `-all` for hard fail only after you confirm that all legitimate senders pass
 
 ## Further reading
 
-- [RFC 7208: Sender Policy Framework](https://datatracker.ietf.org/doc/html/rfc7208)
-- [RFC 7208 Section 2.3: SPF results](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3)
+- [RFC 7208][rfc-7208]: Sender Policy Framework
+- [RFC 7208][rfc-7208] Section 2.3: SPF results
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
 - <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>: DomainKeys Identified Mail
 - <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a>: The bounce address and envelope sender
 
-[^helo-optional]: The `HELO`/`EHLO` check is optional in the SPF specification. A server can publish a separate SPF record for its `HELO` hostname. This practice is recommended but not required. See [RFC 7208 Section 2.3](https://datatracker.ietf.org/doc/html/rfc7208#section-2.3).
+[^helo-optional]: The `HELO`/`EHLO` check is optional in the SPF specification. A server can publish a separate SPF record for its `HELO` hostname. This practice is recommended but not required. See [RFC 7208][rfc-7208] Section 2.3.
 
 [^lookup-limit]: The 10-lookup limit includes recursive `include` chains. If domain A includes domain B, and domain B includes domain C, each step counts toward the limit. Long include chains are a common cause of SPF `permerror` results.
 
 [^softfail-vs-fail]: The difference between `~all` (soft fail) and `-all` (hard fail) is in the receiver response. Soft fail is a recommendation to treat the message with suspicion. Hard fail is a recommendation to reject it. Some receivers ignore the distinction and treat both the same.
+
+[rfc-7208]: https://www.rfc-editor.org/info/rfc7208/
