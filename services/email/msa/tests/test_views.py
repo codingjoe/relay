@@ -52,6 +52,51 @@ class TestMessageDetailView:
         assert "headers" in response.context
         assert "transmissions" in response.context
 
+    def test_get__shows_stored_headers_and_dkim_signatures(
+        self, admin_client, org, user
+    ):
+        msg = make_message(org, user)
+        msg.headers = [
+            ["From", "alice@example.com"],
+            ["Subject", "Test"],
+            [
+                "DKIM-Signature",
+                (
+                    "v=1; a=ed25519-sha256; d=acme.com; s=relay; h=from:subject; "
+                    "bh=AAAA; b=BBBB"
+                ),
+            ],
+        ]
+        msg.save(update_fields=["headers"])
+        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
+        assert response.status_code == 200
+        assert response.context["headers"] == msg.headers
+        assert response.context["dkim_signatures"] == [
+            {
+                "v": "1",
+                "a": "ed25519-sha256",
+                "d": "acme.com",
+                "s": "relay",
+                "h": "from:subject",
+                "bh": "AAAA",
+                "b": "BBBB",
+            }
+        ]
+
+    def test_get__malformed_dkim_signature_does_not_crash(
+        self, admin_client, org, user
+    ):
+        msg = make_message(org, user)
+        msg.headers = [
+            ["DKIM-Signature", "v=1; a=ed25519-sha256; b"],
+        ]
+        msg.save(update_fields=["headers"])
+        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
+        assert response.status_code == 200
+        assert response.context["dkim_signatures"] == [
+            {"v": "1", "a": "ed25519-sha256"}
+        ]
+
 
 @pytest.mark.django_db
 class TestTestEmailView:

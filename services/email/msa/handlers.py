@@ -156,11 +156,14 @@ def process_suppressed_message(
 ):
     """Store a suppressed message without enqueuing delivery.
 
-    Suppressed mail is never sent, so it gets no Feedback-ID and FBL
-    complaints can never be attributed to it.
+    Suppressed mail is never sent, so relay mints no Feedback-ID and FBL
+    complaints can never be attributed to it. Strip customer-supplied
+    Feedback-ID headers so only the Feedback-ID relay actually forwarded
+    with ever persists.
     """
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
+    raw_bytes = remove_feedback_id_headers(raw_bytes)
     OutgoingMessage.objects.create(
         org=credential.org,
         rcpt_to=rcpt_to,
@@ -171,6 +174,7 @@ def process_suppressed_message(
         credential=credential,
         status=OutgoingMessage.Status.SUPPRESSED,
         received_with_tls=bool(ssl),
+        headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
     logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
@@ -232,6 +236,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
         feedback_id=feedback_id,
         received_with_tls=bool(ssl),
         status=OutgoingMessage.Status.PENDING,
+        headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
 
