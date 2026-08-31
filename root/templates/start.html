@@ -432,7 +432,14 @@ export async function POST(req: Request) {
             >TLS-RPT</a>
           </li>
           <li><span class="badge" data-variant="outline" data-size="sm">FBL</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">ARC</span></li>
+          <li>
+            <a
+              href="{% url 'know_how:detail' 'arc' %}"
+              class="badge transition-colors hover:text-foreground"
+              data-variant="outline"
+              data-size="sm"
+            >ARC</a>
+          </li>
           <li>
             <a
               href="https://standardwebhooks.com"
