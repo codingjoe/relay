@@ -30,12 +30,9 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-      RELAY_PROXY_PROTOCOL_TIMEOUT: 0
-      RELAY_SMTP_TLS_CERT_PATH: ""
-      RELAY_SMTP_TLS_KEY_PATH: ""
-    ports: !override
-      - '127.0.0.1:587:587'
-    deploy: !reset {}
+      # The dev box's Caddy issues localhost certificates with its local CA.
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/local/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/local/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
     pull_policy: build
   mta:
     build:
@@ -47,10 +44,9 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-      RELAY_PROXY_PROTOCOL_TIMEOUT: 0
-    ports: !override
-      - '127.0.0.1:25:25'
-    deploy: !reset {}
+      # The dev box's Caddy issues localhost certificates with its local CA.
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/local/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/local/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
     pull_policy: build
   web:
     build:
