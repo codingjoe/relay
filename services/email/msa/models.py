@@ -90,6 +90,11 @@ class Transmission(TimeStamped):
         RETRY = "retry", _("retry")
         BOUNCED = "bounced", _("bounced")
 
+    class TlsMode(models.TextChoices):
+        PLAINTEXT = "plaintext", "plaintext"
+        STARTTLS = "starttls", "STARTTLS"
+        TLS = "tls", "TLS"
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid7,
@@ -99,6 +104,23 @@ class Transmission(TimeStamped):
         OutgoingMessage,
         on_delete=models.CASCADE,
         related_name="transmissions",
+    )
+    mx_host = models.TextField(
+        _("MX host"),
+        blank=True,
+        help_text=_("MX hostname this delivery attempt dialed."),
+    )
+    sending_mta_ip_address = models.GenericIPAddressField(
+        _("sending MTA IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address relay sent this delivery attempt from."),
+    )
+    receiving_mx_ip_address = models.GenericIPAddressField(
+        _("receiving MX IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address of the MX that handled this delivery attempt."),
     )
     status = models.TextField(
         _("status"),
@@ -121,10 +143,28 @@ class Transmission(TimeStamped):
         blank=True,
         help_text=_("Human-readable explanation of the outcome."),
     )
-    sent_with_ssl = models.BooleanField(
-        _("sent with SSL"),
-        default=False,
-        help_text=_("Delivered over TLS."),
+    tls_mode = models.TextField(
+        _("TLS mode"),
+        choices=TlsMode,
+        default=TlsMode.PLAINTEXT,
+        help_text=_("TLS transport negotiated for this delivery attempt."),
+    )
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="transmissions",
     )
     log_id = models.TextField(
         _("log ID"),

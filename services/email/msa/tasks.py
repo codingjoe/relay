@@ -1,10 +1,13 @@
 import datetime
 import logging
+import ssl
+from collections.abc import Iterator
 
 import aiosmtplib
 import dns.resolver
 import httpx
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
+from cryptography import x509
 from django.conf import settings
 from django.tasks import task
 from threadmill.retry import ExponentialBackoff
@@ -84,22 +87,18 @@ def deliver_message(message_id):
                 )
                 continue
             try:
-                response = async_to_sync(aiosmtplib.send)(
+                response, tls_details = async_to_sync(send_via_mx)(
                     raw_bytes,
-                    hostname=mx_host,
-                    port=25,
-                    use_tls=False,
-                    start_tls=True,
-                    local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
-                    sender=return_path,
-                    recipients=[message.rcpt_to],
+                    mx_host,
+                    return_path,
+                    [message.rcpt_to],
                 )
                 Transmission.objects.create(
                     message=message,
                     status=Transmission.Status.SENT,
                     output=str(response),
-                    sent_with_ssl=True,
-                    log_id=str(response)[:255] if response else "",
+                    mx_host=mx_host,
+                    **tls_details,
                 )
                 message.status = OutgoingMessage.Status.SENT
                 message.save(update_fields=["status"])
@@ -113,6 +112,7 @@ def deliver_message(message_id):
                     status=Transmission.Status.BOUNCED,
                     code=code,
                     output=str(e),
+                    mx_host=mx_host,
                 )
                 message.status = OutgoingMessage.Status.BOUNCED
                 message.save(update_fields=["status"])
@@ -148,6 +148,58 @@ def fetch_mx_hosts(domain):
         ]
     except dns.exception.DNSException:
         return []
+
+
+async def send_via_mx(
+    raw_bytes: bytes, mx_host: str, sender: str, recipients: list[str]
+) -> tuple[str, dict]:
+    """Deliver a message to an MX host over STARTTLS on port 25 and return
+    the SMTP response with the negotiated TLS details."""
+    from kms.models import Certificate
+
+    from .models import Transmission
+
+    async with aiosmtplib.SMTP(
+        hostname=mx_host,
+        port=25,
+        use_tls=False,
+        start_tls=True,
+        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+    ) as smtp_client:
+        response = await smtp_client.sendmail(sender, recipients, raw_bytes)
+        # The server may drop the connection right after accepting, so the
+        # transport reads must not fail a delivery that already succeeded.
+        try:
+            cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
+            ssl_object = smtp_client.get_transport_info("ssl_object")
+            sockname = smtp_client.get_transport_info("sockname")
+            peername = smtp_client.get_transport_info("peername")
+        except aiosmtplib.SMTPServerDisconnected:
+            cipher = (None, None, None)
+            ssl_object = None
+            sockname = None
+            peername = None
+    tls_details = {
+        "tls_mode": Transmission.TlsMode.STARTTLS,
+        "tls_cipher": cipher[0] or "",
+        "tls_version": cipher[1] or "",
+        "sending_mta_ip_address": sockname[0] if sockname else None,
+        "receiving_mx_ip_address": peername[0] if peername else None,
+    }
+    if ssl_object is not None:
+        tls_details["tls_certificate"] = await sync_to_async(
+            Certificate.store_presented_chain
+        )(parse_peer_certificates(ssl_object))
+    return response, tls_details
+
+
+def parse_peer_certificates(
+    ssl_object: ssl.SSLObject,
+) -> Iterator[x509.Certificate]:
+    """Yield the X.509 certificates the remote server presented."""
+    chain = ssl_object.get_unverified_chain() or ssl_object.get_verified_chain()
+    for der in chain:
+        yield x509.load_der_x509_certificate(der)
 
 
 @task(

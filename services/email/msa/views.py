@@ -54,7 +54,9 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
             "dkim_signatures": dkim_signatures,
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.parsed_email().get_payload(decode=True) or "",
-            "transmissions": Transmission.objects.filter(message=message),
+            "transmissions": Transmission.objects.filter(
+                message=message
+            ).select_related("tls_certificate"),
         }
 
 

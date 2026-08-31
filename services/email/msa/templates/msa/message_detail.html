@@ -78,6 +78,7 @@
                   <th scope="col">{% translate "status"|capfirst context "noun" %}</th>
                   <th scope="col">{% translate "code"|capfirst context "noun" %}</th>
                   <th scope="col">{% translate "sent"|capfirst %}</th>
+                  <th scope="col">{% translate "MX host"|capfirst %}</th>
                   <th scope="col">{% translate "TLS" %}</th>
                   <th scope="col">{% translate "log ID"|capfirst %}</th>
                   <th scope="col">{% translate "transcript"|capfirst %}</th>
@@ -99,11 +100,22 @@
                     <td>
                       {% timestamp transmission.created_at %}
                     </td>
+                    <td title="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
+                      <code>{{ transmission.mx_host|default:"-" }}</code>
+                    </td>
                     <td>
-                      {% if transmission.sent_with_ssl %}
-                        <span class="badge" data-size="sm">TLS</span>
+                      {% if transmission.tls_certificate %}
+                        <span
+                          class="badge"
+                          data-size="sm"
+                          title="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }} ({{ transmission.tls_certificate.subject_alternative_names }}) · {{ transmission.tls_certificate.issuer }} · serial {{ transmission.tls_certificate.serial_number }} · sha256 {{ transmission.tls_certificate.fingerprint }}"
+                        >
+                          {{ transmission.get_tls_mode_display }}
+                        </span>
                       {% else %}
-                        <span class="text-muted-foreground">-</span>
+                        <span class="text-muted-foreground">
+                          {{ transmission.get_tls_mode_display }}
+                        </span>
                       {% endif %}
                     </td>
                     <td>

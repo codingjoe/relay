@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/stable/ref/settings/
 """
 
 import base64
+import datetime
 import hashlib
 import os
 from pathlib import Path
@@ -261,12 +262,22 @@ RELAY_MANAGED_SENDER_DOMAIN = f"open.{RELAY_PLATFORM_DOMAIN}"
 
 RELAY_SMTP_SUBMISSION_PORTS = (587, 465)
 RELAY_SMTP_IMPLICIT_TLS_PORTS = (465,)
+RELAY_SMTP_BALANCER_PORT = 2465
 RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
 RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
 
 RELAY_MX_PORTS = (25,)
 RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
 RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
+
+# Timeout in seconds for reading the PROXY protocol header. None disables
+# the expectation; a positive value is required where enabled.
+proxy_protocol_timeout_secs = env.float("RELAY_PROXY_PROTOCOL_TIMEOUT", default=None)
+RELAY_PROXY_PROTOCOL_TIMEOUT = (
+    datetime.timedelta(seconds=proxy_protocol_timeout_secs)
+    if proxy_protocol_timeout_secs
+    else None
+)
 
 RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
 RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)
