@@ -1,5 +1,6 @@
 """MX receiving server with STARTTLS support."""
 
+import datetime
 import logging
 import signal
 import sys
@@ -7,6 +8,7 @@ import time
 
 from aiosmtpd.controller import Controller
 
+from services.email.proxy_protocol import proxy_protocol_timeout_seconds
 from services.email.tls import build_tls_context
 
 from .handlers import MXHandler
@@ -21,7 +23,7 @@ class MXServer:
         ports=(25,),
         tls_cert_path="",
         tls_key_path="",
-        proxy_protocol_timeout=None,
+        proxy_protocol_timeout: datetime.timedelta | None = None,
     ):
         self.host = host
         self.ports = ports
@@ -47,7 +49,9 @@ class MXServer:
                 hostname=self.host,
                 port=port,
                 tls_context=tls_context,
-                proxy_protocol_timeout=self.proxy_protocol_timeout,
+                proxy_protocol_timeout=proxy_protocol_timeout_seconds(
+                    self.proxy_protocol_timeout
+                ),
             )
             try:
                 controller.start()
@@ -69,7 +73,7 @@ def run_mx_server(
     ports=(25,),
     tls_cert_path="",
     tls_key_path="",
-    proxy_protocol_timeout=None,
+    proxy_protocol_timeout: datetime.timedelta | None = None,
 ):
     server = MXServer(
         host=host,

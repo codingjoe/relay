@@ -1,5 +1,7 @@
 """PROXY protocol support for SMTP servers behind the Caddy L4 balancer."""
 
+import datetime
+
 from aiosmtpd.smtp import Session
 
 
@@ -17,3 +19,8 @@ def get_client_ip(session: Session) -> str:
     if proxy_data and proxy_data.src_addr:
         return str(proxy_data.src_addr)
     return session.peer[0] if session.peer else ""
+
+
+def proxy_protocol_timeout_seconds(timeout: datetime.timedelta | None) -> float | None:
+    """Convert the PROXY protocol timeout to the seconds aiosmtpd expects."""
+    return timeout.total_seconds() if timeout else None

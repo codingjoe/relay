@@ -77,18 +77,22 @@ services:
     environment:
       RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
       RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
-      RELAY_SMTP_BALANCER_PORT: ${RELAY_SMTP_BALANCER_PORT:-2465}
-      RELAY_PROXY_PROTOCOL_TIMEOUT_SECS: ${RELAY_PROXY_PROTOCOL_TIMEOUT_SECS:-3}
-    networks: !override
-      - app
-      - app-wan
-      - caddy
+      RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "msa", "--ports", "587" ]
     labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
-    deploy: !override
-      replicas: ${MSA_REPLICAS:-2}
+      - "caddy_1.layer4.:587.route.proxy=msa:587"
+      - "caddy_1.layer4.:587.route.proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:587.route.proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:587.route.proxy.fail_duration=10s"
+      - "caddy_1.layer4.:587.route.proxy.proxy_protocol=v2"
+      - "caddy_1.layer4.:465.route.0_tls="
+      - "caddy_1.layer4.:465.route.1_proxy=msa:2465"
+      - "caddy_1.layer4.:465.route.1_proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:465.route.1_proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:465.route.1_proxy.fail_duration=10s"
+      - "caddy_1.layer4.:465.route.1_proxy.proxy_protocol=v2"
     extends:
       service: web
   mta:
@@ -98,17 +102,16 @@ services:
     environment:
       RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
       RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
-      RELAY_PROXY_PROTOCOL_TIMEOUT_SECS: ${RELAY_PROXY_PROTOCOL_TIMEOUT_SECS:-3}
-    networks: !override
-      - app
-      - app-wan
-      - caddy
+      RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
     labels: !override
       - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
-    deploy: !override
-      replicas: ${MTA_REPLICAS:-2}
+      - "caddy_1.layer4.:25.route.proxy=mta:25"
+      - "caddy_1.layer4.:25.route.proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:25.route.proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:25.route.proxy.fail_duration=10s"
+      - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
     extends:
       service: web
   rspamd:
