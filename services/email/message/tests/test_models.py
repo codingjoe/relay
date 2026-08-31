@@ -1,4 +1,5 @@
 import pytest
+from django.core.files.base import ContentFile
 
 from domains.models import Domain
 from services.email.message.models import Message
@@ -170,3 +171,81 @@ class TestMessage:
     def test_get_absolute_url__incoming(self, org):
         msg = create_incoming(org)
         assert str(msg.pk) in Message.objects.get(pk=msg.pk).get_absolute_url()
+
+
+class TestMessageHeaders:
+    def test_headers_from_raw__parses_name_value_pairs(self):
+        raw = b"From: alice@example.com\r\nSubject: Hello\r\n\r\nBody"
+        assert Message.headers_from_raw(raw) == [
+            ["From", "alice@example.com"],
+            ["Subject", "Hello"],
+        ]
+
+    def test_headers_from_raw__preserves_duplicate_headers(self):
+        raw = b"Received: one\r\nReceived: two\r\n\r\nBody"
+        assert Message.headers_from_raw(raw) == [
+            ["Received", "one"],
+            ["Received", "two"],
+        ]
+
+    def test_headers_from_raw__decodes_8bit_header_bytes(self):
+        raw = (
+            b"From: alice@example.com\r\n"
+            b"X-Latin1: caf\xe9\r\n"
+            b"X-UTF8: caf\xc3\xa9\r\n"
+            b"\r\n"
+            b"Body"
+        )
+        assert Message.headers_from_raw(raw) == [
+            ["From", "alice@example.com"],
+            ["X-Latin1", "caf\N{REPLACEMENT CHARACTER}"],
+            ["X-UTF8", "café"],
+        ]
+
+    def test_headers_from_raw__replaces_nul_bytes(self):
+        raw = b"From: alice@example.com\r\nX-Custom: a\x00b\r\n\r\nBody"
+        assert Message.headers_from_raw(raw) == [
+            ["From", "alice@example.com"],
+            ["X-Custom", "a\N{REPLACEMENT CHARACTER}b"],
+        ]
+
+    @pytest.mark.django_db
+    def test_headers_from_raw__serializes_through_jsonfield(self, user, org):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        raw = b"From: alice@example.com\r\nX-Custom: caf\xc3\xa9\r\n\r\nBody"
+        message = OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            headers=OutgoingMessage.headers_from_raw(raw),
+        )
+        message = OutgoingMessage.objects.get(pk=message.pk)
+        assert message.headers == [
+            ["From", "alice@example.com"],
+            ["X-Custom", "café"],
+        ]
+
+    @pytest.mark.django_db
+    def test_parsed_headers__uses_stored_headers(self, user, org):
+        msg = create_outgoing(user, org)
+        msg.headers = [["From", "alice@example.com"], ["Subject", "Hello"]]
+        msg.save(update_fields=["headers"])
+        assert Message.objects.get(pk=msg.pk).parsed_headers == [
+            ["From", "alice@example.com"],
+            ["Subject", "Hello"],
+        ]
+
+    @pytest.mark.django_db
+    def test_parsed_headers__falls_back_to_raw_body(self, user, org):
+        msg = create_outgoing(user, org)
+        msg.raw_body.save(
+            f"{msg.id}.eml",
+            ContentFile(b"From: alice@example.com\r\nSubject: Hello\r\n\r\nBody"),
+            save=False,
+        )
+        msg.save(update_fields=["raw_body"])
+        assert Message.objects.get(pk=msg.pk).parsed_headers == [
+            ["From", "alice@example.com"],
+            ["Subject", "Hello"],
+        ]

@@ -1,5 +1,6 @@
 import uuid
 from email import message_from_bytes
+from email.header import Header, decode_header
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -51,6 +52,12 @@ class Message(TimeStamped):
         upload_to="messages/",
         blank=True,
         help_text=_("Raw RFC 822 message bytes."),
+    )
+    headers = models.JSONField(
+        _("headers"),
+        default=list,
+        blank=True,
+        help_text=_("RFC 5322 header fields of the message, as [name, value] pairs."),
     )
     received_with_tls = models.BooleanField(
         _("received with TLS"),
@@ -139,8 +146,55 @@ class Message(TimeStamped):
     def parsed_email(self):
         """Parse the raw body into an `email.message.Message` object."""
         try:
+            self.raw_body.seek(0)
             return message_from_bytes(self.raw_body.read())
         except FileNotFoundError, ValueError:
             # FieldFile raises ValueError when no file is associated (empty
             # name), e.g. pruned or fixture-only rows.
             return message_from_bytes(b"body pruned")
+
+    @classmethod
+    def headers_from_raw(cls, raw_bytes):
+        """Return the message headers as JSON-serializable [name, value] pairs."""
+        return [
+            [cls.header_to_text(name), cls.header_to_text(value)]
+            for name, value in message_from_bytes(raw_bytes).items()
+        ]
+
+    @staticmethod
+    def header_to_text(value) -> str:
+        """Return a parsed header name or value as a JSON-serializable string.
+
+        The compat32 parser returns `Header` objects for header values with
+        raw 8-bit bytes, which a JSONField cannot serialize. Decode those
+        back to text. Replace NUL bytes with U+FFFD because PostgreSQL
+        jsonb rejects them in any representation; the raw body keeps the
+        byte-exact form.
+        """
+        if isinstance(value, Header):
+            text = b"".join(
+                chunk if isinstance(chunk, bytes) else chunk.encode()
+                for chunk, _ in decode_header(value)
+            ).decode("utf-8", "replace")
+        else:
+            text = value
+            try:
+                text.encode("utf-8")
+            except UnicodeEncodeError:
+                # 8-bit header names carry surrogate escapes, not real code points.
+                text = text.encode("utf-8", "surrogateescape").decode(
+                    "utf-8", "replace"
+                )
+        # PostgreSQL jsonb rejects NUL bytes in any representation.
+        return text.replace("\x00", "\ufffd")
+
+    @property
+    def parsed_headers(self):
+        """Return the message headers as [name, value] pairs, from storage or the raw body."""
+        if self.headers:
+            return self.headers
+        try:
+            self.raw_body.seek(0)
+            return self.headers_from_raw(self.raw_body.read())
+        except FileNotFoundError, ValueError:
+            return []
