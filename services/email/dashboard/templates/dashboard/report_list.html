@@ -34,11 +34,15 @@
             placeholder='{% translate "search by IP" %}'
           >
         {% endif %}
+        <span data-align="start" aria-hidden="true">
+          <i data-lucide="search" class="size-4"></i>
+        </span>
         <button
           type="submit"
           class="btn"
           data-variant="ghost"
-          data-size="icon-sm"
+          data-size="icon"
+          data-align="end"
           aria-label='{% translate "search"|capfirst context "verb" %}'
         >
           <i data-lucide="arrow-right" aria-hidden="true"></i>
@@ -72,6 +76,7 @@
       >
         <div class="command" id="report-filter-command" aria-label='{% translate "filters"|capfirst %}'>
           <header>
+            <i data-lucide="search" class="size-4"></i>
             <input
               id="report-filter-input"
               type="search"
