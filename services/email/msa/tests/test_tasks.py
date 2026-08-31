@@ -120,6 +120,9 @@ class TestDeliverMessage:
             mock_smtp.call_args.kwargs["local_hostname"]
             == settings.RELAY_SMTP_PUBLIC_HOSTNAME
         )
+        assert mock_smtp.call_args.kwargs["port"] == 25
+        assert mock_smtp.call_args.kwargs["use_tls"] is False
+        assert mock_smtp.call_args.kwargs["start_tls"] is True
         assert smtp_client.sendmail.call_args.args[0] == (
             f"{settings.RELAY_BOUNCE_LOCAL_PART}+{msg.id}@{domain.sender_domain}"
         )

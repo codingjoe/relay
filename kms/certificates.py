@@ -3,7 +3,7 @@
 from cryptography import x509
 
 
-def format_subject_alternative_names(certificate) -> str:
+def format_subject_alternative_names(certificate: x509.Certificate) -> str:
     """Return the DNS names a certificate covers, comma-separated."""
     try:
         extension = certificate.extensions.get_extension_for_class(

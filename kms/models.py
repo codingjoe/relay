@@ -1,4 +1,7 @@
+from collections.abc import Iterable
+
 import dkim
+from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -87,6 +90,9 @@ class SigningKey(TimeStamped):
         )
 
 
+CERTIFICATE_CHAIN_MAX_DEPTH = 10
+
+
 class Certificate(TimeStamped):
     """A TLS certificate presented by a remote server."""
 
@@ -141,16 +147,21 @@ class Certificate(TimeStamped):
         return self.subject or f"sha256:{self.fingerprint[:16]}…"
 
     def chain(self):
-        """Yield this certificate and its presented issuers, leaf first."""
+        """Yield this certificate and its presented issuers, leaf first.
+
+        Yields at most CERTIFICATE_CHAIN_MAX_DEPTH certificates.
+        """
         certificate = self
-        for _depth in range(10):
+        for _depth in range(CERTIFICATE_CHAIN_MAX_DEPTH):
             yield certificate
             if certificate.issuer_certificate is None:
                 break
             certificate = certificate.issuer_certificate
 
     @classmethod
-    def store_presented_chain(cls, parsed_certificates) -> Certificate:
+    def store_presented_chain(
+        cls, parsed_certificates: Iterable[x509.Certificate]
+    ) -> Certificate:
         """Store the certificates a server presented and return the leaf row."""
         presented = list(parsed_certificates)
         presented.reverse()

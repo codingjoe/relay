@@ -270,6 +270,8 @@ RELAY_MX_PORTS = (25,)
 RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
 RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
 
+# Timeout in seconds for reading the PROXY protocol header. None disables
+# the expectation; a positive value is required where enabled.
 proxy_protocol_timeout_secs = env.float("RELAY_PROXY_PROTOCOL_TIMEOUT", default=None)
 RELAY_PROXY_PROTOCOL_TIMEOUT = (
     datetime.timedelta(seconds=proxy_protocol_timeout_secs)

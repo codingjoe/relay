@@ -16,13 +16,11 @@ from .handlers import BalancerHandler, ImplicitTLSHandler, SMTPHandler
 logger = logging.getLogger(__name__)
 
 BALANCER_PROXY_PROTOCOL_TIMEOUT = datetime.timedelta(seconds=3)
-"""The balancer port accepts only connections with a PROXY protocol header.
-
-The Caddy L4 proxy terminates the client's TLS and forwards the session to
-this port. Requiring its PROXY protocol header in code keeps the port
-unusable for plain, non-balancer clients, regardless of deployment
-configuration.
-"""
+# The balancer port accepts only connections with a PROXY protocol header.
+# The Caddy L4 proxy terminates the client's TLS and forwards the session to
+# this port. Requiring its PROXY protocol header in code keeps the port
+# unusable for plain, non-balancer clients, regardless of deployment
+# configuration.
 
 
 class SMTPServer:

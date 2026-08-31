@@ -1,5 +1,7 @@
 import datetime
 import logging
+import ssl
+from collections.abc import Iterator
 
 import aiosmtplib
 import dns.resolver
@@ -95,7 +97,6 @@ def deliver_message(message_id):
                     message=message,
                     status=Transmission.Status.SENT,
                     output=str(response),
-                    log_id=str(response)[:255] if response else "",
                     mx_host=mx_host,
                     **tls_details,
                 )
@@ -149,7 +150,9 @@ def fetch_mx_hosts(domain):
         return []
 
 
-async def send_via_mx(raw_bytes, mx_host, sender, recipients):
+async def send_via_mx(
+    raw_bytes: bytes, mx_host: str, sender: str, recipients: list[str]
+) -> tuple[str, dict]:
     """Deliver a message to an MX host over STARTTLS on port 25 and return
     the SMTP response with the negotiated TLS details."""
     from kms.models import Certificate
@@ -164,33 +167,35 @@ async def send_via_mx(raw_bytes, mx_host, sender, recipients):
         local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
     ) as smtp_client:
         response = await smtp_client.sendmail(sender, recipients, raw_bytes)
-        cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
-        ssl_object = smtp_client.get_transport_info("ssl_object")
-        sockname = smtp_client.get_transport_info("sockname")
-        peername = smtp_client.get_transport_info("peername")
-    sending_mta_ip_address = sockname[0] if sockname else None
-    receiving_mx_ip_address = peername[0] if peername else None
-    if ssl_object is None:
-        tls_details = {
-            "tls_mode": Transmission.TlsMode.PLAINTEXT,
-            "sending_mta_ip_address": sending_mta_ip_address,
-            "receiving_mx_ip_address": receiving_mx_ip_address,
-        }
-    else:
-        tls_details = {
-            "tls_mode": Transmission.TlsMode.STARTTLS,
-            "tls_cipher": cipher[0] or "",
-            "tls_version": cipher[1] or "",
-            "tls_certificate": await sync_to_async(Certificate.store_presented_chain)(
-                get_peer_certificates(ssl_object)
-            ),
-            "sending_mta_ip_address": sending_mta_ip_address,
-            "receiving_mx_ip_address": receiving_mx_ip_address,
-        }
+        # The server may drop the connection right after accepting, so the
+        # transport reads must not fail a delivery that already succeeded.
+        try:
+            cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
+            ssl_object = smtp_client.get_transport_info("ssl_object")
+            sockname = smtp_client.get_transport_info("sockname")
+            peername = smtp_client.get_transport_info("peername")
+        except aiosmtplib.SMTPServerDisconnected:
+            cipher = (None, None, None)
+            ssl_object = None
+            sockname = None
+            peername = None
+    tls_details = {
+        "tls_mode": Transmission.TlsMode.STARTTLS,
+        "tls_cipher": cipher[0] or "",
+        "tls_version": cipher[1] or "",
+        "sending_mta_ip_address": sockname[0] if sockname else None,
+        "receiving_mx_ip_address": peername[0] if peername else None,
+    }
+    if ssl_object is not None:
+        tls_details["tls_certificate"] = await sync_to_async(
+            Certificate.store_presented_chain
+        )(parse_peer_certificates(ssl_object))
     return response, tls_details
 
 
-def get_peer_certificates(ssl_object):
+def parse_peer_certificates(
+    ssl_object: ssl.SSLObject,
+) -> Iterator[x509.Certificate]:
     """Yield the X.509 certificates the remote server presented."""
     chain = ssl_object.get_unverified_chain() or ssl_object.get_verified_chain()
     for der in chain:

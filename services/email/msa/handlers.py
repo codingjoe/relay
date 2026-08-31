@@ -121,18 +121,15 @@ class ImplicitTLSHandler(SMTPHandler):
         return await super().handle_DATA(server, session, envelope)
 
 
-class BalancerHandler(SMTPHandler):
+class BalancerHandler(ImplicitTLSHandler):
     """Handler for the plaintext balancer port behind the Caddy L4 proxy.
 
     Caddy terminates the client's TLS and forwards the session as plain
-    SMTP with a PROXY protocol header. Mark the session as encrypted
-    before delegating to the standard handler so AUTH and TLS reporting
-    work.
+    SMTP with a PROXY protocol header. Marking the session as encrypted
+    before delegating reflects Caddy's terminated TLS in TLS reporting.
+    AUTH relies on this port being configured with auth_require_tls
+    disabled, since the client-facing leg is TLS at the proxy.
     """
-
-    async def handle_DATA(self, server, session, envelope):
-        session.ssl = True
-        return await super().handle_DATA(server, session, envelope)
 
 
 @sync_to_async
