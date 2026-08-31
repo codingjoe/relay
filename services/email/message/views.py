@@ -42,9 +42,16 @@ class MessageListView(OrganizationScopedView, generic.ListView):
         return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
+        email = self.request.GET.get("email", "")
+        status = self.request.GET.get("status", "")
+        direction = self.request.GET.get("direction", self.Direction.ALL)
+        filter_count = sum(
+            bool(value) for value in (email, status, direction != self.Direction.ALL)
+        )
         return super().get_context_data(**kwargs) | {
-            "direction": self.request.GET.get("direction", self.Direction.ALL),
-            "email": self.request.GET.get("email", ""),
-            "status": self.request.GET.get("status", ""),
+            "direction": direction,
+            "email": email,
+            "status": status,
             "status_choices": Message.status_choices(self.org),
+            "filter_count": filter_count,
         }
