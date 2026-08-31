@@ -39,13 +39,12 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
-        parsed = message.parsed_email()
-        headers = list(parsed.items())
+        headers = message.parsed_headers
         dkim_signatures = [
             dict(
                 s.strip().split("=", 1)
                 for field in value.split(";")
-                if (s := field.strip())
+                if (s := field.strip()) and "=" in s
             )
             for k, value in headers
             if k.lower() == "dkim-signature"
@@ -54,7 +53,7 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
             "headers": headers,
             "dkim_signatures": dkim_signatures,
             "received": [v for k, v in headers if k.lower() == "received"],
-            "body": parsed.get_payload(decode=True) or "",
+            "body": message.parsed_email().get_payload(decode=True) or "",
             "transmissions": Transmission.objects.filter(message=message),
         }
 
@@ -82,6 +81,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
             subject=request.POST.get("subject", ""),
             message_id=msg.get("Message-ID", ""),
             domain=domain,
+            headers=OutgoingMessage.headers_from_raw(raw_bytes),
             raw_body=SimpleUploadedFile(
                 f"{msg.get('Message-ID', 'message')}.eml", raw_bytes
             ),

@@ -47,7 +47,7 @@ class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
         context = super().get_context_data(**kwargs)
         parsed = self.object.parsed_email()
         return context | {
-            "headers": list(parsed.items()),
+            "headers": self.object.parsed_headers,
             "parts": list(parsed.walk()) if parsed.is_multipart() else [parsed],
             "body": parsed.get_payload(decode=True) or "",
             "webhook_deliveries": WebhookDelivery.objects.filter(

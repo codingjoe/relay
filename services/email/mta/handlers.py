@@ -90,6 +90,7 @@ def process_incoming_message(
                 message_id=message_id,
                 received_with_tls=bool(tls),
                 report_id="",
+                headers=DmarcReport.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
@@ -110,6 +111,7 @@ def process_incoming_message(
                 message_id=message_id,
                 received_with_tls=bool(tls),
                 report_id="",
+                headers=TlsReport.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
@@ -129,6 +131,7 @@ def process_incoming_message(
                 subject=subject,
                 message_id=message_id,
                 received_with_tls=bool(tls),
+                headers=DmarcFailureReport.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
@@ -152,6 +155,7 @@ def process_incoming_message(
                 message_id=message_id,
                 received_with_tls=bool(tls),
                 status=status,
+                headers=IncomingMessage.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
@@ -172,6 +176,7 @@ def process_incoming_message(
         message_id=message_id,
         received_with_tls=bool(tls),
         status=status,
+        headers=IncomingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
     transaction.on_commit(

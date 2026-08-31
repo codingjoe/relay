@@ -123,6 +123,21 @@
     subject: Test message 1
     message_id: <test1@acme.com>
     raw_body: messages/019fbe8f-5edc-75f9-a9ed-9c379741e432.eml
+    headers:
+      - - From
+        - sender1@acme.com
+      - - To
+        - recipient1@example.com
+      - - Subject
+        - Test message 1
+      - - Message-ID
+        - <test1@acme.com>
+      - - Date
+        - Sat, 22 Aug 2026 09:14:00 +0000
+      - - Feedback-ID
+        - 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
+      - - DKIM-Signature
+        - v=1; a=ed25519-sha256; c=relaxed/relaxed; d=acme.com; s=relay; h=from:to:subject:date:message-id:feedback-id; bh=AAAA; b=BBBB
     received_with_tls: false
     status: sent
     domain: 1
@@ -140,6 +155,21 @@
     subject: Test message 2
     message_id: <test2@acme.com>
     raw_body: messages/019fbe8f-5edf-7553-8ee9-34e82e131c8f.eml
+    headers:
+      - - From
+        - sender2@acme.com
+      - - To
+        - recipient2@example.com
+      - - Subject
+        - Test message 2
+      - - Message-ID
+        - <test2@acme.com>
+      - - Date
+        - Mon, 24 Aug 2026 11:30:00 +0000
+      - - Feedback-ID
+        - 1::2b8f4d6c9a1e5c3b7d2f8e4a:relay
+      - - DKIM-Signature
+        - v=1; a=ed25519-sha256; c=relaxed/relaxed; d=acme.com; s=relay; h=from:to:subject:date:message-id:feedback-id; bh=CCCC; b=DDDD
     received_with_tls: false
     status: sent
     domain: 1
@@ -157,6 +187,19 @@
     subject: Test message 3
     message_id: <test3@acme.com>
     raw_body: messages/019fbe8f-5ee1-7145-951c-cd8ae282af25.eml
+    headers:
+      - - From
+        - sender3@acme.com
+      - - To
+        - recipient3@example.com
+      - - Subject
+        - Test message 3
+      - - Message-ID
+        - <test3@acme.com>
+      - - Date
+        - Tue, 25 Aug 2026 15:45:00 +0000
+      - - Feedback-ID
+        - 1::5e1c9b3a7d2f4e8c6b0a3d9f:relay
     received_with_tls: false
     status: sent
     domain: 1
@@ -165,18 +208,21 @@
   fields:
     domain: 1
     credential: 1
+    feedback_id: 1::5e1c9b3a7d2f4e8c6b0a3d9f:relay
     status: sent
 - model: msa.outgoingmessage
   pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
   fields:
     domain: 1
     credential: 1
+    feedback_id: 1::2b8f4d6c9a1e5c3b7d2f8e4a:relay
     status: sent
 - model: msa.outgoingmessage
   pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
   fields:
     domain: 1
     credential: 1
+    feedback_id: 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
     status: sent
 - model: msa.transmission
   pk: 019fbe8f-5ede-773a-8790-f0386847a6ac

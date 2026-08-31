@@ -178,6 +178,45 @@ class TestHandleData:
         stored = message_from_bytes(outgoing.raw_body.read())
         assert stored["Feedback-ID"].startswith(f"{org.pk}::")
         assert outgoing.feedback_id == stored["Feedback-ID"]
+        assert outgoing.headers
+        assert any(k == "Feedback-ID" for k, _ in outgoing.headers)
+        assert any(k == "DKIM-Signature" for k, _ in outgoing.headers)
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(outgoing.id), client_ip="127.0.0.1"
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__stores_message_with_8bit_headers(
+        self,
+        user,
+        org,
+    ):
+
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        session = SimpleNamespace(
+            credential=credential, peer=("127.0.0.1", 2525), ssl=True
+        )
+        raw = (
+            f"From: alice@{domain.name}\r\n"
+            f"To: {user.email}\r\n"
+            "Subject: Test\r\n"
+            "X-Custom: caf\xe9\r\n"
+            "\r\n"
+            "Hello"
+        ).encode("latin-1")
+        envelope = SimpleNamespace(
+            mail_from=f"alice@{domain.name}",
+            rcpt_tos=[user.email],
+            content=raw,
+        )
+
+        with patch("services.email.msa.handlers.check_outgoing_spam") as spam_task:
+            result = await SMTPHandler().handle_DATA(None, session, envelope)
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        assert result == "250 OK"
+        assert ["X-Custom", "caf\N{REPLACEMENT CHARACTER}"] in outgoing.headers
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip="127.0.0.1"
         )
@@ -523,6 +562,39 @@ class TestProcessMessage:
         assert b"Feedback-ID" not in outgoing.raw_body.read()
         assert outgoing.domain == domain
         spam_task.enqueue.assert_not_called()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_process_message__suppressed_strips_customer_feedback_id(
+        self,
+        user,
+        org,
+    ):
+
+        domain = Domain.objects.get(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        rcpt_to = "suppressed@example.com"
+        SuppressionEntry.objects.create_or_update(org=org, email=rcpt_to)
+        message = make_email(f"alice@{domain.name}", rcpt_to)
+        message["Feedback-ID"] = "customer-id"
+
+        with patch("services.email.msa.handlers.check_outgoing_spam"):
+            result = await process_message(
+                f"alice@{domain.name}",
+                rcpt_to,
+                message.as_bytes(),
+                message,
+                credential,
+                False,
+                "",
+            )
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        assert result == "250 OK"
+        raw = outgoing.raw_body.read()
+        assert b"customer-id" not in raw
+        assert b"Feedback-ID" not in raw
+        assert not any(name == "Feedback-ID" for name, _ in outgoing.headers)
+        assert outgoing.feedback_id == ""
 
 
 @pytest.mark.django_db(transaction=True)
