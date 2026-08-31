@@ -234,7 +234,7 @@
     code: 250
     output: OK
     details: Test transmission 1
-    sent_with_ssl: true
+    tls_mode: starttls
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
@@ -246,7 +246,7 @@
     code: 250
     output: OK
     details: Test transmission 2
-    sent_with_ssl: true
+    tls_mode: starttls
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
@@ -258,7 +258,7 @@
     code: 250
     output: OK
     details: Test transmission 3
-    sent_with_ssl: true
+    tls_mode: starttls
     log_id: ''
 - model: msa.msacredential
   pk: 1
@@ -686,7 +686,7 @@
     code: 250
     output: OK
     details: Delivered to recipient1@example.com
-    sent_with_ssl: true
+    tls_mode: starttls
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
@@ -698,7 +698,7 @@
     code: 450
     output: 4.2.1 Mailbox full
     details: Temporary rejection, message retried
-    sent_with_ssl: true
+    tls_mode: starttls
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
@@ -710,7 +710,7 @@
     code: 551
     output: 5.4.4 Mailbox unavailable
     details: Bounce received after retry
-    sent_with_ssl: false
+    tls_mode: plaintext
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
@@ -722,7 +722,7 @@
     code: 451
     output: 4.4.2 Connection timed out
     details: Temporary failure, will retry
-    sent_with_ssl: false
+    tls_mode: plaintext
     log_id: ''
 - model: message.message
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0001

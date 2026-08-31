@@ -35,7 +35,10 @@ from the queue state, performs through an attempt, and records the attempt.
 
 Every delivery attempt produces one immutable transmission row with:
 
-- the attempted MX host and transport flag (TLS or not),
+- the attempted MX host and the TLS details of the connection: STARTTLS or TLS,
+  the protocol version, the cipher suite, and the remote certificate with its
+  subject, alternative names, issuer, serial number, SHA-256 fingerprint,
+  validity window, and the presented certificate chain,
 - the SMTP status code and the complete answer text,
 - a log reference for later inspection.
 

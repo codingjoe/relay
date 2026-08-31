@@ -85,6 +85,11 @@ class Transmission(TimeStamped):
         RETRY = "retry", _("retry")
         BOUNCED = "bounced", _("bounced")
 
+    class TlsMode(models.TextChoices):
+        PLAINTEXT = "plaintext", _("plaintext")
+        STARTTLS = "starttls", _("STARTTLS")
+        TLS = "tls", _("TLS")
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid7,
@@ -94,6 +99,11 @@ class Transmission(TimeStamped):
         OutgoingMessage,
         on_delete=models.CASCADE,
         related_name="transmissions",
+    )
+    mx_host = models.TextField(
+        _("MX host"),
+        blank=True,
+        help_text=_("MX hostname this delivery attempt dialed."),
     )
     status = models.TextField(
         _("status"),
@@ -116,10 +126,72 @@ class Transmission(TimeStamped):
         blank=True,
         help_text=_("Human-readable explanation of the outcome."),
     )
-    sent_with_ssl = models.BooleanField(
-        _("sent with SSL"),
-        default=False,
-        help_text=_("Delivered over TLS."),
+    tls_mode = models.TextField(
+        _("TLS mode"),
+        choices=TlsMode,
+        default=TlsMode.PLAINTEXT,
+        help_text=_("TLS transport negotiated for this delivery attempt."),
+    )
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate_subject = models.TextField(
+        _("TLS certificate subject"),
+        blank=True,
+        help_text=_("Subject of the remote server's TLS certificate."),
+    )
+    tls_certificate_issuer = models.TextField(
+        _("TLS certificate issuer"),
+        blank=True,
+        help_text=_(
+            "Certificate authority that signed the remote server's TLS certificate."
+        ),
+    )
+    tls_certificate_serial_number = models.TextField(
+        _("TLS certificate serial number"),
+        blank=True,
+        help_text=_("Serial number of the remote server's TLS certificate."),
+    )
+    tls_certificate_fingerprint = models.TextField(
+        _("TLS certificate fingerprint"),
+        blank=True,
+        help_text=_("SHA-256 fingerprint of the remote server's TLS certificate."),
+    )
+    tls_certificate_subject_alternative_names = models.TextField(
+        _("TLS certificate subject alternative names"),
+        blank=True,
+        help_text=_("DNS names the remote server's TLS certificate covers."),
+    )
+    tls_certificate_not_before = models.DateTimeField(
+        _("TLS certificate valid from"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Point in time from which the remote server's TLS certificate is valid."
+        ),
+    )
+    tls_certificate_not_after = models.DateTimeField(
+        _("TLS certificate valid until"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Point in time until which the remote server's TLS certificate is valid."
+        ),
+    )
+    tls_certificate_chain = models.TextField(
+        _("TLS certificate chain"),
+        blank=True,
+        help_text=_(
+            "Subjects and SHA-256 fingerprints of the certificate chain the "
+            "remote server presented, one per line."
+        ),
     )
     log_id = models.TextField(
         _("log ID"),
