@@ -1,4 +1,3 @@
-from email.message import EmailMessage
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -6,26 +5,13 @@ import pytest
 from django.conf import settings
 from django.core import mail
 
-from abstract.mailauth import (
-    Alignment,
-    AuthResult,
-    Disposition,
-    DmarcEvaluation,
-)
+from abstract.mailauth import Disposition
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.mta.handlers import MXHandler, process_incoming_message
 from services.email.mta.models import IncomingMessage, TlsReport
+from services.email.mta.tests.conftest import make_dmarc_evaluation, make_raw_email
 from services.email.reputation.models import FblReport
-
-
-def make_raw_email(subject="Postmaster alert"):
-    msg = EmailMessage()
-    msg["From"] = "external@example.org"
-    msg["To"] = "postmaster@example.com"
-    msg["Subject"] = subject
-    msg.set_content("Something happened")
-    return msg.as_bytes()
 
 
 class TestProcessIncomingMessagePostmaster:
@@ -264,21 +250,6 @@ class TestProcessIncomingMessageReports:
         assert report.org == org
 
 
-def make_dmarc_evaluation(disposition):
-    return DmarcEvaluation(
-        source_ip_address="192.0.2.1",
-        header_from="example.com",
-        envelope_from="example.org",
-        dkim_domain="",
-        dkim_result=AuthResult.FAIL,
-        dkim_alignment=Alignment.FAIL,
-        spf_domain="example.org",
-        spf_result=AuthResult.FAIL,
-        spf_alignment=Alignment.FAIL,
-        disposition=disposition,
-    )
-
-
 class TestMXHandler:
     @pytest.mark.django_db(transaction=True)
     async def test_handle_data__rejects_on_dmarc_reject(self, org):
@@ -439,4 +410,29 @@ class TestMXHandler:
 
         assert result == "250 OK"
         assert not await FblReport.objects.aexists()
+        spam_task.enqueue.assert_called_once()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__seals_accepted_message_with_arc(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert b"ARC-Authentication-Results" in message.raw_body.read()
         spam_task.enqueue.assert_called_once()

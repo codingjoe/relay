@@ -34,6 +34,7 @@ sequenceDiagram
     MX-->>Sender: 250 / 550 not authorized
     Sender->>MX: DATA with the message
     MX->>MX: DMARC evaluation of the sender
+    MX->>MX: ARC seal of the evaluation
     MX-->>Sender: 250 accepted (or 550 per policy)
     MX->>Store: store message and metadata
     MX->>Scan: spam scan
@@ -58,6 +59,37 @@ and it protects your inbox from spoofing attempts.
 score reaches the reject threshold, or whose action is reject, lands as
 quarantined and never reaches your webhook. You can see the score in the
 dashboard.
+
+## ARC sealing
+
+relay records its SPF, DKIM, and DMARC evaluation of every accepted
+message in the stored raw message, and seals that evaluation with an ARC
+set (RFC 8617). The set consists of an ARC-Authentication-Results header
+that mirrors relay's evaluation, an ARC-Message-Signature over the
+message, and an ARC-Seal over the chain of earlier seals. The seal names
+the receiving MX host as the evaluator. The receiving domain's DKIM key
+signs the set with an RSA-2048 signature, so anyone can verify the seal
+with the public key that relay's nameserver publishes at the selector's
+domain-key address.
+
+Sealing protects the recorded verdict from forgery.
+Authentication-Results headers that claim relay's MX host, and headers
+that cannot be parsed, are removed before sealing, so a spoofed or
+broken verdict cannot survive in relay's name.
+
+Forwarded mail often arrives with an ARC chain from earlier hops. relay
+verifies the existing chain and continues it with its own set. A chain
+that validates becomes pass, a broken one becomes fail, and the verdict
+is recorded within relay's own evaluation, so the next receiver can
+judge the full forwarding path. A chain that an earlier hop already
+sealed as failed is not extended; relay records the failure in its own
+evaluation instead.
+
+Sealing happens before the message is stored, so the raw message opened
+in the dashboard or downloaded through a webhook's signed body URL
+contains the complete header set. See the know-how article on
+<a href="{% url 'know_how:detail' slug='arc' %}">ARC</a> for the protocol
+background.
 
 ## Special recipient addresses
 

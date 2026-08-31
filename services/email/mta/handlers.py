@@ -14,6 +14,7 @@ from services.email.dmarc.tasks import (
     parse_dmarc_report,
 )
 
+from .arc import seal_message
 from .models import (
     IncomingMessage,
     TlsReport,
@@ -28,10 +29,9 @@ class MXHandler:
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
-            domain = await sync_to_async(Domain.objects.root_for)(
-                rcpt_domain,
-                include_managed=True,
-            )
+            domain = await sync_to_async(
+                Domain.objects.select_related("dkim_key_rsa2048").root_for
+            )(rcpt_domain, include_managed=True)
         except Domain.DoesNotExist:
             return "550 Relay not authorised for this recipient"
         envelope.rcpt_tos.append(address)
@@ -45,6 +45,7 @@ class MXHandler:
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
         client_ip = session.peer[0] if session.peer else ""
+        domain = envelope.recipient_domain
         evaluation = await sync_to_async(
             DmarcEvaluation.from_bytes, thread_sensitive=False
         )(raw_bytes, mail_from)
@@ -55,12 +56,15 @@ class MXHandler:
             if evaluation.disposition == Disposition.QUARANTINE
             else IncomingMessage.Status.RECEIVED
         )
+        raw_bytes = await sync_to_async(seal_message, thread_sensitive=False)(
+            raw_bytes, evaluation, domain
+        )
         result = await process_incoming_message(
             mail_from,
             rcpt_to,
             raw_bytes,
             getattr(session, "ssl", False),
-            getattr(envelope, "recipient_domain", None),
+            domain,
             status,
             client_ip,
         )

@@ -1,6 +1,7 @@
 import ipaddress
 import logging
 import re
+from contextlib import suppress
 from dataclasses import dataclass
 from email import message_from_bytes
 from enum import StrEnum
@@ -43,6 +44,8 @@ class DmarcPolicy:
     rua: str = ""
     ruf: str = ""
     pct: int = 100
+    is_published: bool = False
+    temperror: bool = False
 
     @classmethod
     def lookup(cls, domain):
@@ -54,7 +57,7 @@ class DmarcPolicy:
             return cls()
         except dns.exception.Timeout, dns.resolver.NoNameservers:
             logger.warning("DMARC DNS lookup failed for %r", domain, exc_info=True)
-            return cls()
+            return cls(temperror=True)
         for record in records:
             text = "".join(
                 s.decode() if isinstance(s, bytes) else s for s in record.strings
@@ -68,8 +71,9 @@ class DmarcPolicy:
                         if key in {"p", "sp", "adkim", "aspf", "rua", "ruf"}:
                             fields[key] = value
                         elif key == "pct":
-                            fields[key] = int(value)
-                return cls(**fields)
+                            with suppress(ValueError):
+                                fields[key] = int(value)
+                return cls(**fields, is_published=True)
         return cls()
 
     @property
@@ -114,6 +118,8 @@ class DmarcEvaluation:
     spf_result: AuthResult
     spf_alignment: Alignment
     disposition: Disposition
+    dmarc_policy_is_published: bool = False
+    dmarc_policy_temperror: bool = False
 
     @classmethod
     def from_message(cls, incoming_message):
@@ -148,6 +154,8 @@ class DmarcEvaluation:
             spf_result=spf_result,
             spf_alignment=Alignment.PASS if spf_aligned else Alignment.FAIL,
             disposition=policy.disposition(dkim_aligned, spf_aligned),
+            dmarc_policy_is_published=policy.is_published,
+            dmarc_policy_temperror=policy.temperror,
         )
 
     @staticmethod
@@ -172,7 +180,8 @@ class DmarcEvaluation:
     def verify_dkim(raw_bytes):
         try:
             verified = dkim.verify(raw_bytes)
-        except dkim.DKIMException:
+        except Exception:  # dkimpy raises varied exceptions on malformed messages
+            logger.warning("DKIM verification failed", exc_info=True)
             return AuthResult.PERMERROR, ""
         if verified:
             msg = message_from_bytes(raw_bytes)
@@ -198,7 +207,7 @@ class DmarcEvaluation:
                 return AuthResult.NONE, domain
             except dns.exception.Timeout, dns.resolver.NoNameservers:
                 logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
-                return AuthResult.NONE, domain
+                return AuthResult.TEMPERROR, domain
             for record in records:
                 text = "".join(
                     s.decode() if isinstance(s, bytes) else s for s in record.strings
