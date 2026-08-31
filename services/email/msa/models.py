@@ -71,6 +71,11 @@ class OutgoingMessage(Message):
             kwargs={"org_slug": self.org.slug, "pk": self.id},
         )
 
+    @property
+    def spam_badge_variant(self) -> str:
+        """Return the badge variant for the rspamd verdict."""
+        return "destructive" if self.spam_action in {"reject", "drop"} else "outline"
+
 
 class Transmission(TimeStamped):
     """Track a single delivery attempt for an outgoing message.

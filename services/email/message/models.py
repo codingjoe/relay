@@ -121,6 +121,11 @@ class Message(TimeStamped):
         return self.content_type.model
 
     @property
+    def kind_display(self) -> str:
+        """Return the human-readable name of the concrete subclass."""
+        return self.content_type.name
+
+    @property
     def kind_icon(self) -> str:
         """Return the matching Lucide icon name."""
         return "send" if self.kind == "outgoingmessage" else "inbox"
@@ -142,6 +147,16 @@ class Message(TimeStamped):
     def get_absolute_url(self) -> str:
         child = self.content_type.get_object_for_this_type(pk=self.pk)
         return child.get_absolute_url()
+
+    @classmethod
+    def status_choices(cls) -> list[tuple[str, str]]:
+        """Return status choices collected from all concrete subclasses."""
+        choices = {
+            value: label
+            for subclass in cls.__subclasses__()
+            for value, label in subclass.Status.choices
+        }
+        return sorted(choices.items(), key=lambda choice: str(choice[1]))
 
     def parsed_email(self):
         """Parse the raw body into an `email.message.Message` object."""

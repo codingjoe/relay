@@ -2,14 +2,48 @@
 {% load i18n abstract message %}
 {% block title %}{% translate "DMARC failure report"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">
+  <header class="mb-6">
+    <h2 class="m-0 break-words">
       {% translate "DMARC failure report"|capfirst %}
-      {% if report.domain %}- {{ report.domain }}{% endif %}
+      {% if report.domain.name %}
+        <span class="text-muted-foreground">- {{ report.domain.name }}</span>
+      {% endif %}
     </h2>
+    <div class="flex items-center gap-3 flex-wrap mt-2">
+      <span
+        class="badge"
+        data-size="sm"
+        data-variant="{{ report.delivery_result_badge_variant }}"
+      >
+        {{ report.get_delivery_result_display }}
+      </span>
+      {% timestamp report.arrival_at %}
+      {% if report.source_ip_address %}
+        <code class="text-sm">{{ report.source_ip_address }}</code>
+      {% endif %}
+      <code class="text-sm break-all">
+        {{ report.original_mail_from }} → {{ report.original_rcpt_to }}
+      </code>
+    </div>
   </header>
 
-  <div class="card mb-6">
+  <article class="card p-6 mb-6">
+    {% if report.parsed_authentication_results %}
+      <div class="flex flex-wrap items-center gap-4 mb-4">
+        {% for entry in report.parsed_authentication_results %}
+          <span class="flex items-center gap-1.5 font-medium">
+            <i
+              data-lucide="{{ entry.icon }}"
+              class="size-4 {{ entry.icon_class }}"
+              aria-hidden="true"
+            ></i>
+            {{ entry.method }}
+            <span class="{{ entry.icon_class }} font-normal">{{ entry.verdict }}</span>
+          </span>
+        {% endfor %}
+      </div>
+      <hr class="mb-4">
+    {% endif %}
     <dl class="grid grid-cols-2 gap-4 m-0">
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
@@ -33,10 +67,6 @@
         <dd class="m-0">
           {% timestamp report.arrival_at %}
         </dd>
-      </div>
-      <div>
-        <dt class="text-sm text-muted-foreground">{% translate "delivery result"|capfirst %}</dt>
-        <dd class="m-0">{{ report.get_delivery_result_display }}</dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "original from"|capfirst %}</dt>
@@ -65,23 +95,21 @@
         </dd>
       </div>
     </dl>
-  </div>
-
-  {% if report.authentication_results %}
-    <div class="card mb-6">
-      <header>
-        <h3 class="m-0">{% translate "authentication results"|capfirst %}</h3>
-      </header>
-      <pre class="text-sm whitespace-pre-wrap">{{ report.authentication_results }}</pre>
-    </div>
-  {% endif %}
+  </article>
 
   {% if report.original_headers %}
-    <div class="card mb-6">
-      <header>
-        <h3 class="m-0">{% translate "original headers"|capfirst %}</h3>
-      </header>
-      {{ report.original_headers|truncatechars:2000|highlight_email }}
-    </div>
+    <section class="accordion" data-multiple aria-label='{% translate "report details"|capfirst %}'>
+      <details open>
+        <summary>
+          <span class="flex items-center gap-2">
+            {% translate "original headers"|capfirst %}
+          </span>
+          <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
+        </summary>
+        <section>
+          {{ report.original_headers|truncatechars:2000|highlight_email }}
+        </section>
+      </details>
+    </section>
   {% endif %}
 {% endblock %}

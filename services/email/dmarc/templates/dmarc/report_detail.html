@@ -9,7 +9,7 @@
     </h2>
   </header>
 
-  <div class="card mb-6">
+  <div class="card p-6 mb-6">
     <dl class="grid grid-cols-2 gap-4 m-0">
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
@@ -39,7 +39,7 @@
   </div>
 
   {% if source_ip_filter %}
-    <div class="card mb-6">
+    <div class="card p-6 mb-6">
       <p class="m-0">
         {% translate "filtered by source IP"|capfirst %}: <code>{{ source_ip_filter }}</code>
         <a href="{% url 'dmarc:report-detail' org.slug report.pk %}" class="btn" data-variant="ghost" data-size="sm">

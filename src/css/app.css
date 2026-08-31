@@ -9,6 +9,10 @@
   --color-primary-foreground: hsl(0, 0%, 100%);
   --color-primary-text: light-dark(hsl(268, 100%, 41%), hsl(268, 100%, 75%));
   --color-link: var(--color-primary-text);
+
+  /* Muted text on the page background must stay above the 4.5:1 WCAG AA
+     floor (the basecoat default reaches only 4.3:1 in light mode). */
+  --muted-foreground: oklch(0.48 0 0);
 }
 
 /* Fira Sans (sans) and Fira Code (mono) for UI text, code, and numbers.
