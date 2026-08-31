@@ -1,5 +1,5 @@
 import dkim
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes, serialization
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -140,20 +140,25 @@ class Certificate(TimeStamped):
     def __str__(self):
         return self.subject or f"sha256:{self.fingerprint[:16]}…"
 
-    @property
-    def chain(self) -> list[Certificate]:
-        """Return this certificate and its presented issuers, leaf first."""
-        certificates = [self]
-        while len(certificates) < 10 and certificates[-1].issuer_certificate:
-            certificates.append(certificates[-1].issuer_certificate)
-        return certificates
+    def chain(self):
+        """Yield this certificate and its presented issuers, leaf first."""
+        certificate = self
+        for _depth in range(10):
+            yield certificate
+            if certificate.issuer_certificate is None:
+                break
+            certificate = certificate.issuer_certificate
 
     @classmethod
     def store_presented_chain(cls, parsed_certificates) -> Certificate:
         """Store the certificates a server presented and return the leaf row."""
-        stored_certificates = [
-            cls.objects.get_or_create(
-                fingerprint=certificates.format_fingerprint(parsed_certificate),
+        presented = list(parsed_certificates)
+        presented.reverse()
+        issuer_certificate = None
+        leaf = None
+        for parsed_certificate in presented:
+            certificate = cls.objects.get_or_create(
+                fingerprint=parsed_certificate.fingerprint(hashes.SHA256()).hex(),
                 defaults={
                     "subject": parsed_certificate.subject.rfc4514_string(),
                     "subject_alternative_names": (
@@ -165,14 +170,14 @@ class Certificate(TimeStamped):
                     "serial_number": format(parsed_certificate.serial_number, "x"),
                     "not_before": parsed_certificate.not_valid_before_utc,
                     "not_after": parsed_certificate.not_valid_after_utc,
+                    "issuer_certificate": issuer_certificate,
                 },
             )[0]
-            for parsed_certificate in parsed_certificates
-        ]
-        for certificate, issuer_certificate in zip(
-            stored_certificates, [*stored_certificates[1:], None]
-        ):
-            if certificate.issuer_certificate != issuer_certificate:
+            issuer_certificate_id = (
+                None if issuer_certificate is None else issuer_certificate.pk
+            )
+            if certificate.issuer_certificate_id != issuer_certificate_id:
                 certificate.issuer_certificate = issuer_certificate
                 certificate.save(update_fields=["issuer_certificate", "modified_at"])
-        return stored_certificates[0]
+            issuer_certificate = leaf = certificate
+        return leaf

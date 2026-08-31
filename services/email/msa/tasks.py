@@ -4,7 +4,7 @@ import logging
 import aiosmtplib
 import dns.resolver
 import httpx
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from cryptography import x509
 from django.conf import settings
 from django.tasks import task
@@ -85,7 +85,7 @@ def deliver_message(message_id):
                 )
                 continue
             try:
-                response, tls_details = send_via_mx(
+                response, tls_details = async_to_sync(send_via_mx)(
                     raw_bytes,
                     mx_host,
                     return_path,
@@ -149,49 +149,52 @@ def fetch_mx_hosts(domain):
         return []
 
 
-def send_via_mx(raw_bytes, mx_host, sender, recipients):
+async def send_via_mx(raw_bytes, mx_host, sender, recipients):
     """Deliver a message to an MX host over STARTTLS on port 25 and return
     the SMTP response with the negotiated TLS details."""
-    from .models import Transmission
-
-    async def send():
-        smtp_client = aiosmtplib.SMTP(
-            hostname=mx_host,
-            port=25,
-            use_tls=False,
-            start_tls=True,
-            local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
-        )
-        await smtp_client.connect()
-        try:
-            response = await smtp_client.sendmail(sender, recipients, raw_bytes)
-            cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
-            ssl_object = smtp_client.get_transport_info("ssl_object")
-        finally:
-            smtp_client.close()
-        return response, cipher, ssl_object
-
-    response, cipher, ssl_object = async_to_sync(send)()
     from kms.models import Certificate
 
+    from .models import Transmission
+
+    async with aiosmtplib.SMTP(
+        hostname=mx_host,
+        port=25,
+        use_tls=False,
+        start_tls=True,
+        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+    ) as smtp_client:
+        response = await smtp_client.sendmail(sender, recipients, raw_bytes)
+        cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
+        ssl_object = smtp_client.get_transport_info("ssl_object")
+        sockname = smtp_client.get_transport_info("sockname")
+        peername = smtp_client.get_transport_info("peername")
+    sending_mta_ip_address = sockname[0] if sockname else None
+    receiving_mx_ip_address = peername[0] if peername else None
     if ssl_object is None:
-        return response, {"tls_mode": Transmission.TlsMode.PLAINTEXT}
-    return response, {
-        "tls_mode": Transmission.TlsMode.STARTTLS,
-        "tls_cipher": cipher[0] or "",
-        "tls_version": cipher[1] or "",
-        "tls_certificate": Certificate.store_presented_chain(
-            get_peer_certificates(ssl_object)
-        ),
-    }
+        tls_details = {
+            "tls_mode": Transmission.TlsMode.PLAINTEXT,
+            "sending_mta_ip_address": sending_mta_ip_address,
+            "receiving_mx_ip_address": receiving_mx_ip_address,
+        }
+    else:
+        tls_details = {
+            "tls_mode": Transmission.TlsMode.STARTTLS,
+            "tls_cipher": cipher[0] or "",
+            "tls_version": cipher[1] or "",
+            "tls_certificate": await sync_to_async(Certificate.store_presented_chain)(
+                get_peer_certificates(ssl_object)
+            ),
+            "sending_mta_ip_address": sending_mta_ip_address,
+            "receiving_mx_ip_address": receiving_mx_ip_address,
+        }
+    return response, tls_details
 
 
 def get_peer_certificates(ssl_object):
-    """Return the X.509 certificates the remote server presented."""
-    if ssl_object is None:
-        return []
+    """Yield the X.509 certificates the remote server presented."""
     chain = ssl_object.get_unverified_chain() or ssl_object.get_verified_chain()
-    return [x509.load_der_x509_certificate(der) for der in chain]
+    for der in chain:
+        yield x509.load_der_x509_certificate(der)
 
 
 @task(

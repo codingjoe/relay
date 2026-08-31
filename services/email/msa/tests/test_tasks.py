@@ -103,12 +103,12 @@ class TestDeliverMessage:
         ]
         smtp_client = MagicMock()
         smtp_client.sendmail = AsyncMock(return_value="250 OK")
-        smtp_client.connect = AsyncMock()
-        smtp_client.close = MagicMock()
-        smtp_client.use_tls = False
+        smtp_client.__aenter__.return_value = smtp_client
         smtp_client.get_transport_info.side_effect = {
             "ssl_object": ssl_object,
             "cipher": ("TLS_AES_256_GCM_SHA384", "TLSv1.3", 32),
+            "sockname": ("198.51.100.25", 40000),
+            "peername": ("203.0.113.10", 25),
         }.get
         with patch(
             "services.email.msa.tasks.aiosmtplib.SMTP",
@@ -132,6 +132,8 @@ class TestDeliverMessage:
         assert transmission.tls_mode == Transmission.TlsMode.STARTTLS
         assert transmission.tls_version == "TLSv1.3"
         assert transmission.tls_cipher == "TLS_AES_256_GCM_SHA384"
+        assert transmission.sending_mta_ip_address == "198.51.100.25"
+        assert transmission.receiving_mx_ip_address == "203.0.113.10"
         stored_certificate = transmission.tls_certificate
         assert (
             stored_certificate.fingerprint
@@ -146,7 +148,7 @@ class TestDeliverMessage:
         assert stored_certificate.not_before == certificate.not_valid_before_utc
         assert stored_certificate.not_after == certificate.not_valid_after_utc
         assert stored_certificate.issuer_certificate is None
-        assert stored_certificate.chain == [stored_certificate]
+        assert list(stored_certificate.chain()) == [stored_certificate]
 
     def test_deliver_message__permanent_failure_marks_bounced(
         self, user, org, dns_resolver

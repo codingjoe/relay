@@ -71,6 +71,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 ## Functions
 
 - Function names must be descriptive, not ambiguous.
+- Do not write one-liner functions that only wrap a single expression. Inline
+  the expression at its call site.
+- Use generator functions when a function produces a sequence for lazy
+  consumption, for example when walking database relations.
 
 ## Docstrings
 
@@ -88,6 +92,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
 ## Control Flow
 
 - Prefer `match`/`case` statements over if-chains where applicable.
+- No early returns. Exit a function from a single `return` statement at the
+  end. `.relint.yml` enforces the bare `return` and `continue` subset.
 - Use `.get()` with EAFP (try/except) instead of `.first()` with a `None`
   check. Use `get_object_or_404()` in views to convert `DoesNotExist` to
   `Http404` automatically.
@@ -114,6 +120,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   and help text.
 - Email-specific abbreviations are OK since they are more common than
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
+- Do not wrap technical protocol terms in `gettext`, for example STARTTLS,
+  TLS, or plaintext. They read the same in every language.
 
 ## Templates & UI
 

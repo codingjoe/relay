@@ -86,9 +86,9 @@ class Transmission(TimeStamped):
         BOUNCED = "bounced", _("bounced")
 
     class TlsMode(models.TextChoices):
-        PLAINTEXT = "plaintext", _("plaintext")
-        STARTTLS = "starttls", _("STARTTLS")
-        TLS = "tls", _("TLS")
+        PLAINTEXT = "plaintext", "plaintext"
+        STARTTLS = "starttls", "STARTTLS"
+        TLS = "tls", "TLS"
 
     id = models.UUIDField(
         primary_key=True,
@@ -104,6 +104,18 @@ class Transmission(TimeStamped):
         _("MX host"),
         blank=True,
         help_text=_("MX hostname this delivery attempt dialed."),
+    )
+    sending_mta_ip_address = models.GenericIPAddressField(
+        _("sending MTA IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address relay sent this delivery attempt from."),
+    )
+    receiving_mx_ip_address = models.GenericIPAddressField(
+        _("receiving MX IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address of the MX that handled this delivery attempt."),
     )
     status = models.TextField(
         _("status"),

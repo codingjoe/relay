@@ -35,7 +35,9 @@
                 <td>
                   {% timestamp transmission.created_at %}
                 </td>
-                <td><code>{{ transmission.mx_host|default:"-" }}</code></td>
+                <td title="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
+                  <code>{{ transmission.mx_host|default:"-" }}</code>
+                </td>
                 <td title="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }} ({{ transmission.tls_certificate.subject_alternative_names }}) · {{ transmission.tls_certificate.issuer }} · serial {{ transmission.tls_certificate.serial_number }} · sha256 {{ transmission.tls_certificate.fingerprint }}">
                   {{ transmission.get_tls_mode_display }}
                 </td>

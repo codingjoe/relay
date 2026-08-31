@@ -1,12 +1,6 @@
 """Helpers for X.509 certificates presented by remote servers."""
 
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
-
-
-def format_fingerprint(certificate) -> str:
-    """Return the SHA-256 fingerprint of a certificate as lowercase hex."""
-    return certificate.fingerprint(hashes.SHA256()).hex()
 
 
 def format_subject_alternative_names(certificate) -> str:

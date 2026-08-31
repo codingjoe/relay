@@ -419,6 +419,8 @@
     tls_cipher: TLS_AES_256_GCM_SHA384
     mx_host: gmail-smtp-in.l.google.com
     tls_certificate: 6d8b07aa4e50806a1e2c70690cbc50976de62315be0cc4ae8edf8ff295442cb6
+    sending_mta_ip_address: 116.203.34.11
+    receiving_mx_ip_address: 172.253.148.27
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
@@ -435,6 +437,8 @@
     tls_cipher: TLS_AES_128_GCM_SHA256
     mx_host: in1-smtp.messagingengine.com
     tls_certificate: 313f6394e12d6187e7205329987b0ae819e62f172774607f2134f3a94b4e5250
+    sending_mta_ip_address: 116.203.34.11
+    receiving_mx_ip_address: 103.168.172.222
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
@@ -451,6 +455,8 @@
     tls_cipher: TLS_AES_256_GCM_SHA384
     mx_host: mail.protonmail.ch
     tls_certificate: 3c5182eaecc889c466ea43cad8c2c14ab32b8fab2d8ef2dbbc5b372cb4c3e6c1
+    sending_mta_ip_address: 116.203.34.11
+    receiving_mx_ip_address: 185.205.70.128
     log_id: ''
 - model: msa.msacredential
   pk: 1
