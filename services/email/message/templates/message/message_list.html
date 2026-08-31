@@ -15,7 +15,6 @@
     <form method="get" role="search" class="flex-1 min-w-56">
       <input type="hidden" name="direction" value="{{ direction }}">
       <div class="input-group">
-        <i data-lucide="search" class="size-4" aria-hidden="true"></i>
         <input
           id="filter-email"
           name="email"
@@ -24,14 +23,18 @@
           aria-label='{% translate "search by address" %}'
           placeholder='{% translate "search by address" %}'
         >
+        <span data-align="start" aria-hidden="true">
+          <i data-lucide="search" class="size-4"></i>
+        </span>
         <button
           type="submit"
           class="btn"
           data-variant="ghost"
-          data-size="icon-sm"
-          aria-label='{% translate "filter"|capfirst context "verb" %}'
+          data-size="icon"
+          data-align="end"
+          aria-label='{% translate "search"|capfirst context "verb" %}'
         >
-          <i data-lucide="arrow-right" class="size-4" aria-hidden="true"></i>
+          <i data-lucide="arrow-right" aria-hidden="true"></i>
         </button>
       </div>
     </form>
@@ -62,9 +65,10 @@
       >
         <div class="command" id="filter-command" aria-label='{% translate "filters"|capfirst %}'>
           <header>
+            <i data-lucide="search" class="size-4"></i>
             <input
               id="filter-command-input"
-              type="text"
+              type="search"
               role="combobox"
               autocomplete="off"
               aria-autocomplete="list"
@@ -87,6 +91,7 @@
                 href="?{% param_replace direction='all' %}"
                 data-checked="{% if direction == 'all' %}true{% else %}false{% endif %}"
               >
+                <i data-lucide="arrow-right-left" class="size-4"></i>
                 {% translate "all"|capfirst %}
                 <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
               </a>
@@ -95,6 +100,7 @@
                 href="?{% param_replace direction='sent' %}"
                 data-checked="{% if direction == 'sent' %}true{% else %}false{% endif %}"
               >
+                <i data-lucide="send" class="size-4"></i>
                 {% translate "sent"|capfirst %}
                 <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
               </a>
@@ -103,6 +109,7 @@
                 href="?{% param_replace direction='received' %}"
                 data-checked="{% if direction == 'received' %}true{% else %}false{% endif %}"
               >
+                <i data-lucide="inbox" class="size-4"></i>
                 {% translate "received"|capfirst %}
                 <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
               </a>
