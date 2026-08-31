@@ -84,8 +84,9 @@ class DmarcPolicy:
     def ruf_address(self):
         return self.extract_mailto(self.ruf)
 
-    def disposition(self, dkim_aligned, spf_aligned):
-        if dkim_aligned or spf_aligned:
+    def disposition(self, dkim_authenticated: bool, spf_authenticated: bool):
+        """Return the policy disposition for mechanisms that passed and aligned."""
+        if dkim_authenticated or spf_authenticated:
             return Disposition.NONE
         match self.p:
             case Disposition.QUARANTINE:
@@ -121,6 +122,26 @@ class DmarcEvaluation:
     dmarc_policy_is_published: bool = False
     dmarc_policy_temperror: bool = False
 
+    @property
+    def dkim_authenticated(self) -> bool:
+        """Return whether DKIM passed and aligned with the From domain."""
+        return self.is_authenticated(self.dkim_result, self.dkim_alignment)
+
+    @property
+    def spf_authenticated(self) -> bool:
+        """Return whether SPF passed and aligned with the From domain."""
+        return self.is_authenticated(self.spf_result, self.spf_alignment)
+
+    @property
+    def dmarc_authenticated(self) -> bool:
+        """Return whether DMARC passed: a mechanism passed and is aligned (RFC 7489 §6.6.2)."""
+        return self.dkim_authenticated or self.spf_authenticated
+
+    @staticmethod
+    def is_authenticated(result: AuthResult, alignment: Alignment) -> bool:
+        """Return whether an authentication mechanism passed and is aligned."""
+        return result is AuthResult.PASS and alignment is Alignment.PASS
+
     @classmethod
     def from_message(cls, incoming_message):
         """Return DMARC evaluation results for an incoming message."""
@@ -130,30 +151,45 @@ class DmarcEvaluation:
         )
 
     @classmethod
-    def from_bytes(cls, raw_bytes, mail_from):
-        """Evaluate DMARC for a message from raw bytes."""
+    def from_bytes(cls, raw_bytes, mail_from, client_ip: str = ""):
+        """Evaluate DMARC for a message from raw bytes.
+
+        SPF is evaluated against client_ip, the connecting address of the
+        SMTP session, so forged Received headers cannot authenticate a
+        sender. Callers without a session address, such as from_message,
+        fall back to the Received headers.
+        """
         msg = message_from_bytes(raw_bytes)
         header_from_domain = cls.extract_domain(msg.get("From", ""))
         envelope_from_domain = cls.extract_domain(mail_from)
-        source_ip = cls.extract_source_ip(msg)
+        source_ip = client_ip or cls.extract_source_ip(msg)
         policy = DmarcPolicy.lookup(header_from_domain)
         dkim_result, dkim_domain = cls.verify_dkim(raw_bytes)
         spf_result, spf_domain = cls.check_spf(source_ip, envelope_from_domain)
-        dkim_aligned = cls.check_alignment(
-            dkim_domain, header_from_domain, policy.adkim
+        dkim_alignment = (
+            Alignment.PASS
+            if cls.check_alignment(dkim_domain, header_from_domain, policy.adkim)
+            else Alignment.FAIL
         )
-        spf_aligned = cls.check_alignment(spf_domain, header_from_domain, policy.aspf)
+        spf_alignment = (
+            Alignment.PASS
+            if cls.check_alignment(spf_domain, header_from_domain, policy.aspf)
+            else Alignment.FAIL
+        )
         return cls(
             source_ip_address=source_ip,
             header_from=header_from_domain,
             envelope_from=envelope_from_domain,
             dkim_domain=dkim_domain,
             dkim_result=dkim_result,
-            dkim_alignment=Alignment.PASS if dkim_aligned else Alignment.FAIL,
+            dkim_alignment=dkim_alignment,
             spf_domain=spf_domain,
             spf_result=spf_result,
-            spf_alignment=Alignment.PASS if spf_aligned else Alignment.FAIL,
-            disposition=policy.disposition(dkim_aligned, spf_aligned),
+            spf_alignment=spf_alignment,
+            disposition=policy.disposition(
+                cls.is_authenticated(dkim_result, dkim_alignment),
+                cls.is_authenticated(spf_result, spf_alignment),
+            ),
             dmarc_policy_is_published=policy.is_published,
             dmarc_policy_temperror=policy.temperror,
         )

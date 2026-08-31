@@ -12,7 +12,7 @@ import dns.exception
 import dns.resolver
 from django.conf import settings
 
-from abstract.mailauth import Alignment, AuthResult, DmarcEvaluation
+from abstract.mailauth import DmarcEvaluation
 from domains.models import Domain
 from kms import keys
 
@@ -62,18 +62,7 @@ def create_authentication_results(
     if evaluation.dmarc_policy_temperror:
         dmarc_result = "temperror"
     elif evaluation.dmarc_policy_is_published:
-        dmarc_result = (
-            "pass"
-            if (
-                evaluation.spf_result == AuthResult.PASS
-                and evaluation.spf_alignment == Alignment.PASS
-            )
-            or (
-                evaluation.dkim_result == AuthResult.PASS
-                and evaluation.dkim_alignment == Alignment.PASS
-            )
-            else "fail"
-        )
+        dmarc_result = "pass" if evaluation.dmarc_authenticated else "fail"
     else:
         dmarc_result = "none"
     arc_result = (

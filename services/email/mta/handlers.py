@@ -48,7 +48,7 @@ class MXHandler:
         domain = envelope.recipient_domain
         evaluation = await sync_to_async(
             DmarcEvaluation.from_bytes, thread_sensitive=False
-        )(raw_bytes, mail_from)
+        )(raw_bytes, mail_from, client_ip)
         if evaluation.disposition == Disposition.REJECT:
             return "550 Message rejected by DMARC policy"
         status = (

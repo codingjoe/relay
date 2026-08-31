@@ -276,6 +276,33 @@ class TestMXHandler:
         spam_task.enqueue.assert_not_called()
 
     @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__rejects_spoofed_sender_failing_spf_and_dkim(
+        self, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add("victim.com", "TXT", '"v=spf1 ip4:192.0.2.1 -all"')
+        dns_resolver.add("_dmarc.victim.com", "TXT", '"v=DMARC1; p=reject"')
+        envelope = SimpleNamespace(
+            mail_from="ceo@victim.com",
+            rcpt_tos=["postmaster@example.com"],
+            content=(
+                b"Received: from mx.victim.com (mx.victim.com [192.0.2.1])\r\n"
+                b"From: ceo@victim.com\r\n"
+                b"To: postmaster@example.com\r\n"
+                b"Subject: Test\r\n"
+                b"\r\n"
+                b"Something happened\r\n"
+            ),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("198.51.100.99", 1234), ssl=False)
+
+        result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "550 Message rejected by DMARC policy"
+        assert not await IncomingMessage.objects.aexists()
+
+    @pytest.mark.django_db(transaction=True)
     async def test_handle_data__quarantines_on_dmarc_quarantine(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
