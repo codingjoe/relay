@@ -60,9 +60,11 @@ class DmarcPolicy:
             logger.warning("DMARC DNS lookup failed for %r", domain, exc_info=True)
             return cls(temperror=True)
         except dns.exception.DNSException:
-            # A malformed domain, e.g. an overlong or empty label, is a
-            # permanent condition like an unpublished policy, not an outage.
-            logger.warning("DMARC DNS lookup failed for %r", domain, exc_info=True)
+            logger.warning(
+                "DMARC DNS lookup failed for malformed domain %r",
+                domain,
+                exc_info=True,
+            )
             return cls()
         for record in records:
             text = "".join(
@@ -242,9 +244,11 @@ class DmarcEvaluation:
                 logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
                 return AuthResult.TEMPERROR, domain
             except dns.exception.DNSException:
-                # A malformed domain, e.g. an overlong or empty label, is a
-                # permanent condition like an unpublished policy, not an outage.
-                logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
+                logger.warning(
+                    "SPF DNS lookup failed for malformed domain %r",
+                    domain,
+                    exc_info=True,
+                )
                 return AuthResult.NONE, domain
             for record in records:
                 text = "".join(

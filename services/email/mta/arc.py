@@ -38,11 +38,6 @@ class ChainResult(StrEnum):
     TERMINATED = "terminated"
 
 
-def clean_domain(value: str) -> str:
-    """Return the value when it is a valid domain name, else an empty string."""
-    return value if validators.domain(value) is True else ""
-
-
 def create_authentication_results(
     evaluation: DmarcEvaluation, authserv_id: str, arc_result: ChainResult
 ) -> bytes:
@@ -63,9 +58,21 @@ def create_authentication_results(
     arc_result = (
         ChainResult.FAIL if arc_result is ChainResult.TERMINATED else arc_result
     )
-    header_from = clean_domain(evaluation.header_from)
-    spf_domain = clean_domain(evaluation.spf_domain)
-    dkim_domain = clean_domain(evaluation.dkim_domain)
+    spf_domain = (
+        evaluation.spf_domain
+        if validators.domain(evaluation.spf_domain) is True
+        else ""
+    )
+    dkim_domain = (
+        evaluation.dkim_domain
+        if validators.domain(evaluation.dkim_domain) is True
+        else ""
+    )
+    header_from = (
+        evaluation.header_from
+        if validators.domain(evaluation.header_from) is True
+        else ""
+    )
     results = [
         f"arc={arc_result}",
         f"spf={evaluation.spf_result}"

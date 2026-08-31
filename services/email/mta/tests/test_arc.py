@@ -16,7 +16,6 @@ from kms.models import SigningKey
 from services.email.mta.arc import (
     ARC_INSTANCE_LIMIT,
     ChainResult,
-    clean_domain,
     create_authentication_results,
     fetch_dkim_key_record,
     is_trusted_authentication_results,
@@ -100,17 +99,6 @@ def make_terminated_chain(org: Organization, dns_resolver: StubResolver) -> byte
     sealed = seal_message(make_raw_email(), make_dmarc_evaluation(), first)
     tampered = tamper_arc_seal(sealed)
     return seal_message(tampered, make_dmarc_evaluation(), second)
-
-
-class TestCleanDomain:
-    def test_clean_domain__returns_plain_domain(self):
-        assert clean_domain("example.com") == "example.com"
-
-    def test_clean_domain__returns_empty_for_folded_value(self):
-        assert clean_domain("no-reply\r\n ; spf=pass smtp.mailfrom=bank.example") == ""
-
-    def test_clean_domain__returns_empty_for_empty_value(self):
-        assert clean_domain("") == ""
 
 
 class TestCreateAuthenticationResults:
