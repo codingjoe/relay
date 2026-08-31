@@ -85,6 +85,7 @@
             <i
               data-lucide="{{ message.kind_icon }}"
               class="size-3.5 shrink-0"
+              data-tooltip="{{ message.kind_display|capfirst }}"
               aria-hidden="true"
             ></i>
             <span class="sr-only">{{ message.kind_display|capfirst }}</span>
@@ -106,24 +107,39 @@
       </a>
     {% empty %}
       {% if not email and not status %}
-        <div class="flex flex-col items-center gap-3 py-10 text-center">
-          <i data-lucide="inbox" class="size-5 text-muted-foreground" aria-hidden="true"></i>
-          <p class="m-0">
-            {% blocktranslate trimmed %}
-              No messages yet. Send a test email to see it arrive here.
-            {% endblocktranslate %}
-          </p>
-          <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:dashboard' org.slug %}">
-            {% translate "send test email"|title %}
-          </a>
-        </div>
+        <section class="empty">
+          <header>
+            <figure>
+              <i data-lucide="inbox" aria-hidden="true"></i>
+            </figure>
+            <h3>{% translate "No messages yet." %}</h3>
+            <p>
+              {% blocktranslate trimmed %}
+                Send a test email to see it arrive here.
+              {% endblocktranslate %}
+            </p>
+          </header>
+          <footer>
+            <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:dashboard' org.slug %}">
+              {% translate "send test email"|title %}
+            </a>
+          </footer>
+        </section>
       {% else %}
-        <p class="text-muted-foreground">
-          {% translate "No messages found." %}
-          <a class="link" href="{% url 'message:message-list' org.slug %}">
-            {% translate "clear filters"|title %}
-          </a>
-        </p>
+        <section class="empty">
+          <header>
+            <figure>
+              <i data-lucide="search" aria-hidden="true"></i>
+            </figure>
+            <h3>{% translate "No messages found." %}</h3>
+            <p>{% translate "Try different filters to find what you are looking for." %}</p>
+          </header>
+          <footer>
+            <a class="btn" data-variant="secondary" href="{% url 'message:message-list' org.slug %}">
+              {% translate "clear filters"|title %}
+            </a>
+          </footer>
+        </section>
       {% endif %}
     {% endfor %}
   </div>
