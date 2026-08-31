@@ -150,11 +150,7 @@ class Message(TimeStamped):
 
     @classmethod
     def status_choices(cls) -> list[tuple[str, str]]:
-        """Return combined status choices of every concrete Message subclass.
-
-        Subclasses are reflected at runtime via `__subclasses__`, so the
-        choices stay complete without importing any dependent app.
-        """
+        """Return status choices collected from all concrete subclasses."""
         choices = {
             value: label
             for subclass in cls.__subclasses__()
