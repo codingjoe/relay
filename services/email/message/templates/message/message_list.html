@@ -36,38 +36,92 @@
     >{% translate "received"|capfirst %}</a>
   </nav>
 
-  <form method="get" class="fieldset mb-6">
+  <form method="get" class="fieldset mb-6 flex flex-wrap items-end gap-4">
     <input type="hidden" name="direction" value="{{ direction }}">
-    <div class="flex flex-wrap items-end gap-4">
-      <div role="group" class="field flex-1 min-w-48">
-        <label for="filter-email">{% translate "email"|capfirst %}</label>
+    <div role="group" class="field flex-1 min-w-48">
+      <label for="filter-email">{% translate "email"|capfirst %}</label>
+      <div class="input-group">
+        <i data-lucide="search" class="size-4" aria-hidden="true"></i>
         <input
           id="filter-email"
           type="search"
           name="email"
           value="{{ email }}"
-          class="input w-full"
+          class="input"
           placeholder='{% translate "search by address" %}'
         >
       </div>
-      <div role="group" class="field w-56">
-        <label for="filter-status">{% translate "status"|capfirst context "noun" %}</label>
-        <select id="filter-status" name="status" class="select w-full">
-          <option value="">{% translate "all statuses" %}</option>
-          {% for value, label in status_choices %}
-            <option value="{{ value }}" {% if status == value %}selected{% endif %}>
-              {{ label|capfirst }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-      <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
-      {% if email or status %}
-        <a class="btn" data-variant="ghost" href="?{% param_replace email='' status='' %}">
-          {% translate "clear filters"|title %}
-        </a>
-      {% endif %}
     </div>
+    <div role="group" class="field min-w-48 max-w-96 flex-1">
+      <label for="filter-options-input">{% translate "filters"|capfirst %}</label>
+      <div class="command" id="filter-options" aria-label='{% translate "filters"|capfirst %}'>
+        <header>
+          <input
+            id="filter-options-input"
+            type="text"
+            role="combobox"
+            autocomplete="off"
+            aria-autocomplete="list"
+            aria-expanded="true"
+            aria-controls="filter-options-menu"
+            placeholder='{% translate "filter by direction or status" %}'
+          >
+        </header>
+        <div
+          role="menu"
+          id="filter-options-menu"
+          class="max-h-64"
+          data-empty='{% translate "No matching filters." %}'
+        >
+          <div role="group">
+            <span role="heading">{% translate "direction"|capfirst %}</span>
+            <a
+              role="menuitem"
+              href="?{% param_replace direction='all' %}"
+              data-checked="{% if direction == 'all' %}true{% else %}false{% endif %}"
+            >
+              {% translate "all"|capfirst %}
+              <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+            </a>
+            <a
+              role="menuitem"
+              href="?{% param_replace direction='sent' %}"
+              data-checked="{% if direction == 'sent' %}true{% else %}false{% endif %}"
+            >
+              {% translate "sent"|capfirst %}
+              <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+            </a>
+            <a
+              role="menuitem"
+              href="?{% param_replace direction='received' %}"
+              data-checked="{% if direction == 'received' %}true{% else %}false{% endif %}"
+            >
+              {% translate "received"|capfirst %}
+              <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+            </a>
+          </div>
+          <hr role="separator">
+          <div role="group">
+            <span role="heading">{% translate "status"|capfirst context "noun" %}</span>
+            {% for value, label in status_choices %}
+              <a
+                role="menuitem"
+                href="?{% param_replace status=value %}"
+                data-checked="{% if status == value %}true{% else %}false{% endif %}"
+              >
+                {{ label|capfirst }}
+                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if email or status %}
+      <a class="btn" data-variant="ghost" href="?{% param_replace email='' status='' %}">
+        {% translate "clear filters"|title %}
+      </a>
+    {% endif %}
   </form>
 
   <div class="item-group mb-6">
