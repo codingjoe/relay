@@ -4,120 +4,210 @@
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "reports"|capfirst %}</h2>
+    <p class="text-sm text-muted-foreground m-0" role="status">
+      {% blocktranslate count counter=paginator.count trimmed %}
+        {{ counter }} report{% plural %}{{ counter }} reports
+      {% endblocktranslate %}
+    </p>
   </header>
 
-  <nav
-    role="navigation"
-    aria-label='{% translate "type"|capfirst %}'
-    class="button-group mb-6"
-  >
-    <a
-      class="btn"
-      data-variant="{% if type == 'dmarc' %}default{% else %}secondary{% endif %}"
-      href="?{% param_replace type='dmarc' %}"
-      {% if type == 'dmarc' %}aria-current="page"{% endif %}
-    >DMARC</a>
-    <a
-      class="btn"
-      data-variant="{% if type == 'failures' %}default{% else %}secondary{% endif %}"
-      href="?{% param_replace type='failures' %}"
-      {% if type == 'failures' %}aria-current="page"{% endif %}
-    >{% translate "DMARC failures"|capfirst %}</a>
-    <a
-      class="btn"
-      data-variant="{% if type == 'tls' %}default{% else %}secondary{% endif %}"
-      href="?{% param_replace type='tls' %}"
-      {% if type == 'tls' %}aria-current="page"{% endif %}
-    >TLS</a>
-  </nav>
-
-  <form method="get" class="fieldset mb-6">
-    <input type="hidden" name="type" value="{{ type }}">
-    <div class="flex flex-wrap items-end gap-4">
-      {% if type == 'tls' %}
-        <div role="group" class="field flex-1 min-w-48">
-          <label for="filter-domain">{% translate "domain"|capfirst context "noun" %}</label>
+  <div class="mb-6 flex flex-wrap items-center gap-2">
+    <form method="get" role="search" class="flex-1 min-w-56">
+      <input type="hidden" name="type" value="{{ type }}">
+      <div class="input-group">
+        {% if type == 'tls' %}
           <input
             id="filter-domain"
-            type="search"
             name="domain"
+            type="search"
             value="{{ domain }}"
-            class="input"
+            aria-label='{% translate "search by domain" %}'
             placeholder='{% translate "search by domain" %}'
           >
-        </div>
-      {% endif %}
-      {% if type != 'tls' %}
-        <div role="group" class="field flex-1 min-w-48">
-          <label for="filter-ip">{% translate "source IP"|capfirst %}</label>
+        {% else %}
           <input
             id="filter-ip"
-            type="search"
             name="ip"
+            type="search"
             value="{{ ip }}"
-            class="input"
+            aria-label='{% translate "search by IP" %}'
             placeholder='{% translate "search by IP" %}'
           >
-        </div>
-      {% endif %}
-      <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
-    </div>
-  </form>
-
-  <div class="table-container mb-6">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>{% translate "received at"|capfirst %}</th>
-          <th>{% translate "type"|capfirst context "noun" %}</th>
-          <th>{% translate "domain"|capfirst context "noun" %}</th>
-          <th>{% translate "from"|capfirst context "email" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for report in reports %}
-          <tr class="row-link hover:bg-muted/50">
-            <td>
-              <a class="row-link-anchor" href="{{ report.get_absolute_url }}">
-                {% timestamp report.created_at %}
+        {% endif %}
+        <span data-align="start" aria-hidden="true">
+          <i data-lucide="search" class="size-4"></i>
+        </span>
+        <button
+          type="submit"
+          class="btn"
+          data-variant="ghost"
+          data-size="icon"
+          data-align="end"
+          aria-label='{% translate "search"|capfirst context "verb" %}'
+        >
+          <i data-lucide="arrow-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </form>
+    <div id="report-filters" class="popover">
+      <button
+        type="button"
+        class="btn"
+        data-variant="outline"
+        id="report-filters-trigger"
+        aria-haspopup="menu"
+        aria-controls="report-filters-popover"
+        aria-expanded="false"
+      >
+        <i data-lucide="list-filter" aria-hidden="true"></i>
+        {{ type_label }}
+        {% if filter_count %}
+          <span class="badge" data-size="sm">{{ filter_count }}</span>
+        {% endif %}
+        <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
+      </button>
+      <div
+        id="report-filters-popover"
+        class="w-80 p-0"
+        aria-hidden="true"
+        data-side="bottom"
+        data-align="end"
+        data-popover
+      >
+        <div class="command" id="report-filter-command" aria-label='{% translate "filters"|capfirst %}'>
+          <header>
+            <i data-lucide="search" class="size-4"></i>
+            <input
+              id="report-filter-input"
+              type="search"
+              role="combobox"
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-expanded="false"
+              aria-controls="report-filter-menu"
+              placeholder='{% translate "filter by report type" %}'
+            >
+          </header>
+          <div
+            role="menu"
+            id="report-filter-menu"
+            aria-labelledby="report-filters-trigger"
+            class="max-h-64"
+            data-empty='{% translate "No matching filters." %}'
+          >
+            <div role="group">
+              <span role="heading">{% translate "type"|capfirst context "noun" %}</span>
+              <a
+                role="menuitem"
+                href="?{% param_replace type='dmarc' %}"
+                data-checked="{% if type == 'dmarc' %}true{% else %}false{% endif %}"
+              >
+                <i data-lucide="shield-check" class="size-4" aria-hidden="true"></i>
+                DMARC
+                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
               </a>
-            </td>
-            <td>
-              {% if type == 'dmarc' %}
-                <i data-lucide="shield-check" class="size-4 text-muted-foreground" aria-label="DMARC"></i>
-              {% elif type == 'failures' %}
-                <i
-                  data-lucide="alert-triangle"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "DMARC failures"|capfirst %}'
-                ></i>
-              {% elif type == 'fbl' %}
-                <i
-                  data-lucide="flag"
-                  class="size-4 text-muted-foreground"
-                  aria-label='{% translate "FBL"|capfirst %}'
-                ></i>
-              {% else %}
-                <i data-lucide="lock" class="size-4 text-muted-foreground" aria-label="TLS"></i>
-              {% endif %}
-            </td>
-            <td>
-              {% if report.domain %}
-                {{ report.domain.name }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td>
-              <code
-              >{% if type == 'tls' %}{{ report.reporting_email|default:"-" }}{% elif type == 'fbl' %}{{ report.original_mail_from|default:"-" }}{% else %}{{ report.mail_from }}{% endif %}</code>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="4">{% translate "No reports found." %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+              <a
+                role="menuitem"
+                href="?{% param_replace type='failures' %}"
+                data-checked="{% if type == 'failures' %}true{% else %}false{% endif %}"
+              >
+                <i data-lucide="alert-triangle" class="size-4" aria-hidden="true"></i>
+                {% translate "DMARC failures"|capfirst %}
+                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+              </a>
+              <a
+                role="menuitem"
+                href="?{% param_replace type='tls' %}"
+                data-checked="{% if type == 'tls' %}true{% else %}false{% endif %}"
+              >
+                <i data-lucide="lock" class="size-4" aria-hidden="true"></i>
+                {% translate "TLS"|capfirst %}
+                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+              </a>
+              <a
+                role="menuitem"
+                href="?{% param_replace type='fbl' %}"
+                data-checked="{% if type == 'fbl' %}true{% else %}false{% endif %}"
+              >
+                <i data-lucide="flag" class="size-4" aria-hidden="true"></i>
+                {% translate "FBL"|capfirst %}
+                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if ip or domain %}
+      <a class="btn" data-variant="ghost" href="?{% param_replace ip='' domain='' %}">
+        <i data-lucide="rotate-ccw" class="size-4" aria-hidden="true"></i>
+        {% translate "clear"|capfirst %}
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="item-group mb-6">
+    {% for report in reports %}
+      <a class="item" data-variant="outline" href="{{ report.get_absolute_url }}">
+        <section>
+          <h3 class="break-words">
+            {% if report.domain %}{{ report.domain.name }}{% else %}-{% endif %}
+          </h3>
+          <div class="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+            {% if type == 'dmarc' %}
+              <i data-lucide="shield-check" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              <span class="sr-only">DMARC</span>
+            {% elif type == 'failures' %}
+              <i data-lucide="alert-triangle" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              <span class="sr-only">{% translate "DMARC failures"|capfirst %}</span>
+            {% elif type == 'fbl' %}
+              <i data-lucide="flag" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              <span class="sr-only">FBL</span>
+            {% else %}
+              <i data-lucide="lock" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              <span class="sr-only">TLS</span>
+            {% endif %}
+            <code class="truncate max-w-96">
+              {% if type == 'tls' %}{{ report.reporting_email|default:"-" }}{% elif type == 'fbl' %}{{ report.original_mail_from|default:"-" }}{% else %}{{ report.mail_from }}{% endif %}
+            </code>
+          </div>
+        </section>
+        <aside class="shrink-0">
+          {% timestamp report.created_at %}
+        </aside>
+      </a>
+    {% empty %}
+      {% if not ip and not domain %}
+        <section class="empty">
+          <header>
+            <figure>
+              <i data-lucide="shield-check" aria-hidden="true"></i>
+            </figure>
+            <h3>{% translate "No reports yet." %}</h3>
+            <p>
+              {% blocktranslate trimmed %}
+                Reports arrive here automatically from mailbox providers.
+              {% endblocktranslate %}
+            </p>
+          </header>
+        </section>
+      {% else %}
+        <section class="empty">
+          <header>
+            <figure>
+              <i data-lucide="search" aria-hidden="true"></i>
+            </figure>
+            <h3>{% translate "No reports found." %}</h3>
+            <p>{% translate "Try different filters to find what you are looking for." %}</p>
+          </header>
+          <footer>
+            <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:report-list' org.slug %}">
+              {% translate "clear"|capfirst %}
+            </a>
+          </footer>
+        </section>
+      {% endif %}
+    {% endfor %}
   </div>
 
   {% pagination %}
