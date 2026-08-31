@@ -1,5 +1,6 @@
 import gzip
 import logging
+import re
 import uuid
 
 from django.conf import settings
@@ -270,6 +271,47 @@ class DmarcFailureReport(IncomingMessage):
         blank=True,
         help_text=_("Headers of the original message from the report."),
     )
+
+    @property
+    def parsed_authentication_results(self) -> list[dict]:
+        """Return one chip per method-verdict pair in the raw results."""
+        return [
+            self.parsed_authentication_result(chunk)
+            for chunk in re.split(r"[;\n]", self.authentication_results)
+            if "=" in chunk
+        ]
+
+    def parsed_authentication_result(self, chunk: str) -> dict:
+        """Parse a single `method=verdict` chunk into an auth result chip."""
+        method, _, verdict = chunk.strip().partition("=")
+        match (verdict.strip().split() or ["none"])[0].lower():
+            case "pass":
+                icon, icon_class = "circle-check", "text-primary"
+            case "fail" | "hardfail":
+                icon, icon_class = "circle-x", "text-destructive"
+            case _:
+                icon, icon_class = "circle-dashed", "text-muted-foreground"
+        return {
+            "method": method.strip().upper(),
+            "verdict": (verdict.strip().split() or ["none"])[0].lower(),
+            "icon": icon,
+            "icon_class": icon_class,
+        }
+
+    @property
+    def delivery_result_badge_variant(self) -> str:
+        """Return the badge variant for the delivery outcome."""
+        match self.delivery_result:
+            case self.DeliveryResult.DELIVERED:
+                return "primary"
+            case (
+                self.DeliveryResult.REJECTED
+                | self.DeliveryResult.SPAM
+                | self.DeliveryResult.POLICY
+            ):
+                return "destructive"
+            case _:
+                return "outline"
 
     class Meta:
         indexes = [

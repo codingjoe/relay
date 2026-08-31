@@ -119,8 +119,15 @@ class ReportListView(OrganizationScopedView, generic.ListView):
         return qs.fetch_mode(models.FETCH_PEERS)
 
     def get_context_data(self, **kwargs):
+        report_type = self.request.GET.get("type", self.ReportType.DMARC)
+        domain = self.request.GET.get("domain", "")
+        ip = self.request.GET.get("ip", "")
+        filter_count = (
+            int(report_type != self.ReportType.DMARC) + bool(domain) + bool(ip)
+        )
         return super().get_context_data(**kwargs) | {
-            "type": self.request.GET.get("type", self.ReportType.DMARC),
-            "domain": self.request.GET.get("domain", ""),
-            "ip": self.request.GET.get("ip", ""),
+            "type": report_type,
+            "domain": domain,
+            "ip": ip,
+            "filter_count": filter_count,
         }
