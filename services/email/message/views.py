@@ -46,4 +46,5 @@ class MessageListView(OrganizationScopedView, generic.ListView):
             "direction": self.request.GET.get("direction", self.Direction.ALL),
             "email": self.request.GET.get("email", ""),
             "status": self.request.GET.get("status", ""),
+            "status_choices": Message.status_choices(self.org),
         }

@@ -4,6 +4,11 @@
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "email messages"|capfirst %}</h2>
+    <p class="text-sm text-muted-foreground m-0" role="status">
+      {% blocktranslate count counter=paginator.count trimmed %}
+        {{ counter }} message{% plural %}{{ counter }} messages
+      {% endblocktranslate %}
+    </p>
   </header>
 
   <nav
@@ -41,119 +46,86 @@
           type="search"
           name="email"
           value="{{ email }}"
-          class="input"
+          class="input w-full"
           placeholder='{% translate "search by address" %}'
         >
       </div>
-      <div role="group" class="field flex-1 min-w-48">
+      <div role="group" class="field w-56">
         <label for="filter-status">{% translate "status"|capfirst context "noun" %}</label>
-        <input
-          id="filter-status"
-          type="search"
-          name="status"
-          value="{{ status }}"
-          class="input"
-          placeholder='{% translate "search by status" %}'
-        >
+        <select id="filter-status" name="status" class="select w-full">
+          <option value="">{% translate "all statuses" %}</option>
+          {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if status == value %}selected{% endif %}>
+              {{ label|capfirst }}
+            </option>
+          {% endfor %}
+        </select>
       </div>
       <button type="submit" class="btn">{% translate "filter"|capfirst context "verb" %}</button>
+      {% if email or status %}
+        <a class="btn" data-variant="ghost" href="?{% param_replace email='' status='' %}">
+          {% translate "clear filters"|title %}
+        </a>
+      {% endif %}
     </div>
   </form>
 
-  <div class="table-container mb-6">
-    <table class="table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>{% translate "status"|capfirst context "noun" %}</th>
-          <th>{% translate "sent"|capfirst %}</th>
-          <th>{% translate "from"|capfirst context "email" %}</th>
-          <th>{% translate "to"|capfirst context "email" %}</th>
-          <th>{% translate "domain"|capfirst context "noun" %}</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for message in messages %}
-          <tr class="hover:bg-muted/50">
-            <td>
-              <i
-                data-lucide="{{ message.kind_icon }}"
-                class="size-4 text-muted-foreground"
-                aria-label="{{ message.kind|capfirst }}"
-              ></i>
-            </td>
-            <td>
-              <span
-                class="badge"
-                data-size="sm"
-                data-variant="{{ message.status_badge_variant }}"
-              >
-                {{ message.status_display }}
-              </span>
-            </td>
-            <td>
-              {% timestamp message.created_at %}
-            </td>
-            <td>
-              <code>
-                <a class="link" href="{{ request.path }}?email={{ message.mail_from|urlencode }}">
-                  {{ message.mail_from }}
-                </a>
-              </code>
-            </td>
-            <td>
-              <code>
-                <a class="link" href="{{ request.path }}?email={{ message.rcpt_to|urlencode }}">
-                  {{ message.rcpt_to }}
-                </a>
-              </code>
-            </td>
-            <td>
-              <code>
-                {% if message.domain_name %}
-                  <a class="link" href="{{ request.path }}?domain={{ message.domain_name|urlencode }}">
-                    {{ message.domain_name }}
-                  </a>
-                {% else %}
-                  -
-                {% endif %}
-              </code>
-            </td>
-            <td>
-              <a
-                class="btn"
-                data-size="sm"
-                data-variant="secondary"
-                href="{{ message.get_absolute_url }}"
-              >
-                {% translate "detail"|capfirst %}
-              </a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="7">
-              {% if not email and not status %}
-                <div class="flex flex-col items-center gap-3 py-6 text-center">
-                  <i data-lucide="inbox" class="size-5 text-muted-foreground" aria-hidden="true"></i>
-                  <p class="m-0">
-                    {% blocktranslate trimmed %}
-                      No messages yet. Send a test email to see it arrive here.
-                    {% endblocktranslate %}
-                  </p>
-                  <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:dashboard' org.slug %}">
-                    {% translate "send test email"|title %}
-                  </a>
-                </div>
-              {% else %}
-                {% translate "No messages found." %}
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="item-group mb-6">
+    {% for message in messages %}
+      <a class="item" data-variant="outline" href="{{ message.get_absolute_url }}">
+        <section>
+          <h3 class="break-words">
+            {% if message.subject %}
+              {{ message.subject }}
+            {% else %}
+              ({% translate "no subject" %})
+            {% endif %}
+          </h3>
+          <div class="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+            <i
+              data-lucide="{{ message.kind_icon }}"
+              class="size-3.5 shrink-0"
+              aria-hidden="true"
+            ></i>
+            <span class="sr-only">{{ message.kind_display|capfirst }}</span>
+            <code class="truncate max-w-96">
+              {{ message.mail_from }} → {{ message.rcpt_to }}
+            </code>
+          </div>
+        </section>
+        <aside class="flex flex-col items-end gap-1 shrink-0">
+          <span
+            class="badge"
+            data-size="sm"
+            data-variant="{{ message.status_badge_variant }}"
+          >
+            {{ message.status_display }}
+          </span>
+          {% timestamp message.created_at %}
+        </aside>
+      </a>
+    {% empty %}
+      {% if not email and not status %}
+        <div class="flex flex-col items-center gap-3 py-10 text-center">
+          <i data-lucide="inbox" class="size-5 text-muted-foreground" aria-hidden="true"></i>
+          <p class="m-0">
+            {% blocktranslate trimmed %}
+              No messages yet. Send a test email to see it arrive here.
+            {% endblocktranslate %}
+          </p>
+          <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:dashboard' org.slug %}">
+            {% translate "send test email"|title %}
+          </a>
+        </div>
+      {% else %}
+        <p class="text-muted-foreground">
+          {% translate "No messages found." %}
+          <a class="link" href="{% url 'message:message-list' org.slug %}">
+            {% translate "clear filters"|title %}
+          </a>
+        </p>
+      {% endif %}
+    {% endfor %}
   </div>
 
   {% pagination %}

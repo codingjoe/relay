@@ -121,6 +121,11 @@ class Message(TimeStamped):
         return self.content_type.model
 
     @property
+    def kind_display(self) -> str:
+        """Return the human-readable name of the concrete subclass."""
+        return self.content_type.name
+
+    @property
     def kind_icon(self) -> str:
         """Return the matching Lucide icon name."""
         return "send" if self.kind == "outgoingmessage" else "inbox"
@@ -142,6 +147,23 @@ class Message(TimeStamped):
     def get_absolute_url(self) -> str:
         child = self.content_type.get_object_for_this_type(pk=self.pk)
         return child.get_absolute_url()
+
+    @classmethod
+    def status_choices(cls, org) -> list[tuple[str, str]]:
+        """Return combined status choices for every concrete subclass with stored messages.
+
+        Subclasses register their message as a content type, so the choices are
+        reflected at runtime without importing any dependent app.
+        """
+        content_types = ContentType.objects.filter(
+            pk__in=cls.objects.filter(org=org).values("content_type_id")
+        )
+        choices = {}
+        for content_type in content_types:
+            model = content_type.model_class()
+            if model and issubclass(model, cls):
+                choices.update(model.Status.choices)
+        return sorted(choices.items(), key=lambda choice: str(choice[1]))
 
     def parsed_email(self):
         """Parse the raw body into an `email.message.Message` object."""
