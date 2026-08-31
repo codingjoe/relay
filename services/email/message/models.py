@@ -149,20 +149,17 @@ class Message(TimeStamped):
         return child.get_absolute_url()
 
     @classmethod
-    def status_choices(cls, org) -> list[tuple[str, str]]:
-        """Return combined status choices for every concrete subclass with stored messages.
+    def status_choices(cls) -> list[tuple[str, str]]:
+        """Return combined status choices of every concrete Message subclass.
 
-        Subclasses register their message as a content type, so the choices are
-        reflected at runtime without importing any dependent app.
+        Subclasses are reflected at runtime via `__subclasses__`, so the
+        choices stay complete without importing any dependent app.
         """
-        content_types = ContentType.objects.filter(
-            pk__in=cls.objects.filter(org=org).values("content_type_id")
-        )
-        choices = {}
-        for content_type in content_types:
-            model = content_type.model_class()
-            if model and issubclass(model, cls):
-                choices.update(model.Status.choices)
+        choices = {
+            value: label
+            for subclass in cls.__subclasses__()
+            for value, label in subclass.Status.choices
+        }
         return sorted(choices.items(), key=lambda choice: str(choice[1]))
 
     def parsed_email(self):

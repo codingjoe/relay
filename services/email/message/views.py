@@ -52,6 +52,6 @@ class MessageListView(OrganizationScopedView, generic.ListView):
             "direction": direction,
             "email": email,
             "status": status,
-            "status_choices": Message.status_choices(self.org),
+            "status_choices": Message.status_choices(),
             "filter_count": filter_count,
         }
