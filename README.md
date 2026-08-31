@@ -181,42 +181,41 @@ existing `caddy` labels already make it maintain that certificate) and
 forwards the plaintext session to the MSA's balancer port. That hop never
 leaves the host.
 
-Add the following to the-box's seed Caddyfile
-(`containers/caddy/Caddyfile`) and publish `25`, `465`, and `587` in its
-compose file:
+Add the `layer4` block to the existing global options block in the-box's
+seed Caddyfile (`containers/caddy/Caddyfile`) and publish `25`, `465`, and
+`587` in its compose file. Caddy allows only one global options block per
+Caddyfile, so merge it with the existing `cache` and `log` options:
 
 ```caddyfile
-{
-    layer4 {
-        :25 {
-            route {
-                proxy mta:25 {
-                    lb_policy round_robin
-                    lb_try_duration 3s
-                    fail_duration 10s
-                    proxy_protocol v2
-                }
+layer4 {
+    :25 {
+        route {
+            proxy mta:25 {
+                lb_policy round_robin
+                lb_try_duration 3s
+                fail_duration 10s
+                proxy_protocol v2
             }
         }
-        :587 {
-            route {
-                proxy msa:587 {
-                    lb_policy round_robin
-                    lb_try_duration 3s
-                    fail_duration 10s
-                    proxy_protocol v2
-                }
+    }
+    :587 {
+        route {
+            proxy msa:587 {
+                lb_policy round_robin
+                lb_try_duration 3s
+                fail_duration 10s
+                proxy_protocol v2
             }
         }
-        :465 {
-            route {
-                tls
-                proxy msa:2465 {
-                    lb_policy round_robin
-                    lb_try_duration 3s
-                    fail_duration 10s
-                    proxy_protocol v2
-                }
+    }
+    :465 {
+        route {
+            tls
+            proxy msa:2465 {
+                lb_policy round_robin
+                lb_try_duration 3s
+                fail_duration 10s
+                proxy_protocol v2
             }
         }
     }
