@@ -1,3 +1,4 @@
+import django.db.models.deletion
 from django.db import migrations, models
 
 
@@ -5,7 +6,7 @@ def mark_historical_starttls(apps, schema_editor):
     """Record STARTTLS for historical transmissions flagged as sent with SSL.
 
     Outbound delivery only negotiates STARTTLS, so the boolean flag maps to
-    STARTTLS. The remaining TLS details were never recorded before.
+    STARTTLS. The presented certificates were never recorded before.
     """
     transmission = apps.get_model("msa", "Transmission")
     transmission.objects.filter(sent_with_ssl=True).update(tls_mode="starttls")
@@ -24,6 +25,7 @@ def restore_sent_with_ssl(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
+        ("kms", "0003_certificate"),
         ("msa", "0005_outgoingmessage_feedback_id"),
     ]
 
@@ -39,88 +41,13 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="transmission",
-            name="tls_certificate_chain",
-            field=models.TextField(
+            name="tls_certificate",
+            field=models.ForeignKey(
                 blank=True,
-                help_text=(
-                    "Subjects and SHA-256 fingerprints of the certificate "
-                    "chain the remote server presented, one per line."
-                ),
-                verbose_name="TLS certificate chain",
-            ),
-        ),
-        migrations.AddField(
-            model_name="transmission",
-            name="tls_certificate_fingerprint",
-            field=models.TextField(
-                blank=True,
-                help_text="SHA-256 fingerprint of the remote server's TLS certificate.",
-                verbose_name="TLS certificate fingerprint",
-            ),
-        ),
-        migrations.AddField(
-            model_name="transmission",
-            name="tls_certificate_issuer",
-            field=models.TextField(
-                blank=True,
-                help_text=(
-                    "Certificate authority that signed the remote server's "
-                    "TLS certificate."
-                ),
-                verbose_name="TLS certificate issuer",
-            ),
-        ),
-        migrations.AddField(
-            model_name="transmission",
-            name="tls_certificate_not_after",
-            field=models.DateTimeField(
-                blank=True,
-                help_text=(
-                    "Point in time until which the remote server's TLS "
-                    "certificate is valid."
-                ),
                 null=True,
-                verbose_name="TLS certificate valid until",
-            ),
-        ),
-        migrations.AddField(
-            model_name="transmission",
-            name="tls_certificate_not_before",
-            field=models.DateTimeField(
-                blank=True,
-                help_text=(
-                    "Point in time from which the remote server's TLS "
-                    "certificate is valid."
-                ),
-                null=True,
-                verbose_name="TLS certificate valid from",
-            ),
-        ),
-        migrations.AddField(
-            model_name="transmission",
-            name="tls_certificate_serial_number",
-            field=models.TextField(
-                blank=True,
-                help_text="Serial number of the remote server's TLS certificate.",
-                verbose_name="TLS certificate serial number",
-            ),
-        ),
-        migrations.AddField(
-            model_name="transmission",
-            name="tls_certificate_subject",
-            field=models.TextField(
-                blank=True,
-                help_text="Subject of the remote server's TLS certificate.",
-                verbose_name="TLS certificate subject",
-            ),
-        ),
-        migrations.AddField(
-            model_name="transmission",
-            name="tls_certificate_subject_alternative_names",
-            field=models.TextField(
-                blank=True,
-                help_text="DNS names the remote server's TLS certificate covers.",
-                verbose_name="TLS certificate subject alternative names",
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="transmissions",
+                to="kms.certificate",
             ),
         ),
         migrations.AddField(

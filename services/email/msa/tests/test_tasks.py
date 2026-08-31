@@ -132,27 +132,21 @@ class TestDeliverMessage:
         assert transmission.tls_mode == Transmission.TlsMode.STARTTLS
         assert transmission.tls_version == "TLSv1.3"
         assert transmission.tls_cipher == "TLS_AES_256_GCM_SHA384"
-        assert transmission.tls_certificate_subject == "CN=mx.example.com"
-        assert transmission.tls_certificate_issuer == "CN=mx.example.com"
-        assert transmission.tls_certificate_serial_number == format(
-            certificate.serial_number, "x"
-        )
+        stored_certificate = transmission.tls_certificate
         assert (
-            transmission.tls_certificate_fingerprint
+            stored_certificate.fingerprint
             == certificate.fingerprint(hashes.SHA256()).hex()
         )
-        assert (
-            transmission.tls_certificate_subject_alternative_names == "mx.example.com"
+        assert stored_certificate.subject == "CN=mx.example.com"
+        assert stored_certificate.subject_alternative_names == "mx.example.com"
+        assert stored_certificate.issuer == "CN=mx.example.com"
+        assert stored_certificate.serial_number == format(
+            certificate.serial_number, "x"
         )
-        assert transmission.tls_certificate_not_before == (
-            certificate.not_valid_before_utc
-        )
-        assert transmission.tls_certificate_not_after == (
-            certificate.not_valid_after_utc
-        )
-        assert transmission.tls_certificate_chain == (
-            f"CN=mx.example.com sha256={certificate.fingerprint(hashes.SHA256()).hex()}"
-        )
+        assert stored_certificate.not_before == certificate.not_valid_before_utc
+        assert stored_certificate.not_after == certificate.not_valid_after_utc
+        assert stored_certificate.issuer_certificate is None
+        assert stored_certificate.chain == [stored_certificate]
 
     def test_deliver_message__permanent_failure_marks_bounced(
         self, user, org, dns_resolver

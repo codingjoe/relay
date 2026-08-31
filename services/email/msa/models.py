@@ -142,56 +142,12 @@ class Transmission(TimeStamped):
         blank=True,
         help_text=_("Negotiated TLS cipher suite."),
     )
-    tls_certificate_subject = models.TextField(
-        _("TLS certificate subject"),
-        blank=True,
-        help_text=_("Subject of the remote server's TLS certificate."),
-    )
-    tls_certificate_issuer = models.TextField(
-        _("TLS certificate issuer"),
-        blank=True,
-        help_text=_(
-            "Certificate authority that signed the remote server's TLS certificate."
-        ),
-    )
-    tls_certificate_serial_number = models.TextField(
-        _("TLS certificate serial number"),
-        blank=True,
-        help_text=_("Serial number of the remote server's TLS certificate."),
-    )
-    tls_certificate_fingerprint = models.TextField(
-        _("TLS certificate fingerprint"),
-        blank=True,
-        help_text=_("SHA-256 fingerprint of the remote server's TLS certificate."),
-    )
-    tls_certificate_subject_alternative_names = models.TextField(
-        _("TLS certificate subject alternative names"),
-        blank=True,
-        help_text=_("DNS names the remote server's TLS certificate covers."),
-    )
-    tls_certificate_not_before = models.DateTimeField(
-        _("TLS certificate valid from"),
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
-        help_text=_(
-            "Point in time from which the remote server's TLS certificate is valid."
-        ),
-    )
-    tls_certificate_not_after = models.DateTimeField(
-        _("TLS certificate valid until"),
-        null=True,
-        blank=True,
-        help_text=_(
-            "Point in time until which the remote server's TLS certificate is valid."
-        ),
-    )
-    tls_certificate_chain = models.TextField(
-        _("TLS certificate chain"),
-        blank=True,
-        help_text=_(
-            "Subjects and SHA-256 fingerprints of the certificate chain the "
-            "remote server presented, one per line."
-        ),
+        related_name="transmissions",
     )
     log_id = models.TextField(
         _("log ID"),

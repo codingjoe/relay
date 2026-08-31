@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
 
-from . import keys
+from . import certificates, keys
 
 
 class SigningKey(TimeStamped):
@@ -85,3 +85,94 @@ class SigningKey(TimeStamped):
             public_key=pair.public_key_pem,
             key_id=pair.key_id,
         )
+
+
+class Certificate(TimeStamped):
+    """A TLS certificate presented by a remote server."""
+
+    fingerprint = models.TextField(
+        _("fingerprint"),
+        primary_key=True,
+        help_text=_("SHA-256 fingerprint of the certificate, as lowercase hex."),
+    )
+    subject = models.TextField(
+        _("subject"),
+        blank=True,
+        help_text=_("Subject of the certificate, in RFC 4514 notation."),
+    )
+    subject_alternative_names = models.TextField(
+        _("subject alternative names"),
+        blank=True,
+        help_text=_("DNS names the certificate covers, comma-separated."),
+    )
+    issuer = models.TextField(
+        _("issuer"),
+        blank=True,
+        help_text=_("Subject of the authority that signed the certificate."),
+    )
+    serial_number = models.TextField(
+        _("serial number"),
+        blank=True,
+        help_text=_("Serial number of the certificate, as lowercase hex."),
+    )
+    issuer_certificate = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="issued_certificates",
+        verbose_name=_("issuer certificate"),
+        help_text=_("Certificate that signed this certificate, when presented."),
+    )
+    not_before = models.DateTimeField(
+        _("valid from"),
+        null=True,
+        blank=True,
+        help_text=_("Point in time from which the certificate is valid."),
+    )
+    not_after = models.DateTimeField(
+        _("valid until"),
+        null=True,
+        blank=True,
+        help_text=_("Point in time until which the certificate is valid."),
+    )
+
+    def __str__(self):
+        return self.subject or f"sha256:{self.fingerprint[:16]}…"
+
+    @property
+    def chain(self) -> list[Certificate]:
+        """Return this certificate and its presented issuers, leaf first."""
+        certificates = [self]
+        while len(certificates) < 10 and certificates[-1].issuer_certificate:
+            certificates.append(certificates[-1].issuer_certificate)
+        return certificates
+
+    @classmethod
+    def store_presented_chain(cls, parsed_certificates) -> Certificate:
+        """Store the certificates a server presented and return the leaf row."""
+        stored_certificates = [
+            cls.objects.get_or_create(
+                fingerprint=certificates.format_fingerprint(parsed_certificate),
+                defaults={
+                    "subject": parsed_certificate.subject.rfc4514_string(),
+                    "subject_alternative_names": (
+                        certificates.format_subject_alternative_names(
+                            parsed_certificate
+                        )
+                    ),
+                    "issuer": parsed_certificate.issuer.rfc4514_string(),
+                    "serial_number": format(parsed_certificate.serial_number, "x"),
+                    "not_before": parsed_certificate.not_valid_before_utc,
+                    "not_after": parsed_certificate.not_valid_after_utc,
+                },
+            )[0]
+            for parsed_certificate in parsed_certificates
+        ]
+        for certificate, issuer_certificate in zip(
+            stored_certificates, [*stored_certificates[1:], None]
+        ):
+            if certificate.issuer_certificate != issuer_certificate:
+                certificate.issuer_certificate = issuer_certificate
+                certificate.save(update_fields=["issuer_certificate", "modified_at"])
+        return stored_certificates[0]

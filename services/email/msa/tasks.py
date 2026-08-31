@@ -6,7 +6,6 @@ import dns.resolver
 import httpx
 from asgiref.sync import async_to_sync
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
 from django.conf import settings
 from django.tasks import task
 from threadmill.retry import ExponentialBackoff
@@ -153,6 +152,7 @@ def fetch_mx_hosts(domain):
 def send_via_mx(raw_bytes, mx_host, sender, recipients):
     """Deliver a message to an MX host over STARTTLS on port 25 and return
     the SMTP response with the negotiated TLS details."""
+    from .models import Transmission
 
     async def send():
         smtp_client = aiosmtplib.SMTP(
@@ -165,73 +165,33 @@ def send_via_mx(raw_bytes, mx_host, sender, recipients):
         await smtp_client.connect()
         try:
             response = await smtp_client.sendmail(sender, recipients, raw_bytes)
-            return response, get_tls_details(smtp_client)
+            cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
+            ssl_object = smtp_client.get_transport_info("ssl_object")
         finally:
             smtp_client.close()
+        return response, cipher, ssl_object
 
-    return async_to_sync(send)()
+    response, cipher, ssl_object = async_to_sync(send)()
+    from kms.models import Certificate
 
-
-def get_tls_details(smtp_client):
-    """Return the TLS details negotiated by an aiosmtplib connection."""
-    from .models import Transmission
-
-    ssl_object = smtp_client.get_transport_info("ssl_object")
     if ssl_object is None:
-        return {"tls_mode": Transmission.TlsMode.PLAINTEXT}
-    cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
-    certificates = get_peer_certificates(ssl_object)
-    leaf_certificate = certificates[0]
-    return {
-        "tls_mode": (
-            Transmission.TlsMode.TLS
-            if smtp_client.use_tls
-            else Transmission.TlsMode.STARTTLS
-        ),
+        return response, {"tls_mode": Transmission.TlsMode.PLAINTEXT}
+    return response, {
+        "tls_mode": Transmission.TlsMode.STARTTLS,
         "tls_cipher": cipher[0] or "",
         "tls_version": cipher[1] or "",
-        "tls_certificate_subject": leaf_certificate.subject.rfc4514_string(),
-        "tls_certificate_issuer": leaf_certificate.issuer.rfc4514_string(),
-        "tls_certificate_serial_number": format(leaf_certificate.serial_number, "x"),
-        "tls_certificate_fingerprint": format_certificate_fingerprint(leaf_certificate),
-        "tls_certificate_subject_alternative_names": ", ".join(
-            get_subject_alternative_names(leaf_certificate)
+        "tls_certificate": Certificate.store_presented_chain(
+            get_peer_certificates(ssl_object)
         ),
-        "tls_certificate_not_before": leaf_certificate.not_valid_before_utc,
-        "tls_certificate_not_after": leaf_certificate.not_valid_after_utc,
-        "tls_certificate_chain": format_certificate_chain(certificates),
     }
 
 
 def get_peer_certificates(ssl_object):
     """Return the X.509 certificates the remote server presented."""
+    if ssl_object is None:
+        return []
     chain = ssl_object.get_unverified_chain() or ssl_object.get_verified_chain()
     return [x509.load_der_x509_certificate(der) for der in chain]
-
-
-def get_subject_alternative_names(certificate):
-    """Return the DNS names a certificate covers."""
-    try:
-        extension = certificate.extensions.get_extension_for_class(
-            x509.SubjectAlternativeName
-        )
-    except x509.ExtensionNotFound:
-        return []
-    return extension.value.get_values_for_type(x509.DNSName)
-
-
-def format_certificate_fingerprint(certificate):
-    """Return the SHA-256 fingerprint of a certificate as lowercase hex."""
-    return certificate.fingerprint(hashes.SHA256()).hex()
-
-
-def format_certificate_chain(certificates):
-    """Format each certificate's subject with its SHA-256 fingerprint."""
-    return "\n".join(
-        f"{certificate.subject.rfc4514_string() or 'subjectless certificate'} "
-        f"sha256={format_certificate_fingerprint(certificate)}"
-        for certificate in certificates
-    )
 
 
 @task(
