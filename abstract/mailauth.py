@@ -7,6 +7,7 @@ from email import message_from_bytes
 from enum import StrEnum
 
 import dkim
+import dns.exception
 import dns.resolver
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,11 @@ class DmarcPolicy:
         except dns.exception.Timeout, dns.resolver.NoNameservers:
             logger.warning("DMARC DNS lookup failed for %r", domain, exc_info=True)
             return cls(temperror=True)
+        except dns.exception.DNSException:
+            # A malformed domain, e.g. an overlong or empty label, is a
+            # permanent condition like an unpublished policy, not an outage.
+            logger.warning("DMARC DNS lookup failed for %r", domain, exc_info=True)
+            return cls()
         for record in records:
             text = "".join(
                 s.decode() if isinstance(s, bytes) else s for s in record.strings
@@ -235,6 +241,11 @@ class DmarcEvaluation:
             except dns.exception.Timeout, dns.resolver.NoNameservers:
                 logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
                 return AuthResult.TEMPERROR, domain
+            except dns.exception.DNSException:
+                # A malformed domain, e.g. an overlong or empty label, is a
+                # permanent condition like an unpublished policy, not an outage.
+                logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
+                return AuthResult.NONE, domain
             for record in records:
                 text = "".join(
                     s.decode() if isinstance(s, bytes) else s for s in record.strings

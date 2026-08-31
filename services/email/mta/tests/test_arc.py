@@ -60,6 +60,16 @@ def parse_arc_seals(raw_bytes: bytes) -> list[dict[str, str]]:
     ]
 
 
+def parse_ar_clauses(value: str) -> list[tuple[str, str]]:
+    """Return the (method, result) clauses of an AR or AAR header value."""
+    if value.startswith("i="):
+        value = value.partition("; ")[2]
+    header = authres.AuthenticationResultsHeader.parse(
+        "Authentication-Results: " + " ".join(value.split())
+    )
+    return [(result.method, result.result) for result in header.results]
+
+
 def tamper_arc_seal(raw_bytes: bytes) -> bytes:
     """Corrupt the b= signature value of the first ARC-Seal."""
     start = raw_bytes.index(b"b=") + len(b"b=")
@@ -337,6 +347,23 @@ class TestRemoveUntrustedAuthenticationResults:
             b"From: external@example.org\r\n"
             b"Authentication-Results: mail.relay.example.com;\r\n"
             b" spf=pass\r\n"
+            b"Subject: Test\r\n"
+            b"\r\n"
+            b"Body\r\n"
+        )
+
+        result = remove_untrusted_authentication_results(raw, AUTHSERV_ID)
+
+        assert result == (
+            b"From: external@example.org\r\nSubject: Test\r\n\r\nBody\r\n"
+        )
+
+    def test_remove_untrusted_authentication_results__drops_leading_continuation(
+        self,
+    ):
+        raw = (
+            b" ; dmarc=pass header.from=evil.example\r\n"
+            b"From: external@example.org\r\n"
             b"Subject: Test\r\n"
             b"\r\n"
             b"Body\r\n"
@@ -721,6 +748,57 @@ class TestSealMessage:
         assert aar.count("spf=") == 1
         assert "trusted-bank.example" not in aar
         assert verify_arc_chain(sealed) == ChainResult.PASS
+
+    @pytest.mark.django_db
+    def test_seal_message__leading_continuation_cannot_inject_ar_clauses(
+        self, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        register_dkim_record(dns_resolver, domain)
+        raw = (
+            b" ; dmarc=pass header.from=evil.example;"
+            b" spf=pass smtp.mailfrom=evil.example\r\n"
+        ) + make_garbage_seal_chain(1)
+        evaluation = make_dmarc_evaluation(
+            spf_result=AuthResult.FAIL, dkim_result=AuthResult.FAIL
+        )
+
+        sealed = seal_message(raw, evaluation, domain)
+
+        msg = email.message_from_bytes(sealed)
+        aar = msg.get("ARC-Authentication-Results")
+        ar = msg.get("Authentication-Results")
+        assert parse_ar_clauses(aar) == [
+            ("arc", "fail"),
+            ("spf", "fail"),
+            ("dkim", "fail"),
+            ("dmarc", "fail"),
+        ]
+        assert parse_ar_clauses(ar) == parse_ar_clauses(aar)
+        assert b"evil.example" not in sealed
+        seals = parse_arc_seals(sealed)
+        assert len(seals) == 2
+        assert seals[0]["i"] == "2"
+        assert seals[0]["cv"] == "fail"
+
+    @pytest.mark.django_db
+    def test_seal_message__seals_message_with_leading_continuation(
+        self, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        register_dkim_record(dns_resolver, domain)
+        raw = b" ; spf=pass smtp.mailfrom=evil.example\r\n" + make_raw_email()
+
+        sealed = seal_message(raw, make_dmarc_evaluation(), domain)
+
+        seals = parse_arc_seals(sealed)
+        assert len(seals) == 1
+        assert seals[0]["i"] == "1"
+        assert seals[0]["cv"] == "none"
+        assert verify_arc_chain(sealed) == ChainResult.PASS
+        assert b"evil.example" not in sealed
+        assert b"From: external@example.org" in sealed
+        assert b"Something happened" in sealed
 
     @pytest.mark.django_db
     def test_seal_message__spoofed_spf_fail_mail_seals_dmarc_fail(

@@ -109,6 +109,18 @@ class TestDmarcPolicyLookup:
         assert policy.is_published is False
         assert policy.temperror is False
 
+    def test_lookup__is_not_published_for_overlong_label(self):
+        # dnspython rejects the malformed qname before any network I/O,
+        # so the real resolver is safe to use here.
+        policy = DmarcPolicy.lookup("a" * 300 + ".example")
+
+        assert policy == DmarcPolicy()
+
+    def test_lookup__is_not_published_for_empty_label(self):
+        policy = DmarcPolicy.lookup("evil..example")
+
+        assert policy == DmarcPolicy()
+
     def test_lookup__temperror_when_dns_times_out(self, dns_resolver):
         dns_resolver.fail("_dmarc.example.org", "TXT", dns.exception.Timeout())
 
@@ -213,6 +225,12 @@ class TestDmarcEvaluationCheckSpf:
         assert DmarcEvaluation.check_spf("192.0.2.1", "example.org") == (
             AuthResult.TEMPERROR,
             "example.org",
+        )
+
+    def test_check_spf__none_for_empty_label(self):
+        assert DmarcEvaluation.check_spf("192.0.2.1", "evil..example") == (
+            AuthResult.NONE,
+            "evil..example",
         )
 
 

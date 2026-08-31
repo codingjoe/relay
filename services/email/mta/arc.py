@@ -105,7 +105,7 @@ def remove_untrusted_authentication_results(
 
     Header parsing ends like Python's email parser does: at a blank line,
     at a colon-less line that is not a continuation, or never after a
-    unix-from line.
+    unix-from line. A continuation line before any header line is dropped.
     """
     kept: list[bytes] = []
     block: list[bytes] = []
@@ -129,6 +129,8 @@ def remove_untrusted_authentication_results(
         else:
             if block and line[:1] not in b" \t":
                 flush_block()
+            elif not block and line[:1] in b" \t":
+                continue  # A continuation before any header line is untrusted.
             block.append(line)
     flush_block()
     return b"".join(kept)
