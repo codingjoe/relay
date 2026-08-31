@@ -12,7 +12,7 @@ author: Johannes Maron
 
 ARC (Authenticated Received Chain) is an email standard that lets an intermediary attach its authentication assessment to a message and sign it. As a message travels through forwarders and mailing lists, each ARC-enabled intermediary adds its own sealed assessment. The final receiver can see who handled the message and what the authentication results were at each hop.
 
-ARC is defined in [RFC 8617](https://datatracker.ietf.org/doc/html/rfc8617).[^experimental]
+ARC is defined in [RFC 8617][rfc-8617].[^experimental]
 
 ## Why ARC matters
 
@@ -48,10 +48,13 @@ A broken chain means the message changed after a seal was applied. It does not t
 
 ## Further reading
 
-- [RFC 8617: The Authenticated Received Chain (ARC) Protocol](https://datatracker.ietf.org/doc/html/rfc8617)
-- [RFC 8617 Section 4.4: Chain Validation Status](https://datatracker.ietf.org/doc/html/rfc8617#section-4.4)
+- [RFC 8617][rfc-8617]: The Authenticated Received Chain (ARC) Protocol
+- [RFC 8617][rfc-8617] Section 4.4: Chain Validation Status
 - <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>: DomainKeys Identified Mail
 - <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
 
-[^experimental]: RFC 8617 has the status "Experimental". Unlike DKIM ([RFC 6376](https://datatracker.ietf.org/doc/html/rfc6376)), it has not completed the full IETF standards process. It is nonetheless deployed by major mailbox providers.
+[^experimental]: [RFC 8617][rfc-8617] has the status "Experimental". Unlike DKIM ([RFC 6376][rfc-6376]), it has not completed the full IETF standards process. It is nonetheless deployed by major mailbox providers.
+
+[rfc-6376]: https://www.rfc-editor.org/info/rfc6376/
+[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/

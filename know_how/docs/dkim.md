@@ -12,7 +12,7 @@ author: Johannes Maron
 
 DKIM (DomainKeys Identified Mail) is an email authentication standard that adds a digital signature to outgoing messages. The signature proves that the message came from the signing domain and that the message content was not changed in transit.
 
-DKIM is defined in [RFC 6376](https://datatracker.ietf.org/doc/html/rfc6376). It is an Internet Standard, which means it has passed the highest level of IETF review.[^internet-standard]
+DKIM is defined in [RFC 6376][rfc-6376]. It is an Internet Standard, which means it has passed the highest level of IETF review.[^internet-standard]
 
 ## Why DKIM matters
 
@@ -93,16 +93,20 @@ Rotate the key by generating a new pair under a new selector. Publish the new pu
 
 ## Further reading
 
-- [RFC 6376: DomainKeys Identified Mail (DKIM) Signatures](https://datatracker.ietf.org/doc/html/rfc6376)
-- [RFC 6376 Section 3.5: The DKIM-Signature header](https://datatracker.ietf.org/doc/html/rfc6376#section-3.5)
-- [RFC 8301: DKIM Update](https://datatracker.ietf.org/doc/html/rfc8301)
+- [RFC 6376][rfc-6376]: DomainKeys Identified Mail (DKIM) Signatures
+- [RFC 6376][rfc-6376] Section 3.5: The DKIM-Signature header
+- [RFC 8301][rfc-8301]: DKIM Update
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
 - <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
 
-[^internet-standard]: RFC 6376 has the status "Internet Standard" (STD 76). This is the highest maturity level in the IETF standards process. It means the protocol is stable, widely implemented, and has significant operational experience.
+[^internet-standard]: [RFC 6376][rfc-6376] has the status "Internet Standard" (STD 76). This is the highest maturity level in the IETF standards process. It means the protocol is stable, widely implemented, and has significant operational experience.
 
 [^key-rotation]: Key rotation is a security best practice. Rotate DKIM keys at least every 6 to 12 months. Publish the new key under a new selector so the change causes no downtime.
 
-[^body-length]: The `l=` tag in the `DKIM-Signature` header limits the body hash to a specific number of bytes. This tag is rarely used and creates a security risk because an attacker can append content after the signed portion. Most implementations omit the `l=` tag entirely. See [RFC 6376 Section 5.4](https://datatracker.ietf.org/doc/html/rfc6376#section-5.4) for details.
+[^body-length]: The `l=` tag in the `DKIM-Signature` header limits the body hash to a specific number of bytes. This tag is rarely used and creates a security risk because an attacker can append content after the signed portion. Most implementations omit the `l=` tag entirely. See [RFC 6376][rfc-6376] Section 5.4 for details.
 
-[^ed25519-support]: Ed25519 support was added in [RFC 8463](https://datatracker.ietf.org/doc/html/rfc8463). Adoption is growing but not universal. Some sending services publish Ed25519 keys alongside RSA keys, so receivers that support Ed25519 can use the smaller signature.
+[^ed25519-support]: Ed25519 support was added in [RFC 8463][rfc-8463]. Adoption is growing but not universal. Some sending services publish Ed25519 keys alongside RSA keys, so receivers that support Ed25519 can use the smaller signature.
+
+[rfc-6376]: https://www.rfc-editor.org/info/rfc6376/
+[rfc-8301]: https://www.rfc-editor.org/info/rfc8301/
+[rfc-8463]: https://www.rfc-editor.org/info/rfc8463/

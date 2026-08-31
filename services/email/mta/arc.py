@@ -2,7 +2,6 @@
 
 import datetime
 import logging
-import re
 import time
 from enum import StrEnum
 
@@ -10,6 +9,8 @@ import authres
 import dkim
 import dns.exception
 import dns.resolver
+import validators
+from cryptography.fernet import InvalidToken
 from django.conf import settings
 
 from abstract.mailauth import DmarcEvaluation
@@ -20,10 +21,6 @@ logger = logging.getLogger(__name__)
 
 # RFC 8617 §3.9 caps the ARC instance tag at 50.
 ARC_INSTANCE_LIMIT = 50
-
-# Plain domain-name characters. Rejects folding whitespace and any other
-# byte an attacker could use to inject clauses into the sealed header.
-DOMAIN_PATTERN = re.compile(r"[\w.-]+")
 
 # Total time a DNS lookup may take.
 DNS_LOOKUP_LIFETIME = datetime.timedelta(seconds=2)
@@ -42,8 +39,8 @@ class ChainResult(StrEnum):
 
 
 def clean_domain(value: str) -> str:
-    """Return the value when it is a plain domain name, else an empty string."""
-    return value if DOMAIN_PATTERN.fullmatch(value) else ""
+    """Return the value when it is a valid domain name, else an empty string."""
+    return value if validators.domain(value) is True else ""
 
 
 def create_authentication_results(
@@ -201,7 +198,7 @@ def verify_arc_chain(
         chain_result = dkim.arc_verify(
             raw_bytes, dnsfunc=fetch_dkim_key_record_within_budget
         )[0]
-    except Exception:  # dkimpy raises varied exceptions on malformed chains
+    except dkim.DKIMException, IndexError, UnicodeDecodeError:
         logger.warning("ARC chain verification failed", exc_info=True)
         return ChainResult.FAIL
     return {
@@ -249,7 +246,12 @@ def seal_message(
     except dkim.ParameterError as exc:
         logger.warning("Skipping ARC seal for %s: %s", domain.name, exc)
         return raw_bytes
-    except Exception:  # key material and sealing raise varied exceptions
+    except (
+        dkim.DKIMException,
+        UnicodeDecodeError,
+        InvalidToken,
+        ValueError,
+    ):
         logger.exception("ARC sealing failed for %s (%s)", domain.name, selector)
         return raw_bytes
     return b"".join(arc_set) + raw_bytes

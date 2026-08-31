@@ -1,7 +1,6 @@
 from email.message import EmailMessage
 
 from abstract.mailauth import Alignment, AuthResult, Disposition, DmarcEvaluation
-from abstract.tests.conftest import dns_resolver  # noqa: F401
 
 
 def make_raw_email(subject: str = "Postmaster alert") -> bytes:

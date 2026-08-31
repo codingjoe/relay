@@ -123,19 +123,11 @@ class DmarcEvaluation:
     dmarc_policy_temperror: bool = False
 
     @property
-    def dkim_authenticated(self) -> bool:
-        """Return whether DKIM passed and aligned with the From domain."""
-        return self.is_authenticated(self.dkim_result, self.dkim_alignment)
-
-    @property
-    def spf_authenticated(self) -> bool:
-        """Return whether SPF passed and aligned with the From domain."""
-        return self.is_authenticated(self.spf_result, self.spf_alignment)
-
-    @property
     def dmarc_authenticated(self) -> bool:
         """Return whether DMARC passed: a mechanism passed and is aligned (RFC 7489 §6.6.2)."""
-        return self.dkim_authenticated or self.spf_authenticated
+        return self.is_authenticated(
+            self.dkim_result, self.dkim_alignment
+        ) or self.is_authenticated(self.spf_result, self.spf_alignment)
 
     @staticmethod
     def is_authenticated(result: AuthResult, alignment: Alignment) -> bool:
@@ -216,7 +208,7 @@ class DmarcEvaluation:
     def verify_dkim(raw_bytes):
         try:
             verified = dkim.verify(raw_bytes)
-        except Exception:  # dkimpy raises varied exceptions on malformed messages
+        except dkim.DKIMException, IndexError:
             logger.warning("DKIM verification failed", exc_info=True)
             return AuthResult.PERMERROR, ""
         if verified:

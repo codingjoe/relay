@@ -7,8 +7,8 @@ import dkim
 import pytest
 
 from abstract.mailauth import Alignment, AuthResult, DmarcEvaluation
-from abstract.tests.conftest import StubResolver
 from accounts.models import Organization
+from conftest import StubResolver
 from domains.models import Domain
 from domains.resolver import dkim_record
 from kms import keys

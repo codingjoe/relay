@@ -64,7 +64,7 @@ dashboard.
 
 relay records its SPF, DKIM, and DMARC evaluation of every accepted
 message in the stored raw message, and seals that evaluation with an ARC
-set (RFC 8617). The set consists of an ARC-Authentication-Results header
+set ([RFC 8617][rfc-8617]). The set consists of an ARC-Authentication-Results header
 that mirrors relay's evaluation, an ARC-Message-Signature over the
 message, and an ARC-Seal over the chain of earlier seals. The seal names
 the receiving MX host as the evaluator. The receiving domain's DKIM key
@@ -130,7 +130,7 @@ you can still read it in the dashboard.
 
 relay stores messages to `postmaster@{your-domain}` and dispatches them
 like any other, with one addition: relay notifies the organization's members about
-postmaster mail, because RFC 5321 requires postmaster to be reachable.
+postmaster mail, because [RFC 5321][rfc-5321] requires postmaster to be reachable.
 
 ## Reading arriving mail
 
@@ -145,3 +145,6 @@ from the dashboard view. Retention follows the
   signatures, and retry behavior.
 - <a href="{% url 'docs:detail' slug='domains' %}">Managed domains and
   DNS</a>. How the MX record gets proper delegation.
+
+[rfc-5321]: https://www.rfc-editor.org/info/rfc5321/
+[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/
