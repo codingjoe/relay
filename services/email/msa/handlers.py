@@ -13,6 +13,7 @@ from django.db import DatabaseError, transaction
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
+from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam
@@ -53,7 +54,7 @@ def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
     return b"".join(kept)
 
 
-class SMTPHandler:
+class SMTPHandler(ProxyProtocolMixin):
     """Receive authenticated outgoing mail submissions from SMTP clients."""
 
     async def handle_DATA(self, server, session, envelope):
@@ -67,7 +68,7 @@ class SMTPHandler:
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
         msg = message_from_bytes(raw_bytes)
-        client_ip = session.peer[0] if session.peer else ""
+        client_ip = get_client_ip(session)
         result = await process_message(
             mail_from,
             rcpt_to,
@@ -113,6 +114,20 @@ class ImplicitTLSHandler(SMTPHandler):
     aiosmtpd doesn't detect pre-wrapped TLS sockets, so `session.ssl`
     is never set for implicit TLS. Mark the session as encrypted before
     delegating to the standard handler so AUTH and TLS reporting work.
+    """
+
+    async def handle_DATA(self, server, session, envelope):
+        session.ssl = True
+        return await super().handle_DATA(server, session, envelope)
+
+
+class BalancerHandler(SMTPHandler):
+    """Handler for the plaintext balancer port behind the Caddy L4 proxy.
+
+    Caddy terminates the client's TLS and forwards the session as plain
+    SMTP with a PROXY protocol header. Mark the session as encrypted
+    before delegating to the standard handler so AUTH and TLS reporting
+    work.
     """
 
     async def handle_DATA(self, server, session, envelope):

@@ -28,4 +28,6 @@ class Command(BaseCommand):
             implicit_tls_ports=settings.RELAY_SMTP_IMPLICIT_TLS_PORTS,
             tls_cert_path=settings.RELAY_SMTP_TLS_CERT_PATH,
             tls_key_path=settings.RELAY_SMTP_TLS_KEY_PATH,
+            proxy_protocol_timeout=settings.RELAY_PROXY_PROTOCOL_TIMEOUT_SECS or None,
+            balancer_port=settings.RELAY_SMTP_BALANCER_PORT or None,
         )

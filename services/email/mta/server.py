@@ -21,11 +21,13 @@ class MXServer:
         ports=(25,),
         tls_cert_path="",
         tls_key_path="",
+        proxy_protocol_timeout=None,
     ):
         self.host = host
         self.ports = ports
         self.tls_cert_path = tls_cert_path
         self.tls_key_path = tls_key_path
+        self.proxy_protocol_timeout = proxy_protocol_timeout
         self.controllers = []
 
     def start(self):
@@ -45,6 +47,7 @@ class MXServer:
                 hostname=self.host,
                 port=port,
                 tls_context=tls_context,
+                proxy_protocol_timeout=self.proxy_protocol_timeout,
             )
             try:
                 controller.start()
@@ -66,12 +69,14 @@ def run_mx_server(
     ports=(25,),
     tls_cert_path="",
     tls_key_path="",
+    proxy_protocol_timeout=None,
 ):
     server = MXServer(
         host=host,
         ports=ports,
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,
+        proxy_protocol_timeout=proxy_protocol_timeout,
     )
     server.start()
 

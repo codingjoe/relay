@@ -72,15 +72,15 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                                      |
-| ------- | ------------ | ------------------------------------------------ |
-| Web     | 8000         | Django web UI (Granian)                          |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)              |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only) |
-| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, TLS direct) |
-| MX      | 25           | Incoming MX delivery (aiosmtpd, STARTTLS direct) |
-| rspamd  | 11334        | Spam detection (internal only)                   |
-| Worker  | N/A          | Threadmill task worker                           |
+| Service | Port         | Description                                                |
+| ------- | ------------ | ---------------------------------------------------------- |
+| Web     | 8000         | Django web UI (Granian)                                    |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                        |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)           |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)      |
+| MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS) |
+| rspamd  | 11334        | Spam detection (internal only)                             |
+| Worker  | N/A          | Threadmill task worker                                     |
 
 ```mermaid
 flowchart TD
@@ -90,13 +90,14 @@ flowchart TD
         browser[Browsers]
     end
 
-    subgraph caddy[Caddy reverse proxy + TLS]
+    subgraph caddy[Caddy reverse proxy + L4 balancer]
         caddy_proxy[Caddy docker-proxy]
+        caddy_l4[Caddy layer4]
     end
 
     subgraph app[app network]
         web[Web Django + Granian :8000]
-        msa[SMTP aiosmtpd :587 :465]
+        msa[SMTP aiosmtpd :587 :2465]
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
         rspamd[rspamd :11334]
@@ -115,8 +116,10 @@ flowchart TD
 
     browser --> caddy_proxy
     caddy_proxy --> web
-    client -->|STARTTLS :587 / TLS :465| msa
-    sender -->|STARTTLS :25| mta
+    client -->|STARTTLS :587 / TLS :465| caddy_l4
+    sender -->|STARTTLS :25| caddy_l4
+    caddy_l4 --> msa
+    caddy_l4 --> mta
     msa --> rspamd
     mta --> rspamd
     rspamd --> redis
@@ -143,6 +146,89 @@ has its own keypair, so clients verify with the webhook's public key
 data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
+
+### SMTP load balancing (production)
+
+In production, [the-box](https://github.com/codingjoe/the-box)'s Caddy
+publishes ports 25, 465, and 587 and balances connections across the
+`mta` and `msa` service replicas with its
+[layer4](https://github.com/mholt/caddy-l4) plugin. A hostname upstream
+resolves to all running replicas through Docker's embedded DNS, which
+shuffles the answer order per connection and drops stopped containers,
+so the distribution follows the replica set automatically.
+
+| Variable       | Default | Description                  |
+| -------------- | ------- | ---------------------------- |
+| `MTA_REPLICAS` | 2       | MX receiver containers       |
+| `MSA_REPLICAS` | 2       | Submission server containers |
+
+Every balancer connection carries a
+[PROXY protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)
+v2 header, so rspamd and the stored message metadata always see the real
+client IPv4/IPv6 address, never the balancer's. Servers reject connections
+without a valid header while the timeout is set, which also keeps
+balancer-less listeners closed to plain connections.
+
+| Variable                            | Default                            | Description                                                                  |
+| ----------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| `RELAY_PROXY_PROTOCOL_TIMEOUT_SECS` | 3 (production), 0 (development)    | Seconds to wait for the PROXY protocol header. `0` disables the requirement. |
+| `RELAY_SMTP_BALANCER_PORT`          | 2465 (production), 0 (development) | Plaintext MSA port for TLS-terminated balancer traffic from port 465.        |
+
+Ports 25 and 587 pass through as TCP streams, so the servers terminate
+STARTTLS themselves with their own certificates. Port 465 is implicit TLS:
+Caddy terminates it with its own `smtp.{platform_domain}` certificate (the
+existing `caddy` labels already make it maintain that certificate) and
+forwards the plaintext session to the MSA's balancer port. That hop never
+leaves the host.
+
+Add the following to the-box's seed Caddyfile
+(`containers/caddy/Caddyfile`) and publish `25`, `465`, and `587` in its
+compose file:
+
+```caddyfile
+{
+    layer4 {
+        :25 {
+            route {
+                proxy mta:25 {
+                    lb_policy round_robin
+                    lb_try_duration 3s
+                    fail_duration 10s
+                    proxy_protocol v2
+                }
+            }
+        }
+        :587 {
+            route {
+                proxy msa:587 {
+                    lb_policy round_robin
+                    lb_try_duration 3s
+                    fail_duration 10s
+                    proxy_protocol v2
+                }
+            }
+        }
+        :465 {
+            route {
+                tls
+                proxy msa:2465 {
+                    lb_policy round_robin
+                    lb_try_duration 3s
+                    fail_duration 10s
+                    proxy_protocol v2
+                }
+            }
+        }
+    }
+}
+```
+
+Deploy the the-box and relay changes together. Relay stops publishing the
+SMTP ports itself, so they are unreachable until Caddy listens for them.
+
+In development, `mta` and `msa` publish their ports on localhost only
+(`127.0.0.1:25` and `127.0.0.1:587`) and accept direct connections without
+the PROXY protocol.
 
 ### Feedback loop (FBL) reports
 

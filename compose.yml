@@ -30,6 +30,16 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      RELAY_SMTP_BALANCER_PORT: 0
+      RELAY_PROXY_PROTOCOL_TIMEOUT_SECS: 0
+      RELAY_SMTP_TLS_CERT_PATH: ""
+      RELAY_SMTP_TLS_KEY_PATH: ""
+    ports: !override
+      - '127.0.0.1:587:587'
+    networks: !override
+      - app
+      - app-wan
+    deploy: !reset {}
     pull_policy: build
   mta:
     build:
@@ -41,6 +51,13 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      RELAY_PROXY_PROTOCOL_TIMEOUT_SECS: 0
+    ports: !override
+      - '127.0.0.1:25:25'
+    networks: !override
+      - app
+      - app-wan
+    deploy: !reset {}
     pull_policy: build
   web:
     build:

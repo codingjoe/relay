@@ -13,6 +13,7 @@ from services.email.dmarc.tasks import (
     parse_dmarc_failure_report,
     parse_dmarc_report,
 )
+from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
 from .models import (
     IncomingMessage,
@@ -24,7 +25,7 @@ from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_
 logger = logging.getLogger(__name__)
 
 
-class MXHandler:
+class MXHandler(ProxyProtocolMixin):
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
@@ -44,7 +45,7 @@ class MXHandler:
         rcpt_to = envelope.rcpt_tos[0] if envelope.rcpt_tos else ""
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
-        client_ip = session.peer[0] if session.peer else ""
+        client_ip = get_client_ip(session)
         evaluation = await sync_to_async(
             DmarcEvaluation.from_bytes, thread_sensitive=False
         )(raw_bytes, mail_from)
