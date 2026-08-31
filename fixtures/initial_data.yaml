@@ -62,6 +62,186 @@
 
 '
     key_id: c9c8cf6b9ad9aa8a
+- model: kms.certificate
+  pk: 6d8b07aa4e50806a1e2c70690cbc50976de62315be0cc4ae8edf8ff295442cb6
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=smtp.gmail.com
+    subject_alternative_names: smtp.gmail.com
+    issuer: CN=WR2,O=Google Trust Services,C=US
+    serial_number: 1a3ff945fccb28440a9a3d1fddbe20b3
+    issuer_certificate: e6fe22bf45e4f0d3b85c59e02c0f495418e1eb8d3210f788d48cd5e1cb547cd4
+    not_before: 2026-08-10 08:39:02+00:00
+    not_after: 2026-11-02 08:39:01+00:00
+- model: kms.certificate
+  pk: e6fe22bf45e4f0d3b85c59e02c0f495418e1eb8d3210f788d48cd5e1cb547cd4
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=WR2,O=Google Trust Services,C=US
+    subject_alternative_names: ''
+    issuer: CN=GTS Root R1,O=Google Trust Services LLC,C=US
+    serial_number: 7ff005a07c4cded100ad9d66a5107b98
+    issuer_certificate: 3ee0278df71fa3c125c4cd487f01d774694e6fc57e0cd94c24efd769133918e5
+    not_before: 2023-12-13 09:00:00+00:00
+    not_after: 2029-02-20 14:00:00+00:00
+- model: kms.certificate
+  pk: 3ee0278df71fa3c125c4cd487f01d774694e6fc57e0cd94c24efd769133918e5
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=GTS Root R1,O=Google Trust Services LLC,C=US
+    subject_alternative_names: ''
+    issuer: CN=GlobalSign Root CA,OU=Root CA,O=GlobalSign nv-sa,C=BE
+    serial_number: 77bd0d6cdb36f91aea210fc4f058d30d
+    issuer_certificate: null
+    not_before: 2020-06-19 00:00:42+00:00
+    not_after: 2028-01-28 00:00:42+00:00
+- model: kms.certificate
+  pk: 313f6394e12d6187e7205329987b0ae819e62f172774607f2134f3a94b4e5250
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=*.fastmail.com
+    subject_alternative_names: '*.api.beta.fastmail.com, *.api.dogfood.fastmail.com, *.api.fastmail.com, *.api.qa.fastmail.com, *.beta.fastmail.com, *.caldav.fastmail.com, *.carddav.fastmail.com, *.dogfood.fastmail.com, *.fastmail.com, *.qa.fastmail.com, fastmail.com'
+    issuer: CN=YR2,O=Let's Encrypt,C=US
+    serial_number: 5d462f9c40160452a1b0d9aaac4ba9d8fa4
+    issuer_certificate: 238b85a0099c65b970477d5724f1a1d475ce5058cffe4efa8733899bdb863c47
+    not_before: 2026-07-14 20:11:59+00:00
+    not_after: 2026-10-12 20:11:58+00:00
+- model: kms.certificate
+  pk: 238b85a0099c65b970477d5724f1a1d475ce5058cffe4efa8733899bdb863c47
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=YR2,O=Let's Encrypt,C=US
+    subject_alternative_names: ''
+    issuer: CN=Root YR,O=ISRG,C=US
+    serial_number: 4ebd24947e24d394802d84a52fd5b319
+    issuer_certificate: 072639d0b140d5bffae16ad9c3f6cc6086040621f51ee61a6d46a8915c07cf76
+    not_before: 2025-09-03 00:00:00+00:00
+    not_after: 2028-09-02 23:59:59+00:00
+- model: kms.certificate
+  pk: 072639d0b140d5bffae16ad9c3f6cc6086040621f51ee61a6d46a8915c07cf76
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=Root YR,O=ISRG,C=US
+    subject_alternative_names: ''
+    issuer: CN=ISRG Root X1,O=Internet Security Research Group,C=US
+    serial_number: f24b6d17f9d9ad7cb1c9fea78782699f
+    issuer_certificate: null
+    not_before: 2026-05-13 00:00:00+00:00
+    not_after: 2032-09-02 23:59:59+00:00
+- model: kms.certificate
+  pk: 3c5182eaecc889c466ea43cad8c2c14ab32b8fab2d8ef2dbbc5b372cb4c3e6c1
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=protonmail.com
+    subject_alternative_names: '*.pm.me, *.protonmail.ch, *.protonmail.com, *.protonvpn.ch, *.protonvpn.com, protonmail.com'
+    issuer: CN=YR1,O=Let's Encrypt,C=US
+    serial_number: 5192de32995904afc9eaaa3a0fb79ff560b
+    issuer_certificate: 13949634d99cd6fd6aa80bc034fefacceb1969feef986586713ecdbb05758d3f
+    not_before: 2026-07-13 13:14:37+00:00
+    not_after: 2026-10-11 13:14:36+00:00
+- model: kms.certificate
+  pk: 13949634d99cd6fd6aa80bc034fefacceb1969feef986586713ecdbb05758d3f
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=YR1,O=Let's Encrypt,C=US
+    subject_alternative_names: ''
+    issuer: CN=Root YR,O=ISRG,C=US
+    serial_number: a20253f15f2691c05dc1ce13b9bcca4e
+    issuer_certificate: 072639d0b140d5bffae16ad9c3f6cc6086040621f51ee61a6d46a8915c07cf76
+    not_before: 2025-09-03 00:00:00+00:00
+    not_after: 2028-09-02 23:59:59+00:00
+- model: kms.certificate
+  pk: fe566140ef4fd3084566651175a855ad597e54291cf8bd20cb8c8529dc8a96bf
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=*.zoho.com
+    subject_alternative_names: '*.zoho.com, zoho.com'
+    issuer: CN=Thawte TLS RSA CA G1,OU=www.digicert.com,O=DigiCert Inc,C=US
+    serial_number: ac448ab56d4d35f736612eb979ea667
+    issuer_certificate: 4bcc5e234fe81ede4eaf883aa19c31335b0b26e85e066b9945e4cb6153eb20c2
+    not_before: 2026-01-09 00:00:00+00:00
+    not_after: 2027-01-29 23:59:59+00:00
+- model: kms.certificate
+  pk: 4bcc5e234fe81ede4eaf883aa19c31335b0b26e85e066b9945e4cb6153eb20c2
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=Thawte TLS RSA CA G1,OU=www.digicert.com,O=DigiCert Inc,C=US
+    subject_alternative_names: ''
+    issuer: CN=DigiCert Global Root G2,OU=www.digicert.com,O=DigiCert Inc,C=US
+    serial_number: 90ee8c5de5bfa62d2ae2ff7097c4857
+    issuer_certificate: null
+    not_before: 2017-11-02 12:24:25+00:00
+    not_after: 2027-11-02 12:24:25+00:00
+- model: kms.certificate
+  pk: ca7de72d0067976080ee94ecf61013244e4e925c30172cbe60dc8580e389a3fc
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=smtp.mail.yahoo.com,O=Yahoo Holdings Inc.,L=New York,ST=New York,C=US
+    subject_alternative_names: smtp.mail.yahoo.com, smtp.mail.yahoo.com.ar, smtp.mail.yahoo.com.au, smtp.mail.yahoo.com.br, smtp.mail.yahoo.com.cn, smtp.mail.yahoo.com.hk, smtp.mail.yahoo.com.my, smtp.mail.yahoo.com.ph, smtp.mail.yahoo.com.sg, smtp.mail.yahoo.com.tw, smtp.mail.yahoo.com.vn, smtp.mail.yahoo.co.id, smtp.mail.yahoo.co.in, smtp.mail.yahoo.co.kr, smtp.mail.yahoo.co.th, smtp.mail.yahoo.co.uk, smtp.mail.yahoo.ca, smtp.mail.yahoo.cn, smtp.mail.yahoo.de, smtp.mail.yahoo.fr, smtp.mail.yahoo.it, smtp.y7mail.com, smtp.correo.yahoo.es
+    issuer: CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1,O=DigiCert Inc,C=US
+    serial_number: a079b244d96a9540fbc747471ad4f27
+    issuer_certificate: 1f8eb9e9a8e066cc5b3833e06b3129764b622639d5b163f600e1c79120bf3eed
+    not_before: 2026-08-04 00:00:00+00:00
+    not_after: 2026-10-28 23:59:59+00:00
+- model: kms.certificate
+  pk: 1f8eb9e9a8e066cc5b3833e06b3129764b622639d5b163f600e1c79120bf3eed
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1,O=DigiCert Inc,C=US
+    subject_alternative_names: ''
+    issuer: CN=DigiCert Global Root G2,OU=www.digicert.com,O=DigiCert Inc,C=US
+    serial_number: 85f94c02d857be8cc14ff53eda23e2a
+    issuer_certificate: null
+    not_before: 2020-09-24 00:00:00+00:00
+    not_after: 2030-09-23 23:59:59+00:00
+- model: kms.certificate
+  pk: 1078a4770df211fff19fc27037637aedd45e5f6919998d66d860bac1251b9527
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=mout.gmx.com,O=1&1 Mail & Media GmbH,ST=Rheinland-Pfalz,C=DE
+    subject_alternative_names: mout.gmx.com, imap.gmx.com, mail.gmx.com, mx00.gmx.com, mx01.gmx.com, pop.gmx.com, smtp.gmx.com
+    issuer: CN=Sectigo Public Server Authentication CA OV R36,O=Sectigo Limited,C=GB
+    serial_number: c723f908d1c43cdc46962b40333d1aea
+    issuer_certificate: 6542d176bed50f193c0ce297ae44ecd8a0a86bec2ede682769344059b4e78530
+    not_before: 2026-04-14 00:00:00+00:00
+    not_after: 2026-10-29 23:59:59+00:00
+- model: kms.certificate
+  pk: 6542d176bed50f193c0ce297ae44ecd8a0a86bec2ede682769344059b4e78530
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=Sectigo Public Server Authentication CA OV R36,O=Sectigo Limited,C=GB
+    subject_alternative_names: ''
+    issuer: CN=Sectigo Public Server Authentication Root R46,O=Sectigo Limited,C=GB
+    serial_number: 2c1a3c76e943ddddff191b31890aed71
+    issuer_certificate: 92f351bf3d54164dfa8dd8f9e1139d3150349786485d2b9eecd00e2971c1e6c5
+    not_before: 2021-03-22 00:00:00+00:00
+    not_after: 2036-03-21 23:59:59+00:00
+- model: kms.certificate
+  pk: 92f351bf3d54164dfa8dd8f9e1139d3150349786485d2b9eecd00e2971c1e6c5
+  fields:
+    modified_at: 2026-08-31 19:30:00+00:00
+    created_at: 2026-08-31 19:30:00+00:00
+    subject: CN=Sectigo Public Server Authentication Root R46,O=Sectigo Limited,C=GB
+    subject_alternative_names: ''
+    issuer: CN=USERTrust RSA Certification Authority,O=The USERTRUST Network,L=Jersey City,ST=New Jersey,C=US
+    serial_number: d27fbbc1de359e5216ad6149586099c4
+    issuer_certificate: null
+    not_before: 2021-03-22 00:00:00+00:00
+    not_after: 2038-01-18 23:59:59+00:00
 - model: domains.domain
   pk: 1
   fields:
@@ -235,6 +415,10 @@
     output: OK
     details: Test transmission 1
     tls_mode: starttls
+    tls_version: TLSv1.3
+    tls_cipher: TLS_AES_256_GCM_SHA384
+    mx_host: gmail-smtp-in.l.google.com
+    tls_certificate: 6d8b07aa4e50806a1e2c70690cbc50976de62315be0cc4ae8edf8ff295442cb6
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
@@ -247,6 +431,10 @@
     output: OK
     details: Test transmission 2
     tls_mode: starttls
+    tls_version: TLSv1.3
+    tls_cipher: TLS_AES_128_GCM_SHA256
+    mx_host: in1-smtp.messagingengine.com
+    tls_certificate: 313f6394e12d6187e7205329987b0ae819e62f172774607f2134f3a94b4e5250
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
@@ -259,6 +447,10 @@
     output: OK
     details: Test transmission 3
     tls_mode: starttls
+    tls_version: TLSv1.3
+    tls_cipher: TLS_AES_256_GCM_SHA384
+    mx_host: mail.protonmail.ch
+    tls_certificate: 3c5182eaecc889c466ea43cad8c2c14ab32b8fab2d8ef2dbbc5b372cb4c3e6c1
     log_id: ''
 - model: msa.msacredential
   pk: 1
