@@ -12,7 +12,7 @@ author: Johannes Maron
 
 The Return-Path is the email address that receives bounce messages and delivery status notifications.[^terminology] It is also called the envelope sender, bounce address, or MAIL FROM address.
 
-The Return-Path is part of the SMTP specification in [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321) and the message format in [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322).
+The Return-Path is part of the SMTP specification in [RFC 5321][rfc-5321] and the message format in [RFC 5322][rfc-5322].
 
 ## Why Return-Path matters
 
@@ -71,9 +71,9 @@ A subdomain of the sending domain aligns under relaxed DMARC. Add a tag such as 
 
 ## Further reading
 
-- [RFC 5321: Simple Mail Transfer Protocol (Section 4.4: Trace information)](https://datatracker.ietf.org/doc/html/rfc5321#section-4.4)
-- [RFC 5322: Internet Message Format (Section 3.6.7: Return-Path)](https://datatracker.ietf.org/doc/html/rfc5322#section-3.6.7)
-- [RFC 3464: An Extensible Message Format for Delivery Status Notifications](https://datatracker.ietf.org/doc/html/rfc3464)
+- [RFC 5321][rfc-5321]: Simple Mail Transfer Protocol (Section 4.4: Trace information)
+- [RFC 5322][rfc-5322]: Internet Message Format (Section 3.6.7: Return-Path)
+- [RFC 3464][rfc-3464]: An Extensible Message Format for Delivery Status Notifications
 - <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
 - <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
@@ -85,3 +85,7 @@ A subdomain of the sending domain aligns under relaxed DMARC. Add a tag such as 
 [^null-sender]: Bounce messages themselves use a null envelope sender (`MAIL FROM:<>`). This empty address prevents bounce loops: a bounce to a bounce would also use `<>`, and most servers drop messages with a null sender as the recipient.
 
 [^batv-status]: BATV is an IETF draft, not a published RFC. It is not a standard, but the technique is widely used by mailing list operators to prevent bounce forgery.
+
+[rfc-3464]: https://www.rfc-editor.org/info/rfc3464/
+[rfc-5321]: https://www.rfc-editor.org/info/rfc5321/
+[rfc-5322]: https://www.rfc-editor.org/info/rfc5322/
