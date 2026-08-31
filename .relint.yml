@@ -125,3 +125,7 @@
   pattern: '\{%\s*blocktranslate\b[^%]*?%\}[^%]*?[.!?] [a-z]|\{%\s*plural\s*%\}[^%]*?[.!?] [a-z]|\{%\s*translate\s+(["''])(?:(?!\1)[^\n])*?[.!?] [a-z]'
   hint: 'No filter reaches sentences after the first. Start every sentence inside a msgid with a capital letter, including inside blocktranslate and plural blocks.'
   filePattern: '.*\.html$'
+- name: Use footnote-style RFC links
+  pattern: '\[[^\]\n]*RFC[ ]?\d{3,4}[^\]\n]*\]\(https?://[^)]+\)'
+  hint: 'Put the RFC link definition at the bottom of the page and reference it inline, for example `[RFC 8617][rfc-8617]` defined by `[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/`.'
+  filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'

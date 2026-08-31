@@ -12,6 +12,7 @@ dependencies = [
   "abnf>=2.9",
   "aiosmtpd>=1.4.6",
   "aiosmtplib>=5.1.2",
+  "authres>=1.2",
   "boto3>=1.43.83",
   "cryptography>=50.0.1",
   "django>=6.1,<6.2",
