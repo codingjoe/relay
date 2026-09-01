@@ -4,7 +4,12 @@ import frontmatter
 from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
-from django.utils.cache import patch_cache_control, patch_vary_headers
+from django.utils.cache import (
+    get_conditional_response,
+    patch_cache_control,
+    patch_vary_headers,
+)
+from django.utils.http import http_date
 from django.views import generic
 
 from abstract.utils import strip_frontmatter
@@ -25,6 +30,42 @@ class CacheControlMixin:
         response = super().dispatch(request, *args, **kwargs)
         patch_cache_control(response, **self.cache_control)
         return response
+
+
+class ConditionalGetMixin:
+    """Answer conditional GETs with validators derived from the object.
+
+    Detail views mixing this in fetch the object once, compute `ETag` and
+    `Last-Modified` from its `modified_at`, and answer `304 Not Modified`
+    when the client's validators match, skipping the template render. The
+    response is `private, no-cache`, so browsers revalidate on every visit.
+    """
+
+    def get_etag(self, obj) -> str:
+        """Return the ETag for `obj`."""
+        return f'"{obj.pk.hex}-{obj.modified_at.timestamp():.6f}"'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        etag = self.get_etag(self.object)
+        last_modified = int(self.object.modified_at.timestamp())
+        response = get_conditional_response(
+            request, etag=etag, last_modified=last_modified
+        )
+        if response is None:
+            response = self.render_to_response(
+                self.get_context_data(object=self.object)
+            )
+        response["ETag"] = etag
+        response["Last-Modified"] = http_date(last_modified)
+        patch_cache_control(response, private=True, no_cache=True)
+        return response
+
+
+class NoStoreCacheMixin(CacheControlMixin):
+    """Disallow any caching of the response in shared and private caches."""
+
+    cache_control = {"private": True, "no_store": True}
 
 
 class MarkdownArticleMixin:

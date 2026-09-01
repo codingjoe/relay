@@ -5,6 +5,7 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 
 from abstract.serializers import ChartDataSerializer
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from services.email.dmarc.charts import build_dmarc_chart
@@ -72,7 +73,7 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
         return Response(serializer.data)
 
 
-class ReportListView(OrganizationScopedView, generic.ListView):
+class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     """Display a merged timeline of DMARC and TLS reports."""
 
     def get_template_names(self):

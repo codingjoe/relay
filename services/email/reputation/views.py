@@ -2,6 +2,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
@@ -9,7 +10,7 @@ from .charts import build_reputation_chart
 from .models import FblReport
 
 
-class FblReportListView(OrganizationScopedView, generic.ListView):
+class FblReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     def get_template_names(self):
         return ["reputation/fbl_report_list.html"]
 
@@ -37,7 +38,9 @@ class FblReportListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class FblReportDetailView(OrganizationScopedView, generic.DetailView):
+class FblReportDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["reputation/fbl_report_detail.html"]
 

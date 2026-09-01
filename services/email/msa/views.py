@@ -10,6 +10,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
@@ -19,7 +20,9 @@ from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmissi
 from .tasks import deliver_message
 
 
-class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
+class OutgoingMessageDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["msa/message_detail.html"]
 
@@ -156,7 +159,7 @@ class MsaCredentialDeleteView(OrganizationScopedView, generic.DeleteView):
         return super().form_valid(form)
 
 
-class SuppressionListView(OrganizationScopedView, generic.ListView):
+class SuppressionListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     model = SuppressionEntry
     title = _("Suppression list")
     parent = "accounts:org-home"

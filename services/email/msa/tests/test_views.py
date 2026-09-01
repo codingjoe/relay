@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
+from django.utils.http import http_date
 
 from domains.models import Domain
 from services.email.msa.models import MsaCredential, OutgoingMessage, SuppressionEntry
@@ -36,6 +37,35 @@ class TestMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
         assert response.context["message"] == msg
+
+    def test_get__sets_etag_and_last_modified(self, admin_client, org, user):
+        msg = make_message(org, user)
+        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
+        assert response.status_code == 200
+        assert response.headers["ETag"] == (
+            f'"{msg.pk.hex}-{msg.modified_at.timestamp():.6f}"'
+        )
+        assert response.headers["Last-Modified"] == http_date(
+            msg.modified_at.timestamp()
+        )
+        assert response.headers["Cache-Control"] == "private, no-cache"
+
+    def test_get__not_modified_when_etag_matches(self, admin_client, org, user):
+        msg = make_message(org, user)
+        url = f"/org/{org.slug}/email/messages/{msg.id}"
+        etag = admin_client.get(url).headers["ETag"]
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 304
+
+    def test_get__renders_when_message_changed(self, admin_client, org, user):
+        msg = make_message(org, user)
+        url = f"/org/{org.slug}/email/messages/{msg.id}"
+        etag = admin_client.get(url).headers["ETag"]
+        msg.status = OutgoingMessage.Status.SENT
+        msg.save(update_fields=["status", "modified_at"])
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
 
     def test_get__not_found_for_other_org_message(
         self, admin_client, org, user, write_org

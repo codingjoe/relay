@@ -7,6 +7,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
@@ -31,7 +32,9 @@ WEBHOOK_PAYLOAD = {
 }
 
 
-class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
+class IncomingMessageDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     context_object_name = "message"
     parent = "message:message-list"
 
@@ -126,7 +129,7 @@ class WebhookTestView(OrganizationScopedView, generic.View):
         return redirect("mta:webhook-list", org_slug=org_slug)
 
 
-class TlsReportListView(OrganizationScopedView, generic.ListView):
+class TlsReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     def get_template_names(self):
         return ["mta/tls_report_list.html"]
 
@@ -151,7 +154,9 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
+class TlsReportDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["mta/tls_report_detail.html"]
 

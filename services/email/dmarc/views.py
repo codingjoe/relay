@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
@@ -8,7 +9,7 @@ from .charts import build_dmarc_chart
 from .models import DmarcFailureReport, DmarcReport
 
 
-class DmarcReportListView(OrganizationScopedView, generic.ListView):
+class DmarcReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     def get_template_names(self):
         return ["dmarc/report_list.html"]
 
@@ -36,7 +37,9 @@ class DmarcReportListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
+class DmarcReportDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["dmarc/report_detail.html"]
 
@@ -56,7 +59,9 @@ class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
         }
 
 
-class DmarcFailureReportListView(OrganizationScopedView, generic.ListView):
+class DmarcFailureReportListView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.ListView
+):
     def get_template_names(self):
         return ["dmarc/failure_report_list.html"]
 
@@ -83,7 +88,9 @@ class DmarcFailureReportListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class DmarcFailureReportDetailView(OrganizationScopedView, generic.DetailView):
+class DmarcFailureReportDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["dmarc/failure_report_detail.html"]
 

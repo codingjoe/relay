@@ -3,12 +3,13 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 
 from .models import Message
 
 
-class MessageListView(OrganizationScopedView, generic.ListView):
+class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     """Display a merged timeline of inbound and outbound messages."""
 
     context_object_name = "messages"
