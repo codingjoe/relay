@@ -174,7 +174,7 @@ class Transmission(TimeStamped):
 
     @classmethod
     def record_submission(cls, message, ssl):
-        """Record the SMTP submission that relay accepted for a message."""
+        """Record the submission relay accepted for a message."""
         cls.objects.create(
             message=message,
             status=cls.Status.SUBMITTED,

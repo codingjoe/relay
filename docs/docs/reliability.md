@@ -36,7 +36,7 @@ from the queue state, performs through an attempt, and records the attempt.
 Every accepted submission and every delivery attempt produces one immutable
 transmission row with:
 
-- the submission row records the SMTP acceptance answer and whether the
+- the submission row records the acceptance answer and whether the
   submission arrived over TLS,
 
 - a sent attempt records the attempted MX host, the TLS details of the
