@@ -141,7 +141,8 @@ class Message(TimeStamped):
 
     @property
     def kind_icon(self) -> str:
-        """Return the matching Lucide icon name.
+        """
+        Return the matching Lucide icon name.
 
         Reads the icon from the concrete class because multi-table
         inheritance returns base instances in shared querysets.
@@ -158,8 +159,8 @@ class Message(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        Status = self.content_type.model_class().Status
-        return Status(self.status).badge_variant
+        status_class = self.content_type.model_class().Status
+        return status_class(self.status).badge_variant
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
@@ -172,7 +173,8 @@ class Message(TimeStamped):
         )
 
     def get_email_url(self) -> str:
-        """Return the URL of the view rendering the email itself.
+        """
+        Return the URL of the view rendering the email itself.
 
         Reads the URL name from the concrete class because multi-table
         inheritance returns base instances in shared querysets.
@@ -207,7 +209,8 @@ class Message(TimeStamped):
 
     @property
     def text_body(self) -> bytes:
-        """Return the decoded text payload of the stored body.
+        """
+        Return the decoded text payload of the stored body.
 
         Multipart messages yield their first text part.
         """
@@ -234,7 +237,8 @@ class Message(TimeStamped):
 
     @staticmethod
     def header_to_text(value) -> str:
-        """Return a parsed header name or value as a JSON-serializable string.
+        """
+        Return a parsed header name or value as a JSON-serializable string.
 
         The compat32 parser returns `Header` objects for header values with
         raw 8-bit bytes, which a JSONField cannot serialize. Decode those

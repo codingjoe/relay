@@ -59,7 +59,7 @@ class MXServer:
                 self.stop()
                 raise
             self.controllers.append(controller)
-            logger.info(f"MX server listening on {self.host}:{port}")
+            logger.info("MX server listening on %s:%s", self.host, port)
 
     def stop(self):
         for controller in self.controllers:

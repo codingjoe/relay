@@ -1,3 +1,10 @@
+import dns.message
+import dns.name
+import dns.rdata
+import dns.rdataclass
+import dns.rdatatype
+import dns.resolver
+import dns.rrset
 import pytest
 from django.contrib.auth.models import User
 from django.db import connections
@@ -10,7 +17,7 @@ def _db(request, db):
     """Fail if the requesting test lacks the `django_db` marker."""
     if not request.node.get_closest_marker("django_db"):
         pytest.fail("Test requires a database. Use the django_db marker.")
-    yield db
+    return db
 
 
 @pytest.fixture(autouse=True)
@@ -91,18 +98,9 @@ def admin_client(client, user):
     return client
 
 
-import dns.message
-import dns.name
-import dns.rdata
-import dns.rdataclass
-import dns.rdatatype
-import dns.resolver
-import dns.rrset
-import pytest
-
-
 class StubResolver(dns.resolver.Resolver):
-    """Return real DNS Answer objects from pre-configured records.
+    """
+    Return real DNS Answer objects from pre-configured records.
 
     Unlike mocking dns.resolver.resolve, this returns real Answer objects
     that exercise the actual parsing logic in service functions.

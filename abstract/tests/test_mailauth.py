@@ -264,7 +264,8 @@ SPOOFED_EMAIL = (
 
 
 def make_dkim_signature_header(dns_resolver, raw_bytes, domain_name):
-    """Return a DKIM-Signature header line for raw bytes.
+    """
+    Return a DKIM-Signature header line for raw bytes.
 
     The public key is published on the stub DNS resolver.
     """

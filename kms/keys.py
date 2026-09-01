@@ -11,6 +11,13 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from . import keystore
 
 
+class UnsupportedAlgorithmError(ValueError):
+    """The requested key algorithm is not supported."""
+
+    def __init__(self, algorithm):
+        super().__init__(f"Unsupported algorithm: {algorithm}")
+
+
 class Algorithm:
     RSA_2048 = "rsa-2048"
     ED25519 = "ed25519"
@@ -83,7 +90,7 @@ def generate(algorithm: str) -> KeyPair:
         case "ed25519":
             private_pem = generate_ed25519_private_key()
         case _:
-            raise ValueError(f"Unsupported algorithm: {algorithm}")
+            raise UnsupportedAlgorithmError(algorithm)
     public_pem = public_pem_from_private(private_pem)
     return KeyPair(
         ciphertext=keystore.encrypt(private_pem),
@@ -115,7 +122,7 @@ def dkim_key_material_from_pem(private_pem: str, algorithm: str) -> tuple[bytes,
             )
             return base64.b64encode(raw_seed), b"ed25519-sha256"
         case _:
-            raise ValueError(f"Unsupported algorithm for DKIM: {algorithm}")
+            raise UnsupportedAlgorithmError(algorithm)
 
 
 def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:

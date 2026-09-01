@@ -41,7 +41,8 @@ class ChainResult(StrEnum):
 def create_authentication_results(
     evaluation: DmarcEvaluation, authserv_id: str, arc_result: ChainResult
 ) -> bytes:
-    """Return the Authentication-Results header line for an evaluation.
+    """
+    Return the Authentication-Results header line for an evaluation.
 
     Result properties with an invalid domain are omitted, so an attacker-controlled
     header value cannot inject clauses. The DMARC result is `temperror` when
@@ -88,7 +89,8 @@ def create_authentication_results(
 
 
 def is_trusted_authentication_results(header_block: bytes, authserv_id: str) -> bool:
-    """Return whether a multi-line header block may survive sealing.
+    """
+    Return whether a multi-line header block may survive sealing.
 
     A block is untrusted when it claims relay's authserv-id or does not
     parse.
@@ -108,7 +110,8 @@ def is_trusted_authentication_results(header_block: bytes, authserv_id: str) -> 
 def remove_untrusted_authentication_results(
     raw_bytes: bytes, authserv_id: str
 ) -> bytes:
-    """Return the message without untrusted Authentication-Results headers.
+    """
+    Return the message without untrusted Authentication-Results headers.
 
     Header parsing ends like Python's email parser does: at a blank line,
     at a colon-less line that is not a continuation, or never after a
@@ -144,7 +147,8 @@ def remove_untrusted_authentication_results(
 
 
 def fetch_dkim_key_record(name: bytes, timeout: int = 5) -> bytes | None:
-    """Return the first TXT record at a DKIM selector name, or None.
+    """
+    Return the first TXT record at a DKIM selector name, or None.
 
     The record text is joined without a v=DKIM1 filter, which RFC 6376
     §3.6.1 makes optional. The timeout parameter only exists to satisfy
@@ -164,7 +168,8 @@ def fetch_dkim_key_record(name: bytes, timeout: int = 5) -> bytes | None:
 def verify_arc_chain(
     raw_bytes: bytes, dns_budget: datetime.timedelta = ARC_CHAIN_VERIFICATION_TIMEOUT
 ) -> ChainResult:
-    """Return the ARC chain validation status of a message.
+    """
+    Return the ARC chain validation status of a message.
 
     Chain verification stops when dns_budget is exhausted and reports a
     failed chain.
@@ -209,7 +214,8 @@ def verify_arc_chain(
 def seal_message(
     raw_bytes: bytes, evaluation: DmarcEvaluation, domain: Domain
 ) -> bytes:
-    """Seal an accepted message with relay's ARC set.
+    """
+    Seal an accepted message with relay's ARC set.
 
     Fall back to the message with relay's Authentication-Results header when
     the seal cannot be created. A chain whose most recent seal already

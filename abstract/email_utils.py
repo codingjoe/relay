@@ -5,6 +5,10 @@ import zipfile
 from email import message_from_bytes
 
 
+class MissingAttachmentError(ValueError):
+    """The email contains no attachment."""
+
+
 def extract_part_text(part):
     """Extract text content from a MIME part, including sub-messages and base64 data."""
     if part.is_multipart():
@@ -28,7 +32,8 @@ def extract_part_text(part):
 
 
 def iter_attachments(raw_bytes):
-    """Yield decompressed attachment payloads from a raw email.
+    """
+    Yield decompressed attachment payloads from a raw email.
 
     Handles gzip and zip decompression automatically.
     """

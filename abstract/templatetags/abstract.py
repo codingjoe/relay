@@ -21,7 +21,8 @@ register.filter(is_safe=True)(humanize.apnumber)
 
 @register.filter(expects_localtime=True)
 def naturalday(value):
-    """Format a date as a human-readable day (for example, "today", "yesterday", "Sep 13").
+    """
+    Format a date as a human-readable day (for example, "today", "yesterday", "Sep 13").
 
     Uses `SHORT_DATE_FORMAT` for dates in the current year and
     `DATE_FORMAT` for dates in other years.
@@ -33,7 +34,8 @@ def naturalday(value):
 
 @register.filter(expects_localtime=True)
 def naturaltime(value: datetime.datetime):
-    """Format a datetime as a human-readable relative time.
+    """
+    Format a datetime as a human-readable relative time.
 
     Uses Django's `naturaltime` for recent values (within ±2 hours), then
     changes to longer date and time formats for older values.
@@ -44,6 +46,7 @@ def naturaltime(value: datetime.datetime):
     Returns:
         A human-readable time string, or the input unchanged if it is not
         a datetime.
+
     """
     if not isinstance(value, datetime.datetime):
         return value
@@ -62,7 +65,8 @@ def naturaltime(value: datetime.datetime):
 
 @register.simple_tag(takes_context=True)
 def param_replace(context, **kwargs):
-    """Replace query parameters in the current URL.
+    """
+    Replace query parameters in the current URL.
 
     Preserves existing GET parameters and overrides the ones passed as kwargs.
     Empty values are removed.
@@ -73,6 +77,7 @@ def param_replace(context, **kwargs):
 
     Returns:
         A URL-encoded query string with the updated parameters.
+
     """
     d = context["request"].GET.copy()
     for k, v in kwargs.items():
@@ -94,7 +99,8 @@ def timestamp(value):
 
 @register.inclusion_tag("abstract/pagination.html", takes_context=True)
 def pagination(context, page_obj=None):
-    """Render a pagination nav for a Django Page object.
+    """
+    Render a pagination nav for a Django Page object.
 
     Falls back to `context['page_obj']` when `page_obj` is omitted,
     so most templates can call `{% pagination %}` without an argument.
@@ -107,7 +113,8 @@ code_formatter = HtmlFormatter(cssclass="codehilite")
 
 @register.filter
 def highlight_code(value: str, language: str = "text") -> str:
-    """Highlight a static code snippet with Pygments.
+    """
+    Highlight a static code snippet with Pygments.
 
     When the requested language is unknown, falls back to the plain-text lexer
     and still returns a Pygments highlighted `<pre>` block.

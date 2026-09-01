@@ -201,21 +201,6 @@ class TestNotifyPostmasterRecipients:
         )
         assert expected_url in mail.outbox[0].body
 
-
-def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
-    domain = Domain.objects.get(org=org)
-    msg = IncomingMessage(
-        org=org,
-        domain=domain,
-        receiving_domain="example.com",
-        mail_from="spam@acme.com",
-        rcpt_to="inbox@example.com",
-        status=status,
-    )
-    msg.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
-    msg.save()
-    return msg
-
     @pytest.mark.django_db(transaction=True)
     def test_notify__logs_and_continues_when_sending_fails(self, org):
         domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
@@ -232,6 +217,21 @@ def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
             notify_postmaster_recipients.func(message_pk=str(msg.id))
 
         assert len(mail.outbox) == 0
+
+
+def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
+    domain = Domain.objects.get(org=org)
+    msg = IncomingMessage(
+        org=org,
+        domain=domain,
+        receiving_domain="example.com",
+        mail_from="spam@acme.com",
+        rcpt_to="inbox@example.com",
+        status=status,
+    )
+    msg.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
+    msg.save()
+    return msg
 
 
 @pytest.mark.django_db(transaction=True)

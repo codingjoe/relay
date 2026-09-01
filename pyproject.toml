@@ -61,11 +61,31 @@ test = [
 
 [tool.ruff]
 lint.extend-select = [
+  "C90",
+  "D",
   "DJ",
+  "E",
+  "G",
+  "N",
+  "PERF",
+  "PT",
+  "PTH",
+  "RET",
+  "SIM",
+  "SLOT",
+  "T20",
+  "TRY",
+  "UP",
+  "W",
 ]
-lint.ignore = [
-  "RUF012",
-]
+lint.ignore = [ "D1", "D203", "D212", "E501", "RUF01" ]
+
+[tool.ruff.lint.per-file-ignores]
+# aiosmtpd and python-markdown require these method names by protocol.
+"abstract/utils.py" = [ "N802" ]
+"services/email/msa/handlers.py" = [ "N802" ]
+"services/email/mta/handlers.py" = [ "N802" ]
+"services/email/proxy_protocol.py" = [ "N802" ]
 
 [tool.pytest]
 addopts = [ "--tb=native", "--fail-on-template-vars", "--reuse-db", "-n", "auto", "-q" ]

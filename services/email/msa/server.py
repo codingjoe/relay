@@ -9,7 +9,11 @@ import time
 from aiosmtpd.controller import Controller
 
 from services.email.proxy_protocol import proxy_protocol_timeout_seconds
-from services.email.tls import build_tls_context, wait_for_certificate_and_key
+from services.email.tls import (
+    MissingTlsCertificateError,
+    build_tls_context,
+    wait_for_certificate_and_key,
+)
 
 from .handlers import BalancerHandler, ImplicitTLSHandler, SMTPHandler
 
@@ -51,9 +55,7 @@ class SMTPServer:
             any(p in self.implicit_tls_ports for p in self.ports)
             and tls_context is None
         ):
-            raise ValueError(
-                "Implicit TLS ports require a TLS certificate, but no cert path is configured."
-            )
+            raise MissingTlsCertificateError
         for port in self.ports:
             if port in self.implicit_tls_ports:
                 controller = Controller(
@@ -84,7 +86,7 @@ class SMTPServer:
                 self.stop()
                 raise
             self.controllers.append(controller)
-            logger.info(f"SMTP server listening on {self.host}:{port}")
+            logger.info("SMTP server listening on %s:%s", self.host, port)
         if self.balancer_port:
             controller = Controller(
                 BalancerHandler(),
@@ -102,7 +104,7 @@ class SMTPServer:
                 raise
             self.controllers.append(controller)
             logger.info(
-                f"SMTP balancer server listening on {self.host}:{self.balancer_port}"
+                "SMTP balancer server listening on %s:%s", self.host, self.balancer_port
             )
 
     def stop(self):

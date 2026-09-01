@@ -147,7 +147,8 @@ class Certificate(TimeStamped):
         return self.subject or f"sha256:{self.fingerprint[:16]}…"
 
     def chain(self):
-        """Yield this certificate and its presented issuers, leaf first.
+        """
+        Yield this certificate and its presented issuers, leaf first.
 
         Yields at most CERTIFICATE_CHAIN_MAX_DEPTH certificates.
         """

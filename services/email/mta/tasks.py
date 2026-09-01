@@ -40,7 +40,11 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 )
 
 
-class WebhookDeliveryError(Exception): ...
+class WebhookDeliveryError(Exception):
+    """A webhook endpoint responded with a retryable failure."""
+
+    def __init__(self, status_code):
+        super().__init__(f"Webhook returned status {status_code}")
 
 
 def webhook_retry(context):
@@ -96,7 +100,7 @@ def deliver_webhook(message_id, webhook_id):
             Webhook.objects.filter(pk=webhook.pk).update(is_active=False)
             mark_failed_if_pending(message_id)
         case (False, _):
-            raise WebhookDeliveryError(f"Webhook returned status {status_code}")
+            raise WebhookDeliveryError(status_code)
 
 
 def mark_failed_if_pending(message_id):

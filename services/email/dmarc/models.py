@@ -9,7 +9,7 @@ from django.db import models
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 
-from abstract.email_utils import iter_attachments
+from abstract.email_utils import MissingAttachmentError, iter_attachments
 from abstract.models import TimeStamped
 from domains.models import Domain
 from services.email.mta.models import IncomingMessage
@@ -68,13 +68,14 @@ class DmarcReport(IncomingMessage):
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
+        """
+        Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
 
         Raises `ValueError` if no XML attachment is found.
         """
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
-            raise ValueError("No attachment found in DMARC report email.")
+            raise MissingAttachmentError
         parsed = parse_dmarc_xml(data)
         meta = parsed["metadata"]
         report = cls(
@@ -326,7 +327,8 @@ class DmarcFailureReport(IncomingMessage):
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return a DmarcFailureReport instance parsed from a raw ARF email.
+        """
+        Return a DmarcFailureReport instance parsed from a raw ARF email.
 
         Raises `ValueError` if no ARF feedback-report content is found.
         """
