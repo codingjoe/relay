@@ -62,7 +62,7 @@ class IncomingMessage(Message):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name="+",
+        related_name="incoming_messages",
         help_text=_("Certificate the sending MTA presented, when one was offered."),
     )
 

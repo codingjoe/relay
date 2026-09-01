@@ -205,6 +205,25 @@ class Message(TimeStamped):
             # name), e.g. pruned or fixture-only rows.
             return message_from_bytes(b"body pruned")
 
+    @property
+    def text_body(self) -> bytes:
+        """Return the decoded text payload of the stored body.
+
+        Multipart messages yield their first text part.
+        """
+        if not self.raw_body:
+            return b""
+        return next(
+            (
+                payload
+                for part in self.parsed_email().walk()
+                if not part.is_multipart()
+                and part.get_content_type().startswith("text/")
+                and (payload := part.get_payload(decode=True)) is not None
+            ),
+            b"",
+        )
+
     @classmethod
     def headers_from_raw(cls, raw_bytes):
         """Return the message headers as JSON-serializable [name, value] pairs."""

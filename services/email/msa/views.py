@@ -31,7 +31,7 @@ class OutgoingMessageDetailView(
 
     def get_queryset(self):
         return OutgoingMessage.objects.filter(org=self.org).select_related(
-            "domain", "credential"
+            "domain", "credential", "content_type"
         )
 
     def get_object(self, queryset=None):
@@ -54,7 +54,7 @@ class OutgoingMessageDetailView(
             "headers": headers,
             "dkim_signatures": dkim_signatures,
             "received": [v for k, v in headers if k.lower() == "received"],
-            "body": message.parsed_email().get_payload(decode=True) or "",
+            "body": message.text_body,
             "transmissions": Transmission.objects.filter(
                 message=message
             ).select_related("tls_certificate"),

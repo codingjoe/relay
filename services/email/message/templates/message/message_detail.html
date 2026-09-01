@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load i18n message %}
+{% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
+{% block content %}
+  <header class="mb-6">
+    <div class="flex items-center gap-3 flex-wrap">
+      <h2 class="m-0 break-all">
+        {% if message.message_id %}
+          <code class="text-base">{{ message.message_id }}</code>
+        {% else %}
+          ({% translate "no message ID" %})
+        {% endif %}
+      </h2>
+      <span
+        class="badge"
+        data-size="sm"
+        data-variant="{{ message.status_badge_variant }}"
+      >
+        {{ message.status_display }}
+      </span>
+    </div>
+  </header>
+
+  <article class="card gap-0 p-0 overflow-hidden mb-6">
+    {% block transmission_card %}{% endblock %}
+  </article>
+
+  <article class="card gap-0 p-0 overflow-hidden mb-6">
+    <div class="px-6 pt-6">
+      <h3 class="font-semibold m-0 mb-3">{% translate "headers"|capfirst context "noun" %}</h3>
+    </div>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
+            <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, value in headers %}
+            <tr>
+              <td class="whitespace-normal">{{ key }}</td>
+              <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-6 py-6 flex flex-col gap-6">
+      {% block extra_sections %}{% endblock %}
+      <div>
+        <h3 class="font-semibold m-0 mb-3">{% translate "body"|capfirst context "noun" %}</h3>
+        {% block body %}
+          {% if body %}
+            {{ body|highlight_email }}
+          {% else %}
+            <section class="empty">
+              <header>
+                <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
+                <h3>{% translate "Body pruned." %}</h3>
+                <p>{% translate "The raw message body is not available." %}</p>
+              </header>
+            </section>
+          {% endif %}
+        {% endblock body %}
+      </div>
+    </div>
+  </article>
+{% endblock %}

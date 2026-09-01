@@ -82,7 +82,9 @@
       <header>
         <h3 class="m-0">{% translate "original headers"|capfirst %}</h3>
       </header>
-      {{ report.original_headers|truncatechars:2000|highlight_email }}
+      <div class="border rounded-md p-4">
+        {{ report.original_headers|truncatechars:2000|highlight_email }}
+      </div>
     </div>
   {% endif %}
 {% endblock %}
