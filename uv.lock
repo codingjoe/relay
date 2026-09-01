@@ -317,6 +317,31 @@ wheels = [
 ]
 
 [[package]]
+name = "django-debug-toolbar"
+version = "7.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "sqlparse" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/00/da/df67a8e407ab6141affee4ee5cb2704403b9d5465cc35abbb42f5190a3fa/django_debug_toolbar-7.1.1.tar.gz", hash = "sha256:2fb4093d95e6f87258606c55f4d2aa45d1847b17a415525a9dceac02e937a836", size = 363531, upload-time = "2026-08-14T13:18:47.219Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/c8/f473a965186510233129c2ab22e4808a1938afcbe9a287145d17693adf70/django_debug_toolbar-7.1.1-py3-none-any.whl", hash = "sha256:e1385b22fb17bff4dc51cf782679a7926676405e8d013ada1e3d8a6bfc47fdb3", size = 304387, upload-time = "2026-08-14T13:18:45.642Z" },
+]
+
+[[package]]
+name = "django-devbar"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0c/ec/63ecc60a34f30381f9ce0e2fa7745250c8ea5118ea1568f498d8d6da69dc/django_devbar-0.7.0.tar.gz", hash = "sha256:6abd24023bd145f5abf97339913399b8c1dbef2fced0be06916c35286659f68d", size = 9360, upload-time = "2026-02-16T18:28:32.573Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/71/a41c3e41a04ea3d49fa7f3d81a00dfb9878fc3a17a6d7e9212abdb5f82be/django_devbar-0.7.0-py3-none-any.whl", hash = "sha256:3c9f43a03aab79af747c37f2b34c16cd2d0306c97dd7277bf2839833240eadd4", size = 11681, upload-time = "2026-02-16T18:28:31.164Z" },
+]
+
+[[package]]
 name = "django-environ"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -948,6 +973,8 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "django-debug-toolbar" },
+    { name = "django-devbar" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -1004,6 +1031,8 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "django-debug-toolbar", specifier = ">=7.1.1" },
+    { name = "django-devbar", specifier = ">=0.7.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4" },
     { name = "pytest-cov", specifier = ">=7.1" },

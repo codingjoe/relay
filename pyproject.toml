@@ -42,6 +42,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "django-debug-toolbar>=7.1.1",
+  "django-devbar>=0.7",
   "pytest-pretty>=1.3",
   "pyyaml>=6.0.3",
   "threadmill[inspector]>=0.6.1",
