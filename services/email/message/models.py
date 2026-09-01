@@ -24,6 +24,9 @@ class Message(TimeStamped):
     example report messages, point this at their incoming message view.
     """
 
+    icon = ""
+    """Lucide icon name of the concrete subclass. Falls back to the direction icons."""
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid7,
@@ -138,7 +141,13 @@ class Message(TimeStamped):
 
     @property
     def kind_icon(self) -> str:
-        """Return the matching Lucide icon name."""
+        """Return the matching Lucide icon name.
+
+        Reads the icon from the concrete class because multi-table
+        inheritance returns base instances in shared querysets.
+        """
+        if icon := self.content_type.model_class().icon:
+            return icon
         return "send" if self.kind == "outgoingmessage" else "inbox"
 
     @property

@@ -283,6 +283,8 @@ class TlsReport(IncomingMessage):
 
     url_name = "tls-report-detail"
 
+    icon = "lock"
+
     @classmethod
     def parse_from_email(cls, raw_bytes):
         """Return a TlsReport instance and TlsFailure list parsed from a raw email.

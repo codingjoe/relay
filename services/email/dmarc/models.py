@@ -64,6 +64,8 @@ class DmarcReport(IncomingMessage):
 
     url_name = "report-detail"
 
+    icon = "shield-check"
+
     @classmethod
     def parse_from_email(cls, raw_bytes):
         """Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
@@ -319,6 +321,8 @@ class DmarcFailureReport(IncomingMessage):
         )
 
     url_name = "failure-report-detail"
+
+    icon = "alert-triangle"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
