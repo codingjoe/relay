@@ -20,7 +20,7 @@ services:
     image: powerdns/dnsdist-21:2.1.1
     depends_on:
       dns:
-        condition: service_healthy
+        condition: service_started
     configs:
       - source: dnsdist
         target: /etc/dnsdist/dnsdist.conf
@@ -30,12 +30,6 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
-    healthcheck:
-      test: [ "CMD", "python3", "-c", "import socket; q = b'\\x12\\x34\\x01\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x05relay\\x06health\\x00\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(q, ('127.0.0.1', 53)); assert s.recvfrom(512)[0]" ]
-      interval: 10s
-      retries: 5
-      start_period: 10s
-      timeout: 10s
   migration:
     depends_on: !override
       postgres:
