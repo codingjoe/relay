@@ -132,14 +132,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `root/templates/base.html` and have every page template `{% extends "base.html" %}`.
   Pages only override `{% block title %}` and `{% block content %}`.
 
-- Detail pages for the same entity across sibling apps share one base
-  template in the shared app so they stay in lockstep. The `msa` and `mta`
-  message detail pages both extend
-  `message/templates/message/message_detail.html`, which owns the
-  message-ID headline, the status badge, the headers and body card, and the
-  pruned-body empty state, and override the `transmission_card`,
-  `extra_sections`, and `body` blocks.
-
 - For interactive widgets, prefer off-the-shelf basecoat components over custom
   CSS or custom JS:
 
