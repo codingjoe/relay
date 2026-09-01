@@ -163,11 +163,16 @@ class TestSignMessage:
         assert all("feedback-id" in signature["h"].lower() for signature in signatures)
 
     @pytest.mark.django_db
-    def test_sign_message__returns_original_when_no_keys(self):
-        domain = Domain(name="example.com")
-        original = make_email().as_bytes()
-        signed = sign_message(original, domain)
-        assert signed == original
+    def test_sign_message__raises_without_keys(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        Domain.objects.filter(pk=domain.pk).update(
+            dkim_key_rsa2048=None,
+            dkim_key_ed25519=None,
+        )
+
+        with pytest.raises(ValueError, match="no DKIM signing key"):
+            sign_message(make_email().as_bytes(), domain)
 
 
 class TestAddDkimSignature:
