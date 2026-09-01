@@ -9,9 +9,9 @@ from abstract.charts import CHART_DAYS, build_chart_data
 from .models import DmarcRecord, DmarcReport
 
 DMARC_CHART_COLORS = {
-    "none": "var(--color-success)",
-    "quarantine": "var(--color-warning)",
-    "reject": "var(--color-destructive)",
+    "none": "var(--color-chart-green)",
+    "quarantine": "var(--color-chart-yellow)",
+    "reject": "var(--color-chart-red)",
 }
 
 

@@ -31,9 +31,11 @@ class IncomingMessage(Message):
         def badge_variant(self) -> str:
             Status = type(self)
             match self:
-                case Status.RECEIVED:
-                    return "primary"
-                case Status.QUARANTINED | Status.WEBHOOK_FAILED | Status.DROPPED:
+                case Status.RECEIVED | Status.WEBHOOK_SENT:
+                    return "success"
+                case Status.QUARANTINED:
+                    return "warning"
+                case Status.WEBHOOK_FAILED | Status.DROPPED:
                     return "destructive"
                 case _:
                     return "outline"
@@ -223,7 +225,7 @@ class WebhookDelivery(TimeStamped):
     def status_badge_variant(self) -> str:
         match self.status:
             case self.Status.SENT:
-                return "primary"
+                return "success"
             case self.Status.FAILED:
                 return "destructive"
             case _:

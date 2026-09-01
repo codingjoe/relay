@@ -10,10 +10,24 @@
   --color-primary-text: light-dark(hsl(268, 100%, 41%), hsl(268, 100%, 75%));
   --color-link: var(--color-primary-text);
 
-  /* Chart status colors (delivered/held/bounced). Both shades hold the
-     4.5:1 WCAG AA floor for text on the light and dark background. */
-  --color-success: light-dark(hsl(142, 71%, 31%), hsl(142, 60%, 55%));
-  --color-warning: light-dark(hsl(33, 95%, 35%), hsl(38, 95%, 58%));
+  /* Darkened from the basecoat default so soft-tinted badge text holds
+     the 4.5:1 WCAG AA floor on its own 10% background tint, and solid
+     destructive buttons keep 4.5:1 with white text. */
+  --destructive: light-dark(oklch(0.54 0.21 27.325), oklch(0.704 0.191 22.216));
+
+  /* Chart series colors. Vivid, ECharts-style hues kept separate from
+     interactive colors (--color-primary) and the UI status tokens so
+     series never read as links, buttons, or badges. Green marks good
+     outcomes, red bad ones, and blue informational ones. Every shade
+     holds the 3:1 WCAG non-text contrast floor against the card
+     background. */
+  --color-chart-green: light-dark(hsl(105, 42%, 45%), hsl(105, 55%, 64%));
+  --color-chart-green-deep: light-dark(hsl(155, 47%, 43%), hsl(155, 50%, 60%));
+  --color-chart-yellow: light-dark(hsl(43, 89%, 39%), hsl(43, 90%, 62%));
+  --color-chart-orange: light-dark(hsl(20, 97%, 52%), hsl(20, 95%, 66%));
+  --color-chart-red: light-dark(hsl(0, 80%, 67%), hsl(0, 75%, 68%));
+  --color-chart-blue: light-dark(hsl(225, 50%, 55%), hsl(225, 55%, 65%));
+  --color-chart-gray: light-dark(hsl(224, 4%, 45%), hsl(224, 10%, 65%));
 
   /* Muted text on the page background must stay above the 4.5:1 WCAG AA
      floor (the basecoat default reaches only 4.3:1 in light mode). */
@@ -27,6 +41,15 @@
    also has 500/600 (and ligatures) as a variable font but no italic,
    so slanted code text is synthesized. */
 @theme {
+  /* UI status colors (badges, alerts, and similar text). The light
+     shades hold the 4.5:1 WCAG AA floor for text on their own
+     soft-tinted badge background (10% alpha over white), and the dark
+     shades on the 20% tint; both hold it against the plain background
+     too. Registered in @theme so Tailwind generates the bg-, text-,
+     and ring-success/warning utilities the status badges use. */
+  --color-success: light-dark(hsl(142, 71%, 28%), hsl(142, 60%, 55%));
+  --color-warning: light-dark(hsl(33, 95%, 32%), hsl(38, 95%, 58%));
+
   --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -74,6 +97,18 @@ svg.lucide {
   &:hover {
     text-decoration: none;
   }
+}
+
+/* Soft-tinted status badge variants. Basecoat only ships primary,
+   secondary, outline, destructive, ghost, and link variants; these two
+   follow the destructive pattern so status badges can share the chart
+   traffic-light tones. */
+.badge[data-variant="success"] {
+  @apply bg-success/10 [a]:hover:bg-success/20 focus-visible:ring-success/20 text-success dark:bg-success/20 dark:focus-visible:ring-success/40;
+}
+
+.badge[data-variant="warning"] {
+  @apply bg-warning/10 [a]:hover:bg-warning/20 focus-visible:ring-warning/20 text-warning dark:bg-warning/20 dark:focus-visible:ring-warning/40;
 }
 
 /* RFC 822 email header syntax highlighting via Pygments EmailLexer.

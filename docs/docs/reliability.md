@@ -35,7 +35,7 @@ from the queue state, performs through an attempt, and records the attempt.
 
 Every delivery attempt produces one immutable transmission row with:
 
-- a delivered attempt records the attempted MX host, the TLS details of the
+- a sent attempt records the attempted MX host, the TLS details of the
   connection: STARTTLS or TLS, the protocol version, the cipher suite, and
   the certificate the remote server presented, identified by its SHA-256
   fingerprint, with its subject, alternative names, issuer, serial number,

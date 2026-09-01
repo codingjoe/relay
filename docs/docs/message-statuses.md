@@ -54,8 +54,9 @@ Notes on reading the diagram:
   comes from the pipeline after acceptance.
 - `bounced` and `failed` differ by who is responsible: a remote rejection
   ends as `bounced`, and relay-side transport problems end as `failed`.
-- The enum reserves `delivered` and `dropped` for outbound messages. relay
-  does not set them today, so the diagram omits them.
+- `sent` is the strongest final state relay can know: the recipient MX
+  accepted the message. Confirmed recipient delivery is not tracked, and
+  the enum has no such state.
 
 ## The life of an inbound message
 
@@ -101,7 +102,6 @@ The transmission list per message shows each attempt with its own outcome:
 | sent                | This attempt reached a recipient MX host that answered success |
 | bounced             | This attempt revealed a permanent rejection                    |
 | failed              | This attempt failed, and the transcript shows why              |
-| delivered           | Reserved for confirmed deliveries                              |
 | retry               | Reserved for future automatic retry tracking                   |
 
 The same applies for inbound messages: one delivery record per webhook POST
@@ -109,8 +109,11 @@ with the URL, response code, and a response excerpt.
 
 ## Where you see the statuses
 
-- The message list of the dashboard colors each status, with destructive
-  colors for bounced, failed, quarantined, and webhook_failed rows.
+- The message list of the dashboard colors each status badge with the
+  same traffic-light tones as the charts: success for sent, received,
+  and webhook_sent, warning for held and quarantined, destructive for
+  bounced, failed, dropped, and webhook_failed, and outline for
+  everything still open or neutral.
 - The message detail page shows the status next to the transcripts and
   delivery records.
 - Filters let you watch only failed or quarantined traffic.

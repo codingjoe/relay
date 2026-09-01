@@ -48,10 +48,7 @@ def create_incoming(org, status=None):
 
 class TestOutgoingMessageStatus:
     def test_badge_variant__sent(self):
-        assert OutgoingMessage.Status.SENT.badge_variant == "primary"
-
-    def test_badge_variant__delivered(self):
-        assert OutgoingMessage.Status.DELIVERED.badge_variant == "primary"
+        assert OutgoingMessage.Status.SENT.badge_variant == "success"
 
     def test_badge_variant__bounced(self):
         assert OutgoingMessage.Status.BOUNCED.badge_variant == "destructive"
@@ -66,12 +63,12 @@ class TestOutgoingMessageStatus:
         assert OutgoingMessage.Status.PENDING.badge_variant == "outline"
 
     def test_badge_variant__held(self):
-        assert OutgoingMessage.Status.HELD.badge_variant == "outline"
+        assert OutgoingMessage.Status.HELD.badge_variant == "warning"
 
 
 class TestIncomingMessageStatus:
     def test_badge_variant__received(self):
-        assert IncomingMessage.Status.RECEIVED.badge_variant == "primary"
+        assert IncomingMessage.Status.RECEIVED.badge_variant == "success"
 
     def test_badge_variant__webhook_failed(self):
         assert IncomingMessage.Status.WEBHOOK_FAILED.badge_variant == "destructive"
@@ -80,7 +77,7 @@ class TestIncomingMessageStatus:
         assert IncomingMessage.Status.DROPPED.badge_variant == "destructive"
 
     def test_badge_variant__webhook_sent(self):
-        assert IncomingMessage.Status.WEBHOOK_SENT.badge_variant == "outline"
+        assert IncomingMessage.Status.WEBHOOK_SENT.badge_variant == "success"
 
 
 class TestMessage:
@@ -107,7 +104,7 @@ class TestMessage:
     @pytest.mark.django_db
     def test_status_badge_variant__outgoing_sent(self, user, org):
         msg = create_outgoing(user, org, OutgoingMessage.Status.SENT)
-        assert Message.objects.get(pk=msg.pk).status_badge_variant == "primary"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "success"
 
     @pytest.mark.django_db
     def test_status_badge_variant__outgoing_bounced(self, user, org):
@@ -122,7 +119,7 @@ class TestMessage:
     @pytest.mark.django_db
     def test_status_badge_variant__incoming_received(self, org):
         msg = create_incoming(org)
-        assert Message.objects.get(pk=msg.pk).status_badge_variant == "primary"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "success"
 
     @pytest.mark.django_db
     def test_status_badge_variant__incoming_webhook_failed(self, org):
@@ -132,7 +129,7 @@ class TestMessage:
     @pytest.mark.django_db
     def test_status_badge_variant__incoming_webhook_sent(self, org):
         msg = create_incoming(org, IncomingMessage.Status.WEBHOOK_SENT)
-        assert Message.objects.get(pk=msg.pk).status_badge_variant == "outline"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "success"
 
     @pytest.mark.django_db
     def test_kind__outgoing(self, user, org):

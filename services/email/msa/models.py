@@ -20,7 +20,6 @@ class OutgoingMessage(Message):
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
         SENT = "sent", _("sent")
-        DELIVERED = "delivered", _("delivered")
         HELD = "held", _("held")
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
@@ -32,8 +31,10 @@ class OutgoingMessage(Message):
         def badge_variant(self) -> str:
             Status = type(self)
             match self:
-                case Status.SENT | Status.DELIVERED:
-                    return "primary"
+                case Status.SENT:
+                    return "success"
+                case Status.HELD:
+                    return "warning"
                 case Status.BOUNCED | Status.DROPPED | Status.FAILED:
                     return "destructive"
                 case _:
@@ -82,7 +83,6 @@ class Transmission(TimeStamped):
 
     class Status(models.TextChoices):
         SENT = "sent", _("sent")
-        DELIVERED = "delivered", _("delivered")
         FAILED = "failed", _("failed")
         RETRY = "retry", _("retry")
         BOUNCED = "bounced", _("bounced")
@@ -175,8 +175,8 @@ class Transmission(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         match self.status:
-            case self.Status.SENT | self.Status.DELIVERED:
-                return "primary"
+            case self.Status.SENT:
+                return "success"
             case self.Status.FAILED | self.Status.BOUNCED:
                 return "destructive"
             case _:
