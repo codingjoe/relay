@@ -31,7 +31,7 @@ class ConditionalGetMixin:
 
     def get_etag(self, obj) -> str:
         """Return the ETag for `obj`."""
-        return f'"{int(obj.pk):x}-{int(obj.modified_at.timestamp() * 1_000_000):x}"'
+        return f'"{int(obj.pk):x}-{int(obj.modified_at.timestamp() * 1e6):x}"'
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()

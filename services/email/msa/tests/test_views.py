@@ -43,7 +43,7 @@ class TestMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
         assert response.headers["ETag"] == (
-            f'"{int(msg.pk):x}-{int(msg.modified_at.timestamp() * 1_000_000):x}"'
+            f'"{int(msg.pk):x}-{int(msg.modified_at.timestamp() * 1e6):x}"'
         )
         assert response.headers["Last-Modified"] == http_date(
             msg.modified_at.timestamp()
