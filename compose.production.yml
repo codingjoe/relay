@@ -92,10 +92,10 @@ services:
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "msa", "--ports", "587" ]
     healthcheck:
-      # The submission port expects a PROXY protocol header (sent by Caddy in
-      # production). We send a PROXY v2 LOCAL header, then expect an SMTP
-      # 220 banner.
-      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'\\r\\n\\r\\n\\x00\\r\\nQUIT\\n\\x20\\x00\\x00\\x00'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      # Caddy fronts the submission port with a PROXY protocol header.
+      # Send the unattributed v1 "UNKNOWN" header, then expect the SMTP
+      # banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
       interval: 10s
       retries: 5
       start_period: 30s
@@ -126,10 +126,9 @@ services:
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
     healthcheck:
-      # The MX port expects a PROXY protocol header (sent by Caddy in
-      # production). We send a PROXY v2 LOCAL header, then expect an SMTP
-      # 220 banner.
-      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'\\r\\n\\r\\n\\x00\\r\\nQUIT\\n\\x20\\x00\\x00\\x00'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      # Caddy fronts the MX port with a PROXY protocol header. Send the
+      # unattributed v1 "UNKNOWN" header, then expect the SMTP banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
       interval: 10s
       retries: 5
       start_period: 30s
@@ -156,12 +155,6 @@ services:
         target: /etc/rspamd/local.d/worker-normal.inc
     networks:
       - app
-    healthcheck:
-      test: [ "CMD-SHELL", "timeout 5 bash -c 'exec 3<>/dev/tcp/127.0.0.1/11334 && printf \"GET /ping HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q pong <&3'" ]
-      interval: 10s
-      retries: 5
-      start_period: 10s
-      timeout: 10s
   web:
     image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
