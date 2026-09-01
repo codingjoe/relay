@@ -16,7 +16,8 @@ class TestMarkdownArticleMixin:
         assert TestArticleView.get_article_path("exists") == tmp_path / "exists.md"
 
     def test_get_article_path__stale_slug_raises_404(self, tmp_path):
-        """A slug in the allowlist whose file is gone must 404, not 500.
+        """
+        A slug in the allowlist whose file is gone must 404, not 500.
 
         The slugs frozenset is a module-level cache. A server that
         outlives a file rename must degrade to 404.

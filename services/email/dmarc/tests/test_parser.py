@@ -2,7 +2,9 @@ import datetime
 import gzip
 from email.message import EmailMessage
 
-from services.email.dmarc.parser import parse_arf, parse_dmarc_xml
+import pytest
+
+from services.email.dmarc.parser import NoArfFeedbackError, parse_arf, parse_dmarc_xml
 
 
 def make_report_email(xml_bytes, filename="report.xml.gz"):
@@ -91,11 +93,8 @@ class TestParseArf:
         msg = EmailMessage()
         msg["Subject"] = "Not a report"
         msg.set_content("Just a regular email")
-        try:
+        with pytest.raises(NoArfFeedbackError):
             parse_arf(msg.as_bytes())
-            assert False, "Should have raised ValueError"
-        except ValueError:
-            pass
 
     def test_parse_arf__extracts_feedback_fields(self):
         msg = EmailMessage()

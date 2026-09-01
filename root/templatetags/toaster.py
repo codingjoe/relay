@@ -8,7 +8,8 @@ register = template.Library()
 
 @register.inclusion_tag("partials/toaster_items.html", takes_context=True)
 def render_toasts(context):
-    """Render all framework messages as basecoat toast markup.
+    """
+    Render all framework messages as basecoat toast markup.
 
     Uses `get_messages` to read messages directly from the request. This avoids
     a name collision with a view that exposes a queryset as `context['messages']`.

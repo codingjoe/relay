@@ -83,7 +83,6 @@ class DNSResolver(BaseResolver):
         domain: Domain,
     ) -> Iterator[RR]:
         """Build DNS records for a matched domain."""
-
         cname_records = list(self.resolve_cname(qname, query_name, domain))
         if cname_records:
             yield from cname_records
@@ -146,7 +145,16 @@ class DNSResolver(BaseResolver):
                     ttl=self.RECORD_TTL,
                 )
 
-        # DKIM. Serve public-key for each cipher at its selector name.
+        yield from self.resolve_dkim_txt(qname, query_name, domain)
+        yield from self.resolve_apex_txt(qname, query_name, domain)
+
+    def resolve_dkim_txt(
+        self,
+        qname: DNSLabel,
+        query_name: str,
+        domain: Domain,
+    ) -> Iterator[RR]:
+        """Build DKIM TXT records. Serve each cipher's public key at its selector."""
         for selector, key in domain.dkim_ciphers:
             if key:
                 dkim_names = [
@@ -161,7 +169,13 @@ class DNSResolver(BaseResolver):
                         ttl=self.RECORD_TTL,
                     )
 
-        # Records served at the domain apex (root SPF, sender DMARC, root TLS-RPT)
+    def resolve_apex_txt(
+        self,
+        qname: DNSLabel,
+        query_name: str,
+        domain: Domain,
+    ) -> Iterator[RR]:
+        """Build TXT records served at the domain apex."""
         match query_name:
             case name if name == domain.name:
                 yield RR(

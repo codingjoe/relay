@@ -69,7 +69,7 @@ class MXHandler(ProxyProtocolMixin):
             status,
             client_ip,
         )
-        logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
+        logger.info("Incoming message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
 
 

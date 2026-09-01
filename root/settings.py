@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/stable/ref/settings/
 import base64
 import datetime
 import hashlib
-import os
 from pathlib import Path
 
 import environ
@@ -248,7 +247,7 @@ WHITENOISE_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Relay config
 

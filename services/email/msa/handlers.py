@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 def add_feedback_id(raw_bytes: bytes, org: Organization) -> tuple[bytes, str]:
-    """Prepend a relay Feedback-ID header for FBL complaint attribution per org.
+    """
+    Prepend a relay Feedback-ID header for FBL complaint attribution per org.
 
     relay's token replaces any customer-supplied Feedback-ID because the
     token is the attribution key for complaint reports. Return the
@@ -76,7 +77,7 @@ class SMTPHandler(ProxyProtocolMixin):
             getattr(session, "ssl", False),
             client_ip,
         )
-        logger.info(f"Message from {mail_from} to {rcpt_to}: {result}")
+        logger.info("Message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
 
     async def handle_AUTH(self, server, session, envelope, arg):
@@ -96,18 +97,21 @@ class SMTPHandler(ProxyProtocolMixin):
             if credential is None:
                 return "535 Authentication failed"
             session.credential = credential
-            logger.info(
-                f"Authenticated org '{credential.org}' with credential "
-                f"'{credential.name or credential.key_prefix}…'"
-            )
-            return "235 Authentication successful"
         except ValueError, DatabaseError:
             logger.exception("AUTH error")
             return "535 Authentication failed"
+        else:
+            logger.info(
+                "Authenticated org '%s' with credential '%s…'",
+                credential.org,
+                credential.name or credential.key_prefix,
+            )
+            return "235 Authentication successful"
 
 
 class ImplicitTLSHandler(SMTPHandler):
-    """Handler for implicit TLS (port 465) connections.
+    """
+    Handler for implicit TLS (port 465) connections.
 
     aiosmtpd doesn't detect pre-wrapped TLS sockets, so `session.ssl`
     is never set for implicit TLS. Mark the session as encrypted before
@@ -120,7 +124,8 @@ class ImplicitTLSHandler(SMTPHandler):
 
 
 class BalancerHandler(ImplicitTLSHandler):
-    """Handler for the plaintext balancer port behind the Caddy L4 proxy.
+    """
+    Handler for the plaintext balancer port behind the Caddy L4 proxy.
 
     Caddy terminates the client's TLS and forwards the session as plain
     SMTP with a PROXY protocol header. Marking the session as encrypted
@@ -132,8 +137,11 @@ class BalancerHandler(ImplicitTLSHandler):
 
 @sync_to_async
 def authenticate(username: str, key: str):
-    """Authenticate an org by its slug and SMTP credential key. Return the
-    credential, or `None` if authentication fails."""
+    """
+    Authenticate an org by its slug and SMTP credential key.
+
+    Return the credential, or `None` if authentication fails.
+    """
     api_keys = MsaCredential.objects.select_related("org").filter(
         key_prefix=key[:8],
         org__slug=username,
@@ -159,8 +167,11 @@ def store_outgoing_message(
     client_ip,
     raw_bytes,
 ):
-    """Store an outgoing message with its submission record and enqueue
-    spam processing for deliverable messages."""
+    """
+    Store an outgoing message with its submission record.
+
+    Enqueues spam processing for deliverable messages.
+    """
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = parsed.get("Subject", "")
@@ -191,8 +202,11 @@ def store_outgoing_message(
 
 @sync_to_async
 def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
-    """Store a submitted outgoing message and enqueue its delivery unless
-    the org is suspended."""
+    """
+    Store a submitted outgoing message and enqueue its delivery.
+
+    Delivery is not enqueued when the org is suspended.
+    """
     if "@" not in mail_from:
         return "550 Sender domain not registered"
 
@@ -231,7 +245,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
             client_ip=client_ip,
             raw_bytes=raw_bytes,
         )
-        logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
+        logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
         return "250 OK"
 
     if (

@@ -142,8 +142,8 @@ class Message(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        Status = self.content_type.model_class().Status
-        return Status(self.status).badge_variant
+        status_class = self.content_type.model_class().Status
+        return status_class(self.status).badge_variant
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
@@ -185,7 +185,8 @@ class Message(TimeStamped):
 
     @staticmethod
     def header_to_text(value) -> str:
-        """Return a parsed header name or value as a JSON-serializable string.
+        """
+        Return a parsed header name or value as a JSON-serializable string.
 
         The compat32 parser returns `Header` objects for header values with
         raw 8-bit bytes, which a JSONField cannot serialize. Decode those

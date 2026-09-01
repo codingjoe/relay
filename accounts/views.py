@@ -21,7 +21,8 @@ from .models import Membership, Organization
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
-    """Base for org-scoped views. Loads the org from the URL and enforces membership.
+    """
+    Base for org-scoped views. Loads the org from the URL and enforces membership.
 
     Subclasses receive `self.org`, and `org` is added to the template context.
     The current org is also stashed on the request for the navbar context

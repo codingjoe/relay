@@ -32,13 +32,15 @@ def validate_domain_name(value):
 
 class DomainQuerySet(models.QuerySet):
     def root_for(self, name, *, include_managed):
-        """Return the closest registered parent domain for *name*.
+        """
+        Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific
         name has priority.
 
         Raises:
             DoesNotExist: If no matching domain is found.
+
         """
         try:
             parts = idna.uts46_remap(

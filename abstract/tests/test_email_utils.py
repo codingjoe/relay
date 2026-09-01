@@ -68,7 +68,6 @@ class TestIterAttachments:
 
     def test_iter_attachments__skips_multipart_attachment_parts(self):
         """An attachment-disposed multipart container yields no payload."""
-
         outer = MIMEMultipart()
         nested = MIMEMultipart()
         nested.add_header("Content-Disposition", "attachment", filename="nested.eml")
@@ -129,13 +128,11 @@ class TestExtractPartText:
 
     def test_extract_part_text__decodes_base64_body_without_cte(self):
         """A sub-part may carry base64 text even when its CTE does not honor it."""
-
         encoded = base64.b64encode(b"undetected base64").decode()
         raw = make_multipart_with_sub_part(f"Content-Type: text/plain\r\n\r\n{encoded}")
         assert extract_part_text(message_from_string(raw)) == "undetected base64"
 
     def test_extract_part_text__keeps_payload_when_base64_round_trip_fails(self):
         """A 7-bit body that decodes but does not round-trip is used as-is."""
-
         raw = make_multipart_with_sub_part("Content-Type: text/plain\r\n\r\naGVs bG8=")
         assert extract_part_text(message_from_string(raw)) == "aGVs bG8="

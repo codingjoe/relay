@@ -89,7 +89,8 @@ class Membership(TimeStamped):
 
 
 class OrganizationOwned(TimeStamped):
-    """Provide a required `org` foreign key for resources always owned by an organization.
+    """
+    Provide a required `org` foreign key for resources always owned by an organization.
 
     Use this mixin for resources that always belong to an org (for example,
     credentials). Models that need a custom reverse relation define their own
@@ -109,7 +110,8 @@ class OrganizationOwned(TimeStamped):
 
 class CredentialQuerySet(models.QuerySet):
     def create_with_key(self, *, org, name="", **kwargs):
-        """Create and persist a credential with a generated key.
+        """
+        Create and persist a credential with a generated key.
 
         Return a `(credential, raw_key)` tuple. The caller sees the raw key
         only once.
@@ -122,7 +124,8 @@ class CredentialQuerySet(models.QuerySet):
 
 
 class Credential(OrganizationOwned):
-    """Abstract base for per-service credentials.
+    """
+    Abstract base for per-service credentials.
 
     The plaintext key is never stored. Only a hash (like Django passwords).
     The key_prefix (the first 8 characters) makes an O(1) lookup possible
@@ -174,7 +177,8 @@ class Credential(OrganizationOwned):
         return f"{self.__class__.__module__}.{self.__class__.__name__}"
 
     def set_key(self, raw_key):
-        """Persist a one-way representation of the key.
+        """
+        Persist a one-way representation of the key.
 
         The caller sees the plaintext once. The plaintext is never stored.
         """
@@ -182,7 +186,8 @@ class Credential(OrganizationOwned):
         self.key_prefix = raw_key[:8]
 
     def verify_key(self, raw_key):
-        """Verify the provided key against the stored credential.
+        """
+        Verify the provided key against the stored credential.
 
         Records a successful verification as the last use, and returns whether
         the key matched.

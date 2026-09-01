@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 def resolve_fbl_owner(
     original_mail_from: str, feedback_id: str = ""
 ) -> tuple[Organization, Domain] | None:
-    """Return the org and domain that sent the message a report is about.
+    """
+    Return the org and domain that sent the message a report is about.
 
     The per-message proof the provider echoes is either the full VERP
     envelope sender (`bounce+<message-id>@<sender-domain>`) or the
@@ -59,7 +60,8 @@ def resolve_fbl_owner(
 
 @task
 def create_held_outgoing_fbl_report(message_pk, org_id):
-    """Store a relay-generated FBL report for a held outgoing message.
+    """
+    Store a relay-generated FBL report for a held outgoing message.
 
     The held message counts as spam against the organization's quota even
     though it was never relayed. Queues an org evaluation after the
@@ -89,7 +91,8 @@ def create_provider_fbl_report(message_pk):
 
 @task
 def parse_fbl_report(report_pk):
-    """Fill the stored fields from the referenced message's raw ARF body.
+    """
+    Fill the stored fields from the referenced message's raw ARF body.
 
     Attribute the report to the sending organization only when the
     provider echoes the exact original VERP envelope sender or the
@@ -154,6 +157,5 @@ def parse_fbl_report(report_pk):
 
 @task
 def check_org_reputation(org_id):
-    """Evaluate rates for an organization and suspend it permanently on a
-    threshold breach."""
+    """Evaluate rates for an organization and suspend it on a threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))

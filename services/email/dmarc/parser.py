@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import xml.etree.ElementTree as ET
 from email import message_from_bytes
@@ -12,6 +13,10 @@ ARF_FIELD_MAP = {
     "authentication-results": "authentication_results",
 }
 VALID_DELIVERY_RESULTS = frozenset({"delivered", "spam", "policy", "rejected", "other"})
+
+
+class NoArfFeedbackError(ValueError):
+    """The message contains no ARF feedback-report content."""
 
 
 def parse_dmarc_xml(data):
@@ -86,33 +91,33 @@ def parse_arf(raw_bytes):
     }
 
     for part in msg.walk():
-        ct = part.get_content_type()
-        match ct:
+        match part.get_content_type():
             case "message/feedback-report":
-                body = extract_part_text(part)
-                if body:
-                    for line in body.splitlines():
-                        if ":" in line:
-                            key, value = (s.strip() for s in line.split(":", 1))
-                            key_lower = key.lower()
-                            if key_lower in ARF_FIELD_MAP:
-                                report_data[ARF_FIELD_MAP[key_lower]] = value
-                            elif key_lower == "arrival-date":
-                                try:
-                                    report_data["arrival_at"] = (
-                                        datetime.datetime.fromisoformat(value)
-                                    )
-                                except ValueError:
-                                    pass
-                            elif key_lower == "delivery-result":
-                                result = value.lower().replace(" ", "-")
-                                if result in VALID_DELIVERY_RESULTS:
-                                    report_data["delivery_result"] = result
+                if body := extract_part_text(part):
+                    update_arf_report(report_data, body)
             case "text/rfc822-headers" | "message/rfc822":
-                body = extract_part_text(part)
-                if body:
+                if body := extract_part_text(part):
                     report_data["original_headers"] = body
 
     if not report_data["source_ip_address"] and not report_data["original_mail_from"]:
-        raise ValueError("No ARF feedback-report content found.")
+        raise NoArfFeedbackError
     return report_data
+
+
+def update_arf_report(report_data, body):
+    """Map the feedback-report body fields onto the report dict."""
+    for line in body.splitlines():
+        if ":" in line:
+            key, value = (s.strip() for s in line.split(":", 1))
+            match key.lower():
+                case key_lower if key_lower in ARF_FIELD_MAP:
+                    report_data[ARF_FIELD_MAP[key_lower]] = value
+                case "arrival-date":
+                    with contextlib.suppress(ValueError):
+                        report_data["arrival_at"] = datetime.datetime.fromisoformat(
+                            value
+                        )
+                case "delivery-result":
+                    result = value.lower().replace(" ", "-")
+                    if result in VALID_DELIVERY_RESULTS:
+                        report_data["delivery_result"] = result

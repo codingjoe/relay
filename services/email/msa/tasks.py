@@ -18,15 +18,35 @@ from services.email.spam import SpamAction, check_message
 logger = logging.getLogger(__name__)
 
 
-class MxHostsExhausted(Exception):
+class MxHostsExhaustedError(Exception):
     """All MX hosts for a recipient domain failed to accept the message."""
+
+    def __init__(self, domain):
+        super().__init__(f"All MX hosts failed for {domain}")
+
+
+class AmbiguousSenderDomainError(ValueError):
+    """The sender domain does not resolve to a single root domain."""
+
+    def __init__(self):
+        super().__init__("Outgoing message sender domain is ambiguous")
+
+
+class SenderDomainMismatchError(ValueError):
+    """The sender domain does not match the resolved root domain."""
+
+    def __init__(self):
+        super().__init__("Outgoing message sender domain does not match")
 
 
 @task
 def deliver_message(message_id):
-    """Deliver a queued outgoing message to its recipients, or drop it when
-    the org is suspended."""
-    from .models import OutgoingMessage, SuppressionEntry, Transmission
+    """
+    Deliver a queued outgoing message to its recipients.
+
+    Drop the message instead when the org is suspended.
+    """
+    from .models import OutgoingMessage, Transmission
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
     if message.org.suspended_at:
@@ -41,92 +61,7 @@ def deliver_message(message_id):
         return
 
     try:
-        from domains.models import Domain, canonicalize_domain_name
-
-        canonical_name = canonicalize_domain_name(message.domain.name)
-        try:
-            resolved_domain = Domain.objects.root_for(
-                canonical_name,
-                include_managed=True,
-            )
-        except Domain.DoesNotExist as error:
-            raise ValueError("Outgoing message sender domain is ambiguous") from error
-        if (
-            resolved_domain.pk != message.domain.pk
-            or resolved_domain.org_id != message.org_id
-            or resolved_domain.name != canonical_name
-        ):
-            raise ValueError("Outgoing message sender domain does not match")
-
-        raw_bytes = message.raw_body.read()
-        return_path = (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
-            f"@{message.domain.sender_domain}"
-        )
-        rcpt_domain = message.rcpt_to.split("@")[-1]
-        mx_hosts = fetch_mx_hosts(rcpt_domain)
-
-        if not mx_hosts:
-            Transmission.objects.create(
-                message=message,
-                status=Transmission.Status.FAILED,
-                details=f"No MX records found for {rcpt_domain}",
-            )
-            message.status = OutgoingMessage.Status.FAILED
-            message.save(update_fields=["status"])
-            return
-
-        for mx_host in mx_hosts:
-            allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
-            if not allowed:
-                logger.warning(
-                    "MTA-STS blocked delivery to %s via %s: %s",
-                    message.rcpt_to,
-                    mx_host,
-                    reason,
-                )
-                continue
-            try:
-                response, tls_details = async_to_sync(send_via_mx)(
-                    raw_bytes,
-                    mx_host,
-                    return_path,
-                    [message.rcpt_to],
-                )
-                Transmission.objects.create(
-                    message=message,
-                    status=Transmission.Status.SENT,
-                    output=str(response),
-                    mx_host=mx_host,
-                    **tls_details,
-                )
-                message.status = OutgoingMessage.Status.SENT
-                message.save(update_fields=["status"])
-                return
-            except aiosmtplib.SMTPResponseException as e:
-                code = getattr(e, "code", getattr(e, "smtp_code", 0))
-                if 400 <= code < 500:
-                    raise
-                Transmission.objects.create(
-                    message=message,
-                    status=Transmission.Status.BOUNCED,
-                    code=code,
-                    output=str(e),
-                    mx_host=mx_host,
-                )
-                message.status = OutgoingMessage.Status.BOUNCED
-                message.save(update_fields=["status"])
-                SuppressionEntry.objects.create_or_update(
-                    org=message.org,
-                    email=message.rcpt_to,
-                    reason=SuppressionEntry.Reason.BOUNCE,
-                )
-                return
-            except aiosmtplib.SMTPException, OSError:
-                pass
-
-        raise MxHostsExhausted(f"All MX hosts failed for {rcpt_domain}")
-
+        send_outgoing_message(message)
     except Exception as e:  # storage backend raises varied exceptions
         logger.exception("Transmission error for message %r", message_id)
         Transmission.objects.create(
@@ -136,6 +71,106 @@ def deliver_message(message_id):
         )
         message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
+
+
+def resolve_sender_domain(message):
+    """Verify that the message's sender domain matches its root domain."""
+    from domains.models import Domain, canonicalize_domain_name
+
+    canonical_name = canonicalize_domain_name(message.domain.name)
+    try:
+        resolved_domain = Domain.objects.root_for(canonical_name, include_managed=True)
+    except Domain.DoesNotExist as error:
+        raise AmbiguousSenderDomainError from error
+    if (
+        resolved_domain.pk != message.domain.pk
+        or resolved_domain.org_id != message.org_id
+        or resolved_domain.name != canonical_name
+    ):
+        raise SenderDomainMismatchError
+
+
+def send_outgoing_message(message):
+    """Send the message via the recipient domain's MX hosts and record the outcome."""
+    from .models import OutgoingMessage, Transmission
+
+    resolve_sender_domain(message)
+    raw_bytes = message.raw_body.read()
+    return_path = (
+        f"{settings.RELAY_BOUNCE_LOCAL_PART}+{message.id}"
+        f"@{message.domain.sender_domain}"
+    )
+    rcpt_domain = message.rcpt_to.split("@")[-1]
+    mx_hosts = fetch_mx_hosts(rcpt_domain)
+
+    if not mx_hosts:
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.FAILED,
+            details=f"No MX records found for {rcpt_domain}",
+        )
+        message.status = OutgoingMessage.Status.FAILED
+        message.save(update_fields=["status"])
+        return
+
+    for mx_host in mx_hosts:
+        allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
+        if not allowed:
+            logger.warning(
+                "MTA-STS blocked delivery to %s via %s: %s",
+                message.rcpt_to,
+                mx_host,
+                reason,
+            )
+            continue
+        try:
+            response, tls_details = async_to_sync(send_via_mx)(
+                raw_bytes,
+                mx_host,
+                return_path,
+                [message.rcpt_to],
+            )
+        except aiosmtplib.SMTPResponseException as e:
+            code = getattr(e, "code", getattr(e, "smtp_code", 0))
+            if 400 <= code < 500:
+                raise
+            record_bounce(message, code, str(e), mx_host)
+            return
+        except aiosmtplib.SMTPException, OSError:
+            pass
+        else:
+            Transmission.objects.create(
+                message=message,
+                status=Transmission.Status.SENT,
+                output=str(response),
+                mx_host=mx_host,
+                **tls_details,
+            )
+            message.status = OutgoingMessage.Status.SENT
+            message.save(update_fields=["status"])
+            return
+
+    raise MxHostsExhaustedError(rcpt_domain)
+
+
+def record_bounce(message, code, output, mx_host):
+    """Record a permanent bounce and suppress the recipient address."""
+    from .models import OutgoingMessage, SuppressionEntry, Transmission
+
+    Transmission.objects.create(
+        message=message,
+        status=Transmission.Status.BOUNCED,
+        code=code,
+        output=output,
+        mx_host=mx_host,
+    )
+    message.status = OutgoingMessage.Status.BOUNCED
+    message.save(update_fields=["status"])
+    SuppressionEntry.objects.create_or_update(
+        org=message.org,
+        email=message.rcpt_to,
+        reason=SuppressionEntry.Reason.BOUNCE,
+    )
 
 
 def fetch_mx_hosts(domain):
@@ -153,8 +188,11 @@ def fetch_mx_hosts(domain):
 async def send_via_mx(
     raw_bytes: bytes, mx_host: str, sender: str, recipients: list[str]
 ) -> tuple[str, dict]:
-    """Deliver a message to an MX host over STARTTLS on port 25 and return
-    the SMTP response with the negotiated TLS details."""
+    """
+    Deliver a message to an MX host over STARTTLS on port 25.
+
+    Returns the SMTP response with the negotiated TLS details.
+    """
     from kms.models import Certificate
 
     from .models import Transmission
@@ -211,8 +249,12 @@ def parse_peer_certificates(
     )
 )
 def check_outgoing_spam(message_pk, client_ip):
-    """Drop messages for suspended orgs, then check for spam and enqueue
-    delivery if clean."""
+    """
+    Check an outgoing message for spam before delivery.
+
+    Messages for suspended orgs are dropped without a spam check. Clean
+    messages are enqueued for delivery.
+    """
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)

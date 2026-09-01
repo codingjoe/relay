@@ -152,7 +152,8 @@ class DmarcEvaluation:
 
     @classmethod
     def from_bytes(cls, raw_bytes, mail_from, client_ip: str = ""):
-        """Evaluate DMARC for a message from raw bytes.
+        """
+        Evaluate DMARC for a message from raw bytes.
 
         SPF is evaluated against client_ip, the SMTP session's connecting
         address, so forged Received headers cannot authenticate a sender.
@@ -204,11 +205,9 @@ class DmarcEvaluation:
         for header in msg.get_all("Received", []):
             if match := RECEIVED_IP_PATTERN.search(header):
                 ip_str = match.group(1) or match.group(2)
-                try:
+                with suppress(ValueError):
                     ipaddress.ip_address(ip_str)
                     return ip_str
-                except ValueError:
-                    pass
         return None
 
     @staticmethod
@@ -233,38 +232,42 @@ class DmarcEvaluation:
 
     @staticmethod
     def check_spf(source_ip, domain):
-        if source_ip and domain:
-            try:
-                resolver = dns.resolver.Resolver()
-                resolver.lifetime = 2.0
-                records = resolver.resolve(domain, "TXT")
-            except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
-                return AuthResult.NONE, domain
-            except dns.exception.Timeout, dns.resolver.NoNameservers:
-                logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
-                return AuthResult.TEMPERROR, domain
-            except dns.exception.DNSException:
-                logger.warning(
-                    "SPF DNS lookup failed for malformed domain %r",
-                    domain,
-                    exc_info=True,
-                )
-                return AuthResult.NONE, domain
-            for record in records:
-                text = "".join(
-                    s.decode() if isinstance(s, bytes) else s for s in record.strings
-                )
-                if text.startswith("v=spf1"):
-                    mechanisms = text.split()
-                    for mech in mechanisms:
-                        if mech == "a" or mech == "mx" or mech == f"ip4:{source_ip}":
-                            return AuthResult.PASS, domain
-                        if mech in ("~all", "-all"):
-                            return AuthResult.FAIL, domain
-                        if mech in ("+all", "?all"):
-                            return AuthResult.NEUTRAL, domain
-                    return AuthResult.NEUTRAL, domain
+        if not (source_ip and domain):
             return AuthResult.NONE, domain
+        try:
+            resolver = dns.resolver.Resolver()
+            resolver.lifetime = 2.0
+            records = resolver.resolve(domain, "TXT")
+        except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
+            return AuthResult.NONE, domain
+        except dns.exception.Timeout, dns.resolver.NoNameservers:
+            logger.warning("SPF DNS lookup failed for %r", domain, exc_info=True)
+            return AuthResult.TEMPERROR, domain
+        except dns.exception.DNSException:
+            logger.warning(
+                "SPF DNS lookup failed for malformed domain %r",
+                domain,
+                exc_info=True,
+            )
+            return AuthResult.NONE, domain
+        return DmarcEvaluation.spf_result_from_records(records, source_ip, domain)
+
+    @staticmethod
+    def spf_result_from_records(records, source_ip, domain):
+        """Return the SPF result for the domain's TXT records."""
+        for record in records:
+            text = "".join(
+                s.decode() if isinstance(s, bytes) else s for s in record.strings
+            )
+            if text.startswith("v=spf1"):
+                for mech in text.split():
+                    if mech == "a" or mech == "mx" or mech == f"ip4:{source_ip}":
+                        return AuthResult.PASS, domain
+                    if mech in ("~all", "-all"):
+                        return AuthResult.FAIL, domain
+                    if mech in ("+all", "?all"):
+                        return AuthResult.NEUTRAL, domain
+                return AuthResult.NEUTRAL, domain
         return AuthResult.NONE, domain
 
     @staticmethod

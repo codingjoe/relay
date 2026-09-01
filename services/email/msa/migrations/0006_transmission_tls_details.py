@@ -3,7 +3,8 @@ from django.db import migrations, models
 
 
 def mark_historical_starttls(apps, schema_editor):
-    """Record STARTTLS for historical transmissions flagged as sent with SSL.
+    """
+    Record STARTTLS for historical transmissions flagged as sent with SSL.
 
     Outbound delivery only negotiates STARTTLS, so the boolean flag maps to
     STARTTLS. The presented certificates were never recorded before.

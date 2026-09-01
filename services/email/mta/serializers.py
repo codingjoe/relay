@@ -6,7 +6,8 @@ from rest_framework import serializers
 
 
 def snake_case_keys(value):
-    """Recursively convert dashed TLS-RPT keys to snake_case field names.
+    """
+    Recursively convert dashed TLS-RPT keys to snake_case field names.
 
     RFC 8460 uses dashed key names ("organization-name"), while DRF looks up
     incoming data by field name, not by `source`.
@@ -91,20 +92,17 @@ class TlsReportSerializer(serializers.Serializer):
         for entry in self.validated_data.get("policies", []):
             policy = entry.get("policy", {})
             summary = entry.get("summary", {})
-            failures = []
-            for detail in entry.get("failure_details", []):
-                failures.append(
-                    {
-                        "result_type": detail.get("result_type", "other"),
-                        "sending_mta_ip_address": detail.get("sending_mta_ip", ""),
-                        "receiving_mx_hostname": detail.get(
-                            "receiving_mx_hostname", ""
-                        ),
-                        "receiving_mx_ip_address": detail.get("receiving_mx_ip"),
-                        "count": detail.get("failed_session_count", 0),
-                        "additional_info": detail.get("additional_information", ""),
-                    }
-                )
+            failures = [
+                {
+                    "result_type": detail.get("result_type", "other"),
+                    "sending_mta_ip_address": detail.get("sending_mta_ip", ""),
+                    "receiving_mx_hostname": detail.get("receiving_mx_hostname", ""),
+                    "receiving_mx_ip_address": detail.get("receiving_mx_ip"),
+                    "count": detail.get("failed_session_count", 0),
+                    "additional_info": detail.get("additional_information", ""),
+                }
+                for detail in entry.get("failure_details", [])
+            ]
             policies.append(
                 {
                     "policy_type": policy.get("policy_type", "sts"),
