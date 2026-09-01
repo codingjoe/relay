@@ -55,6 +55,9 @@ ALLOWED_HOSTS = [
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Show django-debug-toolbar for local development requests.
+INTERNAL_IPS = ["127.0.0.1"]
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
@@ -80,6 +83,7 @@ INSTALLED_APPS = [
     "storages",
     "rest_framework",
     "threadmill",
+    *(["debug_toolbar"] if DEBUG else []),
     # First-party apps
     "accounts",
     "kms",
@@ -100,6 +104,14 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    *(
+        [
+            "django_devbar.DevBarMiddleware",
+            "debug_toolbar.middleware.DebugToolbarMiddleware",
+        ]
+        if DEBUG
+        else []
+    ),
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "domains.middleware.MtaStsHostMiddleware",
