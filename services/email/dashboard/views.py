@@ -26,20 +26,20 @@ class DashboardView(OrganizationScopedView, generic.TemplateView):
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
-        try:
-            managed_domain = Domain.objects.get(
-                org=self.org, is_managed=True, verified_at__isnull=False
-            )
-        except Domain.DoesNotExist:
-            managed_domain = None
+        domains = list(Domain.objects.filter(org=self.org))
         return super().get_context_data(**kwargs) | {
-            "domains": Domain.objects.filter(org=self.org),
-            "total_domains": Domain.objects.filter(org=self.org).count(),
+            "domains": domains,
+            "total_domains": len(domains),
             "total_messages": Message.objects.filter(org=self.org).count(),
-            "managed_domain": managed_domain,
-            "has_custom_domain": Domain.objects.filter(
-                org=self.org, is_managed=False
-            ).exists(),
+            "managed_domain": next(
+                (
+                    domain
+                    for domain in domains
+                    if domain.is_managed and domain.verified_at
+                ),
+                None,
+            ),
+            "has_custom_domain": any(not domain.is_managed for domain in domains),
             "has_outgoing_message": OutgoingMessage.objects.filter(
                 org=self.org
             ).exists(),

@@ -11,11 +11,17 @@ from abstract.utils import strip_frontmatter
 
 
 class CacheControlMixin:
-    """Set cache control headers on the response of a class based view."""
+    """Set cache control headers on the response of a class based view.
+
+    Requests to views with a `public` cache control render the static chrome:
+    `request.public_cache` gates session-dependent template bits (user menu,
+    messages) so the response stays free of queries and `Vary: Cookie`.
+    """
 
     cache_control: dict[str, bool | int] = {}
 
     def dispatch(self, request, *args, **kwargs):
+        request.public_cache = "public" in self.cache_control
         response = super().dispatch(request, *args, **kwargs)
         patch_cache_control(response, **self.cache_control)
         return response

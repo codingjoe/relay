@@ -223,6 +223,19 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `class="link"` to entity anchors so they get primary color and
   underline from `src/css/app.css`.
 
+## Views & Queries
+
+- Publicly cacheable views (`CacheControlMixin` with `public: True`) must not
+  touch the session. They render the static chrome (`request.public_cache`):
+  no user menu, no message toasts, no org switcher. The response stays free
+  of `Vary: Cookie` and database queries, anonymous and authenticated alike.
+- Do not add new context processors that provide querysets. Template chrome
+  data (for example, the org switcher's `user_orgs`) is provided by the view
+  whose mixin already loads the related objects.
+- Consolidate per-view queries: fetch a list once and derive counts, flags,
+  and related objects from the result instead of issuing separate `count()`,
+  `exists()`, and `get()` queries for the same rows.
+
 ## Testing
 
 - Use `pytest.mark.django_db` (not the `db` fixture) when a test needs the

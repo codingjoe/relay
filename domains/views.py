@@ -63,7 +63,7 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
         return super().get_context_data(**kwargs) | {
-            "nameservers": [f"ns1.{platform}", "ns2.{platform}"],
+            "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
             "sending_passing": sum(
                 getattr(self.object, f"{field}_status") == Domain.Status.OK

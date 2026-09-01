@@ -6,7 +6,6 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
 from .charts import build_reputation_chart
-from .evaluation import compute_org_reputation
 from .models import FblReport
 
 
@@ -73,13 +72,22 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         chart = build_reputation_chart(self.org)
+        last = chart["rows"][-1]
+        stats = {
+            "total_sent": last["sent"],
+            "hard_bounces": last["hard_bounced"],
+            "soft_bounces": last["soft_bounced"],
+            "complaints": last["complained"],
+            "hard_bounce_rate": last["hard_bounce_rate"] or 0.0,
+            "complaint_rate": last["complaint_rate"] or 0.0,
+        }
         chart_rates = {
             "series": chart["rate_series"],
             "rows": chart["rows"],
             "y_scale": {"stacked": "false"},
         }
         return super().get_context_data(**kwargs) | {
-            "stats": compute_org_reputation(self.org),
+            "stats": stats,
             "chart": chart,
             "chart_rates": chart_rates,
             "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,

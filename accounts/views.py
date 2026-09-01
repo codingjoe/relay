@@ -51,7 +51,11 @@ class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
             request.current_org = self.org
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {"org": self.org}
+        return super().get_context_data(**kwargs) | {
+            "org": self.org,
+            "current_org": self.org,
+            "user_orgs": self.request.user.organizations.all(),
+        }
 
 
 class LoginView(generic.TemplateView):

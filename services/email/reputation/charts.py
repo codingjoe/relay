@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
@@ -42,31 +42,22 @@ def build_reputation_chart(org):
     )
     sent_counts = {row["day"]: row["count"] for row in sent_rows}
 
-    hard_bounce_rows = (
+    bounce_rows = (
         Transmission.objects.filter(
             message__org=org,
             message__created_at__date__gte=start,
             status=Transmission.Status.BOUNCED,
-            code__gte=500,
         )
         .annotate(day=TruncDate("message__created_at"))
         .values("day")
-        .annotate(count=Count("id"))
-    )
-    hard_bounce_counts = {row["day"]: row["count"] for row in hard_bounce_rows}
-
-    soft_bounce_rows = (
-        Transmission.objects.filter(
-            message__org=org,
-            message__created_at__date__gte=start,
-            status=Transmission.Status.BOUNCED,
-            code__lt=500,
+        .annotate(
+            hard=Count("id", filter=Q(code__gte=500)),
+            soft=Count("id", filter=Q(code__lt=500)),
         )
-        .annotate(day=TruncDate("message__created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
     )
-    soft_bounce_counts = {row["day"]: row["count"] for row in soft_bounce_rows}
+    rows = list(bounce_rows)
+    hard_bounce_counts = {row["day"]: row["hard"] for row in rows}
+    soft_bounce_counts = {row["day"]: row["soft"] for row in rows}
 
     complaint_rows = (
         FblReport.objects.filter(
