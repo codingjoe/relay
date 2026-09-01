@@ -180,18 +180,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `circle-check` with `text-primary`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
 
-- Charts use [Apache ECharts](https://echarts.apache.org/) (the library
-  Sentry uses), imported as an ES module from esm.sh inside
-  `abstract/templates/abstract/chart_card.html`, so only pages that render
-  charts load it. Render series as stacked bars without a legend; unstack
-  them by passing `y_scale: {"stacked": "false"}` from the view. Override
-  the series type (for example, to draw thresholds as lines) through the
-  series `dataset` passthrough. ECharts draws to canvas and cannot resolve CSS variables, so resolve theme
-  colors at init time with a hidden span and a canvas probe (`getPropertyValue`
-  on `:root` returns the unresolved `light-dark()` token stream; the value must
-  be applied to an element and read from its computed style). Do not use
-  Chart.js or basecoat's chart component.
-
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`. It imports Tailwind CSS v4 and
   basecoat-css (maia style), plus any custom CSS variables and layout glue.
