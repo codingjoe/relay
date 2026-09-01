@@ -100,8 +100,8 @@ services:
       - caddy_data:/data:ro
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
     labels: !override
@@ -174,8 +174,9 @@ services:
     pull_policy: always
   worker:
     command: [ "-m", "manage", "threadmill", "worker" ]
+    healthcheck:
+      test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
     labels: !reset []
-    deploy: !reset {}
     extends:
       service: web
 networks:

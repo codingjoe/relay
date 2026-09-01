@@ -76,12 +76,14 @@ class OutgoingMessage(Message):
 
 
 class Transmission(TimeStamped):
-    """Track a single delivery attempt for an outgoing message.
+    """Track a single SMTP leg of an outgoing message.
 
-    Each message can have multiple transmissions (for example, retry attempts).
+    Each message starts with the submission to relay's MSA and can gain
+    multiple delivery transmissions (for example, retry attempts).
     """
 
     class Status(models.TextChoices):
+        SUBMITTED = "submitted", _("submitted")
         SENT = "sent", _("sent")
         FAILED = "failed", _("failed")
         RETRY = "retry", _("retry")
@@ -171,6 +173,17 @@ class Transmission(TimeStamped):
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
+
+    @classmethod
+    def record_submission(cls, message, ssl):
+        """Record the submission relay accepted for a message."""
+        cls.objects.create(
+            message=message,
+            status=cls.Status.SUBMITTED,
+            code=250,
+            output="250 OK",
+            tls_mode=cls.TlsMode.TLS if ssl else cls.TlsMode.PLAINTEXT,
+        )
 
     @property
     def status_badge_variant(self) -> str:
