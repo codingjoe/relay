@@ -15,7 +15,7 @@ from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ def process_suppressed_message(
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
     raw_bytes = remove_feedback_id_headers(raw_bytes)
-    OutgoingMessage.objects.create(
+    message = OutgoingMessage.objects.create(
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
@@ -174,6 +174,7 @@ def process_suppressed_message(
         headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
+    Transmission.record_submission(message, ssl)
     logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
     return "250 OK"
 
@@ -236,6 +237,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
         headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
+    Transmission.record_submission(message, ssl)
 
     transaction.on_commit(
         lambda: check_outgoing_spam.enqueue(

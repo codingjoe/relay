@@ -149,49 +149,49 @@
           </div>
         </section>
       </details>
-      <details>
-        <summary>
-          <span class="flex items-center gap-2">
-            {% translate "headers"|capfirst context "noun" %}
-            <span class="badge" data-size="sm">{{ headers|length }}</span>
-          </span>
-          <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-        </summary>
-        <section>
-          <div class="table-container">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
-                  <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for key, value in headers %}
-                  <tr>
-                    <td class="whitespace-normal">{{ key }}</td>
-                    <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% if dkim_signatures %}
-            <h4 class="mt-4 mb-2">{% translate "DKIM signatures" %}</h4>
-            {% for signature in dkim_signatures %}
-              <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{% for key, value in signature.items %}{{ key }}={{ value }};
-{% endfor %}</pre>
-            {% endfor %}
-          {% endif %}
-          {% if received %}
-            <h4 class="mt-4 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
-            {% for hop in received %}
-              <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ hop }}</pre>
-            {% endfor %}
-          {% endif %}
-        </section>
-      </details>
     {% endif %}
+    <details>
+      <summary>
+        <span class="flex items-center gap-2">
+          {% translate "headers"|capfirst context "noun" %}
+          <span class="badge" data-size="sm">{{ headers|length }}</span>
+        </span>
+        <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
+      </summary>
+      <section>
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
+                <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for key, value in headers %}
+                <tr>
+                  <td class="whitespace-normal">{{ key }}</td>
+                  <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if dkim_signatures %}
+          <h4 class="mt-4 mb-2">{% translate "DKIM signatures" %}</h4>
+          {% for signature in dkim_signatures %}
+            <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{% for key, value in signature.items %}{{ key }}={{ value }};
+{% endfor %}</pre>
+          {% endfor %}
+        {% endif %}
+        {% if received %}
+          <h4 class="mt-4 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
+          {% for hop in received %}
+            <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ hop }}</pre>
+          {% endfor %}
+        {% endif %}
+      </section>
+    </details>
     {% if message.raw_body %}
       <details open>
         <summary>

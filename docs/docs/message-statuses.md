@@ -98,6 +98,7 @@ The transmission list per message shows each attempt with its own outcome:
 
 | Transmission status | Meaning                                                        |
 | ------------------- | -------------------------------------------------------------- |
+| submitted           | relay accepted the submission over SMTP                        |
 | sent                | This attempt reached a recipient MX host that answered success |
 | bounced             | This attempt revealed a permanent rejection                    |
 | failed              | This attempt failed, and the transcript shows why              |
