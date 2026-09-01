@@ -5,6 +5,7 @@ from email.header import Header, decode_header
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -145,8 +146,10 @@ class Message(TimeStamped):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
     def get_absolute_url(self) -> str:
-        child = self.content_type.get_object_for_this_type(pk=self.pk)
-        return child.get_absolute_url()
+        return reverse(
+            f"{self.content_type.app_label}:message-detail",
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
 
     @classmethod
     def status_choices(cls) -> list[tuple[str, str]]:

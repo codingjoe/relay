@@ -23,6 +23,7 @@ class MessageListView(OrganizationScopedView, generic.ListView):
 
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
+            "org",
             "outgoingmessage",
             "incomingmessage",
             "content_type",
