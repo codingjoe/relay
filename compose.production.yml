@@ -196,7 +196,7 @@ services:
       - "caddy.cache"
     pull_policy: always
   worker:
-    command: [ "-m", "manage", "threadmill", "worker" ]
+    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
     labels: !reset []
