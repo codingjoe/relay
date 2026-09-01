@@ -40,12 +40,12 @@ class ConditionalGetMixin:
             self.object = super().get_object(queryset)
         return self.object
 
-    def dispatch(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         response = condition(
             etag_func=lambda request, *a, **kw: self.get_etag(self.object),
             last_modified_func=lambda request, *a, **kw: self.object.modified_at,
-        )(super().dispatch)(request, *args, **kwargs)
+        )(super().get)(request, *args, **kwargs)
         patch_cache_control(response, private=True, no_cache=True)
         return response
 
