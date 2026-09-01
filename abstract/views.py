@@ -27,13 +27,7 @@ class CacheControlMixin:
 
 
 class ConditionalGetMixin:
-    """Answer conditional GETs with an ETag and `Last-Modified` from the object.
-
-    Mix into a view with `SingleObjectMixin` (for example, a `DetailView`).
-    Django's `condition` decorator computes the ETag and `Last-Modified` before
-    the view renders, so conditional requests short-circuit with 304 and skip
-    rendering entirely.
-    """
+    """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
 
     object = None
 
