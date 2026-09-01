@@ -1,7 +1,7 @@
 import json
 
 from django.contrib import messages
-from django.db import models, transaction
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -36,9 +36,7 @@ class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
     parent = "message:message-list"
 
     def get_queryset(self):
-        return IncomingMessage.objects.filter(org=self.org).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return IncomingMessage.objects.filter(org=self.org)
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])

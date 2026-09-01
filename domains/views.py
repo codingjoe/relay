@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib import messages
-from django.db import models
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -56,9 +55,7 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org, is_managed=False).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return Domain.objects.filter(org=self.org, is_managed=False)
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -121,9 +118,7 @@ class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org, is_managed=False).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return Domain.objects.filter(org=self.org, is_managed=False)
 
     def get_success_url(self):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})

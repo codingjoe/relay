@@ -1,4 +1,3 @@
-from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -92,6 +91,4 @@ class DmarcFailureReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return DmarcFailureReport.objects.filter(org=self.org).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return DmarcFailureReport.objects.filter(org=self.org)
