@@ -18,12 +18,9 @@ class SpamAction(StrEnum):
 
 class ScannerUnavailableError(Exception):
     """
-    The scanning system cannot produce a verdict right now.
+    rspamd reported `soft reject`: no verdict right now.
 
-    rspamd reports `soft reject` whenever it cannot scan the message, for
-    example when the antivirus scanner is unavailable, but also for
-    temporary internal failures. The message keeps its pre-scan state;
-    callers must treat it as unscanned and retry once scanning recovers.
+    The message is unscanned; the caller must retry it later.
     """
 
 
@@ -49,8 +46,7 @@ async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
     """
     Return the rspamd score and action for a raw message.
 
-    Raise `ScannerUnavailableError` when the scanner is unavailable, so the
-    message cannot be scanned.
+    Raise `ScannerUnavailableError` when rspamd reports `soft reject`.
     """
     headers = {"Ip": client_ip} if client_ip else {}
     async with httpx.AsyncClient(timeout=10) as client:
