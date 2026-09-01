@@ -5,7 +5,6 @@ from fnmatch import fnmatch
 
 from django.core.validators import RegexValidator
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import iter_attachments
@@ -55,11 +54,7 @@ class IncomingMessage(Message):
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "mta:message-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.id},
-        )
+    url_name = "message-detail"
 
 
 class Webhook(OrganizationOwned):
@@ -266,11 +261,7 @@ class TlsReport(IncomingMessage):
     def __str__(self):
         return f"{self.reporting_org} → {self.domain or '?'} ({self.report_id})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "mta:tls-report-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.pk},
-        )
+    url_name = "tls-report-detail"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):

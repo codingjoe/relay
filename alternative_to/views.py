@@ -5,19 +5,28 @@ from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
 from abstract.utils import md_2_html
-from abstract.views import BreadcrumbViewMixin, MarkdownArticleMixin, MarkdownView
+from abstract.views import (
+    BreadcrumbViewMixin,
+    CacheControlMixin,
+    MarkdownArticleMixin,
+    MarkdownView,
+)
 
 ALTERNATIVE_TO_DIR = pathlib.Path(settings.BASE_DIR) / "alternative_to" / "docs"
 SLUGS = frozenset(p.stem for p in ALTERNATIVE_TO_DIR.glob("*.md"))
 
 
 class AlternativeToListView(
-    MarkdownArticleMixin, BreadcrumbViewMixin, generic.TemplateView
+    MarkdownArticleMixin,
+    CacheControlMixin,
+    BreadcrumbViewMixin,
+    generic.TemplateView,
 ):
     """Display all alternative-to comparison articles."""
 
     template_name = "alternative_to/list.html"
     title = _("Alternative to")
+    cache_control = {"public": True, "max_age": 3600}
     parent = "home"
     docs_dir = ALTERNATIVE_TO_DIR
     slugs = SLUGS

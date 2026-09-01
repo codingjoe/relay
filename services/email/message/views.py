@@ -3,12 +3,13 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 
 from .models import Message
 
 
-class MessageListView(OrganizationScopedView, generic.ListView):
+class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     """Display a merged timeline of inbound and outbound messages."""
 
     context_object_name = "messages"
@@ -23,8 +24,7 @@ class MessageListView(OrganizationScopedView, generic.ListView):
 
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
-            "outgoingmessage",
-            "incomingmessage",
+            "org",
             "content_type",
         )
         direction = self.request.GET.get("direction", self.Direction.ALL)
@@ -39,7 +39,7 @@ class MessageListView(OrganizationScopedView, generic.ListView):
             qs = qs.filter(
                 Q(outgoingmessage__status=status) | Q(incomingmessage__status=status)
             )
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")

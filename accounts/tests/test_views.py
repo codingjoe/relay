@@ -79,6 +79,28 @@ class TestOrganizationDetailView:
             org.memberships.select_related("user")
         )
 
+    def test_get__renders_org_switcher_for_all_member_orgs(
+        self, admin_client, user, org
+    ):
+        second_org = Organization.objects.create(slug="second-org")
+        Membership.objects.create(
+            org=second_org,
+            user=user,
+            role=Membership.Role.ADMIN,
+        )
+        other_org = Organization.objects.create(slug="unrelated-org")
+        Membership.objects.create(
+            org=other_org,
+            user=User.objects.create_user(username="carol", email="c@example.com"),
+            role=Membership.Role.ADMIN,
+        )
+        response = admin_client.get(f"/org/{org.slug}/settings/")
+        assert response.status_code == 200
+        assert set(response.context["user_orgs"]) == {org, second_org}
+        body = response.content.decode()
+        assert second_org.slug in body
+        assert "unrelated-org" not in body
+
 
 @pytest.mark.django_db
 class TestOrganizationUpdateView:

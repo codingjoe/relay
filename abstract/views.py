@@ -4,21 +4,53 @@ import frontmatter
 from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
-from django.utils.cache import patch_cache_control, patch_vary_headers
+from django.utils.cache import (
+    patch_cache_control,
+    patch_vary_headers,
+)
 from django.views import generic
+from django.views.decorators.http import condition
 
 from abstract.utils import strip_frontmatter
 
 
 class CacheControlMixin:
-    """Set cache control headers on the response of a class based view."""
+    """Set cache control headers and flag `public` responses for the static chrome."""
 
     cache_control: dict[str, bool | int] = {}
 
     def dispatch(self, request, *args, **kwargs):
+        request.public_cache = "public" in self.cache_control
         response = super().dispatch(request, *args, **kwargs)
         patch_cache_control(response, **self.cache_control)
         return response
+
+
+class ConditionalGetMixin:
+    """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
+
+    def get_etag(self, obj) -> str:
+        """Return the ETag for `obj`."""
+        return f'"{int(obj.pk):x}-{int(obj.modified_at.timestamp() * 1e6):x}"'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        response = condition(
+            etag_func=lambda request, *a, **kw: self.get_etag(self.object),
+            last_modified_func=lambda request, *a, **kw: self.object.modified_at,
+        )(
+            lambda request: self.render_to_response(
+                self.get_context_data(object=self.object)
+            )
+        )(request)
+        patch_cache_control(response, private=True, no_cache=True)
+        return response
+
+
+class NoStoreCacheMixin(CacheControlMixin):
+    """Prevent caching entirely with `private, no-store`."""
+
+    cache_control = {"private": True, "no_store": True}
 
 
 class MarkdownArticleMixin:

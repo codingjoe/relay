@@ -89,6 +89,17 @@ class TestIncomingMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 404
 
+    def test_get__not_modified_when_etag_matches(self, admin_client, org):
+        msg = make_incoming(org)
+        url = f"/org/{org.slug}/email/incoming/{msg.id}"
+        etag = admin_client.get(url).headers["ETag"]
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 304
+
+    def test_get__no_store_on_list(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")
+        assert response.headers["Cache-Control"] == "private, no-store"
+
     def test_get__context_has_headers_and_parts(self, admin_client, org):
         raw = (
             b"From: alice@example.com\r\n"

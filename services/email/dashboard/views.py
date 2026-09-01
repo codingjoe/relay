@@ -5,6 +5,7 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 
 from abstract.serializers import ChartDataSerializer
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from services.email.dmarc.charts import build_dmarc_chart
@@ -26,20 +27,20 @@ class DashboardView(OrganizationScopedView, generic.TemplateView):
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
-        try:
-            managed_domain = Domain.objects.get(
-                org=self.org, is_managed=True, verified_at__isnull=False
-            )
-        except Domain.DoesNotExist:
-            managed_domain = None
+        domains = list(Domain.objects.filter(org=self.org))
         return super().get_context_data(**kwargs) | {
-            "domains": Domain.objects.filter(org=self.org),
-            "total_domains": Domain.objects.filter(org=self.org).count(),
+            "domains": domains,
+            "total_domains": len(domains),
             "total_messages": Message.objects.filter(org=self.org).count(),
-            "managed_domain": managed_domain,
-            "has_custom_domain": Domain.objects.filter(
-                org=self.org, is_managed=False
-            ).exists(),
+            "managed_domain": next(
+                (
+                    domain
+                    for domain in domains
+                    if domain.is_managed and domain.verified_at
+                ),
+                None,
+            ),
+            "has_custom_domain": any(not domain.is_managed for domain in domains),
             "has_outgoing_message": OutgoingMessage.objects.filter(
                 org=self.org
             ).exists(),
@@ -72,7 +73,7 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
         return Response(serializer.data)
 
 
-class ReportListView(OrganizationScopedView, generic.ListView):
+class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     """Display a merged timeline of DMARC and TLS reports."""
 
     def get_template_names(self):
@@ -116,7 +117,7 @@ class ReportListView(OrganizationScopedView, generic.ListView):
                     qs = qs.filter(source_ip_address=ip)
             case _:
                 qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         report_type = self.request.GET.get("type", self.ReportType.DMARC)

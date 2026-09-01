@@ -69,6 +69,6 @@
       </div>
       {% include "partials/footer.html" %}
     </main>
-    {% include "partials/toaster.html" %}
+    {% if not request.public_cache %}{% include "partials/toaster.html" %}{% endif %}
   </body>
 </html>

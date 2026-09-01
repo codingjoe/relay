@@ -1,7 +1,7 @@
-from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
@@ -9,7 +9,7 @@ from .charts import build_dmarc_chart
 from .models import DmarcFailureReport, DmarcReport
 
 
-class DmarcReportListView(OrganizationScopedView, generic.ListView):
+class DmarcReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     def get_template_names(self):
         return ["dmarc/report_list.html"]
 
@@ -24,7 +24,7 @@ class DmarcReportListView(OrganizationScopedView, generic.ListView):
             qs = qs.filter(domain__name=domain)
         if source_ip := self.request.GET.get("source_ip"):
             qs = qs.filter(records__source_ip_address=source_ip).distinct()
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -37,7 +37,9 @@ class DmarcReportListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
+class DmarcReportDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["dmarc/report_detail.html"]
 
@@ -45,10 +47,10 @@ class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return DmarcReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return DmarcReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
-        records = self.object.records.select_related("report")
+        records = self.object.records.all()
         if source_ip := self.request.GET.get("source_ip"):
             records = records.filter(source_ip_address=source_ip)
         return super().get_context_data(**kwargs) | {
@@ -57,7 +59,9 @@ class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
         }
 
 
-class DmarcFailureReportListView(OrganizationScopedView, generic.ListView):
+class DmarcFailureReportListView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.ListView
+):
     def get_template_names(self):
         return ["dmarc/failure_report_list.html"]
 
@@ -72,7 +76,7 @@ class DmarcFailureReportListView(OrganizationScopedView, generic.ListView):
             qs = qs.filter(domain__name=domain)
         if source_ip := self.request.GET.get("source_ip"):
             qs = qs.filter(source_ip_address=source_ip)
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -84,7 +88,9 @@ class DmarcFailureReportListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class DmarcFailureReportDetailView(OrganizationScopedView, generic.DetailView):
+class DmarcFailureReportDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["dmarc/failure_report_detail.html"]
 
@@ -92,6 +98,4 @@ class DmarcFailureReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return DmarcFailureReport.objects.filter(org=self.org).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return DmarcFailureReport.objects.filter(org=self.org)

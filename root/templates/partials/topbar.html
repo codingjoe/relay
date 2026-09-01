@@ -42,7 +42,11 @@
   </nav>
 
   <div class="flex items-center gap-2 ms-auto">
-    {% if user.is_authenticated %}
+    {% if request.public_cache or not user.is_authenticated %}
+      <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
+        {% translate "login"|capfirst context "noun" %}
+      </a>
+    {% else %}
       {% if current_org %}
         <div class="dropdown-menu" id="org-switcher">
           <button
@@ -137,10 +141,6 @@
           </div>
         </div>
       </div>
-    {% else %}
-      <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
-        {% translate "login"|capfirst context "noun" %}
-      </a>
     {% endif %}
   </div>
 </header>

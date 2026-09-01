@@ -2,6 +2,13 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+class FetchPeersManager(models.Manager):
+    """Fetch lazily-missed fields in one batched query per field."""
+
+    def get_queryset(self):
+        return super().get_queryset().fetch_mode(models.FETCH_PEERS)
+
+
 class TimeStamped(models.Model):
     modified_at = models.DateTimeField(
         _("modified"),
@@ -15,6 +22,8 @@ class TimeStamped(models.Model):
         editable=False,
         db_index=True,
     )
+
+    objects = FetchPeersManager()
 
     class Meta:
         ordering = ("-modified_at", "-created_at")

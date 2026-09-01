@@ -1,12 +1,13 @@
 import json
 
 from django.contrib import messages
-from django.db import models, transaction
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
@@ -31,14 +32,14 @@ WEBHOOK_PAYLOAD = {
 }
 
 
-class IncomingMessageDetailView(OrganizationScopedView, generic.DetailView):
+class IncomingMessageDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     context_object_name = "message"
     parent = "message:message-list"
 
     def get_queryset(self):
-        return IncomingMessage.objects.filter(org=self.org).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return IncomingMessage.objects.filter(org=self.org)
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
@@ -62,11 +63,7 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return (
-            Webhook.objects.filter(org=self.org)
-            .select_related("signing_key")
-            .fetch_mode(models.FETCH_PEERS)
-        )
+        return Webhook.objects.filter(org=self.org).select_related("signing_key")
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -111,7 +108,7 @@ class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "mta:webhook-list"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return Webhook.objects.filter(org=self.org)
 
     def get_success_url(self):
         return reverse_lazy("mta:webhook-list", kwargs={"org_slug": self.org.slug})
@@ -132,7 +129,7 @@ class WebhookTestView(OrganizationScopedView, generic.View):
         return redirect("mta:webhook-list", org_slug=org_slug)
 
 
-class TlsReportListView(OrganizationScopedView, generic.ListView):
+class TlsReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     def get_template_names(self):
         return ["mta/tls_report_list.html"]
 
@@ -145,7 +142,7 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
         qs = TlsReport.objects.filter(org=self.org).select_related("domain")
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -157,7 +154,9 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
         }
 
 
-class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
+class TlsReportDetailView(
+    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+):
     def get_template_names(self):
         return ["mta/tls_report_detail.html"]
 
@@ -165,9 +164,9 @@ class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return TlsReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return TlsReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "failures": self.object.failures.select_related("report"),
+            "failures": self.object.failures.all(),
         }
