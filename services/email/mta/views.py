@@ -47,6 +47,7 @@ class IncomingMessageDetailView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         parsed = self.object.parsed_email()
+        is_report = self.object.content_type.model_class() is not IncomingMessage
         return context | {
             "headers": self.object.parsed_headers,
             "parts": list(parsed.walk()) if parsed.is_multipart() else [parsed],
@@ -54,6 +55,9 @@ class IncomingMessageDetailView(
             "webhook_deliveries": WebhookDelivery.objects.filter(
                 message=self.object
             ).select_related("webhook"),
+            "is_report": is_report,
+            "report_url": self.object.get_absolute_url() if is_report else "",
+            "report_kind": self.object.kind_display if is_report else "",
         }
 
 

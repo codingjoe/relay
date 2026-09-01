@@ -2,6 +2,17 @@
 {% load i18n message abstract %}
 {% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
+  {% if is_report %}
+    <div class="card p-4 mb-4 flex items-center justify-between gap-4">
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "This email carried a report." %}
+      </p>
+      <a class="btn shrink-0" data-variant="secondary" href="{{ report_url }}">
+        <i data-lucide="shield-check" class="size-4" aria-hidden="true"></i>
+        {{ report_kind|capfirst }}
+      </a>
+    </div>
+  {% endif %}
   {% if webhook_deliveries %}
     <details open class="mb-4">
       <summary class="cursor-pointer font-semibold">{% translate "webhook deliveries"|capfirst %}</summary>
@@ -76,7 +87,24 @@
     <dt class="font-semibold">{% translate "TLS"|capfirst %}</dt>
     <dd>
       {% if message.received_with_tls %}
-        <i data-lucide="lock" class="size-4 text-success" aria-hidden="true"></i>
+        <span class="inline-flex items-center gap-2">
+          {% if message.tls_certificate %}
+            <a
+              href="{% url 'message:certificate-detail' org.slug message.tls_certificate.fingerprint %}"
+              data-tooltip="sha256:{{ message.tls_certificate.fingerprint }} · {{ message.tls_certificate.subject_alternative_names|default:message.tls_certificate.subject }}"
+            >
+              <i data-lucide="lock" class="size-4 text-success" aria-hidden="true"></i>
+              <span class="sr-only">{% translate "view certificate"|capfirst %}</span>
+            </a>
+          {% else %}
+            <i data-lucide="lock" class="size-4 text-success" aria-hidden="true"></i>
+          {% endif %}
+          {% if message.tls_version %}
+            <span class="text-sm text-muted-foreground">
+              {{ message.tls_version }}{% if message.tls_cipher %} · {{ message.tls_cipher }}{% endif %}
+            </span>
+          {% endif %}
+        </span>
       {% else %}
         <i data-lucide="unlock" class="size-4 text-muted-foreground" aria-hidden="true"></i>
       {% endif %}

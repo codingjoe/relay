@@ -5,6 +5,7 @@ from django.views import generic
 
 from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
+from kms.models import Certificate
 
 from .models import Message
 
@@ -60,3 +61,18 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             "filter_count": filter_count,
             "direction_label": direction_label,
         }
+
+
+class CertificateDetailView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
+):
+    """Display the X.509 metadata of a certificate a server presented."""
+
+    context_object_name = "certificate"
+    template_name = "message/certificate_detail.html"
+    title = _("Certificate")
+    parent = "message:message-list"
+    pk_url_kwarg = "fingerprint"
+
+    def get_queryset(self):
+        return Certificate.objects.all()

@@ -44,6 +44,26 @@ class IncomingMessage(Message):
         help_text=_("Domain part of the recipient address, for example app.acme.com."),
     )
 
+    email_url_name = "mta:message-detail"
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text=_("Certificate the sending MTA presented, when one was offered."),
+    )
+
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
 

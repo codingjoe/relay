@@ -1,19 +1,17 @@
 import datetime
 import logging
-import ssl
-from collections.abc import Iterator
 
 import aiosmtplib
 import dns.resolver
 import httpx
 from asgiref.sync import async_to_sync, sync_to_async
-from cryptography import x509
 from django.conf import settings
 from django.tasks import task
 from threadmill.retry import ExponentialBackoff
 
 from services.email.mta.mta_sts import MtaStsPolicy
 from services.email.spam import SpamAction, check_message
+from services.email.tls import parse_peer_certificates
 
 logger = logging.getLogger(__name__)
 
@@ -191,15 +189,6 @@ async def send_via_mx(
             Certificate.store_presented_chain
         )(parse_peer_certificates(ssl_object))
     return response, tls_details
-
-
-def parse_peer_certificates(
-    ssl_object: ssl.SSLObject,
-) -> Iterator[x509.Certificate]:
-    """Yield the X.509 certificates the remote server presented."""
-    chain = ssl_object.get_unverified_chain() or ssl_object.get_verified_chain()
-    for der in chain:
-        yield x509.load_der_x509_certificate(der)
 
 
 @task(

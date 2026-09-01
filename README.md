@@ -227,6 +227,7 @@ graph BT
  reputation
  message --> accounts
  message --> domains
+ message --> kms
  msa --> message
  msa --> accounts
  msa --> domains
