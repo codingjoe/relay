@@ -34,3 +34,4 @@ jobs:
           hostname: ${{ case(github.ref_name == 'main', vars.HOSTNAME, format('{0}.{1}', github.ref_name, vars.HOSTNAME)) }}
           dotenv-private-key: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
           environment: ${{ github.event.inputs.environment || 'production' }}
+          rollout-services: web mta msa
