@@ -110,8 +110,10 @@ Important details of the pipeline:
   its own token. This token replaces a customer-supplied `Feedback-ID`, so
   complaint reports echo relay's key and the complaint maps to one message.
 - **The envelope differs from the From header.** The Return-Path becomes
-  `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
-  message and the envelope domain aligns with your DKIM.
+  `bounce+{token}@{sender-subdomain}` with a short signed token that names
+  one message, so each bounce identifies one message, the envelope domain
+  aligns with your DKIM, and only relay can mint the token a bounce report
+  must carry.
 - **EHLO identifies the relay sending host**, whose name matches its
   reverse DNS record. Receivers grade that consistency.
 - **Enforced MTA-STS.** For recipient domains with a policy, relay skips
@@ -125,14 +127,14 @@ Important details of the pipeline:
 
 The message carries one status. Every attempt carries its own:
 
-| Message status | Meaning                                             |
-| -------------- | --------------------------------------------------- |
-| pending        | Stored, spam scan or delivery not finished yet      |
-| held           | rspamd held the message, and it never left          |
-| sent           | At least one attempt ended with success             |
-| bounced        | A recipient server rejected the message permanently |
-| suppressed     | The recipient is on the suppression list            |
-| failed         | relay cannot deliver, the transcript shows why      |
+| Message status | Meaning                                                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| pending        | Stored, spam scan or delivery not finished yet                                                      |
+| held           | rspamd held the message, and it never left                                                          |
+| sent           | At least one attempt ended with success                                                             |
+| bounced        | A recipient server rejected the message permanently, in the SMTP answer or in a later bounce report |
+| suppressed     | The recipient is on the suppression list                                                            |
+| failed         | relay cannot deliver, the transcript shows why                                                      |
 
 The Transmission list per message starts with the submission and shows
 every delivery attempt: the MX host context, the SMTP status code, the
@@ -142,9 +144,12 @@ answer text, and whether TLS was in use.
 
 On a permanent 5xx rejection relay records the bounce and adds the
 recipient's address as a suppressions entry with the reason *bounce*.
-Suppressed addresses reject silently on later submissions. There is no
-automatic removal. A human can release an address again in the
-dashboard. Manual entries can carry reason *manual*.
+The rejection can also arrive after acceptance: a recipient server that
+accepted the message can still send a bounce report to the per-message
+bounce address, and the outcome is the same. Suppressed addresses reject
+silently on later submissions. There is no automatic removal. A human can
+release an address again in the dashboard. Manual entries can carry reason
+*manual*.
 
 ## A minimal client
 

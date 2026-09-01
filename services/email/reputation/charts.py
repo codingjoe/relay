@@ -46,13 +46,13 @@ def build_reputation_chart(org):
         Transmission.objects.filter(
             message__org=org,
             message__created_at__date__gte=start,
-            status=Transmission.Status.BOUNCED,
+            status__in=(Transmission.Status.BOUNCED, Transmission.Status.RETRY),
         )
         .annotate(day=TruncDate("message__created_at"))
         .values("day")
         .annotate(
-            hard=Count("id", filter=Q(code__gte=500)),
-            soft=Count("id", filter=Q(code__lt=500)),
+            hard=Count("id", filter=Q(status=Transmission.Status.BOUNCED)),
+            soft=Count("id", filter=Q(status=Transmission.Status.RETRY)),
         )
     )
     rows = list(bounce_rows)

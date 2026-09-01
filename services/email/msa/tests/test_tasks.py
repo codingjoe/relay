@@ -1,4 +1,8 @@
+import base64
 import datetime
+import logging
+import uuid
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiosmtplib
@@ -9,14 +13,32 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import Encoding
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from abstract.mailauth import Disposition
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.msa.models import OutgoingMessage, SuppressionEntry, Transmission
 from services.email.msa.tasks import (
+    DeliveryStatus,
+    bounce_signer,
     check_outgoing_spam,
     deliver_message,
     fetch_mx_hosts,
+    mint_bounce_address,
+    parse_bounce_report,
+    parse_delivery_status,
+    resolve_bounce_owner,
+)
+from services.email.mta.handlers import MXHandler
+from services.email.mta.models import IncomingMessage
+from services.email.mta.tests.conftest import (
+    make_delayed_dsn_email,
+    make_delivered_dsn_email,
+    make_dmarc_evaluation,
+    make_dsn_email,
+    make_raw_email,
 )
 from services.email.spam import SpamAction, SpamResult
 
@@ -40,6 +62,48 @@ def make_certificate(common_name):
         )
         .sign(key, hashes.SHA256())
     )
+
+
+def make_outgoing_message(org, domain, status=OutgoingMessage.Status.SENT):
+    """Store an outgoing message a bounce DSN can report about."""
+    msg = OutgoingMessage.objects.create(
+        org=org,
+        rcpt_to="bob@example.net",
+        mail_from="alice@example.com",
+        domain=domain,
+        status=status,
+    )
+    msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+    msg.save(update_fields=["raw_body"])
+    return msg
+
+
+def make_bounce_dsn(org, domain, rcpt_to, raw_bytes):
+    """Store an incoming bounce DSN the way the MTA handler stores it."""
+    message = IncomingMessage.objects.create(
+        org=org,
+        domain=domain,
+        receiving_domain=domain.name,
+        mail_from="mailer-daemon@mx.remote.example",
+        rcpt_to=rcpt_to,
+        subject="Undelivered Mail Returned to Sender",
+        message_id="<dsn-1@mx.remote.example>",
+        headers=[],
+    )
+    message.raw_body.save("bounce.eml", ContentFile(raw_bytes), save=False)
+    message.save(update_fields=["raw_body"])
+    return message
+
+
+class TestMintBounceAddress:
+    def test_mint_bounce_address__local_part_within_rfc_limit(self):
+        message = SimpleNamespace(
+            pk=uuid.uuid4(), domain=SimpleNamespace(sender_domain="example.com")
+        )
+
+        local_part = mint_bounce_address(message).partition("@")[0]
+
+        assert len(local_part.encode()) <= 64
 
 
 class TestFetchMxHosts:
@@ -123,9 +187,7 @@ class TestDeliverMessage:
         assert mock_smtp.call_args.kwargs["port"] == 25
         assert mock_smtp.call_args.kwargs["use_tls"] is False
         assert mock_smtp.call_args.kwargs["start_tls"] is True
-        assert smtp_client.sendmail.call_args.args[0] == (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{msg.id}@{domain.sender_domain}"
-        )
+        assert smtp_client.sendmail.call_args.args[0] == mint_bounce_address(msg)
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.SENT
         transmission = Transmission.objects.get(
@@ -425,3 +487,649 @@ class TestCheckOutgoingSpam:
         assert msg.status == OutgoingMessage.Status.PENDING
         assert msg.spam_score == 0.0
         assert not Transmission.objects.filter(message=msg).exists()
+
+
+class TestParseDeliveryStatus:
+    def test_parse_delivery_status__returns_action_code_and_output(self):
+        delivery_status = parse_delivery_status(make_dsn_email())
+
+        assert delivery_status == DeliveryStatus(
+            action="failed",
+            code=550,
+            output="smtp; 550 5.1.1 User unknown",
+            final_recipient="bob@example.net",
+        )
+
+    def test_parse_delivery_status__code_falls_back_to_status_class(self):
+        delivery_status = parse_delivery_status(
+            make_dsn_email(action="delayed", status="4.4.1", diagnostic_code="")
+        )
+
+        assert delivery_status == DeliveryStatus(
+            action="delayed",
+            code=400,
+            output="4.4.1",
+            final_recipient="bob@example.net",
+        )
+
+    def test_parse_delivery_status__code_ignored_for_non_smtp_diagnostic(self):
+        delivery_status = parse_delivery_status(
+            make_dsn_email(
+                status="5.1.1",
+                diagnostic_code="dns; 203.0.113.5 unreachable",
+            )
+        )
+
+        assert delivery_status == DeliveryStatus(
+            action="failed",
+            code=500,
+            output="dns; 203.0.113.5 unreachable",
+            final_recipient="bob@example.net",
+        )
+
+    def test_parse_delivery_status__code_falls_back_for_untyped_diagnostic(self):
+        delivery_status = parse_delivery_status(
+            make_dsn_email(
+                status="5.1.1",
+                diagnostic_code="550 5.1.1 User unknown",
+            )
+        )
+
+        assert delivery_status == DeliveryStatus(
+            action="failed",
+            code=500,
+            output="550 5.1.1 User unknown",
+            final_recipient="bob@example.net",
+        )
+
+    def test_parse_delivery_status__code_is_none_for_malformed_status(self):
+        delivery_status = parse_delivery_status(
+            make_dsn_email(status="55", diagnostic_code="")
+        )
+
+        assert delivery_status == DeliveryStatus(
+            action="failed",
+            code=None,
+            output="55",
+            final_recipient="bob@example.net",
+        )
+
+    def test_parse_delivery_status__raises_without_delivery_status_part(self):
+        with pytest.raises(ValueError, match="no message/delivery-status part"):
+            parse_delivery_status(make_raw_email())
+
+    def test_parse_delivery_status__raises_without_per_recipient_block(self):
+        with pytest.raises(ValueError, match="no per-recipient block"):
+            parse_delivery_status(make_dsn_email(with_recipient_block=False))
+
+    def test_parse_delivery_status__parses_eight_bit_headers(self):
+        raw_bytes = (
+            make_dsn_email()
+            .replace(b"Action: failed\r\n", b"Action: failed\xff\r\n")
+            .replace(
+                b"Diagnostic-Code: smtp; 550 5.1.1 User unknown\r\n",
+                b"Diagnostic-Code: smtp; 550 5.1.1 User unknown\xff\r\n",
+            )
+        )
+
+        delivery_status = parse_delivery_status(raw_bytes)
+
+        assert delivery_status.action == "failed\ufffd"
+        assert delivery_status.code == 550
+        assert delivery_status.final_recipient == "bob@example.net"
+
+    def test_parse_delivery_status__final_recipient_falls_back_to_original_recipient(
+        self,
+    ):
+        delivery_status = parse_delivery_status(
+            make_dsn_email(
+                final_recipient=None,
+                original_recipient="rfc822; bob@example.net",
+            )
+        )
+
+        assert delivery_status == DeliveryStatus(
+            action="failed",
+            code=550,
+            output="smtp; 550 5.1.1 User unknown",
+            final_recipient="bob@example.net",
+        )
+
+    def test_parse_delivery_status__final_recipient_strips_angle_addr(self):
+        delivery_status = parse_delivery_status(
+            make_dsn_email(final_recipient="rfc822; <bob@example.net>")
+        )
+
+        assert delivery_status.final_recipient == "bob@example.net"
+
+    def test_parse_delivery_status__final_recipient_strips_quoted_local_part(self):
+        delivery_status = parse_delivery_status(
+            make_dsn_email(final_recipient='rfc822; "Smith; Bob"@example.net')
+        )
+
+        assert delivery_status.final_recipient == "Smith; Bob@example.net"
+
+
+@pytest.mark.django_db
+class TestResolveBounceOwner:
+    def test_resolve_bounce_owner__returns_message_for_verp_address(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        original = make_outgoing_message(org, domain)
+
+        assert resolve_bounce_owner(mint_bounce_address(original)) == original
+
+    def test_resolve_bounce_owner__matches_uppercased_sender_domain(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        original = make_outgoing_message(org, domain)
+        local_part = mint_bounce_address(original).partition("@")[0]
+
+        assert (
+            resolve_bounce_owner(f"{local_part}@{domain.sender_domain.upper()}")
+            == original
+        )
+
+    def test_resolve_bounce_owner__rejects_wrong_sender_domain(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        original = make_outgoing_message(org, domain)
+        local_part = mint_bounce_address(original).partition("@")[0]
+
+        assert resolve_bounce_owner(f"{local_part}@evil.test") is None
+
+    def test_resolve_bounce_owner__returns_none_for_missing_signature(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        original = make_outgoing_message(org, domain)
+
+        assert (
+            resolve_bounce_owner(
+                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
+                f"@{domain.sender_domain}"
+            )
+            is None
+        )
+
+    def test_resolve_bounce_owner__returns_none_for_forged_signature(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        original = make_outgoing_message(org, domain)
+        local_part = mint_bounce_address(original).partition("@")[0]
+        rcpt_to = (
+            f"{local_part[:-1]}{'B' if local_part[-1] == 'A' else 'A'}"
+            f"@{domain.sender_domain}"
+        )
+
+        with CaptureQueriesContext(connection) as queries:
+            resolved = resolve_bounce_owner(rcpt_to)
+
+        assert resolved is None
+        assert not queries.captured_queries
+
+    def test_resolve_bounce_owner__returns_none_for_unknown_token(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        minted = mint_bounce_address(SimpleNamespace(pk=uuid.uuid4(), domain=domain))
+
+        assert resolve_bounce_owner(minted) is None
+
+    def test_resolve_bounce_owner__returns_none_for_malformed_token(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        assert (
+            resolve_bounce_owner(
+                f"{settings.RELAY_BOUNCE_LOCAL_PART}+not-a-uuid@{domain.sender_domain}"
+            )
+            is None
+        )
+
+    def test_resolve_bounce_owner__returns_none_for_token_without_separator(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        rcpt_to = (
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+no-separator@{domain.sender_domain}"
+        )
+
+        assert resolve_bounce_owner(rcpt_to) is None
+
+    def test_resolve_bounce_owner__returns_none_for_corrupted_token_bytes(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        value = base64.urlsafe_b64encode(b"truncated").rstrip(b"=").decode()
+        signature = bounce_signer.signature(value)[:20]
+        rcpt_to = (
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{value}.{signature}"
+            f"@{domain.sender_domain}"
+        )
+
+        assert resolve_bounce_owner(rcpt_to) is None
+
+    def test_resolve_bounce_owner__accepts_signature_from_fallback_key(
+        self, org, monkeypatch
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        original = make_outgoing_message(org, domain)
+        old_key = settings.SECRET_KEY + "pre-rotation"
+        value = base64.urlsafe_b64encode(original.pk.bytes).rstrip(b"=").decode()
+        signature = bounce_signer.signature(value, key=old_key)[:20]
+        monkeypatch.setattr(bounce_signer, "fallback_keys", [old_key])
+        rcpt_to = (
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{value}.{signature}"
+            f"@{domain.sender_domain}"
+        )
+
+        assert resolve_bounce_owner(rcpt_to) == original
+
+    def test_resolve_bounce_owner__returns_none_without_token(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        assert resolve_bounce_owner(f"alice@{domain.sender_domain}") is None
+
+
+@pytest.mark.django_db(transaction=True)
+class TestParseBounceReport:
+    def test_parse_bounce_report__failed_action_bounces_and_suppresses(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        transmission = Transmission.objects.get(message=outgoing)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert transmission.code == 550
+        assert transmission.output == "smtp; 550 5.1.1 User unknown"
+        assert SuppressionEntry.objects.filter(
+            org=org,
+            address_hash__email=outgoing.rcpt_to,
+            reason=SuppressionEntry.Reason.BOUNCE,
+        ).exists()
+
+    def test_parse_bounce_report__delayed_action_records_retry_only(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_delayed_dsn_email(),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        transmission = Transmission.objects.get(message=outgoing)
+        assert transmission.status == Transmission.Status.RETRY
+        assert transmission.code == 421
+        assert transmission.output == "smtp; 421 try again later"
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__delivered_action_records_nothing(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_delivered_dsn_email(),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        assert not Transmission.objects.filter(message=outgoing).exists()
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__unknown_owner_records_nothing(self, org, caplog):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{uuid.uuid4()}@{domain.sender_domain}",
+            make_dsn_email(),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        assert "matches no outgoing message" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        assert not Transmission.objects.exists()
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+        dsn.refresh_from_db()
+        assert dsn.status == IncomingMessage.Status.RECEIVED
+
+    def test_parse_bounce_report__unparseable_dsn_records_nothing(self, org, caplog):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(with_recipient_block=False),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        assert "no parseable delivery status" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        assert not Transmission.objects.filter(message=outgoing).exists()
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__failed_status_message_is_bounced(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(
+            org, domain, status=OutgoingMessage.Status.FAILED
+        )
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        transmission = Transmission.objects.get(message=outgoing)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__delayed_status_message_records_retry(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(
+            org, domain, status=OutgoingMessage.Status.FAILED
+        )
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_delayed_dsn_email(),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.FAILED
+        transmission = Transmission.objects.get(message=outgoing)
+        assert transmission.status == Transmission.Status.RETRY
+        assert transmission.code == 421
+        assert transmission.output == "smtp; 421 try again later"
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__held_message_records_nothing(self, org, caplog):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(
+            org, domain, status=OutgoingMessage.Status.HELD
+        )
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        assert "does not apply to outgoing message" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.HELD
+        assert not Transmission.objects.filter(message=outgoing).exists()
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__uppercased_sender_domain_bounces(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        local_part = mint_bounce_address(outgoing).partition("@")[0]
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            f"{local_part}@{domain.sender_domain.upper()}",
+            make_dsn_email(),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        transmission = Transmission.objects.get(message=outgoing)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__dsn_without_reporting_mta_bounces(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(with_reporting_mta=False),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        transmission = Transmission.objects.get(message=outgoing)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert transmission.code == 550
+        assert SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__forged_token_records_nothing(self, org, caplog):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{outgoing.pk}@{domain.sender_domain}",
+            make_dsn_email(),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        assert "matches no outgoing message" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        assert not Transmission.objects.filter(message=outgoing).exists()
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__final_recipient_mismatch_records_nothing(
+        self, org, caplog
+    ):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(final_recipient="rfc822; carol@example.net"),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        assert "does not report recipient" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        assert not Transmission.objects.filter(message=outgoing).exists()
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__angle_addr_final_recipient_records_bounce(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(final_recipient="rfc822; <bob@example.net>"),
+        )
+
+        parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        assert (
+            Transmission.objects.get(message=outgoing).status
+            == Transmission.Status.BOUNCED
+        )
+        assert SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__missing_final_recipient_records_nothing(
+        self, org, caplog
+    ):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(final_recipient=None),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(dsn.pk))
+
+        assert "does not report recipient" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        assert not Transmission.objects.filter(message=outgoing).exists()
+        assert not SuppressionEntry.objects.is_suppressed(org, outgoing.rcpt_to)
+
+    def test_parse_bounce_report__second_delayed_dsn_records_single_retry(
+        self, org, caplog
+    ):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        first_dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_delayed_dsn_email(),
+        )
+        second_dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_delayed_dsn_email(),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(first_dsn.pk))
+            parse_bounce_report.func(message_pk=str(second_dsn.pk))
+
+        assert "repeats a recorded retry" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.SENT
+        assert Transmission.objects.filter(message=outgoing).count() == 1
+        assert (
+            Transmission.objects.get(message=outgoing).status
+            == Transmission.Status.RETRY
+        )
+
+    def test_parse_bounce_report__duplicate_failed_dsn_records_single_bounce(
+        self, org, caplog
+    ):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        first_dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(),
+        )
+        second_dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(),
+        )
+
+        with caplog.at_level(logging.WARNING):
+            parse_bounce_report.func(message_pk=str(first_dsn.pk))
+            parse_bounce_report.func(message_pk=str(second_dsn.pk))
+
+        assert "does not apply to outgoing message" in caplog.text
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        assert Transmission.objects.filter(message=outgoing).count() == 1
+        assert (
+            Transmission.objects.get(message=outgoing).status
+            == Transmission.Status.BOUNCED
+        )
+        assert (
+            SuppressionEntry.objects.filter(
+                org=org,
+                address_hash__email=outgoing.rcpt_to,
+            ).count()
+            == 1
+        )
+
+    def test_parse_bounce_report__delayed_dsn_after_bounce_records_nothing(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        failed_dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_dsn_email(),
+        )
+        delayed_dsn = make_bounce_dsn(
+            org,
+            domain,
+            mint_bounce_address(outgoing),
+            make_delayed_dsn_email(),
+        )
+
+        parse_bounce_report.func(message_pk=str(failed_dsn.pk))
+        parse_bounce_report.func(message_pk=str(delayed_dsn.pk))
+
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        assert Transmission.objects.filter(message=outgoing).count() == 1
+        assert (
+            Transmission.objects.get(message=outgoing).status
+            == Transmission.Status.BOUNCED
+        )
+
+
+@pytest.mark.django_db(transaction=True)
+class TestBounceReportChain:
+    async def test_handle_data__failed_dsn_bounces_sent_message(self, org):
+        domain = Domain.objects.get(org=org)
+        outgoing = make_outgoing_message(org, domain)
+        rcpt_to = mint_bounce_address(outgoing)
+        envelope = SimpleNamespace(
+            mail_from="mailer-daemon@mx.remote.example",
+            rcpt_tos=[rcpt_to],
+            content=make_dsn_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with patch(
+            "abstract.mailauth.DmarcEvaluation.from_bytes",
+            return_value=make_dmarc_evaluation(Disposition.NONE),
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        outgoing.refresh_from_db()
+        assert outgoing.status == OutgoingMessage.Status.BOUNCED
+        transmission = Transmission.objects.get(message=outgoing)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert transmission.code == 550
+        assert transmission.output == "smtp; 550 5.1.1 User unknown"
+        assert SuppressionEntry.objects.filter(
+            org=org,
+            address_hash__email=outgoing.rcpt_to,
+            reason=SuppressionEntry.Reason.BOUNCE,
+        ).exists()

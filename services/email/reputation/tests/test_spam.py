@@ -105,6 +105,20 @@ class TestComputeOrgReputation:
 
         assert stats["complaints"] == 1
 
+    def test_compute_org_reputation__counts_bounced_without_code_as_hard_bounce(
+        self, org, user
+    ):
+        message = make_sent_message(org)
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+        )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["hard_bounces"] == 1
+        assert stats["hard_bounce_rate"] == 1.0
+
 
 @pytest.mark.django_db
 class TestCheckOrgReputation:
@@ -136,18 +150,10 @@ class TestCheckOrgReputation:
 
     def test_check_org_reputation__ignores_soft_bounces(self, org, user, settings):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        domain = Domain.objects.create(name="reputation.test", org=org)
-        message = OutgoingMessage.objects.create(
-            org=org,
-            mail_from="sender@acme.com",
-            rcpt_to="rcpt@example.com",
-            domain=domain,
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("test.eml", b"x"),
-        )
+        message = make_sent_message(org)
         Transmission.objects.create(
             message=message,
-            status=Transmission.Status.BOUNCED,
+            status=Transmission.Status.RETRY,
             code=450,
         )
 
@@ -214,7 +220,7 @@ class TestCheckReputationOnHardBounce:
         assert org.suspended_at is not None
 
     @pytest.mark.django_db
-    def test_check_reputation_on_hard_bounce__ignores_soft_bounce(
+    def test_check_reputation_on_hard_bounce__ignores_non_bounced_status(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
@@ -223,7 +229,7 @@ class TestCheckReputationOnHardBounce:
         with django_capture_on_commit_callbacks(execute=True):
             Transmission.objects.create(
                 message=message,
-                status=Transmission.Status.BOUNCED,
+                status=Transmission.Status.RETRY,
                 code=450,
             )
 

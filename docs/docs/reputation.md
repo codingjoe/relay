@@ -51,6 +51,7 @@ yours low:
 
 - every Return-Path carries a per-message id, so bounces map to one message,
 - a permanent 5xx adds the address to the suppression list immediately,
+  and a permanent failure in a late bounce report does the same,
 - all further submissions to that address store as suppressed, with no error
   back to your application, so retry loops cannot amplify the bounce rate,
 
@@ -108,10 +109,10 @@ The dashboard surfaces each report type, per domain, and records whether a
 report arrived over TLS.
 
 FBL complaints need a proof before they count against your organization.
-The report carries the per-message Return-Path, or the per-message
-`Feedback-ID` header of the reported message. relay matches that id, so a
-complaint maps to one message, one domain, and one organization. A complaint
-without this proof stays on record, and it does not count into the rates.
+The report carries the per-message `Feedback-ID` header of the reported
+message. relay matches that id, so a complaint maps to one message, one
+domain, and one organization. A complaint without this proof stays on
+record, and it does not count into the rates.
 
 ## Reputation limits
 
@@ -132,7 +133,7 @@ organization.
    clean.
 1. A recipient marks a message as spam, and the provider sends a complaint to
    the FBL address. relay matches the complaint to your message through the
-   per-message ids on the Return-Path and the `Feedback-ID` header.
+   per-message `Feedback-ID` header.
 1. Providers send aggregate reports every day. relay parses them.
 1. You read your report rows, and correct what you see. Policy updates and
    key rotation are dashboard operations.

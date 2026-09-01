@@ -5,6 +5,7 @@ from domains.models import Domain
 
 from .models import Webhook
 
+bounce_report_received = Signal()  # senders provide a `message` kwarg
 fbl_report_received = Signal()  # senders provide a `message` kwarg
 
 

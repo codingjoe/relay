@@ -29,6 +29,9 @@ stateDiagram-v2
     pending --> bounced : permanent rejection (5xx)
     pending --> failed : no MX relayed or transport error
 
+    sent --> bounced : permanent failure in a late bounce report
+    failed --> bounced : permanent failure in a late bounce report
+
     held --> [*]
     sent --> [*]
     bounced --> [*]
@@ -36,27 +39,30 @@ stateDiagram-v2
     suppressed --> [*]
 ```
 
-| Status     | Trigger                                                                                   | What happens next                                              |
-| ---------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| pending    | Stored after a `250` acceptance, before the spam scan finishes                            | The worker scans, signs, and delivers                          |
-| suppressed | The recipient address is on the suppression list at submission                            | Terminal state, no delivery attempt, visible in the dashboard  |
-| sent       | At least one recipient MX host accepted the message after STARTTLS                        | Final state, the transmission records keep the SMTP transcript |
-| bounced    | A recipient server answered with a permanent 5xx rejection                                | Final state, relay suppresses the address automatically        |
-| failed     | No MX records, every MX host failed, or a transport or storage error stopped the pipeline | Final state, the last transcript explains why                  |
-| held       | rspamd rejects the action or the score reaches the hold threshold                         | Final state until a human sees the dashboard                   |
+| Status     | Trigger                                                                                                                    | What happens next                                              |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| pending    | Stored after a `250` acceptance, before the spam scan finishes                                                             | The worker scans, signs, and delivers                          |
+| suppressed | The recipient address is on the suppression list at submission                                                             | Terminal state, no delivery attempt, visible in the dashboard  |
+| sent       | At least one recipient MX host accepted the message after STARTTLS                                                         | Final state, the transmission records keep the SMTP transcript |
+| bounced    | A recipient server answered with a permanent 5xx rejection, or a late bounce report proved the remote rejected the message | Final state, relay suppresses the address automatically        |
+| failed     | No MX records, every MX host failed, or a transport or storage error stopped the pipeline                                  | Final state, the last transcript explains why                  |
+| held       | rspamd rejects the action or the score reaches the hold threshold                                                          | Final state until a human sees the dashboard                   |
 
 Notes on reading the diagram:
 
 - A submission puts a message into `pending`, and only a suppressed
   recipient short-circuits that path at submission time. A suppressed
   message is a successful SMTP conversation with no delivery, on purpose.
-- `pending` is the only state with an open movement, so every other state
-  comes from the pipeline after acceptance.
+- `pending` is the only state with an open movement while the pipeline
+  runs.
 - `bounced` and `failed` differ by who is responsible: a remote rejection
   ends as `bounced`, and relay-side transport problems end as `failed`.
 - `sent` is the strongest final state relay can know: the recipient MX
   accepted the message. Confirmed recipient delivery is not tracked, and
-  the enum has no such state.
+  the enum has no such state. A recipient server can still find a
+  permanent failure after acceptance, for example a full mailbox or its
+  own content filter. Its bounce report travels to the per-message bounce
+  address, so the bounce maps to one message.
 
 ## The life of an inbound message
 
@@ -95,15 +101,16 @@ Two details worth knowing:
 
 ## The attempt records under the status
 
-The transmission list per message shows each attempt with its own outcome:
+The transmission list per message shows each attempt with its own outcome.
+A late bounce report adds a row of its own:
 
-| Transmission status | Meaning                                                        |
-| ------------------- | -------------------------------------------------------------- |
-| submitted           | relay accepted the message for delivery                        |
-| sent                | This attempt reached a recipient MX host that answered success |
-| bounced             | This attempt revealed a permanent rejection                    |
-| failed              | This attempt failed, and the transcript shows why              |
-| retry               | Reserved for future automatic retry tracking                   |
+| Transmission status | Meaning                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| submitted           | relay accepted the message for delivery                                                           |
+| sent                | This attempt reached a recipient MX host that answered success                                    |
+| bounced             | A permanent rejection, during this attempt or in a later bounce report                            |
+| failed              | This attempt failed, and the transcript shows why                                                 |
+| retry               | A bounce report announced a delay; the remote keeps trying and the message status stays unchanged |
 
 The same applies for inbound messages: one delivery record per webhook POST
 with the URL, response code, and a response excerpt.
