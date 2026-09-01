@@ -3,8 +3,12 @@
 {% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
   <header class="mb-6">
-    <h2 class="m-0 break-words">
-      {% if message.subject %}{{ message.subject }}{% else %}({% translate "no subject" %}){% endif %}
+    <h2 class="m-0 break-all">
+      {% if message.message_id %}
+        <code class="text-base">{{ message.message_id }}</code>
+      {% else %}
+        ({% translate "no message ID" %})
+      {% endif %}
     </h2>
     <div class="flex items-center gap-3 flex-wrap mt-2">
       <span
@@ -19,14 +23,10 @@
         {{ message.mail_from }} → {{ message.rcpt_to }}
       </code>
     </div>
-    {% if message.message_id %}
-      <p class="text-sm text-muted-foreground mt-2 mb-0">
-        <code class="text-sm break-all">{{ message.message_id }}</code>
-      </p>
-    {% endif %}
   </header>
 
   <article class="card p-6 mb-6">
+    <h3 class="font-semibold m-0 mb-3">{% translate "transmission"|capfirst context "noun" %}</h3>
     <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 m-0">
       {% if message.receiving_domain %}
         <dt class="font-semibold">{% translate "domain"|capfirst context "noun" %}</dt>
@@ -58,14 +58,11 @@
         {% endif %}
       </dd>
     </dl>
-  </article>
-
-  {% if webhook_deliveries %}
-    <section class="mb-6">
-      <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
+    {% if webhook_deliveries %}
+      <h4 class="font-semibold mt-4 mb-2 flex items-center gap-2">
         {% translate "webhook deliveries"|capfirst context "noun" %}
         <span class="badge" data-size="sm">{{ webhook_deliveries|length }}</span>
-      </h3>
+      </h4>
       <div class="table-container">
         <table class="table">
           <thead>
@@ -100,10 +97,10 @@
           </tbody>
         </table>
       </div>
-    </section>
-  {% endif %}
+    {% endif %}
+  </article>
 
-  <section class="mb-6">
+  <article class="card p-6 mb-6">
     <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
       {% translate "headers"|capfirst context "noun" %}
       <span class="badge" data-size="sm">{{ headers|length }}</span>
@@ -126,10 +123,7 @@
         </tbody>
       </table>
     </div>
-  </section>
-
-  <section class="mb-6">
-    <h3 class="font-semibold m-0 mb-3">{% translate "body"|capfirst context "noun" %}</h3>
+    <h3 class="font-semibold m-0 mt-6 mb-3">{% translate "body"|capfirst context "noun" %}</h3>
     {% if is_report %}
       <div class="card p-4 flex items-center justify-between gap-4">
         <p class="m-0 text-sm text-muted-foreground">
@@ -147,5 +141,5 @@
         {% translate "Body pruned." %}
       </p>
     {% endif %}
-  </section>
+  </article>
 {% endblock %}

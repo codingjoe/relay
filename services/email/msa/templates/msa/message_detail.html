@@ -3,8 +3,12 @@
 {% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
   <header class="mb-6">
-    <h2 class="m-0 break-words">
-      {% if message.subject %}{{ message.subject }}{% else %}({% translate "no subject" %}){% endif %}
+    <h2 class="m-0 break-all">
+      {% if message.message_id %}
+        <code class="text-base">{{ message.message_id }}</code>
+      {% else %}
+        ({% translate "no message ID" %})
+      {% endif %}
     </h2>
     <div class="flex items-center gap-3 flex-wrap mt-2">
       <span
@@ -14,20 +18,29 @@
       >
         {{ message.status_display }}
       </span>
+      {% if message.spam_action %}
+        <span
+          class="badge"
+          data-size="sm"
+          data-variant="{{ message.spam_badge_variant }}"
+        >
+          {{ message.get_spam_action_display }}
+        </span>
+        <span class="text-sm text-muted-foreground">{{ message.spam_score }}</span>
+      {% endif %}
       {% timestamp message.created_at %}
       <code class="text-sm break-all">
         {{ message.mail_from }} → {{ message.rcpt_to }}
       </code>
     </div>
-    {% if message.message_id %}
-      <p class="text-sm text-muted-foreground mt-2 mb-0">
-        <code class="text-sm break-all">{{ message.message_id }}</code>
-      </p>
-    {% endif %}
   </header>
 
   <article class="card p-6 mb-6">
-    <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 m-0">
+    <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
+      {% translate "transmissions"|capfirst context "noun" %}
+      <span class="badge" data-size="sm">{{ transmissions|length }}</span>
+    </h3>
+    <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 mb-4 m-0">
       <dt class="font-semibold">{% translate "TLS" %}</dt>
       <dd class="m-0">
         {% if message.received_with_tls %}
@@ -37,35 +50,15 @@
           <span class="text-muted-foreground">{% translate "not received with TLS"|capfirst %}</span>
         {% endif %}
       </dd>
-      {% if message.spam_action %}
-        <dt class="font-semibold">{% translate "spam check"|capfirst %}</dt>
-        <dd class="m-0">
-          <span
-            class="badge"
-            data-size="sm"
-            data-variant="{{ message.spam_badge_variant }}"
-          >
-            {{ message.get_spam_action_display }}
-          </span>
-          {{ message.spam_score }}
-        </dd>
-      {% endif %}
     </dl>
-  </article>
-
-  {% if transmissions %}
-    <section class="mb-6">
-      <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
-        {% translate "transmissions"|capfirst context "noun" %}
-        <span class="badge" data-size="sm">{{ transmissions|length }}</span>
-      </h3>
-      {% if message.credential %}
-        <p class="text-sm text-muted-foreground mb-3 mt-0">
-          {% translate "credential"|capfirst context "noun" %}:
-          <code>{{ message.credential.key_prefix }}…</code>
-          ({{ message.credential.get_type_display }})
-        </p>
-      {% endif %}
+    {% if message.credential %}
+      <p class="text-sm text-muted-foreground mb-3 mt-0">
+        {% translate "credential"|capfirst context "noun" %}:
+        <code>{{ message.credential.key_prefix }}…</code>
+        ({{ message.credential.get_type_display }})
+      </p>
+    {% endif %}
+    {% if transmissions %}
       <div class="table-container">
         <table class="table">
           <thead>
@@ -143,49 +136,50 @@
           </tbody>
         </table>
       </div>
-    </section>
+    {% else %}
+      <p class="text-sm text-muted-foreground m-0">
+        {% translate "No transmissions yet." %}
+      </p>
+    {% endif %}
+  </article>
 
-    <section class="mb-6">
-      <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
-        {% translate "headers"|capfirst context "noun" %}
-        <span class="badge" data-size="sm">{{ headers|length }}</span>
-      </h3>
-      <div class="table-container">
-        <table class="table">
-          <thead>
+  <article class="card p-6 mb-6">
+    <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
+      {% translate "headers"|capfirst context "noun" %}
+      <span class="badge" data-size="sm">{{ headers|length }}</span>
+    </h3>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
+            <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, value in headers %}
             <tr>
-              <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
-              <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
+              <td class="whitespace-normal">{{ key }}</td>
+              <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
             </tr>
-          </thead>
-          <tbody>
-            {% for key, value in headers %}
-              <tr>
-                <td class="whitespace-normal">{{ key }}</td>
-                <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% if dkim_signatures %}
-        <h4 class="mt-4 mb-2">{% translate "DKIM signatures" %}</h4>
-        {% for signature in dkim_signatures %}
-          <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{% for key, value in signature.items %}{{ key }}={{ value }};
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if dkim_signatures %}
+      <h4 class="mt-4 mb-2">{% translate "DKIM signatures" %}</h4>
+      {% for signature in dkim_signatures %}
+        <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{% for key, value in signature.items %}{{ key }}={{ value }};
 {% endfor %}</pre>
-        {% endfor %}
-      {% endif %}
-      {% if received %}
-        <h4 class="mt-4 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
-        {% for hop in received %}
-          <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ hop }}</pre>
-        {% endfor %}
-      {% endif %}
-    </section>
-  {% endif %}
-
-  <section class="mb-6">
-    <h3 class="font-semibold m-0 mb-3">{% translate "body"|capfirst context "noun" %}</h3>
+      {% endfor %}
+    {% endif %}
+    {% if received %}
+      <h4 class="mt-4 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
+      {% for hop in received %}
+        <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ hop }}</pre>
+      {% endfor %}
+    {% endif %}
+    <h3 class="font-semibold m-0 mt-6 mb-3">{% translate "body"|capfirst context "noun" %}</h3>
     {% if body %}
       {{ body|highlight_email }}
     {% else %}
@@ -193,5 +187,5 @@
         {% translate "Body pruned." %}
       </p>
     {% endif %}
-  </section>
+  </article>
 {% endblock %}
