@@ -16,12 +16,7 @@ from abstract.utils import strip_frontmatter
 
 
 class CacheControlMixin:
-    """Set cache control headers on the response of a class based view.
-
-    Requests to views with a `public` cache control render the static chrome:
-    `request.public_cache` gates session-dependent template bits (user menu,
-    messages) so the response stays free of queries and `Vary: Cookie`.
-    """
+    """Set cache control headers and flag `public` responses for the static chrome."""
 
     cache_control: dict[str, bool | int] = {}
 
@@ -33,13 +28,7 @@ class CacheControlMixin:
 
 
 class ConditionalGetMixin:
-    """Answer conditional GETs with validators derived from the object.
-
-    Detail views mixing this in fetch the object once, compute `ETag` and
-    `Last-Modified` from its `modified_at`, and answer `304 Not Modified`
-    when the client's validators match, skipping the template render. The
-    response is `private, no-cache`, so browsers revalidate on every visit.
-    """
+    """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
 
     def get_etag(self, obj) -> str:
         """Return the ETag for `obj`."""
@@ -63,7 +52,7 @@ class ConditionalGetMixin:
 
 
 class NoStoreCacheMixin(CacheControlMixin):
-    """Disallow any caching of the response in shared and private caches."""
+    """Prevent caching entirely with `private, no-store`."""
 
     cache_control = {"private": True, "no_store": True}
 

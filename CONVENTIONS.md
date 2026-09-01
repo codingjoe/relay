@@ -225,20 +225,17 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 ## Views & Queries
 
-- Publicly cacheable views (`CacheControlMixin` with `public: True`) must not
-  touch the session. They render the static chrome (`request.public_cache`):
-  no user menu, no message toasts, no org switcher. The response stays free
-  of `Vary: Cookie` and database queries, anonymous and authenticated alike.
-- Do not add new context processors that provide querysets. Template chrome
-  data (for example, the org switcher's `user_orgs`) is provided by the view
-  whose mixin already loads the related objects.
-- Consolidate per-view queries: fetch a list once and derive counts, flags,
-  and related objects from the result instead of issuing separate `count()`,
-  `exists()`, and `get()` queries for the same rows.
-- `TimeStamped` models default to `models.FETCH_PEERS` via `FetchPeersManager`,
-  so lazily-missed foreign keys batch into one query per field across a
-  queryset. Do not call `.fetch_mode()` in views; override the manager on
-  models that need a different mode.
+- Publicly cacheable views (`public: True`) render the static chrome
+  (`request.public_cache`): no user menu, no toasts, no org switcher. The
+  response carries no `Vary: Cookie` and no queries.
+- Do not add context processors that provide querysets. Template chrome data
+  (for example, `user_orgs`) comes from the view's mixin.
+- Fetch a list once and derive counts, flags, and related objects from it
+  instead of separate `count()`, `exists()`, and `get()` queries.
+- List views answer `private, no-store`; detail views mix in
+  `ConditionalGetMixin` for ETag/`Last-Modified` revalidation.
+- `TimeStamped` models default to `models.FETCH_PEERS` (`FetchPeersManager`).
+  Do not call `.fetch_mode()` in views.
 
 ## Testing
 
