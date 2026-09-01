@@ -1,3 +1,4 @@
+from email import message_from_bytes
 from email.message import EmailMessage
 from unittest.mock import patch
 
@@ -7,7 +8,12 @@ from django.core.files.base import ContentFile
 from django.utils.http import http_date
 
 from domains.models import Domain
-from services.email.msa.models import MsaCredential, OutgoingMessage, SuppressionEntry
+from services.email.msa.models import (
+    MsaCredential,
+    OutgoingMessage,
+    SuppressionEntry,
+    Transmission,
+)
 
 
 def make_message(org, user, **kwargs):
@@ -139,7 +145,7 @@ class TestTestEmailView:
     ):
         domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         with (
-            patch("services.email.msa.views.deliver_message") as delivery_task,
+            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
             django_capture_on_commit_callbacks(execute=True),
         ):
             response = admin_client.post(
@@ -150,7 +156,34 @@ class TestTestEmailView:
         msg = OutgoingMessage.objects.get(org=org, subject="Test")
         assert msg.subject == "Test"
         assert msg.domain == domain
-        delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(msg.id), client_ip="127.0.0.1"
+        )
+
+    def test_post__signs_message_and_mints_feedback_id(self, admin_client, org, user):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+        )
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        stored = message_from_bytes(msg.raw_body.read())
+        assert any(name == "Feedback-ID" for name, _ in msg.headers)
+        assert any(name == "DKIM-Signature" for name, _ in msg.headers)
+        assert msg.feedback_id
+        assert msg.feedback_id == stored["Feedback-ID"]
+
+    def test_post__records_submission(self, admin_client, org, user):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+        )
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.SUBMITTED
 
     def test_post__with_real_domain(self, admin_client, org, user):
         domain = Domain.objects.create(name="example.com", org=org)

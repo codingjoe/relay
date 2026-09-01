@@ -67,13 +67,11 @@ class SMTPHandler(ProxyProtocolMixin):
         rcpt_to = envelope.rcpt_tos[0] if envelope.rcpt_tos else ""
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
-        msg = message_from_bytes(raw_bytes)
         client_ip = get_client_ip(session)
         result = await process_message(
             mail_from,
             rcpt_to,
             raw_bytes,
-            msg,
             credential,
             getattr(session, "ssl", False),
             client_ip,
@@ -148,44 +146,53 @@ def authenticate(username: str, key: str):
     return None
 
 
-def process_suppressed_message(
-    mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
+def store_outgoing_message(
+    *,
+    org,
+    rcpt_to,
+    mail_from,
+    domain,
+    credential,
+    status,
+    feedback_id,
+    ssl,
+    client_ip,
+    raw_bytes,
 ):
-    """Store a suppressed message without enqueuing delivery.
-
-    Suppressed mail is never sent, so relay mints no Feedback-ID and FBL
-    complaints can never be attributed to it. Strip customer-supplied
-    Feedback-ID headers so only the Feedback-ID relay actually forwarded
-    with ever persists.
-    """
-    subject = msg.get("Subject", "")
-    message_id = msg.get("Message-ID", "")
-    raw_bytes = remove_feedback_id_headers(raw_bytes)
+    """Store an outgoing message with its submission record and enqueue
+    spam processing for deliverable messages."""
+    parsed = message_from_bytes(raw_bytes)
+    message_id = parsed.get("Message-ID", "")
+    subject = parsed.get("Subject", "")
     message = OutgoingMessage.objects.create(
-        org=credential.org,
+        org=org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
         subject=subject,
         message_id=message_id,
         domain=domain,
         credential=credential,
-        status=OutgoingMessage.Status.SUPPRESSED,
+        feedback_id=feedback_id,
         received_with_tls=bool(ssl),
+        status=status,
         headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
     Transmission.record_submission(message, ssl)
-    logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
-    return "250 OK"
+    if status == OutgoingMessage.Status.PENDING:
+        transaction.on_commit(
+            lambda: check_outgoing_spam.enqueue(
+                message_pk=str(message.id),
+                client_ip=client_ip,
+            )
+        )
+    return message
 
 
 @sync_to_async
-def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_ip):
+def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
     """Store a submitted outgoing message and enqueue its delivery unless
     the org is suspended."""
-    subject = msg.get("Subject", "")
-    message_id = msg.get("Message-ID", "")
-
     if "@" not in mail_from:
         return "550 Sender domain not registered"
 
@@ -207,9 +214,25 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
         return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
-        return process_suppressed_message(
-            mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
+        # Suppressed mail is never sent, so relay mints no Feedback-ID and
+        # FBL complaints can never be attributed to it. Strip customer
+        # Feedback-ID headers so only the Feedback-ID relay actually
+        # forwarded with ever persists.
+        raw_bytes = remove_feedback_id_headers(raw_bytes)
+        store_outgoing_message(
+            org=credential.org,
+            rcpt_to=rcpt_to,
+            mail_from=mail_from,
+            domain=domain,
+            credential=credential,
+            status=OutgoingMessage.Status.SUPPRESSED,
+            feedback_id="",
+            ssl=ssl,
+            client_ip=client_ip,
+            raw_bytes=raw_bytes,
         )
+        logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
+        return "250 OK"
 
     if (
         not credential.org.billing_is_active
@@ -222,28 +245,16 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
 
     raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
     raw_bytes = sign_message(raw_bytes, domain)
-
-    message = OutgoingMessage.objects.create(
+    store_outgoing_message(
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
-        subject=subject,
-        message_id=message_id,
         domain=domain,
         credential=credential,
-        feedback_id=feedback_id,
-        received_with_tls=bool(ssl),
         status=OutgoingMessage.Status.PENDING,
-        headers=OutgoingMessage.headers_from_raw(raw_bytes),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+        feedback_id=feedback_id,
+        ssl=ssl,
+        client_ip=client_ip,
+        raw_bytes=raw_bytes,
     )
-    Transmission.record_submission(message, ssl)
-
-    transaction.on_commit(
-        lambda: check_outgoing_spam.enqueue(
-            message_pk=str(message.id),
-            client_ip=client_ip,
-        )
-    )
-
     return "250 OK"
