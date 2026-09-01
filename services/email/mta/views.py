@@ -39,21 +39,25 @@ class IncomingMessageDetailView(
     parent = "message:message-list"
 
     def get_queryset(self):
-        return IncomingMessage.objects.filter(org=self.org)
+        return IncomingMessage.objects.filter(org=self.org).select_related(
+            "org", "content_type", "tls_certificate"
+        )
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        parsed = self.object.parsed_email()
+        is_report = self.object.content_type.model_class() is not IncomingMessage
         return context | {
             "headers": self.object.parsed_headers,
-            "parts": list(parsed.walk()) if parsed.is_multipart() else [parsed],
-            "body": parsed.get_payload(decode=True) or "",
+            "body": self.object.text_body,
             "webhook_deliveries": WebhookDelivery.objects.filter(
                 message=self.object
-            ).select_related("webhook"),
+            ).select_related("webhook__signing_key"),
+            "is_report": is_report,
+            "report_url": self.object.get_absolute_url() if is_report else "",
+            "report_kind": self.object.kind_display if is_report else "",
         }
 
 

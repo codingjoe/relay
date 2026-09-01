@@ -62,6 +62,8 @@ class OutgoingMessage(Message):
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
 
+    email_url_name = "msa:message-detail"
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 

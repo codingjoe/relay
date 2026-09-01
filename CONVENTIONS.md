@@ -141,7 +141,15 @@ A rule lives either in this document or in `.relint.yml`, never both.
     buttons inside a `button-group`. Use `data-variant="destructive"` for
     delete/remove actions. Omit `data-variant` entirely for the primary
     action in a group.
-  - Cards: `<article class="card">`.
+  - Cards: `<article class="card">`. Never nest a card inside another card.
+    Group content within a card using headings, `<hr>`, or padded blocks.
+  - Tables inside cards sit flush with the card edges: use
+    `<article class="card gap-0 p-0 overflow-hidden">`, put the preceding
+    content (heading, metadata) in an inner `<div class="px-6 pt-6">` block,
+    and place the `<div class="table-container">` directly inside the card.
+  - Do not put counter badges in section headings (for example,
+    `Headers 6`). The section content is directly below; a count adds noise,
+    not information.
   - Tables: wrap in `<div class="table-container"><table class="table">`.
   - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
     open with `.showModal()` and close with `.close()`.
@@ -161,6 +169,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
+  - Tooltips: use the basecoat `data-tooltip` attribute on any element.
+    Do not use native `title` attributes for tooltips.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (for example, organizations). Prefer items

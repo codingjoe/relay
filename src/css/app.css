@@ -123,10 +123,6 @@ svg.lucide {
      w  — whitespace
    Unknown tokens (header bodies, plain text) inherit the default color. */
 .highlight-email {
-  background-color: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 1rem;
   overflow-x: auto;
   font-size: 0.875rem;
   line-height: 1.4;

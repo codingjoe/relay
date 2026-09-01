@@ -17,6 +17,16 @@ class Message(TimeStamped):
     url_name: str
     """URL pattern name of the concrete subclass detail view in its own app."""
 
+    email_url_name = ""
+    """Fully qualified URL name of the view rendering the email itself.
+
+    Concrete subclasses whose detail view does not render the email, for
+    example report messages, point this at their incoming message view.
+    """
+
+    icon = ""
+    """Lucide icon name of the concrete subclass. Falls back to the direction icons."""
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid7,
@@ -131,7 +141,14 @@ class Message(TimeStamped):
 
     @property
     def kind_icon(self) -> str:
-        """Return the matching Lucide icon name."""
+        """
+        Return the matching Lucide icon name.
+
+        Reads the icon from the concrete class because multi-table
+        inheritance returns base instances in shared querysets.
+        """
+        if icon := self.content_type.model_class().icon:
+            return icon
         return "send" if self.kind == "outgoingmessage" else "inbox"
 
     @property
@@ -155,6 +172,21 @@ class Message(TimeStamped):
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
+    def get_email_url(self) -> str:
+        """
+        Return the URL of the view rendering the email itself.
+
+        Reads the URL name from the concrete class because multi-table
+        inheritance returns base instances in shared querysets.
+        """
+        model = self.content_type.model_class()
+        if not model.email_url_name:
+            return self.get_absolute_url()
+        return reverse(
+            model.email_url_name,
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
+
     @classmethod
     def status_choices(cls) -> list[tuple[str, str]]:
         """Return status choices collected from all concrete subclasses."""
@@ -174,6 +206,26 @@ class Message(TimeStamped):
             # FieldFile raises ValueError when no file is associated (empty
             # name), e.g. pruned or fixture-only rows.
             return message_from_bytes(b"body pruned")
+
+    @property
+    def text_body(self) -> bytes:
+        """
+        Return the decoded text payload of the stored body.
+
+        Multipart messages yield their first text part.
+        """
+        if not self.raw_body:
+            return b""
+        return next(
+            (
+                payload
+                for part in self.parsed_email().walk()
+                if not part.is_multipart()
+                and part.get_content_type().startswith("text/")
+                and (payload := part.get_payload(decode=True)) is not None
+            ),
+            b"",
+        )
 
     @classmethod
     def headers_from_raw(cls, raw_bytes):

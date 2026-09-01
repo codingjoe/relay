@@ -55,7 +55,9 @@ for the full protocol details.
 
 Remote servers deliver inbound email to the relay MX on port 25 with
 STARTTLS. relay publishes the TLS certificate for the MX host and records for
-each message whether it arrived over TLS. relay publishes MTA-STS and TLS-RPT
+each message whether it arrived over TLS, together with the protocol version
+and cipher suite, and the certificate the sender presented when one was
+offered. relay publishes MTA-STS and TLS-RPT
 records for your domains, which asks all senders to use TLS as well.
 
 ## The MTA-STS policy

@@ -4,6 +4,9 @@ import datetime
 import logging
 import ssl
 import time
+from collections.abc import Iterator
+
+from cryptography import x509
 
 logger = logging.getLogger(__name__)
 
@@ -77,3 +80,12 @@ def wait_for_certificate_and_key(
             else:
                 logger.info("TLS certificate and key are available.")
                 return
+
+
+def parse_peer_certificates(
+    ssl_object: ssl.SSLObject,
+) -> Iterator[x509.Certificate]:
+    """Yield the X.509 certificates the remote server presented."""
+    chain = ssl_object.get_unverified_chain() or ssl_object.get_verified_chain() or ()
+    for der in chain:
+        yield x509.load_der_x509_certificate(der)

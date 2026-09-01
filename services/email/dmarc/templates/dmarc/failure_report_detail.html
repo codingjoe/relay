@@ -107,7 +107,9 @@
           <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
         </summary>
         <section>
-          {{ report.original_headers|truncatechars:2000|highlight_email }}
+          <div class="border rounded-md p-4">
+            {{ report.original_headers|truncatechars:2000|highlight_email }}
+          </div>
         </section>
       </details>
     </section>

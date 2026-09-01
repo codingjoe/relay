@@ -46,6 +46,26 @@ class IncomingMessage(Message):
         help_text=_("Domain part of the recipient address, for example app.acme.com."),
     )
 
+    email_url_name = "mta:message-detail"
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="incoming_messages",
+        help_text=_("Certificate the sending MTA presented, when one was offered."),
+    )
+
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
 
@@ -264,6 +284,8 @@ class TlsReport(IncomingMessage):
         return f"{self.reporting_org} → {self.domain or '?'} ({self.report_id})"
 
     url_name = "tls-report-detail"
+
+    icon = "lock"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):

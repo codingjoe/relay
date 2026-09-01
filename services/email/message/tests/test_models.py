@@ -5,9 +5,10 @@ from django.core.files.base import ContentFile
 from django.urls import resolve, reverse
 
 from domains.models import Domain
+from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.message.models import Message
 from services.email.msa.models import OutgoingMessage
-from services.email.mta.models import IncomingMessage
+from services.email.mta.models import IncomingMessage, TlsReport
 
 
 def create_outgoing(user, org, status=None):
@@ -265,3 +266,129 @@ class TestMessageHeaders:
             ["From", "alice@example.com"],
             ["Subject", "Hello"],
         ]
+
+
+def create_tls_report(org):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    return TlsReport.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="tlsrpt@gmail.com",
+        rcpt_to="tlsrpt@app.acme.com",
+        receiving_domain="app.acme.com",
+        report_id="tls-1",
+    )
+
+
+def create_dmarc_report(org):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    return DmarcReport.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="dmarc@gmail.com",
+        rcpt_to="dmarc@app.acme.com",
+        report_id="agg-1",
+    )
+
+
+def create_dmarc_failure_report(org):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    return DmarcFailureReport.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="ruf@gmail.com",
+        rcpt_to="postmaster@app.acme.com",
+    )
+
+
+class TestMessageTextBody:
+    @pytest.mark.django_db
+    def test_text_body__pruned_raw_body_returns_empty(self, user, org):
+        msg = create_outgoing(user, org)
+        assert Message.objects.get(pk=msg.pk).text_body == b""
+
+    @pytest.mark.django_db
+    def test_text_body__multipart_returns_first_text_part(self, user, org):
+        raw = (
+            b"From: alice@example.com\r\n"
+            b"To: bob@example.com\r\n"
+            b"Subject: hi\r\n"
+            b"MIME-Version: 1.0\r\n"
+            b"Content-Type: multipart/alternative; boundary=BOUND\r\n"
+            b"\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: text/plain; charset=utf-8\r\n"
+            b"\r\n"
+            b"plain text\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: text/html; charset=utf-8\r\n"
+            b"\r\n"
+            b"<b>html</b>\r\n"
+            b"--BOUND--\r\n"
+        )
+        msg = create_outgoing(user, org)
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
+        assert Message.objects.get(pk=msg.pk).text_body == b"plain text"
+
+    @pytest.mark.django_db
+    def test_text_body__skips_non_text_parts(self, user, org):
+        raw = (
+            b"From: alice@example.com\r\n"
+            b"To: bob@example.com\r\n"
+            b"Subject: hi\r\n"
+            b"MIME-Version: 1.0\r\n"
+            b"Content-Type: multipart/mixed; boundary=BOUND\r\n"
+            b"\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: application/octet-stream\r\n"
+            b"Content-Transfer-Encoding: base64\r\n"
+            b"\r\n"
+            b"AAECAw==\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: text/plain; charset=utf-8\r\n"
+            b"\r\n"
+            b"hello\r\n"
+            b"--BOUND--\r\n"
+        )
+        msg = create_outgoing(user, org)
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
+        assert Message.objects.get(pk=msg.pk).text_body == b"hello"
+
+
+class TestMessageGetEmailUrl:
+    @pytest.mark.django_db
+    def test_get_email_url__incoming_message_falls_back_to_detail_view(self, org):
+        msg = create_incoming(org)
+        message = Message.objects.get(pk=msg.pk)
+        assert message.get_email_url() == message.get_absolute_url()
+
+    @pytest.mark.django_db
+    def test_get_email_url__outgoing_message_falls_back_to_detail_view(self, user, org):
+        msg = create_outgoing(user, org)
+        message = Message.objects.get(pk=msg.pk)
+        assert message.get_email_url() == message.get_absolute_url()
+
+    @pytest.mark.django_db
+    def test_get_email_url__tls_report_points_at_incoming_message_view(self, org):
+        report = create_tls_report(org)
+        message = Message.objects.get(pk=report.pk)
+        assert message.get_absolute_url() != message.get_email_url()
+        assert resolve(message.get_email_url()).view_name == "mta:message-detail"
+
+    @pytest.mark.django_db
+    def test_get_email_url__dmarc_report_points_at_incoming_message_view(self, org):
+        report = create_dmarc_report(org)
+        message = Message.objects.get(pk=report.pk)
+        assert message.get_absolute_url() != message.get_email_url()
+        assert resolve(message.get_email_url()).view_name == "mta:message-detail"
+
+    @pytest.mark.django_db
+    def test_get_email_url__dmarc_failure_report_points_at_incoming_message_view(
+        self, org
+    ):
+        report = create_dmarc_failure_report(org)
+        message = Message.objects.get(pk=report.pk)
+        assert message.get_absolute_url() != message.get_email_url()
+        assert resolve(message.get_email_url()).view_name == "mta:message-detail"
