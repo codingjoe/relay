@@ -5,12 +5,11 @@ from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
 from django.utils.cache import (
-    get_conditional_response,
     patch_cache_control,
     patch_vary_headers,
 )
-from django.utils.http import http_date
 from django.views import generic
+from django.views.decorators.http import condition
 
 from abstract.utils import strip_frontmatter
 
@@ -28,25 +27,31 @@ class CacheControlMixin:
 
 
 class ConditionalGetMixin:
-    """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
+    """Answer conditional GETs with an ETag and `Last-Modified` from the object.
+
+    Mix into a view with `SingleObjectMixin` (for example, a `DetailView`).
+    Django's `condition` decorator computes the ETag and `Last-Modified` before
+    the view renders, so conditional requests short-circuit with 304 and skip
+    rendering entirely.
+    """
+
+    object = None
 
     def get_etag(self, obj) -> str:
         """Return the ETag for `obj`."""
         return f'"{obj.pk.hex}-{obj.modified_at.timestamp():.6f}"'
 
-    def get(self, request, *args, **kwargs):
+    def get_object(self, queryset=None):
+        if self.object is None:
+            self.object = super().get_object(queryset)
+        return self.object
+
+    def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
-        etag = self.get_etag(self.object)
-        last_modified = int(self.object.modified_at.timestamp())
-        response = get_conditional_response(
-            request, etag=etag, last_modified=last_modified
-        )
-        if response is None:
-            response = self.render_to_response(
-                self.get_context_data(object=self.object)
-            )
-        response["ETag"] = etag
-        response["Last-Modified"] = http_date(last_modified)
+        response = condition(
+            etag_func=lambda request, *a, **kw: self.get_etag(self.object),
+            last_modified_func=lambda request, *a, **kw: self.object.modified_at,
+        )(super().dispatch)(request, *args, **kwargs)
         patch_cache_control(response, private=True, no_cache=True)
         return response
 
