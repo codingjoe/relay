@@ -19,7 +19,7 @@ class DomainListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return Domain.objects.filter(org=self.org)
 
 
 class DomainCreateView(OrganizationScopedView, generic.CreateView):

@@ -116,7 +116,7 @@ class ReportListView(OrganizationScopedView, generic.ListView):
                     qs = qs.filter(source_ip_address=ip)
             case _:
                 qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         report_type = self.request.GET.get("type", self.ReportType.DMARC)

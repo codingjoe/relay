@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 import pytest
 from django.core.files.base import ContentFile
+from django.urls import resolve, reverse
 
 from domains.models import Domain
 from services.email.message.models import Message
@@ -19,6 +22,13 @@ def create_outgoing(user, org, status=None):
         msg.status = status
         msg.save(update_fields=["status"])
     return msg
+
+
+def descendants(model):
+    """Yield every concrete descendant of `model`."""
+    for sub in model.__subclasses__():
+        yield sub
+        yield from descendants(sub)
 
 
 def create_incoming(org, status=None):
@@ -171,6 +181,15 @@ class TestMessage:
     def test_get_absolute_url__incoming(self, org):
         msg = create_incoming(org)
         assert str(msg.pk) in Message.objects.get(pk=msg.pk).get_absolute_url()
+
+    def test_url_name__resolves_for_every_subclass(self):
+        for model in descendants(Message):
+            url = reverse(
+                f"{model._meta.app_label}:{model.url_name}",
+                kwargs={"org_slug": "x", "pk": str(uuid4())},
+            )
+            match = resolve(url)
+            assert match.view_name == f"{model._meta.app_label}:{model.url_name}"
 
 
 class TestMessageHeaders:

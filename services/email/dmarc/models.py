@@ -7,7 +7,6 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db import models
 from django.template.loader import render_to_string
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import iter_attachments
@@ -63,11 +62,7 @@ class DmarcReport(IncomingMessage):
     def __str__(self):
         return f"{self.reporting_org} → {self.domain or '?'} ({self.report_id})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "dmarc:report-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.pk},
-        )
+    url_name = "report-detail"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
@@ -323,11 +318,7 @@ class DmarcFailureReport(IncomingMessage):
             f"{self.reporting_org} → {self.domain or '?'} ({self.original_mail_from})"
         )
 
-    def get_absolute_url(self):
-        return reverse(
-            "dmarc:failure-report-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.pk},
-        )
+    url_name = "failure-report-detail"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):

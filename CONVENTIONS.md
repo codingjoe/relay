@@ -235,6 +235,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Consolidate per-view queries: fetch a list once and derive counts, flags,
   and related objects from the result instead of issuing separate `count()`,
   `exists()`, and `get()` queries for the same rows.
+- `TimeStamped` models default to `models.FETCH_PEERS` via `FetchPeersManager`,
+  so lazily-missed foreign keys batch into one query per field across a
+  queryset. Do not call `.fetch_mode()` in views; override the manager on
+  models that need a different mode.
 
 ## Testing
 

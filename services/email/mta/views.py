@@ -62,11 +62,7 @@ class WebhookListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return (
-            Webhook.objects.filter(org=self.org)
-            .select_related("signing_key")
-            .fetch_mode(models.FETCH_PEERS)
-        )
+        return Webhook.objects.filter(org=self.org).select_related("signing_key")
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -111,7 +107,7 @@ class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "mta:webhook-list"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return Webhook.objects.filter(org=self.org)
 
     def get_success_url(self):
         return reverse_lazy("mta:webhook-list", kwargs={"org_slug": self.org.slug})
@@ -145,7 +141,7 @@ class TlsReportListView(OrganizationScopedView, generic.ListView):
         qs = TlsReport.objects.filter(org=self.org).select_related("domain")
         if domain := self.request.GET.get("domain"):
             qs = qs.filter(domain__name=domain)
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -165,7 +161,7 @@ class TlsReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return TlsReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return TlsReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

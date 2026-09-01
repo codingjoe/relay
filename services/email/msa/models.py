@@ -6,7 +6,6 @@ from enum import nonmember
 from django.core.validators import validate_email
 from django.db import models
 from django.db.models import Lookup
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -65,11 +64,7 @@ class OutgoingMessage(Message):
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "msa:message-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.id},
-        )
+    url_name = "message-detail"
 
     @property
     def spam_badge_variant(self) -> str:

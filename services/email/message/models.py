@@ -14,6 +14,9 @@ from abstract.models import TimeStamped
 class Message(TimeStamped):
     """Base class for inbound and outbound email messages."""
 
+    url_name: str
+    """URL pattern name of the concrete subclass detail view in its own app."""
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid7,
@@ -146,8 +149,9 @@ class Message(TimeStamped):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
     def get_absolute_url(self) -> str:
+        model = self.content_type.model_class()
         return reverse(
-            f"{self.content_type.app_label}:message-detail",
+            f"{self.content_type.app_label}:{model.url_name}",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 

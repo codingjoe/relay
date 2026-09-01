@@ -24,8 +24,6 @@ class MessageListView(OrganizationScopedView, generic.ListView):
     def get_queryset(self):
         qs = Message.objects.filter(org=self.org).select_related(
             "org",
-            "outgoingmessage",
-            "incomingmessage",
             "content_type",
         )
         direction = self.request.GET.get("direction", self.Direction.ALL)
@@ -40,7 +38,7 @@ class MessageListView(OrganizationScopedView, generic.ListView):
             qs = qs.filter(
                 Q(outgoingmessage__status=status) | Q(incomingmessage__status=status)
             )
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")

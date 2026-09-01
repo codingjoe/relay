@@ -24,7 +24,7 @@ class DmarcReportListView(OrganizationScopedView, generic.ListView):
             qs = qs.filter(domain__name=domain)
         if source_ip := self.request.GET.get("source_ip"):
             qs = qs.filter(records__source_ip_address=source_ip).distinct()
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -45,7 +45,7 @@ class DmarcReportDetailView(OrganizationScopedView, generic.DetailView):
     parent = "email-dashboard:report-list"
 
     def get_queryset(self):
-        return DmarcReport.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return DmarcReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         records = self.object.records.all()
@@ -72,7 +72,7 @@ class DmarcFailureReportListView(OrganizationScopedView, generic.ListView):
             qs = qs.filter(domain__name=domain)
         if source_ip := self.request.GET.get("source_ip"):
             qs = qs.filter(source_ip_address=source_ip)
-        return qs.fetch_mode(models.FETCH_PEERS)
+        return qs
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

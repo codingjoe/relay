@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import BadRequest
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import models, transaction
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -27,10 +27,8 @@ class OutgoingMessageDetailView(OrganizationScopedView, generic.DetailView):
     parent = "message:message-list"
 
     def get_queryset(self):
-        return (
-            OutgoingMessage.objects.filter(org=self.org)
-            .select_related("domain", "credential")
-            .fetch_mode(models.FETCH_PEERS)
+        return OutgoingMessage.objects.filter(org=self.org).select_related(
+            "domain", "credential"
         )
 
     def get_object(self, queryset=None):
@@ -107,7 +105,7 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return MsaCredential.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return MsaCredential.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -148,7 +146,7 @@ class MsaCredentialDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "msa:credential-list"
 
     def get_queryset(self):
-        return MsaCredential.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return MsaCredential.objects.filter(org=self.org)
 
     def get_success_url(self):
         return reverse_lazy("msa:credential-list", kwargs={"org_slug": self.org.slug})
@@ -164,7 +162,7 @@ class SuppressionListView(OrganizationScopedView, generic.ListView):
     parent = "accounts:org-home"
 
     def get_queryset(self):
-        return self.model.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return self.model.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -203,7 +201,7 @@ class SuppressionRemoveView(OrganizationScopedView, generic.DeleteView):
     parent = "msa:suppression-list"
 
     def get_queryset(self):
-        return self.model.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return self.model.objects.filter(org=self.org)
 
     def get_object(self, queryset=None):
         qs = (queryset or self.get_queryset()).filter(
