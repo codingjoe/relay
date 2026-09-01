@@ -193,18 +193,22 @@
         </section>
       </details>
     {% endif %}
-    {% if message.raw_body %}
-      <details open>
-        <summary>
-          <span class="flex items-center gap-2">
-            {% translate "body"|capfirst context "noun" %}
-          </span>
-          <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-        </summary>
-        <section>
+    <details open>
+      <summary>
+        <span class="flex items-center gap-2">
+          {% translate "body"|capfirst context "noun" %}
+        </span>
+        <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
+      </summary>
+      <section>
+        {% if body %}
           {{ body|highlight_email }}
-        </section>
-      </details>
-    {% endif %}
+        {% else %}
+          <p class="text-sm text-muted-foreground m-0">
+            {% translate "Body pruned." %}
+          </p>
+        {% endif %}
+      </section>
+    </details>
   </section>
 {% endblock %}
