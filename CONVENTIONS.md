@@ -183,7 +183,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Charts use [Apache ECharts](https://echarts.apache.org/) (the library
   Sentry uses), loaded from a CDN with `defer` like Lucide and initialized
   on `DOMContentLoaded` in `abstract/templates/abstract/chart_card.html`.
-  ECharts draws to canvas and cannot resolve CSS variables, so resolve theme
+  Render series as stacked bars without a legend; unstack them by
+  passing `y_scale: {"stacked": "false"}` from the view. Override the
+  series type (for example, to draw thresholds as lines) through the
+  series `dataset` passthrough. ECharts draws to canvas and cannot resolve CSS variables, so resolve theme
   colors at init time with a hidden span and a canvas probe (`getPropertyValue`
   on `:root` returns the unresolved `light-dark()` token stream; the value must
   be applied to an element and read from its computed style). Do not use

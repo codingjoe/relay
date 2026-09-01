@@ -29,11 +29,6 @@
           const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
           return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
         };
-        const areaFill = (value) =>
-          new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: toRgba(value, 0.8) },
-            { offset: 1, color: toRgba(value, 0.1) },
-          ]);
         const fullDate = new Intl.DateTimeFormat(locale, {
           year: "numeric",
           month: "long",
@@ -49,15 +44,7 @@
         const border = toRgba("var(--color-border)");
         const chart = echarts.init(element);
         chart.setOption({
-          grid: { left: 8, right: 16, top: 8, bottom: 28, containLabel: true },
-          legend: {
-            type: "scroll",
-            bottom: 0,
-            data: [{% for series in chart.series %}{
-              name: "{{ series.label|capfirst }}",
-              textStyle: { color: toRgba("{{ series.color }}") },
-            }{% if not forloop.last %},{% endif %}{% endfor %}],
-          },
+          grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
           tooltip: {
             trigger: "axis",
             confine: true,
@@ -75,7 +62,6 @@
           },
           xAxis: {
             type: "category",
-            boundaryGap: false,
             data: rows.map((row) => row.day),
             axisLine: { lineStyle: { color: border } },
             axisTick: { show: false },
@@ -94,13 +80,11 @@
             {% for series in chart.series %}
             {
               name: "{{ series.label|capfirst }}",
-              type: "line",
-              smooth: 0.35,
-              showSymbol: false,
+              type: "bar",
               {% if chart.y_scale.stacked != "false" %}stack: "status",{% endif %}
+              showSymbol: false,
               lineStyle: { color: toRgba("{{ series.color }}") },
               itemStyle: { color: toRgba("{{ series.color }}") },
-              areaStyle: { color: areaFill("{{ series.color }}") },
               data: rows.map((row) => row["{{ series.key }}"]),
               {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
             }{% if not forloop.last %},{% endif %}

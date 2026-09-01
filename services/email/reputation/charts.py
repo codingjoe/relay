@@ -155,13 +155,13 @@ def build_reputation_chart(org):
             "key": "hard_bounce_limit",
             "label": "Hard bounce limit",
             "color": REPUTATION_CHART_COLORS["hard_bounce_limit"],
-            "dataset": "stack: null, areaStyle: null",
+            "dataset": "type: 'line'",
         },
         {
             "key": "complaint_limit",
             "label": "Complaint limit",
             "color": REPUTATION_CHART_COLORS["complaint_limit"],
-            "dataset": "stack: null, areaStyle: null",
+            "dataset": "type: 'line'",
         },
     ]
     return {
