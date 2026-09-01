@@ -71,6 +71,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 ## Functions
 
 - Function names must be descriptive, not ambiguous.
+- Do not write one-liner functions that only wrap a single expression. Inline
+  the expression at its call site.
+- Use generator functions when a function produces a sequence for lazy
+  consumption, for example when walking database relations.
 
 ## Docstrings
 
@@ -88,6 +92,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
 ## Control Flow
 
 - Prefer `match`/`case` statements over if-chains where applicable.
+- No early returns. Exit a function from a single `return` statement at the
+  end. `.relint.yml` enforces the bare `return` and `continue` subset.
 - Use `.get()` with EAFP (try/except) instead of `.first()` with a `None`
   check. Use `get_object_or_404()` in views to convert `DoesNotExist` to
   `Http404` automatically.
@@ -114,6 +120,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   and help text.
 - Email-specific abbreviations are OK since they are more common than
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
+- Do not wrap technical protocol terms in `gettext`, for example STARTTLS,
+  TLS, or plaintext. They read the same in every language.
 
 ## Templates & UI
 
@@ -133,7 +141,15 @@ A rule lives either in this document or in `.relint.yml`, never both.
     buttons inside a `button-group`. Use `data-variant="destructive"` for
     delete/remove actions. Omit `data-variant` entirely for the primary
     action in a group.
-  - Cards: `<article class="card">`.
+  - Cards: `<article class="card">`. Never nest a card inside another card.
+    Group content within a card using headings, `<hr>`, or padded blocks.
+  - Tables inside cards sit flush with the card edges: use
+    `<article class="card gap-0 p-0 overflow-hidden">`, put the preceding
+    content (heading, metadata) in an inner `<div class="px-6 pt-6">` block,
+    and place the `<div class="table-container">` directly inside the card.
+  - Do not put counter badges in section headings (for example,
+    `Headers 6`). The section content is directly below; a count adds noise,
+    not information.
   - Tables: wrap in `<div class="table-container"><table class="table">`.
   - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
     open with `.showModal()` and close with `.close()`.
@@ -153,6 +169,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
+  - Tooltips: use the basecoat `data-tooltip` attribute on any element.
+    Do not use native `title` attributes for tooltips.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (for example, organizations). Prefer items
@@ -214,6 +232,20 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Tailwind v4's preflight resets `a { color: inherit }`. Add
   `class="link"` to entity anchors so they get primary color and
   underline from `src/css/app.css`.
+
+## Views & Queries
+
+- Publicly cacheable views (`public: True`) render the static chrome
+  (`request.public_cache`): no user menu, no toasts, no org switcher. The
+  response carries no `Vary: Cookie` and no queries.
+- Do not add context processors that provide querysets. Template chrome data
+  (for example, `user_orgs`) comes from the view's mixin.
+- Fetch a list once and derive counts, flags, and related objects from it
+  instead of separate `count()`, `exists()`, and `get()` queries.
+- List views answer `private, no-store`; detail views mix in
+  `ConditionalGetMixin` for ETag/`Last-Modified` revalidation.
+- `TimeStamped` models default to `models.FETCH_PEERS` (`FetchPeersManager`).
+  Do not call `.fetch_mode()` in views.
 
 ## Testing
 

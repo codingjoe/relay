@@ -6,7 +6,6 @@ from enum import nonmember
 from django.core.validators import validate_email
 from django.db import models
 from django.db.models import Lookup
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -21,7 +20,6 @@ class OutgoingMessage(Message):
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
         SENT = "sent", _("sent")
-        DELIVERED = "delivered", _("delivered")
         HELD = "held", _("held")
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
@@ -31,11 +29,13 @@ class OutgoingMessage(Message):
 
         @property
         def badge_variant(self) -> str:
-            Status = type(self)
+            status_class = type(self)
             match self:
-                case Status.SENT | Status.DELIVERED:
-                    return "primary"
-                case Status.BOUNCED | Status.DROPPED | Status.FAILED:
+                case status_class.SENT:
+                    return "success"
+                case status_class.HELD:
+                    return "warning"
+                case status_class.BOUNCED | status_class.DROPPED | status_class.FAILED:
                     return "destructive"
                 case _:
                     return "outline"
@@ -62,28 +62,38 @@ class OutgoingMessage(Message):
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
 
+    email_url_name = "msa:message-detail"
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "msa:message-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.id},
-        )
+    url_name = "message-detail"
+
+    @property
+    def spam_badge_variant(self) -> str:
+        """Return the badge variant for the rspamd verdict."""
+        return "destructive" if self.spam_action in {"reject", "drop"} else "outline"
 
 
 class Transmission(TimeStamped):
-    """Track a single delivery attempt for an outgoing message.
+    """
+    Track a single SMTP leg of an outgoing message.
 
-    Each message can have multiple transmissions (for example, retry attempts).
+    Each message starts with the submission to relay's MSA and can gain
+    multiple delivery transmissions (for example, retry attempts).
     """
 
     class Status(models.TextChoices):
+        SUBMITTED = "submitted", _("submitted")
         SENT = "sent", _("sent")
-        DELIVERED = "delivered", _("delivered")
         FAILED = "failed", _("failed")
         RETRY = "retry", _("retry")
         BOUNCED = "bounced", _("bounced")
+
+    class TlsMode(models.TextChoices):
+        PLAINTEXT = "plaintext", "plaintext"
+        STARTTLS = "starttls", "STARTTLS"
+        TLS = "tls", "TLS"
 
     id = models.UUIDField(
         primary_key=True,
@@ -94,6 +104,23 @@ class Transmission(TimeStamped):
         OutgoingMessage,
         on_delete=models.CASCADE,
         related_name="transmissions",
+    )
+    mx_host = models.TextField(
+        _("MX host"),
+        blank=True,
+        help_text=_("MX hostname this delivery attempt dialed."),
+    )
+    sending_mta_ip_address = models.GenericIPAddressField(
+        _("sending MTA IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address relay sent this delivery attempt from."),
+    )
+    receiving_mx_ip_address = models.GenericIPAddressField(
+        _("receiving MX IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address of the MX that handled this delivery attempt."),
     )
     status = models.TextField(
         _("status"),
@@ -116,10 +143,28 @@ class Transmission(TimeStamped):
         blank=True,
         help_text=_("Human-readable explanation of the outcome."),
     )
-    sent_with_ssl = models.BooleanField(
-        _("sent with SSL"),
-        default=False,
-        help_text=_("Delivered over TLS."),
+    tls_mode = models.TextField(
+        _("TLS mode"),
+        choices=TlsMode,
+        default=TlsMode.PLAINTEXT,
+        help_text=_("TLS transport negotiated for this delivery attempt."),
+    )
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="transmissions",
     )
     log_id = models.TextField(
         _("log ID"),
@@ -130,11 +175,22 @@ class Transmission(TimeStamped):
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
 
+    @classmethod
+    def record_submission(cls, message, ssl):
+        """Record the submission relay accepted for a message."""
+        cls.objects.create(
+            message=message,
+            status=cls.Status.SUBMITTED,
+            code=250,
+            output="250 OK",
+            tls_mode=cls.TlsMode.TLS if ssl else cls.TlsMode.PLAINTEXT,
+        )
+
     @property
     def status_badge_variant(self) -> str:
         match self.status:
-            case self.Status.SENT | self.Status.DELIVERED:
-                return "primary"
+            case self.Status.SENT:
+                return "success"
             case self.Status.FAILED | self.Status.BOUNCED:
                 return "destructive"
             case _:
@@ -188,7 +244,8 @@ class SuppressionQuerySet(models.QuerySet):
         return self.update_or_create(defaults=defaults, **kwargs)
 
     def is_suppressed(self, org, email) -> bool:
-        """Check whether an email is suppressed for the given org.
+        """
+        Check whether an email is suppressed for the given org.
 
         All entries for the current org suppress regardless of age or reason.
         Bounce entries from any other org suppress for 30 days after creation.
@@ -210,7 +267,8 @@ class SuppressionQuerySet(models.QuerySet):
 
 
 class SuppressionEntry(OrganizationOwned):
-    """Store a salted hash of an email address that should not receive mail.
+    """
+    Store a salted hash of an email address that should not receive mail.
 
     The plain email address is never stored. Bounces are added automatically;
     users can add or remove entries manually. Use the `__email` lookup to

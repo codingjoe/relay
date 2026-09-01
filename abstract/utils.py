@@ -19,7 +19,8 @@ FENCE_END = re.compile(r"^(```|~~~)[ \t]*$")
 
 
 class MermaidPreprocessor(Preprocessor):
-    """Convert fenced ```mermaid blocks into raw HTML Mermaid targets.
+    """
+    Convert fenced ```mermaid blocks into raw HTML Mermaid targets.
 
     Runs before the fenced_code preprocessor, which would otherwise
     highlight the diagram source as code.
@@ -59,7 +60,8 @@ class MermaidExtension(markdown.Extension):
 
 
 def strip_frontmatter(text: str) -> str:
-    """Strip YAML frontmatter (`---` delimited) from the start of a Markdown document.
+    """
+    Strip YAML frontmatter (`---` delimited) from the start of a Markdown document.
 
     If the document does not start with a frontmatter block, return it unchanged.
     """
@@ -151,6 +153,7 @@ def md_toc(document: str, depth=None) -> str:
         depth (str|int): The depth of which to create the table of contents.
                This can be a number or a range, for example `1-3`.
                Default: 6.
+
     """
     md = markdown.Markdown(
         extensions=["toc"],

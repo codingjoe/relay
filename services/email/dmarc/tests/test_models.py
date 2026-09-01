@@ -3,6 +3,7 @@ from email.message import EmailMessage
 
 import pytest
 
+from abstract.email_utils import MissingAttachmentError
 from domains.models import Domain
 from services.email.dmarc.models import DmarcRecord, DmarcReport
 
@@ -73,11 +74,8 @@ class TestDmarcReportParseFromEmail:
         msg = EmailMessage()
         msg["Subject"] = "No attachment"
         msg.set_content("body")
-        try:
+        with pytest.raises(MissingAttachmentError):
             DmarcReport.parse_from_email(msg.as_bytes())
-            assert False, "Should have raised ValueError"
-        except ValueError:
-            pass
 
 
 @pytest.mark.django_db

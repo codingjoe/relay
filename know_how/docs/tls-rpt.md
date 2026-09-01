@@ -12,7 +12,7 @@ author: Johannes Maron
 
 TLS-RPT (SMTP TLS Reporting) is a standard that lets sending mail servers send reports about TLS connection failures to the receiving domain. The reports contain details about failed connections, the reason for the failure, and the sending server that experienced the problem.
 
-TLS-RPT is defined in [RFC 8460](https://datatracker.ietf.org/doc/html/rfc8460).
+TLS-RPT is defined in [RFC 8460][rfc-8460].
 
 ## Why TLS-RPT matters
 
@@ -83,8 +83,8 @@ The reports show which senders had TLS failures and the reason for each failure.
 
 ## Further reading
 
-- [RFC 8460: SMTP TLS Reporting](https://datatracker.ietf.org/doc/html/rfc8460)
-- [RFC 8460 Section 4: Report format](https://datatracker.ietf.org/doc/html/rfc8460#section-4)
+- [RFC 8460][rfc-8460]: SMTP TLS Reporting
+- [RFC 8460][rfc-8460] Section 4: Report format
 - <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a>: SMTP MTA Strict Transport Security
 - <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
 
@@ -93,3 +93,5 @@ The reports show which senders had TLS failures and the reason for each failure.
 [^rua-transport]: The HTTPS transport is preferred over email because it scales better for high-volume domains. A single HTTPS endpoint can receive reports from thousands of senders without consuming mailbox storage.
 
 [^failure-detail-optional]: The `failure-details` section is optional. Some sending servers omit it for privacy or operational reasons. The `summary` section is always present and gives the total count of successful and failed sessions.
+
+[rfc-8460]: https://www.rfc-editor.org/info/rfc8460/

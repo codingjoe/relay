@@ -70,7 +70,8 @@ class TestCreateOrUpdate:
         e2, c2 = SuppressionEntry.objects.create_or_update(
             org=org2, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
-        assert c1 and c2
+        assert c1
+        assert c2
         assert e1 != e2
 
 

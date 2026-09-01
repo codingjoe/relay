@@ -32,13 +32,15 @@ def validate_domain_name(value):
 
 class DomainQuerySet(models.QuerySet):
     def root_for(self, name, *, include_managed):
-        """Return the closest registered parent domain for *name*.
+        """
+        Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific
         name has priority.
 
         Raises:
             DoesNotExist: If no matching domain is found.
+
         """
         try:
             parts = idna.uts46_remap(
@@ -202,16 +204,6 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("RSA-2048 DKIM signing key."),
     )
-    dkim_key_rsa1024 = models.ForeignKey(
-        "kms.SigningKey",
-        on_delete=models.PROTECT,
-        related_name="+",
-        null=True,
-        blank=True,
-        help_text=_(
-            "RSA-1024 DKIM signing key. For compatibility with older verifiers."
-        ),
-    )
     dkim_key_ed25519 = models.ForeignKey(
         "kms.SigningKey",
         on_delete=models.PROTECT,
@@ -244,12 +236,10 @@ class Domain(TimeStamped):
         super().save(*args, **kwargs)
         if is_new and self.dkim_key_rsa2048_id is None:
             self.dkim_key_rsa2048 = SigningKey.generate(SigningKey.Algorithm.RSA_2048)
-            self.dkim_key_rsa1024 = SigningKey.generate(SigningKey.Algorithm.RSA_1024)
             self.dkim_key_ed25519 = SigningKey.generate(SigningKey.Algorithm.ED25519)
             super().save(
                 update_fields=[
                     "dkim_key_rsa2048",
-                    "dkim_key_rsa1024",
                     "dkim_key_ed25519",
                 ]
             )
@@ -338,7 +328,6 @@ class Domain(TimeStamped):
         prefix = settings.RELAY_DNS_DKIM_IDENTIFIER
         return [
             (f"{prefix}-rsa2048", self.dkim_key_rsa2048),
-            (f"{prefix}-rsa1024", self.dkim_key_rsa1024),
             (f"{prefix}-ed25519", self.dkim_key_ed25519),
         ]
 

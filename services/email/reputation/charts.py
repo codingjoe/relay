@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
@@ -10,19 +10,20 @@ from services.email.msa.models import OutgoingMessage, Transmission
 from .models import FblReport
 
 REPUTATION_CHART_COLORS = {
-    "sent": "var(--color-primary)",
-    "hard_bounced": "var(--color-destructive)",
-    "soft_bounced": "var(--color-warning)",
-    "complained": "var(--color-destructive)",
-    "hard_bounce_rate": "var(--color-destructive)",
-    "complaint_rate": "var(--color-primary)",
-    "hard_bounce_limit": "var(--color-muted-foreground)",
-    "complaint_limit": "var(--color-muted-foreground)",
+    "sent": "var(--color-chart-green)",
+    "hard_bounced": "var(--color-chart-red)",
+    "soft_bounced": "var(--color-chart-yellow)",
+    "complained": "var(--color-chart-red)",
+    "hard_bounce_rate": "var(--color-chart-red)",
+    "complaint_rate": "var(--color-chart-orange)",
+    "hard_bounce_limit": "var(--color-chart-gray)",
+    "complaint_limit": "var(--color-chart-gray)",
 }
 
 
 def build_reputation_chart(org):
-    """Return per-day message counts, rates, and rate limits for one org.
+    """
+    Return per-day message counts, rates, and rate limits for one org.
 
     Counts provider FBL reports and outgoing messages held as spam as
     complaints. Values accumulate from the start of the evaluation
@@ -42,31 +43,22 @@ def build_reputation_chart(org):
     )
     sent_counts = {row["day"]: row["count"] for row in sent_rows}
 
-    hard_bounce_rows = (
+    bounce_rows = (
         Transmission.objects.filter(
             message__org=org,
             message__created_at__date__gte=start,
             status=Transmission.Status.BOUNCED,
-            code__gte=500,
         )
         .annotate(day=TruncDate("message__created_at"))
         .values("day")
-        .annotate(count=Count("id"))
-    )
-    hard_bounce_counts = {row["day"]: row["count"] for row in hard_bounce_rows}
-
-    soft_bounce_rows = (
-        Transmission.objects.filter(
-            message__org=org,
-            message__created_at__date__gte=start,
-            status=Transmission.Status.BOUNCED,
-            code__lt=500,
+        .annotate(
+            hard=Count("id", filter=Q(code__gte=500)),
+            soft=Count("id", filter=Q(code__lt=500)),
         )
-        .annotate(day=TruncDate("message__created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
     )
-    soft_bounce_counts = {row["day"]: row["count"] for row in soft_bounce_rows}
+    rows = list(bounce_rows)
+    hard_bounce_counts = {row["day"]: row["hard"] for row in rows}
+    soft_bounce_counts = {row["day"]: row["soft"] for row in rows}
 
     complaint_rows = (
         FblReport.objects.filter(
@@ -155,13 +147,13 @@ def build_reputation_chart(org):
             "key": "hard_bounce_limit",
             "label": "Hard bounce limit",
             "color": REPUTATION_CHART_COLORS["hard_bounce_limit"],
-            "dataset": "stack: null, fill: false",
+            "dataset": "type: 'line'",
         },
         {
             "key": "complaint_limit",
             "label": "Complaint limit",
             "color": REPUTATION_CHART_COLORS["complaint_limit"],
-            "dataset": "stack: null, fill: false",
+            "dataset": "type: 'line'",
         },
     ]
     return {

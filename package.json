@@ -29,7 +29,12 @@
       "files": [
         "src/css/**/*.css",
         "postcss.config.mjs",
-        "pnpm-lock.yaml"
+        "pnpm-lock.yaml",
+        "root/templates/**/*.html",
+        "services/**/*.html",
+        "accounts/**/*.html",
+        "domains/**/*.html",
+        "abstract/**/*.html"
       ],
       "output": [
         "root/static/css/app.css"

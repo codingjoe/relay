@@ -17,7 +17,8 @@ class MtaStsHostMiddleware:
                 response = MtaStsPolicyView.as_view()(request)
                 if hasattr(response, "render") and callable(response.render):
                     response.render()
-                return response
             except Http404:
                 return HttpResponse(status=421)
+            else:
+                return response
         return self.get_response(request)

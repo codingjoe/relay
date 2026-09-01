@@ -11,7 +11,8 @@ from .parser import parse_fbl
 
 
 class FblReport(OrganizationOwned):
-    """Feedback Loop (FBL) complaint report.
+    """
+    Feedback Loop (FBL) complaint report.
 
     FBL reports use the ARF (Abuse Reporting Format, RFC 5965) MIME structure.
     They are similar to DMARC RUF reports but carry complaint feedback
@@ -159,7 +160,8 @@ class FblReport(OrganizationOwned):
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return an unsaved FblReport and the claimed Feedback-ID string.
+        """
+        Return an unsaved FblReport and the claimed Feedback-ID string.
 
         Raises `ValueError` if no ARF feedback-report content is found.
         """
@@ -184,7 +186,8 @@ class FblReport(OrganizationOwned):
 
     @classmethod
     def create_for_incoming(cls, message):
-        """Store an FBL report email received at the FBL reporting address.
+        """
+        Store an FBL report email received at the FBL reporting address.
 
         Reports usually arrive on a single reporting address such as
         `fbl@relays.to`, regardless of the original recipient. The report
@@ -201,8 +204,8 @@ class FblReport(OrganizationOwned):
 
     @classmethod
     def create_for_spam(cls, message):
-        """Store a relay-generated FBL report for a message that Relay's own
-        checks flagged.
+        """
+        Store a relay-generated FBL report for a spam-flagged message.
 
         Covers MSA-held outgoing messages and MTA-quarantined incoming
         messages. Relay-generated reports are for visibility only and do

@@ -14,7 +14,7 @@
     {% block meta_tags %}
       <meta
         name="description"
-        content="{% block meta_description %}relay: communication as a service. Email sending, receiving, and reputation monitoring with a built-in authoritative nameserver.{% endblock %}"
+        content="{% block meta_description %}relay: communication as a service. Email sending, receiving, and reputation monitoring for developers, with near-zero configuration. relay handles the DNS and email plumbing.{% endblock %}"
       >
       <link rel="canonical" href="{{ request.build_absolute_uri }}">
       <meta property="og:site_name" content="relay">
@@ -38,8 +38,6 @@
     {% endblock meta_tags %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/chart.min.js" defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
     <script defer>
       document.addEventListener("DOMContentLoaded", () => {
@@ -71,6 +69,6 @@
       </div>
       {% include "partials/footer.html" %}
     </main>
-    {% include "partials/toaster.html" %}
+    {% if not request.public_cache %}{% include "partials/toaster.html" %}{% endif %}
   </body>
 </html>

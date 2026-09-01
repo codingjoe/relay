@@ -11,15 +11,20 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from . import keystore
 
 
+class UnsupportedAlgorithmError(ValueError):
+    """The requested key algorithm is not supported."""
+
+    def __init__(self, algorithm):
+        super().__init__(f"Unsupported algorithm: {algorithm}")
+
+
 class Algorithm:
     RSA_2048 = "rsa-2048"
-    RSA_1024 = "rsa-1024"
     ED25519 = "ed25519"
 
 
 DEFAULT_DKIM_ALGORITHMS: tuple[str, ...] = (
     Algorithm.RSA_2048,
-    Algorithm.RSA_1024,
     Algorithm.ED25519,
 )
 
@@ -82,12 +87,10 @@ def generate(algorithm: str) -> KeyPair:
     match algorithm:
         case "rsa-2048":
             private_pem = generate_rsa_private_key(2048)
-        case "rsa-1024":
-            private_pem = generate_rsa_private_key(1024)
         case "ed25519":
             private_pem = generate_ed25519_private_key()
         case _:
-            raise ValueError(f"Unsupported algorithm: {algorithm}")
+            raise UnsupportedAlgorithmError(algorithm)
     public_pem = public_pem_from_private(private_pem)
     return KeyPair(
         ciphertext=keystore.encrypt(private_pem),
@@ -108,7 +111,7 @@ def load(ciphertext: str):
 
 def dkim_key_material_from_pem(private_pem: str, algorithm: str) -> tuple[bytes, bytes]:
     match algorithm:
-        case Algorithm.RSA_2048 | Algorithm.RSA_1024:
+        case Algorithm.RSA_2048:
             return private_pem.encode("ascii"), b"rsa-sha256"
         case Algorithm.ED25519:
             private = serialization.load_pem_private_key(private_pem.encode(), None)
@@ -119,7 +122,7 @@ def dkim_key_material_from_pem(private_pem: str, algorithm: str) -> tuple[bytes,
             )
             return base64.b64encode(raw_seed), b"ed25519-sha256"
         case _:
-            raise ValueError(f"Unsupported algorithm for DKIM: {algorithm}")
+            raise UnsupportedAlgorithmError(algorithm)
 
 
 def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:

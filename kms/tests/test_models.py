@@ -1,10 +1,13 @@
+import datetime
+
 import pytest
-from cryptography.hazmat.primitives import serialization
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from django.db import IntegrityError
 
-from kms.models import SigningKey
+from kms.models import Certificate, SigningKey
 
 
 @pytest.mark.django_db
@@ -21,10 +24,6 @@ class TestSigningKeyGenerate:
     def test_generate__rsa_2048(self):
         key = SigningKey.generate("rsa-2048")
         assert key.algorithm == SigningKey.Algorithm.RSA_2048
-
-    def test_generate__rsa_1024(self):
-        key = SigningKey.generate("rsa-1024")
-        assert key.algorithm == SigningKey.Algorithm.RSA_1024
 
     def test_generate__produces_unique_keys(self):
         k1 = SigningKey.generate("ed25519")
@@ -67,7 +66,6 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_raw__matches_public_pem(self):
         """Raw bytes must correspond to the public PEM."""
-
         key = SigningKey.generate("ed25519")
         raw = key.public_bytes_raw()
         from_pem = serialization.load_pem_public_key(
@@ -80,7 +78,6 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_der__for_rsa(self):
         """RSA public keys must encode to SPKI DER (used for the DKIM p= tag)."""
-
         key = SigningKey.generate("rsa-2048")
         der = key.public_bytes_der()
         # Should decode back to the same RSA public key.
@@ -110,3 +107,54 @@ class TestSigningKeyConstraints:
                 public_key=key1.public_key,
                 encrypted_private_key=key1.encrypted_private_key,
             )
+
+
+def make_certificate(common_name):
+    """Return a self-signed TLS certificate for the given DNS name."""
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, common_name)])
+    now = datetime.datetime.now(datetime.UTC)
+    return (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=90))
+        .add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(common_name)]),
+            critical=False,
+        )
+        .sign(key, hashes.SHA256())
+    )
+
+
+@pytest.mark.django_db
+class TestStorePresentedChain:
+    def test_store_presented_chain__links_issuers_in_one_pass(self):
+        """A presented chain is stored leaf-first with each issuer linked."""
+        leaf = make_certificate("mx.example.com")
+        intermediate = make_certificate("intermediate.example.com")
+        root = make_certificate("root.example.com")
+        stored_leaf = Certificate.store_presented_chain([leaf, intermediate, root])
+        stored_intermediate = Certificate.objects.get(
+            subject="CN=intermediate.example.com"
+        )
+        stored_root = Certificate.objects.get(subject="CN=root.example.com")
+        assert stored_leaf.issuer_certificate == stored_intermediate
+        assert stored_intermediate.issuer_certificate == stored_root
+        assert stored_root.issuer_certificate is None
+        assert list(stored_leaf.chain()) == [
+            stored_leaf,
+            stored_intermediate,
+            stored_root,
+        ]
+
+    def test_store_presented_chain__reuses_existing_rows(self):
+        """Storing the same chain twice does not duplicate certificates."""
+        leaf = make_certificate("mx.example.com")
+        Certificate.store_presented_chain([leaf])
+        assert Certificate.objects.count() == 1
+        Certificate.store_presented_chain([leaf])
+        assert Certificate.objects.count() == 1

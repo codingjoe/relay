@@ -26,10 +26,6 @@
   pattern: '\n[ \t]+(?:if|except)\b[^\n]*:\n[ \t]+(?:return\s*\n|continue\b)'
   hint: 'Avoid bare `return` (no value) and `continue` to cut program flow (`if/except ...: return/continue`). Use EAFP (try/except) or match/case instead. Returns with an explicit value are OK.'
   filePattern: .*\.py
-- name: Querysets must set an explicit fetch_mode
-  pattern: 'def get_queryset\(self\):\n[ \t]+return [^\n]*\.objects\.(?:filter|all|exclude)\((?:(?!\.fetch_mode)[^\n])*\)(?=\s*$)'
-  hint: 'Set an explicit `fetch_mode` on every queryset returned from `get_queryset()`, e.g. `.fetch_mode(models.FETCH_PEERS)`, to guard against N+1 query bloat.'
-  filePattern: .*\.py
 - name: Use .get() instead of .first()
   pattern: '(?i)\.first\(\)(?!.*#\s*noqa)'
   hint: 'Prefer `.get()` with proper exception handling over `.first()` and a None test. If `.first()` is intentional, add `# noqa` to the line.'
@@ -125,3 +121,7 @@
   pattern: '\{%\s*blocktranslate\b[^%]*?%\}[^%]*?[.!?] [a-z]|\{%\s*plural\s*%\}[^%]*?[.!?] [a-z]|\{%\s*translate\s+(["''])(?:(?!\1)[^\n])*?[.!?] [a-z]'
   hint: 'No filter reaches sentences after the first. Start every sentence inside a msgid with a capital letter, including inside blocktranslate and plural blocks.'
   filePattern: '.*\.html$'
+- name: Use footnote-style RFC links
+  pattern: '\[[^\]\n]*RFC[ ]?\d{3,4}[^\]\n]*\]\(https?://[^)]+\)'
+  hint: 'Put the RFC link definition at the bottom of the page and reference it inline, for example `[RFC 8617][rfc-8617]` defined by `[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/`.'
+  filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'

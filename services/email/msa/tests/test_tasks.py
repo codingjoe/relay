@@ -1,7 +1,12 @@
-from unittest.mock import MagicMock, patch
+import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiosmtplib
 import pytest
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import Encoding
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -14,6 +19,27 @@ from services.email.msa.tasks import (
     fetch_mx_hosts,
 )
 from services.email.spam import SpamAction, SpamResult
+
+
+def make_certificate(common_name):
+    """Return a self-signed TLS certificate for the given DNS name."""
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, common_name)])
+    now = datetime.datetime.now(datetime.UTC)
+    return (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=90))
+        .add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(common_name)]),
+            critical=False,
+        )
+        .sign(key, hashes.SHA256())
+    )
 
 
 class TestFetchMxHosts:
@@ -70,26 +96,62 @@ class TestDeliverMessage:
         msg.save()
 
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
-        mock_response = MagicMock()
-        mock_response.__str__ = MagicMock(return_value="250 OK")
-
+        certificate = make_certificate("mx.example.com")
+        ssl_object = MagicMock()
+        ssl_object.get_unverified_chain.return_value = [
+            certificate.public_bytes(Encoding.DER)
+        ]
+        smtp_client = MagicMock()
+        smtp_client.sendmail = AsyncMock(return_value="250 OK")
+        smtp_client.__aenter__.return_value = smtp_client
+        smtp_client.get_transport_info.side_effect = {
+            "ssl_object": ssl_object,
+            "cipher": ("TLS_AES_256_GCM_SHA384", "TLSv1.3", 32),
+            "sockname": ("198.51.100.25", 40000),
+            "peername": ("203.0.113.10", 25),
+        }.get
         with patch(
-            "services.email.msa.tasks.aiosmtplib.send", return_value=mock_response
-        ) as mock_send:
+            "services.email.msa.tasks.aiosmtplib.SMTP",
+            return_value=smtp_client,
+        ) as mock_smtp:
             deliver_message.func(message_id=str(msg.id))
 
-        assert mock_send.call_args.kwargs["sender"] == (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{msg.id}@{domain.sender_domain}"
-        )
         assert (
-            mock_send.call_args.kwargs["local_hostname"]
+            mock_smtp.call_args.kwargs["local_hostname"]
             == settings.RELAY_SMTP_PUBLIC_HOSTNAME
+        )
+        assert mock_smtp.call_args.kwargs["port"] == 25
+        assert mock_smtp.call_args.kwargs["use_tls"] is False
+        assert mock_smtp.call_args.kwargs["start_tls"] is True
+        assert smtp_client.sendmail.call_args.args[0] == (
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{msg.id}@{domain.sender_domain}"
         )
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.SENT
-        assert Transmission.objects.filter(
+        transmission = Transmission.objects.get(
             message=msg, status=Transmission.Status.SENT
-        ).exists()
+        )
+        assert transmission.mx_host == "mx.example.com"
+        assert transmission.tls_mode == Transmission.TlsMode.STARTTLS
+        assert transmission.tls_version == "TLSv1.3"
+        assert transmission.tls_cipher == "TLS_AES_256_GCM_SHA384"
+        assert transmission.sending_mta_ip_address == "198.51.100.25"
+        assert transmission.receiving_mx_ip_address == "203.0.113.10"
+        stored_certificate = transmission.tls_certificate
+        assert (
+            stored_certificate.fingerprint
+            == certificate.fingerprint(hashes.SHA256()).hex()
+        )
+        assert stored_certificate.subject == "CN=mx.example.com"
+        assert stored_certificate.subject_alternative_names == "mx.example.com"
+        assert stored_certificate.issuer == "CN=mx.example.com"
+        assert stored_certificate.serial_number == format(
+            certificate.serial_number, "x"
+        )
+        assert stored_certificate.not_before == certificate.not_valid_before_utc
+        assert stored_certificate.not_after == certificate.not_valid_after_utc
+        assert stored_certificate.issuer_certificate is None
+        assert list(stored_certificate.chain()) == [stored_certificate]
 
     def test_deliver_message__permanent_failure_marks_bounced(
         self, user, org, dns_resolver
@@ -107,7 +169,10 @@ class TestDeliverMessage:
 
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
         exc = aiosmtplib.SMTPResponseException(550, b"User unknown")
-        with patch("services.email.msa.tasks.aiosmtplib.send", side_effect=exc):
+        with patch(
+            "services.email.msa.tasks.aiosmtplib.SMTP",
+            side_effect=exc,
+        ):
             deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
@@ -138,7 +203,7 @@ class TestDeliverMessage:
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
 
-        with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
             deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
@@ -148,7 +213,7 @@ class TestDeliverMessage:
             status=Transmission.Status.FAILED,
             details__contains="ambiguous",
         ).exists()
-        mock_send.assert_not_called()
+        mock_smtp.assert_not_called()
 
     def test_deliver_message__drops_message_of_locked_org(self, user, org):
         domain = Domain.objects.get(org=org)
@@ -164,10 +229,10 @@ class TestDeliverMessage:
         org.suspended_at = timezone.now()
         org.save(update_fields=["suspended_at", "modified_at"])
 
-        with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
             deliver_message.func(message_id=str(message.id))
 
-        mock_send.assert_not_called()
+        mock_smtp.assert_not_called()
         message.refresh_from_db()
         assert message.status == OutgoingMessage.Status.DROPPED
         transmission = Transmission.objects.get(message=message)
@@ -193,10 +258,10 @@ class TestDeliverMessage:
         (domain,) = Domain.objects.bulk_create([Domain(name="Example.com", org=org)])
         msg = self.make_message(user, org, domain)
 
-        with patch("services.email.msa.tasks.aiosmtplib.send") as mock_send:
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
             deliver_message.func(message_id=str(msg.id))
 
-        mock_send.assert_not_called()
+        mock_smtp.assert_not_called()
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
         assert Transmission.objects.filter(
@@ -215,7 +280,7 @@ class TestDeliverMessage:
 
         with (
             patch("services.email.msa.tasks.MtaStsPolicy") as mock_policy,
-            patch("services.email.msa.tasks.aiosmtplib.send") as mock_send,
+            patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp,
         ):
             mock_policy.get.return_value.allows.return_value = (
                 False,
@@ -224,7 +289,7 @@ class TestDeliverMessage:
             deliver_message.func(message_id=str(msg.id))
 
         mock_policy.get.return_value.allows.assert_called_once_with("mx.example.com")
-        mock_send.assert_not_called()
+        mock_smtp.assert_not_called()
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
         assert Transmission.objects.filter(
@@ -242,7 +307,10 @@ class TestDeliverMessage:
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
 
         exc = aiosmtplib.SMTPResponseException(450, b"Try again later")
-        with patch("services.email.msa.tasks.aiosmtplib.send", side_effect=exc):
+        with patch(
+            "services.email.msa.tasks.aiosmtplib.SMTP",
+            side_effect=exc,
+        ):
             deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
@@ -262,12 +330,12 @@ class TestDeliverMessage:
         )
 
         with patch(
-            "services.email.msa.tasks.aiosmtplib.send",
+            "services.email.msa.tasks.aiosmtplib.SMTP",
             side_effect=aiosmtplib.SMTPException("nope"),
-        ) as mock_send:
+        ) as mock_smtp:
             deliver_message.func(message_id=str(msg.id))
 
-        assert mock_send.call_count == 2
+        assert mock_smtp.call_count == 2
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
         assert Transmission.objects.filter(

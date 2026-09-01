@@ -23,15 +23,15 @@ one:
 | ------------- | ---------------------------------- | ---------------------------------------------------- |
 | NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
 | SPF           | root and sender subdomain TEXT     | a record that authorizes the relay sender host       |
-| DKIM          | three CNAME records                | `{selector}._domainkey` pointing into the relay zone |
+| DKIM          | two CNAME records                  | `{selector}._domainkey` pointing into the relay zone |
 | DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
 | MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
 | TLS-RPT       | `_smtp._tls` TXT                   | reporting to the relay TLS collector                 |
 
-Six public-key selectors, three per domain (RSA-2048, RSA-1024, Ed25519),
-sign every message with `h=sha256`. Multiple algorithms exist because some
-older verifiers do not read Ed25519 names yet. All three signatures ride on
-every outgoing message, so stricter receivers find a signature they accept.
+Four public-key selectors, two per domain (RSA-2048 and Ed25519),
+sign every message with `h=sha256`. Both algorithms ride on every
+outgoing message, so receivers that cannot read Ed25519 names yet still
+find an RSA signature they accept.
 
 Your message carries one more identity besides your domain keys. relay
 cosigns customers' messages with the keys of the platform domain. The cosign
@@ -67,7 +67,7 @@ sequenceDiagram
     MSA->>Scan: full message scan
     Scan-->>MSA: score and action
     MSA->>MSA: held if spammy, else continue
-    MSA->>Sign: sign with RSA-2048, RSA-1024, Ed25519
+    MSA->>Sign: sign with RSA-2048, Ed25519
     Sign-->>MSA: signed message
     MSA->>Remote: STARTTLS on 25, per-MX attempts
     Remote-->>MSA: SMTP response, recorded in the dashboard

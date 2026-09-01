@@ -19,7 +19,7 @@ relay stores your submission before any processing:
 flowchart TD
     A[250 OK: message stored as pending] --> B[rspamd outbound scan]
     B -- held --> C[Status held]
-    B -- clean --> D[DKIM sign all three keys]
+    B -- clean --> D[DKIM sign all keys]
     D --> E[MX lookup, MTA-STS filter]
     E --> F[Attempt 1]
     F --> G[Status sent, transcript stored]
@@ -33,10 +33,22 @@ from the queue state, performs through an attempt, and records the attempt.
 
 ## Transmission records
 
-Every delivery attempt produces one immutable transmission row with:
+Every accepted submission and every delivery attempt produces one immutable
+transmission row with:
 
-- the attempted MX host and transport flag (TLS or not),
+- the submission row records the acceptance answer and whether the
+  submission arrived over TLS,
+
+- a sent attempt records the attempted MX host, the TLS details of the
+  connection: STARTTLS or TLS, the protocol version, the cipher suite, and
+  the certificate the remote server presented, identified by its SHA-256
+  fingerprint, with its subject, alternative names, issuer, serial number,
+  validity window, and certificate chain, and both IP addresses of the
+  delivery connection: the address relay sent from and the address of the MX
+  that handled the attempt,
+
 - the SMTP status code and the complete answer text,
+
 - a log reference for later inspection.
 
 Failures become visible with their reasons instead of disappearing. Support

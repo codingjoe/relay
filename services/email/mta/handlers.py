@@ -8,12 +8,16 @@ from django.db import transaction
 
 from abstract.mailauth import Disposition, DmarcEvaluation
 from domains.models import Domain
+from kms.models import Certificate
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.dmarc.tasks import (
     parse_dmarc_failure_report,
     parse_dmarc_report,
 )
+from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
+from services.email.tls import parse_peer_certificates
 
+from .arc import seal_message
 from .models import (
     IncomingMessage,
     TlsReport,
@@ -24,14 +28,13 @@ from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_
 logger = logging.getLogger(__name__)
 
 
-class MXHandler:
+class MXHandler(ProxyProtocolMixin):
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
-            domain = await sync_to_async(Domain.objects.root_for)(
-                rcpt_domain,
-                include_managed=True,
-            )
+            domain = await sync_to_async(
+                Domain.objects.select_related("dkim_key_rsa2048").root_for
+            )(rcpt_domain, include_managed=True)
         except Domain.DoesNotExist:
             return "550 Relay not authorised for this recipient"
         envelope.rcpt_tos.append(address)
@@ -44,10 +47,11 @@ class MXHandler:
         rcpt_to = envelope.rcpt_tos[0] if envelope.rcpt_tos else ""
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
-        client_ip = session.peer[0] if session.peer else ""
+        client_ip = get_client_ip(session)
+        domain = envelope.recipient_domain
         evaluation = await sync_to_async(
             DmarcEvaluation.from_bytes, thread_sensitive=False
-        )(raw_bytes, mail_from)
+        )(raw_bytes, mail_from, client_ip)
         if evaluation.disposition == Disposition.REJECT:
             return "550 Message rejected by DMARC policy"
         status = (
@@ -55,16 +59,19 @@ class MXHandler:
             if evaluation.disposition == Disposition.QUARANTINE
             else IncomingMessage.Status.RECEIVED
         )
+        raw_bytes = await sync_to_async(seal_message, thread_sensitive=False)(
+            raw_bytes, evaluation, domain
+        )
         result = await process_incoming_message(
             mail_from,
             rcpt_to,
             raw_bytes,
-            getattr(session, "ssl", False),
-            getattr(envelope, "recipient_domain", None),
+            getattr(session, "ssl", None),
+            domain,
             status,
             client_ip,
         )
-        logger.info(f"Incoming message from {mail_from} to {rcpt_to}: {result}")
+        logger.info("Incoming message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
 
 
@@ -77,6 +84,18 @@ def process_incoming_message(
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
     subject = msg.get("Subject", "")
     message_id = msg.get("Message-ID", "")
+    ssl_object = (tls or {}).get("ssl_object")
+    cipher = ssl_object.cipher() if ssl_object else None
+    tls_fields = {
+        "received_with_tls": bool(tls),
+        "tls_version": cipher[1] if cipher else "",
+        "tls_cipher": cipher[0] if cipher else "",
+        "tls_certificate": (
+            Certificate.store_presented_chain(parse_peer_certificates(ssl_object))
+            if ssl_object
+            else None
+        ),
+    }
 
     match local_part:
         case settings.RELAY_DMARC_REPORT_LOCAL_PART:
@@ -88,11 +107,12 @@ def process_incoming_message(
                 rcpt_to=rcpt_to,
                 subject=subject,
                 message_id=message_id,
-                received_with_tls=bool(tls),
                 report_id="",
+                headers=DmarcReport.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
+                **tls_fields,
             )
             transaction.on_commit(
                 lambda: parse_dmarc_report.enqueue(report_pk=str(report.pk))
@@ -108,11 +128,12 @@ def process_incoming_message(
                 rcpt_to=rcpt_to,
                 subject=subject,
                 message_id=message_id,
-                received_with_tls=bool(tls),
                 report_id="",
+                headers=TlsReport.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
+                **tls_fields,
             )
             transaction.on_commit(
                 lambda: parse_tls_report.enqueue(report_pk=str(report.pk))
@@ -128,10 +149,11 @@ def process_incoming_message(
                 rcpt_to=rcpt_to,
                 subject=subject,
                 message_id=message_id,
-                received_with_tls=bool(tls),
+                headers=DmarcFailureReport.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
+                **tls_fields,
             )
             transaction.on_commit(
                 lambda: parse_dmarc_failure_report.enqueue(report_pk=str(report.pk))
@@ -150,11 +172,12 @@ def process_incoming_message(
                 rcpt_to=rcpt_to,
                 subject=subject,
                 message_id=message_id,
-                received_with_tls=bool(tls),
                 status=status,
+                headers=IncomingMessage.headers_from_raw(raw_bytes),
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
+                **tls_fields,
             )
             fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
@@ -170,9 +193,10 @@ def process_incoming_message(
         rcpt_to=rcpt_to,
         subject=subject,
         message_id=message_id,
-        received_with_tls=bool(tls),
         status=status,
+        headers=IncomingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+        **tls_fields,
     )
     transaction.on_commit(
         lambda: check_incoming_spam.enqueue(

@@ -7,6 +7,12 @@ services:
       - app
       - dnsdist
     command: [ "-m", "manage", "dns", "--port", "5353" ]
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
     labels: !reset []
     extends:
       service: web
@@ -46,18 +52,32 @@ services:
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
       RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
-      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
-    ports:
-      - '0.0.0.0:465:465'
-      - '0.0.0.0:587:587'
-    networks: !override
-      - app
-      - app-wan
-    command: [ "-m", "manage", "msa" ]
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+      RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
+    command: [ "-m", "manage", "msa", "--ports", "587" ]
+    healthcheck:
+      # Caddy fronts the submission port with a PROXY protocol header.
+      # Send the unattributed v1 "UNKNOWN" header, then expect the SMTP
+      # banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
-    deploy: !reset {}
+      - "caddy_1.layer4.:587.route.proxy=msa:587"
+      - "caddy_1.layer4.:587.route.proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:587.route.proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:587.route.proxy.fail_duration=10s"
+      - "caddy_1.layer4.:587.route.proxy.proxy_protocol=v2"
+      - "caddy_1.layer4.:465.route.0_tls="
+      - "caddy_1.layer4.:465.route.1_proxy=msa:2465"
+      - "caddy_1.layer4.:465.route.1_proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:465.route.1_proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:465.route.1_proxy.fail_duration=10s"
+      - "caddy_1.layer4.:465.route.1_proxy.proxy_protocol=v2"
     extends:
       service: web
   mta:
@@ -65,18 +85,26 @@ services:
       - caddy_data:/data:ro
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
     environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
-    ports:
-      - '0.0.0.0:25:25'
-    networks: !override
-      - app
-      - app-wan
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
+      RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
+    healthcheck:
+      # Caddy fronts the MX port with a PROXY protocol header. Send the
+      # unattributed v1 "UNKNOWN" header, then expect the SMTP banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     labels: !override
       - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
-    deploy: !reset {}
+      - "caddy_1.layer4.:25.route.proxy=mta:25"
+      - "caddy_1.layer4.:25.route.proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:25.route.proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:25.route.proxy.fail_duration=10s"
+      - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
     extends:
       service: web
   # Loopback ports for the host-networked worker.
@@ -152,16 +180,10 @@ services:
       RELAY_RSPAMD_URL: http://127.0.0.1:11334
     networks: !reset []
     network_mode: host
-    command: [ "-m", "manage", "threadmill", "worker" ]
-    # No HTTP listener on the host network; probe in-process instead.
+    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
-      test: [ "CMD", "python", "-m", "manage", "health_check" ]
-      interval: 60s
-      retries: 3
-      start_period: 30s
-      timeout: 30s
+      test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
     labels: !reset []
-    deploy: !reset {}
     extends:
       service: web
 networks:

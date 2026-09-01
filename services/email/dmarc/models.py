@@ -1,15 +1,15 @@
 import gzip
 import logging
+import re
 import uuid
 
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db import models
 from django.template.loader import render_to_string
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from abstract.email_utils import iter_attachments
+from abstract.email_utils import MissingAttachmentError, iter_attachments
 from abstract.models import TimeStamped
 from domains.models import Domain
 from services.email.mta.models import IncomingMessage
@@ -62,21 +62,20 @@ class DmarcReport(IncomingMessage):
     def __str__(self):
         return f"{self.reporting_org} → {self.domain or '?'} ({self.report_id})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "dmarc:report-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.pk},
-        )
+    url_name = "report-detail"
+
+    icon = "shield-check"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
+        """
+        Return a DmarcReport instance and DmarcRecord list parsed from a raw email.
 
         Raises `ValueError` if no XML attachment is found.
         """
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
-            raise ValueError("No attachment found in DMARC report email.")
+            raise MissingAttachmentError
         parsed = parse_dmarc_xml(data)
         meta = parsed["metadata"]
         report = cls(
@@ -271,6 +270,47 @@ class DmarcFailureReport(IncomingMessage):
         help_text=_("Headers of the original message from the report."),
     )
 
+    @property
+    def parsed_authentication_results(self) -> list[dict]:
+        """Return one chip per method-verdict pair in the raw results."""
+        return [
+            self.parsed_authentication_result(chunk)
+            for chunk in re.split(r"[;\n]", self.authentication_results)
+            if "=" in chunk
+        ]
+
+    def parsed_authentication_result(self, chunk: str) -> dict:
+        """Parse a single `method=verdict` chunk into an auth result chip."""
+        method, _, verdict = chunk.strip().partition("=")
+        match (verdict.strip().split() or ["none"])[0].lower():
+            case "pass":
+                icon, icon_class = "circle-check", "text-primary"
+            case "fail" | "hardfail":
+                icon, icon_class = "circle-x", "text-destructive"
+            case _:
+                icon, icon_class = "circle-dashed", "text-muted-foreground"
+        return {
+            "method": method.strip().upper(),
+            "verdict": (verdict.strip().split() or ["none"])[0].lower(),
+            "icon": icon,
+            "icon_class": icon_class,
+        }
+
+    @property
+    def delivery_result_badge_variant(self) -> str:
+        """Return the badge variant for the delivery outcome."""
+        match self.delivery_result:
+            case self.DeliveryResult.DELIVERED:
+                return "success"
+            case (
+                self.DeliveryResult.REJECTED
+                | self.DeliveryResult.SPAM
+                | self.DeliveryResult.POLICY
+            ):
+                return "destructive"
+            case _:
+                return "outline"
+
     class Meta:
         indexes = [
             models.Index(fields=["arrival_at"]),
@@ -281,15 +321,14 @@ class DmarcFailureReport(IncomingMessage):
             f"{self.reporting_org} → {self.domain or '?'} ({self.original_mail_from})"
         )
 
-    def get_absolute_url(self):
-        return reverse(
-            "dmarc:failure-report-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.pk},
-        )
+    url_name = "failure-report-detail"
+
+    icon = "alert-triangle"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return a DmarcFailureReport instance parsed from a raw ARF email.
+        """
+        Return a DmarcFailureReport instance parsed from a raw ARF email.
 
         Raises `ValueError` if no ARF feedback-report content is found.
         """

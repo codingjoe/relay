@@ -16,11 +16,13 @@ from services.email.msa.handlers import (
     add_feedback_id,
     authenticate,
     process_message,
+    store_outgoing_message,
 )
 from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
     SuppressionEntry,
+    Transmission,
 )
 
 
@@ -178,6 +180,45 @@ class TestHandleData:
         stored = message_from_bytes(outgoing.raw_body.read())
         assert stored["Feedback-ID"].startswith(f"{org.pk}::")
         assert outgoing.feedback_id == stored["Feedback-ID"]
+        assert outgoing.headers
+        assert any(k == "Feedback-ID" for k, _ in outgoing.headers)
+        assert any(k == "DKIM-Signature" for k, _ in outgoing.headers)
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(outgoing.id), client_ip="127.0.0.1"
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__stores_message_with_8bit_headers(
+        self,
+        user,
+        org,
+    ):
+
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        session = SimpleNamespace(
+            credential=credential, peer=("127.0.0.1", 2525), ssl=True
+        )
+        raw = (
+            f"From: alice@{domain.name}\r\n"
+            f"To: {user.email}\r\n"
+            "Subject: Test\r\n"
+            "X-Custom: caf\xe9\r\n"
+            "\r\n"
+            "Hello"
+        ).encode("latin-1")
+        envelope = SimpleNamespace(
+            mail_from=f"alice@{domain.name}",
+            rcpt_tos=[user.email],
+            content=raw,
+        )
+
+        with patch("services.email.msa.handlers.check_outgoing_spam") as spam_task:
+            result = await SMTPHandler().handle_DATA(None, session, envelope)
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        assert result == "250 OK"
+        assert ["X-Custom", "caf\N{REPLACEMENT CHARACTER}"] in outgoing.headers
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip="127.0.0.1"
         )
@@ -296,7 +337,6 @@ class TestProcessMessage:
             "noatsign",
             user.email,
             message.as_bytes(),
-            message,
             credential,
             False,
             "",
@@ -325,7 +365,6 @@ class TestProcessMessage:
             mail_from,
             user.email,
             message.as_bytes(),
-            message,
             credential,
             False,
             "",
@@ -349,7 +388,6 @@ class TestProcessMessage:
             f"alice@{domain.name}",
             user.email,
             message.as_bytes(),
-            message,
             credential,
             False,
             "",
@@ -379,7 +417,6 @@ class TestProcessMessage:
             mail_from,
             other_user.email,
             message.as_bytes(),
-            message,
             credential,
             False,
             "",
@@ -403,7 +440,6 @@ class TestProcessMessage:
             f"alice@{domain.name}",
             "external@example.com",
             message.as_bytes(),
-            message,
             credential,
             False,
             "",
@@ -428,7 +464,6 @@ class TestProcessMessage:
             f"alice@{domain.name}",
             user.email,
             message.as_bytes(),
-            message,
             credential,
             False,
             "",
@@ -454,7 +489,6 @@ class TestProcessMessage:
                 mail_from,
                 rcpt_to,
                 message.as_bytes(),
-                message,
                 credential,
                 True,
                 "",
@@ -484,7 +518,6 @@ class TestProcessMessage:
                 f"alice@{domain.name}",
                 "external@example.com",
                 message.as_bytes(),
-                message,
                 credential,
                 False,
                 "",
@@ -510,7 +543,6 @@ class TestProcessMessage:
                 f"alice@{domain.name}",
                 rcpt_to,
                 message.as_bytes(),
-                message,
                 credential,
                 False,
                 "",
@@ -523,6 +555,125 @@ class TestProcessMessage:
         assert b"Feedback-ID" not in outgoing.raw_body.read()
         assert outgoing.domain == domain
         spam_task.enqueue.assert_not_called()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_process_message__suppressed_strips_customer_feedback_id(
+        self,
+        user,
+        org,
+    ):
+
+        domain = Domain.objects.get(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        rcpt_to = "suppressed@example.com"
+        SuppressionEntry.objects.create_or_update(org=org, email=rcpt_to)
+        message = make_email(f"alice@{domain.name}", rcpt_to)
+        message["Feedback-ID"] = "customer-id"
+
+        with patch("services.email.msa.handlers.check_outgoing_spam"):
+            result = await process_message(
+                f"alice@{domain.name}",
+                rcpt_to,
+                message.as_bytes(),
+                credential,
+                False,
+                "",
+            )
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        assert result == "250 OK"
+        raw = outgoing.raw_body.read()
+        assert b"customer-id" not in raw
+        assert b"Feedback-ID" not in raw
+        assert not any(name == "Feedback-ID" for name, _ in outgoing.headers)
+        assert outgoing.feedback_id == ""
+
+
+@pytest.mark.django_db
+class TestStoreOutgoingMessage:
+    def test_store_outgoing_message__pending_enqueues_spam_check(
+        self,
+        org,
+        django_capture_on_commit_callbacks,
+    ):
+
+        domain = Domain.objects.get(org=org, is_managed=True)
+        raw_bytes = make_email("alice@example.com", "bob@example.com").as_bytes()
+
+        with (
+            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            message = store_outgoing_message(
+                org=org,
+                rcpt_to="bob@example.com",
+                mail_from="alice@example.com",
+                domain=domain,
+                credential=None,
+                status=OutgoingMessage.Status.PENDING,
+                feedback_id="1::abc:relay",
+                ssl=True,
+                client_ip="192.0.2.1",
+                raw_bytes=raw_bytes,
+            )
+
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(message.id), client_ip="192.0.2.1"
+        )
+        transmission = Transmission.objects.get(message=message)
+        assert transmission.status == Transmission.Status.SUBMITTED
+
+    def test_store_outgoing_message__suppressed_skips_spam_check(
+        self,
+        org,
+        django_capture_on_commit_callbacks,
+    ):
+
+        domain = Domain.objects.get(org=org, is_managed=True)
+        raw_bytes = make_email("alice@example.com", "bob@example.com").as_bytes()
+
+        with (
+            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            message = store_outgoing_message(
+                org=org,
+                rcpt_to="bob@example.com",
+                mail_from="alice@example.com",
+                domain=domain,
+                credential=None,
+                status=OutgoingMessage.Status.SUPPRESSED,
+                feedback_id="",
+                ssl=False,
+                client_ip="192.0.2.1",
+                raw_bytes=raw_bytes,
+            )
+
+        spam_task.enqueue.assert_not_called()
+        transmission = Transmission.objects.get(message=message)
+        assert transmission.status == Transmission.Status.SUBMITTED
+
+    def test_store_outgoing_message__derives_subject_and_message_id(self, org):
+
+        domain = Domain.objects.get(org=org, is_managed=True)
+        message = make_email("alice@example.com", "bob@example.com")
+        message["Message-ID"] = "<store-test@example.com>"
+
+        stored = store_outgoing_message(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+            credential=None,
+            status=OutgoingMessage.Status.PENDING,
+            feedback_id="1::abc:relay",
+            ssl=False,
+            client_ip="",
+            raw_bytes=message.as_bytes(),
+        )
+
+        assert stored.subject == "Test"
+        assert stored.message_id == "<store-test@example.com>"
 
 
 @pytest.mark.django_db(transaction=True)

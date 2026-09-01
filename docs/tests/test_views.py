@@ -11,12 +11,12 @@ LEGAL_SLUGS = frozenset({"imprint", "terms", "privacy"})
 
 class TestSlugUniqueness:
     def test_slugs__unique_across_markdown_apps(self):
-        """The template loader resolves markdown by filename across all DIRS.
+        """
+        The template loader resolves markdown by filename across all DIRS.
 
         Markdown template DIRS are flat, so a slug that exists in two apps
         renders the wrong file. See abstract.views.MarkdownArticleMixin.
         """
-
         other_slugs = (
             {p.stem for p in pathlib.Path(ALTERNATIVE_TO_DIR).glob("*.md")}
             | {p.stem for p in pathlib.Path(KNOW_HOW_DIR).glob("*.md")}

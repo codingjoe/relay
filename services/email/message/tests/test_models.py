@@ -1,9 +1,14 @@
+from uuid import uuid4
+
 import pytest
+from django.core.files.base import ContentFile
+from django.urls import resolve, reverse
 
 from domains.models import Domain
+from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.message.models import Message
 from services.email.msa.models import OutgoingMessage
-from services.email.mta.models import IncomingMessage
+from services.email.mta.models import IncomingMessage, TlsReport
 
 
 def create_outgoing(user, org, status=None):
@@ -18,6 +23,13 @@ def create_outgoing(user, org, status=None):
         msg.status = status
         msg.save(update_fields=["status"])
     return msg
+
+
+def descendants(model):
+    """Yield every concrete descendant of `model`."""
+    for sub in model.__subclasses__():
+        yield sub
+        yield from descendants(sub)
 
 
 def create_incoming(org, status=None):
@@ -37,10 +49,7 @@ def create_incoming(org, status=None):
 
 class TestOutgoingMessageStatus:
     def test_badge_variant__sent(self):
-        assert OutgoingMessage.Status.SENT.badge_variant == "primary"
-
-    def test_badge_variant__delivered(self):
-        assert OutgoingMessage.Status.DELIVERED.badge_variant == "primary"
+        assert OutgoingMessage.Status.SENT.badge_variant == "success"
 
     def test_badge_variant__bounced(self):
         assert OutgoingMessage.Status.BOUNCED.badge_variant == "destructive"
@@ -55,12 +64,12 @@ class TestOutgoingMessageStatus:
         assert OutgoingMessage.Status.PENDING.badge_variant == "outline"
 
     def test_badge_variant__held(self):
-        assert OutgoingMessage.Status.HELD.badge_variant == "outline"
+        assert OutgoingMessage.Status.HELD.badge_variant == "warning"
 
 
 class TestIncomingMessageStatus:
     def test_badge_variant__received(self):
-        assert IncomingMessage.Status.RECEIVED.badge_variant == "primary"
+        assert IncomingMessage.Status.RECEIVED.badge_variant == "success"
 
     def test_badge_variant__webhook_failed(self):
         assert IncomingMessage.Status.WEBHOOK_FAILED.badge_variant == "destructive"
@@ -69,7 +78,7 @@ class TestIncomingMessageStatus:
         assert IncomingMessage.Status.DROPPED.badge_variant == "destructive"
 
     def test_badge_variant__webhook_sent(self):
-        assert IncomingMessage.Status.WEBHOOK_SENT.badge_variant == "outline"
+        assert IncomingMessage.Status.WEBHOOK_SENT.badge_variant == "success"
 
 
 class TestMessage:
@@ -96,7 +105,7 @@ class TestMessage:
     @pytest.mark.django_db
     def test_status_badge_variant__outgoing_sent(self, user, org):
         msg = create_outgoing(user, org, OutgoingMessage.Status.SENT)
-        assert Message.objects.get(pk=msg.pk).status_badge_variant == "primary"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "success"
 
     @pytest.mark.django_db
     def test_status_badge_variant__outgoing_bounced(self, user, org):
@@ -111,7 +120,7 @@ class TestMessage:
     @pytest.mark.django_db
     def test_status_badge_variant__incoming_received(self, org):
         msg = create_incoming(org)
-        assert Message.objects.get(pk=msg.pk).status_badge_variant == "primary"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "success"
 
     @pytest.mark.django_db
     def test_status_badge_variant__incoming_webhook_failed(self, org):
@@ -121,7 +130,7 @@ class TestMessage:
     @pytest.mark.django_db
     def test_status_badge_variant__incoming_webhook_sent(self, org):
         msg = create_incoming(org, IncomingMessage.Status.WEBHOOK_SENT)
-        assert Message.objects.get(pk=msg.pk).status_badge_variant == "outline"
+        assert Message.objects.get(pk=msg.pk).status_badge_variant == "success"
 
     @pytest.mark.django_db
     def test_kind__outgoing(self, user, org):
@@ -170,3 +179,216 @@ class TestMessage:
     def test_get_absolute_url__incoming(self, org):
         msg = create_incoming(org)
         assert str(msg.pk) in Message.objects.get(pk=msg.pk).get_absolute_url()
+
+    def test_url_name__resolves_for_every_subclass(self):
+        for model in descendants(Message):
+            url = reverse(
+                f"{model._meta.app_label}:{model.url_name}",
+                kwargs={"org_slug": "x", "pk": str(uuid4())},
+            )
+            match = resolve(url)
+            assert match.view_name == f"{model._meta.app_label}:{model.url_name}"
+
+
+class TestMessageHeaders:
+    def test_headers_from_raw__parses_name_value_pairs(self):
+        raw = b"From: alice@example.com\r\nSubject: Hello\r\n\r\nBody"
+        assert Message.headers_from_raw(raw) == [
+            ["From", "alice@example.com"],
+            ["Subject", "Hello"],
+        ]
+
+    def test_headers_from_raw__preserves_duplicate_headers(self):
+        raw = b"Received: one\r\nReceived: two\r\n\r\nBody"
+        assert Message.headers_from_raw(raw) == [
+            ["Received", "one"],
+            ["Received", "two"],
+        ]
+
+    def test_headers_from_raw__decodes_8bit_header_bytes(self):
+        raw = (
+            b"From: alice@example.com\r\n"
+            b"X-Latin1: caf\xe9\r\n"
+            b"X-UTF8: caf\xc3\xa9\r\n"
+            b"\r\n"
+            b"Body"
+        )
+        assert Message.headers_from_raw(raw) == [
+            ["From", "alice@example.com"],
+            ["X-Latin1", "caf\N{REPLACEMENT CHARACTER}"],
+            ["X-UTF8", "café"],
+        ]
+
+    def test_headers_from_raw__replaces_nul_bytes(self):
+        raw = b"From: alice@example.com\r\nX-Custom: a\x00b\r\n\r\nBody"
+        assert Message.headers_from_raw(raw) == [
+            ["From", "alice@example.com"],
+            ["X-Custom", "a\N{REPLACEMENT CHARACTER}b"],
+        ]
+
+    @pytest.mark.django_db
+    def test_headers_from_raw__serializes_through_jsonfield(self, user, org):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        raw = b"From: alice@example.com\r\nX-Custom: caf\xc3\xa9\r\n\r\nBody"
+        message = OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            headers=OutgoingMessage.headers_from_raw(raw),
+        )
+        message = OutgoingMessage.objects.get(pk=message.pk)
+        assert message.headers == [
+            ["From", "alice@example.com"],
+            ["X-Custom", "café"],
+        ]
+
+    @pytest.mark.django_db
+    def test_parsed_headers__uses_stored_headers(self, user, org):
+        msg = create_outgoing(user, org)
+        msg.headers = [["From", "alice@example.com"], ["Subject", "Hello"]]
+        msg.save(update_fields=["headers"])
+        assert Message.objects.get(pk=msg.pk).parsed_headers == [
+            ["From", "alice@example.com"],
+            ["Subject", "Hello"],
+        ]
+
+    @pytest.mark.django_db
+    def test_parsed_headers__falls_back_to_raw_body(self, user, org):
+        msg = create_outgoing(user, org)
+        msg.raw_body.save(
+            f"{msg.id}.eml",
+            ContentFile(b"From: alice@example.com\r\nSubject: Hello\r\n\r\nBody"),
+            save=False,
+        )
+        msg.save(update_fields=["raw_body"])
+        assert Message.objects.get(pk=msg.pk).parsed_headers == [
+            ["From", "alice@example.com"],
+            ["Subject", "Hello"],
+        ]
+
+
+def create_tls_report(org):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    return TlsReport.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="tlsrpt@gmail.com",
+        rcpt_to="tlsrpt@app.acme.com",
+        receiving_domain="app.acme.com",
+        report_id="tls-1",
+    )
+
+
+def create_dmarc_report(org):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    return DmarcReport.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="dmarc@gmail.com",
+        rcpt_to="dmarc@app.acme.com",
+        report_id="agg-1",
+    )
+
+
+def create_dmarc_failure_report(org):
+    domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    return DmarcFailureReport.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="ruf@gmail.com",
+        rcpt_to="postmaster@app.acme.com",
+    )
+
+
+class TestMessageTextBody:
+    @pytest.mark.django_db
+    def test_text_body__pruned_raw_body_returns_empty(self, user, org):
+        msg = create_outgoing(user, org)
+        assert Message.objects.get(pk=msg.pk).text_body == b""
+
+    @pytest.mark.django_db
+    def test_text_body__multipart_returns_first_text_part(self, user, org):
+        raw = (
+            b"From: alice@example.com\r\n"
+            b"To: bob@example.com\r\n"
+            b"Subject: hi\r\n"
+            b"MIME-Version: 1.0\r\n"
+            b"Content-Type: multipart/alternative; boundary=BOUND\r\n"
+            b"\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: text/plain; charset=utf-8\r\n"
+            b"\r\n"
+            b"plain text\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: text/html; charset=utf-8\r\n"
+            b"\r\n"
+            b"<b>html</b>\r\n"
+            b"--BOUND--\r\n"
+        )
+        msg = create_outgoing(user, org)
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
+        assert Message.objects.get(pk=msg.pk).text_body == b"plain text"
+
+    @pytest.mark.django_db
+    def test_text_body__skips_non_text_parts(self, user, org):
+        raw = (
+            b"From: alice@example.com\r\n"
+            b"To: bob@example.com\r\n"
+            b"Subject: hi\r\n"
+            b"MIME-Version: 1.0\r\n"
+            b"Content-Type: multipart/mixed; boundary=BOUND\r\n"
+            b"\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: application/octet-stream\r\n"
+            b"Content-Transfer-Encoding: base64\r\n"
+            b"\r\n"
+            b"AAECAw==\r\n"
+            b"--BOUND\r\n"
+            b"Content-Type: text/plain; charset=utf-8\r\n"
+            b"\r\n"
+            b"hello\r\n"
+            b"--BOUND--\r\n"
+        )
+        msg = create_outgoing(user, org)
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
+        assert Message.objects.get(pk=msg.pk).text_body == b"hello"
+
+
+class TestMessageGetEmailUrl:
+    @pytest.mark.django_db
+    def test_get_email_url__incoming_message_falls_back_to_detail_view(self, org):
+        msg = create_incoming(org)
+        message = Message.objects.get(pk=msg.pk)
+        assert message.get_email_url() == message.get_absolute_url()
+
+    @pytest.mark.django_db
+    def test_get_email_url__outgoing_message_falls_back_to_detail_view(self, user, org):
+        msg = create_outgoing(user, org)
+        message = Message.objects.get(pk=msg.pk)
+        assert message.get_email_url() == message.get_absolute_url()
+
+    @pytest.mark.django_db
+    def test_get_email_url__tls_report_points_at_incoming_message_view(self, org):
+        report = create_tls_report(org)
+        message = Message.objects.get(pk=report.pk)
+        assert message.get_absolute_url() != message.get_email_url()
+        assert resolve(message.get_email_url()).view_name == "mta:message-detail"
+
+    @pytest.mark.django_db
+    def test_get_email_url__dmarc_report_points_at_incoming_message_view(self, org):
+        report = create_dmarc_report(org)
+        message = Message.objects.get(pk=report.pk)
+        assert message.get_absolute_url() != message.get_email_url()
+        assert resolve(message.get_email_url()).view_name == "mta:message-detail"
+
+    @pytest.mark.django_db
+    def test_get_email_url__dmarc_failure_report_points_at_incoming_message_view(
+        self, org
+    ):
+        report = create_dmarc_failure_report(org)
+        message = Message.objects.get(pk=report.pk)
+        assert message.get_absolute_url() != message.get_email_url()
+        assert resolve(message.get_email_url()).view_name == "mta:message-detail"

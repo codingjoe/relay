@@ -72,15 +72,15 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                                      |
-| ------- | ------------ | ------------------------------------------------ |
-| Web     | 8000         | Django web UI (Granian)                          |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)              |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only) |
-| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, TLS direct) |
-| MX      | 25           | Incoming MX delivery (aiosmtpd, STARTTLS direct) |
-| rspamd  | 11334        | Spam detection (internal only)                   |
-| Worker  | N/A          | Threadmill task worker                           |
+| Service | Port         | Description                                                |
+| ------- | ------------ | ---------------------------------------------------------- |
+| Web     | 8000         | Django web UI (Granian)                                    |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                        |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)           |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)      |
+| MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS) |
+| rspamd  | 11334        | Spam detection (internal only)                             |
+| Worker  | N/A          | Threadmill task worker                                     |
 
 ```mermaid
 flowchart TD
@@ -90,13 +90,14 @@ flowchart TD
         browser[Browsers]
     end
 
-    subgraph caddy[Caddy reverse proxy + TLS]
+    subgraph caddy[Caddy reverse proxy + L4 balancer]
         caddy_proxy[Caddy docker-proxy]
+        caddy_l4[Caddy layer4]
     end
 
     subgraph app[app network]
         web[Web Django + Granian :8000]
-        msa[SMTP aiosmtpd :587 :465]
+        msa[SMTP aiosmtpd :587 :2465]
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
         rspamd[rspamd :11334]
@@ -115,8 +116,10 @@ flowchart TD
 
     browser --> caddy_proxy
     caddy_proxy --> web
-    client -->|STARTTLS :587 / TLS :465| msa
-    sender -->|STARTTLS :25| mta
+    client -->|STARTTLS :587 / TLS :465| caddy_l4
+    sender -->|STARTTLS :25| caddy_l4
+    caddy_l4 --> msa
+    caddy_l4 --> mta
     msa --> rspamd
     mta --> rspamd
     rspamd --> redis
@@ -224,6 +227,7 @@ graph BT
  reputation
  message --> accounts
  message --> domains
+ message --> kms
  msa --> message
  msa --> accounts
  msa --> domains

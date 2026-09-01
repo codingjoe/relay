@@ -22,7 +22,8 @@ class ReputationStats(TypedDict):
 
 
 def compute_org_reputation(org: Organization) -> ReputationStats:
-    """Return bounce and complaint rates for an organization over the rolling window.
+    """
+    Return bounce and complaint rates for an organization over the rolling window.
 
     Returns zero counts and rates when the organization has no outgoing
     messages in the window. Only SMTP 5xx bounces count toward the
@@ -71,13 +72,13 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
 
 
 def check_org_reputation(org: Organization) -> ReputationStats:
-    """Evaluate rates and suspend the organization permanently on a
-    threshold breach.
+    """
+    Evaluate rates and suspend the organization on a threshold breach.
 
-    Suspends the organization when the hard-bounce rate or complaint rate
-    exceeds the configured thresholds and the organization has sent at
-    least `RELAY_REPUTATION_MIN_VOLUME` messages in the window. The
-    suspension is never cleared automatically. Returns the computed
+    Suspends the organization permanently when the hard-bounce rate or
+    complaint rate exceeds the configured thresholds and the organization
+    has sent at least `RELAY_REPUTATION_MIN_VOLUME` messages in the window.
+    The suspension is never cleared automatically. Returns the computed
     reputation stats.
     """
     stats = compute_org_reputation(org)

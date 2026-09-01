@@ -33,13 +33,14 @@ are no third-country data transfers.
 
 ## What relay stores, and for how long
 
-| Data                                     | Where                             | How long                                              |
-| ---------------------------------------- | --------------------------------- | ----------------------------------------------------- |
-| Raw message bodies                       | Object storage                    | Only for delivery, deletion after successful delivery |
-| Message metadata                         | PostgreSQL                        | 30 days                                               |
-| SMTP and webhook transcripts             | PostgreSQL, with the message      | With the message retention                            |
-| DMARC, TLS-RPT, webhook-delivery records | PostgreSQL                        | With the retention of the message metadata            |
-| Suppression list                         | PostgreSQL, salted SHA-256 hashes | Until you remove the entry                            |
+| Data                                          | Where                             | How long                                              |
+| --------------------------------------------- | --------------------------------- | ----------------------------------------------------- |
+| Raw message bodies                            | Object storage                    | Only for delivery, deletion after successful delivery |
+| Message metadata                              | PostgreSQL                        | 30 days                                               |
+| Message headers (DKIM signatures, sender IPs) | PostgreSQL                        | With the retention of the message metadata            |
+| SMTP and webhook transcripts                  | PostgreSQL, with the message      | With the message retention                            |
+| DMARC, TLS-RPT, webhook-delivery records      | PostgreSQL                        | With the retention of the message metadata            |
+| Suppression list                              | PostgreSQL, salted SHA-256 hashes | Until you remove the entry                            |
 
 The binding legal text is the <a href="{% url 'legal:privacy' %}">privacy
 policy</a>. This table describes how the platform implements it.
@@ -53,6 +54,8 @@ policy</a>. This table describes how the platform implements it.
 - **Passwords.** GitHub OAuth signs in, and relay stores no password at all.
 - **API keys in plain form.** The database holds prefixes and hashes. The
   plain key is visible once at creation.
+- **Customer-supplied Feedback-IDs.** relay replaces them with its own token
+  at submission. Only the token relay actually forwarded with is stored.
 
 ## Error monitoring with boundaries
 

@@ -13,15 +13,17 @@ from django.db import DatabaseError, transaction
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
+from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
 
 
 def add_feedback_id(raw_bytes: bytes, org: Organization) -> tuple[bytes, str]:
-    """Prepend a relay Feedback-ID header for FBL complaint attribution per org.
+    """
+    Prepend a relay Feedback-ID header for FBL complaint attribution per org.
 
     relay's token replaces any customer-supplied Feedback-ID because the
     token is the attribution key for complaint reports. Return the
@@ -53,7 +55,7 @@ def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
     return b"".join(kept)
 
 
-class SMTPHandler:
+class SMTPHandler(ProxyProtocolMixin):
     """Receive authenticated outgoing mail submissions from SMTP clients."""
 
     async def handle_DATA(self, server, session, envelope):
@@ -66,18 +68,16 @@ class SMTPHandler:
         rcpt_to = envelope.rcpt_tos[0] if envelope.rcpt_tos else ""
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
-        msg = message_from_bytes(raw_bytes)
-        client_ip = session.peer[0] if session.peer else ""
+        client_ip = get_client_ip(session)
         result = await process_message(
             mail_from,
             rcpt_to,
             raw_bytes,
-            msg,
             credential,
             getattr(session, "ssl", False),
             client_ip,
         )
-        logger.info(f"Message from {mail_from} to {rcpt_to}: {result}")
+        logger.info("Message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
 
     async def handle_AUTH(self, server, session, envelope, arg):
@@ -97,18 +97,21 @@ class SMTPHandler:
             if credential is None:
                 return "535 Authentication failed"
             session.credential = credential
-            logger.info(
-                f"Authenticated org '{credential.org}' with credential "
-                f"'{credential.name or credential.key_prefix}…'"
-            )
-            return "235 Authentication successful"
         except ValueError, DatabaseError:
             logger.exception("AUTH error")
             return "535 Authentication failed"
+        else:
+            logger.info(
+                "Authenticated org '%s' with credential '%s…'",
+                credential.org,
+                credential.name or credential.key_prefix,
+            )
+            return "235 Authentication successful"
 
 
 class ImplicitTLSHandler(SMTPHandler):
-    """Handler for implicit TLS (port 465) connections.
+    """
+    Handler for implicit TLS (port 465) connections.
 
     aiosmtpd doesn't detect pre-wrapped TLS sockets, so `session.ssl`
     is never set for implicit TLS. Mark the session as encrypted before
@@ -120,10 +123,25 @@ class ImplicitTLSHandler(SMTPHandler):
         return await super().handle_DATA(server, session, envelope)
 
 
+class BalancerHandler(ImplicitTLSHandler):
+    """
+    Handler for the plaintext balancer port behind the Caddy L4 proxy.
+
+    Caddy terminates the client's TLS and forwards the session as plain
+    SMTP with a PROXY protocol header. Marking the session as encrypted
+    before delegating reflects Caddy's terminated TLS in TLS reporting.
+    AUTH relies on this port being configured with auth_require_tls
+    disabled, since the client-facing leg is TLS at the proxy.
+    """
+
+
 @sync_to_async
 def authenticate(username: str, key: str):
-    """Authenticate an org by its slug and SMTP credential key. Return the
-    credential, or `None` if authentication fails."""
+    """
+    Authenticate an org by its slug and SMTP credential key.
+
+    Return the credential, or `None` if authentication fails.
+    """
     api_keys = MsaCredential.objects.select_related("org").filter(
         key_prefix=key[:8],
         org__slug=username,
@@ -136,39 +154,59 @@ def authenticate(username: str, key: str):
     return None
 
 
-def process_suppressed_message(
-    mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
+def store_outgoing_message(
+    *,
+    org,
+    rcpt_to,
+    mail_from,
+    domain,
+    credential,
+    status,
+    feedback_id,
+    ssl,
+    client_ip,
+    raw_bytes,
 ):
-    """Store a suppressed message without enqueuing delivery.
-
-    Suppressed mail is never sent, so it gets no Feedback-ID and FBL
-    complaints can never be attributed to it.
     """
-    subject = msg.get("Subject", "")
-    message_id = msg.get("Message-ID", "")
-    OutgoingMessage.objects.create(
-        org=credential.org,
+    Store an outgoing message with its submission record.
+
+    Enqueues spam processing for deliverable messages.
+    """
+    parsed = message_from_bytes(raw_bytes)
+    message_id = parsed.get("Message-ID", "")
+    subject = parsed.get("Subject", "")
+    message = OutgoingMessage.objects.create(
+        org=org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
         subject=subject,
         message_id=message_id,
         domain=domain,
         credential=credential,
-        status=OutgoingMessage.Status.SUPPRESSED,
+        feedback_id=feedback_id,
         received_with_tls=bool(ssl),
+        status=status,
+        headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
-    logger.info(f"Suppressed message from {mail_from} to {rcpt_to}")
-    return "250 OK"
+    Transmission.record_submission(message, ssl)
+    if status == OutgoingMessage.Status.PENDING:
+        transaction.on_commit(
+            lambda: check_outgoing_spam.enqueue(
+                message_pk=str(message.id),
+                client_ip=client_ip,
+            )
+        )
+    return message
 
 
 @sync_to_async
-def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_ip):
-    """Store a submitted outgoing message and enqueue its delivery unless
-    the org is suspended."""
-    subject = msg.get("Subject", "")
-    message_id = msg.get("Message-ID", "")
+def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
+    """
+    Store a submitted outgoing message and enqueue its delivery.
 
+    Delivery is not enqueued when the org is suspended.
+    """
     if "@" not in mail_from:
         return "550 Sender domain not registered"
 
@@ -190,9 +228,25 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
         return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
-        return process_suppressed_message(
-            mail_from, rcpt_to, raw_bytes, msg, credential, ssl, domain
+        # Suppressed mail is never sent, so relay mints no Feedback-ID and
+        # FBL complaints can never be attributed to it. Strip customer
+        # Feedback-ID headers so only the Feedback-ID relay actually
+        # forwarded with ever persists.
+        raw_bytes = remove_feedback_id_headers(raw_bytes)
+        store_outgoing_message(
+            org=credential.org,
+            rcpt_to=rcpt_to,
+            mail_from=mail_from,
+            domain=domain,
+            credential=credential,
+            status=OutgoingMessage.Status.SUPPRESSED,
+            feedback_id="",
+            ssl=ssl,
+            client_ip=client_ip,
+            raw_bytes=raw_bytes,
         )
+        logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
+        return "250 OK"
 
     if (
         not credential.org.billing_is_active
@@ -205,26 +259,16 @@ def process_message(mail_from, rcpt_to, raw_bytes, msg, credential, ssl, client_
 
     raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
     raw_bytes = sign_message(raw_bytes, domain)
-
-    message = OutgoingMessage.objects.create(
+    store_outgoing_message(
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
-        subject=subject,
-        message_id=message_id,
         domain=domain,
         credential=credential,
-        feedback_id=feedback_id,
-        received_with_tls=bool(ssl),
         status=OutgoingMessage.Status.PENDING,
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+        feedback_id=feedback_id,
+        ssl=ssl,
+        client_ip=client_ip,
+        raw_bytes=raw_bytes,
     )
-
-    transaction.on_commit(
-        lambda: check_outgoing_spam.enqueue(
-            message_pk=str(message.id),
-            client_ip=client_ip,
-        )
-    )
-
     return "250 OK"

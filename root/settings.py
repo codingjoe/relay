@@ -11,8 +11,8 @@ https://docs.djangoproject.com/en/stable/ref/settings/
 """
 
 import base64
+import datetime
 import hashlib
-import os
 from pathlib import Path
 
 import environ
@@ -54,6 +54,9 @@ ALLOWED_HOSTS = [
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Show django-debug-toolbar for local development requests.
+INTERNAL_IPS = ["127.0.0.1"]
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
@@ -79,6 +82,7 @@ INSTALLED_APPS = [
     "storages",
     "rest_framework",
     "threadmill",
+    *(["debug_toolbar"] if DEBUG else []),
     # First-party apps
     "accounts",
     "kms",
@@ -99,6 +103,14 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    *(
+        [
+            "django_devbar.DevBarMiddleware",
+            "debug_toolbar.middleware.DebugToolbarMiddleware",
+        ]
+        if DEBUG
+        else []
+    ),
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "domains.middleware.MtaStsHostMiddleware",
@@ -139,7 +151,6 @@ TEMPLATES = [
                 "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "accounts.context_processors.organizations",
             ],
             "debug": DEBUG,
             "loaders": (
@@ -236,7 +247,7 @@ WHITENOISE_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Relay config
 
@@ -261,12 +272,22 @@ RELAY_MANAGED_SENDER_DOMAIN = f"open.{RELAY_PLATFORM_DOMAIN}"
 
 RELAY_SMTP_SUBMISSION_PORTS = (587, 465)
 RELAY_SMTP_IMPLICIT_TLS_PORTS = (465,)
+RELAY_SMTP_BALANCER_PORT = 2465
 RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
 RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
 
 RELAY_MX_PORTS = (25,)
 RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
 RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
+
+# Timeout in seconds for reading the PROXY protocol header. None disables
+# the expectation; a positive value is required where enabled.
+proxy_protocol_timeout_secs = env.float("RELAY_PROXY_PROTOCOL_TIMEOUT", default=None)
+RELAY_PROXY_PROTOCOL_TIMEOUT = (
+    datetime.timedelta(seconds=proxy_protocol_timeout_secs)
+    if proxy_protocol_timeout_secs
+    else None
+)
 
 RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
 RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)

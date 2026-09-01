@@ -73,6 +73,12 @@ wheels = [
 ]
 
 [[package]]
+name = "authres"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/29/e28209b5d3d56c102845cca5a4a3abaf2724f79e83476a52b94d775ecce6/authres-1.2.0.tar.gz", hash = "sha256:93d1b995ad7ce21e62db649f361048125dd6022563a0ae8a23909465f1fd25b7", size = 23226, upload-time = "2019-08-03T19:38:00.494Z" }
+
+[[package]]
 name = "boto3"
 version = "1.43.83"
 source = { registry = "https://pypi.org/simple" }
@@ -308,6 +314,31 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e2/42/6cb20996733984c1f6661daeda3877990836c76c633c6c8879d39f7120eb/django-6.1.tar.gz", hash = "sha256:86a2aacd59b817e4d6ac2ebfe22356c58f66f7b24e503f71b7c2fead677ee48b", size = 11223034, upload-time = "2026-08-05T19:21:53.789Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/91/9c/ce847620134cfab903e75690c498af73b46abbede2912ea89bd76d5c1e76/django-6.1-py3-none-any.whl", hash = "sha256:6c132cd980c9392b06807d4ca52d72530d631dc65a85d9dacede00a780cefbbe", size = 8417399, upload-time = "2026-08-05T19:21:47.285Z" },
+]
+
+[[package]]
+name = "django-debug-toolbar"
+version = "7.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "sqlparse" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/00/da/df67a8e407ab6141affee4ee5cb2704403b9d5465cc35abbb42f5190a3fa/django_debug_toolbar-7.1.1.tar.gz", hash = "sha256:2fb4093d95e6f87258606c55f4d2aa45d1847b17a415525a9dceac02e937a836", size = 363531, upload-time = "2026-08-14T13:18:47.219Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/c8/f473a965186510233129c2ab22e4808a1938afcbe9a287145d17693adf70/django_debug_toolbar-7.1.1-py3-none-any.whl", hash = "sha256:e1385b22fb17bff4dc51cf782679a7926676405e8d013ada1e3d8a6bfc47fdb3", size = 304387, upload-time = "2026-08-14T13:18:45.642Z" },
+]
+
+[[package]]
+name = "django-devbar"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0c/ec/63ecc60a34f30381f9ce0e2fa7745250c8ea5118ea1568f498d8d6da69dc/django_devbar-0.7.0.tar.gz", hash = "sha256:6abd24023bd145f5abf97339913399b8c1dbef2fced0be06916c35286659f68d", size = 9360, upload-time = "2026-02-16T18:28:32.573Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/71/a41c3e41a04ea3d49fa7f3d81a00dfb9878fc3a17a6d7e9212abdb5f82be/django_devbar-0.7.0-py3-none-any.whl", hash = "sha256:3c9f43a03aab79af747c37f2b34c16cd2d0306c97dd7277bf2839833240eadd4", size = 11681, upload-time = "2026-02-16T18:28:31.164Z" },
 ]
 
 [[package]]
@@ -912,6 +943,7 @@ dependencies = [
     { name = "abnf" },
     { name = "aiosmtpd" },
     { name = "aiosmtplib" },
+    { name = "authres" },
     { name = "boto3" },
     { name = "cryptography" },
     { name = "django" },
@@ -941,6 +973,8 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "django-debug-toolbar" },
+    { name = "django-devbar" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -967,6 +1001,7 @@ requires-dist = [
     { name = "abnf", specifier = ">=2.9" },
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "aiosmtplib", specifier = ">=5.1.2" },
+    { name = "authres", specifier = ">=1.2" },
     { name = "boto3", specifier = ">=1.43.83" },
     { name = "cryptography", specifier = ">=50.0.1" },
     { name = "django", specifier = ">=6.1,<6.2" },
@@ -996,6 +1031,8 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "django-debug-toolbar", specifier = ">=7.1.1" },
+    { name = "django-devbar", specifier = ">=0.7.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4" },
     { name = "pytest-cov", specifier = ">=7.1" },

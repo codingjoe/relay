@@ -1,11 +1,14 @@
+from collections.abc import Iterable
+
 import dkim
-from cryptography.hazmat.primitives import serialization
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
 
-from . import keys
+from . import certificates, keys
 
 
 class SigningKey(TimeStamped):
@@ -13,7 +16,6 @@ class SigningKey(TimeStamped):
 
     class Algorithm(models.TextChoices):
         RSA_2048 = "rsa-2048", "RSA 2048"
-        RSA_1024 = "rsa-1024", "RSA 1024"
         ED25519 = "ed25519", "Ed25519"
 
     algorithm = models.TextField(
@@ -86,3 +88,108 @@ class SigningKey(TimeStamped):
             public_key=pair.public_key_pem,
             key_id=pair.key_id,
         )
+
+
+CERTIFICATE_CHAIN_MAX_DEPTH = 10
+
+
+class Certificate(TimeStamped):
+    """A TLS certificate presented by a remote server."""
+
+    fingerprint = models.TextField(
+        _("fingerprint"),
+        primary_key=True,
+        help_text=_("SHA-256 fingerprint of the certificate, as lowercase hex."),
+    )
+    subject = models.TextField(
+        _("subject"),
+        blank=True,
+        help_text=_("Subject of the certificate, in RFC 4514 notation."),
+    )
+    subject_alternative_names = models.TextField(
+        _("subject alternative names"),
+        blank=True,
+        help_text=_("DNS names the certificate covers, comma-separated."),
+    )
+    issuer = models.TextField(
+        _("issuer"),
+        blank=True,
+        help_text=_("Subject of the authority that signed the certificate."),
+    )
+    serial_number = models.TextField(
+        _("serial number"),
+        blank=True,
+        help_text=_("Serial number of the certificate, as lowercase hex."),
+    )
+    issuer_certificate = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="issued_certificates",
+        verbose_name=_("issuer certificate"),
+        help_text=_("Certificate that signed this certificate, when presented."),
+    )
+    not_before = models.DateTimeField(
+        _("valid from"),
+        null=True,
+        blank=True,
+        help_text=_("Point in time from which the certificate is valid."),
+    )
+    not_after = models.DateTimeField(
+        _("valid until"),
+        null=True,
+        blank=True,
+        help_text=_("Point in time until which the certificate is valid."),
+    )
+
+    def __str__(self):
+        return self.subject or f"sha256:{self.fingerprint[:16]}…"
+
+    def chain(self):
+        """
+        Yield this certificate and its presented issuers, leaf first.
+
+        Yields at most CERTIFICATE_CHAIN_MAX_DEPTH certificates.
+        """
+        certificate = self
+        for _depth in range(CERTIFICATE_CHAIN_MAX_DEPTH):
+            yield certificate
+            if certificate.issuer_certificate is None:
+                break
+            certificate = certificate.issuer_certificate
+
+    @classmethod
+    def store_presented_chain(
+        cls, parsed_certificates: Iterable[x509.Certificate]
+    ) -> Certificate:
+        """Store the certificates a server presented and return the leaf row."""
+        presented = list(parsed_certificates)
+        presented.reverse()
+        issuer_certificate = None
+        leaf = None
+        for parsed_certificate in presented:
+            certificate = cls.objects.get_or_create(
+                fingerprint=parsed_certificate.fingerprint(hashes.SHA256()).hex(),
+                defaults={
+                    "subject": parsed_certificate.subject.rfc4514_string(),
+                    "subject_alternative_names": (
+                        certificates.format_subject_alternative_names(
+                            parsed_certificate
+                        )
+                    ),
+                    "issuer": parsed_certificate.issuer.rfc4514_string(),
+                    "serial_number": format(parsed_certificate.serial_number, "x"),
+                    "not_before": parsed_certificate.not_valid_before_utc,
+                    "not_after": parsed_certificate.not_valid_after_utc,
+                    "issuer_certificate": issuer_certificate,
+                },
+            )[0]
+            issuer_certificate_id = (
+                None if issuer_certificate is None else issuer_certificate.pk
+            )
+            if certificate.issuer_certificate_id != issuer_certificate_id:
+                certificate.issuer_certificate = issuer_certificate
+                certificate.save(update_fields=["issuer_certificate", "modified_at"])
+            issuer_certificate = leaf = certificate
+        return leaf

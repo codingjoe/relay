@@ -9,6 +9,7 @@ from django.forms import (
     SlugField,
     TextInput,
 )
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import NoReverseMatch, reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -20,7 +21,8 @@ from .models import Membership, Organization
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
-    """Base for org-scoped views. Loads the org from the URL and enforces membership.
+    """
+    Base for org-scoped views. Loads the org from the URL and enforces membership.
 
     Subclasses receive `self.org`, and `org` is added to the template context.
     The current org is also stashed on the request for the navbar context
@@ -42,16 +44,26 @@ class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
         except NoReverseMatch:
             return reverse(cls.parent, kwargs={"org_slug": kwargs["org_slug"]})
 
+    user_orgs = None
+
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         if request.user.is_authenticated:
-            self.org = get_object_or_404(
-                request.user.organizations.all(), slug=kwargs["org_slug"]
+            self.user_orgs = list(request.user.organizations.all())
+            self.org = next(
+                (org for org in self.user_orgs if org.slug == kwargs["org_slug"]),
+                None,
             )
+            if self.org is None:
+                raise Http404
             request.current_org = self.org
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {"org": self.org}
+        return super().get_context_data(**kwargs) | {
+            "org": self.org,
+            "current_org": self.org,
+            "user_orgs": self.user_orgs,
+        }
 
 
 class LoginView(generic.TemplateView):

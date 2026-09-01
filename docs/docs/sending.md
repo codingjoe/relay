@@ -73,22 +73,24 @@ Notes on the rules:
 
 ## The delivery pipeline
 
-After the 250 answer, a task worker takes over:
+relay signs each message while the SMTP transaction is still open, so the
+stored message is the exact message that leaves. A task worker then takes
+over:
 
 ```mermaid
 sequenceDiagram
+    participant MSA as MSA
     participant Queue as Task worker
     participant Scan as rspamd
-    participant Sign as DKIM signer
     participant DNS as DNS resolvers
     participant Remote as Recipient MX
 
+    MSA->>MSA: mint Feedback-ID, sign with all domain keys
+    MSA-->>Client: 250 OK, signed message stored
     Queue->>Scan: score the message
     alt score reaches the hold threshold
         Queue->>Queue: status held, stop
     else clean
-        Queue->>Sign: sign with all three domain keys
-        Sign-->>Queue: signed message
         Queue->>DNS: MX lookup for the recipient domain
         DNS-->>Queue: MX hosts by preference
         Queue->>Remote: per host: STARTTLS on 25, then the message
@@ -99,9 +101,10 @@ sequenceDiagram
 Important details of the pipeline:
 
 - **Signing covers the message as stored.** relay signs with the private
-  keys of the sender domain for RSA-2048, RSA-1024, and Ed25519 at once.
+  keys of the sender domain for RSA-2048 and Ed25519 at once.
   All signatures cover the same headers: From, To, Subject, Date,
-  Message-ID, and `Feedback-ID`.
+  Message-ID, and `Feedback-ID`. The message detail page shows the stored
+  headers, so you can inspect every signature relay applied.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
   keys of the platform domain. relay also sets a `Feedback-ID` header with
   its own token. This token replaces a customer-supplied `Feedback-ID`, so
@@ -118,8 +121,9 @@ Important details of the pipeline:
 - **Enforced MTA-STS.** For recipient domains with a policy, relay skips
   hosts the policy does not permit. See
   <a href="{% url 'docs:detail' slug='encryption' %}">Encryption</a>.
-- **relay tries every MX host** in preference order and records one
-  transmission per attempt, with the SMTP answer.
+- **relay records every SMTP leg.** The accepted submission is stored as
+  the first transmission of a message, followed by one transmission per
+  delivery attempt, each with the SMTP answer.
 
 ## Message and attempt statuses
 
@@ -134,8 +138,9 @@ The message carries one status. Every attempt carries its own:
 | suppressed     | The recipient is on the suppression list            |
 | failed         | relay cannot deliver, the transcript shows why      |
 
-The Transmission list per message shows every attempt: the MX host context,
-the SMTP status code, the answer text, and whether TLS was in use.
+The Transmission list per message starts with the submission and shows
+every delivery attempt: the MX host context, the SMTP status code, the
+answer text, and whether TLS was in use.
 
 ## Bounce handling
 

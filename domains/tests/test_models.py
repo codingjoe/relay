@@ -213,7 +213,6 @@ class TestDomainSave:
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         assert domain.dkim_key_rsa2048 is not None
-        assert domain.dkim_key_rsa1024 is not None
         assert domain.dkim_key_ed25519 is not None
 
     def test_save__normalizes_name_to_lowercase(self):
@@ -247,11 +246,11 @@ class TestDomainSave:
 
 @pytest.mark.django_db
 class TestDkimCiphers:
-    def test_dkim_ciphers__returns_all_three_with_prefix(self):
+    def test_dkim_ciphers__returns_all_with_prefix(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         selectors = [selector for selector, _ in domain.dkim_ciphers]
-        assert selectors == ["relay-rsa2048", "relay-rsa1024", "relay-ed25519"]
+        assert selectors == ["relay-rsa2048", "relay-ed25519"]
 
     def test_dkim_ciphers__all_keys_present(self):
         org = Organization.objects.create(slug="o")
@@ -266,7 +265,7 @@ class TestDkimCnames:
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         cnames = domain.dkim_cnames
-        assert len(cnames) == 3
+        assert len(cnames) == 2
         for name, target in cnames:
             assert name.startswith("relay-")
             assert name.endswith("._domainkey.example.com")

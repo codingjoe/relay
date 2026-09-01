@@ -25,8 +25,11 @@ def add_dkim_signature(raw_bytes, selector, domain_name, key, include_headers):
 
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM for the sender domain, plus the domain named
-    RELAY_PLATFORM_DOMAIN when it exists."""
+    """
+    Sign a message with DKIM for the sender domain.
+
+    Also signs for the domain named RELAY_PLATFORM_DOMAIN when it exists.
+    """
     signed = raw_bytes
     # Signatures are prepended, so the customer's signature ends up on
     # top, the way SES dual-signs. FBL partners dispatch reports based on
@@ -34,7 +37,6 @@ def sign_message(raw_bytes, domain):
     # registration per partner.
     signing_domains = Domain.objects.select_related(
         "dkim_key_rsa2048",
-        "dkim_key_rsa1024",
         "dkim_key_ed25519",
     ).filter(Q(name=settings.RELAY_PLATFORM_DOMAIN) | Q(pk=domain.pk))
     for sign_domain in signing_domains:

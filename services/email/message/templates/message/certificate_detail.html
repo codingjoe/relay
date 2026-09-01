@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{% translate "certificate"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <header class="mb-6">
+    <h2 class="m-0 break-words">{{ certificate }}</h2>
+    <p class="text-sm text-muted-foreground mt-2 mb-0">
+      <code class="text-sm break-all">sha256:{{ certificate.fingerprint }}</code>
+    </p>
+  </header>
+
+  <div class="card p-6 mb-6">
+    <dl class="grid grid-cols-2 gap-4 m-0">
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "subject"|capfirst %}</dt>
+        <dd class="m-0"><code>{{ certificate.subject|default:"-" }}</code></dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "subject alternative names"|capfirst %}</dt>
+        <dd class="m-0"><code>{{ certificate.subject_alternative_names|default:"-" }}</code></dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "issuer"|capfirst %}</dt>
+        <dd class="m-0"><code>{{ certificate.issuer|default:"-" }}</code></dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "serial number"|capfirst %}</dt>
+        <dd class="m-0"><code>{{ certificate.serial_number|default:"-" }}</code></dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "valid from"|capfirst %}</dt>
+        <dd class="m-0">
+          {% if certificate.not_before %}{% timestamp certificate.not_before %}{% else %}-{% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-sm text-muted-foreground">{% translate "valid until"|capfirst %}</dt>
+        <dd class="m-0">
+          {% if certificate.not_after %}{% timestamp certificate.not_after %}{% else %}-{% endif %}
+        </dd>
+      </div>
+    </dl>
+  </div>
+
+  <h3 class="mb-3">{% translate "certificate chain"|capfirst %}</h3>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{% translate "subject"|capfirst %}</th>
+          <th>{% translate "fingerprint"|capfirst %}</th>
+          <th>{% translate "issuer"|capfirst %}</th>
+          <th>{% translate "valid until"|capfirst %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cert in certificate.chain %}
+          <tr>
+            <td>
+              <a class="link" href="{% url 'message:certificate-detail' org.slug cert.fingerprint %}">
+                <code>{{ cert.subject|default:cert.fingerprint }}</code>
+              </a>
+            </td>
+            <td><code>{{ cert.fingerprint|truncatechars:20 }}</code></td>
+            <td><code>{{ cert.issuer|default:"-" }}</code></td>
+            <td>
+              {% if cert.not_after %}{% timestamp cert.not_after %}{% else %}-{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
