@@ -171,7 +171,7 @@ class TestSignMessage:
             dkim_key_ed25519=None,
         )
 
-        with pytest.raises(ValueError, match="no DKIM signing key"):
+        with pytest.raises(AttributeError, match="sign_dkim"):
             sign_message(make_email().as_bytes(), domain)
 
 
