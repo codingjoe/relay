@@ -16,6 +16,17 @@ class SpamAction(StrEnum):
     REJECT = "reject"
 
 
+class ScannerUnavailableError(Exception):
+    """
+    The scanning system cannot produce a verdict right now.
+
+    rspamd reports `soft reject` whenever it cannot scan the message, for
+    example when the antivirus scanner is unavailable, but also for
+    temporary internal failures. The message keeps its pre-scan state;
+    callers must treat it as unscanned and retry once scanning recovers.
+    """
+
+
 @dataclass(frozen=True, slots=True)
 class SpamResult:
     """Outcome of a rspamd scan."""
@@ -35,7 +46,12 @@ class SpamResult:
 
 
 async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
-    """Return the rspamd score and action for a raw message."""
+    """
+    Return the rspamd score and action for a raw message.
+
+    Raise `ScannerUnavailableError` when the scanner is unavailable, so the
+    message cannot be scanned.
+    """
     headers = {"Ip": client_ip} if client_ip else {}
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.post(
@@ -44,4 +60,7 @@ async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
             headers=headers,
         )
         response.raise_for_status()
-    return SpamResult.from_response(response.json())
+    result = SpamResult.from_response(response.json())
+    if result.action == SpamAction.SOFT_REJECT:
+        raise ScannerUnavailableError
+    return result

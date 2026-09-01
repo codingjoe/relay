@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from threadmill.retry import ExponentialBackoff
 
-from services.email.spam import SpamAction, check_message
+from services.email.spam import ScannerUnavailableError, SpamAction, check_message
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -276,10 +276,10 @@ def notify_postmaster_recipients(message_pk):
 
 @task(
     retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
+        base_delay=datetime.timedelta(seconds=30),
         max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
+        max_retries=10,
+        expected_exceptions=(httpx.HTTPError, OSError, ScannerUnavailableError),
     )
 )
 def check_incoming_spam(message_pk, client_ip):

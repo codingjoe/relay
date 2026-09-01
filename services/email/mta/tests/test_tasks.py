@@ -37,7 +37,7 @@ from services.email.mta.tasks import (
     parse_tls_report,
     webhook_retry,
 )
-from services.email.spam import SpamAction, SpamResult
+from services.email.spam import ScannerUnavailableError, SpamAction, SpamResult
 
 
 class TestWebhookEventFromTest:
@@ -282,6 +282,24 @@ class TestCheckIncomingSpam:
         msg.refresh_from_db()
         assert msg.status == IncomingMessage.Status.QUARANTINED
         mock_webhook.enqueue.assert_not_called()
+
+    def test_check_incoming_spam__raises_scanner_unavailable(self, org):
+        msg = make_incoming_message(org)
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                side_effect=ScannerUnavailableError,
+            ),
+            patch("services.email.mta.tasks.dispatch_webhook") as mock_webhook,
+            pytest.raises(ScannerUnavailableError),
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        mock_webhook.enqueue.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == IncomingMessage.Status.RECEIVED
+        assert msg.spam_score is None
+        assert msg.spam_action == ""
 
 
 def make_webhook(org, address_pattern="*", is_active=True):

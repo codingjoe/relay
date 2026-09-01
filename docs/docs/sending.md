@@ -125,14 +125,14 @@ Important details of the pipeline:
 
 The message carries one status. Every attempt carries its own:
 
-| Message status | Meaning                                             |
-| -------------- | --------------------------------------------------- |
-| pending        | Stored, spam scan or delivery not finished yet      |
-| held           | rspamd held the message, and it never left          |
-| sent           | At least one attempt ended with success             |
-| bounced        | A recipient server rejected the message permanently |
-| suppressed     | The recipient is on the suppression list            |
-| failed         | relay cannot deliver, the transcript shows why      |
+| Message status | Meaning                                                        |
+| -------------- | -------------------------------------------------------------- |
+| pending        | Stored, spam scan or delivery not finished yet                 |
+| held           | rspamd held the message for spam or malware, and it never left |
+| sent           | At least one attempt ended with success                        |
+| bounced        | A recipient server rejected the message permanently            |
+| suppressed     | The recipient is on the suppression list                       |
+| failed         | relay cannot deliver, the transcript shows why                 |
 
 The Transmission list per message starts with the submission and shows
 every delivery attempt: the MX host context, the SMTP status code, the

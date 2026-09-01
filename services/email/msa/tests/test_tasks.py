@@ -18,7 +18,7 @@ from services.email.msa.tasks import (
     deliver_message,
     fetch_mx_hosts,
 )
-from services.email.spam import SpamAction, SpamResult
+from services.email.spam import ScannerUnavailableError, SpamAction, SpamResult
 
 
 def make_certificate(common_name):
@@ -425,3 +425,30 @@ class TestCheckOutgoingSpam:
         assert msg.status == OutgoingMessage.Status.PENDING
         assert msg.spam_score == 0.0
         assert not Transmission.objects.filter(message=msg).exists()
+
+    def test_check_outgoing_spam__raises_scanner_unavailable(self, user, org):
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        with (
+            patch(
+                "services.email.msa.tasks.check_message",
+                side_effect=ScannerUnavailableError,
+            ),
+            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
+            pytest.raises(ScannerUnavailableError),
+        ):
+            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
+
+        mock_deliver.enqueue.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert msg.spam_score is None
+        assert msg.spam_action == ""

@@ -80,6 +80,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)      |
 | MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS) |
 | rspamd  | 11334        | Spam detection (internal only)                             |
+| clamav  | 3310         | Malware scanning (internal only)                           |
 | Worker  | N/A          | Threadmill task worker                                     |
 
 ```mermaid
@@ -101,6 +102,7 @@ flowchart TD
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
         rspamd[rspamd :11334]
+        clamav[clamav :3310]
         minio[MinIO S3 :9000]
     end
 
@@ -123,6 +125,7 @@ flowchart TD
     msa --> rspamd
     mta --> rspamd
     rspamd --> redis
+    rspamd --> clamav
     web --> pg
     web --> redis
     web --> minio

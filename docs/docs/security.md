@@ -97,14 +97,17 @@ flowchart TD
     D -- none --> F[Store as received]
     E --> G[rspamd scan]
     F --> G
-    G -- score 15 or higher --> H[Quarantine, no webhook]
-    G -- below 15 --> I[Dispatch webhooks]
+    G -- score 15 or higher, or malware found --> H[Quarantine, no webhook]
+    G -- clean and not already quarantined --> I[Dispatch webhooks]
 ```
 
 A reject disposition returns an SMTP failure to the sending server inside the
 SMTP transaction. The message never enters the platform. A high spam score
 quarantines the message instead of delivering it, and the dashboard shows
-both with their scores.
+both with their scores. The same scan detects malware with ClamAV. A virus
+finding quarantines the message, and no webhook fires. While the malware
+scanner is unavailable, messages wait unscanned and relay keeps retrying
+the scan, so none reach a webhook unscanned.
 
 ## Error monitoring and secrets
 
