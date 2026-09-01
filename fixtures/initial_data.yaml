@@ -880,10 +880,10 @@
     modified_at: 2026-08-22 09:14:30+00:00
     created_at: 2026-08-22 09:14:30+00:00
     message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
-    status: delivered
+    status: sent
     code: 250
     output: OK
-    details: Delivered to recipient1@example.com
+    details: Accepted by recipient1@example.com
     tls_mode: starttls
     log_id: ''
 - model: msa.transmission

@@ -16,7 +16,6 @@ class Migration(migrations.Migration):
                 choices=[
                     ("submitted", "submitted"),
                     ("sent", "sent"),
-                    ("delivered", "delivered"),
                     ("failed", "failed"),
                     ("retry", "retry"),
                     ("bounced", "bounced"),

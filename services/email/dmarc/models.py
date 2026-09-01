@@ -298,7 +298,7 @@ class DmarcFailureReport(IncomingMessage):
         """Return the badge variant for the delivery outcome."""
         match self.delivery_result:
             case self.DeliveryResult.DELIVERED:
-                return "primary"
+                return "success"
             case (
                 self.DeliveryResult.REJECTED
                 | self.DeliveryResult.SPAM

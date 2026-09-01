@@ -39,7 +39,7 @@ transmission row with:
 - the submission row records the SMTP acceptance answer and whether the
   submission arrived over TLS,
 
-- a delivered attempt records the attempted MX host, the TLS details of the
+- a sent attempt records the attempted MX host, the TLS details of the
   connection: STARTTLS or TLS, the protocol version, the cipher suite, and
   the certificate the remote server presented, identified by its SHA-256
   fingerprint, with its subject, alternative names, issuer, serial number,
