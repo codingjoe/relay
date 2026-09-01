@@ -42,15 +42,40 @@
         );
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
-      const chart = echarts.init(element);
+      const palette = [
+        "--color-chart-blue",
+        "--color-chart-green",
+        "--color-chart-yellow",
+        "--color-chart-red",
+        "--color-chart-cyan",
+        "--color-chart-green-deep",
+        "--color-chart-orange",
+        "--color-chart-gray",
+      ].map((name) => toRgba(`var(${name})`));
+      echarts.registerTheme("relay", {
+        color: palette,
+        textStyle: { fontFamily: getComputedStyle(document.documentElement).fontFamily },
+        categoryAxis: {
+          axisLine: { lineStyle: { color: border } },
+          axisTick: { show: false },
+          axisLabel: { color: muted },
+        },
+        valueAxis: {
+          axisLabel: { color: muted },
+          splitLine: { lineStyle: { color: border } },
+        },
+        tooltip: {
+          backgroundColor: toRgba("var(--color-popover)"),
+          borderColor: border,
+          textStyle: { color: toRgba("var(--color-popover-foreground)") },
+        },
+      });
+      const chart = echarts.init(element, "relay");
       chart.setOption({
         grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
         tooltip: {
           trigger: "axis",
           confine: true,
-          backgroundColor: toRgba("var(--color-popover)"),
-          borderColor: border,
-          textStyle: { color: toRgba("var(--color-popover-foreground)") },
           formatter: (items) =>
             [
               escapeHtml(fullDate.format(new Date(items[0].axisValue))),
@@ -63,18 +88,13 @@
         xAxis: {
           type: "category",
           data: rows.map((row) => row.day),
-          axisLine: { lineStyle: { color: border } },
-          axisTick: { show: false },
           axisLabel: {
-            color: muted,
             interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
             formatter: (value) => shortDate.format(new Date(value)),
           },
         },
         yAxis: {
           min: 0,
-          axisLabel: { color: muted },
-          splitLine: { lineStyle: { color: border } },
         },
         series: [
           {% for series in chart.series %}

@@ -9,25 +9,24 @@ from abstract.charts import CHART_DAYS, build_chart_data
 from .models import IncomingMessage, TlsFailure
 
 CHART_COLORS = {
-    "delivered": "var(--color-chart-success)",
-    "webhook_sent": "var(--color-chart-success)",
-    "received": "var(--color-chart-neutral)",
-    "bounced": "var(--color-chart-warning)",
-    "dropped": "var(--color-chart-destructive)",
-    "webhook_failed": "var(--color-chart-destructive)",
+    "received": "var(--color-chart-green)",
+    "quarantined": "var(--color-chart-yellow)",
+    "webhook_sent": "var(--color-chart-green-deep)",
+    "webhook_failed": "var(--color-chart-red)",
+    "dropped": "var(--color-chart-red)",
 }
 
 TLS_CHART_COLORS = {
-    "starttls-not-supported": "var(--color-chart-destructive)",
-    "certificate-expired": "var(--color-chart-warning)",
-    "certificate-not-trusted": "var(--color-chart-destructive)",
-    "certificate-name-mismatch": "var(--color-chart-warning)",
-    "tls-version-invalid": "var(--color-chart-warning)",
-    "tlsa-invalid": "var(--color-chart-warning)",
-    "dane-required": "var(--color-chart-warning)",
-    "sts-policy-invalid": "var(--color-chart-warning)",
-    "sts-webpki-invalid": "var(--color-chart-warning)",
-    "other": "var(--color-chart-neutral)",
+    "starttls-not-supported": "var(--color-chart-red)",
+    "certificate-expired": "var(--color-chart-yellow)",
+    "certificate-not-trusted": "var(--color-chart-red)",
+    "certificate-name-mismatch": "var(--color-chart-yellow)",
+    "tls-version-invalid": "var(--color-chart-yellow)",
+    "tlsa-invalid": "var(--color-chart-yellow)",
+    "dane-required": "var(--color-chart-yellow)",
+    "sts-policy-invalid": "var(--color-chart-yellow)",
+    "sts-webpki-invalid": "var(--color-chart-yellow)",
+    "other": "var(--color-chart-gray)",
 }
 
 

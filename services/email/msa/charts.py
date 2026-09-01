@@ -9,18 +9,19 @@ from abstract.charts import CHART_DAYS, build_chart_data
 from .models import OutgoingMessage, SuppressionEntry
 
 CHART_COLORS = {
-    "delivered": "var(--color-chart-success)",
-    "sent": "var(--color-chart-info)",
-    "pending": "var(--color-chart-neutral)",
-    "held": "var(--color-chart-warning)",
-    "bounced": "var(--color-chart-warning)",
-    "failed": "var(--color-chart-destructive)",
-    "dropped": "var(--color-chart-destructive)",
+    "delivered": "var(--color-chart-green)",
+    "sent": "var(--color-chart-blue)",
+    "pending": "var(--color-chart-cyan)",
+    "held": "var(--color-chart-yellow)",
+    "bounced": "var(--color-chart-orange)",
+    "failed": "var(--color-chart-red)",
+    "dropped": "var(--color-chart-red)",
+    "suppressed": "var(--color-chart-gray)",
 }
 
 SUPPRESSION_CHART_COLORS = {
-    "bounce": "var(--color-chart-destructive)",
-    "manual": "var(--color-chart-neutral)",
+    "bounce": "var(--color-chart-red)",
+    "manual": "var(--color-chart-gray)",
 }
 
 

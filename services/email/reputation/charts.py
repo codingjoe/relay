@@ -10,14 +10,14 @@ from services.email.msa.models import OutgoingMessage, Transmission
 from .models import FblReport
 
 REPUTATION_CHART_COLORS = {
-    "sent": "var(--color-chart-info)",
-    "hard_bounced": "var(--color-chart-destructive)",
-    "soft_bounced": "var(--color-chart-warning)",
-    "complained": "var(--color-chart-destructive)",
-    "hard_bounce_rate": "var(--color-chart-destructive)",
-    "complaint_rate": "var(--color-chart-warning)",
-    "hard_bounce_limit": "var(--color-chart-neutral)",
-    "complaint_limit": "var(--color-chart-neutral)",
+    "sent": "var(--color-chart-blue)",
+    "hard_bounced": "var(--color-chart-red)",
+    "soft_bounced": "var(--color-chart-yellow)",
+    "complained": "var(--color-chart-red)",
+    "hard_bounce_rate": "var(--color-chart-red)",
+    "complaint_rate": "var(--color-chart-orange)",
+    "hard_bounce_limit": "var(--color-chart-gray)",
+    "complaint_limit": "var(--color-chart-gray)",
 }
 
 

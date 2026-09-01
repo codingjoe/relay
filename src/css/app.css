@@ -16,15 +16,20 @@
   --color-success: light-dark(hsl(142, 71%, 31%), hsl(142, 60%, 55%));
   --color-warning: light-dark(hsl(33, 95%, 35%), hsl(38, 95%, 58%));
 
-  /* Chart series colors. Muted and scoped to charts so bars never read
-     as links, buttons, or status badges (--color-primary and the UI
-     status tokens above stay reserved for interactive elements). Both
-     shades hold the 4.5:1 WCAG AA floor against the card background. */
-  --color-chart-success: light-dark(hsl(142, 45%, 33%), hsl(142, 35%, 58%));
-  --color-chart-warning: light-dark(hsl(33, 55%, 38%), hsl(38, 50%, 58%));
-  --color-chart-destructive: light-dark(hsl(0, 55%, 47%), hsl(0, 55%, 63%));
-  --color-chart-info: light-dark(hsl(215, 45%, 43%), hsl(210, 45%, 62%));
-  --color-chart-neutral: light-dark(oklch(0.48 0 0), oklch(0.708 0 0));
+  /* Chart series colors. Vivid, ECharts-style hues kept separate from
+     interactive colors (--color-primary) and the UI status tokens so
+     series never read as links, buttons, or badges. Green marks good
+     outcomes, red bad ones, and blue informational ones. Every shade
+     holds the 3:1 WCAG non-text contrast floor against the card
+     background. */
+  --color-chart-green: light-dark(hsl(105, 42%, 45%), hsl(105, 55%, 64%));
+  --color-chart-green-deep: light-dark(hsl(155, 47%, 43%), hsl(155, 50%, 60%));
+  --color-chart-yellow: light-dark(hsl(43, 89%, 39%), hsl(43, 90%, 62%));
+  --color-chart-orange: light-dark(hsl(20, 97%, 52%), hsl(20, 95%, 66%));
+  --color-chart-red: light-dark(hsl(0, 80%, 67%), hsl(0, 75%, 68%));
+  --color-chart-blue: light-dark(hsl(225, 50%, 55%), hsl(225, 55%, 65%));
+  --color-chart-cyan: light-dark(hsl(196, 57%, 47%), hsl(196, 60%, 64%));
+  --color-chart-gray: light-dark(hsl(224, 4%, 45%), hsl(224, 10%, 65%));
 
   /* Muted text on the page background must stay above the 4.5:1 WCAG AA
      floor (the basecoat default reaches only 4.3:1 in light mode). */

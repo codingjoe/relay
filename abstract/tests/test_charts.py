@@ -46,11 +46,11 @@ class TestBuildChartData:
         assert result["rows"][0]["pass"] == 5
         assert result["rows"][0]["fail"] == 3
 
-    def test_build_chart_data__uses_neutral_color_for_unknown_choice(self):
+    def test_build_chart_data__uses_gray_color_for_unknown_choice(self):
         class Extra(TextChoices):
             UNKNOWN = "unknown", "Unknown"
 
         result = build_chart_data(
             [], [Extra.UNKNOWN], {}, datetime.date(2026, 1, 1), "status"
         )
-        assert result["series"][0]["color"] == "var(--color-chart-neutral)"
+        assert result["series"][0]["color"] == "var(--color-chart-gray)"
