@@ -15,6 +15,8 @@ INCLUDE_HEADERS = ["From", "To", "Subject", "Date", "Message-ID", "Feedback-ID"]
 
 def add_dkim_signature(raw_bytes, selector, domain_name, key, include_headers):
     """Prepend a DKIM signature to the message, or return it unchanged on failure."""
+    if key is None:
+        return raw_bytes
     try:
         return (
             key.sign_dkim(raw_bytes, selector, domain_name, include_headers) + raw_bytes

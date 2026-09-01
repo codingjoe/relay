@@ -12,10 +12,12 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
+from domains.dkim import sign_message
 from domains.models import Domain
 
 from .charts import build_suppression_chart
 from .forms import SuppressionEntryForm
+from .handlers import add_feedback_id
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
 from .tasks import deliver_message
 
@@ -75,7 +77,8 @@ class TestEmailView(OrganizationScopedView, generic.View):
         msg["To"] = request.user.email
         msg["Subject"] = request.POST.get("subject", "")
         msg.set_content(request.POST.get("body", ""))
-        raw_bytes = msg.as_bytes()
+        raw_bytes, feedback_id = add_feedback_id(msg.as_bytes(), self.org)
+        raw_bytes = sign_message(raw_bytes, domain)
 
         message = OutgoingMessage.objects.create(
             org=self.org,
@@ -84,6 +87,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
             subject=request.POST.get("subject", ""),
             message_id=msg.get("Message-ID", ""),
             domain=domain,
+            feedback_id=feedback_id,
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
             raw_body=SimpleUploadedFile(
                 f"{msg.get('Message-ID', 'message')}.eml", raw_bytes
