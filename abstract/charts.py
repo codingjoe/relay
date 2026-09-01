@@ -4,7 +4,7 @@ CHART_DAYS = 30
 
 
 def build_chart_data(rows, choices, colors, start, group_field):
-    """Return chart series and rows for a stacked line chart.
+    """Return chart series and rows for a stacked bar chart.
 
     Args:
         rows: pre-aggregated queryset rows with keys `day`, `group_field`

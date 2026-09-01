@@ -10,6 +10,11 @@
   --color-primary-text: light-dark(hsl(268, 100%, 41%), hsl(268, 100%, 75%));
   --color-link: var(--color-primary-text);
 
+  /* Chart status colors (delivered/held/bounced). Both shades hold the
+     4.5:1 WCAG AA floor for text on the light and dark background. */
+  --color-success: light-dark(hsl(142, 71%, 31%), hsl(142, 60%, 55%));
+  --color-warning: light-dark(hsl(33, 95%, 35%), hsl(38, 95%, 58%));
+
   /* Muted text on the page background must stay above the 4.5:1 WCAG AA
      floor (the basecoat default reaches only 4.3:1 in light mode). */
   --muted-foreground: oklch(0.48 0 0);
