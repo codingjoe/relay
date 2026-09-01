@@ -175,7 +175,6 @@ services:
   worker:
     command: [ "-m", "manage", "threadmill", "worker" ]
     labels: !reset []
-    deploy: !reset {}
     extends:
       service: web
 networks:
