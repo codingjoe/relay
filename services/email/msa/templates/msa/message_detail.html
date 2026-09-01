@@ -3,14 +3,14 @@
 {% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
   <header class="mb-6">
-    <h2 class="m-0 break-all">
-      {% if message.message_id %}
-        <code class="text-base">{{ message.message_id }}</code>
-      {% else %}
-        ({% translate "no message ID" %})
-      {% endif %}
-    </h2>
-    <div class="flex items-center gap-3 flex-wrap mt-2">
+    <div class="flex items-center gap-3 flex-wrap">
+      <h2 class="m-0 break-all">
+        {% if message.message_id %}
+          <code class="text-base">{{ message.message_id }}</code>
+        {% else %}
+          ({% translate "no message ID" %})
+        {% endif %}
+      </h2>
       <span
         class="badge"
         data-size="sm"
@@ -18,20 +18,6 @@
       >
         {{ message.status_display }}
       </span>
-      {% if message.spam_action %}
-        <span
-          class="badge"
-          data-size="sm"
-          data-variant="{{ message.spam_badge_variant }}"
-        >
-          {{ message.get_spam_action_display }}
-        </span>
-        <span class="text-sm text-muted-foreground">{{ message.spam_score }}</span>
-      {% endif %}
-      {% timestamp message.created_at %}
-      <code class="text-sm break-all">
-        {{ message.mail_from }} → {{ message.rcpt_to }}
-      </code>
     </div>
   </header>
 
@@ -48,6 +34,19 @@
             <span class="text-muted-foreground">{% translate "not received with TLS"|capfirst %}</span>
           {% endif %}
         </dd>
+        {% if message.spam_action %}
+          <dt class="font-semibold">{% translate "spam check"|capfirst %}</dt>
+          <dd class="m-0">
+            <span
+              class="badge"
+              data-size="sm"
+              data-variant="{{ message.spam_badge_variant }}"
+            >
+              {{ message.get_spam_action_display }}
+            </span>
+            {{ message.spam_score }}
+          </dd>
+        {% endif %}
       </dl>
       {% if message.credential %}
         <p class="text-sm text-muted-foreground mt-4 mb-0">
