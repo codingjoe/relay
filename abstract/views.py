@@ -29,16 +29,16 @@ class CacheControlMixin:
 class ConditionalGetMixin:
     """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
 
-    object = None
-
     def get_etag(self, obj) -> str:
         """Return the ETag for `obj`."""
         return f'"{obj.pk.hex}-{obj.modified_at.timestamp():.6f}"'
 
     def get_object(self, queryset=None):
-        if self.object is None:
+        try:
+            return self.object
+        except AttributeError:
             self.object = super().get_object(queryset)
-        return self.object
+            return self.object
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
