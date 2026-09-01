@@ -3,8 +3,6 @@ from email.message import EmailMessage
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import BadRequest
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -12,12 +10,13 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
+from domains.dkim import sign_message
 from domains.models import Domain
 
 from .charts import build_suppression_chart
 from .forms import SuppressionEntryForm
+from .handlers import add_feedback_id, store_outgoing_message
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
-from .tasks import deliver_message
 
 
 class OutgoingMessageDetailView(
@@ -75,25 +74,20 @@ class TestEmailView(OrganizationScopedView, generic.View):
         msg["To"] = request.user.email
         msg["Subject"] = request.POST.get("subject", "")
         msg.set_content(request.POST.get("body", ""))
-        raw_bytes = msg.as_bytes()
+        raw_bytes, feedback_id = add_feedback_id(msg.as_bytes(), self.org)
+        raw_bytes = sign_message(raw_bytes, domain)
 
-        message = OutgoingMessage.objects.create(
+        store_outgoing_message(
             org=self.org,
             rcpt_to=request.user.email,
             mail_from=mail_from,
-            subject=request.POST.get("subject", ""),
-            message_id=msg.get("Message-ID", ""),
             domain=domain,
-            headers=OutgoingMessage.headers_from_raw(raw_bytes),
-            raw_body=SimpleUploadedFile(
-                f"{msg.get('Message-ID', 'message')}.eml", raw_bytes
-            ),
-        )
-
-        transaction.on_commit(
-            lambda: deliver_message.enqueue(
-                message_id=str(message.id),
-            )
+            credential=None,
+            status=OutgoingMessage.Status.PENDING,
+            feedback_id=feedback_id,
+            ssl=request.is_secure(),
+            client_ip=request.META.get("REMOTE_ADDR", ""),
+            raw_bytes=raw_bytes,
         )
         messages.success(request, _("Queued test message for delivery."))
         return redirect("message:message-list", org_slug=org_slug)
