@@ -2,17 +2,6 @@
 {% load i18n message abstract %}
 {% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
-  {% if is_report %}
-    <div class="card p-4 mb-4 flex items-center justify-between gap-4">
-      <p class="m-0 text-sm text-muted-foreground">
-        {% translate "This email carried a report." %}
-      </p>
-      <a class="btn shrink-0" data-variant="secondary" href="{{ report_url }}">
-        <i data-lucide="shield-check" class="size-4" aria-hidden="true"></i>
-        {{ report_kind|capfirst }}
-      </a>
-    </div>
-  {% endif %}
   {% if webhook_deliveries %}
     <details open class="mb-4">
       <summary class="cursor-pointer font-semibold">{% translate "webhook deliveries"|capfirst %}</summary>
@@ -110,6 +99,18 @@
       {% endif %}
     </dd>
   </dl>
+
+  {% if is_report %}
+    <div class="card p-4 mb-4 flex items-center justify-between gap-4">
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "This email carried a report." %}
+      </p>
+      <a class="btn shrink-0" data-variant="secondary" href="{{ report_url }}">
+        <i data-lucide="shield-check" class="size-4" aria-hidden="true"></i>
+        {{ report_kind|capfirst }}
+      </a>
+    </div>
+  {% endif %}
 
   {% if body %}
     <details open class="mb-4">
