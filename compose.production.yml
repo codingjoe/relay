@@ -7,6 +7,12 @@ services:
       - app
       - dnsdist
     command: [ "-m", "manage", "dns", "--port", "5353" ]
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
     labels: !reset []
     extends:
       service: web
@@ -14,7 +20,7 @@ services:
     image: powerdns/dnsdist-21:2.1.1
     depends_on:
       dns:
-        condition: service_started
+        condition: service_healthy
     configs:
       - source: dnsdist
         target: /etc/dnsdist/dnsdist.conf
@@ -24,6 +30,12 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
+    healthcheck:
+      test: [ "CMD", "python3", "-c", "import socket; q = b'\\x12\\x34\\x01\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x05relay\\x06health\\x00\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(q, ('127.0.0.1', 53)); assert s.recvfrom(512)[0]" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
   migration:
     depends_on: !override
       postgres:
@@ -79,6 +91,15 @@ services:
       RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "msa", "--ports", "587" ]
+    healthcheck:
+      # The submission port expects a PROXY protocol header (sent by Caddy in
+      # production). We send a PROXY v2 LOCAL header, then expect an SMTP
+      # 220 banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'\\r\\n\\r\\n\\x00\\r\\nQUIT\\n\\x20\\x00\\x00\\x00'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
@@ -104,6 +125,15 @@ services:
       RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
+    healthcheck:
+      # The MX port expects a PROXY protocol header (sent by Caddy in
+      # production). We send a PROXY v2 LOCAL header, then expect an SMTP
+      # 220 banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'\\r\\n\\r\\n\\x00\\r\\nQUIT\\n\\x20\\x00\\x00\\x00'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     labels: !override
       - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
@@ -126,6 +156,12 @@ services:
         target: /etc/rspamd/local.d/worker-normal.inc
     networks:
       - app
+    healthcheck:
+      test: [ "CMD-SHELL", "timeout 5 bash -c 'exec 3<>/dev/tcp/127.0.0.1/11334 && printf \"GET /ping HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q pong <&3'" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
   web:
     image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
