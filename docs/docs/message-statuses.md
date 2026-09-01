@@ -109,8 +109,11 @@ with the URL, response code, and a response excerpt.
 
 ## Where you see the statuses
 
-- The message list of the dashboard colors each status, with destructive
-  colors for bounced, failed, quarantined, and webhook_failed rows.
+- The message list of the dashboard colors each status badge with the
+  same traffic-light tones as the charts: success for sent, received,
+  and webhook_sent, warning for held and quarantined, destructive for
+  bounced, failed, dropped, and webhook_failed, and outline for
+  everything still open or neutral.
 - The message detail page shows the status next to the transcripts and
   delivery records.
 - Filters let you watch only failed or quarantined traffic.

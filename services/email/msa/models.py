@@ -32,7 +32,9 @@ class OutgoingMessage(Message):
             Status = type(self)
             match self:
                 case Status.SENT:
-                    return "primary"
+                    return "success"
+                case Status.HELD:
+                    return "warning"
                 case Status.BOUNCED | Status.DROPPED | Status.FAILED:
                     return "destructive"
                 case _:
@@ -172,7 +174,7 @@ class Transmission(TimeStamped):
     def status_badge_variant(self) -> str:
         match self.status:
             case self.Status.SENT:
-                return "primary"
+                return "success"
             case self.Status.FAILED | self.Status.BOUNCED:
                 return "destructive"
             case _:

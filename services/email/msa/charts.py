@@ -10,7 +10,7 @@ from .models import OutgoingMessage, SuppressionEntry
 
 CHART_COLORS = {
     "sent": "var(--color-chart-green)",
-    "pending": "var(--color-chart-blue)",
+    "pending": "var(--color-chart-gray)",
     "held": "var(--color-chart-yellow)",
     "bounced": "var(--color-chart-orange)",
     "failed": "var(--color-chart-red)",

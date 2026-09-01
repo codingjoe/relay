@@ -95,7 +95,7 @@ class TestTransmission:
     @pytest.mark.parametrize(
         ("status", "expected"),
         [
-            (Transmission.Status.SENT, "primary"),
+            (Transmission.Status.SENT, "success"),
             (Transmission.Status.FAILED, "destructive"),
             (Transmission.Status.BOUNCED, "destructive"),
             (Transmission.Status.RETRY, "outline"),
