@@ -68,7 +68,6 @@
               <th scope="col">{% translate "MX host"|capfirst %}</th>
               <th scope="col">{% translate "TLS" %}</th>
               <th scope="col">{% translate "log ID"|capfirst %}</th>
-              <th scope="col">{% translate "transcript"|capfirst %}</th>
             </tr>
           </thead>
           <tbody>
@@ -117,17 +116,14 @@
               {% if transmission.output or transmission.details %}
                 <tr>
                   <td colspan="6">
-                    <details>
-                      <summary class="cursor-pointer">
-                        {% translate "show transcript"|capfirst %}
-                      </summary>
-                      {% if transmission.output %}
-                        <pre class="mt-2 p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
-                      {% endif %}
-                      {% if transmission.details %}
-                        <p class="text-sm mt-2 mb-0">{{ transmission.details }}</p>
-                      {% endif %}
-                    </details>
+                    {% if transmission.output %}
+                      <pre class="m-0 text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
+                    {% endif %}
+                    {% if transmission.details %}
+                      <p class="text-sm {% if transmission.output %}mt-2 mb-0{% else %}m-0{% endif %}">
+                        {{ transmission.details }}
+                      </p>
+                    {% endif %}
                   </td>
                 </tr>
               {% endif %}
