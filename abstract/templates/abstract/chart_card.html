@@ -8,65 +8,107 @@
       {% endblocktranslate %}
     </p>
   </header>
-  <canvas id="{{ id }}" class="h-72" aria-label="{{ title }}"></canvas>
+  <div id="{{ id }}" class="h-72" role="img" aria-label="{{ title }}"></div>
   {{ chart.rows|json_script:data_id }}
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      window.basecoat.chart("#{{ id }}", {
-        type: "line",
-        labelKey: "day",
-        data: JSON.parse(document.getElementById("{{ data_id }}").textContent),
-        series: {
-        {% for series in chart.series %}
-          "{{ series.key }}": {
-            label: "{{ series.label|capfirst }}",
-            color: "{{ series.color }}",
-            surface: "gradient",
-            dataset: {
-              fill: true,
-              tension: 0.35,
-              stack: "status",
-              pointRadius: 0,
-              pointHoverRadius: 4,
+      const element = document.getElementById("{{ id }}");
+      if (window.echarts && element) {
+        const rows = JSON.parse(document.getElementById("{{ data_id }}").textContent);
+        const locale = document.documentElement.lang;
+        const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+        const swatch = document.body.appendChild(document.createElement("span"));
+        swatch.hidden = true;
+        const toRgba = (value, alpha = 1, fallback = "#71717a") => {
+          const name = value.startsWith("var(") ? value.slice(4, -1) : null;
+          const color = name ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : value;
+          swatch.style.color = color || fallback;
+          probe.clearRect(0, 0, 1, 1);
+          probe.fillStyle = getComputedStyle(swatch).color;
+          probe.fillRect(0, 0, 1, 1);
+          const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
+          return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
+        };
+        const areaFill = (value) =>
+          new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: toRgba(value, 0.8) },
+            { offset: 1, color: toRgba(value, 0.1) },
+          ]);
+        const fullDate = new Intl.DateTimeFormat(locale, {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
+        });
+        const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
+        const escapeHtml = (value) =>
+          value.replace(/[&<>"']/g, (character) =>
+            ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
+          );
+        const muted = toRgba("var(--color-muted-foreground)");
+        const border = toRgba("var(--color-border)");
+        const chart = echarts.init(element);
+        chart.setOption({
+          grid: { left: 8, right: 16, top: 8, bottom: 28, containLabel: true },
+          legend: {
+            type: "scroll",
+            bottom: 0,
+            data: [{% for series in chart.series %}{
+              name: "{{ series.label|capfirst }}",
+              textStyle: { color: toRgba("{{ series.color }}") },
+            }{% if not forloop.last %},{% endif %}{% endfor %}],
+          },
+          tooltip: {
+            trigger: "axis",
+            confine: true,
+            backgroundColor: toRgba("var(--color-popover)"),
+            borderColor: border,
+            textStyle: { color: toRgba("var(--color-popover-foreground)") },
+            formatter: (items) =>
+              [
+                escapeHtml(fullDate.format(new Date(items[0].axisValue))),
+                ...items.map(
+                  (item) =>
+                    `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(String(item.value ?? "-"))}`
+                ),
+              ].join("<br/>"),
+          },
+          xAxis: {
+            type: "category",
+            boundaryGap: false,
+            data: rows.map((row) => row.day),
+            axisLine: { lineStyle: { color: border } },
+            axisTick: { show: false },
+            axisLabel: {
+              color: muted,
+              interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
+              formatter: (value) => shortDate.format(new Date(value)),
+            },
+          },
+          yAxis: {
+            min: 0,
+            axisLabel: { color: muted },
+            splitLine: { lineStyle: { color: border } },
+          },
+          series: [
+            {% for series in chart.series %}
+            {
+              name: "{{ series.label|capfirst }}",
+              type: "line",
+              smooth: 0.35,
+              showSymbol: false,
+              {% if chart.y_scale.stacked != "false" %}stack: "status",{% endif %}
+              lineStyle: { color: toRgba("{{ series.color }}") },
+              itemStyle: { color: toRgba("{{ series.color }}") },
+              areaStyle: { color: areaFill("{{ series.color }}") },
+              data: rows.map((row) => row["{{ series.key }}"]),
               {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
-            },
-          }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-        },
-        options: {
-          scales: {
-            x: {
-              ticks: {
-                maxTicksLimit: 6,
-                callback: function (value) {
-                  return new Intl.DateTimeFormat(document.documentElement.lang, {
-                    month: "short",
-                    day: "numeric",
-                  }).format(new Date(this.getLabelForValue(value)));
-                },
-              },
-            },
-            y: {
-              stacked: true,
-              beginAtZero: true,
-              {% for key, value in chart.y_scale.items %}{{ key }}: {{ value }}, {% endfor %}
-            },
-          },
-          plugins: {
-            tooltip: {
-              mode: "index",
-              callbacks: {
-                title: (items) =>
-                  new Intl.DateTimeFormat(document.documentElement.lang, {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  }).format(new Date(items[0].label)),
-              },
-            },
-          },
-        },
-      });
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          ],
+        });
+        window.addEventListener("resize", () => chart.resize());
+      }
     });
   </script>
 </section>
