@@ -10,89 +10,88 @@
   </header>
   <div id="{{ id }}" class="h-72" role="img" aria-label="{{ title }}"></div>
   {{ chart.rows|json_script:data_id }}
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const element = document.getElementById("{{ id }}");
-      if (window.echarts && element) {
-        const rows = JSON.parse(document.getElementById("{{ data_id }}").textContent);
-        const locale = document.documentElement.lang;
-        const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-        const swatch = document.body.appendChild(document.createElement("span"));
-        swatch.hidden = true;
-        const toRgba = (value, alpha = 1, fallback = "#71717a") => {
-          const name = value.startsWith("var(") ? value.slice(4, -1) : null;
-          const color = name ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : value;
-          swatch.style.color = color || fallback;
-          probe.clearRect(0, 0, 1, 1);
-          probe.fillStyle = getComputedStyle(swatch).color;
-          probe.fillRect(0, 0, 1, 1);
-          const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
-          return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
-        };
-        const fullDate = new Intl.DateTimeFormat(locale, {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          timeZone: "UTC",
-        });
-        const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
-        const escapeHtml = (value) =>
-          value.replace(/[&<>"']/g, (character) =>
-            ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
-          );
-        const muted = toRgba("var(--color-muted-foreground)");
-        const border = toRgba("var(--color-border)");
-        const chart = echarts.init(element);
-        chart.setOption({
-          grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
-          tooltip: {
-            trigger: "axis",
-            confine: true,
-            backgroundColor: toRgba("var(--color-popover)"),
-            borderColor: border,
-            textStyle: { color: toRgba("var(--color-popover-foreground)") },
-            formatter: (items) =>
-              [
-                escapeHtml(fullDate.format(new Date(items[0].axisValue))),
-                ...items.map(
-                  (item) =>
-                    `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(String(item.value ?? "-"))}`
-                ),
-              ].join("<br/>"),
+  <script type="module">
+    import * as echarts from "https://esm.sh/echarts@5.6.0";
+    const element = document.getElementById("{{ id }}");
+    if (element) {
+      const rows = JSON.parse(document.getElementById("{{ data_id }}").textContent);
+      const locale = document.documentElement.lang;
+      const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+      const swatch = document.body.appendChild(document.createElement("span"));
+      swatch.hidden = true;
+      const toRgba = (value, alpha = 1, fallback = "#71717a") => {
+        const name = value.startsWith("var(") ? value.slice(4, -1) : null;
+        const color = name ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : value;
+        swatch.style.color = color || fallback;
+        probe.clearRect(0, 0, 1, 1);
+        probe.fillStyle = getComputedStyle(swatch).color;
+        probe.fillRect(0, 0, 1, 1);
+        const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
+        return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
+      };
+      const fullDate = new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC",
+      });
+      const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
+      const escapeHtml = (value) =>
+        value.replace(/[&<>"']/g, (character) =>
+          ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
+        );
+      const muted = toRgba("var(--color-muted-foreground)");
+      const border = toRgba("var(--color-border)");
+      const chart = echarts.init(element);
+      chart.setOption({
+        grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+        tooltip: {
+          trigger: "axis",
+          confine: true,
+          backgroundColor: toRgba("var(--color-popover)"),
+          borderColor: border,
+          textStyle: { color: toRgba("var(--color-popover-foreground)") },
+          formatter: (items) =>
+            [
+              escapeHtml(fullDate.format(new Date(items[0].axisValue))),
+              ...items.map(
+                (item) =>
+                  `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(String(item.value ?? "-"))}`
+              ),
+            ].join("<br/>"),
+        },
+        xAxis: {
+          type: "category",
+          data: rows.map((row) => row.day),
+          axisLine: { lineStyle: { color: border } },
+          axisTick: { show: false },
+          axisLabel: {
+            color: muted,
+            interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
+            formatter: (value) => shortDate.format(new Date(value)),
           },
-          xAxis: {
-            type: "category",
-            data: rows.map((row) => row.day),
-            axisLine: { lineStyle: { color: border } },
-            axisTick: { show: false },
-            axisLabel: {
-              color: muted,
-              interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
-              formatter: (value) => shortDate.format(new Date(value)),
-            },
-          },
-          yAxis: {
-            min: 0,
-            axisLabel: { color: muted },
-            splitLine: { lineStyle: { color: border } },
-          },
-          series: [
-            {% for series in chart.series %}
-            {
-              name: "{{ series.label|capfirst }}",
-              type: "bar",
-              {% if chart.y_scale.stacked != "false" %}stack: "status",{% endif %}
-              showSymbol: false,
-              lineStyle: { color: toRgba("{{ series.color }}") },
-              itemStyle: { color: toRgba("{{ series.color }}") },
-              data: rows.map((row) => row["{{ series.key }}"]),
-              {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
-            }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-          ],
-        });
-        window.addEventListener("resize", () => chart.resize());
-      }
-    });
+        },
+        yAxis: {
+          min: 0,
+          axisLabel: { color: muted },
+          splitLine: { lineStyle: { color: border } },
+        },
+        series: [
+          {% for series in chart.series %}
+          {
+            name: "{{ series.label|capfirst }}",
+            type: "bar",
+            {% if chart.y_scale.stacked != "false" %}stack: "status",{% endif %}
+            showSymbol: false,
+            lineStyle: { color: toRgba("{{ series.color }}") },
+            itemStyle: { color: toRgba("{{ series.color }}") },
+            data: rows.map((row) => row["{{ series.key }}"]),
+            {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
+          }{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ],
+      });
+      window.addEventListener("resize", () => chart.resize());
+    }
   </script>
 </section>

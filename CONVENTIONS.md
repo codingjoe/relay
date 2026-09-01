@@ -181,11 +181,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `circle-dashed` with `text-muted-foreground`).
 
 - Charts use [Apache ECharts](https://echarts.apache.org/) (the library
-  Sentry uses), loaded from a CDN with `defer` like Lucide and initialized
-  on `DOMContentLoaded` in `abstract/templates/abstract/chart_card.html`.
-  Render series as stacked bars without a legend; unstack them by
-  passing `y_scale: {"stacked": "false"}` from the view. Override the
-  series type (for example, to draw thresholds as lines) through the
+  Sentry uses), imported as an ES module from esm.sh inside
+  `abstract/templates/abstract/chart_card.html`, so only pages that render
+  charts load it. Render series as stacked bars without a legend; unstack
+  them by passing `y_scale: {"stacked": "false"}` from the view. Override
+  the series type (for example, to draw thresholds as lines) through the
   series `dataset` passthrough. ECharts draws to canvas and cannot resolve CSS variables, so resolve theme
   colors at init time with a hidden span and a canvas probe (`getPropertyValue`
   on `:root` returns the unresolved `light-dark()` token stream; the value must
