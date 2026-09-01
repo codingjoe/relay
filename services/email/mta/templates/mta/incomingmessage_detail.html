@@ -60,109 +60,92 @@
     </dl>
   </article>
 
-  <section class="accordion" data-multiple aria-label='{% translate "message details"|capfirst %}'>
-    {% if webhook_deliveries %}
-      <details open>
-        <summary>
-          <span class="flex items-center gap-2">
-            {% translate "webhook deliveries"|capfirst context "noun" %}
-            <span class="badge" data-size="sm">{{ webhook_deliveries|length }}</span>
-          </span>
-          <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-        </summary>
-        <section>
-          <div class="table-container">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th scope="col">{% translate "webhook"|capfirst %}</th>
-                  <th scope="col">{% translate "status"|capfirst context "noun" %}</th>
-                  <th scope="col">{% translate "code"|capfirst context "noun" %}</th>
-                  <th scope="col">{% translate "delivered at"|capfirst %}</th>
-                  <th scope="col">{% translate "response"|capfirst context "noun" %}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for delivery in webhook_deliveries %}
-                  <tr>
-                    <td><code>{{ delivery.webhook.key_id }}</code></td>
-                    <td>
-                      <span
-                        class="badge"
-                        data-size="sm"
-                        data-variant="{{ delivery.status_badge_variant }}"
-                      >
-                        {{ delivery.get_status_display }}
-                      </span>
-                    </td>
-                    <td>{{ delivery.response_code|default:"-" }}</td>
-                    <td>
-                      {% timestamp delivery.created_at %}
-                    </td>
-                    <td>{{ delivery.response_body|truncatechars:120 }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </details>
-    {% endif %}
-    <details open>
-      <summary>
-        <span class="flex items-center gap-2">
-          {% translate "headers"|capfirst context "noun" %}
-          <span class="badge" data-size="sm">{{ headers|length }}</span>
-        </span>
-        <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-      </summary>
-      <section>
-        <div class="table-container">
-          <table class="table">
-            <thead>
+  {% if webhook_deliveries %}
+    <section class="mb-6">
+      <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
+        {% translate "webhook deliveries"|capfirst context "noun" %}
+        <span class="badge" data-size="sm">{{ webhook_deliveries|length }}</span>
+      </h3>
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">{% translate "webhook"|capfirst %}</th>
+              <th scope="col">{% translate "status"|capfirst context "noun" %}</th>
+              <th scope="col">{% translate "code"|capfirst context "noun" %}</th>
+              <th scope="col">{% translate "delivered at"|capfirst %}</th>
+              <th scope="col">{% translate "response"|capfirst context "noun" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for delivery in webhook_deliveries %}
               <tr>
-                <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
-                <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
+                <td><code>{{ delivery.webhook.key_id }}</code></td>
+                <td>
+                  <span
+                    class="badge"
+                    data-size="sm"
+                    data-variant="{{ delivery.status_badge_variant }}"
+                  >
+                    {{ delivery.get_status_display }}
+                  </span>
+                </td>
+                <td>{{ delivery.response_code|default:"-" }}</td>
+                <td>
+                  {% timestamp delivery.created_at %}
+                </td>
+                <td>{{ delivery.response_body|truncatechars:120 }}</td>
               </tr>
-            </thead>
-            <tbody>
-              {% for key, value in headers %}
-                <tr>
-                  <td class="whitespace-normal">{{ key }}</td>
-                  <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </details>
-    <details open>
-      <summary>
-        <span class="flex items-center gap-2">
-          {% translate "body"|capfirst context "noun" %}
-        </span>
-        <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-      </summary>
-      <section>
-        {% if is_report %}
-          <div class="card p-4 flex items-center justify-between gap-4">
-            <p class="m-0 text-sm text-muted-foreground">
-              {% translate "This email carried a report." %}
-            </p>
-            <a class="btn shrink-0" data-variant="secondary" href="{{ report_url }}">
-              <i data-lucide="{{ message.kind_icon }}" class="size-4" aria-hidden="true"></i>
-              {{ report_kind|capfirst }}
-            </a>
-          </div>
-        {% elif body %}
-          {{ body|highlight_email }}
-        {% else %}
-          <p class="text-sm text-muted-foreground m-0">
-            {% translate "Body pruned." %}
-          </p>
-        {% endif %}
-      </section>
-    </details>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="mb-6">
+    <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
+      {% translate "headers"|capfirst context "noun" %}
+      <span class="badge" data-size="sm">{{ headers|length }}</span>
+    </h3>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
+            <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, value in headers %}
+            <tr>
+              <td class="whitespace-normal">{{ key }}</td>
+              <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mb-6">
+    <h3 class="font-semibold m-0 mb-3">{% translate "body"|capfirst context "noun" %}</h3>
+    {% if is_report %}
+      <div class="card p-4 flex items-center justify-between gap-4">
+        <p class="m-0 text-sm text-muted-foreground">
+          {% translate "This email carried a report." %}
+        </p>
+        <a class="btn shrink-0" data-variant="secondary" href="{{ report_url }}">
+          <i data-lucide="{{ message.kind_icon }}" class="size-4" aria-hidden="true"></i>
+          {{ report_kind|capfirst }}
+        </a>
+      </div>
+    {% elif body %}
+      {{ body|highlight_email }}
+    {% else %}
+      <p class="text-sm text-muted-foreground m-0">
+        {% translate "Body pruned." %}
+      </p>
+    {% endif %}
   </section>
 {% endblock %}

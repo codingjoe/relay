@@ -50,165 +50,148 @@
           {{ message.spam_score }}
         </dd>
       {% endif %}
-      {% if message.credential %}
-        <dt class="font-semibold">{% translate "credential"|capfirst context "noun" %}</dt>
-        <dd class="m-0">
-          <code>{{ message.credential.key_prefix }}…</code>
-          ({{ message.credential.get_type_display }})
-        </dd>
-      {% endif %}
     </dl>
   </article>
 
-  <section class="accordion" data-multiple aria-label='{% translate "message details"|capfirst %}'>
-    {% if transmissions %}
-      <details open>
-        <summary>
-          <span class="flex items-center gap-2">
-            {% translate "transmissions"|capfirst context "noun" %}
-            <span class="badge" data-size="sm">{{ transmissions|length }}</span>
-          </span>
-          <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-        </summary>
-        <section>
-          <div class="table-container">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th scope="col">{% translate "status"|capfirst context "noun" %}</th>
-                  <th scope="col">{% translate "code"|capfirst context "noun" %}</th>
-                  <th scope="col">{% translate "sent"|capfirst %}</th>
-                  <th scope="col">{% translate "MX host"|capfirst %}</th>
-                  <th scope="col">{% translate "TLS" %}</th>
-                  <th scope="col">{% translate "log ID"|capfirst %}</th>
-                  <th scope="col">{% translate "transcript"|capfirst %}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for transmission in transmissions %}
-                  <tr>
-                    <td>
-                      <span
-                        class="badge"
-                        data-size="sm"
-                        data-variant="{{ transmission.status_badge_variant }}"
-                      >
-                        {{ transmission.get_status_display }}
-                      </span>
-                    </td>
-                    <td>{{ transmission.code|default:"-" }}</td>
-                    <td>
-                      {% timestamp transmission.created_at %}
-                    </td>
-                    <td title="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
-                      <code>{{ transmission.mx_host|default:"-" }}</code>
-                    </td>
-                    <td>
-                      {% if transmission.tls_certificate %}
-                        <a
-                          class="badge"
-                          data-size="sm"
-                          href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
-                          title="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }} ({{ transmission.tls_certificate.subject_alternative_names }}) · {{ transmission.tls_certificate.issuer }} · serial {{ transmission.tls_certificate.serial_number }} · sha256 {{ transmission.tls_certificate.fingerprint }}"
-                        >
-                          {{ transmission.get_tls_mode_display }}
-                        </a>
-                      {% else %}
-                        <span class="text-muted-foreground">
-                          {{ transmission.get_tls_mode_display }}
-                        </span>
+  {% if transmissions %}
+    <section class="mb-6">
+      <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
+        {% translate "transmissions"|capfirst context "noun" %}
+        <span class="badge" data-size="sm">{{ transmissions|length }}</span>
+      </h3>
+      {% if message.credential %}
+        <p class="text-sm text-muted-foreground mb-3 mt-0">
+          {% translate "credential"|capfirst context "noun" %}:
+          <code>{{ message.credential.key_prefix }}…</code>
+          ({{ message.credential.get_type_display }})
+        </p>
+      {% endif %}
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">{% translate "status"|capfirst context "noun" %}</th>
+              <th scope="col">{% translate "code"|capfirst context "noun" %}</th>
+              <th scope="col">{% translate "sent"|capfirst %}</th>
+              <th scope="col">{% translate "MX host"|capfirst %}</th>
+              <th scope="col">{% translate "TLS" %}</th>
+              <th scope="col">{% translate "log ID"|capfirst %}</th>
+              <th scope="col">{% translate "transcript"|capfirst %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for transmission in transmissions %}
+              <tr>
+                <td>
+                  <span
+                    class="badge"
+                    data-size="sm"
+                    data-variant="{{ transmission.status_badge_variant }}"
+                  >
+                    {{ transmission.get_status_display }}
+                  </span>
+                </td>
+                <td>{{ transmission.code|default:"-" }}</td>
+                <td>
+                  {% timestamp transmission.created_at %}
+                </td>
+                <td title="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
+                  <code>{{ transmission.mx_host|default:"-" }}</code>
+                </td>
+                <td>
+                  {% if transmission.tls_certificate %}
+                    <a
+                      class="badge"
+                      data-size="sm"
+                      href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                      title="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }} ({{ transmission.tls_certificate.subject_alternative_names }}) · {{ transmission.tls_certificate.issuer }} · serial {{ transmission.tls_certificate.serial_number }} · sha256 {{ transmission.tls_certificate.fingerprint }}"
+                    >
+                      {{ transmission.get_tls_mode_display }}
+                    </a>
+                  {% else %}
+                    <span class="text-muted-foreground">
+                      {{ transmission.get_tls_mode_display }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if transmission.log_id %}
+                    <code>{{ transmission.log_id|truncatechars:36 }}</code>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if transmission.output or transmission.details %}
+                    <details>
+                      <summary class="cursor-pointer">
+                        {% translate "show transcript"|capfirst %}
+                      </summary>
+                      {% if transmission.output %}
+                        <pre class="mt-2 p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
                       {% endif %}
-                    </td>
-                    <td>
-                      {% if transmission.log_id %}
-                        <code>{{ transmission.log_id|truncatechars:36 }}</code>
-                      {% else %}
-                        -
+                      {% if transmission.details %}
+                        <p class="text-sm mt-2 mb-0">{{ transmission.details }}</p>
                       {% endif %}
-                    </td>
-                    <td>
-                      {% if transmission.output or transmission.details %}
-                        <details>
-                          <summary class="cursor-pointer">
-                            {% translate "show transcript"|capfirst %}
-                          </summary>
-                          {% if transmission.output %}
-                            <pre class="mt-2 p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
-                          {% endif %}
-                          {% if transmission.details %}
-                            <p class="text-sm mt-2 mb-0">{{ transmission.details }}</p>
-                          {% endif %}
-                        </details>
-                      {% else %}
-                        -
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </details>
-      <details>
-        <summary>
-          <span class="flex items-center gap-2">
-            {% translate "headers"|capfirst context "noun" %}
-            <span class="badge" data-size="sm">{{ headers|length }}</span>
-          </span>
-          <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-        </summary>
-        <section>
-          <div class="table-container">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
-                  <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for key, value in headers %}
-                  <tr>
-                    <td class="whitespace-normal">{{ key }}</td>
-                    <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% if dkim_signatures %}
-            <h4 class="mt-4 mb-2">{% translate "DKIM signatures" %}</h4>
-            {% for signature in dkim_signatures %}
-              <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{% for key, value in signature.items %}{{ key }}={{ value }};
+                    </details>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="mb-6">
+      <h3 class="font-semibold m-0 mb-3 flex items-center gap-2">
+        {% translate "headers"|capfirst context "noun" %}
+        <span class="badge" data-size="sm">{{ headers|length }}</span>
+      </h3>
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">{% translate "header"|capfirst context "noun" %}</th>
+              <th scope="col">{% translate "value"|capfirst context "noun" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, value in headers %}
+              <tr>
+                <td class="whitespace-normal">{{ key }}</td>
+                <td class="whitespace-normal"><code class="break-all">{{ value }}</code></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if dkim_signatures %}
+        <h4 class="mt-4 mb-2">{% translate "DKIM signatures" %}</h4>
+        {% for signature in dkim_signatures %}
+          <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{% for key, value in signature.items %}{{ key }}={{ value }};
 {% endfor %}</pre>
-            {% endfor %}
-          {% endif %}
-          {% if received %}
-            <h4 class="mt-4 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
-            {% for hop in received %}
-              <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ hop }}</pre>
-            {% endfor %}
-          {% endif %}
-        </section>
-      </details>
+        {% endfor %}
+      {% endif %}
+      {% if received %}
+        <h4 class="mt-4 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
+        {% for hop in received %}
+          <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ hop }}</pre>
+        {% endfor %}
+      {% endif %}
+    </section>
+  {% endif %}
+
+  <section class="mb-6">
+    <h3 class="font-semibold m-0 mb-3">{% translate "body"|capfirst context "noun" %}</h3>
+    {% if body %}
+      {{ body|highlight_email }}
+    {% else %}
+      <p class="text-sm text-muted-foreground m-0">
+        {% translate "Body pruned." %}
+      </p>
     {% endif %}
-    <details open>
-      <summary>
-        <span class="flex items-center gap-2">
-          {% translate "body"|capfirst context "noun" %}
-        </span>
-        <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-      </summary>
-      <section>
-        {% if body %}
-          {{ body|highlight_email }}
-        {% else %}
-          <p class="text-sm text-muted-foreground m-0">
-            {% translate "Body pruned." %}
-          </p>
-        {% endif %}
-      </section>
-    </details>
   </section>
 {% endblock %}
