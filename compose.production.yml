@@ -23,6 +23,12 @@ services:
       - app
       - dnsdist
     command: [ "-m", "manage", "dns", "--port", "5353" ]
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
     labels: !reset []
     extends:
       service: web
@@ -95,6 +101,15 @@ services:
       RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "msa", "--ports", "587" ]
+    healthcheck:
+      # Caddy fronts the submission port with a PROXY protocol header.
+      # Send the unattributed v1 "UNKNOWN" header, then expect the SMTP
+      # banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
@@ -120,6 +135,14 @@ services:
       RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
+    healthcheck:
+      # Caddy fronts the MX port with a PROXY protocol header. Send the
+      # unattributed v1 "UNKNOWN" header, then expect the SMTP banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     labels: !override
       - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
@@ -195,7 +218,7 @@ services:
       - "caddy.cache"
     pull_policy: always
   worker:
-    command: [ "-m", "manage", "threadmill", "worker" ]
+    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
     labels: !reset []
