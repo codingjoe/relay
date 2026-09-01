@@ -22,7 +22,7 @@ def build_chart_data(rows, choices, colors, start, group_field):
         {
             "key": choice.value,
             "label": str(choice.label),
-            "color": colors.get(choice.value, "var(--color-muted-foreground)"),
+            "color": colors.get(choice.value, "var(--color-chart-neutral)"),
         }
         for choice in choices
     ]
