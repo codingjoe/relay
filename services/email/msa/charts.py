@@ -9,9 +9,8 @@ from abstract.charts import CHART_DAYS, build_chart_data
 from .models import OutgoingMessage, SuppressionEntry
 
 CHART_COLORS = {
-    "delivered": "var(--color-chart-green)",
-    "sent": "var(--color-chart-blue)",
-    "pending": "var(--color-chart-cyan)",
+    "sent": "var(--color-chart-green)",
+    "pending": "var(--color-chart-blue)",
     "held": "var(--color-chart-yellow)",
     "bounced": "var(--color-chart-orange)",
     "failed": "var(--color-chart-red)",

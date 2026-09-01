@@ -96,7 +96,6 @@ class TestTransmission:
         ("status", "expected"),
         [
             (Transmission.Status.SENT, "primary"),
-            (Transmission.Status.DELIVERED, "primary"),
             (Transmission.Status.FAILED, "destructive"),
             (Transmission.Status.BOUNCED, "destructive"),
             (Transmission.Status.RETRY, "outline"),

@@ -10,7 +10,7 @@ from services.email.msa.models import OutgoingMessage, Transmission
 from .models import FblReport
 
 REPUTATION_CHART_COLORS = {
-    "sent": "var(--color-chart-blue)",
+    "sent": "var(--color-chart-green)",
     "hard_bounced": "var(--color-chart-red)",
     "soft_bounced": "var(--color-chart-yellow)",
     "complained": "var(--color-chart-red)",

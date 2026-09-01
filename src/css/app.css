@@ -28,7 +28,6 @@
   --color-chart-orange: light-dark(hsl(20, 97%, 52%), hsl(20, 95%, 66%));
   --color-chart-red: light-dark(hsl(0, 80%, 67%), hsl(0, 75%, 68%));
   --color-chart-blue: light-dark(hsl(225, 50%, 55%), hsl(225, 55%, 65%));
-  --color-chart-cyan: light-dark(hsl(196, 57%, 47%), hsl(196, 60%, 64%));
   --color-chart-gray: light-dark(hsl(224, 4%, 45%), hsl(224, 10%, 65%));
 
   /* Muted text on the page background must stay above the 4.5:1 WCAG AA

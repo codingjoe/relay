@@ -54,8 +54,9 @@ Notes on reading the diagram:
   comes from the pipeline after acceptance.
 - `bounced` and `failed` differ by who is responsible: a remote rejection
   ends as `bounced`, and relay-side transport problems end as `failed`.
-- The enum reserves `delivered` and `dropped` for outbound messages. relay
-  does not set them today, so the diagram omits them.
+- `sent` is the strongest final state relay can know: the recipient MX
+  accepted the message. Confirmed recipient delivery is not tracked, and
+  the enum has no such state.
 
 ## The life of an inbound message
 
@@ -101,7 +102,6 @@ The transmission list per message shows each attempt with its own outcome:
 | sent                | This attempt reached a recipient MX host that answered success |
 | bounced             | This attempt revealed a permanent rejection                    |
 | failed              | This attempt failed, and the transcript shows why              |
-| delivered           | Reserved for confirmed deliveries                              |
 | retry               | Reserved for future automatic retry tracking                   |
 
 The same applies for inbound messages: one delivery record per webhook POST

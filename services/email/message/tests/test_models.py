@@ -50,9 +50,6 @@ class TestOutgoingMessageStatus:
     def test_badge_variant__sent(self):
         assert OutgoingMessage.Status.SENT.badge_variant == "primary"
 
-    def test_badge_variant__delivered(self):
-        assert OutgoingMessage.Status.DELIVERED.badge_variant == "primary"
-
     def test_badge_variant__bounced(self):
         assert OutgoingMessage.Status.BOUNCED.badge_variant == "destructive"
 
