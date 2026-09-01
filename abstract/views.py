@@ -33,19 +33,16 @@ class ConditionalGetMixin:
         """Return the ETag for `obj`."""
         return f'"{obj.pk.hex}-{obj.modified_at.timestamp():.6f}"'
 
-    def get_object(self, queryset=None):
-        try:
-            return self.object
-        except AttributeError:
-            self.object = super().get_object(queryset)
-            return self.object
-
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         response = condition(
             etag_func=lambda request, *a, **kw: self.get_etag(self.object),
             last_modified_func=lambda request, *a, **kw: self.object.modified_at,
-        )(super().get)(request, *args, **kwargs)
+        )(
+            lambda request: self.render_to_response(
+                self.get_context_data(object=self.object)
+            )
+        )(request)
         patch_cache_control(response, private=True, no_cache=True)
         return response
 
