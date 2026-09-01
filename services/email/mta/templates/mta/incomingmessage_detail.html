@@ -138,9 +138,13 @@
       {% elif body %}
         {{ body|highlight_email }}
       {% else %}
-        <p class="text-sm text-muted-foreground m-0">
-          {% translate "Body pruned." %}
-        </p>
+        <section class="empty" data-size="sm">
+          <header>
+            <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
+            <h3>{% translate "Body pruned." %}</h3>
+            <p>{% translate "The raw message body is no longer stored." %}</p>
+          </header>
+        </section>
       {% endif %}
     </div>
   </article>

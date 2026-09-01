@@ -87,7 +87,7 @@
                 <td>
                   {% timestamp transmission.created_at %}
                 </td>
-                <td title="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
+                <td data-tooltip="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
                   <code>{{ transmission.mx_host|default:"-" }}</code>
                 </td>
                 <td>
@@ -96,7 +96,7 @@
                       class="badge"
                       data-size="sm"
                       href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
-                      title="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }} ({{ transmission.tls_certificate.subject_alternative_names }}) · {{ transmission.tls_certificate.issuer }} · serial {{ transmission.tls_certificate.serial_number }} · sha256 {{ transmission.tls_certificate.fingerprint }}"
+                      data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }} ({{ transmission.tls_certificate.subject_alternative_names }}) · {{ transmission.tls_certificate.issuer }} · serial {{ transmission.tls_certificate.serial_number }} · sha256 {{ transmission.tls_certificate.fingerprint }}"
                     >
                       {{ transmission.get_tls_mode_display }}
                     </a>
@@ -113,8 +113,10 @@
                     -
                   {% endif %}
                 </td>
-                <td>
-                  {% if transmission.output or transmission.details %}
+              </tr>
+              {% if transmission.output or transmission.details %}
+                <tr>
+                  <td colspan="6">
                     <details>
                       <summary class="cursor-pointer">
                         {% translate "show transcript"|capfirst %}
@@ -126,11 +128,9 @@
                         <p class="text-sm mt-2 mb-0">{{ transmission.details }}</p>
                       {% endif %}
                     </details>
-                  {% else %}
-                    -
-                  {% endif %}
-                </td>
-              </tr>
+                  </td>
+                </tr>
+              {% endif %}
             {% endfor %}
           </tbody>
         </table>
@@ -187,9 +187,13 @@
         {% if body %}
           {{ body|highlight_email }}
         {% else %}
-          <p class="text-sm text-muted-foreground m-0">
-            {% translate "Body pruned." %}
-          </p>
+          <section class="empty" data-size="sm">
+            <header>
+              <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
+              <h3>{% translate "Body pruned." %}</h3>
+              <p>{% translate "The raw message body is no longer stored." %}</p>
+            </header>
+          </section>
         {% endif %}
       </div>
     </div>
