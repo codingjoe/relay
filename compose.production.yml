@@ -189,8 +189,6 @@ services:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
       DEBUG: ${DEBUG:-false}
-      # asginl = ASGI without lifespan. Django's ASGI handler rejects
-      # lifespan scopes with "Django can only handle ASGI/HTTP connections".
       GRANIAN_INTERFACE: asginl # Options: asgi, asginl, wsgi, rsgi (default)
       GRANIAN_LOG_ACCESS_ENABLED: true
       GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
