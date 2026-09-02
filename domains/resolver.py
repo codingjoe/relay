@@ -1,8 +1,6 @@
 """Authoritative DNS resolver backed by Domain models."""
 
 import base64
-import threading
-import time
 from collections.abc import Iterator
 
 from django.conf import settings
@@ -37,15 +35,9 @@ def dkim_record(key) -> str:
 class DNSResolver(BaseResolver):
     """Resolve DNS queries."""
 
-    CACHE_TTL_SECS: int = 30
-    CACHE_MAX_ENTRIES: int = 4096
     MX_PRIORITY: int = 10
     NS_TTL: int = 3600
     RECORD_TTL: int = 1800
-
-    def __init__(self) -> None:
-        self.cache: dict[tuple[str, int], tuple[float, list[RR]]] = {}
-        self.cache_lock = threading.Lock()
 
     def resolve(self, request: DNSRecord, handler) -> DNSRecord:
         """Return an authoritative DNS reply."""
@@ -81,32 +73,13 @@ class DNSResolver(BaseResolver):
                     for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS
                 ]
             case _:
-                return self.resolve_database_records(qname, qtype, query_name)
-
-    def resolve_database_records(
-        self, qname: DNSLabel, qtype: int, query_name: str
-    ) -> list[RR]:
-        """Return DNS records for a query name, from cache or database."""
-        expires_at, records = self.cache.get((query_name, qtype), (0.0, []))
-        if expires_at > time.monotonic():
-            return records
-        try:
-            domain = Domain.objects.root_for(query_name, include_managed=True)
-        except Domain.DoesNotExist:
-            records = []
-        else:
-            records = list(
-                self.resolve_domain_records(qname, qtype, query_name, domain)
-            )
-        with self.cache_lock:
-            self.cache.pop((query_name, qtype), None)
-            if len(self.cache) >= self.CACHE_MAX_ENTRIES:
-                self.cache.pop(next(iter(self.cache)))
-            self.cache[(query_name, qtype)] = (
-                time.monotonic() + self.CACHE_TTL_SECS,
-                records,
-            )
-        return records
+                try:
+                    domain = Domain.objects.root_for(query_name, include_managed=True)
+                except Domain.DoesNotExist:
+                    return []
+                return list(
+                    self.resolve_domain_records(qname, qtype, query_name, domain)
+                )
 
     def resolve_domain_records(
         self,
