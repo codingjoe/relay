@@ -2,9 +2,6 @@ from contextlib import contextmanager
 from functools import wraps
 
 from django.core.signals import request_finished, request_started
-from django.db import close_old_connections
-from django.dispatch import receiver
-from django.tasks import signals
 
 
 @contextmanager
@@ -33,9 +30,3 @@ def request_scoped(func):
             return func(*args, **kwargs)
 
     return wrapper
-
-
-@receiver([signals.task_started, signals.task_finished])
-def close_task_database_connection(sender, task_result, **kwargs):
-    """Return the task worker thread's pooled database connection to the pool."""
-    close_old_connections()
