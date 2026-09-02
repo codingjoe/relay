@@ -1,5 +1,7 @@
 import json
+import logging
 
+import authres
 from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
@@ -11,11 +13,14 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
+from services.email.message.views import MessageBreadcrumbMixin
 
 from .charts import build_tls_chart
 from .forms import WebhookForm
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
+
+logger = logging.getLogger(__name__)
 
 # Sample payload rendered as highlighted JSON on the webhook list page.
 WEBHOOK_PAYLOAD = {
@@ -31,9 +36,80 @@ WEBHOOK_PAYLOAD = {
     "received_at": "2026-07-27T18:58:09Z",
 }
 
+# The headers an ARC set consists of (RFC 8617 §2).
+ARC_HEADER_NAMES = frozenset(
+    {"arc-seal", "arc-message-signature", "arc-authentication-results"}
+)
+
+RESULT_BADGE_VARIANTS = {
+    "pass": "success",
+    "fail": "destructive",
+    "softfail": "destructive",
+    "reject": "destructive",
+    "quarantine": "destructive",
+}
+
+
+def authentication_results(headers, message):
+    """
+    Return the parsed authres entries for the detail page.
+
+    Each entry carries the evaluating authserv-id, per-method verdicts
+    with a badge variant, whether relay itself produced the evaluation,
+    and the raw header for the verbatim view.
+    """
+    results = []
+    for key, value in headers:
+        match key.lower():
+            case "authentication-results":
+                try:
+                    header = authres.AuthenticationResultsHeader.parse(
+                        f"{key}: {value}"
+                    )
+                except authres.AuthResError, UnicodeDecodeError:
+                    logger.warning(
+                        "Unparseable Authentication-Results header", exc_info=True
+                    )
+                    header = None
+                if header is None:
+                    results.append(
+                        {
+                            "authserv_id": "",
+                            "verdicts": [],
+                            "is_relay": False,
+                            "raw": f"{key}: {value}",
+                        }
+                    )
+                else:
+                    results.append(
+                        {
+                            "authserv_id": header.authserv_id or "",
+                            "verdicts": [
+                                {
+                                    "method": result.method,
+                                    "result": result.result,
+                                    "variant": RESULT_BADGE_VARIANTS.get(
+                                        result.result, "outline"
+                                    ),
+                                }
+                                for result in header.results
+                            ],
+                            "is_relay": (
+                                bool(header.authserv_id)
+                                and message.domain_id is not None
+                                and header.authserv_id == message.domain.sender_domain
+                            ),
+                            "raw": f"{key}: {value}",
+                        }
+                    )
+    return results
+
 
 class IncomingMessageDetailView(
-    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+    OrganizationScopedView,
+    ConditionalGetMixin,
+    MessageBreadcrumbMixin,
+    generic.DetailView,
 ):
     context_object_name = "message"
     parent = "message:message-list"
@@ -48,16 +124,24 @@ class IncomingMessageDetailView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        is_report = self.object.content_type.model_class() is not IncomingMessage
+        message = self.object
+        headers = message.parsed_headers
+        is_report = message.content_type.model_class() is not IncomingMessage
         return context | {
-            "headers": self.object.parsed_headers,
-            "body": self.object.text_body,
+            "headers": headers,
+            "body": message.text_body,
+            "authentication_results": authentication_results(headers, message),
+            "arc_headers": [
+                [key, value]
+                for key, value in headers
+                if key.lower() in ARC_HEADER_NAMES
+            ],
             "webhook_deliveries": WebhookDelivery.objects.filter(
-                message=self.object
+                message=message
             ).select_related("webhook__signing_key"),
             "is_report": is_report,
-            "report_url": self.object.get_absolute_url() if is_report else "",
-            "report_kind": self.object.kind_display if is_report else "",
+            "report_url": message.get_absolute_url() if is_report else "",
+            "report_kind": message.kind_display if is_report else "",
         }
 
 

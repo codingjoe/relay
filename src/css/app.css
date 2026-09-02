@@ -111,16 +111,33 @@ svg.lucide {
   @apply bg-warning/10 [a]:hover:bg-warning/20 focus-visible:ring-warning/20 text-warning dark:bg-warning/20 dark:focus-visible:ring-warning/40;
 }
 
+/* Extra-small button sizes for controls that sit inline with badges
+   (data-size="sm" is 32px and dwarfs a 20px status badge). */
+.btn[data-size="xs"] {
+  height: calc(var(--spacing) * 7);
+  gap: calc(var(--spacing) * 1.5);
+  padding-inline: calc(var(--spacing) * 2.5);
+  font-size: 0.75rem;
+}
+
+.btn[data-size="icon-xs"] {
+  width: calc(var(--spacing) * 7);
+  height: calc(var(--spacing) * 7);
+}
+
 /* RFC 822 email header syntax highlighting via Pygments EmailLexer.
    Pygments emits spans with these token classes:
      nt — name.tag    (header name, e.g. "From:")
      nl — name.label  (email/labeled value, e.g. "alice@example.com")
      nf — name.function (hostnames / domain literals)
      mi — number.integer (IPs)
-     nd — name.decorator (RFC 5322 dates)
+     nd — name.decorator (RFC 5322 dates, authres property names)
      k  — keyword    (protocol names like ESMTPS, ESMTP)
      o  — operator   (semicolons, commas)
      w  — whitespace
+     nv — name.variable (DKIM b=/bh= base64 blobs, muted)
+     kc — keyword.constant (authres "pass", green)
+     nx — name.exception (authres failures, red)
    Unknown tokens (header bodies, plain text) inherit the default color. */
 .highlight-email {
   overflow-x: auto;
@@ -128,44 +145,58 @@ svg.lucide {
   line-height: 1.4;
 
   & pre {
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+   margin: 0;
+   white-space: pre-wrap;
+   word-break: break-word;
+   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   }
 
   & .nt {
-    color: var(--color-primary-text);
-    font-weight: 600;
+   color: var(--color-primary-text);
+   font-weight: 600;
   }
 
   & .nl {
-    color: hsl(199, 89%, 48%);
+   color: light-dark(hsl(199, 89%, 33%), hsl(199, 89%, 65%));
   }
 
   & .nf {
-    color: hsl(199, 89%, 48%);
+   color: light-dark(hsl(199, 89%, 33%), hsl(199, 89%, 65%));
   }
 
   & .mi {
-    color: hsl(28, 90%, 55%);
+   color: light-dark(hsl(28, 90%, 33%), hsl(28, 90%, 62%));
   }
 
   & .nd {
-    color: hsl(28, 90%, 55%);
-    font-style: italic;
+   color: light-dark(hsl(28, 90%, 33%), hsl(28, 90%, 62%));
+   font-style: italic;
   }
 
   & .k {
-    color: hsl(340, 82%, 52%);
+   color: light-dark(hsl(340, 82%, 38%), hsl(340, 82%, 72%));
+  }
+
+  & .nv {
+   color: var(--color-muted-foreground);
+  }
+
+  & .kc {
+   color: var(--color-success);
+   font-weight: 600;
+  }
+
+  & .nx {
+   color: var(--destructive);
+   font-weight: 600;
   }
 
   & .o {
-    color: var(--color-muted-foreground);
+   color: var(--color-muted-foreground);
   }
 
   & .w {
-    color: var(--color-muted-foreground);
+   color: var(--color-muted-foreground);
   }
 }
 

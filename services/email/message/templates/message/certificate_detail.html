@@ -42,33 +42,29 @@
     </dl>
   </div>
 
-  <h3 class="mb-3">{% translate "certificate chain"|capfirst %}</h3>
-  <div class="table-container">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>{% translate "subject"|capfirst %}</th>
-          <th>{% translate "fingerprint"|capfirst %}</th>
-          <th>{% translate "issuer"|capfirst %}</th>
-          <th>{% translate "valid until"|capfirst %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cert in certificate.chain %}
-          <tr>
-            <td>
-              <a class="link" href="{% url 'message:certificate-detail' org.slug cert.fingerprint %}">
-                <code>{{ cert.subject|default:cert.fingerprint }}</code>
-              </a>
-            </td>
-            <td><code>{{ cert.fingerprint|truncatechars:20 }}</code></td>
-            <td><code>{{ cert.issuer|default:"-" }}</code></td>
-            <td>
-              {% if cert.not_after %}{% timestamp cert.not_after %}{% else %}-{% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <section class="mb-6">
+    <h3 class="font-semibold m-0 mb-4">{% translate "certificate chain"|capfirst %}</h3>
+    <div class="item-group">
+      {% for cert in certificate.chain %}
+        <a
+          class="item"
+          data-variant="outline"
+          data-size="sm"
+          href="{% url 'message:certificate-detail' org.slug cert.fingerprint %}"
+        >
+          <section>
+            <h3><code class="break-all">{{ cert.subject|default:cert.fingerprint }}</code></h3>
+            <p>
+              {% if cert.issuer %}{{ cert.issuer }} ·
+              {% endif %}
+              {% if cert.not_after %}{% translate "valid until" %} {% timestamp cert.not_after %}{% else %}-{% endif %}
+            </p>
+          </section>
+          <aside>
+            <code>{{ cert.fingerprint|truncatechars:20 }}</code>
+          </aside>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
 {% endblock %}

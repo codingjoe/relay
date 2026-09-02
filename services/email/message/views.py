@@ -63,6 +63,15 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         }
 
 
+class MessageBreadcrumbMixin:
+    """Start the trail with the message subject instead of the object string."""
+
+    def get_breadcrumbs(self):
+        breadcrumbs = super().get_breadcrumbs()
+        breadcrumbs[0]["title"] = self.object.subject or str(self.object)
+        return breadcrumbs
+
+
 class CertificateDetailView(
     OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
 ):
