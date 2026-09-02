@@ -34,10 +34,10 @@ transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
 App dependencies flow in one direction: apps must not import from their
-dependents. The authoritative graph lives in `README.md` ("App dependency
-graph") and is enforced by import-linter (`lint-imports`, contracts in
-`pyproject.toml`). When a refactor changes the graph, update the contracts and
-the README together.
+dependents. The graph is enforced by import-linter; the authoritative
+contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
+`lint-imports` to check them. When a refactor changes the graph, update
+the contracts.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS

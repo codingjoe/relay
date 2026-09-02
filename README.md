@@ -56,24 +56,6 @@ organization.
 Organization → Domain, SmtpCredential
 ```
 
-### App dependency graph
-
-How Django apps may import each other. This is code structure, not
-runtime topology: the mermaid chart under [Services](#services) shows
-that. Imports flow strictly downward. Enforced by
-[import-linter](https://import-linter.readthedocs.io) (`lint-imports`):
-
-```
-dashboard → reputation, dmarc, msa, mta, message, domains, accounts
-reputation → msa, mta, message, domains, accounts
-dmarc → mta, message, domains, accounts, kms
-msa, mta → message, spam, tls, proxy_protocol, mta_sts, domains, accounts, kms
-message → domains, accounts, kms
-domains → accounts, kms
-accounts → kms
-kms, abstract, spam, tls, proxy_protocol, mta_sts → (nothing)
-```
-
 - **Organization**: Owns resources (domains, credentials). Each user gets a personal org on signup.
 - **Domain**: Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
 - **SendingDomain**: Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
