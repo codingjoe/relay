@@ -45,7 +45,7 @@ class DNSResolver(BaseResolver):
         reply = request.reply(ra=0)
 
         try:
-            with request_scope():
+            with request_scope(type(self)):
                 reply.add_answer(
                     *self.resolve_records(request.q.qname, request.q.qtype)
                 )
