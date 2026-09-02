@@ -93,7 +93,6 @@ repos:
     hooks:
       - id: import-linter
         language: python
-        additional_dependencies: [import-linter==2.14]
 ci:
   skip:
     - no-commit-to-branch
