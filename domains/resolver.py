@@ -9,6 +9,7 @@ from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel, DNSRecord
 from dnslib.dns import QTYPE, RCODE, DNSError
 from dnslib.server import BaseResolver
 
+from abstract.signals import request_scope
 from kms.models import SigningKey
 
 from .models import Domain
@@ -44,7 +45,10 @@ class DNSResolver(BaseResolver):
         reply = request.reply(ra=0)
 
         try:
-            reply.add_answer(*self.resolve_records(request.q.qname, request.q.qtype))
+            with request_scope(type(self)):
+                reply.add_answer(
+                    *self.resolve_records(request.q.qname, request.q.qtype)
+                )
         except DNSError, DatabaseError:
             reply.header.rcode = RCODE.SERVFAIL
 

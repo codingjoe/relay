@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
+from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
@@ -136,6 +137,7 @@ class BalancerHandler(ImplicitTLSHandler):
 
 
 @sync_to_async
+@request_scoped
 def authenticate(username: str, key: str):
     """
     Authenticate an org by its slug and SMTP credential key.
@@ -201,6 +203,7 @@ def store_outgoing_message(
 
 
 @sync_to_async
+@request_scoped
 def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
     """
     Store a submitted outgoing message and enqueue its delivery.

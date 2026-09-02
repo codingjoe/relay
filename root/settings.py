@@ -176,6 +176,11 @@ WSGI_APPLICATION = "root.wsgi.application"
 DATABASES = {
     "default": env.db(default="sqlite:///:memory:" if TEST else "sqlite:///db.sqlite3")
 }
+if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+    DATABASES["default"].setdefault("OPTIONS", {}).setdefault("pool", True)
+
+# https://docs.djangoproject.com/en/stable/ref/settings/#conn-health-checks
+CONN_HEALTH_CHECKS = True
 
 # Caches
 # https://docs.djangoproject.com/en/stable/ref/settings/#caches
