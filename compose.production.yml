@@ -14,6 +14,11 @@ services:
       start_period: 10s
       timeout: 10s
     labels: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
     extends:
       service: web
   dnsdist:
@@ -30,6 +35,11 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
   migration:
     depends_on: !override
       postgres:
@@ -63,6 +73,11 @@ services:
       retries: 5
       start_period: 10s
       timeout: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
   minio-init:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     depends_on:
@@ -149,6 +164,11 @@ services:
         target: /etc/rspamd/local.d/worker-normal.inc
     networks:
       - app
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
   web:
     image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
@@ -194,12 +214,21 @@ services:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
     pull_policy: always
   worker:
-    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
+    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
     labels: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 1g
     extends:
       service: web
 networks:
