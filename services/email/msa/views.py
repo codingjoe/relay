@@ -60,10 +60,10 @@ class OutgoingMessageDetailView(
 
     def dkim_signatures(self, message):
         """
-        Return the message's DKIM signatures with verification verdicts.
+        Return the persisted outcome of every signature.
 
-        Verdicts are computed once against relay's own zone data and
-        persisted, so later views render the stored outcome.
+        The first access checks against relay's own zone data and stores
+        the result, so later views render it without re-verifying.
         """
         if message.dkim_results is None:
             message.dkim_results = verify_signatures(message.raw_bytes())

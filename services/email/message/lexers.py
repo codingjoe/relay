@@ -6,12 +6,11 @@ from pygments.token import Comment, Keyword, Name, Operator, Text, Whitespace
 
 class DkimTagLexer(RegexLexer):
     """
-    Lex a DKIM-Signature tag list, for example `v=1; a=ed25519-sha256;`.
+    Tokenize a DKIM-Signature header value into its tags.
 
-    Tag names get the primary color, the base64 blobs of the b= and bh=
-    tags are muted so a 400-character signature recedes behind its
-    meaningful tags, and the covered-headers list gets the label color
-    the email lexer uses for addresses.
+    Tag names and operators become `Name.Tag` and `Operator`, the base64
+    payload of the b= and bh= tags becomes `Name.Variable`, and the
+    covered-headers list of the h= tag becomes `Name.Label`.
     """
 
     name = "DKIM"
@@ -34,11 +33,11 @@ class DkimTagLexer(RegexLexer):
 
 class AuthenticationResultsLexer(RegexLexer):
     """
-    Lex an Authentication-Results or ARC-Authentication-Results header.
+    Tokenize an Authentication-Results or ARC-Authentication-Results header.
 
-    Method names read like header names, `pass` turns green and failures
-    red, property values keep the email-lexer blue, and parenthesized
-    annotations render as quiet comments.
+    Method names become `Name.Tag`, results map to `Keyword.Constant`
+    for pass and `Name.Exception` for failures, property values become
+    `Name.Label`, and parenthesized annotations become `Comment.Single`.
     """
 
     name = "Authentication-Results"

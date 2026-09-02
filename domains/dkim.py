@@ -1,4 +1,4 @@
-"""DKIM signing and verification for outbound messages."""
+"""DKIM signing and signature checking."""
 
 import logging
 from email import message_from_bytes
@@ -84,7 +84,7 @@ def dkim_txt_lookup(name: bytes, timeout: int = 5) -> bytes | None:
 
 
 def parse_signature_tags(value: str) -> dict[str, str]:
-    """Return the tag=value pairs of a DKIM-Signature header value."""
+    """Split a DKIM-Signature header value into its key=value fields."""
     return dict(
         parsed
         for field in value.split(";")
@@ -94,12 +94,11 @@ def parse_signature_tags(value: str) -> dict[str, str]:
 
 def verify_signatures(raw_bytes: bytes) -> list[dict]:
     """
-    Return per-DKIM-Signature verification results for a message.
+    Check every DKIM-Signature header against relay's zone data.
 
-    Each result carries the signature's tags plus its verification outcome.
-    Public keys are answered from relay's own zone data, so a verdict never
-    waits on the network. Signatures whose key relay does not publish
-    report `permerror` instead of a bare failure.
+    Each verdict comes back with its tags. A verdict never waits on the
+    network; signatures whose key relay does not publish report
+    `permerror` instead of a bare failure.
     """
     if not raw_bytes:
         return []
@@ -123,7 +122,7 @@ def verify_signatures(raw_bytes: bytes) -> list[dict]:
 def verify_signature_at(
     raw_bytes: bytes, index: int, tags: dict[str, str]
 ) -> AuthResult:
-    """Return the verification outcome of one DKIM signature."""
+    """Check one DKIM-Signature header against relay's published keys."""
     if not (tags.get("d") and tags.get("s")):
         return AuthResult.PERMERROR
     name = f"{tags['s']}._domainkey.{tags['d']}".encode("ascii", "replace")

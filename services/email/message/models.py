@@ -174,7 +174,7 @@ class Message(TimeStamped):
 
     @property
     def spam_badge_variant(self) -> str:
-        """Return the badge variant for the rspamd verdict."""
+        """Map the rspamd verdict to a badge variant."""
         match self.spam_action:
             case "pass" | "no action":
                 return "success"
@@ -231,7 +231,7 @@ class Message(TimeStamped):
             return message_from_bytes(b"body pruned")
 
     def raw_bytes(self) -> bytes:
-        """Return the raw message bytes, or empty bytes when pruned."""
+        """Return the stored message content, or empty bytes when pruned."""
         try:
             self.raw_body.seek(0)
             return self.raw_body.read()

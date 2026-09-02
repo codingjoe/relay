@@ -52,7 +52,7 @@ RESULT_BADGE_VARIANTS = {
 
 def authentication_results(headers, message):
     """
-    Return parsed Authentication-Results headers for the detail page.
+    Return the parsed authres entries for the detail page.
 
     Each entry carries the evaluating authserv-id, per-method verdicts
     with a badge variant, whether relay itself produced the evaluation,

@@ -14,6 +14,7 @@ email_formatter = HtmlFormatter(cssclass="highlight-email")
 
 
 def render(value: str, lexer) -> str:
+    """Convert a value to syntax-colored HTML with a Pygments lexer."""
     if not value:
         return ""
     return mark_safe(highlight(value, lexer, email_formatter))
@@ -21,17 +22,17 @@ def render(value: str, lexer) -> str:
 
 @register.filter
 def highlight_email(value: str) -> str:
-    """Render a raw RFC 822 message with Pygments' `EmailLexer`."""
+    """Convert a raw RFC 822 message to syntax-colored HTML."""
     return render(value, EmailLexer())
 
 
 @register.filter
 def highlight_dkim(value: str) -> str:
-    """Render a DKIM-Signature tag list with relay's DKIM lexer."""
+    """Convert a DKIM-Signature header value to syntax-colored HTML."""
     return render(value, DkimTagLexer())
 
 
 @register.filter
 def highlight_authres(value: str) -> str:
-    """Render an Authentication-Results header with relay's authres lexer."""
+    """Convert an Authentication-Results header to syntax-colored HTML."""
     return render(value, AuthenticationResultsLexer())
