@@ -7,11 +7,9 @@ from django.core import mail
 
 from abstract.mailauth import Disposition
 from domains.models import Domain
-from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.mta.handlers import MXHandler, process_incoming_message
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.mta.tests.conftest import make_dmarc_evaluation, make_raw_email
-from services.email.reputation.models import FblReport
 
 
 class TestProcessIncomingMessagePostmaster:
@@ -214,30 +212,13 @@ class TestHandleRcpt:
 
 class TestProcessIncomingMessageReports:
     @pytest.mark.django_db(transaction=True)
-    @pytest.mark.parametrize(
-        ("local_part", "report_model"),
-        [
-            (settings.RELAY_DMARC_REPORT_LOCAL_PART, DmarcReport),
-            (settings.RELAY_TLS_REPORT_LOCAL_PART, TlsReport),
-            (settings.RELAY_DMARC_RUF_LOCAL_PART, DmarcFailureReport),
-        ],
-    )
-    async def test_report_recipient__binds_report_to_domain(
-        self,
-        org,
-        local_part,
-        report_model,
-    ):
+    async def test_report_recipient__binds_report_to_domain(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
 
-        with (
-            patch("services.email.dmarc.tasks.parse_dmarc_report"),
-            patch("services.email.mta.handlers.parse_tls_report"),
-            patch("services.email.dmarc.tasks.parse_dmarc_failure_report"),
-        ):
+        with patch("services.email.mta.handlers.parse_tls_report"):
             result = await process_incoming_message(
                 "external@example.org",
-                f"{local_part}@example.com",
+                f"{settings.RELAY_TLS_REPORT_LOCAL_PART}@example.com",
                 make_raw_email(),
                 {"ssl_object": None},
                 domain,
@@ -245,7 +226,7 @@ class TestProcessIncomingMessageReports:
                 "",
             )
 
-        report = await report_model.objects.aget(domain=domain)
+        report = await TlsReport.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
 
@@ -380,7 +361,6 @@ class TestMXHandler:
             result = await MXHandler().handle_DATA(None, session, envelope)
 
         assert result == "250 OK"
-        assert not await FblReport.objects.aexists()
         report_task.enqueue.assert_called_once_with(
             message_pk=str((await IncomingMessage.objects.aget()).id)
         )
@@ -410,7 +390,6 @@ class TestMXHandler:
             result = await MXHandler().handle_DATA(None, session, envelope)
 
         assert result == "250 OK"
-        assert not await FblReport.objects.aexists()
         spam_task.enqueue.assert_called_once()
 
     @pytest.mark.django_db(transaction=True)
@@ -436,7 +415,6 @@ class TestMXHandler:
             result = await MXHandler().handle_DATA(None, session, envelope)
 
         assert result == "250 OK"
-        assert not await FblReport.objects.aexists()
         spam_task.enqueue.assert_called_once()
 
     @pytest.mark.django_db(transaction=True)

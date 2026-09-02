@@ -1032,7 +1032,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "django-debug-toolbar", specifier = ">=7.1.1" },
-    { name = "django-devbar", specifier = ">=0.7.0" },
+    { name = "django-devbar", specifier = ">=0.7" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4" },
     { name = "pytest-cov", specifier = ">=7.1" },

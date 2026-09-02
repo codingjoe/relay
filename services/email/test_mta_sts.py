@@ -1,4 +1,4 @@
-from services.email.mta.mta_sts import MtaStsPolicy
+from services.email.mta_sts import MtaStsPolicy
 
 
 class TestMtaStsPolicyAllows:
