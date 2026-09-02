@@ -1,6 +1,6 @@
 include:
-  - oci://docker.io/codingjoe/the-box-postgres:main
-  - oci://docker.io/codingjoe/the-box-redis:main
+  - oci://ghcr.io/codingjoe/the-box-postgres:main
+  - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
   dns:
     networks: !override
