@@ -67,7 +67,7 @@ that. Imports flow strictly downward. Enforced by
 dashboard → reputation, dmarc, msa, mta, message, domains, accounts
 reputation → msa, mta, message, domains, accounts
 dmarc → mta, message, domains, accounts, kms
-msa, mta → message, spam, domains, accounts, kms
+msa, mta → message, spam, tls, proxy_protocol, mta_sts, domains, accounts, kms
 message → domains, accounts, kms
 domains → accounts, kms
 accounts → kms
