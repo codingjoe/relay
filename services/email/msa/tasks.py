@@ -1,5 +1,6 @@
 import datetime
 import logging
+import random
 
 import aiosmtplib
 import dns.resolver
@@ -172,7 +173,7 @@ def record_bounce(message, code, output, mx_host):
 
 
 def fetch_mx_hosts(domain):
-    """Fetch MX records for a domain."""
+    """Return the recipient domain's MX hosts, ordered by preference."""
     try:
         records = dns.resolver.resolve(domain, "MX")
         return [
@@ -201,6 +202,11 @@ async def send_via_mx(
         use_tls=False,
         start_tls=True,
         local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+        source_address=(
+            (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)
+            if settings.RELAY_SMTP_SOURCE_IPS
+            else None
+        ),
     ) as smtp_client:
         response = await smtp_client.sendmail(sender, recipients, raw_bytes)
         # The server may drop the connection right after accepting, so the

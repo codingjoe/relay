@@ -1,0 +1,33 @@
+#cloud-config
+users:
+  - default
+  - name: github
+    groups: sudo, docker
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${deploy_public_key}
+  - name: collaborator
+    groups: docker
+    shell: /bin/rbash
+    home: /home/collaborator
+packages:
+  - docker.io
+  - docker-compose-v2
+  - curl
+  - python3
+  - python3-pip
+write_files:
+  - path: /etc/networkd-dispatcher/routable.d/10-floating-ips.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      %{ for ip in smtp_ips }
+      ip addr add ${ip}/32 dev eth0 2>/dev/null || true
+      %{ endfor }
+runcmd:
+  - systemctl enable docker
+  - systemctl start docker
+  %{ for ip in smtp_ips }
+  - ip addr add ${ip}/32 dev eth0 2>/dev/null || true
+  %{ endfor }

@@ -46,36 +46,6 @@ services:
     deploy: !reset {}
     extends:
       service: web
-  minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    volumes:
-      - s3:/data
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    networks:
-      - app
-      - app-wan
-    command: [ "server", "/data", "--console-address", ":9001" ]
-    healthcheck:
-      test: [ "CMD", "mc", "ready", "local" ]
-      interval: 10s
-      retries: 5
-      start_period: 10s
-      timeout: 5s
-  minio-init:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
-    depends_on:
-      minio:
-        condition: service_healthy
-        required: true
-        restart: true
-    networks:
-      - app
-    command:
-      - mc alias set root http://minio:9000 minioadmin ${MINIO_ROOT_PASSWORD} && mc mb root/relay --ignore-existing
-    entrypoint: [ "/bin/sh", "-c" ]
-    restart: "no"
   msa:
     volumes:
       - caddy_data:/data:ro
@@ -137,6 +107,13 @@ services:
       - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
     extends:
       service: web
+  # Loopback ports for the host-networked worker.
+  postgres:
+    ports:
+      - '127.0.0.1:5432:5432'
+  redis:
+    ports:
+      - '127.0.0.1:6379:6379'
   rspamd:
     image: rspamd/rspamd:4.1
     depends_on:
@@ -147,6 +124,8 @@ services:
         target: /etc/rspamd/local.d/redis.conf
       - source: rspamd_worker
         target: /etc/rspamd/local.d/worker-normal.inc
+    ports:
+      - '127.0.0.1:11334:11334'
     networks:
       - app
   web:
@@ -160,10 +139,6 @@ services:
     depends_on:
       migration:
         condition: service_completed_successfully
-      minio-init:
-        condition: service_completed_successfully
-        required: true
-        restart: true
     environment:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
@@ -177,12 +152,14 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
-      AWS_S3_ENDPOINT_URL: http://minio:9000
-      AWS_S3_ACCESS_KEY_ID: minioadmin
-      AWS_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      AWS_STORAGE_BUCKET_NAME: relay
-      AWS_S3_ADDRESSING_STYLE: path
+      AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL}
+      AWS_S3_ACCESS_KEY_ID: ${AWS_S3_ACCESS_KEY_ID}
+      AWS_S3_SECRET_ACCESS_KEY: ${AWS_S3_SECRET_ACCESS_KEY}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-relay}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-nbg1}
+      AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-path}
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
+      RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
     command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https" ]
@@ -195,7 +172,14 @@ services:
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
     pull_policy: always
+  # Host networking lets the worker bind egress IPs from RELAY_SMTP_SOURCE_IPS.
   worker:
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/postgres
+      REDIS_URL: redis://:${REDIS_PASSWORD}@127.0.0.1:6379/
+      RELAY_RSPAMD_URL: http://127.0.0.1:11334
+    networks: !reset []
+    network_mode: host
     command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
@@ -207,7 +191,6 @@ networks:
     internal: true
   dnsdist-wan:
 volumes:
-  s3:
   caddy_data:
     name: the-box_caddy_data
     external: true

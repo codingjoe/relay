@@ -112,6 +112,10 @@ Important details of the pipeline:
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
   message and the envelope domain aligns with your DKIM.
+- **Sending spreads across an IP pool.** Each outgoing connection leaves
+  through a randomly picked relay sending IP. Every pool IP has matching
+  forward and reverse DNS, and a blacklisted IP can rotate out without an
+  outage.
 - **EHLO identifies the relay sending host**, whose name matches its
   reverse DNS record. Receivers grade that consistency.
 - **Enforced MTA-STS.** For recipient domains with a policy, relay skips

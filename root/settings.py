@@ -261,9 +261,9 @@ RELAY_DNS_NS_NAMESERVERS = [
     f"ns1.{RELAY_PLATFORM_DOMAIN}",
     f"ns2.{RELAY_PLATFORM_DOMAIN}",
 ]
-RELAY_DNS_SMTP_IPS = [
-    ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
-]
+RELAY_DNS_SMTP_IPS = env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
+# Egress pool for the worker's outgoing SMTP; empty sends from the primary IP.
+RELAY_SMTP_SOURCE_IPS = env.list("RELAY_SMTP_SOURCE_IPS", default=[])
 RELAY_SMTP_PUBLIC_HOSTNAME = f"smtp.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_SPF_INCLUDE = f"spf.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")

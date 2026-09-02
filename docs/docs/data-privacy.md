@@ -13,7 +13,7 @@ relay runs, what relay stores, and what relay will not do.
 
 ## Hosting
 
-All relay services run on Hetzner, in the Falkenstein data center (fsn1) in
+All relay services run on Hetzner, in the Nuremberg data center (nbg1) in
 Germany:
 
 | Component                | Role                                   | Processes                                                     |
