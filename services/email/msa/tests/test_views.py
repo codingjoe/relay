@@ -7,7 +7,6 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils.http import http_date
 
-from domains.dkim import sign_message
 from domains.models import Domain
 from services.email.msa.models import (
     MsaCredential,
@@ -113,26 +112,17 @@ class TestMessageDetailView:
             ["From", "alice@example.com"],
             ["Subject", "Test"],
         ]
-        assert response.context["dkim_signatures"] == []
-
-    def test_get__verifies_dkim_signatures_from_raw_body(self, admin_client, org, user):
-        msg = make_message(org, user)
-        raw = sign_message(msg.raw_bytes(), msg.domain)
-        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
-        msg.save(update_fields=["raw_body"])
-        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
-        assert response.status_code == 200
-        signatures = response.context["dkim_signatures"]
-        assert [signature["result"] for signature in signatures] == [
-            "pass",
-            "pass",
+        assert response.context["dkim_signatures"] == [
+            {
+                "v": "1",
+                "a": "ed25519-sha256",
+                "d": "acme.com",
+                "s": "relay",
+                "h": "from:subject",
+                "bh": "AAAA",
+                "b": "BBBB",
+            }
         ]
-        assert [signature["d"] for signature in signatures] == [
-            msg.domain.name,
-            msg.domain.name,
-        ]
-        msg.refresh_from_db()
-        assert msg.dkim_results == signatures
 
     def test_get__malformed_dkim_signature_does_not_crash(
         self, admin_client, org, user
@@ -148,7 +138,7 @@ class TestMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
         assert response.context["dkim_signatures"] == [
-            {"v": "1", "a": "ed25519-sha256", "result": "permerror"}
+            {"v": "1", "a": "ed25519-sha256"}
         ]
 
 

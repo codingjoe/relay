@@ -104,10 +104,8 @@ Important details of the pipeline:
   keys of the sender domain for RSA-2048 and Ed25519 at once.
   All signatures cover the same headers: From, To, Subject, Date,
   Message-ID, and `Feedback-ID`. The message detail page lists every
-  signature relay applied in its own card, verifies each signature
-  against the DKIM keys relay's nameserver publishes, and shows the
-  verdict next to the signing domain, selector, and algorithm. The raw
-  tag list is one click away.
+  signature relay applied in its own card, next to the signing domain,
+  selector, and algorithm. The raw tag list is one click away.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
   keys of the platform domain. relay also sets a `Feedback-ID` header with
   its own token. This token replaces a customer-supplied `Feedback-ID`, so

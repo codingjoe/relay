@@ -10,7 +10,7 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.dkim import sign_message, verify_signatures
+from domains.dkim import parse_signature_tags, sign_message
 from domains.models import Domain
 from services.email.message.views import MessageBreadcrumbMixin
 
@@ -50,25 +50,17 @@ class OutgoingMessageDetailView(
                 for key, value in headers
                 if key.lower() != "dkim-signature"
             ],
-            "dkim_signatures": self.dkim_signatures(message),
+            "dkim_signatures": [
+                parse_signature_tags(value)
+                for key, value in headers
+                if key.lower() == "dkim-signature"
+            ],
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
             "transmissions": Transmission.objects.filter(
                 message=message
             ).select_related("tls_certificate"),
         }
-
-    def dkim_signatures(self, message):
-        """
-        Return the persisted outcome of every signature.
-
-        The first access checks against relay's own zone data and stores
-        the result, so later views render it without re-verifying.
-        """
-        if message.dkim_results is None:
-            message.dkim_results = verify_signatures(message.raw_bytes())
-            message.save(update_fields=["dkim_results"])
-        return message.dkim_results
 
 
 class TestEmailView(OrganizationScopedView, generic.View):

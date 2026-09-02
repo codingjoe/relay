@@ -131,14 +131,6 @@
               {% endif %}
             </section>
             <aside class="flex items-center gap-2">
-              <span
-                class="badge"
-                data-size="sm"
-                data-variant="{% if signature.result == 'pass' %}success{% elif signature.result == 'fail' %}destructive{% else %}warning{% endif %}"
-                data-tooltip='{% translate "verified against the DKIM keys relay publishes"|capfirst %}'
-              >
-                {{ signature.result }}
-              </span>
               <button
                 type="button"
                 class="btn"
@@ -164,13 +156,13 @@
         <article>
           <header>
             <h2>{% translate "DKIM signature"|capfirst %}</h2>
-            <p class="m-0 text-sm text-muted-foreground">
-              {% if signature.d %}<code>{{ signature.d }}</code> · {% endif %}{{ signature.result }}
-            </p>
+            {% if signature.d %}
+              <p class="m-0 text-sm text-muted-foreground"><code>{{ signature.d }}</code></p>
+            {% endif %}
           </header>
           <section>
-            {% filter highlight_dkim %}{% autoescape off %}{% for key, value in signature.items %}{% if key != "result" %}{{ key }}={{ value }};
-                  {% endif %}{% endfor %}{% endautoescape %}{% endfilter %}
+            {% filter highlight_dkim %}{% autoescape off %}{% for key, value in signature.items %}{{ key }}={{ value }};
+                {% endfor %}{% endautoescape %}{% endfilter %}
           </section>
           <footer>
             <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
