@@ -88,14 +88,11 @@ repos:
     hooks:
       - id: relint
         args: []
-  - repo: local
+  - repo: https://github.com/seddonym/import-linter
+    rev: v2.14
     hooks:
       - id: import-linter
-        name: import-linter
         entry: uv run lint-imports
-        language: system
-        pass_filenames: false
-        types: [python]
 ci:
   skip:
     - no-commit-to-branch
