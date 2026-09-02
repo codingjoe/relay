@@ -69,11 +69,6 @@ class OutgoingMessage(Message):
 
     url_name = "message-detail"
 
-    @property
-    def spam_badge_variant(self) -> str:
-        """Return the badge variant for the rspamd verdict."""
-        return "destructive" if self.spam_action in {"reject", "drop"} else "outline"
-
 
 class Transmission(TimeStamped):
     """

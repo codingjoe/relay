@@ -33,9 +33,11 @@ WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
-App dependencies flow in one direction. See the graph in `README.md`:
-`dashboard → msa, mta, dmarc, message`, `msa, mta, dmarc → message, domains, accounts, kms`, `message → domains, accounts`, `domains → accounts, kms`, `accounts → kms`. Apps
-must not import from their dependents.
+App dependencies flow in one direction: apps must not import from their
+dependents. The graph is enforced by import-linter; the authoritative
+contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
+`lint-imports` to check them. When a refactor changes the graph, update
+the contracts.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS
