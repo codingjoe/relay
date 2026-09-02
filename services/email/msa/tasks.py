@@ -9,7 +9,7 @@ from django.conf import settings
 from django.tasks import task
 from threadmill.retry import ExponentialBackoff
 
-from services.email.mta.mta_sts import MtaStsPolicy
+from services.email.mta_sts import MtaStsPolicy
 from services.email.spam import ScannerUnavailableError, SpamAction, check_message
 from services.email.tls import parse_peer_certificates
 

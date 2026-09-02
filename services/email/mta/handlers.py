@@ -9,11 +9,6 @@ from django.db import transaction
 from abstract.mailauth import Disposition, DmarcEvaluation
 from domains.models import Domain
 from kms.models import Certificate
-from services.email.dmarc.models import DmarcFailureReport, DmarcReport
-from services.email.dmarc.tasks import (
-    parse_dmarc_failure_report,
-    parse_dmarc_report,
-)
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 from services.email.tls import parse_peer_certificates
 
@@ -22,7 +17,7 @@ from .models import (
     IncomingMessage,
     TlsReport,
 )
-from .signals import fbl_report_received
+from .signals import fbl_report_received, report_received
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
@@ -98,26 +93,25 @@ def process_incoming_message(
     }
 
     match local_part:
-        case settings.RELAY_DMARC_REPORT_LOCAL_PART:
-            report = DmarcReport.objects.create(
-                org=domain.org,
+        case (
+            settings.RELAY_DMARC_REPORT_LOCAL_PART | settings.RELAY_DMARC_RUF_LOCAL_PART
+        ):
+            # DMARC reports belong to the dmarc app; dispatch via signal so
+            # mta does not depend on it.
+            responses = report_received.send(
+                sender=IncomingMessage,
+                local_part=local_part,
                 domain=domain,
                 receiving_domain=rcpt_domain,
                 mail_from=mail_from,
                 rcpt_to=rcpt_to,
                 subject=subject,
                 message_id=message_id,
-                report_id="",
-                headers=DmarcReport.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
-                **tls_fields,
+                raw_bytes=raw_bytes,
+                tls_fields=tls_fields,
             )
-            transaction.on_commit(
-                lambda: parse_dmarc_report.enqueue(report_pk=str(report.pk))
-            )
-            return "250 OK"
+            if any(r is not None for _, r in responses):
+                return "250 OK"
 
         case settings.RELAY_TLS_REPORT_LOCAL_PART:
             report = TlsReport.objects.create(
@@ -137,26 +131,6 @@ def process_incoming_message(
             )
             transaction.on_commit(
                 lambda: parse_tls_report.enqueue(report_pk=str(report.pk))
-            )
-            return "250 OK"
-
-        case settings.RELAY_DMARC_RUF_LOCAL_PART:
-            report = DmarcFailureReport.objects.create(
-                org=domain.org,
-                domain=domain,
-                receiving_domain=rcpt_domain,
-                mail_from=mail_from,
-                rcpt_to=rcpt_to,
-                subject=subject,
-                message_id=message_id,
-                headers=DmarcFailureReport.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
-                **tls_fields,
-            )
-            transaction.on_commit(
-                lambda: parse_dmarc_failure_report.enqueue(report_pk=str(report.pk))
             )
             return "250 OK"
 
