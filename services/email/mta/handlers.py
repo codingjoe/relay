@@ -97,12 +97,12 @@ def process_incoming_message(
             settings.RELAY_DMARC_REPORT_LOCAL_PART | settings.RELAY_DMARC_RUF_LOCAL_PART
         ):
             # DMARC reports belong to the dmarc app; dispatch via signal so
-            # mta does not depend on it. Falls back to generic storage when
-            # no receiver handles the report.
+            # mta does not depend on it.
             responses = report_received.send(
                 sender=IncomingMessage,
                 local_part=local_part,
                 domain=domain,
+                receiving_domain=rcpt_domain,
                 mail_from=mail_from,
                 rcpt_to=rcpt_to,
                 subject=subject,
@@ -110,8 +110,8 @@ def process_incoming_message(
                 raw_bytes=raw_bytes,
                 tls_fields=tls_fields,
             )
-            if response := next((r for _, r in responses if r is not None), None):
-                return response
+            if any(r is not None for _, r in responses):
+                return "250 OK"
 
         case settings.RELAY_TLS_REPORT_LOCAL_PART:
             report = TlsReport.objects.create(

@@ -1,5 +1,3 @@
-import logging
-
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
@@ -10,14 +8,13 @@ from services.email.mta.signals import report_received
 from .models import DmarcFailureReport, DmarcReport
 from .tasks import parse_dmarc_failure_report, parse_dmarc_report
 
-logger = logging.getLogger(__name__)
 
-
-@receiver(report_received, dispatch_uid="dmarc_create_report")
+@receiver(report_received)
 def create_report(
     sender,
     local_part,
     domain,
+    receiving_domain,
     mail_from,
     rcpt_to,
     subject,
@@ -31,7 +28,7 @@ def create_report(
         report = DmarcReport.objects.create(
             org=domain.org,
             domain=domain,
-            receiving_domain=rcpt_to.split("@")[-1] if "@" in rcpt_to else "",
+            receiving_domain=receiving_domain,
             mail_from=mail_from,
             rcpt_to=rcpt_to,
             subject=subject,
@@ -46,7 +43,7 @@ def create_report(
         report = DmarcFailureReport.objects.create(
             org=domain.org,
             domain=domain,
-            receiving_domain=rcpt_to.split("@")[-1] if "@" in rcpt_to else "",
+            receiving_domain=receiving_domain,
             mail_from=mail_from,
             rcpt_to=rcpt_to,
             subject=subject,
@@ -57,5 +54,4 @@ def create_report(
         )
         parse_task = parse_dmarc_failure_report
     transaction.on_commit(lambda: parse_task.enqueue(report_pk=str(report.pk)))
-    logger.info("Stored %s from %r", report._meta.verbose_name, mail_from)
-    return "250 OK"
+    return True

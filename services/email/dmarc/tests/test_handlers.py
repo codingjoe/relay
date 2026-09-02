@@ -44,25 +44,5 @@ class TestProcessIncomingMessageReports:
         report = await report_model.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
-
-    @pytest.mark.django_db(transaction=True)
-    async def test_report_recipient__stores_raw_body(self, org):
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        with (
-            patch("services.email.dmarc.signals.parse_dmarc_report"),
-            patch("services.email.dmarc.signals.parse_dmarc_failure_report"),
-        ):
-            await process_incoming_message(
-                "external@example.org",
-                f"{settings.RELAY_DMARC_REPORT_LOCAL_PART}@example.com",
-                make_raw_email(),
-                {"ssl_object": None},
-                domain,
-                IncomingMessage.Status.RECEIVED,
-                "",
-            )
-
-        report = await DmarcReport.objects.aget(domain=domain)
         assert report.raw_body.size > 0
         assert report.headers

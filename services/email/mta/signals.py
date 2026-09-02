@@ -7,7 +7,10 @@ from .models import Webhook
 
 fbl_report_received = Signal()  # senders provide a `message` kwarg
 
-report_received = Signal()  # senders provide the incoming report email metadata
+# Senders provide the incoming report email metadata. Receivers return a
+# truthy value when they stored the report, which short-circuits generic
+# storage in the MX handler.
+report_received = Signal()
 
 
 @receiver(post_save, sender=Domain)
