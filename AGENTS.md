@@ -35,7 +35,7 @@ transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 
 App dependencies flow in one direction: apps must not import from their
 dependents. The authoritative graph lives in `README.md` ("App dependency
-graph") and is enforced by import-linter (`uv run lint-imports`, contracts in
+graph") and is enforced by import-linter (`lint-imports`, contracts in
 `pyproject.toml`). When a refactor changes the graph, update the contracts and
 the README together.
 

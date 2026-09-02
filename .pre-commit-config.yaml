@@ -92,7 +92,6 @@ repos:
     rev: v2.14
     hooks:
       - id: import-linter
-        entry: uv run lint-imports
 ci:
   skip:
     - no-commit-to-branch
