@@ -170,8 +170,8 @@ services:
     configs:
       - source: rspamd_redis
         target: /etc/rspamd/local.d/redis.conf
-      - source: rspamd_worker
-        target: /etc/rspamd/local.d/worker-normal.inc
+      - source: rspamd_controller
+        target: /etc/rspamd/local.d/worker-controller.inc
     networks:
       - app
     labels:
@@ -260,9 +260,10 @@ configs:
       servers = "redis";
       password = "${REDIS_PASSWORD}";
       database = 1;
-  rspamd_worker:
+  rspamd_controller:
     content: |
-      bind_socket = "*:11334";
+      secure_ip = "0.0.0.0/0";
+      secure_ip = "::/0";
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)
