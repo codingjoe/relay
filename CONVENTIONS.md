@@ -247,6 +247,23 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - `TimeStamped` models default to `models.FETCH_PEERS` (`FetchPeersManager`).
   Do not call `.fetch_mode()` in views.
 
+## Database connections
+
+- Keep `CONN_MAX_AGE` at its default `0`. Pooling doesn't support persistent
+  connections and Django raises `ImproperlyConfigured` for any other value.
+- Connections come from a psycopg pool. A pooled connection belongs to the
+  thread that borrowed it and returns to the pool only when that thread
+  closes it. Django closes request threads' connections via
+  `request_finished`; task workers and SMTP handler threads never fire that
+  signal, so their connection never returns and the pool depletes.
+- Call `close_old_connections()` at the start of every function that runs on
+  a non-request thread and queries the database, for example SMTP handlers in
+  `services/email/msa` and `services/email/mta`. Task functions are already
+  covered by the signal receiver in `abstract/signals.py`.
+- Code that serves each query on its own short-lived thread (the DNS
+  resolver) must call `connection.close()` in a `finally` block, because the
+  thread exits without firing any signal.
+
 ## Testing
 
 - Use `pytest.mark.django_db` (not the `db` fixture) when a test needs the

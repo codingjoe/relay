@@ -5,4 +5,4 @@ class AbstractConfig(AppConfig):
     name = "abstract"
 
     def ready(self):
-        from . import checks  # noqa: F401
+        from . import checks, signals  # noqa: F401

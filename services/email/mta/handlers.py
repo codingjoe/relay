@@ -4,7 +4,7 @@ from email import message_from_bytes
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import transaction
+from django.db import close_old_connections, transaction
 
 from abstract.mailauth import Disposition, DmarcEvaluation
 from domains.models import Domain
@@ -79,6 +79,7 @@ class MXHandler(ProxyProtocolMixin):
 def process_incoming_message(
     mail_from, rcpt_to, raw_bytes, tls, domain, status, client_ip
 ):
+    close_old_connections()
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""

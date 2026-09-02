@@ -8,7 +8,7 @@ from email import message_from_bytes
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import DatabaseError, transaction
+from django.db import DatabaseError, close_old_connections, transaction
 
 from accounts.models import Organization
 from domains.dkim import sign_message
@@ -142,6 +142,7 @@ def authenticate(username: str, key: str):
 
     Return the credential, or `None` if authentication fails.
     """
+    close_old_connections()
     api_keys = MsaCredential.objects.select_related("org").filter(
         key_prefix=key[:8],
         org__slug=username,
@@ -207,6 +208,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
 
     Delivery is not enqueued when the org is suspended.
     """
+    close_old_connections()
     if "@" not in mail_from:
         return "550 Sender domain not registered"
 
