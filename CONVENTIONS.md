@@ -315,6 +315,12 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - The shared app owns the merged list views and the template-tag
   library. Siblings keep their own detail views.
 
+- App dependencies flow in one direction. The graph in `README.md` is
+  enforced by import-linter (`uv run lint-imports`, wired as a
+  pre-commit hook). When a refactor changes the graph, update the
+  contracts in `pyproject.toml` (`[tool.importlinter]`) and the graph
+  in `README.md` together.
+
 ## Markdown docs apps
 
 - Serve each markdown docs area from one app with a `docs/` folder.

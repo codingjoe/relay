@@ -33,9 +33,14 @@ WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
-App dependencies flow in one direction. See the graph in `README.md`:
-`dashboard → msa, mta, dmarc, message`, `msa, mta, dmarc → message, domains, accounts, kms`, `message → domains, accounts`, `domains → accounts, kms`, `accounts → kms`. Apps
-must not import from their dependents.
+App dependencies flow in one direction. See the graph in `README.md`,
+enforced by import-linter (`uv run lint-imports`):
+`dashboard → reputation, dmarc, msa, mta, message`, `reputation → msa, mta, message`,
+`dmarc → mta, message`, `msa, mta → message, spam`, `message → domains, accounts`,
+`domains → accounts`, `accounts → kms`. Every app may also depend on `abstract`.
+Apps must not import from their dependents. The shared modules
+`services.email.tls`, `services.email.proxy_protocol` and
+`services.email.mta_sts` depend on no first-party app.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS

@@ -88,6 +88,14 @@ repos:
     hooks:
       - id: relint
         args: []
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: import-linter
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]
 ci:
   skip:
     - no-commit-to-branch

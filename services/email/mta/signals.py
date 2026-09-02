@@ -7,6 +7,8 @@ from .models import Webhook
 
 fbl_report_received = Signal()  # senders provide a `message` kwarg
 
+report_received = Signal()  # senders provide the incoming report email metadata
+
 
 @receiver(post_save, sender=Domain)
 def synchronize_webhook_address_patterns(sender, instance, created, **kwargs):

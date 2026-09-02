@@ -56,6 +56,22 @@ organization.
 Organization → Domain, SmtpCredential
 ```
 
+### App dependency graph
+
+Imports flow strictly downward. Enforced by
+[import-linter](https://import-linter.readthedocs.io) (`uv run lint-imports`):
+
+```
+dashboard → reputation, dmarc, msa, mta, message, domains, accounts
+reputation → msa, mta, message, domains, accounts
+dmarc → mta, message, domains, accounts, kms
+msa, mta → message, spam, domains, accounts, kms
+message → domains, accounts, kms
+domains → accounts, kms
+accounts → kms
+kms, abstract, spam, tls, proxy_protocol, mta_sts → (nothing)
+```
+
 - **Organization**: Owns resources (domains, credentials). Each user gets a personal org on signup.
 - **Domain**: Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
 - **SendingDomain**: Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
