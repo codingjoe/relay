@@ -36,6 +36,7 @@ class TestResolve:
         assert reply.header.ra == 0
         assert reply.rr
 
+    @pytest.mark.django_db
     def test_resolve__dns_error(self):
         resolver = DNSResolver()
         with patch.object(
@@ -48,6 +49,7 @@ class TestResolve:
         assert reply.header.rcode == RCODE.SERVFAIL
         assert reply.rr == []
 
+    @pytest.mark.django_db
     def test_resolve__database_error(self):
         resolver = DNSResolver()
         with patch.object(

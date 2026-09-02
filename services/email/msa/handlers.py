@@ -8,8 +8,9 @@ from email import message_from_bytes
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import DatabaseError, close_old_connections, transaction
+from django.db import DatabaseError, transaction
 
+from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
@@ -136,13 +137,13 @@ class BalancerHandler(ImplicitTLSHandler):
 
 
 @sync_to_async
+@request_scoped
 def authenticate(username: str, key: str):
     """
     Authenticate an org by its slug and SMTP credential key.
 
     Return the credential, or `None` if authentication fails.
     """
-    close_old_connections()
     api_keys = MsaCredential.objects.select_related("org").filter(
         key_prefix=key[:8],
         org__slug=username,
@@ -202,13 +203,13 @@ def store_outgoing_message(
 
 
 @sync_to_async
+@request_scoped
 def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
     """
     Store a submitted outgoing message and enqueue its delivery.
 
     Delivery is not enqueued when the org is suspended.
     """
-    close_old_connections()
     if "@" not in mail_from:
         return "550 Sender domain not registered"
 

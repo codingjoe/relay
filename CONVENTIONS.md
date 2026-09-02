@@ -256,13 +256,16 @@ A rule lives either in this document or in `.relint.yml`, never both.
   closes it. Django closes request threads' connections via
   `request_finished`; task workers and SMTP handler threads never fire that
   signal, so their connection never returns and the pool depletes.
-- Call `close_old_connections()` at the start of every function that runs on
-  a non-request thread and queries the database, for example SMTP handlers in
-  `services/email/msa` and `services/email/mta`. Task functions are already
-  covered by the signal receiver in `abstract/signals.py`.
-- Code that serves each query on its own short-lived thread (the DNS
-  resolver) must call `connection.close()` in a `finally` block, because the
-  thread exits without firing any signal.
+- Wrap every function that runs on a non-request thread and queries the
+  database in `@request_scoped` (or `with request_scope():`) from
+  `abstract.signals`. The request lifecycle is not limited to HTTP: emitting
+  `request_started` and `request_finished` makes Django's built-in receivers
+  return the pooled connection to the pool and reset the query log. SMTP
+  handlers in `services/email/msa` and `services/email/mta` use it; task
+  functions are covered by the task-signal receiver in `abstract/signals.py`.
+- The DNS resolver serves each query on its own short-lived thread;
+  `DNSResolver.resolve` wraps the query in `request_scope()` so the
+  connection returns to the pool.
 
 ## Testing
 

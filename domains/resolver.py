@@ -4,11 +4,12 @@ import base64
 from collections.abc import Iterator
 
 from django.conf import settings
-from django.db import DatabaseError, connection
+from django.db import DatabaseError
 from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel, DNSRecord
 from dnslib.dns import QTYPE, RCODE, DNSError
 from dnslib.server import BaseResolver
 
+from abstract.signals import request_scope
 from kms.models import SigningKey
 
 from .models import Domain
@@ -44,15 +45,12 @@ class DNSResolver(BaseResolver):
         reply = request.reply(ra=0)
 
         try:
-            reply.add_answer(*self.resolve_records(request.q.qname, request.q.qtype))
+            with request_scope():
+                reply.add_answer(
+                    *self.resolve_records(request.q.qname, request.q.qtype)
+                )
         except DNSError, DatabaseError:
             reply.header.rcode = RCODE.SERVFAIL
-        finally:
-            # Each query is served by its own short-lived thread (dnslib uses
-            # ThreadingMixIn), so no request_finished signal ever fires and the
-            # thread-local connection would never be returned to the psycopg
-            # pool. Release it explicitly or the pool depletes permanently.
-            connection.close()
 
         return reply
 
