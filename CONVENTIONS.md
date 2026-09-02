@@ -247,26 +247,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - `TimeStamped` models default to `models.FETCH_PEERS` (`FetchPeersManager`).
   Do not call `.fetch_mode()` in views.
 
-## Database connections
-
-- Keep `CONN_MAX_AGE` at its default `0`. Pooling doesn't support persistent
-  connections and Django raises `ImproperlyConfigured` for any other value.
-- Connections come from a psycopg pool. A pooled connection belongs to the
-  thread that borrowed it and returns to the pool only when that thread
-  closes it. Django closes request threads' connections via
-  `request_finished`; task workers and SMTP handler threads never fire that
-  signal, so their connection never returns and the pool depletes.
-- Wrap every function that runs on a non-request thread and queries the
-  database in `@request_scoped` (or `with request_scope():`) from
-  `abstract.signals`. The request lifecycle is not limited to HTTP: emitting
-  `request_started` and `request_finished` makes Django's built-in receivers
-  return the pooled connection to the pool and reset the query log. SMTP
-  handlers in `services/email/msa` and `services/email/mta` use it; task
-  functions are covered by the task-signal receiver in `abstract/signals.py`.
-- The DNS resolver serves each query on its own short-lived thread;
-  `DNSResolver.resolve` wraps the query in `request_scope()` so the
-  connection returns to the pool.
-
 ## Testing
 
 - Use `pytest.mark.django_db` (not the `db` fixture) when a test needs the
