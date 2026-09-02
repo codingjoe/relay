@@ -17,6 +17,8 @@ services:
       - app
       - app-wan # freshclam needs egress for signature updates
     restart: unless-stopped
+    labels:
+      - dev.dozzle.icon=clam-av
     deploy:
       resources:
         limits:
