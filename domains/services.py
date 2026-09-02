@@ -43,11 +43,11 @@ def parse_mta_sts_txt_record(value):
 def verify_nameserver_delegation(domain):
     try:
         ns_records = dns.resolver.resolve(domain.sender_domain, "NS")
-        our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
-        their_ns = {str(r.target).rstrip(".").lower() for r in ns_records}
-        return our_ns == their_ns
     except dns.exception.DNSException:
         return False
+    our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
+    their_ns = {str(r.target).rstrip(".").lower() for r in ns_records}
+    return our_ns == their_ns
 
 
 def check_dmarc(domain):
@@ -118,11 +118,10 @@ def check_mta_sts(domain):
 
         cname_records = dns.resolver.resolve(f"mta-sts.{domain.name}", "CNAME")
         expected_target = f"mta-sts.{domain.sender_domain}."
-        cname_is_valid = any(
+        return any(
             str(record.target).lower() == expected_target.lower()
             for record in cname_records
         )
-        return cname_is_valid
     except dns.exception.DNSException, UnicodeError:
         return False
 
@@ -130,29 +129,29 @@ def check_mta_sts(domain):
 def check_tls_rpt(domain):
     try:
         txt_records = dns.resolver.resolve(f"_smtp._tls.{domain.name}", "TXT")
-        expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
-        for txt_record in txt_records:
-            value = "".join(
-                string.decode() if isinstance(string, bytes) else string
-                for string in txt_record.strings
-            )
-            fields = [field.strip() for field in value.split(";")]
-            match fields:
-                case [version, *tag_fields] if version.lower() == "v=tlsrptv1":
-                    tags = {}
-                    for field in tag_fields:
-                        if "=" in field:
-                            tag_name, tag_value = field.split("=", 1)
-                            tags[tag_name.strip().lower()] = tag_value.strip()
-                    reporting_uris = {
-                        uri.strip().lower().split("!", 1)[0]
-                        for uri in tags.get("rua", "").split(",")
-                    }
-                    if expected_reporting_uri in reporting_uris:
-                        return True
-        return False
     except dns.exception.DNSException:
         return False
+    expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
+    for txt_record in txt_records:
+        value = "".join(
+            string.decode() if isinstance(string, bytes) else string
+            for string in txt_record.strings
+        )
+        fields = [field.strip() for field in value.split(";")]
+        match fields:
+            case [version, *tag_fields] if version.lower() == "v=tlsrptv1":
+                tags = {}
+                for field in tag_fields:
+                    if "=" in field:
+                        tag_name, tag_value = field.split("=", 1)
+                        tags[tag_name.strip().lower()] = tag_value.strip()
+                reporting_uris = {
+                    uri.strip().lower().split("!", 1)[0]
+                    for uri in tags.get("rua", "").split(",")
+                }
+                if expected_reporting_uri in reporting_uris:
+                    return True
+    return False
 
 
 def verify_domain_dns(domain):

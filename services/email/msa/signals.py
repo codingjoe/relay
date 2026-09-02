@@ -8,7 +8,8 @@ from . import tasks
 
 @receiver(bounce_report_received)
 def queue_parse_bounce_report(sender, message, **kwargs):
-    """Queue the parse task for a received bounce DSN after commit.
+    """
+    Queue the parse task for a received bounce DSN after commit.
 
     The task matches the original outgoing message and records the
     post-acceptance bounce or delay.

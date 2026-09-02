@@ -3,7 +3,7 @@ from email.message import EmailMessage
 
 import pytest
 
-from services.email.reputation.parser import parse_fbl
+from services.email.reputation.parser import NoArfFeedbackError, parse_fbl
 
 
 def make_report_message(report_body, original_headers=None):
@@ -26,7 +26,7 @@ class TestParseFbl:
         msg = EmailMessage()
         msg["Subject"] = "Not a report"
         msg.set_content("Just a regular email")
-        with pytest.raises(ValueError):
+        with pytest.raises(NoArfFeedbackError):
             parse_fbl(msg.as_bytes())
 
     def test_parse_fbl__extracts_abuse_complaint(self):
@@ -147,7 +147,7 @@ class TestParseFbl:
         msg["From"] = "feedback@gmail.com"
         msg.set_content("Complaint")
         msg.add_attachment(b"", maintype="message", subtype="feedback-report")
-        with pytest.raises(ValueError):
+        with pytest.raises(NoArfFeedbackError):
             parse_fbl(msg.as_bytes())
 
     def test_parse_fbl__joins_obs_fold_continuation_with_single_space(self):
@@ -482,7 +482,7 @@ class TestParseFbl:
         assert result["feedback_id"] == ""
 
     def test_parse_fbl__raises_when_only_feedback_id_is_present(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(NoArfFeedbackError):
             parse_fbl(
                 make_report_message(
                     "Feedback-Type: abuse\n"

@@ -4,7 +4,8 @@ from django.db import migrations
 
 
 def purge_rsa1024_signing_keys(apps, schema_editor):
-    """Delete now-unused RSA-1024 signing keys.
+    """
+    Delete now-unused RSA-1024 signing keys.
 
     Runs after the field removal, so no foreign key protects the rows
     anymore. The keys cannot sign outgoing mail from here on.

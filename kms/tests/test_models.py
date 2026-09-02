@@ -66,7 +66,6 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_raw__matches_public_pem(self):
         """Raw bytes must correspond to the public PEM."""
-
         key = SigningKey.generate("ed25519")
         raw = key.public_bytes_raw()
         from_pem = serialization.load_pem_public_key(
@@ -79,7 +78,6 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_der__for_rsa(self):
         """RSA public keys must encode to SPKI DER (used for the DKIM p= tag)."""
-
         key = SigningKey.generate("rsa-2048")
         der = key.public_bytes_der()
         # Should decode back to the same RSA public key.

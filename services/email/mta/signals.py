@@ -8,6 +8,11 @@ from .models import Webhook
 bounce_report_received = Signal()  # senders provide a `message` kwarg
 fbl_report_received = Signal()  # senders provide a `message` kwarg
 
+# Senders provide the incoming report email metadata. Receivers return a
+# truthy value when they stored the report, which short-circuits generic
+# storage in the MX handler.
+report_received = Signal()
+
 
 @receiver(post_save, sender=Domain)
 def synchronize_webhook_address_patterns(sender, instance, created, **kwargs):

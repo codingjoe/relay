@@ -11,7 +11,8 @@ from . import tasks
 
 @receiver(post_save, sender=Transmission)
 def check_reputation_on_hard_bounce(sender, instance, **kwargs):
-    """Enqueue an org evaluation after commit when a transmission bounces.
+    """
+    Enqueue an org evaluation after commit when a transmission bounces.
 
     A bounced transmission is a permanent rejection; the message did not
     reach the recipient and counts against the sending reputation.
@@ -23,7 +24,8 @@ def check_reputation_on_hard_bounce(sender, instance, **kwargs):
 
 @receiver(post_save, sender=OutgoingMessage)
 def check_reputation_on_held_message(sender, instance, **kwargs):
-    """Queue the ingest task when Relay flags a submission as spam.
+    """
+    Queue the ingest task when Relay flags a submission as spam.
 
     The relay-generated report and the org evaluation are recorded in the
     task, after the message is fully ingested.
@@ -42,7 +44,8 @@ def check_reputation_on_held_message(sender, instance, **kwargs):
 
 @receiver(post_save, sender=IncomingMessage)
 def check_reputation_on_incoming_message(sender, instance, **kwargs):
-    """Queue the ingest task when the MTA quarantines incoming mail.
+    """
+    Queue the ingest task when the MTA quarantines incoming mail.
 
     The report is visibility-only. Quarantined incoming mail does not
     affect the organization's sending reputation, so no evaluation
@@ -60,7 +63,8 @@ def check_reputation_on_incoming_message(sender, instance, **kwargs):
 
 @receiver(fbl_report_received)
 def create_provider_fbl_report(sender, message, **kwargs):
-    """Queue the ingest task for a provider FBL report after commit.
+    """
+    Queue the ingest task for a provider FBL report after commit.
 
     The task stores the report and queues its parsing.
     """

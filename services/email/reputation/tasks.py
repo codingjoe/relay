@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def resolve_fbl_owner(feedback_id: str) -> tuple[Organization, Domain] | None:
-    """Return the org and domain a Feedback-ID attributes a report to.
+    """
+    Return the org and domain a Feedback-ID attributes a report to.
 
     Every outgoing message carries the Feedback-ID relay minted when the
     message was submitted, and the provider echoes it in the report.
@@ -39,7 +40,8 @@ def resolve_fbl_owner(feedback_id: str) -> tuple[Organization, Domain] | None:
 
 @task
 def create_held_outgoing_fbl_report(message_pk, org_id):
-    """Store a relay-generated FBL report for a held outgoing message.
+    """
+    Store a relay-generated FBL report for a held outgoing message.
 
     The held message counts as spam against the organization's quota even
     though it was never relayed. Queues an org evaluation after the
@@ -69,7 +71,8 @@ def create_provider_fbl_report(message_pk):
 
 @task
 def parse_fbl_report(report_pk):
-    """Fill the stored fields from the referenced message's raw ARF body.
+    """
+    Fill the stored fields from the referenced message's raw ARF body.
 
     Attribute the report to the sending organization only when the
     provider echoes the message's Feedback-ID, then queue an org
@@ -131,6 +134,5 @@ def parse_fbl_report(report_pk):
 
 @task
 def check_org_reputation(org_id):
-    """Evaluate rates for an organization and suspend it permanently on a
-    threshold breach."""
+    """Evaluate rates for an organization and suspend it on a threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))

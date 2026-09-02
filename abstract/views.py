@@ -54,7 +54,8 @@ class NoStoreCacheMixin(CacheControlMixin):
 
 
 class MarkdownArticleMixin:
-    """Mixin for views that serve Markdown articles from a docs directory.
+    """
+    Mixin for views that serve Markdown articles from a docs directory.
 
     Subclasses must set:
     - `docs_dir`: pathlib.Path to the docs directory.
@@ -78,7 +79,7 @@ class MarkdownArticleMixin:
         path = cls.docs_dir / f"{slug}.md"
         if slug in cls.slugs and path.is_file():
             return path
-        raise Http404("Article not found")
+        raise Http404
 
     @classmethod
     def get_article_metadata(cls, slug: str) -> dict[str, str]:
@@ -90,7 +91,8 @@ class MarkdownArticleMixin:
 
 
 class BreadcrumbViewMixin:
-    """Build breadcrumbs by traversing parent references.
+    """
+    Build breadcrumbs by traversing parent references.
 
     Each view sets:
     - `title`: the breadcrumb title for this page (class attribute).
@@ -180,7 +182,8 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
         return await super().aget(request, *args, **kwargs)
 
     def render_markdown(self, request, **kwargs):
-        """Return the raw Markdown source as a text/markdown response.
+        """
+        Return the raw Markdown source as a text/markdown response.
 
         Frontmatter is stripped so metadata is not exposed in the raw
         Markdown endpoint of generic views.

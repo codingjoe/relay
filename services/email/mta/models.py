@@ -7,7 +7,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from abstract.email_utils import iter_attachments
+from abstract.email_utils import MissingAttachmentError, iter_attachments
 from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
 from kms.models import SigningKey
@@ -29,13 +29,13 @@ class IncomingMessage(Message):
 
         @property
         def badge_variant(self) -> str:
-            Status = type(self)
+            status_class = type(self)
             match self:
-                case Status.RECEIVED | Status.WEBHOOK_SENT:
+                case status_class.RECEIVED | status_class.WEBHOOK_SENT:
                     return "success"
-                case Status.QUARANTINED:
+                case status_class.QUARANTINED:
                     return "warning"
-                case Status.WEBHOOK_FAILED | Status.DROPPED:
+                case status_class.WEBHOOK_FAILED | status_class.DROPPED:
                     return "destructive"
                 case _:
                     return "outline"
@@ -44,6 +44,26 @@ class IncomingMessage(Message):
         _("receiving domain"),
         blank=True,
         help_text=_("Domain part of the recipient address, for example app.acme.com."),
+    )
+
+    email_url_name = "mta:message-detail"
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="incoming_messages",
+        help_text=_("Certificate the sending MTA presented, when one was offered."),
     )
 
     class Meta(TimeStamped.Meta):
@@ -265,15 +285,18 @@ class TlsReport(IncomingMessage):
 
     url_name = "tls-report-detail"
 
+    icon = "lock"
+
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return a TlsReport instance and TlsFailure list parsed from a raw email.
+        """
+        Return a TlsReport instance and TlsFailure list parsed from a raw email.
 
         Raises `ValueError` if no JSON attachment is found.
         """
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
-            raise ValueError("No attachment found in TLS-RPT report email.")
+            raise MissingAttachmentError
         meta, policies = TlsReportSerializer.parse_json(data)
         report = cls(
             reporting_org=meta["reporting_org"],

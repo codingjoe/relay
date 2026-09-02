@@ -46,8 +46,11 @@ class MtaStsPolicy:
 
     @classmethod
     def get(cls, domain):
-        """Return the MTA-STS policy for *domain*. The method fetches and
-        caches the policy on a cache miss."""
+        """
+        Return the MTA-STS policy for *domain*.
+
+        Fetches and caches the policy on a cache miss.
+        """
         if cached := cache.get(f"mta-sts:{domain}"):
             return cached
         try:

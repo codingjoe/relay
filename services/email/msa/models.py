@@ -29,13 +29,13 @@ class OutgoingMessage(Message):
 
         @property
         def badge_variant(self) -> str:
-            Status = type(self)
+            status_class = type(self)
             match self:
-                case Status.SENT:
+                case status_class.SENT:
                     return "success"
-                case Status.HELD:
+                case status_class.HELD:
                     return "warning"
-                case Status.BOUNCED | Status.DROPPED | Status.FAILED:
+                case status_class.BOUNCED | status_class.DROPPED | status_class.FAILED:
                     return "destructive"
                 case _:
                     return "outline"
@@ -62,19 +62,17 @@ class OutgoingMessage(Message):
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
 
+    email_url_name = "msa:message-detail"
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
     url_name = "message-detail"
 
-    @property
-    def spam_badge_variant(self) -> str:
-        """Return the badge variant for the rspamd verdict."""
-        return "destructive" if self.spam_action in {"reject", "drop"} else "outline"
-
 
 class Transmission(TimeStamped):
-    """Track a single SMTP leg of an outgoing message.
+    """
+    Track a single SMTP leg of an outgoing message.
 
     Each message starts with the submission to relay's MSA and can gain
     multiple delivery transmissions (for example, retry attempts).
@@ -241,7 +239,8 @@ class SuppressionQuerySet(models.QuerySet):
         return self.update_or_create(defaults=defaults, **kwargs)
 
     def is_suppressed(self, org, email) -> bool:
-        """Check whether an email is suppressed for the given org.
+        """
+        Check whether an email is suppressed for the given org.
 
         All entries for the current org suppress regardless of age or reason.
         Bounce entries from any other org suppress for 30 days after creation.
@@ -263,7 +262,8 @@ class SuppressionQuerySet(models.QuerySet):
 
 
 class SuppressionEntry(OrganizationOwned):
-    """Store a salted hash of an email address that should not receive mail.
+    """
+    Store a salted hash of an email address that should not receive mail.
 
     The plain email address is never stored. Bounces are added automatically;
     users can add or remove entries manually. Use the `__email` lookup to

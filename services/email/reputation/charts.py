@@ -22,7 +22,8 @@ REPUTATION_CHART_COLORS = {
 
 
 def build_reputation_chart(org):
-    """Return per-day message counts, rates, and rate limits for one org.
+    """
+    Return per-day message counts, rates, and rate limits for one org.
 
     Counts provider FBL reports and outgoing messages held as spam as
     complaints. Values accumulate from the start of the evaluation

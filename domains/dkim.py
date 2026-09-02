@@ -1,4 +1,4 @@
-"""DKIM signing and verification for outbound messages."""
+"""DKIM signing for outbound messages."""
 
 import logging
 
@@ -25,8 +25,11 @@ def add_dkim_signature(raw_bytes, selector, domain_name, key, include_headers):
 
 
 def sign_message(raw_bytes, domain):
-    """Sign a message with DKIM for the sender domain, plus the domain named
-    RELAY_PLATFORM_DOMAIN when it exists."""
+    """
+    Sign a message with DKIM for the sender domain.
+
+    Also signs for the domain named RELAY_PLATFORM_DOMAIN when it exists.
+    """
     signed = raw_bytes
     # Signatures are prepended, so the customer's signature ends up on
     # top, the way SES dual-signs. FBL partners dispatch reports based on
@@ -44,9 +47,10 @@ def sign_message(raw_bytes, domain):
     return signed
 
 
-def verify_signature(raw_bytes):
-    try:
-        verified = dkim.verify(raw_bytes)
-    except dkim.DKIMException:
-        return False, None
-    return verified, None
+def parse_signature_tags(value: str) -> dict[str, str]:
+    """Split a DKIM-Signature header value into its key=value fields."""
+    return dict(
+        parsed
+        for field in value.split(";")
+        if "=" in field.strip() and (parsed := field.strip().split("=", 1))
+    )

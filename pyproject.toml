@@ -61,11 +61,31 @@ test = [
 
 [tool.ruff]
 lint.extend-select = [
+  "C90",
+  "D",
   "DJ",
+  "E",
+  "G",
+  "N",
+  "PERF",
+  "PT",
+  "PTH",
+  "RET",
+  "SIM",
+  "SLOT",
+  "T20",
+  "TRY",
+  "UP",
+  "W",
 ]
-lint.ignore = [
-  "RUF012",
-]
+lint.ignore = [ "D1", "D203", "D212", "E501", "RUF01" ]
+
+[tool.ruff.lint.per-file-ignores]
+# aiosmtpd and python-markdown require these method names by protocol.
+"abstract/utils.py" = [ "N802" ]
+"services/email/msa/handlers.py" = [ "N802" ]
+"services/email/mta/handlers.py" = [ "N802" ]
+"services/email/proxy_protocol.py" = [ "N802" ]
 
 [tool.pytest]
 addopts = [ "--tb=native", "--fail-on-template-vars", "--reuse-db", "-n", "auto", "-q" ]
@@ -94,3 +114,306 @@ report.omit = [
 report.skip_covered = true
 report.skip_empty = true
 report.show_missing = true
+
+[tool.importlinter]
+root_packages = [
+  "abstract",
+  "accounts",
+  "alternative_to",
+  "docs",
+  "domains",
+  "know_how",
+  "kms",
+  "legal",
+  "root",
+  "services",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Abstract depends on no first-party app"
+type = "forbidden"
+source_modules = [ "abstract" ]
+forbidden_modules = [
+  "accounts",
+  "alternative_to",
+  "docs",
+  "domains",
+  "know_how",
+  "kms",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.mta_sts",
+  "services.email.proxy_protocol",
+  "services.email.reputation",
+  "services.email.spam",
+  "services.email.tls",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "KMS depends on no first-party app except abstract"
+type = "forbidden"
+source_modules = [ "kms" ]
+forbidden_modules = [
+  "accounts",
+  "alternative_to",
+  "docs",
+  "domains",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.mta_sts",
+  "services.email.proxy_protocol",
+  "services.email.reputation",
+  "services.email.spam",
+  "services.email.tls",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Shared mail modules depend on no first-party app"
+type = "forbidden"
+source_modules = [
+  "services.email.mta_sts",
+  "services.email.proxy_protocol",
+  "services.email.spam",
+  "services.email.tls",
+]
+forbidden_modules = [
+  "abstract",
+  "accounts",
+  "alternative_to",
+  "docs",
+  "domains",
+  "know_how",
+  "kms",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Accounts depends only on kms and abstract"
+type = "forbidden"
+source_modules = [ "accounts" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "domains",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domains depends only on accounts, kms and abstract"
+type = "forbidden"
+source_modules = [ "domains" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Message depends only on domains, accounts, kms and abstract"
+type = "forbidden"
+source_modules = [ "services.email.message" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "MTA depends only on message, spam, domains, accounts, kms and abstract"
+type = "forbidden"
+source_modules = [ "services.email.mta" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.msa",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "MSA depends only on mta, message, spam, domains, accounts, kms and abstract"
+type = "forbidden"
+source_modules = [ "services.email.msa" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "DMARC depends only on mta, message, domains, accounts, kms and abstract"
+type = "forbidden"
+source_modules = [ "services.email.dmarc" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.msa",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Reputation depends only on msa, mta, message, domains, accounts and abstract"
+type = "forbidden"
+source_modules = [ "services.email.reputation" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Dashboard depends on no documentation or content apps"
+type = "forbidden"
+source_modules = [ "services.email.dashboard" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "know_how",
+  "legal",
+  "root",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Content apps depend only on abstract"
+type = "forbidden"
+source_modules = [ "alternative_to", "know_how", "legal" ]
+forbidden_modules = [
+  "accounts",
+  "docs",
+  "domains",
+  "kms",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Docs app depends only on content apps and abstract"
+type = "forbidden"
+source_modules = [ "docs" ]
+forbidden_modules = [
+  "accounts",
+  "domains",
+  "kms",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "Well-known app depends only on docs, content apps and abstract"
+type = "forbidden"
+source_modules = [ "well_known" ]
+forbidden_modules = [
+  "accounts",
+  "domains",
+  "kms",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+]
+
+[[tool.importlinter.contracts]]
+name = "Root depends on no first-party app except abstract"
+type = "forbidden"
+source_modules = [ "root" ]
+forbidden_modules = [
+  "accounts",
+  "alternative_to",
+  "docs",
+  "domains",
+  "know_how",
+  "kms",
+  "legal",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.reputation",
+  "well_known",
+]

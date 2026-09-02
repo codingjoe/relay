@@ -17,6 +17,16 @@ class Message(TimeStamped):
     url_name: str
     """URL pattern name of the concrete subclass detail view in its own app."""
 
+    email_url_name = ""
+    """Fully qualified URL name of the view rendering the email itself.
+
+    Concrete subclasses whose detail view does not render the email, for
+    example report messages, point this at their incoming message view.
+    """
+
+    icon = ""
+    """Lucide icon name of the concrete subclass. Falls back to the direction icons."""
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid7,
@@ -77,6 +87,16 @@ class Message(TimeStamped):
     spam_action = models.TextField(
         _("spam action"),
         blank=True,
+        choices=[
+            ("pass", _("pass")),
+            ("no action", _("no action")),
+            ("greylist", _("greylist")),
+            ("add header", _("add header")),
+            ("rewrite subject", _("rewrite subject")),
+            ("soft reject", _("soft reject")),
+            ("reject", _("reject")),
+            ("drop", _("drop")),
+        ],
         help_text=_("rspamd action assigned to the message."),
     )
 
@@ -131,7 +151,14 @@ class Message(TimeStamped):
 
     @property
     def kind_icon(self) -> str:
-        """Return the matching Lucide icon name."""
+        """
+        Return the matching Lucide icon name.
+
+        Reads the icon from the concrete class because multi-table
+        inheritance returns base instances in shared querysets.
+        """
+        if icon := self.content_type.model_class().icon:
+            return icon
         return "send" if self.kind == "outgoingmessage" else "inbox"
 
     @property
@@ -142,8 +169,21 @@ class Message(TimeStamped):
     @property
     def status_badge_variant(self) -> str:
         """Return the basecoat badge variant for the status."""
-        Status = self.content_type.model_class().Status
-        return Status(self.status).badge_variant
+        status_class = self.content_type.model_class().Status
+        return status_class(self.status).badge_variant
+
+    @property
+    def spam_badge_variant(self) -> str:
+        """Map the rspamd verdict to a badge variant."""
+        match self.spam_action:
+            case "pass" | "no action":
+                return "success"
+            case "greylist" | "add header" | "rewrite subject":
+                return "warning"
+            case "reject" | "soft reject" | "drop":
+                return "destructive"
+            case _:
+                return "outline"
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
@@ -152,6 +192,21 @@ class Message(TimeStamped):
         model = self.content_type.model_class()
         return reverse(
             f"{self.content_type.app_label}:{model.url_name}",
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
+
+    def get_email_url(self) -> str:
+        """
+        Return the URL of the view rendering the email itself.
+
+        Reads the URL name from the concrete class because multi-table
+        inheritance returns base instances in shared querysets.
+        """
+        model = self.content_type.model_class()
+        if not model.email_url_name:
+            return self.get_absolute_url()
+        return reverse(
+            model.email_url_name,
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
@@ -175,6 +230,35 @@ class Message(TimeStamped):
             # name), e.g. pruned or fixture-only rows.
             return message_from_bytes(b"body pruned")
 
+    def raw_bytes(self) -> bytes:
+        """Return the stored message content, or empty bytes when pruned."""
+        try:
+            self.raw_body.seek(0)
+            return self.raw_body.read()
+        except FileNotFoundError, ValueError:
+            return b""
+
+    @property
+    def text_body(self) -> bytes:
+        """
+        Return the decoded text payload of the stored body.
+
+        Multipart messages yield their first text part. Messages whose
+        raw body is pruned or unreadable have no text payload.
+        """
+        if not self.raw_bytes():
+            return b""
+        return next(
+            (
+                payload
+                for part in self.parsed_email().walk()
+                if not part.is_multipart()
+                and part.get_content_type().startswith("text/")
+                and (payload := part.get_payload(decode=True)) is not None
+            ),
+            b"",
+        )
+
     @classmethod
     def headers_from_raw(cls, raw_bytes):
         """Return the message headers as JSON-serializable [name, value] pairs."""
@@ -185,7 +269,8 @@ class Message(TimeStamped):
 
     @staticmethod
     def header_to_text(value) -> str:
-        """Return a parsed header name or value as a JSON-serializable string.
+        """
+        Return a parsed header name or value as a JSON-serializable string.
 
         The compat32 parser returns `Header` objects for header values with
         raw 8-bit bytes, which a JSONField cannot serialize. Decode those

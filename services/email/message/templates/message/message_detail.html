@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load i18n message %}
+{% block title %}{{ message.subject|default:_("(no subject)")|truncatechars:50 }} | relay{% endblock %}
+{% block content %}
+  <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
+      <h2 class="m-0 break-words">{{ message.subject|default:_("(no subject)") }}</h2>
+      <p class="m-0 mt-1 text-sm text-muted-foreground">
+        <span class="break-all">{{ message.mail_from }}</span>
+        <i data-lucide="arrow-right" class="size-3.5 inline-block" aria-hidden="true"></i>
+        <span class="break-all">{{ message.rcpt_to }}</span>
+      </p>
+      {% if message.message_id %}
+        <p class="m-0 mt-2 flex items-center gap-2 text-sm">
+          <code class="text-xs text-muted-foreground break-all">{{ message.message_id }}</code>
+          <button
+            type="button"
+            class="btn shrink-0"
+            data-variant="ghost"
+            data-size="icon-xs"
+            data-align="end"
+            data-tooltip='{% translate "copy message ID"|capfirst %}'
+            onclick="navigator.clipboard.writeText('{{ message.message_id|escapejs }}')"
+            aria-label='{% translate "copy message ID"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+        </p>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <span
+        class="badge"
+        data-size="sm"
+        data-variant="{{ message.status_badge_variant }}"
+      >
+        {{ message.status_display }}
+      </span>
+      {% if message.spam_action or message.spam_score is not None %}
+        <span class="flex items-center gap-2">
+          {% if message.spam_action %}
+            <span
+              class="badge"
+              data-size="sm"
+              data-variant="{{ message.spam_badge_variant }}"
+              data-tooltip='{% translate "rspamd verdict for this message"|capfirst %}'
+            >
+              {{ message.get_spam_action_display }}
+            </span>
+          {% endif %}
+          {% if message.spam_score is not None %}
+            <span class="text-sm text-muted-foreground">
+              {% translate "score" %} {{ message.spam_score }}
+            </span>
+          {% endif %}
+        </span>
+      {% endif %}
+    </div>
+  </header>
+
+  {% block transmission_card %}{% endblock %}
+
+  <section class="mb-6">
+    <h3 class="font-semibold m-0 mb-4">{% translate "message"|capfirst context "noun" %}</h3>
+    <article class="card gap-0 p-0 overflow-hidden">
+      <div class="table-container">
+        <table class="table">
+          <tbody>
+            {% for key, value in headers %}
+              <tr>
+                <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
+                <td class="whitespace-normal align-top">{{ value|highlight_email }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-6 py-6 flex flex-col gap-6">
+        {% block extra_sections %}{% endblock %}
+        <div>
+          {% block body %}
+            {% if body %}
+              {{ body|highlight_email }}
+            {% else %}
+              <section class="empty">
+                <header>
+                  <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
+                  <h3>{% translate "Body pruned." %}</h3>
+                  <p>{% translate "The raw message body is not available." %}</p>
+                </header>
+              </section>
+            {% endif %}
+          {% endblock body %}
+        </div>
+      </div>
+    </article>
+  </section>
+{% endblock %}

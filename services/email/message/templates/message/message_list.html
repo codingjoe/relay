@@ -142,7 +142,7 @@
 
   <div class="item-group mb-6">
     {% for message in messages %}
-      <a class="item" data-variant="outline" href="{{ message.get_absolute_url }}">
+      <a class="item" data-variant="outline" href="{{ message.get_email_url }}">
         <section>
           <h3 class="break-words">
             {% if message.subject %}

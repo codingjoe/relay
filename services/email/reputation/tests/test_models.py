@@ -7,6 +7,7 @@ from domains.models import Domain
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
+from services.email.reputation.parser import NoArfFeedbackError
 
 
 class TestFblReport:
@@ -35,7 +36,7 @@ class TestFblReport:
         msg = EmailMessage()
         msg["Subject"] = "Not a report"
         msg.set_content("Regular email")
-        with pytest.raises(ValueError):
+        with pytest.raises(NoArfFeedbackError):
             FblReport.parse_from_email(msg.as_bytes())
 
     def test_status_badge_variant__is_destructive(self):

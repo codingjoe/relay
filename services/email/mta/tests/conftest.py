@@ -61,7 +61,8 @@ def make_dsn_email(
     final_recipient: str | None = "rfc822; bob@example.net",
     original_recipient: str | None = None,
 ) -> bytes:
-    """Return a raw RFC 3464 delivery status notification.
+    """
+    Return a raw RFC 3464 delivery status notification.
 
     The `message/delivery-status` part carries a per-message block and a
     per-recipient block, unless either is disabled.
