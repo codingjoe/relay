@@ -58,7 +58,9 @@ Organization → Domain, SmtpCredential
 
 ### App dependency graph
 
-Imports flow strictly downward. Enforced by
+How Django apps may import each other. This is code structure, not
+runtime topology: the mermaid chart under [Services](#services) shows
+that. Imports flow strictly downward. Enforced by
 [import-linter](https://import-linter.readthedocs.io) (`uv run lint-imports`):
 
 ```
