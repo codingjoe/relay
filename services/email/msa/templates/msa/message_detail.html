@@ -1,137 +1,223 @@
 {% extends "message/message_detail.html" %}
-{% load i18n abstract %}
+{% load i18n abstract message %}
 {% block transmission_card %}
-  <div class="px-6 pt-6">
-    <h3 class="font-semibold m-0 mb-3">{% translate "transmissions"|capfirst context "noun" %}</h3>
-    <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 m-0">
-      <dt class="font-semibold">{% translate "TLS" %}</dt>
-      <dd class="m-0">
-        {% if message.received_with_tls %}
-          <i data-lucide="lock" class="size-4 text-primary" aria-hidden="true"></i>
-          <span class="sr-only">{% translate "received with TLS"|capfirst %}</span>
-        {% else %}
-          <span class="text-muted-foreground">{% translate "not received with TLS"|capfirst %}</span>
-        {% endif %}
-      </dd>
-      {% if message.spam_action %}
-        <dt class="font-semibold">{% translate "spam check"|capfirst %}</dt>
-        <dd class="m-0">
-          <span
-            class="badge"
-            data-size="sm"
-            data-variant="{{ message.spam_badge_variant }}"
-          >
-            {{ message.get_spam_action_display }}
-          </span>
-          {{ message.spam_score }}
-        </dd>
-      {% endif %}
-    </dl>
-    {% if message.credential %}
-      <p class="text-sm text-muted-foreground mt-4 mb-0">
-        {% translate "credential"|capfirst context "noun" %}:
-        <code>{{ message.credential.key_prefix }}…</code>
-        ({{ message.credential.get_type_display }})
-      </p>
-    {% endif %}
-  </div>
-  {% if transmissions %}
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">{% translate "status"|capfirst context "noun" %}</th>
-            <th scope="col">{% translate "code"|capfirst context "noun" %}</th>
-            <th scope="col">{% translate "sent"|capfirst %}</th>
-            <th scope="col">{% translate "MX host"|capfirst %}</th>
-            <th scope="col">{% translate "TLS" %}</th>
-            <th scope="col">{% translate "log ID"|capfirst %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for transmission in transmissions %}
-            <tr>
-              <td>
-                <span
-                  class="badge"
-                  data-size="sm"
-                  data-variant="{{ transmission.status_badge_variant }}"
-                >
-                  {{ transmission.get_status_display }}
-                </span>
-              </td>
-              <td>{{ transmission.code|default:"-" }}</td>
-              <td>
-                {% timestamp transmission.created_at %}
-              </td>
-              <td data-tooltip="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
+  <section class="mb-6 flex flex-col gap-4">
+    <h3 class="font-semibold m-0">{% translate "transmissions"|capfirst context "noun" %}</h3>
+    {% if transmissions %}
+      <div class="item-group">
+        {% for transmission in transmissions %}
+          <article class="item" data-variant="outline" data-size="sm">
+            <section>
+              <h3 data-tooltip="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
                 <code>{{ transmission.mx_host|default:"-" }}</code>
-              </td>
-              <td>
+              </h3>
+              <p>
+                {% timestamp transmission.created_at %} ·
                 {% if transmission.tls_certificate %}
                   <a
-                    class="badge"
-                    data-size="sm"
+                    class="link"
                     href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
-                    data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }} ({{ transmission.tls_certificate.subject_alternative_names }}) · {{ transmission.tls_certificate.issuer }} · serial {{ transmission.tls_certificate.serial_number }} · sha256 {{ transmission.tls_certificate.fingerprint }}"
-                  >
-                    {{ transmission.get_tls_mode_display }}
-                  </a>
+                    data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }}"
+                  >{{ transmission.get_tls_mode_display }}</a>
                 {% else %}
-                  <span class="text-muted-foreground">
-                    {{ transmission.get_tls_mode_display }}
-                  </span>
+                  {{ transmission.get_tls_mode_display }}
                 {% endif %}
-              </td>
-              <td>
+                {% if transmission.tls_version %}
+                  · {{ transmission.tls_version }}{% endif %}
+              </p>
+            </section>
+            <aside class="flex items-center gap-2">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ transmission.status_badge_variant }}"
+              >
+                {{ transmission.get_status_display }}
+              </span>
+              {% if transmission.output or transmission.details or transmission.log_id %}
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="outline"
+                  data-size="xs"
+                  onclick="document.getElementById('transcript-{{ forloop.counter }}').showModal()"
+                  aria-haspopup="dialog"
+                >
+                  {% translate "transcript"|capfirst %}
+                </button>
+              {% endif %}
+            </aside>
+          </article>
+        {% endfor %}
+      </div>
+      {% for transmission in transmissions %}
+        {% if transmission.output or transmission.details or transmission.log_id %}
+          <dialog
+            id="transcript-{{ forloop.counter }}"
+            class="drawer"
+            data-side="bottom"
+            onclick="if (event.target === this) this.close()"
+          >
+            <article>
+              <header>
+                <h2>{% translate "SMTP transcript"|capfirst %}</h2>
+                <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+              </header>
+              <section class="flex flex-col gap-4">
+                {% if transmission.output %}
+                  <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
+                {% endif %}
+                {% if transmission.details %}
+                  <p class="m-0 text-sm">{{ transmission.details }}</p>
+                {% endif %}
                 {% if transmission.log_id %}
-                  <code>{{ transmission.log_id|truncatechars:36 }}</code>
-                {% else %}
-                  -
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm text-muted-foreground">{% translate "log ID"|capfirst context "noun" %}</span>
+                    <code class="break-all">{{ transmission.log_id }}</code>
+                    <button
+                      type="button"
+                      class="btn"
+                      data-variant="ghost"
+                      data-size="icon-xs"
+                      data-tooltip='{% translate "copy log ID"|capfirst %}'
+                      onclick="navigator.clipboard.writeText('{{ transmission.log_id|escapejs }}')"
+                      aria-label='{% translate "copy log ID"|capfirst %}'
+                    >
+                      <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                    </button>
+                  </div>
                 {% endif %}
-              </td>
-            </tr>
-            {% if transmission.output or transmission.details %}
-              <tr>
-                <td colspan="6">
-                  {% if transmission.output %}
-                    <pre class="m-0 text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
-                  {% endif %}
-                  {% if transmission.details %}
-                    <p class="text-sm {% if transmission.output %}mt-2 mb-0{% else %}m-0{% endif %}">
-                      {{ transmission.details }}
-                    </p>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endif %}
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p class="px-6 pb-6 text-sm text-muted-foreground m-0">
-      {% translate "No transmissions yet." %}
-    </p>
-  {% endif %}
+              </section>
+              <footer>
+                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+                  {% translate "close"|capfirst %}
+                </button>
+              </footer>
+            </article>
+          </dialog>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "No transmissions yet." %}
+      </p>
+    {% endif %}
+  </section>
 {% endblock %}
 
 {% block extra_sections %}
   {% if dkim_signatures %}
     <div>
       <h4 class="font-semibold m-0 mb-2">{% translate "DKIM signatures" %}</h4>
-      {% for signature in dkim_signatures %}
-        <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{% for key, value in signature.items %}{{ key }}={{ value }};
-{% endfor %}</pre>
-      {% endfor %}
+      <div class="item-group">
+        {% for signature in dkim_signatures %}
+          <article class="item" data-variant="outline" data-size="sm">
+            <section>
+              <h3>
+                {% if signature.d %}
+                  <code class="break-all">{{ signature.d }}</code>
+                {% else %}
+                  <span class="text-sm text-muted-foreground">-</span>
+                {% endif %}
+              </h3>
+              {% if signature.s or signature.a %}
+                <p>
+                  {% if signature.s %}{% translate "selector" %} <code>{{ signature.s }}</code>{% endif %}
+                  {% if signature.s and signature.a %}
+                    ·
+                  {% endif %}
+                  {% if signature.a %}<code>{{ signature.a }}</code>{% endif %}
+                </p>
+              {% endif %}
+            </section>
+            <aside class="flex items-center gap-2">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{% if signature.result == 'pass' %}success{% elif signature.result == 'fail' %}destructive{% else %}warning{% endif %}"
+                data-tooltip='{% translate "verified against the DKIM keys relay publishes"|capfirst %}'
+              >
+                {{ signature.result }}
+              </span>
+              <button
+                type="button"
+                class="btn"
+                data-variant="outline"
+                data-size="xs"
+                onclick="document.getElementById('dkim-{{ forloop.counter }}').showModal()"
+                aria-haspopup="dialog"
+              >
+                {% translate "signature"|capfirst %}
+              </button>
+            </aside>
+          </article>
+        {% endfor %}
+      </div>
     </div>
+    {% for signature in dkim_signatures %}
+      <dialog
+        id="dkim-{{ forloop.counter }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "DKIM signature"|capfirst %}</h2>
+            <p class="m-0 text-sm text-muted-foreground">
+              {% if signature.d %}<code>{{ signature.d }}</code> · {% endif %}{{ signature.result }}
+            </p>
+          </header>
+          <section>
+            {% filter highlight_dkim %}{% autoescape off %}{% for key, value in signature.items %}{% if key != "result" %}{{ key }}={{ value }};
+                  {% endif %}{% endfor %}{% endautoescape %}{% endfilter %}
+          </section>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+              {% translate "close"|capfirst %}
+            </button>
+          </footer>
+        </article>
+      </dialog>
+    {% endfor %}
   {% endif %}
   {% if received %}
     <div>
       <h4 class="font-semibold m-0 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
       {% for hop in received %}
-        <pre class="p-4 border rounded-md bg-card text-sm overflow-x-auto whitespace-pre-wrap break-words">{{ hop }}</pre>
+        <button
+          type="button"
+          class="btn {% if not forloop.first %}mt-2{% endif %}"
+          data-variant="outline"
+          data-size="xs"
+          onclick="document.getElementById('hop-{{ forloop.counter }}').showModal()"
+          aria-haspopup="dialog"
+        >
+          {% translate "hop"|capfirst %} {{ forloop.counter }}
+        </button>
       {% endfor %}
     </div>
+    {% for hop in received %}
+      <dialog
+        id="hop-{{ forloop.counter }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "received" context "email hop"|capfirst %} {{ forloop.counter }}</h2>
+          </header>
+          <section>
+            {{ hop|highlight_email }}
+          </section>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+              {% translate "close"|capfirst %}
+            </button>
+          </footer>
+        </article>
+      </dialog>
+    {% endfor %}
   {% endif %}
-{% endblock %}
+{% endblock extra_sections %}

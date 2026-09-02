@@ -63,6 +63,15 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         }
 
 
+class MessageBreadcrumbMixin:
+    """Title the breadcrumb crumb of a message detail view with its subject."""
+
+    def get_breadcrumbs(self):
+        breadcrumbs = super().get_breadcrumbs()
+        breadcrumbs[0]["title"] = self.object.subject or str(self.object)
+        return breadcrumbs
+
+
 class CertificateDetailView(
     OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
 ):

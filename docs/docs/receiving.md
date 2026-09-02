@@ -89,7 +89,10 @@ evaluation instead.
 
 Sealing happens before the message is stored, so the raw message opened
 in the dashboard or downloaded through a webhook's signed body URL
-contains the complete header set. See the know-how article on
+contains the complete header set. The message detail page shows relay's
+evaluation as per-method verdicts (ARC, SPF, DKIM, DMARC) and lists the
+seals of the ARC chain, upstream evaluations included, verbatim. See the
+know-how article on
 <a href="{% url 'know_how:detail' slug='arc' %}">ARC</a> for the protocol
 background.
 

@@ -47,6 +47,15 @@ class OutgoingMessage(Message):
         blank=True,
         related_name="outgoing_messages",
     )
+    dkim_results = models.JSONField(
+        _("DKIM results"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Per-DKIM-Signature verification outcomes as a list of tag dicts "
+            "with a result field, verified against relay's own zone data."
+        ),
+    )
     feedback_id = models.TextField(
         _("Feedback-ID"),
         blank=True,
@@ -68,11 +77,6 @@ class OutgoingMessage(Message):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
     url_name = "message-detail"
-
-    @property
-    def spam_badge_variant(self) -> str:
-        """Return the badge variant for the rspamd verdict."""
-        return "destructive" if self.spam_action in {"reject", "drop"} else "outline"
 
 
 class Transmission(TimeStamped):

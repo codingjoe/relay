@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils.http import http_date
 
+from domains.dkim import sign_message
 from domains.models import Domain
 from services.email.msa.models import (
     MsaCredential,
@@ -106,31 +107,48 @@ class TestMessageDetailView:
         msg.save(update_fields=["headers"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
-        assert response.context["headers"] == msg.headers
-        assert response.context["dkim_signatures"] == [
-            {
-                "v": "1",
-                "a": "ed25519-sha256",
-                "d": "acme.com",
-                "s": "relay",
-                "h": "from:subject",
-                "bh": "AAAA",
-                "b": "BBBB",
-            }
+        # DKIM-Signature rows have their own card and are excluded from the
+        # generic headers table.
+        assert response.context["headers"] == [
+            ["From", "alice@example.com"],
+            ["Subject", "Test"],
         ]
+        assert response.context["dkim_signatures"] == []
+
+    def test_get__verifies_dkim_signatures_from_raw_body(self, admin_client, org, user):
+        msg = make_message(org, user)
+        raw = sign_message(msg.raw_bytes(), msg.domain)
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
+        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
+        assert response.status_code == 200
+        signatures = response.context["dkim_signatures"]
+        assert [signature["result"] for signature in signatures] == [
+            "pass",
+            "pass",
+        ]
+        assert [signature["d"] for signature in signatures] == [
+            msg.domain.name,
+            msg.domain.name,
+        ]
+        msg.refresh_from_db()
+        assert msg.dkim_results == signatures
 
     def test_get__malformed_dkim_signature_does_not_crash(
         self, admin_client, org, user
     ):
         msg = make_message(org, user)
-        msg.headers = [
-            ["DKIM-Signature", "v=1; a=ed25519-sha256; b"],
-        ]
-        msg.save(update_fields=["headers"])
+        raw = msg.raw_bytes().replace(
+            b"\n\n",
+            b"\nDKIM-Signature: v=1; a=ed25519-sha256; b\n\n",
+            1,
+        )
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
         assert response.context["dkim_signatures"] == [
-            {"v": "1", "a": "ed25519-sha256"}
+            {"v": "1", "a": "ed25519-sha256", "result": "permerror"}
         ]
 
 
