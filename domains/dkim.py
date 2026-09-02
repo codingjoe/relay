@@ -1,4 +1,4 @@
-"""DKIM signing and verification for outbound messages."""
+"""DKIM signing for outbound messages."""
 
 import logging
 
@@ -47,9 +47,10 @@ def sign_message(raw_bytes, domain):
     return signed
 
 
-def verify_signature(raw_bytes):
-    try:
-        verified = dkim.verify(raw_bytes)
-    except dkim.DKIMException:
-        return False, None
-    return verified, None
+def parse_signature_tags(value: str) -> dict[str, str]:
+    """Split a DKIM-Signature header value into its key=value fields."""
+    return dict(
+        parsed
+        for field in value.split(";")
+        if "=" in field.strip() and (parsed := field.strip().split("=", 1))
+    )

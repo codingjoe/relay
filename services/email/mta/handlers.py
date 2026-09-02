@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 
 from abstract.mailauth import Disposition, DmarcEvaluation
+from abstract.signals import request_scoped
 from domains.models import Domain
 from kms.models import Certificate
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
@@ -71,6 +72,7 @@ class MXHandler(ProxyProtocolMixin):
 
 
 @sync_to_async
+@request_scoped
 def process_incoming_message(
     mail_from, rcpt_to, raw_bytes, tls, domain, status, client_ip
 ):

@@ -87,6 +87,16 @@ class Message(TimeStamped):
     spam_action = models.TextField(
         _("spam action"),
         blank=True,
+        choices=[
+            ("pass", _("pass")),
+            ("no action", _("no action")),
+            ("greylist", _("greylist")),
+            ("add header", _("add header")),
+            ("rewrite subject", _("rewrite subject")),
+            ("soft reject", _("soft reject")),
+            ("reject", _("reject")),
+            ("drop", _("drop")),
+        ],
         help_text=_("rspamd action assigned to the message."),
     )
 
@@ -162,6 +172,19 @@ class Message(TimeStamped):
         status_class = self.content_type.model_class().Status
         return status_class(self.status).badge_variant
 
+    @property
+    def spam_badge_variant(self) -> str:
+        """Map the rspamd verdict to a badge variant."""
+        match self.spam_action:
+            case "pass" | "no action":
+                return "success"
+            case "greylist" | "add header" | "rewrite subject":
+                return "warning"
+            case "reject" | "soft reject" | "drop":
+                return "destructive"
+            case _:
+                return "outline"
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
@@ -207,14 +230,23 @@ class Message(TimeStamped):
             # name), e.g. pruned or fixture-only rows.
             return message_from_bytes(b"body pruned")
 
+    def raw_bytes(self) -> bytes:
+        """Return the stored message content, or empty bytes when pruned."""
+        try:
+            self.raw_body.seek(0)
+            return self.raw_body.read()
+        except FileNotFoundError, ValueError:
+            return b""
+
     @property
     def text_body(self) -> bytes:
         """
         Return the decoded text payload of the stored body.
 
-        Multipart messages yield their first text part.
+        Multipart messages yield their first text part. Messages whose
+        raw body is pruned or unreadable have no text payload.
         """
-        if not self.raw_body:
+        if not self.raw_bytes():
             return b""
         return next(
             (

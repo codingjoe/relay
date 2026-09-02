@@ -106,7 +106,12 @@ class TestMessageDetailView:
         msg.save(update_fields=["headers"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
-        assert response.context["headers"] == msg.headers
+        # DKIM-Signature rows have their own card and are excluded from the
+        # generic headers table.
+        assert response.context["headers"] == [
+            ["From", "alice@example.com"],
+            ["Subject", "Test"],
+        ]
         assert response.context["dkim_signatures"] == [
             {
                 "v": "1",
@@ -123,10 +128,13 @@ class TestMessageDetailView:
         self, admin_client, org, user
     ):
         msg = make_message(org, user)
-        msg.headers = [
-            ["DKIM-Signature", "v=1; a=ed25519-sha256; b"],
-        ]
-        msg.save(update_fields=["headers"])
+        raw = msg.raw_bytes().replace(
+            b"\n\n",
+            b"\nDKIM-Signature: v=1; a=ed25519-sha256; b\n\n",
+            1,
+        )
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
         assert response.context["dkim_signatures"] == [

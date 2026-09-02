@@ -32,7 +32,11 @@ services:
       retries: 5
       start_period: 10s
       timeout: 10s
-    labels: !reset []
+    # Dozzle app icons, see https://dozzle.dev/guide/app-icons. The slugs are
+    # upstream dashboard-icons names and only render once Dozzle bundles them,
+    # see https://github.com/amir20/dozzle/issues/4988.
+    labels: !override
+      - dev.dozzle.icon=django
     deploy:
       resources:
         limits:
@@ -54,6 +58,8 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
+    labels:
+      - dev.dozzle.icon=powerdns
     deploy:
       resources:
         limits:
@@ -71,7 +77,8 @@ services:
         restart: false
     command: [ "-m", "manage", "migrate", "--noinput" ]
     restart: no
-    labels: !reset []
+    labels: !override
+      - dev.dozzle.icon=django
     deploy: !reset {}
     extends:
       service: web
@@ -132,6 +139,7 @@ services:
     labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
+      - dev.dozzle.icon=django
       - "caddy_1.layer4.:587.route.proxy=msa:587"
       - "caddy_1.layer4.:587.route.proxy.lb_policy=round_robin"
       - "caddy_1.layer4.:587.route.proxy.lb_try_duration=3s"
@@ -165,6 +173,7 @@ services:
     labels: !override
       - "caddy=mail.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
+      - dev.dozzle.icon=django
       - "caddy_1.layer4.:25.route.proxy=mta:25"
       - "caddy_1.layer4.:25.route.proxy.lb_policy=round_robin"
       - "caddy_1.layer4.:25.route.proxy.lb_try_duration=3s"
@@ -190,6 +199,8 @@ services:
         target: /etc/rspamd/local.d/force_actions.conf
     networks:
       - app
+    labels:
+      - dev.dozzle.icon=rspamd
     deploy:
       resources:
         limits:
@@ -214,7 +225,7 @@ services:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
       DEBUG: ${DEBUG:-false}
-      GRANIAN_INTERFACE: asgi # Options: asgi, wsgi, rsgi (default)
+      GRANIAN_INTERFACE: asginl
       GRANIAN_LOG_ACCESS_ENABLED: true
       GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
       GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}' # JSON format
@@ -240,6 +251,7 @@ services:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
+      - dev.dozzle.icon=django
     deploy:
       resources:
         limits:
@@ -250,7 +262,8 @@ services:
     command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
-    labels: !reset []
+    labels: !override
+      - dev.dozzle.icon=django
     deploy:
       resources:
         limits:

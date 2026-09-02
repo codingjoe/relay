@@ -10,8 +10,9 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.dkim import sign_message
+from domains.dkim import parse_signature_tags, sign_message
 from domains.models import Domain
+from services.email.message.views import MessageBreadcrumbMixin
 
 from .charts import build_suppression_chart
 from .forms import SuppressionEntryForm
@@ -20,7 +21,10 @@ from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmissi
 
 
 class OutgoingMessageDetailView(
-    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
+    OrganizationScopedView,
+    ConditionalGetMixin,
+    MessageBreadcrumbMixin,
+    generic.DetailView,
 ):
     def get_template_names(self):
         return ["msa/message_detail.html"]
@@ -40,18 +44,17 @@ class OutgoingMessageDetailView(
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = message.parsed_headers
-        dkim_signatures = [
-            dict(
-                s.strip().split("=", 1)
-                for field in value.split(";")
-                if (s := field.strip()) and "=" in s
-            )
-            for k, value in headers
-            if k.lower() == "dkim-signature"
-        ]
         return context | {
-            "headers": headers,
-            "dkim_signatures": dkim_signatures,
+            "headers": [
+                [key, value]
+                for key, value in headers
+                if key.lower() != "dkim-signature"
+            ],
+            "dkim_signatures": [
+                parse_signature_tags(value)
+                for key, value in headers
+                if key.lower() == "dkim-signature"
+            ],
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
             "transmissions": Transmission.objects.filter(
