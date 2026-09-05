@@ -54,7 +54,7 @@ class Message(TimeStamped):
     subject = models.TextField(
         _("subject"),
         blank=True,
-        help_text=_("RFC 5322 Subject header value."),
+        help_text=_("Subject header value with RFC 2047 encoded-words decoded."),
     )
     message_id = models.TextField(
         _("message ID"),

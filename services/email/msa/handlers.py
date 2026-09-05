@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 
+from abstract.email_utils import decode_header_value
 from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
@@ -176,7 +177,7 @@ def store_outgoing_message(
     """
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
-    subject = parsed.get("Subject", "")
+    subject = decode_header_value(parsed.get("Subject", ""))
     message = OutgoingMessage.objects.create(
         org=org,
         rcpt_to=rcpt_to,
