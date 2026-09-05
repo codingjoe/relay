@@ -339,8 +339,9 @@ class Command(BaseCommand):
                 ("Concurrent connections:", str(concurrency)),
                 ("Emails per connection:", str(emails_per_connection)),
                 ("Time taken for tests:", f"{total_secs:.3f} secs"),
-                ("Complete emails:", str(complete_count)),
-                ("Failed emails:", str(failed_count)),
+                ("Emails attempted:", str(complete_count)),
+                ("Emails sent:", str(complete_count - failed_count)),
+                ("Emails failed:", str(failed_count)),
                 ("Connections opened:", str(connections_opened)),
                 (
                     "Emails per second:",
