@@ -426,9 +426,7 @@ LOGGING = {
         },
         # threadmill's task lifecycle logs and multiprocessing's atexit
         # "process shutting down" line run through the multiprocessing
-        # logger. RootConfig.ready() removes threadmill's own
-        # plain-text handler, which attaches to this logger after this
-        # config is applied.
+        # logger.
         "multiprocessing": {
             "handlers": ["console"],
             "level": "INFO",
