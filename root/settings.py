@@ -407,6 +407,16 @@ LOGGING = {
             "class": "logging.StreamHandler",
         },
     },
+    "loggers": {
+        # aiosmtpd logs every SMTP session event (peer, each command,
+        # disconnect) at INFO, which floods the MTA and MSA logs with
+        # one entry per line of SMTP dialogue. Warnings such as invalid
+        # PROXY handshakes or STARTTLS/auth misconfiguration remain
+        # visible; relay's own handlers keep one INFO line per message.
+        "mail.log": {
+            "level": "WARNING",
+        },
+    },
     "root": {
         "handlers": ["console"],
         "level": "INFO",
