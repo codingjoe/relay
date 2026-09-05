@@ -4,26 +4,36 @@ import io
 import re
 import zipfile
 from email import message_from_bytes
-from email.header import decode_header
+from email.errors import HeaderParseError
+from email.header import Header, decode_header
 
 
 class MissingAttachmentError(ValueError):
     """The email contains no attachment."""
 
 
-def decode_header_value(value):
+def decode_header_value(value: str | Header) -> str:
     """
     Return an RFC 2047-decoded header value as unfolded text.
 
-    Encoded-words are decoded with their declared charset. Raw 8-bit
-    bytes without a charset are assumed to be UTF-8. Line folding is
-    removed and undecodable bytes become U+FFFD, so the result is
-    always a single-line, valid `str`.
+    Undecodable bytes become U+FFFD. Malformed encoded-words and
+    values mixing encoded-words with raw 8-bit bytes keep their raw
+    form.
     """
     if not value:
         return ""
+    text = value
+    if not isinstance(value, Header):
+        # Unfold before decoding so folded whitespace survives.
+        text = re.sub(r"\r\n|\r|\n", "", value)
+    # str() would replace 8-bit bytes with U+FFFD before they decode.
+    try:
+        chunks = decode_header(text)
+    except HeaderParseError:
+        # Malformed encoded-word; keep the raw value.
+        chunks = [(str(text), None)]
     parts = []
-    for data, charset in decode_header(value):
+    for data, charset in chunks:
         if isinstance(data, str):
             parts.append(data)
             continue
@@ -34,13 +44,15 @@ def decode_header_value(value):
         except LookupError:
             parts.append(data.decode("utf-8", "replace"))
     text = "".join(parts)
+    if not text and value:
+        # Undecodable payload decodes to nothing; keep the raw value.
+        text = str(value)
     try:
         text.encode("utf-8")
     except UnicodeEncodeError:
-        # Input may carry surrogate escapes from raw 8-bit bytes.
+        # Repair surrogate escapes from raw 8-bit input.
         text = text.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
-    # Unfold per RFC 5322: drop the CRLF, keep the whitespace that follows.
-    return re.sub(r"\r?\n", "", text)
+    return re.sub(r"\r\n|\r|\n", "", text)
 
 
 def extract_part_text(part):
