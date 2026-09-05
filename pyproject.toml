@@ -284,7 +284,7 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "MSA depends only on message, spam, domains, accounts, kms and abstract"
+name = "MSA depends only on mta, message, spam, domains, accounts, kms and abstract"
 type = "forbidden"
 source_modules = [ "services.email.msa" ]
 forbidden_modules = [
@@ -295,7 +295,6 @@ forbidden_modules = [
   "root",
   "services.email.dashboard",
   "services.email.dmarc",
-  "services.email.mta",
   "services.email.reputation",
   "well_known",
 ]

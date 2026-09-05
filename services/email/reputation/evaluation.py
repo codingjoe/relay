@@ -26,8 +26,9 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     Return bounce and complaint rates for an organization over the rolling window.
 
     Returns zero counts and rates when the organization has no outgoing
-    messages in the window. Only SMTP 5xx bounces count toward the
-    bounce rate; soft bounces are for display only.
+    messages in the window. Bounced transmissions are permanent
+    rejections and count toward the bounce rate; retry transmissions
+    are delays for display only.
     """
     window_start = timezone.now() - timedelta(
         days=settings.RELAY_REPUTATION_WINDOW_DAYS
@@ -40,10 +41,9 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     transmissions = Transmission.objects.filter(
         message__org=org,
         message__created_at__gte=window_start,
-        status=Transmission.Status.BOUNCED,
     )
-    hard_bounces = transmissions.filter(code__gte=500).count()
-    soft_bounces = transmissions.filter(code__lt=500).count()
+    hard_bounces = transmissions.filter(status=Transmission.Status.BOUNCED).count()
+    soft_bounces = transmissions.filter(status=Transmission.Status.RETRY).count()
 
     complaints = (
         FblReport.objects.filter(

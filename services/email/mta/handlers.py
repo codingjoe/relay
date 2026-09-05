@@ -1,5 +1,6 @@
 import logging
 from email import message_from_bytes
+from email.message import Message
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
@@ -18,7 +19,7 @@ from .models import (
     IncomingMessage,
     TlsReport,
 )
-from .signals import fbl_report_received, report_received
+from .signals import bounce_report_received, fbl_report_received, report_received
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,17 @@ class MXHandler(ProxyProtocolMixin):
         )
         logger.info("Incoming message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
+
+
+def is_delivery_status_notification(msg: Message) -> bool:
+    """Determine whether a message is an RFC 3464 delivery status notification."""
+    return (
+        msg.get_content_type() == "multipart/report"
+        and str(msg.get_param("report-type", "")).lower() == "delivery-status"
+        and any(
+            part.get_content_type() == "message/delivery-status" for part in msg.walk()
+        )
+    )
 
 
 @sync_to_async
@@ -156,6 +168,27 @@ def process_incoming_message(
                 **tls_fields,
             )
             fbl_report_received.send(sender=IncomingMessage, message=message)
+            return "250 OK"
+
+        case _ if local_part.startswith(
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+"
+        ) and is_delivery_status_notification(msg):
+            message = IncomingMessage.objects.create(
+                org=domain.org,
+                domain=domain,
+                receiving_domain=rcpt_domain,
+                mail_from=mail_from,
+                rcpt_to=rcpt_to,
+                subject=subject,
+                message_id=message_id,
+                status=status,
+                headers=IncomingMessage.headers_from_raw(raw_bytes),
+                raw_body=SimpleUploadedFile(
+                    f"{message_id or 'message'}.eml", raw_bytes
+                ),
+                **tls_fields,
+            )
+            bounce_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
     is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (
