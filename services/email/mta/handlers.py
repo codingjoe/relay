@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 
+from abstract.email_utils import decode_header_value
 from abstract.mailauth import Disposition, DmarcEvaluation
 from abstract.signals import request_scoped
 from domains.models import Domain
@@ -79,7 +80,7 @@ def process_incoming_message(
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
-    subject = msg.get("Subject", "")
+    subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
     ssl_object = (tls or {}).get("ssl_object")
     cipher = ssl_object.cipher() if ssl_object else None
