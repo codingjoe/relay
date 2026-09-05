@@ -125,3 +125,7 @@
   pattern: '\[[^\]\n]*RFC[ ]?\d{3,4}[^\]\n]*\]\(https?://[^)]+\)'
   hint: 'Put the RFC link definition at the bottom of the page and reference it inline, for example `[RFC 8617][rfc-8617]` defined by `[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/`.'
   filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'
+- name: Configure loggers in LOGGING, not in code
+  pattern: '\.addHandler\(|\.setFormatter\('
+  hint: 'Declare loggers, handlers, and formatters in LOGGING (root/settings.py) so every service emits the same JSON fields. Handlers attached in code bypass the JSON formatter.'
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'

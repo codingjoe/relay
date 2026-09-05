@@ -111,6 +111,19 @@ A rule lives either in this document or in `.relint.yml`, never both.
   instead of custom OAuth code.
 - Custom pipeline steps live in `accounts/pipelines.py`.
 
+## Logging
+
+- All services (web, DNS, MTA, MSA, worker) emit JSON log lines with the
+  same fields: `level`, `logger`, `message`, `timestamp`. The formatter is
+  configured once in `LOGGING` (`root/settings.py`).
+- Granian's lifecycle logs run before Django loads, so their formatter
+  lives in `granian.log.config.json` (`GRANIAN_LOG_CONFIG`) and mirrors
+  `LOGGING`. Change both together.
+- Granian access logs already render JSON via `GRANIAN_LOG_ACCESS_FMT`,
+  so their handler keeps a plain message formatter to avoid double encoding.
+- Configure loggers, handlers, and formatters only in `LOGGING`. Handlers
+  attached in code bypass the JSON fields. `.relint.yml` enforces this.
+
 ## Naming
 
 - Use names that cover both ingress and egress when a model tracks

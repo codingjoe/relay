@@ -399,12 +399,25 @@ SOCIAL_AUTH_PIPELINE = (
 # Logging
 # https://docs.djangoproject.com/en/stable/topics/logging/
 
+# The JSON formatter shape is shared with granian's log config
+# (granian.log.config.json), so every service emits the same fields.
+JSON_LOG_FORMATTER = {
+    "()": "pythonjsonlogger.json.JsonFormatter",
+    "fmt": ["levelname", "name", "message"],
+    "rename_fields": {"levelname": "level", "name": "logger"},
+    "timestamp": True,
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "json": JSON_LOG_FORMATTER,
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "json",
         },
     },
     "loggers": {
@@ -415,6 +428,16 @@ LOGGING = {
         # visible; relay's own handlers keep one INFO line per message.
         "mail.log": {
             "level": "WARNING",
+        },
+        # threadmill's task lifecycle logs and multiprocessing's atexit
+        # "process shutting down" line run through the multiprocessing
+        # logger. RootConfig.ready() removes threadmill's own
+        # plain-text handler, which attaches to this logger after this
+        # config is applied.
+        "multiprocessing": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
     "root": {
