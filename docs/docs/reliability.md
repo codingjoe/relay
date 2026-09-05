@@ -78,11 +78,11 @@ flowchart TD
 
 relay defines explicit retry behavior for external systems:
 
-| Action             | Schedule                                                 | Notes                                   |
-| ------------------ | -------------------------------------------------------- | --------------------------------------- |
-| Outbound spam scan | Backoff 1 s to 5 min, up to 5 attempts                   | Only network errors (HTTP and OS) retry |
-| Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry         |
-| Inbound spam scan  | 1 s to 5 min backoff, up to 5 attempts                   | Same error classes as outbound          |
+| Action             | Schedule                                                 | Notes                                                 |
+| ------------------ | -------------------------------------------------------- | ----------------------------------------------------- |
+| Outbound spam scan | Backoff 30 s to 5 min, up to 10 attempts                 | Network errors (HTTP and OS) and scanner errors retry |
+| Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry                       |
+| Inbound spam scan  | 30 s to 5 min backoff, up to 10 attempts                 | Same error classes as outbound                        |
 
 Webhook retries stop early on success. Every delivery attempt carries its
 URL, response code, and a response excerpt of 2,000 characters, so an

@@ -10,7 +10,7 @@ from django.tasks import task
 from threadmill.retry import ExponentialBackoff
 
 from services.email.mta_sts import MtaStsPolicy
-from services.email.spam import SpamAction, check_message
+from services.email.spam import ScannerUnavailableError, SpamAction, check_message
 from services.email.tls import parse_peer_certificates
 
 logger = logging.getLogger(__name__)
@@ -231,10 +231,10 @@ async def send_via_mx(
 
 @task(
     retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
+        base_delay=datetime.timedelta(seconds=30),
         max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
+        max_retries=10,
+        expected_exceptions=(httpx.HTTPError, OSError, ScannerUnavailableError),
     )
 )
 def check_outgoing_spam(message_pk, client_ip):

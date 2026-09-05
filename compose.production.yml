@@ -2,6 +2,27 @@ include:
   - oci://ghcr.io/codingjoe/the-box-postgres:main
   - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
+  clamav:
+    image: clamav/clamav:1.5
+    volumes:
+      - clamav:/var/lib/clamav
+    # Avoid the daily memory spike from concurrent signature reloads.
+    environment:
+      CLAMD_CONF_ConcurrentDatabaseReload: "no"
+      # Alert on archives exceeding MaxFileSize instead of scanning them clean.
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_StreamMaxLength: "40M" # above the 2**25 SMTP DATA limit
+      FRESHCLAM_CONF_TestDatabases: "no"
+    networks:
+      - app
+      - app-wan # freshclam needs egress for signature updates
+    restart: unless-stopped
+    labels:
+      - dev.dozzle.icon=clam-av
+    deploy:
+      resources:
+        limits:
+          memory: 4g # clamd needs 3-4 GiB
   dns:
     networks: !override
       - app
@@ -165,6 +186,8 @@ services:
   rspamd:
     image: rspamd/rspamd:4.1
     depends_on:
+      clamav:
+        condition: service_healthy
       redis:
         condition: service_healthy
     configs:
@@ -172,6 +195,10 @@ services:
         target: /etc/rspamd/local.d/redis.conf
       - source: rspamd_controller
         target: /etc/rspamd/local.d/worker-controller.inc
+      - source: rspamd_antivirus
+        target: /etc/rspamd/local.d/antivirus.conf
+      - source: rspamd_force_actions
+        target: /etc/rspamd/local.d/force_actions.conf
     networks:
       - app
     labels:
@@ -251,6 +278,7 @@ networks:
   dnsdist-wan:
 volumes:
   s3:
+  clamav:
   caddy_data:
     name: the-box_caddy_data
     external: true
@@ -264,6 +292,27 @@ configs:
     content: |
       secure_ip = "0.0.0.0/0";
       secure_ip = "::/0";
+  rspamd_antivirus:
+    content: |
+      clamav {
+        type = "clamav";
+        servers = "clamav:3310";
+        symbol = "CLAM_VIRUS";
+        score = 10.0;
+        action = "reject";
+        # Matches StreamMaxLength; ARC sealing adds bytes after SMTP acceptance.
+        max_size = 41943040;
+      }
+  rspamd_force_actions:
+    content: |
+      force_actions {
+        rules {
+          CLAMAV_FAIL {
+            action = "soft reject";
+            expression = "CLAM_VIRUS_FAIL";
+          }
+        }
+      }
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)

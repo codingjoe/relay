@@ -59,8 +59,11 @@ signatures from older senders that use RSA-1024 keys.
 
 **Spam scan.** rspamd scores every accepted message. A message whose
 score reaches the reject threshold, or whose action is reject, lands as
-quarantined and never reaches your webhook. You can see the score in the
-dashboard.
+quarantined and never reaches your webhook. The same scan detects malware
+with ClamAV. A virus finding quarantines the message as well. While the
+malware scanner is unavailable, messages wait unscanned and relay keeps
+retrying the scan, so none reach your webhook unscanned. You can see the
+score in the dashboard.
 
 ## ARC sealing
 
