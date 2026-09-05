@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import datetime
 import math
 import time
@@ -39,6 +40,7 @@ class SendResult:
     duration: datetime.timedelta
     status_code: int | None
     error: str
+    opened_connection: bool
 
 
 class UnsupportedSchemeError(ValueError):
@@ -126,59 +128,95 @@ def parse_smtp_uri(smtp_uri: str) -> SmtpUri:
     )
 
 
-async def send_email(uri: SmtpUri) -> SendResult:
-    """Send one benchmark email and return its send result."""
+def build_email(uri: SmtpUri) -> EmailMessage:
+    """Build one benchmark email from the sender and recipient in the URI."""
     message = EmailMessage()
     message["From"] = uri.sender
     message["To"] = uri.recipient
     message["Message-ID"] = make_msgid()
     message["Subject"] = "Relay benchmark email"
     message.set_content("This is a benchmark email from relay.\n")
+    return message
 
-    started_at = time.monotonic()
-    status_code, error = 250, ""
-    try:
-        await aiosmtplib.send(
-            message,
-            hostname=uri.hostname,
-            port=uri.port,
-            username=uri.username,
-            password=uri.password,
-            start_tls=not uri.use_tls,
-            use_tls=uri.use_tls,
-        )
-    except aiosmtplib.SMTPResponseException as smtp_error:
-        status_code, error = smtp_error.code, type(smtp_error).__name__
-    except (aiosmtplib.SMTPException, OSError) as send_error:
-        status_code, error = None, type(send_error).__name__
-    return SendResult(
-        datetime.timedelta(seconds=time.monotonic() - started_at),
-        status_code,
-        error,
+
+async def open_connection(uri: SmtpUri) -> aiosmtplib.SMTP:
+    """Connect, secure, and authenticate an SMTP submission connection."""
+    smtp = aiosmtplib.SMTP(
+        hostname=uri.hostname,
+        port=uri.port,
+        username=uri.username,
+        password=uri.password,
+        start_tls=not uri.use_tls,
+        use_tls=uri.use_tls,
     )
+    await smtp.connect()
+    return smtp
 
 
 async def benchmark_emails(
-    uri: SmtpUri, count: int, concurrency: int, send_results: list, report_progress
+    uri: SmtpUri,
+    count: int,
+    concurrency: int,
+    emails_per_connection: int,
+    send_results: list,
+    report_progress,
 ):
     """
-    Send count emails with the given concurrency, appending each send result.
+    Send count emails over `concurrency` connections, appending each send result.
 
-    `report_progress` runs after every email with the number of completed
-    emails, which lets the caller print progress lines.
+    Each connection carries at most `emails_per_connection` emails before it
+    is closed and reopened. The email that opens a connection carries its
+    connect and login time; transport errors close the connection. Failed
+    message submissions (SMTP rejections) keep it open, because the SMTP
+    envelope is reset. `report_progress` runs after every email with the
+    number of completed emails.
     """
     unsent_emails = asyncio.Queue()
     for _ in range(count):
         unsent_emails.put_nowait(None)
 
     async def send_worker():
+        smtp = None
+        emails_on_connection = 0
         while True:
             try:
                 unsent_emails.get_nowait()
             except asyncio.QueueEmpty:
                 break
-            send_results.append(await send_email(uri))
+
+            started_at = time.monotonic()
+            status_code, error = 250, ""
+            opened_connection = False
+            try:
+                if emails_on_connection >= emails_per_connection:
+                    with contextlib.suppress(aiosmtplib.SMTPException, OSError):
+                        await smtp.quit()
+                    smtp = None
+                if smtp is None:
+                    smtp = await open_connection(uri)
+                    emails_on_connection = 0
+                    opened_connection = True
+                await smtp.send_message(build_email(uri))
+                emails_on_connection += 1
+            except aiosmtplib.SMTPResponseException as smtp_error:
+                status_code, error = smtp_error.code, type(smtp_error).__name__
+            except (aiosmtplib.SMTPException, OSError) as send_error:
+                status_code, error = None, type(send_error).__name__
+                smtp = None
+                emails_on_connection = 0
+            send_results.append(
+                SendResult(
+                    datetime.timedelta(seconds=time.monotonic() - started_at),
+                    status_code,
+                    error,
+                    opened_connection,
+                )
+            )
             report_progress(len(send_results))
+
+        if smtp is not None:
+            with contextlib.suppress(aiosmtplib.SMTPException, OSError):
+                await smtp.quit()
 
     await asyncio.gather(*(send_worker() for _ in range(concurrency)))
 
@@ -213,10 +251,28 @@ class Command(BaseCommand):
             "--concurrency",
             type=positive_int,
             default=10,
-            help="Number of concurrent senders (default: 10)",
+            help="Number of concurrent connections (default: 10)",
+        )
+        parser.add_argument(
+            "-e",
+            "--emails-per-connection",
+            type=positive_int,
+            default=1,
+            help=(
+                "Number of emails sent over the same connection "
+                "before it is reopened (default: 1)"
+            ),
         )
 
-    def handle(self, *args, smtp_uri, count, concurrency, **options):
+    def handle(
+        self,
+        *args,
+        smtp_uri,
+        count,
+        concurrency,
+        emails_per_connection,
+        **options,
+    ):
         try:
             uri = parse_smtp_uri(smtp_uri)
         except ValueError as error:
@@ -229,23 +285,37 @@ class Command(BaseCommand):
 
         self.stdout.write(
             f"Benchmarking {uri.hostname}:{uri.port} with {count} emails "
-            f"at concurrency {concurrency}"
+            f"at {concurrency} concurrent connections"
         )
         self.stdout.write("")
         send_results = []
         started_at = time.monotonic()
         try:
             asyncio.run(
-                benchmark_emails(uri, count, concurrency, send_results, report_progress)
+                benchmark_emails(
+                    uri,
+                    count,
+                    concurrency,
+                    emails_per_connection,
+                    send_results,
+                    report_progress,
+                )
             )
         except KeyboardInterrupt:
             self.stdout.write("Benchmark interrupted. Printing partial results.")
         total_duration = datetime.timedelta(seconds=time.monotonic() - started_at)
         self.stdout.write("")
-        self.print_summary(uri, send_results, concurrency, total_duration)
+        self.print_summary(
+            uri, send_results, concurrency, emails_per_connection, total_duration
+        )
 
     def print_summary(
-        self, uri: SmtpUri, send_results: list, concurrency: int, total_duration
+        self,
+        uri: SmtpUri,
+        send_results: list,
+        concurrency: int,
+        emails_per_connection: int,
+        total_duration,
     ):
         """Print ab-style statistics for the benchmark send results."""
         if not send_results:
@@ -253,6 +323,9 @@ class Command(BaseCommand):
         else:
             complete_count = len(send_results)
             failed_count = sum(bool(result.error) for result in send_results)
+            connections_opened = sum(
+                result.opened_connection for result in send_results
+            )
             total_secs = total_duration.total_seconds()
             durations_ms = sorted(
                 result.duration.total_seconds() * 1000 for result in send_results
@@ -262,10 +335,12 @@ class Command(BaseCommand):
                 ("Sender:", uri.sender),
                 ("Recipient:", uri.recipient),
                 ("Endpoint:", f"{uri.hostname}:{uri.port} ({tls_mode})"),
-                ("Concurrency Level:", str(concurrency)),
+                ("Concurrent connections:", str(concurrency)),
+                ("Emails per connection:", str(emails_per_connection)),
                 ("Time taken for tests:", f"{total_secs:.3f} secs"),
                 ("Complete emails:", str(complete_count)),
                 ("Failed emails:", str(failed_count)),
+                ("Connections opened:", str(connections_opened)),
                 (
                     "Emails per second:",
                     f"{complete_count / total_secs:.2f} [#/sec] (mean)",
@@ -278,7 +353,7 @@ class Command(BaseCommand):
                     "Time per email:",
                     (
                         f"{total_secs * 1000 / complete_count:.2f} [ms] "
-                        "(mean, across all concurrent senders)"
+                        "(mean, across all concurrent connections)"
                     ),
                 ),
                 ("Fastest email:", f"{durations_ms[0]:.2f} [ms]"),
