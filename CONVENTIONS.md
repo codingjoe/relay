@@ -35,12 +35,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   pagination URLs: `href="?{% param_replace page=page_obj.next_page_number %}"`.
   Never hand-construct query strings in templates.
 
-- Template tags that need the request must read the `context.request`
-  attribute, not the `context["request"]` dictionary lookup. Inclusion tags
-  render with an isolated context that drops context processor values, such
-  as `request`, but keeps the attribute.
-  This matches Django's built-in `{% querystring %}` tag.
-
 ## Primary Keys
 
 - Prefer `BigAutoField` (bigint) for most models. Easier to work with in Django.
