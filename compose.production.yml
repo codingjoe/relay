@@ -202,8 +202,9 @@ services:
       DEBUG: ${DEBUG:-false}
       GRANIAN_INTERFACE: asginl
       GRANIAN_LOG_ACCESS_ENABLED: true
-      GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
       GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}' # JSON format
+      GRANIAN_LOG_CONFIG: granian.log.config.json
+      GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
       SENTRY_DSN: ${SENTRY_DSN:-}
