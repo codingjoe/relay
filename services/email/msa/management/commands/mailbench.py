@@ -199,9 +199,10 @@ async def benchmark_emails(
                 await smtp.send_message(build_email(uri))
                 emails_on_connection += 1
             except aiosmtplib.SMTPResponseException as smtp_error:
-                status_code, error = smtp_error.code, type(smtp_error).__name__
+                status_code = smtp_error.code
+                error = f"{type(smtp_error).__name__}: {smtp_error}"
             except (aiosmtplib.SMTPException, OSError) as send_error:
-                status_code, error = None, type(send_error).__name__
+                status_code, error = None, f"{type(send_error).__name__}: {send_error}"
                 smtp = None
                 emails_on_connection = 0
             send_results.append(
