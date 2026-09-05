@@ -399,12 +399,35 @@ SOCIAL_AUTH_PIPELINE = (
 # Logging
 # https://docs.djangoproject.com/en/stable/topics/logging/
 
+# Mirrors granian.log.config.json.
+JSON_LOG_FORMATTER = {
+    "()": "pythonjsonlogger.json.JsonFormatter",
+    "fmt": ["levelname", "name", "message"],
+    "rename_fields": {"levelname": "level", "name": "logger"},
+    "timestamp": True,
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "json": JSON_LOG_FORMATTER,
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+    },
+    "loggers": {
+        "mail.log": {
+            "level": "WARNING",
+        },
+        # threadmill logs through this logger.
+        "multiprocessing": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
     "root": {
