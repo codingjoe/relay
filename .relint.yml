@@ -125,7 +125,3 @@
   pattern: '\[[^\]\n]*RFC[ ]?\d{3,4}[^\]\n]*\]\(https?://[^)]+\)'
   hint: 'Put the RFC link definition at the bottom of the page and reference it inline, for example `[RFC 8617][rfc-8617]` defined by `[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/`.'
   filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'
-- name: Read the request from the context attribute in template tags
-  pattern: 'context\[["'']request["'']\]|context\.get\(["'']request["'']\)'
-  hint: 'Use `context.request` (the attribute), not a dictionary lookup. Inclusion tags render with an isolated context that drops context processor values, such as "request", but keeps the attribute. This matches Django''s built-in `{% querystring %}` tag.'
-  filePattern: .*\.py

@@ -38,7 +38,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Template tags that need the request must read the `context.request`
   attribute, not the `context["request"]` dictionary lookup. Inclusion tags
   render with an isolated context that drops context processor values, such
-  as `request`, but keeps the attribute. `.relint.yml` enforces this rule.
+  as `request`, but keeps the attribute.
   This matches Django's built-in `{% querystring %}` tag.
 
 ## Primary Keys
