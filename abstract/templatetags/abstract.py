@@ -71,15 +71,20 @@ def param_replace(context, **kwargs):
     Preserves existing GET parameters and overrides the ones passed as kwargs.
     Empty values are removed.
 
+    Reads the request from the context attribute, not from the context
+    dictionary. Inclusion tags render with an isolated context that drops
+    context processor values, such as `request`, but keeps the attribute.
+    This matches Django's built-in `{% querystring %}` tag.
+
     Args:
-        context: The template context (must contain `request`).
+        context: The template context (must carry a `request`).
         **kwargs: Query parameters to set or override.
 
     Returns:
         A URL-encoded query string with the updated parameters.
 
     """
-    d = context["request"].GET.copy()
+    d = context.request.GET.copy()
     for k, v in kwargs.items():
         d[k] = v
     for k in [k for k, v in d.items() if not v]:
