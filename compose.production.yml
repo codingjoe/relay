@@ -273,18 +273,72 @@ configs:
       -- Authoritative nameserver: allow queries from all sources
       setACL({"0.0.0.0/0", "::/0"})
 
-      -- Resolve all 'dns' service replicas via Docker's embedded DNS
-      local handle = io.popen("getent ahosts dns")
-      local result = handle:read("*a")
-      handle:close()
+      -- Docker assigns new IPs to the 'dns' service replicas on every
+      -- rollout. Resolve the current replicas and swap the backends, so
+      -- dnsdist never routes to stale container IPs. Keep the current
+      -- backends when the embedded DNS is unreachable.
+      local known_backends = {}
 
-      -- Add each unique replica as a downstream server for redundancy
-      local seen = {}
+      local function resolve_dns_replicas()
+      local handle = io.popen("getent ahosts dns")
+      local result = handle and handle:read("*a") or ""
+      if handle then
+          handle:close()
+      end
+      local replicas = {}
       for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
-          if not seen[ip] then
-              seen[ip] = true
-              newServer({address=ip .. ":5353", name="authoritative"})
+          replicas[ip] = true
+      end
+      return replicas
+      end
+
+      local function add_new_backends(replicas)
+      for ip in pairs(replicas) do
+          if not known_backends[ip] then
+          newServer({address=ip .. ":5353", name=ip})
+          known_backends[ip] = true
+          infolog("Added DNS backend " .. ip)
           end
+      end
+      end
+
+      local function remove_stale_backends(replicas)
+      local removed_any = true
+      while removed_any do
+          removed_any = false
+          for index, server in pairs(getServers()) do
+          local ok, name = pcall(function() return server.name end)
+          if ok and known_backends[name] and not replicas[name] then
+              rmServer(index - 1)
+              known_backends[name] = nil
+              infolog("Removed DNS backend " .. name)
+              removed_any = true
+              break
+          end
+          end
+      end
+      end
+
+      local function refresh_dns_backends()
+      local replicas = resolve_dns_replicas()
+      if next(replicas) == nil then
+          return
+      end
+      add_new_backends(replicas)
+      remove_stale_backends(replicas)
+      end
+
+      refresh_dns_backends()
+
+      -- Re-resolve the replicas every 10 seconds, so backend swaps
+      -- follow container rollouts without a dnsdist restart.
+      local seconds_since_refresh = 0
+      function maintenance()
+      seconds_since_refresh = seconds_since_refresh + 1
+      if seconds_since_refresh >= 10 then
+          seconds_since_refresh = 0
+          refresh_dns_backends()
+      end
       end
 
       -- Cache responses to reduce upstream load
