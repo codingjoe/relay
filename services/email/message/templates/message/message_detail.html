@@ -69,7 +69,7 @@
             {% for key, value in headers %}
               <tr>
                 <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
-                <td class="whitespace-normal align-top">{{ value|highlight_email }}</td>
+                <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
               </tr>
             {% endfor %}
           </tbody>

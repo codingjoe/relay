@@ -201,7 +201,7 @@
             <h2>{% translate "received" context "email hop"|capfirst %} {{ forloop.counter }}</h2>
           </header>
           <section>
-            {{ hop|highlight_email }}
+            {{ hop|highlight_header }}
           </section>
           <footer>
             <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
