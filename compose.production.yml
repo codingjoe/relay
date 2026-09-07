@@ -48,8 +48,10 @@ services:
     # The timestamped qname always misses the packet cache, which would
     # otherwise serve stale answers for a while after every backend dies.
     # The image has no dig or dnspython, hence the hand-rolled query.
+    # The RCODE assertion rejects SERVFAIL from a database-broken backend.
+    # The probe covers UDP only; TCP 53 stays unmonitored.
     healthcheck:
-      test: [ "CMD", "python3", "-c", "import socket, time; label = str(int(time.time())).encode(); query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\\x06health\\x00' + b'\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(query, ('127.0.0.1', 53)); response = s.recv(512); assert response[:2] == query[:2]" ]
+      test: [ "CMD", "python3", "-c", "import socket, time; label = str(int(time.time())).encode(); query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\\x06health\\x00' + b'\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(query, ('127.0.0.1', 53)); response = s.recv(512); assert response[:2] == query[:2]; assert response[3] & 0xF == 0" ]
       interval: 10s
       retries: 5
       start_period: 30s

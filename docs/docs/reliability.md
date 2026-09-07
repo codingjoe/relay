@@ -111,10 +111,10 @@ whatever you use elsewhere. You need no special headers.
 - **Inbound quarantine** contents stay readable, with the spam score visible.
 - **The nameserver chain is health-checked end to end.** A probe queries the
   DNS proxy on port 53, the same port the internet queries, with a fresh
-  query name that bypasses the cache. A response proves the proxy and at
-  least one authoritative backend serve your records, so a broken chain
-  shows up as an unhealthy container within about a minute instead of
-  surfacing as missing DNS records.
+  query name that bypasses the cache. A valid answer, rather than a SERVFAIL,
+  proves the proxy and at least one authoritative backend answer queries, so
+  a broken chain shows up as an unhealthy container within about a minute
+  instead of surfacing as missing DNS records.
 
 ## Operational notes for high-volume senders
 
