@@ -1,5 +1,7 @@
 from django.db import models
 from django.db.models import Q
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -70,6 +72,16 @@ class MessageBreadcrumbMixin:
         breadcrumbs = super().get_breadcrumbs()
         breadcrumbs[0]["title"] = self.object.subject or str(self.object)
         return breadcrumbs
+
+
+class MessageDownloadView(OrganizationScopedView, NoStoreCacheMixin, generic.View):
+    """Serve the raw RFC 822 message as a file download."""
+
+    def get(self, request, org_slug, pk):
+        message = get_object_or_404(Message, org=self.org, pk=pk)
+        response = HttpResponse(message.raw_bytes(), content_type="message/rfc822")
+        response["Content-Disposition"] = f'attachment; filename="{message.pk}.eml"'
+        return response
 
 
 class CertificateDetailView(
