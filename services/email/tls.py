@@ -61,8 +61,8 @@ def build_tls_context(
             contexts[hostname] = context
     primary = next(iter(contexts.values()))
     if len(contexts) > 1:
-        primary.sni_callback = lambda server_name, ssl_conn, tls_context: contexts.get(
-            server_name
+        primary.sni_callback = lambda server_name, ssl_conn, tls_context: (
+            contexts.get(server_name.lower()) if server_name else None
         )
     return primary
 
