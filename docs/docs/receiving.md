@@ -14,9 +14,9 @@ the result to your webhooks. This page explains each stage.
 ## The one-time receiving-domain setup
 
 Point the MX record of your receiving domain at the relay MX hostnames, for
-example `MX app.acme.com` to `mx1.relay.example.com` and
-`mx2.relay.example.com`. Here `relay.example.com` stands for the relay
-platform domain, the same one that serves `smtp.relay.example.com`; relay
+example `MX app.acme.com` to `mx1.relays.to` and
+`mx2.relays.to`. Those are the MX hostnames of the relay platform domain
+`relays.to`, the same one that serves `smtp.relays.to`; relay
 runs the MTA on both MX hostnames and presents each hostname's own
 certificate. Those names are static and served by the relay platform, so
 the MX host and its TLS records exist without further work. The

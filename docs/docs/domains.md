@@ -15,16 +15,16 @@ verification works.
 
 ## The domain model
 
-| Kind                  | Example                       | Who creates it   | Purpose                                                   |
-| --------------------- | ----------------------------- | ---------------- | --------------------------------------------------------- |
-| Platform domain       | `relay.example.com`           | The operator     | The relay infrastructure zone: MX, SMTP, and policy hosts |
-| Managed sender domain | `acme.open.relay.example.com` | relay, at signup | Delegate with zero setup, pre-verified                    |
-| Your root domain      | `acme.com`                    | You              | Your own domain for From, envelope, and reporting         |
-| Sending subdomain     | `mail.relay.acme.com`         | relay, derived   | The envelope and DKIM zone. NS delegation points here     |
-| Receiving domain      | `app.acme.com`                | You, as domain   | MX record points at the relay MX hostnames                |
+| Kind                  | Example               | Who creates it   | Purpose                                                   |
+| --------------------- | --------------------- | ---------------- | --------------------------------------------------------- |
+| Platform domain       | `relays.to`           | The operator     | The relay infrastructure zone: MX, SMTP, and policy hosts |
+| Managed sender domain | `acme.open.relays.to` | relay, at signup | Delegate with zero setup, pre-verified                    |
+| Your root domain      | `acme.com`            | You              | Your own domain for From, envelope, and reporting         |
+| Sending subdomain     | `mail.relay.acme.com` | relay, derived   | The envelope and DKIM zone. NS delegation points here     |
+| Receiving domain      | `app.acme.com`        | You, as domain   | MX record points at the relay MX hostnames                |
 
-In the examples, `acme.com` is your domain and `relay.example.com` is the
-relay platform domain, the name you deploy relay under.
+In the examples, `acme.com` is your domain and `relays.to` is the relay
+platform domain.
 
 Facts to understand about this model:
 
@@ -94,18 +94,18 @@ identifiable. Re-check at any time.
 
 For a delegated domain the authoritative nameserver answers:
 
-| Query name (for acme.com)                 | Type  | Value served                                                       |
-| ----------------------------------------- | ----- | ------------------------------------------------------------------ |
-| `acme.com`                                | MX    | `mx1.relay.example.com` and `mx2.relay.example.com`, preference 10 |
-| `mail.relay.acme.com`                     | TXT   | SPF record for the relay sender addresses                          |
-| `a.relay-acme._domainkey...` (both zones) | TXT   | DKIM public keys, one per algorithm                                |
-| `acme.com`                                | TXT   | root SPF include of the sender subdomain                           |
-| `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses                               |
-| `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                                         |
-| `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                                                |
-| `mta-sts.acme.com`                        | CNAME | the relay policy host                                              |
-| `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector                                   |
-| `mail.relay.acme.com`                     | NS    | the relay nameservers                                              |
+| Query name (for acme.com)                 | Type  | Value served                                       |
+| ----------------------------------------- | ----- | -------------------------------------------------- |
+| `acme.com`                                | MX    | `mx1.relays.to` and `mx2.relays.to`, preference 10 |
+| `mail.relay.acme.com`                     | TXT   | SPF record for the relay sender addresses          |
+| `a.relay-acme._domainkey...` (both zones) | TXT   | DKIM public keys, one per algorithm                |
+| `acme.com`                                | TXT   | root SPF include of the sender subdomain           |
+| `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses               |
+| `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                         |
+| `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                                |
+| `mta-sts.acme.com`                        | CNAME | the relay policy host                              |
+| `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector                   |
+| `mail.relay.acme.com`                     | NS    | the relay nameservers                              |
 
 The dashboard always shows the current record set with concrete names and
 the check state per record, so you never hand-edit names here.
