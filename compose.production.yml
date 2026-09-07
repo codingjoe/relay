@@ -138,9 +138,10 @@ services:
     volumes:
       - caddy_data:/data:ro
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    # The cert must cover the sender domain, the MX hostname clients connect to.
     environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.relay.${HOSTNAME:-localhost}/mail.relay.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.relay.${HOSTNAME:-localhost}/mail.relay.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
     healthcheck:
@@ -152,7 +153,7 @@ services:
       start_period: 30s
       timeout: 10s
     labels: !override
-      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy=mail.relay.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
       - dev.dozzle.icon=django
       - "caddy_1.layer4.:25.route.proxy=mta:25"
