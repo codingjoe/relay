@@ -62,6 +62,7 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
+            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
             "sending_passing": sum(
                 getattr(self.object, f"{field}_status") == Domain.Status.OK
                 for field in Domain.SENDING_CHECK_FIELDS
