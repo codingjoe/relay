@@ -83,7 +83,8 @@
             data-variant="ghost"
             data-size="icon-xs"
             data-tooltip='{% translate "download message"|capfirst %}'
-            href="{% url 'message:message-download' org.slug message.pk %}"
+            href="{{ message.raw_body.url }}"
+            download
             aria-label='{% translate "download message"|capfirst %}'
           >
             <i data-lucide="download" class="size-3.5" aria-hidden="true"></i>

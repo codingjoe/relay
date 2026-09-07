@@ -7,16 +7,8 @@ app_name = "message"
 urlpatterns = [
     path(
         "messages/",
-        include(
-            [
-                path("", views.MessageListView.as_view(), name="message-list"),
-                path(
-                    "<uuid:pk>/download",
-                    views.MessageDownloadView.as_view(),
-                    name="message-download",
-                ),
-            ]
-        ),
+        views.MessageListView.as_view(),
+        name="message-list",
     ),
     path(
         "certificates/",
