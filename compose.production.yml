@@ -43,6 +43,13 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
+    # Proves the dnsdist-to-dns chain; a timestamped qname bypasses the cache.
+    healthcheck:
+      test: [ "CMD", "python3", "-c", "import socket, time; label = str(int(time.time())).encode(); query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\\x06health\\x00' + b'\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(query, ('127.0.0.1', 53)); response = s.recv(512); assert response[:2] == query[:2]; assert response[3] & 0xF == 0" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     labels:
       - dev.dozzle.icon=powerdns
     deploy:
@@ -142,9 +149,10 @@ services:
     volumes:
       - caddy_data:/data:ro
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    # One pair per MX hostname; the MTA serves them by SNI.
     environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.crt,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.key,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
     healthcheck:
@@ -156,7 +164,7 @@ services:
       start_period: 30s
       timeout: 10s
     labels: !override
-      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy=mx1.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
       - dev.dozzle.icon=django
       - "caddy_1.layer4.:25.route.proxy=mta:25"
@@ -164,6 +172,8 @@ services:
       - "caddy_1.layer4.:25.route.proxy.lb_try_duration=3s"
       - "caddy_1.layer4.:25.route.proxy.fail_duration=10s"
       - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
+      - "caddy_2=mx2.${HOSTNAME:-localhost}"
+      - "caddy_2.respond=OK"
     extends:
       service: web
   rspamd:
