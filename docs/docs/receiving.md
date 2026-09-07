@@ -15,8 +15,11 @@ the result to your webhooks. This page explains each stage.
 
 Point the MX record of your receiving domain at the relay MX hostnames, for
 example `MX app.acme.com` to `mx1.relay.example.com` and
-`mx2.relay.example.com`. Those names are static and served by the relay
-platform, so the MX host and its TLS records exist without further work. The
+`mx2.relay.example.com`. Here `relay.example.com` stands for the relay
+platform domain, the same one that serves `smtp.relay.example.com`; relay
+runs the MTA on both MX hostnames and presents each hostname's own
+certificate. Those names are static and served by the relay platform, so
+the MX host and its TLS records exist without further work. The
 dashboard's webhook check shows a wrong MX record, with the observed value
 and the time of the last check.
 
