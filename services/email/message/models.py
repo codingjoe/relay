@@ -305,3 +305,8 @@ class Message(TimeStamped):
             return self.headers_from_raw(self.raw_body.read())
         except FileNotFoundError, ValueError:
             return []
+
+    @property
+    def headers_text(self) -> str:
+        """Return the message headers as RFC 5322 header lines."""
+        return "\n".join(f"{name}: {value}" for name, value in self.parsed_headers)

@@ -61,7 +61,37 @@
   {% block transmission_card %}{% endblock %}
 
   <section class="mb-6">
-    <h3 class="font-semibold m-0 mb-4">{% translate "message"|capfirst context "noun" %}</h3>
+    <header class="flex items-center justify-between gap-2 mb-4">
+      <h3 class="font-semibold m-0">{% translate "message"|capfirst context "noun" %}</h3>
+      <div class="flex items-center gap-1">
+        {% if message.headers_text %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-xs"
+            data-tooltip='{% translate "copy headers"|capfirst %}'
+            onclick="navigator.clipboard.writeText('{{ message.headers_text|escapejs }}')"
+            aria-label='{% translate "copy headers"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+        {% endif %}
+        {% if message.raw_body %}
+          <a
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-xs"
+            data-tooltip='{% translate "download message"|capfirst %}'
+            href="{{ message.raw_body.url }}"
+            download
+            aria-label='{% translate "download message"|capfirst %}'
+          >
+            <i data-lucide="download" class="size-3.5" aria-hidden="true"></i>
+          </a>
+        {% endif %}
+      </div>
+    </header>
     <article class="card gap-0 p-0 overflow-hidden">
       <div class="table-container">
         <table class="table">
@@ -69,7 +99,7 @@
             {% for key, value in headers %}
               <tr>
                 <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
-                <td class="whitespace-normal align-top">{{ value|highlight_email }}</td>
+                <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
               </tr>
             {% endfor %}
           </tbody>
