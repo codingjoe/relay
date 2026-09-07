@@ -4,8 +4,12 @@ include:
 services:
   dns:
     networks: !override
-      - app
-      - dnsdist
+      app: ~
+      dnsdist:
+        aliases:
+          # Reserved internal name for dnsdist's backend discovery; never
+          # resolvable upstream, so a mid-deploy lookup fails cleanly.
+          - dns.relay.internal
     command: [ "-m", "manage", "dns", "--port", "5353" ]
     healthcheck:
       test: [ "CMD", "python", "-c", "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)" ]
@@ -273,17 +277,55 @@ configs:
       -- Authoritative nameserver: allow queries from all sources
       setACL({"0.0.0.0/0", "::/0"})
 
-      -- Resolve all 'dns' service replicas via Docker's embedded DNS
-      local handle = io.popen("getent ahosts dns")
-      local result = handle:read("*a")
-      handle:close()
+      -- One backend per 'dns' replica, re-synced every 10 seconds so
+      -- scaled and redeployed replicas are picked up without a restart.
+      -- The absolute, reserved 'internal' name keeps a mid-deploy lookup
+      -- from falling through to public DNS.
+      local replicas = {}
+      local generation = 0
 
-      -- Add each unique replica as a downstream server for redundancy
-      local seen = {}
-      for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
-          if not seen[ip] then
-              seen[ip] = true
-              newServer({address=ip .. ":5353", name="authoritative"})
+      local function syncReplicas(resolvedAddresses)
+          local resolved = {}
+          for _, resolvedAddress in ipairs(resolvedAddresses) do
+              if resolvedAddress:isIPv4() then
+                  local address = resolvedAddress:toString()
+                  resolved[address] = true
+                  if not replicas[address] then
+                      replicas[address] = newServer({address=address .. ":5353", name="authoritative"})
+                  end
+              end
+          end
+          -- Empty result (e.g. mid-deploy): keep the known replicas.
+          if next(resolved) == nil then
+              return
+          end
+          for address, server in pairs(replicas) do
+              if not resolved[address] then
+                  rmServer(server)
+                  replicas[address] = nil
+              end
+          end
+      end
+
+      local function resolveReplicas()
+          generation = generation + 1
+          local currentGeneration = generation
+          getAddressInfo("dns.relay.internal.", function(_, resolvedAddresses)
+              -- Drop stale snapshots.
+              if currentGeneration == generation then
+                  syncReplicas(resolvedAddresses)
+              end
+          end)
+      end
+
+      resolveReplicas()
+
+      -- Re-resolve every 10 maintenance ticks (~10s).
+      local ticks = 0
+      function maintenance()
+          ticks = ticks + 1
+          if ticks % 10 == 0 then
+              resolveReplicas()
           end
       end
 
