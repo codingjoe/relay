@@ -59,7 +59,7 @@ Organization → Domain, SmtpCredential
 - **Organization**: Owns resources (domains, credentials). Each user gets a personal org on signup.
 - **Domain**: Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
 - **SendingDomain**: Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
-- **ReceivingDomain**: Receiving domain with MX record pointing to the root domain's sender subdomain
+- **ReceivingDomain**: Receiving domain with MX record pointing to the relay MX hostnames
 - **SmtpCredential**: Per-org API key used to authenticate outgoing SMTP submissions
 - **Webhook**: Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
 - **DmarcReport**: Aggregate DMARC report (RUA) received from external organizations, parsed from XML

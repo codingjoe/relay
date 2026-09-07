@@ -15,12 +15,16 @@ verification works.
 
 ## The domain model
 
-| Kind                  | Example                       | Who creates it   | Purpose                                               |
-| --------------------- | ----------------------------- | ---------------- | ----------------------------------------------------- |
-| Managed sender domain | `acme.open.relay.example.com` | relay, at signup | Delegate with zero setup, pre-verified                |
-| Your root domain      | `acme.com`                    | You              | Your own domain for From, envelope, and reporting     |
-| Sending subdomain     | `mail.relay.acme.com`         | relay, derived   | The envelope and DKIM zone. NS delegation points here |
-| Receiving domain      | `app.acme.com`                | You, as domain   | MX record points at the sender subdomain              |
+| Kind                  | Example                       | Who creates it   | Purpose                                                   |
+| --------------------- | ----------------------------- | ---------------- | --------------------------------------------------------- |
+| Platform domain       | `relay.example.com`           | The operator     | The relay infrastructure zone: MX, SMTP, and policy hosts |
+| Managed sender domain | `acme.open.relay.example.com` | relay, at signup | Delegate with zero setup, pre-verified                    |
+| Your root domain      | `acme.com`                    | You              | Your own domain for From, envelope, and reporting         |
+| Sending subdomain     | `mail.relay.acme.com`         | relay, derived   | The envelope and DKIM zone. NS delegation points here     |
+| Receiving domain      | `app.acme.com`                | You, as domain   | MX record points at the relay MX hostnames                |
+
+In the examples, `acme.com` is your domain and `relay.example.com` is the
+relay platform domain, the name you deploy relay under.
 
 Facts to understand about this model:
 

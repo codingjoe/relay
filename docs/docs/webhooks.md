@@ -16,8 +16,8 @@ schedule. This page is the reference for everything on the wire.
 A webhook belongs to a receiving domain, matches recipient addresses with a
 glob pattern, and points at one HTTPS URL:
 
-- **Receiving domain**. The domain whose MX points at your sender subdomain,
-  for example `app.acme.com`.
+- **Receiving domain**. The domain whose MX points at the relay MX
+  hostnames, for example `app.acme.com`.
 - **Address pattern**. A glob over the recipient address, for example
   `*@app.acme.com`, `support@acme.com`, or `bill+*@acme.com`. A pattern is
   optional. A webhook without a pattern receives everything for its domain.
