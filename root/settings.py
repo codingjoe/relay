@@ -266,6 +266,10 @@ RELAY_DNS_NS_NAMESERVERS = [
     f"ns1.{RELAY_PLATFORM_DOMAIN}",
     f"ns2.{RELAY_PLATFORM_DOMAIN}",
 ]
+RELAY_DNS_MX_HOSTNAMES = env.list(
+    "RELAY_DNS_MX_HOSTNAMES",
+    default=[f"mx1.{RELAY_PLATFORM_DOMAIN}", f"mx2.{RELAY_PLATFORM_DOMAIN}"],
+)
 RELAY_DNS_SMTP_IPS = [
     ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
 ]
@@ -282,8 +286,8 @@ RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
 RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
 
 RELAY_MX_PORTS = (25,)
-RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
-RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
+RELAY_MX_TLS_CERT_PATH = env.list("RELAY_MX_TLS_CERT_PATH", default=[])
+RELAY_MX_TLS_KEY_PATH = env.list("RELAY_MX_TLS_KEY_PATH", default=[])
 
 # Timeout in seconds for reading the PROXY protocol header. None disables
 # the expectation; a positive value is required where enabled.

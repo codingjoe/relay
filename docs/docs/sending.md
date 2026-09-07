@@ -32,7 +32,7 @@ server refuses AUTH over plaintext on port 587.
 The submission exchange:
 
 ```text
-openssl s_client -starttls smtp -connect smtp.relay.example.com:587
+openssl s_client -starttls smtp -connect smtp.relays.to:587
   EHLO your-app.example.com
   AUTH PLAIN <base64 of \0org-slug\0api-key>
   MAIL FROM: <billing@acme.com>
@@ -154,7 +154,7 @@ Python with the standard library:
 ```python
 import smtplib, ssl
 
-with smtplib.SMTP("smtp.relay.example.com", 587) as server:
+with smtplib.SMTP("smtp.relays.to", 587) as server:
     server.starttls(context=ssl.create_default_context())
     server.login("acme", "your-smtp-credential-key")
     server.sendmail(

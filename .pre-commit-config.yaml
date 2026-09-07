@@ -46,7 +46,7 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.29.0
+    rev: v2.29.3
     hooks:
       - id: pyproject-fmt
   - repo: https://github.com/google/yamlfmt
@@ -55,7 +55,7 @@ repos:
       - id: yamlfmt
         exclude: ^(docker-)?compose(\..+)?\.ya?ml$
   - repo: https://github.com/poexam/poexam
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
       - id: poexam
   - repo: https://github.com/UnknownPlatypus/djangofmt-pre-commit
