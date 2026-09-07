@@ -7,10 +7,8 @@ services:
       app: ~
       dnsdist:
         aliases:
-          # Absolute, ICANN-reserved internal name for dnsdist's backend
-          # discovery. Never resolvable by upstream resolvers, so a lookup
-          # during a deploy window fails cleanly instead of returning
-          # third-party addresses.
+          # Reserved internal name for dnsdist's backend discovery; never
+          # resolvable upstream, so a mid-deploy lookup fails cleanly.
           - dns.relay.internal
     command: [ "-m", "manage", "dns", "--port", "5353" ]
     healthcheck:
@@ -279,14 +277,10 @@ configs:
       -- Authoritative nameserver: allow queries from all sources
       setACL({"0.0.0.0/0", "::/0"})
 
-      -- Keep one downstream server per 'dns' service replica. Docker's
-      -- embedded DNS resolves the 'dns.relay.internal' alias to the
-      -- current set of replica IPs, so re-resolving periodically picks up
-      -- scaled and redeployed replicas without restarting dnsdist. The
-      -- name is absolute and under the reserved 'internal' TLD, so the
-      -- resolver never falls back to the host's search domains or to
-      -- public DNS, which could hand our backend list to a third party
-      -- while the replicas are being recreated during a deploy.
+      -- One backend per 'dns' replica, re-synced every 10 seconds so
+      -- scaled and redeployed replicas are picked up without a restart.
+      -- The absolute, reserved 'internal' name keeps a mid-deploy lookup
+      -- from falling through to public DNS.
       local replicas = {}
       local generation = 0
 
@@ -301,9 +295,7 @@ configs:
                   end
               end
           end
-          -- An empty result means the lookup failed or returned no usable
-          -- addresses (e.g. mid-deploy); keep serving from the known
-          -- replicas rather than dropping them.
+          -- Empty result (e.g. mid-deploy): keep the known replicas.
           if next(resolved) == nil then
               return
           end
@@ -319,8 +311,7 @@ configs:
           generation = generation + 1
           local currentGeneration = generation
           getAddressInfo("dns.relay.internal.", function(_, resolvedAddresses)
-              -- Ignore stale snapshots from resolutions that outlived a
-              -- newer one.
+              -- Drop stale snapshots.
               if currentGeneration == generation then
                   syncReplicas(resolvedAddresses)
               end
@@ -329,8 +320,7 @@ configs:
 
       resolveReplicas()
 
-      -- getAddressInfo is asynchronous; re-resolve every 10 maintenance
-      -- ticks (roughly every 10 seconds).
+      -- Re-resolve every 10 maintenance ticks (~10s).
       local ticks = 0
       function maintenance()
           ticks = ticks + 1
