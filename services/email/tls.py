@@ -61,9 +61,14 @@ def build_tls_context(
             contexts[hostname] = context
     primary = next(iter(contexts.values()))
     if len(contexts) > 1:
-        primary.sni_callback = lambda server_name, ssl_conn, tls_context: (
-            contexts.get(server_name.lower()) if server_name else None
-        )
+
+        def serve_certificate_by_sni(ssl_socket, server_name, tls_context):
+            if server_name:
+                context = contexts.get(server_name.lower())
+                if context is not None:
+                    ssl_socket.context = context
+
+        primary.sni_callback = serve_certificate_by_sni
     return primary
 
 
