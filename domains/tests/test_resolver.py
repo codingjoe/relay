@@ -186,8 +186,10 @@ class TestResolve:
         records = DNSResolver().resolve_records(
             DNSLabel("acme.open.localhost"), QTYPE.MX
         )
-        assert len(records) == 1
-        assert str(records[0].rdata.label) == "mail.relay.acme.open.localhost."
+        assert len(records) == len(settings.RELAY_DNS_MX_HOSTNAMES)
+        assert {str(record.rdata.label).rstrip(".") for record in records} == set(
+            settings.RELAY_DNS_MX_HOSTNAMES
+        )
 
     def test_resolve_records__ns_records(self):
         Organization.objects.create(slug="acme")

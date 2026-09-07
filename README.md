@@ -136,8 +136,8 @@ flowchart TD
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
-receiving domains (for example, `app.acme.com`) by pointing an MX record to their
-sender subdomain (for example, `MX app.acme.com → mail.relay.acme.com`). Webhooks
+receiving domains (for example, `app.acme.com`) by pointing an MX record to the
+relay MX hostnames (for example, `MX app.acme.com → mx1.relay.example.com`). Webhooks
 follow the [Standard Webhooks](https://standardwebhooks.com) specification -
 each delivery includes `webhook-id`, `webhook-timestamp`, and
 `webhook-signature` headers with an Ed25519 (`v1a`) signature. Each webhook

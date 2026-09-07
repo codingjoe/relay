@@ -155,10 +155,11 @@ services:
     volumes:
       - caddy_data:/data:ro
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
-    # The cert must cover the sender domain, the MX hostname clients connect to.
+    # The certs must cover the MX hostnames clients connect to, one pair per
+    # hostname; the MTA presents them by SNI.
     environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.relay.${HOSTNAME:-localhost}/mail.relay.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.relay.${HOSTNAME:-localhost}/mail.relay.${HOSTNAME:-localhost}.key
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.crt,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.key,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
     healthcheck:
@@ -170,7 +171,7 @@ services:
       start_period: 30s
       timeout: 10s
     labels: !override
-      - "caddy=mail.relay.${HOSTNAME:-localhost}"
+      - "caddy=mx1.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
       - dev.dozzle.icon=django
       - "caddy_1.layer4.:25.route.proxy=mta:25"
@@ -178,6 +179,8 @@ services:
       - "caddy_1.layer4.:25.route.proxy.lb_try_duration=3s"
       - "caddy_1.layer4.:25.route.proxy.fail_duration=10s"
       - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
+      - "caddy_2=mx2.${HOSTNAME:-localhost}"
+      - "caddy_2.respond=OK"
     extends:
       service: web
   rspamd:

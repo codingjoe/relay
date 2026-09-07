@@ -90,18 +90,18 @@ identifiable. Re-check at any time.
 
 For a delegated domain the authoritative nameserver answers:
 
-| Query name (for acme.com)                 | Type  | Value served                              |
-| ----------------------------------------- | ----- | ----------------------------------------- |
-| `acme.com`                                | MX    | `mail.relay.acme.com`, preference 10      |
-| `mail.relay.acme.com`                     | TXT   | SPF record for the relay sender addresses |
-| `a.relay-acme._domainkey...` (both zones) | TXT   | DKIM public keys, one per algorithm       |
-| `acme.com`                                | TXT   | root SPF include of the sender subdomain  |
-| `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses      |
-| `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                |
-| `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                       |
-| `mta-sts.acme.com`                        | CNAME | the relay policy host                     |
-| `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector          |
-| `mail.relay.acme.com`                     | NS    | the relay nameservers                     |
+| Query name (for acme.com)                 | Type  | Value served                                                       |
+| ----------------------------------------- | ----- | ------------------------------------------------------------------ |
+| `acme.com`                                | MX    | `mx1.relay.example.com` and `mx2.relay.example.com`, preference 10 |
+| `mail.relay.acme.com`                     | TXT   | SPF record for the relay sender addresses                          |
+| `a.relay-acme._domainkey...` (both zones) | TXT   | DKIM public keys, one per algorithm                                |
+| `acme.com`                                | TXT   | root SPF include of the sender subdomain                           |
+| `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses                               |
+| `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                                         |
+| `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                                                |
+| `mta-sts.acme.com`                        | CNAME | the relay policy host                                              |
+| `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector                                   |
+| `mail.relay.acme.com`                     | NS    | the relay nameservers                                              |
 
 The dashboard always shows the current record set with concrete names and
 the check state per record, so you never hand-edit names here.

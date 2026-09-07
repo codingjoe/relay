@@ -13,11 +13,12 @@ the result to your webhooks. This page explains each stage.
 
 ## The one-time receiving-domain setup
 
-Point the MX record of your receiving domain at your sender subdomain, for
-example `MX app.acme.com` to `mail.relay.acme.com`. The relay nameserver
-serves that subdomain's zone, so the MX host and its TLS records exist
-without further work. The dashboard's webhook check shows a wrong MX
-record, with the observed value and the time of the last check.
+Point the MX record of your receiving domain at the relay MX hostnames, for
+example `MX app.acme.com` to `mx1.relay.example.com` and
+`mx2.relay.example.com`. Those names are static and served by the relay
+platform, so the MX host and its TLS records exist without further work. The
+dashboard's webhook check shows a wrong MX record, with the observed value
+and the time of the last check.
 
 Inbound flow:
 

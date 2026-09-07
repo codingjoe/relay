@@ -150,6 +150,7 @@ class MtaStsPolicyView(generic.DetailView):
         return super().get_context_data(**kwargs) | {
             "mta_sts_mode": settings.RELAY_MTA_STS_MODE,
             "mta_sts_max_age": settings.RELAY_MTA_STS_MAX_AGE,
+            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
         }
 
     def get(self, request, *args, **kwargs):
