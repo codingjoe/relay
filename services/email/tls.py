@@ -42,10 +42,8 @@ def build_tls_context(
     """
     Return a TLS server context, or None when no cert is configured.
 
-    Accept one certificate path pair, or one pair per MX hostname, in which
-    case the context presents each certificate by SNI. Raises when cert
-    paths are configured but cannot be loaded, so a misconfigured production
-    server fails at startup instead of silently serving plaintext.
+    Accept one path pair, or one pair per MX hostname, served by SNI.
+    Raises when configured paths cannot be loaded.
     """
     if not cert_path or not key_path:
         return None
@@ -94,7 +92,7 @@ def wait_for_certificate_and_key(
     """
     Block until the certificate and key files load successfully.
 
-    Accept one certificate path pair, or one pair per MX hostname.
+    Accept one path pair, or one pair per MX hostname.
     Raise TimeoutError if the files do not load within timeout.
     Return immediately when no TLS paths are configured.
     """

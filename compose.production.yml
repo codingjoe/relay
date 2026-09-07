@@ -43,13 +43,7 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
-    # Query through port 53, not the dns container directly: with no healthy
-    # backend dnsdist drops queries, so a response proves the whole chain.
-    # The timestamped qname always misses the packet cache, which would
-    # otherwise serve stale answers for a while after every backend dies.
-    # The image has no dig or dnspython, hence the hand-rolled query.
-    # The RCODE assertion rejects SERVFAIL from a database-broken backend.
-    # The probe covers UDP only; TCP 53 stays unmonitored.
+    # Proves the dnsdist-to-dns chain; a timestamped qname bypasses the cache.
     healthcheck:
       test: [ "CMD", "python3", "-c", "import socket, time; label = str(int(time.time())).encode(); query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\\x06health\\x00' + b'\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(query, ('127.0.0.1', 53)); response = s.recv(512); assert response[:2] == query[:2]; assert response[3] & 0xF == 0" ]
       interval: 10s
@@ -155,8 +149,7 @@ services:
     volumes:
       - caddy_data:/data:ro
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
-    # The certs must cover the MX hostnames clients connect to, one pair per
-    # hostname; the MTA presents them by SNI.
+    # One pair per MX hostname; the MTA serves them by SNI.
     environment:
       RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.crt,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.crt
       RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.key,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.key
