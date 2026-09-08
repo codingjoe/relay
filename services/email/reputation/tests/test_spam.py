@@ -125,6 +125,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -149,6 +151,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=450,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -174,6 +178,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -208,6 +214,8 @@ class TestCheckReputationOnHardBounce:
                 message=message,
                 status=Transmission.Status.BOUNCED,
                 code=550,
+                started_at=timezone.now(),
+                finished_at=timezone.now(),
             )
 
         org.refresh_from_db()
@@ -225,6 +233,8 @@ class TestCheckReputationOnHardBounce:
                 message=message,
                 status=Transmission.Status.BOUNCED,
                 code=450,
+                started_at=timezone.now(),
+                finished_at=timezone.now(),
             )
 
         org.refresh_from_db()

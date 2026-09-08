@@ -4,6 +4,9 @@
   <section class="mb-6 flex flex-col gap-4">
     <h3 class="font-semibold m-0">{% translate "transmissions"|capfirst context "noun" %}</h3>
     {% if transmissions %}
+      <article class="card">
+        <pre class="mermaid m-0">{{ transmission_gantt }}</pre>
+      </article>
       <div class="item-group">
         {% for transmission in transmissions %}
           <article class="item" data-variant="outline" data-size="sm">
@@ -97,6 +100,7 @@
           </dialog>
         {% endif %}
       {% endfor %}
+      {% include "abstract/mermaid.html" %}
     {% else %}
       <p class="m-0 text-sm text-muted-foreground">
         {% translate "No transmissions yet." %}

@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+from django.utils import timezone
 
 from domains.models import Domain
 from kms.models import Certificate
@@ -41,6 +42,8 @@ def make_transmission(org, tls_certificate=None):
         status=Transmission.Status.SENT,
         tls_mode=Transmission.TlsMode.STARTTLS,
         tls_certificate=tls_certificate,
+        started_at=timezone.now(),
+        finished_at=timezone.now(),
     )
 
 

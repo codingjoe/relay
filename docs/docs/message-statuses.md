@@ -105,6 +105,13 @@ The transmission list per message shows each attempt with its own outcome:
 | failed              | This attempt failed, and the transcript shows why              |
 | retry               | Reserved for future automatic retry tracking                   |
 
+The message detail page also draws these records on a timeline. Each bar
+spans the time relay measured for that attempt: a submission bar covers the
+SMTP transaction, a delivery bar covers the connection to the MX host. The
+gaps between bars show how long the message waited in the queue or between
+retries. Green bars mark successful attempts, red bars mark failures, and
+yellow bars mark pending records such as `submitted`.
+
 The same applies for inbound messages: one delivery record per webhook POST
 with the URL, response code, and a response excerpt.
 

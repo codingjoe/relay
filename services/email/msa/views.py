@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.core.exceptions import BadRequest
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -44,19 +45,22 @@ class OutgoingMessageDetailView(
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = message.parsed_headers
+        transmissions = Transmission.objects.filter(message=message).select_related(
+            "tls_certificate"
+        )
         return context | {
             "headers": headers,
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
-            "transmissions": Transmission.objects.filter(
-                message=message
-            ).select_related("tls_certificate"),
+            "transmissions": transmissions,
+            "transmission_gantt": transmissions.gantt(),
         }
 
 
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         domain = get_object_or_404(Domain, pk=request.POST["domain"], org=self.org)
+        started_at = timezone.now()
         mail_from = f"postmaster@{domain.name}"
 
         if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
@@ -82,6 +86,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
             ssl=request.is_secure(),
             client_ip=request.META.get("REMOTE_ADDR", ""),
             raw_bytes=raw_bytes,
+            started_at=started_at,
         )
         messages.success(request, _("Queued test message for delivery."))
         return redirect("message:message-list", org_slug=org_slug)

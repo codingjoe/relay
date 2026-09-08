@@ -36,6 +36,9 @@ from the queue state, performs through an attempt, and records the attempt.
 Every accepted submission and every delivery attempt produces one immutable
 transmission row with:
 
+- the time the leg started and the time it finished, so the dashboard can
+  plot real attempt durations,
+
 - the submission row records the acceptance answer and whether the
   submission arrived over TLS,
 

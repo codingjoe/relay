@@ -2,6 +2,7 @@ import secrets
 
 import pytest
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
@@ -55,7 +56,12 @@ class TestTransmissionStr:
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="o")
         msg = make_message(org, user)
-        t = Transmission.objects.create(message=msg, status=Transmission.Status.SENT)
+        t = Transmission.objects.create(
+            message=msg,
+            status=Transmission.Status.SENT,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
         assert str(msg) in str(t)
         assert "sent" in str(t)
 
