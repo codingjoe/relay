@@ -304,20 +304,36 @@
     message_id: <test1@acme.com>
     raw_body: messages/019fbe8f-5edc-75f9-a9ed-9c379741e432.eml
     headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1787390040; b=WT/ySFQD06ENx8tIVDKWUcP99oebLTlo9v+LJjZt03ONfPVb2SQLST1RQMk+VqOiGEyuq3U1iq9mk45UIZt4Aysf3nIlvGcIdJoQXX41m4s75sQ1NF7Zbg3lsOYAAOI5Zjw2DvJbb0pU0V+RT8KOkQj7MZZl7XysawttOsR5riWVrxm9pHVijoaqa3Ho/EwRa2kjx6fOSgxorw910GZq2tyKOwkKgtfrPvhUazWrcQIWB31p50zzjg6ti+0xcTjP1+K9pWP+T66nRl87HoDUxdSJ/z3/E3JomXdP07K+EBdSAuOxHjezERsvEDpUTP4CXZuIR0ckhiErN6j0gRDt7A==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1787390040; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=6F8SyurHUMEoCN8de5WlzTmneRur/XMQhHmpSDaOu6k=; b=8KgKYKiRDKFPzMX1OwDpj2CSJpy8EwQNb4XXlyFMdHUeCmhUUvauFnEGG5qo2ajvjXIxmu8m741FPyi80UaLOWezT1MHvCJ5QOYdmMrIFLEVdeUFw/SQy2AFXMKlVb2Cuq7L437c8U0a5/vSRy/hh0eVby8A08mjtTzLCm6zXXmApOZOi8MFoX8kJL3vv3/UauIpNhaHDvw/LlyqVI+9OfUYPONYeMgjlXLT3pccj4bztguFgIlFmyVseGg8FatuOAxKPoqx7pYl1hnyd/L1weA+C7YjFLltP7gRLHrozqn+dmf2f1l0AjiKQn+lF0oPXlyQwI3pTN7/jzyLRw8gcA=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass header.from=acme.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass (dis=none) header.from=acme.com
+      - - DKIM-Signature
+        - 'v=1; a=ed25519-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-ed25519; t=1787390040; h=from : to : subject : date : message-id : feedback-id; bh=6F8SyurHUMEoCN8de5WlzTmneRur/XMQhHmpSDaOu6k=; b=pCQjgITctulkvCIgOIuVLYKwxYuHXE5y4Xgdfa6JXuv4MxBEEQRLElXUuqbiSh47d8qvJjj2+jHYFQ8sK891lg=='
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-rsa2048; t=1787390040; h=from : to : subject : date : message-id : feedback-id; bh=6F8SyurHUMEoCN8de5WlzTmneRur/XMQhHmpSDaOu6k=; b=C6ENtVh+mg7wo4TG5qklpJQjGkpW8ygtWWljrKFSVx2WQ1riBCWiiN7ONOfFrYqhGddLzha9gofj9JnMCcl/mCfFzZ0SNXvpe2IHh2fYGQmDPm+qtQUqV8oM8O9WjVKYaEpXjFaNmpIjnMgW1YBfYFEV7H+V5XzzGVkECD0OkJsnY71mOPEUPPuI2p949CAH7v/mQHIiQF05y22jIVs3T8fWb8QlYIr+y4CWP6Pnf0uw4uiXme8Vty6qBLbw+GrmqrwFg/oXE6A5wdwoSIrqDGYVRQndOan6eAnRg/50XsJITL4TRi5gWmfmP72z8JkErbTugXpafwHOCRI1XVm1hA=='
+      - - Feedback-ID
+        - 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
       - - From
         - sender1@acme.com
       - - To
         - recipient1@example.com
-      - - Subject
-        - Test message 1
       - - Message-ID
         - <test1@acme.com>
+      - - Subject
+        - Test message 1
       - - Date
         - Sat, 22 Aug 2026 09:14:00 +0000
-      - - Feedback-ID
-        - 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
-      - - DKIM-Signature
-        - v=1; a=ed25519-sha256; c=relaxed/relaxed; d=acme.com; s=relay; h=from:to:subject:date:message-id:feedback-id; bh=AAAA; b=BBBB
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     received_with_tls: false
     status: sent
     domain: 1
@@ -336,20 +352,36 @@
     message_id: <test2@acme.com>
     raw_body: messages/019fbe8f-5edf-7553-8ee9-34e82e131c8f.eml
     headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1787571000; b=p2QWsvM0Meg3d7fnejNQOjH9XRZo4E0FUXWOjFOQZz9geul54ZT4blkouCQIIyRk38Z/jSWkDN6ua52Sm7fNiaGEPq888HIvaA8qVrXF24Z8ZWaNZly+Z4+zdR9+BvcKk5YpEHKYFMoGEC1HrK2xpJ0yLcvPKG3tKWz7rdQOEqHzo0yRO966DM0Ay09/jPMXCclS1KsgAa/BAOSjmD3H48UuEQX+BusqpT9xVuDHhmIJegjla3pQJwA+rGN85NEae8vMObhaF6fEveCFJJKd9KTF65X0j8K3MIM2fHIQO0lY7d2MEzjtTGTB+jQda3zPdthHwFQ98T2ryKT2xD+Guw==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1787571000; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=YeV5KiTkomtWFVUuT3bFzUDq2aM9zyzXR/DTS3EdnGM=; b=U3aqN7lGrKpE8Xl/oDXgtQtHOB5bataxxrvl5wUuedD566bid/AlIj15SAXp4tPdAF4DcuRn2WkThsOaxU92uUOfDlj4tBUj6IAsn4/D91MkD3aciE7oFYCeO3BQVOnQjG7cjXXVQXtjN5N+HVavl0G2ohMT2dgS18Onwr1YxUqaNWPlcFsI9k3T3Urz2F3OwsNR3iS33n5z+qpq+YJKZTx09u7tfsv/YWaYcC8CvMq49CETbRFiOuWryvP5GbHJQ+QuWt605vAssbvyQZi2An+qDLP13/vcyoehRvm4EcV6kuFJr5gLXPpQvXzirOEraqVo1k7QRa9Mxp9XZh5+Jw=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass header.from=acme.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass (dis=none) header.from=acme.com
+      - - DKIM-Signature
+        - 'v=1; a=ed25519-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-ed25519; t=1787571000; h=from : to : subject : date : message-id : feedback-id; bh=YeV5KiTkomtWFVUuT3bFzUDq2aM9zyzXR/DTS3EdnGM=; b=xrwzVM8LrkZGayhE83sgsXndRoUqSI7GkAMjZma3Moa5DXSMqtg+N7KQvAkOaBP6tUS4UUzYmcMy/raxIMTUaQ=='
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-rsa2048; t=1787571000; h=from : to : subject : date : message-id : feedback-id; bh=YeV5KiTkomtWFVUuT3bFzUDq2aM9zyzXR/DTS3EdnGM=; b=wGNp42ZhtOWT0LcnIcjyJXRBn3lHvX3A2or7Vaanreu1BDAbGpz9y3cQlRpY9cr0fJi1bfHS/vzuvEnOgJ1+52iFkBRhzx3h8JnEns4WddFbZrTBZPYDRhh/fWhLxDFprURat2McAwrhzUTzetav+4ZVCs0aWWeiH1TvSpu/bt5l9bT2je/s/+Vm5JqVncPpM33iPy1C+47jko0gEGPKP2+afPTTOUsD2Z/PRrxZRBm5gC0HRJkY0bxSQlYgfk2BGi/gSVUnOkSNVMc36Cs0p7ulpXBSZ6rL+KnO0p4WoSY1JKFOdUakQirXXENWkInS2xGUpyhWWnq4V8xrPLgpBw=='
+      - - Feedback-ID
+        - 1::2b8f4d6c9a1e5c3b7d2f8e4a:relay
       - - From
         - sender2@acme.com
       - - To
         - recipient2@example.com
-      - - Subject
-        - Test message 2
       - - Message-ID
         - <test2@acme.com>
+      - - Subject
+        - Test message 2
       - - Date
         - Mon, 24 Aug 2026 11:30:00 +0000
-      - - Feedback-ID
-        - 1::2b8f4d6c9a1e5c3b7d2f8e4a:relay
-      - - DKIM-Signature
-        - v=1; a=ed25519-sha256; c=relaxed/relaxed; d=acme.com; s=relay; h=from:to:subject:date:message-id:feedback-id; bh=CCCC; b=DDDD
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     received_with_tls: false
     status: sent
     domain: 1
@@ -368,18 +400,36 @@
     message_id: <test3@acme.com>
     raw_body: messages/019fbe8f-5ee1-7145-951c-cd8ae282af25.eml
     headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1787672700; b=ZUkEQxwSFX0yr3ExKGE+TxXrQHtFthnuZB88RpNE7cPQs6D8yY55w1Pnd8BQqJFAVfLQ9oozDk3GcdklCMrseZmBKFYL5FbYiZuogd7RDRrNEC71gUjFlY4Dxs+Kw/ABjfUsqnv/Pjylu6CrY+CT1rFTj3uTMeSBjLF/NTPlRVW7LSOS343PHjEQ1w4hDwLhdnkHpz/d2h9h+YUlj9S9y9gPIC94TUejvJxaLqVGzeOfuY7pPRM133P/C6TMQYX9z2nGi/ZtAeHfNZ1O58pVQTjljbRvNyj41h7i4vgsVGIR5EqMuSzCIrFI9MW/JtKdUpWFT+18UuShytbo2xNtOg==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1787672700; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=1h+6h/O+ox7qGFrTxmnguI9CT7awTpGtcn4qj6910jU=; b=F5RdcYWvklnDJZPd4TTfukAPFbR4RC9nxi4hnODu+lpWoYTFY1rl+AGXdmcg/476hDi96ry5Mwc8UvgyKU7SI2rLWocKHPoOImVEMnbrmpF6RMjHcV4NiN8CW5SwIF3yZC840XHIdKrNnEXVNfboRdW/yWnOM58WQxhR9mb1VY6dcu4ioOxnHNjaESQl8AX+kRl6RFMgyzQIqbokA5by+VFw+5xLQk/8OkISR6VAlHZLEMAlgxwwkg1XUQWMixZS5Aryqf8n/2V3aM/NMC1uWQ0iQjMVrSDGO7XjG8Vh43jzXFlycZ2hgI3x4J1hkyoX4p+F6Z4VtspQ411UBpITRQ=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass header.from=acme.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass (dis=none) header.from=acme.com
+      - - DKIM-Signature
+        - 'v=1; a=ed25519-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-ed25519; t=1787672700; h=from : to : subject : date : message-id : feedback-id; bh=1h+6h/O+ox7qGFrTxmnguI9CT7awTpGtcn4qj6910jU=; b=gRiIBqye2UDaz+QcqmwLm+dNwJMvH/du3eIIOX/PL8qvfI23904cesUU2epmdGHuUyF0jbigtmiljDFYi3uVVw=='
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-rsa2048; t=1787672700; h=from : to : subject : date : message-id : feedback-id; bh=1h+6h/O+ox7qGFrTxmnguI9CT7awTpGtcn4qj6910jU=; b=GpDy1kOshx6BBMVIFEC8wAAF68xVb9K7RHWdw+D111HSTOWPzFIHaaKlVY54FfGhW/H5Ho1R91VqT3VCO+pEZupu0T7KD1BWOaCjwamjflXr5X8dSNDwaGVxJdVYHHaGoNzfd1J+CJ8nBNaRxcU/92K4gZLimAzNJn8LwVvv4QOTxi0Qys61IEP/M2Jwf6v+xFADzmEKPCUukoOEONPpS1hDd0g0ui8SFQyM0MT1bVHA0J9NXqS8zra1rGfd7JCJglFjv70Q+4zha8mgoQwbS0mB5/VqYVLwlBXEUMnLSF176Gy53oeW6l97Jt+ISaNfVWBBFGgoBAd3/54Eb153gA=='
+      - - Feedback-ID
+        - 1::5e1c9b3a7d2f4e8c6b0a3d9f:relay
       - - From
         - sender3@acme.com
       - - To
         - recipient3@example.com
-      - - Subject
-        - Test message 3
       - - Message-ID
         - <test3@acme.com>
+      - - Subject
+        - Test message 3
       - - Date
         - Tue, 25 Aug 2026 15:45:00 +0000
-      - - Feedback-ID
-        - 1::5e1c9b3a7d2f4e8c6b0a3d9f:relay
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     received_with_tls: false
     status: sent
     domain: 1
@@ -585,6 +635,33 @@
     rcpt_to: user@app.acme.com
     subject: Inbound message 1
     message_id: <inbound1@sender.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1785608494; b=GgdMVzMn4BkWPk2stvWvAzxhcsXqG3anPAcz8EGUEV/l13hVf6jl/G1kKYSO1T59kSP/7DeTyHBYNB+mtG50tTSyHGtzgQOygUPSH+h0WI7EV8E+hWFOSPYOV25Kkox1j9T+DtbKQIHbgcoAnJ2X1NTQYEf3cYKOfgvKR0uksHQtnHix9vQPnj3KIprpe1NGqDBLv8DOGap6JfFjwZS21I/s+zBcqjn07A9eG6jNsSt8bfa70UJPGgrj61WFAtMtGSWUj6CYpt53WvStx1w3VUwANQECaO1ZPbvKusgJWrgTC1Di05xL0R6zUGoft9F1gqj4c8Fugi99kjLVH9fOqg==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1785608494; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=Xgalji0SAskkNm+4//hmYRkFn98RKKonUSLGRTAwRJ0=; b=E9VnK8GWnqUzgqjxbiB7wCkPLDw/greAMgrA3+ZKIawzKmICt6UQT9wOvqbIBW/buYdb59ts35Dv0yEMym1viPNLGeTgLyyJHznbwJydVaHhb+8zP9GSj8W8iLaSjY5hfuOxrHcQoPycjDu7lnQ2P62eN9kkagYQ2owh9rNUdomuiNsxUUNqfZ56T0sHwB0iUBBdJ8sCC8fR55tQ8XySkG9aH+zmV3j5Hub3dDAcei6wO9cV1yqX126KJSBX1/sluu9I1cgyGHzF6JJ7ICp81o/lSBmY8qlkBaXDdrp8fv2luEF35f3odtrajRGPGPfRHHpb8nvmKpTTKHPR+oaUGw=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=sender.com; dkim=pass header.d=sender.com; dmarc=pass header.from=sender.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=sender.com; dkim=pass header.d=sender.com; dmarc=pass (dis=none) header.from=sender.com
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/relaxed; d=sender.com; s=s1; h=from : to : subject : date : message-id : content-type : mime-version; bh=Xgalji0SAskkNm+4//hmYRkFn98RKKonUSLGRTAwRJ0=; b=SbPFR7zhL0REoQLGeRvPDIJf8aQCzrlHW/T1QvgH1xqO3KarrhRD1g0kThg0BEAHMqASMBzd9X6aXwyYq2jAgnBtGB6m0txHDWFsq7CfihAyGBksv59d8pFdz3AulfzQBdhJmSrVMUZ4DBHBpU1wjtTRu/SCE4SB5I18R4+GXk9koTyIaakGZQ+q7+/YFC9dhP45sEf12Etp9ZJAYvD0G8Fp0/FrSK8quWZUij31GVWP8if5kG6clGJVqKF4oG4jcrD3j0dzepVI9KJ/6GzWKNK0zf46pUFjw8AjIwYuKjH3slY8SgjFn/mZNB+BjB62zldYOybCbHcIVlMEvqqsyg=='
+      - - From
+        - external@sender.com
+      - - To
+        - user@app.acme.com
+      - - Message-ID
+        - <inbound1@sender.com>
+      - - Subject
+        - Inbound message 1
+      - - Date
+        - Sat, 01 Aug 2026 18:21:34 +0000
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: webhook_sent
@@ -606,6 +683,33 @@
     rcpt_to: billing@app.acme.com
     subject: Inbound message 2
     message_id: <inbound2@marketing.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1785608494; b=r2EwsQrvXptduenlEVtXE8fz8zBsfU1FsovnCNSGLgEQpx5JuT/WlHr8rZ7lqEgmfxCiUfBXTXlgPLxxNneQEv7ATkETL/K11jTu30e6zjj0It9BO1qV3Jz8/77RJS/DQKxhNOLgZ/wyT6r2R91d5y2v9i9jAs9Yl/4SvjryMcunf8tGZAZUhEseYZIC7DotOYnAGc1otyZ6gGvFGQEV1Z+fm9BADRSTvOWE5V/O7w8ECNxD/NyoJE2klKvNd9UubbeoGfOezbCaPCssL0vmRSyoH+Ovzvq/8PMNLHevkX0vSyIssxU1gHPkpebnqHkKRY/x43FRdg8bLojRn/s6SQ==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1785608494; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=NA8agxO/Y7GWiv6XM91D37Tt1MejwJ8mIcivinCCfE4=; b=VhZzs8hR1DUR+XSrlhyLUY1OCgawviYGhdFGfsjKEasa/9eWawTcG9NzKYCP0csK/3Zscz3qga7wVRh+46yyyB+VSSwRcphUB3o9QfRSBdVQ9WscAWFHF6G0+R0dDkYL2gW8w5e/+hRmbAkM1+/2AO6vJBb1tQWShkknEnr8auNBrpBsMZuoF/pIfVAUr0YpEElljcTtsRVepT5Gzrm8kOKlMwfw2MwoywcHoom/lmg6FsVBnIyhABVJGQP7L6EaboaytJfeU79iFcrcsPH1Lip4SZVGXbnBMYXwqhWVjg+8TFETB8zq71t+2jAS1QuAuPsnjH2bvDRCI/IeoEplpQ=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=marketing.com; dkim=pass header.d=marketing.com; dmarc=pass header.from=marketing.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=marketing.com; dkim=pass header.d=marketing.com; dmarc=pass (dis=none) header.from=marketing.com
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/relaxed; d=marketing.com; s=m1; h=from : to : subject : date : message-id : content-type : mime-version; bh=NA8agxO/Y7GWiv6XM91D37Tt1MejwJ8mIcivinCCfE4=; b=s0KtodymLA8KsYPHzhfN6Bem9ZmKYPYj9xAV0Lxwaa+G+KYSGyStAIoEbPgNO7vga9mxGz48iajpHwMSl39ofX1UZ/ap1+Rbl2HmpT/Ihtj/R6WKpaiRyhm/oU6PElrvj/wZgJSJtRKyj89Aj1M3aTmmgP1tG0n420QLqmiNaZUDisG0LJvKrI8jBApmJwxW7k9dFIJmZheEUxLO46tYFTb3uFAIChJccoeFN4eoM7dmjUInooblUkMaQuSaSUrB3lbRfS0MtHiwtVmekT+lqjI2/RWGEM3kfdlpfuyRvwmYnZA7c/CQC5+JApj8qQ9Kknvz36Q6nH9+TspvXixDGw=='
+      - - From
+        - newsletter@marketing.com
+      - - To
+        - billing@app.acme.com
+      - - Message-ID
+        - <inbound2@marketing.com>
+      - - Subject
+        - Inbound message 2
+      - - Date
+        - Sat, 01 Aug 2026 18:21:34 +0000
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: webhook_failed
@@ -627,6 +731,33 @@
     rcpt_to: dmarc@acme.com
     subject: 'Report Domain: acme.com Submitter: google.com Report-ID: google.com/1'
     message_id: <dmarc-report-1@google.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1785608494; b=CBjAeT53MX1OkkwLS1p71/bE7/ntiS9wiHic8YYOHeKT3ougIyMP3Tbo8YW2bcrhDaflkPjEUWkfm09SUVy77+17XLey4Xz4VRlKds3xYn3SlMQkl9I9p2tdE9I/+0PuWgPEAxoJmVSUrBQWn06qGI9v2doG01fTVvuX8nVEL40O+N2xlCnmNTAD6uwd+cV0/sVLrRkKGbczMe85AW93VP+8zd0gI3WcWQhCzMvldRYdXCoK0S3BrolKWnn5E6KDY3e7NnXMFWnhqF1bTXdBZixgy4EQoyIP/F0ZzNGkOvTVDVNcDoVn4lBRbvOnDLqWSKP8k4bhi7fJNkfZwsyqDg==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1785608494; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=Qpxniw6bq/Ms2/Qa6iL8NfZj10TXT0dxUL93mO+7zd4=; b=Zgppg3mJCK5ckThNxNfhp8YQXQtdeuaO0RIFsSGfrQ2Hx/7ONu2kRv99aQCBqig2JONlMFN+VrzZuqrbLzxLADlbJdr0czlSEoBn476ndxCI0rTz+iOZ+Q01Qci2E/6Q0r5oE8mkof7U1nXPdqPlw75wRbjrFqp5/HJ2V2fxjDeEvcciGYB3In3dF+KyNELp1pue0/Nzgt0oiUjBvtBjFphR3kkVIE+dIj/jBUfBawqnXHQgS7s1ajXMBL6tr6XxrAv0/fiaEkCNXRokfcH+V9C+z7bYisUyezhYQ8ma3rCNiPngDaES+NIyGnULLRd1d8OQGaTYOA2+duJdibK1qw=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=google.com; dkim=pass header.d=google.com; dmarc=pass header.from=google.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=google.com; dkim=pass header.d=google.com; dmarc=pass (dis=none) header.from=google.com
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=20230601; h=from : to : subject : date : message-id : content-type : mime-version; bh=Qpxniw6bq/Ms2/Qa6iL8NfZj10TXT0dxUL93mO+7zd4=; b=aLlDhdk5lWjaRiQlonhBuuxhJYywBd6XtfOqHJit+hhylDoMdnx+Y7TFMdJNG06NLigOBDx50EWApHZPMeocUX2mUp7pH8hahq8z/uUgaCqYu0BttXGDfmVhqj7Jj/E+5N8DlYLAjtOzuaH1Nc7mwR+uHBnc0SyHvBQbIInEv2brdNgm6A9BTrtKHVrYkANIkReEvYeTSv34IRi8PW6PTuWTsqvmddaV+zTqQOLO5Wl3mZYR3oj3UEQo54UPYNAud2vYdUoxKOPymqdg1dt554AXIlBSoymqzeOhOL9HSD5EoaElH6pg1ZGqrluqpz2HcpRzsmgL/y2LFhg6n3gP/w=='
+      - - From
+        - dmarc-reports@google.com
+      - - To
+        - dmarc@acme.com
+      - - Message-ID
+        - <dmarc-report-1@google.com>
+      - - Subject
+        - 'Report Domain: acme.com Submitter: google.com Report-ID: google.com/1'
+      - - Date
+        - Sat, 01 Aug 2026 18:21:34 +0000
+      - - Content-Type
+        - 'multipart/report; report-type="authentication-results"; boundary="----=_Part_0_1785608494"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: received
@@ -690,6 +821,33 @@
     rcpt_to: dmarc@acme.com
     subject: DMARC failure report for acme.com
     message_id: <arf-1@arf.google.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1785608494; b=nWVM04Sej7b1x4xNn9+UuIAgfAgK8wQHGKSXnop+OqwxaOHkg38EzjyRT4TGvUk80LNEP6FuYZT7ysP6u4L50ytzGLeP63Mq83yWZM5xuttiAUCxcomyiU7FIw7xd1rvSV4gekB07lrm25whQFY10Hft9RdCk6BzuBVRJ7jJhwyQ1b79YY3JByHbZNH4/2D/rSHBm/SeijnMQ3zDp6rFxSq/yt/iBzlukt3VOFbWlQyvu9rnRGOK2tmyitUntCyf9edegF4rpZuyPoB49kMzF0ycY+b3SvOfrYU9sWnmIJrzfPTl5SKkngf2ogQWtZCk9qu1UffZ89+sTJePX7Dsmg==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1785608494; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=Eg0z/G9b8rRuopQmpT970vzkC1b0bHrxHSTpOdKLceI=; b=yFM+dcGnZLKVKwRqkDuJfgBGYn3myUuc9o2WSZmWOnle4h1imqQKEDp/W0XioJ5CxZ4SiClzq5xYWDy078zXsQ6foAVVH9nghmU8c7u7EoAfpnXVni21rt1mbmVXMHWmHClrneX/+cyvdDAXOS2yY2aLbZ64KO4RlOEeVSsp3pBpi3x6MTdSPiNiiSeO6CLy9+90mzVLbuR97HXMkAO+ZXwIAFFYe7asFjsDtb5b5MCHW6BUbfzQ00FMVR/MZisghtBihZUo8RDECxistgW9WQ2YrgnHAu/09fRRb8u4FokXx5WLO2rgYB97j6Bb1FL4TXCBhD/xYnaCLpnc53rL3Q=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=arf.google.com; dkim=pass header.d=arf.google.com; dmarc=pass header.from=arf.google.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=arf.google.com; dkim=pass header.d=arf.google.com; dmarc=pass (dis=none) header.from=arf.google.com
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/relaxed; d=arf.google.com; s=20230601; h=from : to : subject : date : message-id : content-type : mime-version; bh=Eg0z/G9b8rRuopQmpT970vzkC1b0bHrxHSTpOdKLceI=; b=LXQmGjhvhfMGeDM+AooJsaBF/UQFuxyfVYl4hJ9trjQ/edgmI0qj042oQDzmvoRcjrdqKJ9lEqLevf92QXIQNbUNsbtAAlU8pyrKdiXV4t9PmGrN8hyS2nW67a7bl43nMTRTu6l/mbxDO55LYmsFbMY1o4GGlsPbtwI7WgWjKtKzMQOkfs2+lTrmtv0CS5Mx34m0byypUphgZLdh2dkpy0gWUp+JKyjfomWmHatJTSMcUKMi52OuvtJxc6HO3JEjm2RTy32/eOqjvZhMBGKuXSUoj2FlfW23Yqc506lSoOwbkzBcgoQj+jJ3asx/B4G47CtEjMMP4Z2K/nsfHSOcSg=='
+      - - From
+        - feedback@arf.google.com
+      - - To
+        - dmarc@acme.com
+      - - Message-ID
+        - <arf-1@arf.google.com>
+      - - Subject
+        - DMARC failure report for acme.com
+      - - Date
+        - Sat, 01 Aug 2026 18:21:34 +0000
+      - - Content-Type
+        - 'multipart/report; report-type="authentication-results"; boundary="----=_Part_1_1785608494"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: received
@@ -726,6 +884,33 @@
     rcpt_to: tls@acme.com
     subject: TLS Report for acme.com
     message_id: <tls-report-1@google.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1785608494; b=KJDT0/N/feVkWSTVuc4BkvZoLNbH1rugNogU7X2j3aJg1ZKba/Gf2CkORZb5h5cXnjpzk4+Z20HlDmJl20TzNsYjEWXffsbvGe/3kGg74/DWDehNhpJG0CkXsvK0ajks9flhF0iApQ6uKRKzJ8OA1va3ILlgexXVSbtMRYnHehq4wgenir0Se2WZ5ac84MIevqrDe+DRa+bOb8CzRwGEjW8WDfxYMufh0Jh5z89sYz3/Dw1ukf/puRrQwhXnXawT4xRXqOp6UpTtLfQ8nBgmbvWKbDf+spaUU6QxjtQGcCuAo/Ulf5Nz3/rpr+UKAw5xJtpywEgVlxAMZO9up7CT4w==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1785608494; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=w925YtDBj3fm0MwEiJK2XT58gRDeEdkBFjs+hAp5Rv0=; b=9IN03uD7NHhGLiN5XfEkoxtebV5ssqNCWFmliFh9QSvQcBXRt4ol5GJGpH5PICJKMtm02FVKPLZpZL0mnsFpTi+gOpPiCBS235Kxk3H5JcnvqaI1cgINwaSp8eaDFLCNk7hfGsTG9r2Dy3VyaQRwQVFbRCLmqi2mMbpdhsm2cH9p+kKsDk/Jon3RDlRniFuG0IH4Ec/qzwTBaEl+qulqGjPLGSppx7PVB0mofKp7NxHsP4/E9soDpbirLBMg/U7DpXBxJkNBaUQEN1aB7Ro4GUe+KCDwZvm6Xy3fcxc1GYme0e4Oe5/arM1Mr8ofi/RU8wGb/R++Cx7CmMeoiHMiIQ=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=google.com; dkim=pass header.d=google.com; dmarc=pass header.from=google.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=google.com; dkim=pass header.d=google.com; dmarc=pass (dis=none) header.from=google.com
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=20230601; h=from : to : subject : date : message-id : content-type : mime-version; bh=w925YtDBj3fm0MwEiJK2XT58gRDeEdkBFjs+hAp5Rv0=; b=ql4ppFy3W3l3/FM/0tpsIvTf1RWJfXxOk2oztx4UFHsfd2//vrW2h4aIN7e3ShcoczQJR1XJdmxmFi4LyET4BHODAfBs2P0Mty96/R9QTUhEjLGvCRh04Rhlrzsw0SlW1Q7L6fReJjCQVnBsefVpUcEgVOFWCsk0UucAj4wS8rUg7RPkl7Iox+cnPIGs4k1JTIg5y+PGW+4eID/49p5u2UxWsRzw0pM1ZIAA/KaA3HlOwXelzjwIfsgKHUKFHLQKwU8q3CwfcDDZGTdhIFnZuoVk7eunKq4EuFEQfH+1jnqNhA2e4fTm0iWW55J7er+SsztAwfRLsXC7EeADXfaM0Q=='
+      - - From
+        - tls-reports@google.com
+      - - To
+        - tls@acme.com
+      - - Message-ID
+        - <tls-report-1@google.com>
+      - - Subject
+        - TLS Report for acme.com
+      - - Date
+        - Sat, 01 Aug 2026 18:21:34 +0000
+      - - Content-Type
+        - 'multipart/report; report-type="tlsrpt"; boundary="----=_Part_2_1785608494"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: received
@@ -785,6 +970,37 @@
     rcpt_to: recipient4@example.com
     subject: Test message 4
     message_id: <test4@acme.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1787731500; b=defxZk/38lxf9K4AkOJFLxojaBxgRZHYJuBW5FCu03Ck0rtT+7swgDV8+Zmrgsj9SnqYfRvFjtspmar4aMPCCLoO/FVHo3A7tIqQDRD52ogAimSuU302va9T9ABayDf7ip5V1UAuv5gTOx2e0TNc7zyQf/IpOVLGXHB79NTaR3lCAUyTK8J3LP7d5Edo71s8F96wOFZOpW5PfXou24+3/0oyQDPEPFk+lfsMEdIGIo93tOEInSd5megM0xafSZgi94i5O3FRSBEttLJTqwP4HQyq6vWHODNchkANj98m1fjhsIK9Ai+08qDhNL/jDOXDfwA+pG4ieoXVTfkRnJ+3hQ==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1787731500; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=y0OXw5QnUENMPcfHniFpP8BFn6QMklm6OpH5FYvqTcY=; b=QT3D+Yjx/7XcL6Tp1lWy/JAAXmXyfO8x7RuhcgWytXrhRB+c2IQfCm6rsco/2aP8lO+9+Uc1bSMSYFtL0YFzTpcXr1ITMKD3ktiaOEZL809zcFrU7cvxUnp1mf99J/OszBlzFqzfV9oxcy1cb8TqB/NcXjxgrDQAtIEgGfy+/qbkcD4PMMYd22qJJH+kBZRD6nn9WLFYyCUE/St9xxLA0nljYL+acpRikXAg1PPrP8wkyTuXuokESDaJJ5i88xg6rFzrTFYbtGprJgCYKFTxUL59OXxxKiJDzCA550nposayQ994KFUKntPD2N3DZvHO30U4+IAP7AxZ8jyJt9IhPw=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass header.from=acme.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass (dis=none) header.from=acme.com
+      - - DKIM-Signature
+        - 'v=1; a=ed25519-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-ed25519; t=1787731500; h=from : to : subject : date : message-id : feedback-id; bh=y0OXw5QnUENMPcfHniFpP8BFn6QMklm6OpH5FYvqTcY=; b=Fc3RkD69Omf7S/niqpsKWexAEJSQt4+hjj4eWtbdmPAB3wZkat3ZAbXLH04sxZxU5QwQ/JwZtbVa+S0Eog14LQ=='
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-rsa2048; t=1787731500; h=from : to : subject : date : message-id : feedback-id; bh=y0OXw5QnUENMPcfHniFpP8BFn6QMklm6OpH5FYvqTcY=; b=hpCfdtdswNkMez69/w6YhE6jKg9jGPCGUDoVbjCf5hOwYBwwxOEIbernnFaJxMizZrxQCK28kCwuvlwdOvoBfBlRXs6+TKBPK09y+Q3YeYDS6BDmoxkaib5SIeGUrIQFgETw2bd4g8z+appck5IejEQQNE7nlQbCzEfzfFybbjOK/50ueQRvnZDPcBcJ5aGrfDcLZvOZx7JyG5jwx7VnV3OuJ8zu3/BokNHvM1i8kNu4WbxcOTBuf1xBJxKmo4JB16lIYuQj7CquXdFkGBLIF7fbwpJXFUkaUaJ/+0xI/oJwbkaye/xPTTiLx0jYXOd6QDbxrznIqcnDgU0LwaLgTw=='
+      - - Feedback-ID
+        - 1::301d85669c62796893c02fb8:relay
+      - - From
+        - sender4@acme.com
+      - - To
+        - recipient4@example.com
+      - - Message-ID
+        - <test4@acme.com>
+      - - Subject
+        - Test message 4
+      - - Date
+        - Wed, 26 Aug 2026 08:05:00 +0000
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: false
     status: pending
@@ -794,6 +1010,7 @@
   fields:
     domain: 1
     credential: 1
+    feedback_id: 1::301d85669c62796893c02fb8:relay
     status: pending
 - model: message.message
   pk: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
@@ -808,6 +1025,37 @@
     rcpt_to: no-reply@example.com
     subject: Test message 5
     message_id: <test5@acme.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1787491200; b=/XVKpSyudXWL2dLBxMHKfAU2NlBcrGL/ODNRhhkI/k+rToKtEXjlcR2nyjzi0vWD5HvA7v2q8Uq8imaDMUoan3HO71ShAeFKbleQS8xnW7ipUhpqEN/F4My3olIVQYH3yjIL7n9c7/vE42mAPHPFFAahXWn+sils93zzw5nT60CyCyGrQkYb21mOGHVFMmRNjEV4FtYmTsVMH5dqpAmNYCGym3Q0sLt5STe8L9cXpqkjfM+fzFBoF/adjd8iy7zX7+qMgEc9zC6EaexT5SCwaj2/carnFOpunTbdEl/6xHxrq7mHNf8UeUeQyBQ27Di2LEtzMXIFNvdXJf83TsRkOw==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1787491200; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=hRtg+YuDoQthxL19/rToESGaSiB9KykIM+hgFl0dCV4=; b=XfJ4SQRKvpkAJFdUOY/sHudYJfPGaG0y7RYGv1DMXOzbyi3o7JZV1FMY3HZObbOGrczRfKxK2+fTAHD/7NvKGg5uNMEIWgkuVYF4QBwXJ1Oh8V6XLshoGbU10xRDP/oL9GCw6qoQaR8HmqvQ1OOwe/wL2AlsjG3rvw566hG4il33oZsAZC2vFTkArxVHi9TZpvDcbPrKBor35eG25efJR4hrthAnTRolkwsKRrAjDVa2uwKBSP1k3dusIov6iQVguHtWIK+x27OhbkJZ1AfT8wMhu0y4n/c5Y/tNUNRklYGcPylOCeDZP7lCrDw11URW14mG323J1wnvGmnPmvgdnQ=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass header.from=acme.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.com; dkim=pass header.d=acme.com; dmarc=pass (dis=none) header.from=acme.com
+      - - DKIM-Signature
+        - 'v=1; a=ed25519-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-ed25519; t=1787491200; h=from : to : subject : date : message-id : feedback-id; bh=hRtg+YuDoQthxL19/rToESGaSiB9KykIM+hgFl0dCV4=; b=qX19BMS1iJDxDniAbJulsN4uWVWCGpGdy1kXeFjzVeUab24adpAWsOS+eVShIF3SQILXoC8SeAeHsRYlvsCIsw=='
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/simple; d=acme.com; i=@acme.com; q=dns/txt; s=relay-rsa2048; t=1787491200; h=from : to : subject : date : message-id : feedback-id; bh=hRtg+YuDoQthxL19/rToESGaSiB9KykIM+hgFl0dCV4=; b=qtGqE1Dx1fbpiwo9KTc98iU4+H6rsxrMJ/Xf3AIg8cUJ6ALaC3zegAZbgVgyToTeAXmpd0TLe46fJj4A9+N4q9VEcGi5UMJE9oMPpCHxTeiIBEpyeYXq75bip/8UN3EyuEgTa8HlnT06OnHbCbYcwJJesLYOsqoNC/q9crgSp8bddXDXn8uEhQwDhuTj9ovfMOJPJdL6uuwVyIcaiq9eS+vJD6XZ0rYEtU2x+DY1K8qxbU0kDAY9RK1naAaRsIelVExcCFldUxCZ66+fSYPSZAyTInVtiLfHL6yKsb0Gvr+ISL5kyYbQ1zLuOLuQORMQ26ZRIYLkzYcLWlh3n88uFw=='
+      - - Feedback-ID
+        - 1::da12eb0b1ee5dad6e2e9495c:relay
+      - - From
+        - sender5@acme.com
+      - - To
+        - no-reply@example.com
+      - - Message-ID
+        - <test5@acme.com>
+      - - Subject
+        - Test message 5
+      - - Date
+        - Sun, 23 Aug 2026 13:20:00 +0000
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: false
     status: bounced
@@ -817,6 +1065,7 @@
   fields:
     domain: 1
     credential: 1
+    feedback_id: 1::da12eb0b1ee5dad6e2e9495c:relay
     status: bounced
 - model: message.message
   pk: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
@@ -831,6 +1080,37 @@
     rcpt_to: recipient6@example.com
     subject: Test message 6
     message_id: <test6@acme.io>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.io; s=relay-rsa2048; t=1787850600; b=Dn/K14CpO3gr6AcdKP0NEem5cG/7HY5PQCKEJCD224rO+1dYkgemDdA0fdc1/nTA099pmt3e7dFwQqYte97tm9UB1Sgj6EZ/XkaxENGYAH6sd7SgyApCAtfUH0pq+RHtHaJluXLHxdHZ3rzlY5qG1zzt2UDBQ+bPJKf+XR4T/2z9nqaEe0PlXEg/GIH7HeUPqAiq+WtIlylgWUgmjuqsgO1Y0t85K6HYEU4Am7atK1kuJdEGjx7WqZJZerly+Ze6KOGWBpx9yDHylFsmrFlqLAV2Oh1IrbGzAApqEuCYAouAJNG5Sfc3xhqTtosT4QdWJgPeTLRWr1z7YYJufHH1Nw==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.io; s=relay-rsa2048; t=1787850600; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=1dzIneYyN+S+wOosK9N8KmUYXKAycmh6DzlqxjfxXEw=; b=STWnJ3aWFIJPoQ9eiPX+xjIS2xx6hEAPXQU7lYXnVA+YEYQ36LErAKWQoOWpQF1BVoix07sy5xMcicAixE/iM/Wy68SP6nRTVHAdhdxId4ECu14UjiQ5KhtyBgRsizyXy+gOJSIvmWmi8J8AhXiVmqmOMb7umGPntIrOYJy7+Y1guDioFTA+F0Gjw+kR9pAmzmN4D8ntoRx3/7/KE3P6XgI7E78foTkUyydOz1lkH+DP66yOWbYcf7F48CMNy/F0Bm3J3V1mzA25QsqaUTMayG4EvAb9wNpDYoPam9+cpaDNqEZYDm4j0ds7ooeykv2Hzy2ygn+rQvfVzATRM52jwA=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.io; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.io; dkim=pass header.d=acme.io; dmarc=pass header.from=acme.io
+      - - Authentication-Results
+        - mail.relay.acme.io; arc=none; spf=pass smtp.mailfrom=mail.relay.acme.io; dkim=pass header.d=acme.io; dmarc=pass (dis=none) header.from=acme.io
+      - - DKIM-Signature
+        - 'v=1; a=ed25519-sha256; c=relaxed/simple; d=acme.io; i=@acme.io; q=dns/txt; s=relay-ed25519; t=1787850600; h=from : to : subject : date : message-id : feedback-id; bh=1dzIneYyN+S+wOosK9N8KmUYXKAycmh6DzlqxjfxXEw=; b=WEDEQTn5xvQyhrHojLNFiMZ8XZZg4/ckhn+VLVFHNIHuQSn717iRDgW34DlIOu3cnC68cmWYpCGfZJCL+uVtfg=='
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/simple; d=acme.io; i=@acme.io; q=dns/txt; s=relay-rsa2048; t=1787850600; h=from : to : subject : date : message-id : feedback-id; bh=1dzIneYyN+S+wOosK9N8KmUYXKAycmh6DzlqxjfxXEw=; b=dHYclKPlwlqLVTr5tmmulJID3dlCQBbGXMiMwEJFMAZjiZVAhL/GFdRT/A0ZdSFUxwoSwJ9XsSNygqFufWtoz/BUzbDm3ILdMYYzenLR+7jxan3L438eaaovltEU9yoZSQF3Zlu3fCqNLCFPcPv/q/ABCZa+V9z6NjprJN/6cYZXgpUL/69hw1wmwFUMtmTnpKh+A388cDaUkW2Q1Qrw3WhqLfPXTsf7M262CTJBbMwFtCaMsU0MyQjOtLdC22X81tCDIux3SM24uYMUzdUlSNN1EtqNqCz0hku6X2P98tXa2KFQRBWDER9RFfvTWFEVRjg5A8x+IVWmJmuuzA9G4w=='
+      - - Feedback-ID
+        - 1::dc61cda0a6cda9780ba870b2:relay
+      - - From
+        - sender6@acme.io
+      - - To
+        - recipient6@example.com
+      - - Message-ID
+        - <test6@acme.io>
+      - - Subject
+        - Test message 6
+      - - Date
+        - Thu, 27 Aug 2026 17:10:00 +0000
+      - - Content-Type
+        - 'text/plain; charset="utf-8"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: failed
@@ -840,6 +1120,7 @@
   fields:
     domain: 2
     credential: 1
+    feedback_id: 1::dc61cda0a6cda9780ba870b2:relay
     status: failed
 - model: mta.webhookdelivery
   pk: 019fbe8f-5f9c-7328-8cc2-6ea752104818
@@ -885,6 +1166,9 @@
     output: OK
     details: Accepted by recipient1@example.com
     tls_mode: starttls
+    tls_version: TLSv1.3
+    tls_cipher: TLS_AES_256_GCM_SHA384
+    submission_ip_address: 203.0.113.9
     log_id: ''
 - model: msa.transmission
   pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
@@ -935,6 +1219,33 @@
     rcpt_to: fbl@acme.com
     subject: 'complaint about message from 192.0.2.10'
     message_id: <fbl-1@hotmail.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1787832000; b=JH76/m5rIxOU5Y2byjurL3rlMt19K9bPXYrcyWIduf6TEbtyz+157bXbFhsdkcLIsUjcgQHwOTN1p1sPAnyj73aabo7nX8E+lV+beaXU2vAveS0NGSUfoc0qRVxqRZ7rqrKRBEBYXb+ZqKkMterO9Z466/zbsqQtbOtgkC0YvizW21iQUzjks/cdswOSQpZc724Z+N26sQQgjvzVCLJe9NTxf8jw7k6j63NCJ6AMlhrsm0gqxKykz2+FH+kz37tt3cXm/PXRNB0JVNEVCJZWORO2pXjO+oSiQ6eN1RCd7nWWixDO7qtiW4a2N4HuGFBx0OF4shDsdKD7P1842dTCPA==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1787832000; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=nz1caqPoSGMzaMK6ASuLTQej21TQ0alusWmhbL8KUaA=; b=lFsoc33gNKqw5OzIE2138zfbjuiHx5tGj1avVYzMs+C6e1vB4HAhUPtRoRQkFeHih+oXV32+TW+tsdAonNh1Lbpr+kgbvCQRuVPHgmCgpVEcFXe3cmdSktnpYT5aiCdPpXf1gWthkJ0psmFFqGQZ3/4s3lXPH14dHFN1pmwZpQk4NIkJUWli0VbIRViXvLAgUQfbU8PlA939G3D+hViqigOG/zD4sgXzDid0QroMBcaKxilIB3cHYIm+vc2cJppV8av0oTkoM0X9kpkiEHZSzSd5sGoWfThVbmUTNCYAOBaRNUW0q2kRePrw3s6jeL98fNy5br92xNkEO5J0zEtMvQ=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.d=hotmail.com; dmarc=pass header.from=hotmail.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.d=hotmail.com; dmarc=pass (dis=none) header.from=hotmail.com
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/relaxed; d=hotmail.com; s=selector1; h=from : to : subject : date : message-id : content-type : mime-version; bh=nz1caqPoSGMzaMK6ASuLTQej21TQ0alusWmhbL8KUaA=; b=Qqb0PxGa0+ySzA04M46yP3aUmCOgDckaohrIvRJ3OAM2lpoUP+RPVNTJRd4nVIenIcV+eowVt5GJZNM/WC08X/YujyPaB7TD6fQatunjtOWSA4VFiIJxmFCSch4b33gU71vhernWbD3xK4ym8s8dlDTnjRdpTUk1yd+Bk80Hk2q5//k/9/xhgGTuWTx42vAHYN4AGPdYGhg+ryy/yP70lA+/HAWDs0fx1u0AA0zYpNPiWB3PW3L+XjSBuU5vx4weVMErG+MwMqOK5+z7yqgqEWRPXKxHk+XeJOBMdruMF3cyE84SoDq63Xa4pvAk+MQee7S5GYU4ytMpy94aF1bSpw=='
+      - - From
+        - staff@hotmail.com
+      - - To
+        - fbl@acme.com
+      - - Message-ID
+        - <fbl-1@hotmail.com>
+      - - Subject
+        - 'complaint about message from 192.0.2.10'
+      - - Date
+        - Thu, 27 Aug 2026 12:00:00 +0000
+      - - Content-Type
+        - 'multipart/report; report-type="feedback-report"; boundary="----=_Part_3_1787832000"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: received
@@ -956,6 +1267,33 @@
     rcpt_to: fbl@acme.com
     subject: 'complaint about message from 192.0.2.11'
     message_id: <fbl-2@yahoo.com>
+    headers:
+      - - ARC-Seal
+        - i=1; cv=none; a=rsa-sha256; d=acme.com; s=relay-rsa2048; t=1787905800; b=MlGlpLDFTw9VIo5JpYs0Wdle08Lk7/YG2vcxRe5O5N2ZZRo+Nbrq6aak/Yj1T6OoVzxRxWYyLHRngQST6+kibeCrblegJOPUjk2S8XQcxwB7DHFg8UX/cIasiiDIUZHku9HofW2CPdmTeaTCFvjNhdoGKCpPT6NUOOBDuol9u0BUYsGk+Yb+9h/OQyB/j4AvpHPivbapbkShuiJOuj4IZ5/dxAyZbhV3oLKfXKxOSYiH14LNCrSFhKvViqF+aFT6uHpfGQjvEVELsGWaOVCzoS+OU5k8C92Hs+B0q3uJ6EVhSTzXtLu7W7mqpEP00RA0viD7B1+OLHfr3o9sgN97kg==
+      - - ARC-Message-Signature
+        - 'i=1; a=rsa-sha256; c=relaxed/relaxed; d=acme.com; s=relay-rsa2048; t=1787905800; h=from : to : message-id : subject : content-type : content-transfer-encoding : mime-version : from; bh=qybMGEtIzpsb8vIPU1ZwISTVP2VMEtAOJ9gg+FJRz/w=; b=h87w9vA4nhjwaafy1R+kvcd5Q+hc+mgKmxrz/xQUBne/EwjTepL8B+oEkvEOICM8ER4yZue+WKLHYn+JqvzKfwUlihYT0G8VScu3ppgXb1Ou8l1eSMZbMzMCg7+c8Bi82hESE57LyAOr0FKGabhIIi5kfJuqRb9WCK0Z9QwyYp5rGv7Sl5iG4MHPOVtUMT2R4qEZZY7djdiwCvYhR7tE9zgQaFWNGYTIETF9CdsgKqlJMdqkoKrc5ttTytNAv+EC2XXw7GmOCYAkXdZVRIRy1bN/W3K65uzXqSp3Rnh9y0y5T8NyG9QHIptRk82L5qs/EEJP/yQPy0Om0gfuiZvG/Q=='
+      - - ARC-Authentication-Results
+        - i=1; mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=yahoo.com; dkim=pass header.d=yahoo.com; dmarc=pass header.from=yahoo.com
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=yahoo.com; dkim=pass header.d=yahoo.com; dmarc=pass (dis=none) header.from=yahoo.com
+      - - DKIM-Signature
+        - 'v=1; a=rsa-sha256; c=relaxed/relaxed; d=yahoo.com; s=s1024; h=from : to : subject : date : message-id : content-type : mime-version; bh=qybMGEtIzpsb8vIPU1ZwISTVP2VMEtAOJ9gg+FJRz/w=; b=ED32jcfYOf0x8ocyNtrH6xd3jx7+mVOH5fLOXhTdxz5hmnWGvSiPHQDbFLBpqFc81Ar51Ujds5iZrLbcbzyUfn97oH2dbUcoAzAnwlYAW7RGE3EHVZEZV3XA386zwO8+ood2yyM0cIz5kmfGzhHqHgiERGuZN3SleT4/I2P/05NyunRB386B+L6d9YX/dJOJNMqXh8VZxRUdWt1KOpQ5an0zn/2h/FpuWmsZlf4+RsGehWY8q28hed+jrW/T4X8B7aGtnLOHSkWXoHkTd5M4u8JnHqTIHkQpxTsNRiwl/89LmTGHMrTxGmNRU952TyyT4t4bdDlCKA1C7k+ZAzj0nA=='
+      - - From
+        - feedback-loops@yahoo.com
+      - - To
+        - fbl@acme.com
+      - - Message-ID
+        - <fbl-2@yahoo.com>
+      - - Subject
+        - 'complaint about message from 192.0.2.11'
+      - - Date
+        - Fri, 28 Aug 2026 08:30:00 +0000
+      - - Content-Type
+        - 'multipart/report; report-type="feedback-report"; boundary="----=_Part_4_1787905800"'
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
     raw_body: ''
     received_with_tls: true
     status: received

@@ -1,5 +1,5 @@
 {% extends "message/message_detail.html" %}
-{% load i18n abstract message %}
+{% load i18n abstract %}
 {% block transmission_card %}
   <section class="mb-6 flex flex-col gap-4">
     <h3 class="font-semibold m-0">{% translate "transmission"|capfirst context "noun" %}</h3>
@@ -63,117 +63,6 @@
     {% endif %}
   </section>
 {% endblock %}
-
-{% block extra_sections %}
-  {% if authentication_results or arc_headers %}
-    <div>
-      <h4 class="font-semibold m-0 mb-2">{% translate "authentication"|capfirst %}</h4>
-      <div class="flex flex-col gap-3">
-        {% for auth in authentication_results %}
-          {% if auth.verdicts %}
-            <div class="flex items-center gap-2 flex-wrap">
-              {% if auth.is_relay %}
-                <span class="text-sm font-medium">{% translate "verified by relay"|capfirst %}</span>
-              {% elif auth.authserv_id %}
-                <span class="text-sm text-muted-foreground">
-                  {% translate "evaluated by" %} <code>{{ auth.authserv_id }}</code>
-                </span>
-              {% endif %}
-              {% for verdict in auth.verdicts %}
-                <span class="inline-flex items-center gap-1.5">
-                  <code class="text-sm">{{ verdict.method }}</code>
-                  <span class="badge" data-size="sm" data-variant="{{ verdict.variant }}">{{ verdict.result }}</span>
-                </span>
-              {% endfor %}
-              <button
-                type="button"
-                class="btn"
-                data-variant="outline"
-                data-size="xs"
-                onclick="document.getElementById('authres-{{ forloop.counter }}').showModal()"
-                aria-haspopup="dialog"
-              >
-                {% translate "header"|capfirst %}
-              </button>
-            </div>
-          {% endif %}
-        {% endfor %}
-        {% if arc_headers %}
-          <div>
-            <button
-              type="button"
-              class="btn"
-              data-variant="outline"
-              data-size="xs"
-              onclick="document.getElementById('arc-chain').showModal()"
-              aria-haspopup="dialog"
-            >
-              {% translate "ARC seal chain"|capfirst %}
-            </button>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-    {% for auth in authentication_results %}
-      {% if auth.verdicts %}
-        <dialog
-          id="authres-{{ forloop.counter }}"
-          class="drawer"
-          data-side="bottom"
-          onclick="if (event.target === this) this.close()"
-        >
-          <article>
-            <header>
-              <h2>{% translate "Authentication-Results"|capfirst %}</h2>
-              {% if auth.authserv_id %}
-                <p class="m-0 text-sm text-muted-foreground"><code>{{ auth.authserv_id }}</code></p>
-              {% endif %}
-            </header>
-            <section>
-              {{ auth.raw|highlight_authres }}
-            </section>
-            <footer>
-              <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
-                {% translate "close"|capfirst %}
-              </button>
-            </footer>
-          </article>
-        </dialog>
-      {% endif %}
-    {% endfor %}
-    {% if arc_headers %}
-      <dialog
-        id="arc-chain"
-        class="drawer"
-        data-side="bottom"
-        onclick="if (event.target === this) this.close()"
-      >
-        <article>
-          <header>
-            <h2>{% translate "ARC seal chain"|capfirst %}</h2>
-          </header>
-          <section class="flex flex-col gap-4">
-            {% for key, value in arc_headers %}
-              <div class="flex flex-col gap-1">
-                <code class="text-sm font-semibold">{{ key }}</code>
-                {% if key.lower == "arc-authentication-results" %}
-                  {{ value|highlight_authres }}
-                {% else %}
-                  {{ value|highlight_dkim }}
-                {% endif %}
-              </div>
-            {% endfor %}
-          </section>
-          <footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
-              {% translate "close"|capfirst %}
-            </button>
-          </footer>
-        </article>
-      </dialog>
-    {% endif %}
-  {% endif %}
-{% endblock extra_sections %}
 
 {% block body %}
   {% if is_report %}

@@ -36,15 +36,3 @@ def highlight_header(value: str, name: str = "") -> str:
             return render(value, AuthenticationResultsLexer())
         case _:
             return render(value, HeaderValueLexer())
-
-
-@register.filter
-def highlight_dkim(value: str) -> str:
-    """Convert a DKIM-Signature header value to syntax-colored HTML."""
-    return render(value, DkimTagLexer())
-
-
-@register.filter
-def highlight_authres(value: str) -> str:
-    """Convert an Authentication-Results header to syntax-colored HTML."""
-    return render(value, AuthenticationResultsLexer())
