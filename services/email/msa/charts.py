@@ -84,8 +84,6 @@ def transmission_event(transmission):
         "color": TIMELINE_COLORS[transmission.status],
         "start": int(transmission.started_at.timestamp() * 1000),
         "end": int(transmission.finished_at.timestamp() * 1000),
-        "duration": (transmission.finished_at - transmission.started_at).total_seconds()
-        * 1000,
         "ips": (
             f"{transmission.sending_mta_ip_address or '-'} →"
             f" {transmission.receiving_mx_ip_address or '-'}"
@@ -111,8 +109,6 @@ def spam_check_event(spam_check):
         "color": "var(--color-chart-gray)",
         "start": int(spam_check.started_at.timestamp() * 1000),
         "end": int(spam_check.finished_at.timestamp() * 1000),
-        "duration": (spam_check.finished_at - spam_check.started_at).total_seconds()
-        * 1000,
         "score": spam_check.score,
         "ips": "",
         "tls": "",

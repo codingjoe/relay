@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n static %}
 {% translate "duration" as duration_label %}
 {% translate "click the bar to open the transcript" as transcript_hint %}
 {% translate "score" as score_label %}
@@ -12,6 +12,7 @@
   {{ timeline|json_script:"transmission-timeline" }}
   <script type="module">
     import * as echarts from "https://esm.sh/echarts@5.6.0";
+    import { escapeHtml, toRgba } from "{% static 'abstract/chart.js' %}";
 
     const element = document.getElementById("transmission-profile");
     const events = JSON.parse(
@@ -19,23 +20,6 @@
     );
     if (element && events.length) {
       const locale = document.documentElement.lang || "en";
-      const escapeHtml = (value) =>
-        value.replace(/[&<>"']/g, (character) =>
-          ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
-        );
-      const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-      const swatch = document.body.appendChild(document.createElement("span"));
-      swatch.hidden = true;
-      const toRgba = (value, alpha = 1, fallback = "#71717a") => {
-        const name = value.startsWith("var(") ? value.slice(4, -1) : null;
-        const color = name ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : value;
-        swatch.style.color = color || fallback;
-        probe.clearRect(0, 0, 1, 1);
-        probe.fillStyle = getComputedStyle(swatch).color;
-        probe.fillRect(0, 0, 1, 1);
-        const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
-        return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
-      };
       const msFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
       const secondFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
       const timeFormat = new Intl.DateTimeFormat(locale, {
@@ -52,8 +36,8 @@
       const tooltipHtml = (event) =>
         [
           `<strong>${escapeHtml(event.name)}</strong>`,
-          event.duration
-            ? `{{ duration_label|escapejs }}: ${formatDuration(event.duration)}`
+          event.end - event.start
+            ? `{{ duration_label|escapejs }}: ${formatDuration(event.end - event.start)}`
             : "",
           `${formatClock(event.start)} → ${formatClock(event.end)}`,
           event.score == null
@@ -168,7 +152,7 @@
             encode: { x: [1, 2], y: 0 },
             data: events.map((event, index) => ({
               name: event.name,
-              value: [index, event.start, event.end, event.duration],
+              value: [index, event.start, event.end],
               itemStyle: { color: toRgba(event.color) },
               event: event,
             })),

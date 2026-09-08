@@ -94,12 +94,13 @@ def build_incoming_timeline(message, deliveries):
         "color": "var(--color-chart-blue)",
         "start": int(message.created_at.timestamp() * 1000),
         "end": int(message.created_at.timestamp() * 1000),
-        "duration": 0,
         "ips": "",
         "tls": tls,
         "transcript": f"reception-{message.pk}",
     }
-    for delivery in deliveries:
+    for delivery in sorted(
+        deliveries, key=lambda delivery: (delivery.started_at, delivery.created_at)
+    ):
         yield {
             "name": (
                 f"{delivery.get_status_display()}"
@@ -108,8 +109,6 @@ def build_incoming_timeline(message, deliveries):
             "color": TIMELINE_COLORS[delivery.status],
             "start": int(delivery.started_at.timestamp() * 1000),
             "end": int(delivery.finished_at.timestamp() * 1000),
-            "duration": (delivery.finished_at - delivery.started_at).total_seconds()
-            * 1000,
             "ips": "",
             "tls": "",
             "transcript": (
