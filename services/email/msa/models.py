@@ -232,7 +232,7 @@ class Transmission(Timing):
         """Return the display name of this transmission."""
         target = self.mx_host or self.submission_ip_address or ""
         name = self.get_status_display()
-        return f"{name} · {target}" if target else name
+        return f"{name} ({target})" if target else name
 
     def __str__(self):
         return f"{self.message} → {self.status}"
