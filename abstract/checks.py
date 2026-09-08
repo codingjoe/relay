@@ -8,7 +8,9 @@ def check_uuid_pk_for_message_related(app_configs, **kwargs):
     """Warn if a model with a FK to a UUID-PK model does not use a UUID PK."""
     errors = []
     for model in apps.get_models():
-        pk = model._meta.pk
+        # Multi-table children point their parent-link primary key at the
+        # parent's UUID pk, so unwrap the relation before checking the type.
+        pk = getattr(model._meta.pk, "target_field", model._meta.pk)
         if not isinstance(pk, UUIDField):
             errors.extend(
                 Warning(

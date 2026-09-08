@@ -261,6 +261,8 @@ def check_outgoing_spam(message_pk, client_ip):
     Messages for suspended orgs are dropped without a spam check. Clean
     messages are enqueued for delivery.
     """
+    from services.email.message.models import Timing
+
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
@@ -281,7 +283,14 @@ def check_outgoing_spam(message_pk, client_ip):
         return
 
     raw_bytes = message.raw_body.read()
-    spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    with measure() as interval:
+        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    Timing.objects.create(
+        message=message,
+        stage="spam-check",
+        started_at=interval.started_at,
+        finished_at=interval.finished_at,
+    )
     is_spam = (
         spam.action == SpamAction.REJECT
         or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE

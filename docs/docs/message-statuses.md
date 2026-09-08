@@ -110,7 +110,11 @@ spans the time relay measured for that attempt: a submission bar covers the
 SMTP transaction, a delivery bar covers the connection to the MX host. The
 gaps between bars show how long the message waited in the queue or between
 retries. Green bars mark successful attempts, red bars mark failures, and
-yellow bars mark pending records such as `submitted`.
+yellow bars mark retries. Blue bars mark the submission leg and gray bars
+mark internal processing stages, such as the spam check. Hover a bar to
+see its duration in milliseconds, its exact start and end times, the IP
+path, and the negotiated TLS settings. Click a bar to open the full SMTP
+transcript.
 
 The same applies for inbound messages: one delivery record per webhook POST
 with the URL, response code, and a response excerpt.

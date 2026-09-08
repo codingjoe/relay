@@ -1,7 +1,5 @@
 import datetime
 import hashlib
-import uuid
-from collections.abc import Iterator
 from enum import nonmember
 
 from django.core.validators import validate_email
@@ -13,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from abstract.models import FetchPeersManager, TimeStamped
 from accounts.models import Credential, OrganizationOwned
 from kms.models import Certificate
-from services.email.message.models import Message
+from services.email.message.models import Message, Timing
 from services.email.tls import parse_peer_certificates
 
 
@@ -73,43 +71,7 @@ class OutgoingMessage(Message):
     url_name = "message-detail"
 
 
-class TransmissionQuerySet(models.QuerySet):
-    def gantt(self) -> str:
-        """
-        Return a Mermaid Gantt definition plotting the transmissions on a time axis.
-
-        Every bar spans a transmission's own start and finish, so the chart
-        shows real leg durations and the gaps between bars show queueing and
-        retry delays the way a browser network waterfall does.
-        """
-        return "\n".join(self.gantt_lines())
-
-    def gantt_lines(self) -> Iterator[str]:
-        """Yield the Mermaid Gantt definition for the transmissions, line by line."""
-        yield "gantt"
-        yield "    dateFormat YYYY-MM-DD HH:mm:ss.SSS"
-        yield "    axisFormat %H:%M:%S"
-        yield "    todayMarker off"
-        for transmission in self.order_by("created_at"):
-            match transmission.status_badge_variant:
-                case "success":
-                    tag = "done"
-                case "destructive":
-                    tag = "crit"
-                case _:
-                    tag = "active"
-            name = transmission.get_status_display()
-            target = transmission.mx_host or transmission.submission_ip_address or ""
-            if target:
-                name = f"{name} → {target.replace(':', ' ')}"
-            yield (
-                f"    {name} :{tag}, {transmission.pk},"
-                f" {timezone.localtime(transmission.started_at).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]},"
-                f" {timezone.localtime(transmission.finished_at).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}"
-            )
-
-
-class Transmission(TimeStamped):
+class Transmission(Timing):
     """
     Track a single SMTP leg of an outgoing message.
 
@@ -129,16 +91,6 @@ class Transmission(TimeStamped):
         STARTTLS = "starttls", "STARTTLS"
         TLS = "tls", "TLS"
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
-    message = models.ForeignKey(
-        OutgoingMessage,
-        on_delete=models.CASCADE,
-        related_name="transmissions",
-    )
     mx_host = models.TextField(
         _("MX host"),
         blank=True,
@@ -211,16 +163,8 @@ class Transmission(TimeStamped):
         blank=True,
         help_text=_("Remote server log identifier."),
     )
-    started_at = models.DateTimeField(
-        _("started"),
-        help_text=_("When this transmission leg started."),
-    )
-    finished_at = models.DateTimeField(
-        _("finished"),
-        help_text=_("When this transmission leg ended."),
-    )
 
-    objects = FetchPeersManager.from_queryset(TransmissionQuerySet)()
+    objects = FetchPeersManager()
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]

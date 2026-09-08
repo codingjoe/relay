@@ -53,6 +53,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - All fields must have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
+- Index fields used for ordering. A field listed in `Meta.ordering` needs an
+  index (for example, `Timing.started_at`).
 - Drop `class Meta` entirely if it only inherits without overriding anything.
 - Use `TextField` instead of `CharField` for all fields unless you
   specifically want Django's `max_length` validation. In PostgreSQL there
@@ -314,6 +316,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - The shared app owns the merged list views and the template-tag
   library. Siblings keep their own detail views.
+
+- Do not give fields on shared models `choices` when the vocabulary belongs
+  to a sibling app: enumerating it in the shared app creates a dependency
+  loop. Store free-form values instead (for example, `Timing.stage`).
 
 ## Markdown docs apps
 

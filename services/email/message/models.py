@@ -310,3 +310,39 @@ class Message(TimeStamped):
     def headers_text(self) -> str:
         """Return the message headers as RFC 5322 header lines."""
         return "\n".join(f"{name}: {value}" for name, value in self.parsed_headers)
+
+
+class Timing(TimeStamped):
+    """Record the wall-clock duration of a message processing stage."""
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="timings",
+    )
+    stage = models.TextField(
+        _("stage"),
+        blank=True,
+        default="",
+        help_text=_("Processing stage this timing measured, for example spam-check."),
+    )
+    started_at = models.DateTimeField(
+        _("started"),
+        help_text=_("When this stage started."),
+    )
+    finished_at = models.DateTimeField(
+        _("finished"),
+        help_text=_("When this stage ended."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        ordering = ["started_at", "created_at"]
+        indexes = [models.Index(fields=["message", "started_at"])]
+
+    def __str__(self):
+        return f"{self.message} · {self.stage}"
