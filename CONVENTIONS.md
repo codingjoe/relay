@@ -54,7 +54,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - All fields must have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
 - Index fields used for ordering. A field listed in `Meta.ordering` needs an
-  index (for example, `Timing.started_at`).
+  index (for example, `SpamCheck.started_at`).
 - Drop `class Meta` entirely if it only inherits without overriding anything.
 - Use `TextField` instead of `CharField` for all fields unless you
   specifically want Django's `max_length` validation. In PostgreSQL there
@@ -297,6 +297,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - When sibling models share most columns, promote the shared columns
   to a concrete parent. Per-kind fields stay on the children.
 
+- When siblings share only a couple of columns, prefer an abstract base
+  with concrete per-scenario models over multi-table inheritance. The
+  base carries the shared behavior (for example, the `Timing` context
+  manager and its label); the concrete models own the fields.
+
 - Indexes on shared columns live on the parent's `Meta.indexes`.
   Per-kind indexes stay on the child.
 
@@ -316,10 +321,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - The shared app owns the merged list views and the template-tag
   library. Siblings keep their own detail views.
-
-- Do not give fields on shared models `choices` when the vocabulary belongs
-  to a sibling app: enumerating it in the shared app creates a dependency
-  loop. Store free-form values instead (for example, `Timing.stage`).
 
 ## Markdown docs apps
 

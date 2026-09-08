@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import uuid
 from enum import nonmember
 
 from django.core.validators import validate_email
@@ -9,9 +10,10 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import FetchPeersManager, TimeStamped
+from abstract.timing import Timing
 from accounts.models import Credential, OrganizationOwned
 from kms.models import Certificate
-from services.email.message.models import Message, Timing
+from services.email.message.models import Message
 from services.email.tls import parse_peer_certificates
 
 
@@ -91,6 +93,16 @@ class Transmission(Timing):
         STARTTLS = "starttls", "STARTTLS"
         TLS = "tls", "TLS"
 
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+    message = models.ForeignKey(
+        OutgoingMessage,
+        on_delete=models.CASCADE,
+        related_name="transmissions",
+    )
     mx_host = models.TextField(
         _("MX host"),
         blank=True,
@@ -163,6 +175,14 @@ class Transmission(Timing):
         blank=True,
         help_text=_("Remote server log identifier."),
     )
+    started_at = models.DateTimeField(
+        _("started"),
+        help_text=_("When this transmission leg started."),
+    )
+    finished_at = models.DateTimeField(
+        _("finished"),
+        help_text=_("When this transmission leg ended."),
+    )
 
     objects = FetchPeersManager()
 
@@ -208,8 +228,43 @@ class Transmission(Timing):
             case _:
                 return "outline"
 
+    @property
+    def label(self) -> str:
+        """Return the display name of this transmission."""
+        target = self.mx_host or self.submission_ip_address or ""
+        name = self.get_status_display()
+        return f"{name} → {target}" if target else name
+
     def __str__(self):
         return f"{self.message} → {self.status}"
+
+
+class SpamCheck(Timing):
+    """Record the wall-clock duration of a spam check."""
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+    message = models.ForeignKey(
+        OutgoingMessage,
+        on_delete=models.CASCADE,
+        related_name="spam_checks",
+    )
+    started_at = models.DateTimeField(
+        _("started"),
+        help_text=_("When the spam check started."),
+    )
+    finished_at = models.DateTimeField(
+        _("finished"),
+        help_text=_("When the spam check finished."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        ordering = ["started_at", "created_at"]
+        indexes = [models.Index(fields=["message", "started_at"])]
+        verbose_name = _("spam check")
 
 
 class MsaCredential(Credential):

@@ -6,7 +6,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -311,52 +310,3 @@ class Message(TimeStamped):
     def headers_text(self) -> str:
         """Return the message headers as RFC 5322 header lines."""
         return "\n".join(f"{name}: {value}" for name, value in self.parsed_headers)
-
-
-class Timing(TimeStamped):
-    """
-    Record the wall-clock duration of a message processing stage.
-
-    Use as a context manager to time a block and persist the timing on exit.
-    """
-
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
-    message = models.ForeignKey(
-        Message,
-        on_delete=models.CASCADE,
-        related_name="timings",
-    )
-    stage = models.TextField(
-        _("stage"),
-        blank=True,
-        help_text=_("Processing stage this timing measured, for example spam-check."),
-    )
-    started_at = models.DateTimeField(
-        _("started"),
-        help_text=_("When this stage started."),
-    )
-    finished_at = models.DateTimeField(
-        _("finished"),
-        help_text=_("When this stage ended."),
-    )
-
-    class Meta(TimeStamped.Meta):
-        ordering = ["started_at", "created_at"]
-        indexes = [models.Index(fields=["message", "started_at"])]
-
-    def __str__(self):
-        return f"{self.message} · {self.stage}"
-
-    def __enter__(self):
-        """Stamp the start of the timed block."""
-        self.started_at = timezone.now()
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Stamp the end of the timed block and persist the timing."""
-        self.finished_at = timezone.now()
-        self.save(force_insert=True)

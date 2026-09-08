@@ -13,13 +13,18 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.dkim import sign_message
 from domains.models import Domain
-from services.email.message.models import Timing
 from services.email.message.views import MessageBreadcrumbMixin
 
 from .charts import build_suppression_chart, build_timeline
 from .forms import SuppressionEntryForm
 from .handlers import add_feedback_id, store_outgoing_message
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
+from .models import (
+    MsaCredential,
+    OutgoingMessage,
+    SpamCheck,
+    SuppressionEntry,
+    Transmission,
+)
 
 
 class OutgoingMessageDetailView(
@@ -46,18 +51,19 @@ class OutgoingMessageDetailView(
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = message.parsed_headers
-        timings = Timing.objects.filter(message=message).select_related(
-            "transmission__tls_certificate"
-        )
         transmissions = Transmission.objects.filter(message=message).select_related(
-            "timing_ptr", "tls_certificate"
+            "tls_certificate"
         )
         return context | {
             "headers": headers,
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
             "transmissions": transmissions,
-            "timeline": list(build_timeline(timings)),
+            "timeline": list(
+                build_timeline(
+                    [*SpamCheck.objects.filter(message=message), *transmissions]
+                )
+            ),
         }
 
 

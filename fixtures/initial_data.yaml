@@ -454,18 +454,11 @@
     credential: 1
     feedback_id: 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
     status: sent
-- model: message.timing
+- model: msa.transmission
   pk: 019fbe8f-5ede-773a-8790-f0386847a6ac
   fields:
     modified_at: 2026-08-22 09:14:30+00:00
     created_at: 2026-08-22 09:14:30+00:00
-    message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
-    stage: ''
-    started_at: 2026-08-22 09:14:27+00:00
-    finished_at: 2026-08-22 09:14:30+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5ede-773a-8790-f0386847a6ac
-  fields:
     message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
     status: sent
     code: 250
@@ -479,18 +472,13 @@
     sending_mta_ip_address: 116.203.34.11
     receiving_mx_ip_address: 172.253.148.27
     log_id: ''
-- model: message.timing
+    started_at: 2026-08-22 09:14:27+00:00
+    finished_at: 2026-08-22 09:14:30+00:00
+- model: msa.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
   fields:
     modified_at: 2026-08-24 11:30:30+00:00
     created_at: 2026-08-24 11:30:30+00:00
-    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
-    stage: ''
-    started_at: 2026-08-24 11:30:26+00:00
-    finished_at: 2026-08-24 11:30:30+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
-  fields:
     message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
     status: sent
     code: 250
@@ -504,18 +492,28 @@
     sending_mta_ip_address: 116.203.34.11
     receiving_mx_ip_address: 103.168.172.222
     log_id: ''
-- model: message.timing
+    started_at: 2026-08-24 11:30:26+00:00
+    finished_at: 2026-08-24 11:30:30+00:00
+- model: msa.transmission
+  pk: 019fbe8f-5ee0-7a10-9a41-c8f012345681
+  fields:
+    modified_at: '2026-08-24 11:30:25.5+00:00'
+    created_at: '2026-08-24 11:30:25.5+00:00'
+    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    submission_ip_address: 203.0.113.9
+    log_id: ''
+    started_at: '2026-08-24 11:30:25+00:00'
+    finished_at: '2026-08-24 11:30:25.5+00:00'
+- model: msa.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
   fields:
     modified_at: 2026-08-25 15:45:30+00:00
     created_at: 2026-08-25 15:45:30+00:00
-    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
-    stage: ''
-    started_at: 2026-08-25 15:45:28+00:00
-    finished_at: 2026-08-25 15:45:30+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
-  fields:
     message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
     status: sent
     code: 250
@@ -529,15 +527,23 @@
     sending_mta_ip_address: 116.203.34.11
     receiving_mx_ip_address: 185.205.70.128
     log_id: ''
-- model: message.timing
-  pk: 019fbe8f-5edd-7b2e-9a41-c8f012345678
+    started_at: 2026-08-25 15:45:28+00:00
+    finished_at: 2026-08-25 15:45:30+00:00
+- model: msa.transmission
+  pk: 019fbe8f-5ee2-7a10-9a41-c8f012345683
   fields:
-    modified_at: 2026-08-22 09:14:27+00:00
-    created_at: 2026-08-22 09:14:27+00:00
-    message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
-    stage: spam-check
-    started_at: 2026-08-22 09:14:26.500000+00:00
-    finished_at: 2026-08-22 09:14:27+00:00
+    modified_at: '2026-08-25 15:45:27.5+00:00'
+    created_at: '2026-08-25 15:45:27.5+00:00'
+    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    submission_ip_address: 203.0.113.9
+    log_id: ''
+    started_at: '2026-08-25 15:45:27+00:00'
+    finished_at: '2026-08-25 15:45:27.5+00:00'
 - model: msa.msacredential
   pk: 1
   fields:
@@ -1186,18 +1192,11 @@
     status: sent
     response_code: 200
     response_body: '{"status":"ok"}'
-- model: message.timing
-  pk: 019fbe8f-5fcc-710b-a02b-fcc22eed5854
-  fields:
-    modified_at: 2026-08-22 09:14:26.500000+00:00
-    created_at: 2026-08-22 09:14:26.500000+00:00
-    message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
-    stage: ''
-    started_at: 2026-08-22 09:14:26+00:00
-    finished_at: 2026-08-22 09:14:26.500000+00:00
 - model: msa.transmission
   pk: 019fbe8f-5fcc-710b-a02b-fcc22eed5854
   fields:
+    modified_at: '2026-08-22 09:14:26.5+00:00'
+    created_at: '2026-08-22 09:14:26.5+00:00'
     message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
     status: submitted
     code: 250
@@ -1206,18 +1205,13 @@
     tls_mode: plaintext
     submission_ip_address: 203.0.113.9
     log_id: ''
-- model: message.timing
+    started_at: '2026-08-22 09:14:26+00:00'
+    finished_at: '2026-08-22 09:14:26.5+00:00'
+- model: msa.transmission
   pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
   fields:
     modified_at: 2026-08-23 13:21:30+00:00
     created_at: 2026-08-23 13:21:00+00:00
-    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
-    stage: ''
-    started_at: 2026-08-23 13:20:57+00:00
-    finished_at: 2026-08-23 13:21:00+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
-  fields:
     message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
     status: bounced
     code: 450
@@ -1225,18 +1219,28 @@
     details: Temporary rejection, message retried
     tls_mode: starttls
     log_id: ''
-- model: message.timing
+    started_at: 2026-08-23 13:20:57+00:00
+    finished_at: 2026-08-23 13:21:00+00:00
+- model: msa.transmission
+  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
+  fields:
+    modified_at: '2026-08-23 13:20:55.5+00:00'
+    created_at: '2026-08-23 13:20:55.5+00:00'
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    submission_ip_address: 203.0.113.9
+    log_id: ''
+    started_at: '2026-08-23 13:20:55+00:00'
+    finished_at: '2026-08-23 13:20:55.5+00:00'
+- model: msa.transmission
   pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
   fields:
     modified_at: 2026-08-23 13:22:30+00:00
     created_at: 2026-08-23 13:22:00+00:00
-    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
-    stage: ''
-    started_at: 2026-08-23 13:21:57+00:00
-    finished_at: 2026-08-23 13:22:00+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
-  fields:
     message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
     status: bounced
     code: 551
@@ -1244,18 +1248,28 @@
     details: Bounce received after retry
     tls_mode: plaintext
     log_id: ''
-- model: message.timing
+    started_at: 2026-08-23 13:21:57+00:00
+    finished_at: 2026-08-23 13:22:00+00:00
+- model: msa.transmission
+  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
+  fields:
+    modified_at: '2026-08-23 13:20:55.5+00:00'
+    created_at: '2026-08-23 13:20:55.5+00:00'
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    submission_ip_address: 203.0.113.9
+    log_id: ''
+    started_at: '2026-08-23 13:20:55+00:00'
+    finished_at: '2026-08-23 13:20:55.5+00:00'
+- model: msa.transmission
   pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
   fields:
     modified_at: 2026-08-27 17:11:00+00:00
     created_at: 2026-08-27 17:11:00+00:00
-    message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
-    stage: ''
-    started_at: 2026-08-27 17:10:55+00:00
-    finished_at: 2026-08-27 17:11:00+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
-  fields:
     message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
     status: retry
     code: 451
@@ -1263,134 +1277,13 @@
     details: Temporary failure, will retry
     tls_mode: plaintext
     log_id: ''
-- model: message.timing
-  pk: 019fbe8f-5ee0-7a10-9a41-c8f012345681
-  fields:
-    modified_at: 2026-08-24 11:30:25.500000+00:00
-    created_at: 2026-08-24 11:30:25.500000+00:00
-    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
-    stage: ''
-    started_at: 2026-08-24 11:30:25+00:00
-    finished_at: 2026-08-24 11:30:25.500000+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5ee0-7a10-9a41-c8f012345681
-  fields:
-    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
-    status: submitted
-    code: 250
-    output: 250 OK
-    details: ''
-    tls_mode: plaintext
-    submission_ip_address: 203.0.113.9
-    log_id: ''
-- model: message.timing
-  pk: 019fbe8f-5ee0-7a10-9a41-c8f012345682
-  fields:
-    modified_at: 2026-08-24 11:30:26+00:00
-    created_at: 2026-08-24 11:30:26+00:00
-    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
-    stage: spam-check
-    started_at: 2026-08-24 11:30:25.500000+00:00
-    finished_at: 2026-08-24 11:30:26+00:00
-- model: message.timing
-  pk: 019fbe8f-5ee2-7a10-9a41-c8f012345683
-  fields:
-    modified_at: 2026-08-25 15:45:27.500000+00:00
-    created_at: 2026-08-25 15:45:27.500000+00:00
-    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
-    stage: ''
-    started_at: 2026-08-25 15:45:27+00:00
-    finished_at: 2026-08-25 15:45:27.500000+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5ee2-7a10-9a41-c8f012345683
-  fields:
-    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
-    status: submitted
-    code: 250
-    output: 250 OK
-    details: ''
-    tls_mode: plaintext
-    submission_ip_address: 203.0.113.9
-    log_id: ''
-- model: message.timing
-  pk: 019fbe8f-5ee2-7a10-9a41-c8f012345684
-  fields:
-    modified_at: 2026-08-25 15:45:28+00:00
-    created_at: 2026-08-25 15:45:28+00:00
-    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
-    stage: spam-check
-    started_at: 2026-08-25 15:45:27.500000+00:00
-    finished_at: 2026-08-25 15:45:28+00:00
-- model: message.timing
-  pk: 019fbe8f-5f6d-7a10-9a41-c8f012345685
-  fields:
-    modified_at: 2026-08-26 08:05:25.500000+00:00
-    created_at: 2026-08-26 08:05:25.500000+00:00
-    message: 019fbe8f-5f6c-7190-8625-4fb14169749e
-    stage: ''
-    started_at: 2026-08-26 08:05:25+00:00
-    finished_at: 2026-08-26 08:05:25.500000+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5f6d-7a10-9a41-c8f012345685
-  fields:
-    message: 019fbe8f-5f6c-7190-8625-4fb14169749e
-    status: submitted
-    code: 250
-    output: 250 OK
-    details: ''
-    tls_mode: plaintext
-    submission_ip_address: 203.0.113.9
-    log_id: ''
-- model: message.timing
-  pk: 019fbe8f-5f6d-7a10-9a41-c8f012345686
-  fields:
-    modified_at: 2026-08-26 08:05:26+00:00
-    created_at: 2026-08-26 08:05:26+00:00
-    message: 019fbe8f-5f6c-7190-8625-4fb14169749e
-    stage: spam-check
-    started_at: 2026-08-26 08:05:25.500000+00:00
-    finished_at: 2026-08-26 08:05:26+00:00
-- model: message.timing
-  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
-  fields:
-    modified_at: 2026-08-23 13:20:55.500000+00:00
-    created_at: 2026-08-23 13:20:55.500000+00:00
-    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
-    stage: ''
-    started_at: 2026-08-23 13:20:55+00:00
-    finished_at: 2026-08-23 13:20:55.500000+00:00
-- model: msa.transmission
-  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
-  fields:
-    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
-    status: submitted
-    code: 250
-    output: 250 OK
-    details: ''
-    tls_mode: plaintext
-    submission_ip_address: 203.0.113.9
-    log_id: ''
-- model: message.timing
-  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345688
-  fields:
-    modified_at: 2026-08-23 13:20:56+00:00
-    created_at: 2026-08-23 13:20:56+00:00
-    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
-    stage: spam-check
-    started_at: 2026-08-23 13:20:55.500000+00:00
-    finished_at: 2026-08-23 13:20:56+00:00
-- model: message.timing
-  pk: 019fbe8f-5f8d-7a10-9a41-c8f012345689
-  fields:
-    modified_at: 2026-08-27 17:10:53.500000+00:00
-    created_at: 2026-08-27 17:10:53.500000+00:00
-    message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
-    stage: ''
-    started_at: 2026-08-27 17:10:53+00:00
-    finished_at: 2026-08-27 17:10:53.500000+00:00
+    started_at: 2026-08-27 17:10:55+00:00
+    finished_at: 2026-08-27 17:11:00+00:00
 - model: msa.transmission
   pk: 019fbe8f-5f8d-7a10-9a41-c8f012345689
   fields:
+    modified_at: '2026-08-27 17:10:53.5+00:00'
+    created_at: '2026-08-27 17:10:53.5+00:00'
     message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
     status: submitted
     code: 250
@@ -1399,15 +1292,56 @@
     tls_mode: tls
     submission_ip_address: 203.0.113.9
     log_id: ''
-- model: message.timing
+    started_at: '2026-08-27 17:10:53+00:00'
+    finished_at: '2026-08-27 17:10:53.5+00:00'
+- model: msa.spamcheck
+  pk: 019fbe8f-5edd-7b2e-9a41-c8f012345678
+  fields:
+    modified_at: '2026-08-22 09:14:27+00:00'
+    created_at: '2026-08-22 09:14:27+00:00'
+    message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
+    started_at: '2026-08-22 09:14:26.5+00:00'
+    finished_at: '2026-08-22 09:14:27+00:00'
+- model: msa.spamcheck
+  pk: 019fbe8f-5ee0-7a10-9a41-c8f012345682
+  fields:
+    modified_at: '2026-08-24 11:30:26+00:00'
+    created_at: '2026-08-24 11:30:26+00:00'
+    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
+    started_at: '2026-08-24 11:30:25.5+00:00'
+    finished_at: '2026-08-24 11:30:26+00:00'
+- model: msa.spamcheck
+  pk: 019fbe8f-5ee2-7a10-9a41-c8f012345684
+  fields:
+    modified_at: '2026-08-25 15:45:28+00:00'
+    created_at: '2026-08-25 15:45:28+00:00'
+    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
+    started_at: '2026-08-25 15:45:27.5+00:00'
+    finished_at: '2026-08-25 15:45:28+00:00'
+- model: msa.spamcheck
+  pk: 019fbe8f-5f6d-7a10-9a41-c8f012345686
+  fields:
+    modified_at: '2026-08-26 08:05:26+00:00'
+    created_at: '2026-08-26 08:05:26+00:00'
+    message: 019fbe8f-5f6c-7190-8625-4fb14169749e
+    started_at: '2026-08-26 08:05:25.5+00:00'
+    finished_at: '2026-08-26 08:05:26+00:00'
+- model: msa.spamcheck
+  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345688
+  fields:
+    modified_at: '2026-08-23 13:20:56+00:00'
+    created_at: '2026-08-23 13:20:56+00:00'
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    started_at: '2026-08-23 13:20:55.5+00:00'
+    finished_at: '2026-08-23 13:20:56+00:00'
+- model: msa.spamcheck
   pk: 019fbe8f-5f8d-7a10-9a41-c8f01234568a
   fields:
-    modified_at: 2026-08-27 17:10:54+00:00
-    created_at: 2026-08-27 17:10:54+00:00
+    modified_at: '2026-08-27 17:10:54+00:00'
+    created_at: '2026-08-27 17:10:54+00:00'
     message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
-    stage: spam-check
-    started_at: 2026-08-27 17:10:53.500000+00:00
-    finished_at: 2026-08-27 17:10:54+00:00
+    started_at: '2026-08-27 17:10:53.5+00:00'
+    finished_at: '2026-08-27 17:10:54+00:00'
 - model: message.message
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0001
   fields:
@@ -1540,3 +1474,18 @@
     original_mail_from: sender2@acme.com
     original_rcpt_to: recipient2@example.com
     original_message_id: <test2@acme.com>
+- model: msa.transmission
+  pk: 019fbe8f-5f6d-7a10-9a41-c8f012345685
+  fields:
+    modified_at: '2026-08-26 08:05:25.5+00:00'
+    created_at: '2026-08-26 08:05:25.5+00:00'
+    message: 019fbe8f-5f6c-7190-8625-4fb14169749e
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    submission_ip_address: 203.0.113.9
+    log_id: ''
+    started_at: '2026-08-26 08:05:25+00:00'
+    finished_at: '2026-08-26 08:05:25.5+00:00'

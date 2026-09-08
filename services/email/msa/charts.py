@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from abstract.charts import CHART_DAYS, build_chart_data
 
-from .models import OutgoingMessage, SuppressionEntry, Transmission
+from .models import OutgoingMessage, SpamCheck, SuppressionEntry, Transmission
 
 CHART_COLORS = {
     "sent": "var(--color-chart-green)",
@@ -29,7 +29,6 @@ TIMELINE_COLORS = {
     "retry": "var(--color-chart-yellow)",
     "failed": "var(--color-chart-red)",
     "bounced": "var(--color-chart-red)",
-    "spam-check": "var(--color-chart-gray)",
 }
 
 
@@ -71,10 +70,6 @@ def build_suppression_chart(org):
 
 def transmission_event(transmission):
     """Return one profile chart event for a transmission."""
-    target = transmission.mx_host or transmission.submission_ip_address or ""
-    name = transmission.get_status_display()
-    if target:
-        name = f"{name} → {target}"
     tls = " · ".join(
         part
         for part in (
@@ -85,7 +80,7 @@ def transmission_event(transmission):
         if part
     )
     return {
-        "name": name,
+        "name": transmission.label,
         "color": TIMELINE_COLORS[transmission.status],
         "start": int(transmission.started_at.timestamp() * 1000),
         "end": int(transmission.finished_at.timestamp() * 1000),
@@ -109,14 +104,15 @@ def transmission_event(transmission):
     }
 
 
-def timing_event(timing):
-    """Return one profile chart event for an internal processing stage."""
+def spam_check_event(spam_check):
+    """Return one profile chart event for a spam check."""
     return {
-        "name": timing.stage.replace("-", " "),
-        "color": TIMELINE_COLORS.get(timing.stage, "var(--color-chart-gray)"),
-        "start": int(timing.started_at.timestamp() * 1000),
-        "end": int(timing.finished_at.timestamp() * 1000),
-        "duration": (timing.finished_at - timing.started_at).total_seconds() * 1000,
+        "name": spam_check.label,
+        "color": "var(--color-chart-gray)",
+        "start": int(spam_check.started_at.timestamp() * 1000),
+        "end": int(spam_check.finished_at.timestamp() * 1000),
+        "duration": (spam_check.finished_at - spam_check.started_at).total_seconds()
+        * 1000,
         "ips": "",
         "tls": "",
         "transcript": "",
@@ -131,10 +127,11 @@ def build_timeline(timings):
     real leg durations and the gaps between bars show queueing and retry
     delays the way a browser network waterfall does.
     """
-    for timing in timings:
-        try:
-            transmission = timing.transmission
-        except Transmission.DoesNotExist:
-            yield timing_event(timing)
-        else:
-            yield transmission_event(transmission)
+    for timing in sorted(
+        timings, key=lambda timing: (timing.started_at, timing.created_at)
+    ):
+        match timing:
+            case Transmission():
+                yield transmission_event(timing)
+            case SpamCheck():
+                yield spam_check_event(timing)

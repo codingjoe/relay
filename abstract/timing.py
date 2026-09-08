@@ -7,6 +7,36 @@ from dataclasses import dataclass
 
 from django.utils import timezone
 
+from abstract.models import TimeStamped
+
+
+class Timing(TimeStamped):
+    """
+    Time a block of code and label it for the message timeline.
+
+    Use as a context manager to stamp the start and end of a block and
+    persist the timing on exit. Concrete timings implement the fields and
+    override the label.
+    """
+
+    class Meta:
+        abstract = True
+
+    def __enter__(self):
+        """Stamp the start of the timed block."""
+        self.started_at = timezone.now()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Stamp the end of the timed block and persist the timing."""
+        self.finished_at = timezone.now()
+        self.save(force_insert=True)
+
+    @property
+    def label(self) -> str:
+        """Return the display name of this timing."""
+        return str(self._meta.verbose_name)
+
 
 @dataclass(slots=True)
 class Interval:
