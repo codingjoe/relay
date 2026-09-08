@@ -178,11 +178,6 @@ class WebhookDelivery(Timing):
         SENT = "sent", _("sent")
         FAILED = "failed", _("failed")
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
     message = models.ForeignKey(
         IncomingMessage,
         on_delete=models.CASCADE,
@@ -216,14 +211,6 @@ class WebhookDelivery(Timing):
         _("response body"),
         blank=True,
         help_text=_("Truncated response body from the webhook endpoint."),
-    )
-    started_at = models.DateTimeField(
-        _("started"),
-        help_text=_("When the webhook delivery started."),
-    )
-    finished_at = models.DateTimeField(
-        _("finished"),
-        help_text=_("When the webhook delivery finished."),
     )
 
     class Meta(TimeStamped.Meta):

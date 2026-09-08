@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -37,9 +39,22 @@ class Timing(TimeStamped):
     Time a block of code and label it for the message timeline.
 
     Use as a context manager to stamp the start and end of a block and
-    persist the timing on exit. Concrete timings implement the fields and
-    override the label.
+    persist the timing on exit. Concrete timings override the label.
     """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+    started_at = models.DateTimeField(
+        _("started"),
+        help_text=_("When the timing started."),
+    )
+    finished_at = models.DateTimeField(
+        _("finished"),
+        help_text=_("When the timing finished."),
+    )
 
     class Meta:
         abstract = True

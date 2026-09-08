@@ -1,6 +1,5 @@
 import datetime
 import hashlib
-import uuid
 from enum import nonmember
 
 from django.core.validators import validate_email
@@ -92,11 +91,6 @@ class Transmission(Timing):
         STARTTLS = "starttls", "STARTTLS"
         TLS = "tls", "TLS"
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
     message = models.ForeignKey(
         OutgoingMessage,
         on_delete=models.CASCADE,
@@ -174,14 +168,6 @@ class Transmission(Timing):
         blank=True,
         help_text=_("Remote server log identifier."),
     )
-    started_at = models.DateTimeField(
-        _("started"),
-        help_text=_("When this transmission leg started."),
-    )
-    finished_at = models.DateTimeField(
-        _("finished"),
-        help_text=_("When this transmission leg ended."),
-    )
 
     objects = FetchPeersManager()
 
@@ -241,23 +227,10 @@ class Transmission(Timing):
 class SpamCheck(Timing):
     """Record the wall-clock duration of a spam check."""
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
     message = models.ForeignKey(
         OutgoingMessage,
         on_delete=models.CASCADE,
         related_name="spam_checks",
-    )
-    started_at = models.DateTimeField(
-        _("started"),
-        help_text=_("When the spam check started."),
-    )
-    finished_at = models.DateTimeField(
-        _("finished"),
-        help_text=_("When the spam check finished."),
     )
     score = models.FloatField(
         _("score"),
