@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 
@@ -29,3 +30,31 @@ class TimeStamped(models.Model):
         ordering = ("-modified_at", "-created_at")
         get_latest_by = "created_at"
         abstract = True
+
+
+class Timing(TimeStamped):
+    """
+    Time a block of code and label it for the message timeline.
+
+    Use as a context manager to stamp the start and end of a block and
+    persist the timing on exit. Concrete timings implement the fields and
+    override the label.
+    """
+
+    class Meta:
+        abstract = True
+
+    def __enter__(self):
+        """Stamp the start of the timed block."""
+        self.started_at = timezone.now()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Stamp the end of the timed block and persist the timing."""
+        self.finished_at = timezone.now()
+        self.save(force_insert=True)
+
+    @property
+    def label(self) -> str:
+        """Return the display name of this timing."""
+        return str(self._meta.verbose_name)

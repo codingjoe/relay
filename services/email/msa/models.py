@@ -9,8 +9,7 @@ from django.db.models import Lookup
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from abstract.models import FetchPeersManager, TimeStamped
-from abstract.timing import Timing
+from abstract.models import FetchPeersManager, TimeStamped, Timing
 from accounts.models import Credential, OrganizationOwned
 from kms.models import Certificate
 from services.email.message.models import Message
