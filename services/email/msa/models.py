@@ -11,7 +11,9 @@ from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
 from accounts.models import Credential, OrganizationOwned
+from kms.models import Certificate
 from services.email.message.models import Message
+from services.email.tls import parse_peer_certificates
 
 
 class OutgoingMessage(Message):
@@ -117,6 +119,12 @@ class Transmission(TimeStamped):
         blank=True,
         help_text=_("IP address of the MX that handled this delivery attempt."),
     )
+    submission_ip_address = models.GenericIPAddressField(
+        _("submission IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address that submitted this message to relay's MSA."),
+    )
     status = models.TextField(
         _("status"),
         choices=Status,
@@ -171,14 +179,30 @@ class Transmission(TimeStamped):
         ordering = ["-created_at"]
 
     @classmethod
-    def record_submission(cls, message, ssl):
+    def record_submission(cls, message, ssl, client_ip=None):
         """Record the submission relay accepted for a message."""
+        ssl_object = ssl.get("ssl_object") if isinstance(ssl, dict) else None
+        cipher = ssl_object.cipher() if ssl_object else None
+        if isinstance(ssl, dict):
+            tls_mode = cls.TlsMode.STARTTLS
+        elif ssl:
+            tls_mode = cls.TlsMode.TLS
+        else:
+            tls_mode = cls.TlsMode.PLAINTEXT
         cls.objects.create(
             message=message,
             status=cls.Status.SUBMITTED,
             code=250,
             output="250 OK",
-            tls_mode=cls.TlsMode.TLS if ssl else cls.TlsMode.PLAINTEXT,
+            tls_mode=tls_mode,
+            tls_version=cipher[1] if cipher else "",
+            tls_cipher=cipher[0] if cipher else "",
+            tls_certificate=(
+                Certificate.store_presented_chain(parse_peer_certificates(ssl_object))
+                if ssl_object
+                else None
+            ),
+            submission_ip_address=client_ip,
         )
 
     @property

@@ -10,7 +10,7 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.dkim import parse_signature_tags, sign_message
+from domains.dkim import sign_message
 from domains.models import Domain
 from services.email.message.views import MessageBreadcrumbMixin
 
@@ -45,16 +45,7 @@ class OutgoingMessageDetailView(
         message = self.object
         headers = message.parsed_headers
         return context | {
-            "headers": [
-                [key, value]
-                for key, value in headers
-                if key.lower() != "dkim-signature"
-            ],
-            "dkim_signatures": [
-                parse_signature_tags(value)
-                for key, value in headers
-                if key.lower() == "dkim-signature"
-            ],
+            "headers": headers,
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
             "transmissions": Transmission.objects.filter(

@@ -9,7 +9,7 @@
           <article class="item" data-variant="outline" data-size="sm">
             <section>
               <h3 data-tooltip="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
-                <code>{{ transmission.mx_host|default:"-" }}</code>
+                <code>{{ transmission.mx_host|default:transmission.submission_ip_address|default:"-" }}</code>
               </h3>
               <p>
                 {% timestamp transmission.created_at %} ·
@@ -106,73 +106,6 @@
 {% endblock %}
 
 {% block extra_sections %}
-  {% if dkim_signatures %}
-    <div>
-      <h4 class="font-semibold m-0 mb-2">{% translate "DKIM signatures" %}</h4>
-      <div class="item-group">
-        {% for signature in dkim_signatures %}
-          <article class="item" data-variant="outline" data-size="sm">
-            <section>
-              <h3>
-                {% if signature.d %}
-                  <code class="break-all">{{ signature.d }}</code>
-                {% else %}
-                  <span class="text-sm text-muted-foreground">-</span>
-                {% endif %}
-              </h3>
-              {% if signature.s or signature.a %}
-                <p>
-                  {% if signature.s %}{% translate "selector" %} <code>{{ signature.s }}</code>{% endif %}
-                  {% if signature.s and signature.a %}
-                    ·
-                  {% endif %}
-                  {% if signature.a %}<code>{{ signature.a }}</code>{% endif %}
-                </p>
-              {% endif %}
-            </section>
-            <aside class="flex items-center gap-2">
-              <button
-                type="button"
-                class="btn"
-                data-variant="outline"
-                data-size="xs"
-                onclick="document.getElementById('dkim-{{ forloop.counter }}').showModal()"
-                aria-haspopup="dialog"
-              >
-                {% translate "signature"|capfirst %}
-              </button>
-            </aside>
-          </article>
-        {% endfor %}
-      </div>
-    </div>
-    {% for signature in dkim_signatures %}
-      <dialog
-        id="dkim-{{ forloop.counter }}"
-        class="drawer"
-        data-side="bottom"
-        onclick="if (event.target === this) this.close()"
-      >
-        <article>
-          <header>
-            <h2>{% translate "DKIM signature"|capfirst %}</h2>
-            {% if signature.d %}
-              <p class="m-0 text-sm text-muted-foreground"><code>{{ signature.d }}</code></p>
-            {% endif %}
-          </header>
-          <section>
-            {% filter highlight_dkim %}{% autoescape off %}{% for key, value in signature.items %}{{ key }}={{ value }};
-                {% endfor %}{% endautoescape %}{% endfilter %}
-          </section>
-          <footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
-              {% translate "close"|capfirst %}
-            </button>
-          </footer>
-        </article>
-      </dialog>
-    {% endfor %}
-  {% endif %}
   {% if received %}
     <div>
       <h4 class="font-semibold m-0 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>

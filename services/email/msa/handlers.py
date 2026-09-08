@@ -192,7 +192,7 @@ def store_outgoing_message(
         headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
-    Transmission.record_submission(message, ssl)
+    Transmission.record_submission(message, ssl, client_ip)
     if status == OutgoingMessage.Status.PENDING:
         transaction.on_commit(
             lambda: check_outgoing_spam.enqueue(
