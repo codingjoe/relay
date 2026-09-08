@@ -1,10 +1,10 @@
-import uuid
 from email.message import EmailMessage
 from unittest.mock import patch
 
 import pytest
-from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from accounts.models import Organization
 from domains.models import Domain
@@ -113,37 +113,6 @@ class TestParseFblReport:
         assert len(mailoutbox) == 1
         assert mailoutbox[0].to == ["alice@example.com"]
 
-    def test_parse_fbl_report__routes_report_by_envelope_sender_token(self, org):
-        sender_org = Organization.objects.create(slug="sender")
-        domain = Domain.objects.create(name="sender.test", org=sender_org)
-        original = OutgoingMessage.objects.create(
-            org=sender_org,
-            domain=domain,
-            mail_from="sender@sender.test",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-        )
-        report = make_report(
-            org,
-            make_arf_email(
-                original_mail_from=(
-                    f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-                    f"@{domain.sender_domain}"
-                )
-            ),
-        )
-
-        parse_fbl_report.func(report_pk=report.pk)
-
-        report.refresh_from_db()
-        assert report.org == sender_org
-        assert report.domain == domain
-        message = report.message
-        message.refresh_from_db()
-        assert message.org == sender_org
-        assert message.domain == domain
-
     def test_parse_fbl_report__does_not_attribute_by_domain(self, org):
         sender_org = Organization.objects.create(slug="sender")
         Domain.objects.create(name="sender.test", org=sender_org)
@@ -202,70 +171,6 @@ class TestParseFblReport:
 
 @pytest.mark.django_db
 class TestResolveFblOwner:
-    def test_resolve_fbl_owner__returns_org_and_domain_from_token(self, org):
-        domain = Domain.objects.create(name="sender.test", org=org)
-        original = OutgoingMessage.objects.create(
-            org=org,
-            domain=domain,
-            mail_from="sender@sender.test",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-        )
-
-        assert resolve_fbl_owner(
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@{domain.sender_domain}"
-        ) == (org, domain)
-
-    def test_resolve_fbl_owner__rejects_mismatched_return_path(self, org):
-        domain = Domain.objects.create(name="sender.test", org=org)
-        original = OutgoingMessage.objects.create(
-            org=org,
-            domain=domain,
-            mail_from="sender@sender.test",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-        )
-
-        assert (
-            resolve_fbl_owner(
-                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@evil.test"
-            )
-            is None
-        )
-
-    def test_resolve_fbl_owner__returns_none_without_domain(self, org):
-        domain = Domain.objects.create(name="sender.test", org=org)
-        original = OutgoingMessage.objects.create(
-            org=org,
-            domain=domain,
-            mail_from="sender@example.com",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-        )
-
-        assert (
-            resolve_fbl_owner(
-                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@anything.test"
-            )
-            is None
-        )
-
-    def test_resolve_fbl_owner__returns_none_without_token(self, org):
-        Domain.objects.create(name="sender.test", org=org)
-
-        assert resolve_fbl_owner("someone@sender.test") is None
-
-    def test_resolve_fbl_owner__returns_none_for_unknown_token(self, org):
-        token = uuid.uuid4()
-
-        assert resolve_fbl_owner(f"bounce+{token}@sender.test") is None
-
-    def test_resolve_fbl_owner__returns_none_for_malformed_token(self, org):
-        assert resolve_fbl_owner("bounce+not-a-uuid@sender.test") is None
-
     def test_resolve_fbl_owner__attributes_by_feedback_id(self, org):
         domain = Domain.objects.create(name="sender.test", org=org)
         OutgoingMessage.objects.create(
@@ -278,9 +183,10 @@ class TestResolveFblOwner:
             feedback_id="9999::aabbccddeeff001122334455:relay",
         )
 
-        assert resolve_fbl_owner(
-            "sender@acme.com", "9999::aabbccddeeff001122334455:relay"
-        ) == (org, domain)
+        assert resolve_fbl_owner("9999::aabbccddeeff001122334455:relay") == (
+            org,
+            domain,
+        )
 
     def test_resolve_fbl_owner__rejects_case_shifted_feedback_id(self, org):
         domain = Domain.objects.create(name="sender.test", org=org)
@@ -294,10 +200,7 @@ class TestResolveFblOwner:
             feedback_id="9999::aabbccddeeff001122334455:relay",
         )
 
-        assert (
-            resolve_fbl_owner("sender@acme.com", "9999::AABBCCDDEEFF001122334455:RELAY")
-            is None
-        )
+        assert resolve_fbl_owner("9999::AABBCCDDEEFF001122334455:RELAY") is None
 
     def test_resolve_fbl_owner__returns_none_for_unknown_feedback_id(self, org):
         domain = Domain.objects.create(name="sender.test", org=org)
@@ -311,10 +214,7 @@ class TestResolveFblOwner:
             feedback_id="9999::aabbccddeeff001122334455:relay",
         )
 
-        assert (
-            resolve_fbl_owner("sender@acme.com", "9999::0000000000000000000000:relay")
-            is None
-        )
+        assert resolve_fbl_owner("9999::0000000000000000000000:relay") is None
 
     def test_resolve_fbl_owner__never_matches_empty_feedback_id_claim(self, org):
         domain = Domain.objects.create(name="sender.test", org=org)
@@ -328,54 +228,11 @@ class TestResolveFblOwner:
             feedback_id="",
         )
 
-        assert resolve_fbl_owner("sender@acme.com", "") is None
+        with CaptureQueriesContext(connection) as queries:
+            resolved = resolve_fbl_owner("")
 
-    def test_resolve_fbl_owner__verp_hit_does_not_consult_feedback_id(self, org):
-        domain = Domain.objects.create(name="sender.test", org=org)
-        original = OutgoingMessage.objects.create(
-            org=org,
-            domain=domain,
-            mail_from="sender@sender.test",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-            feedback_id="9999::aabbccddeeff001122334455:relay",
-        )
-        other_org = Organization.objects.create(slug="other-sender")
-        other_domain = Domain.objects.create(name="other.test", org=other_org)
-        OutgoingMessage.objects.create(
-            org=other_org,
-            domain=other_domain,
-            mail_from="sender@other.test",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-            feedback_id="8888::001122334455aabbccddeeff:relay",
-        )
-
-        assert resolve_fbl_owner(
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@{domain.sender_domain}",
-            "8888::001122334455aabbccddeeff:relay",
-        ) == (org, domain)
-
-    def test_resolve_fbl_owner__attributes_by_feedback_id_after_return_path_mismatch(
-        self, org
-    ):
-        domain = Domain.objects.create(name="sender.test", org=org)
-        original = OutgoingMessage.objects.create(
-            org=org,
-            domain=domain,
-            mail_from="sender@sender.test",
-            rcpt_to="rcpt@gmail.com",
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("sent.eml", b"body"),
-            feedback_id="9999::aabbccddeeff001122334455:relay",
-        )
-
-        assert resolve_fbl_owner(
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@evil.test",
-            "9999::aabbccddeeff001122334455:relay",
-        ) == (org, domain)
+        assert resolved is None
+        assert not queries.captured_queries
 
 
 class TestProcessIncomingMessage:

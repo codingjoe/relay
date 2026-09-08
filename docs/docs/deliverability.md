@@ -79,12 +79,18 @@ sections.
 ## Address hygiene: the suppression list
 
 Every message gets a fresh Return-Path of the form
-`bounce+{message-id}@{sender-subdomain}`, so every bounce points at one
-message. When a recipient server rejects a message permanently, relay records
+`bounce+{token}@{sender-subdomain}` with a short signed token that names one
+message, and only relay can mint the address a bounce report must carry. When
+a recipient server rejects a message permanently, relay records
 the bounce, marks the message as bounced, and adds the address to your
-suppression list. relay then refuses further sends to that address. The
-submission still succeeds, and relay stores the message as suppressed, so
-your application sees no error and no retry loop.
+suppression list. The rejection does not have to happen during the SMTP
+conversation. A recipient server can also accept the message first and fail
+it later, for example on a full mailbox or on its own content filter. Its
+bounce report comes back to the per-message bounce address, and relay marks
+the message bounced and suppresses the address the same way. relay then
+refuses further sends to that address. The submission still succeeds, and
+relay stores the message as suppressed, so your application sees no error
+and no retry loop.
 
 You can add entries manually, for example before a large import.
 If the address returns, remove the entry. Addresses store as salted SHA-256 hashes
@@ -107,6 +113,11 @@ records one transmission per attempt with the remote answer. The outcomes:
 - **5xx answer**. The remote server rejects the message permanently.
   relay marks the message as bounced and suppresses the address. The
   dashboard shows the exact SMTP answer.
+- **Bounce report after acceptance**. The remote accepted the message and
+  failed it permanently later. relay marks the message as bounced and
+  suppresses the address, and the dashboard shows the remote's answer.
+  A report that only announces a delay records a retry and changes no
+  status.
 - **No reachable MX or all hosts fail and no MTA-STS fallback**. relay
   fails the message, and the transcript shows why.
 - **Transport or storage problems**. relay fails the message, and the

@@ -11,12 +11,13 @@ from . import tasks
 
 @receiver(post_save, sender=Transmission)
 def check_reputation_on_hard_bounce(sender, instance, **kwargs):
-    """Enqueue an org evaluation after commit on an SMTP 5xx bounce."""
-    if (
-        instance.status == Transmission.Status.BOUNCED
-        and instance.code
-        and instance.code >= 500
-    ):
+    """
+    Enqueue an org evaluation after commit when a transmission bounces.
+
+    A bounced transmission is a permanent rejection; the message did not
+    reach the recipient and counts against the sending reputation.
+    """
+    if instance.status == Transmission.Status.BOUNCED:
         org_id = instance.message.org_id
         transaction.on_commit(lambda: tasks.check_org_reputation.enqueue(org_id=org_id))
 

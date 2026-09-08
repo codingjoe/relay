@@ -23,7 +23,9 @@ flowchart TD
     D --> E[MX lookup, MTA-STS filter]
     E --> F[Attempt 1]
     F --> G[Status sent, transcript stored]
+    G -- late bounce report --> I
     E -- all hosts fail --> H[Status failed, transcript stored]
+    H -- late bounce report --> I
     E -- permanent 5xx --> I[Status bounced + suppression]
 ```
 
@@ -61,8 +63,10 @@ flowchart TD
     A[Attempt to MX host 1, preference order] -- fail --> B[Attempt host 2]
     B -- fail --> C[Attempt host n]
     C -- fail --> D[Mark failed]
+    D -- late bounce report --> E
     A -- 5xx permanent --> E[Mark bounced, suppress the address]
     A -- 2xx-ish success --> F[Mark sent]
+    F -- late bounce report --> E
 ```
 
 - **Multiple MX hosts.** relay walks the MX list by preference and skips
@@ -70,7 +74,8 @@ flowchart TD
   delivery.
 - **No MX records found** results in a clear failure, not in a silent drop.
 - **Permanent (5xx) answers bounce immediately** and feed the automatic
-  suppression list. No retry storm at an unwilling receiver.
+  suppression list, and a permanent failure in a late bounce report does
+  the same. No retry storm at an unwilling receiver.
 - **Transient failures** surface in the transcript list, and the message
   ending in failed keeps the last answer for diagnosis.
 

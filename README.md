@@ -232,6 +232,7 @@ graph BT
  msa --> accounts
  msa --> domains
  msa --> kms
+ msa --> mta
  mta --> message
  mta --> accounts
  mta --> domains
