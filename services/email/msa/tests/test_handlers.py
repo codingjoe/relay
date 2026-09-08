@@ -340,6 +340,7 @@ class TestProcessMessage:
             credential,
             False,
             "",
+            timezone.now(),
         )
 
         assert result == "550 Sender domain not registered"
@@ -368,6 +369,7 @@ class TestProcessMessage:
             credential,
             False,
             "",
+            timezone.now(),
         )
 
         assert result == "550 Sender domain not registered"
@@ -391,6 +393,7 @@ class TestProcessMessage:
             credential,
             False,
             "",
+            timezone.now(),
         )
 
         assert result == "550 Sender domain not registered"
@@ -420,6 +423,7 @@ class TestProcessMessage:
             credential,
             False,
             "",
+            timezone.now(),
         )
 
         assert result == "550 Sender domain not registered"
@@ -443,6 +447,7 @@ class TestProcessMessage:
             credential,
             False,
             "",
+            timezone.now(),
         )
 
         assert result == "550 Recipient not allowed without active billing"
@@ -467,6 +472,7 @@ class TestProcessMessage:
             credential,
             False,
             "",
+            timezone.now(),
         )
 
         assert result == "550 Account suspended due to sender reputation"
@@ -492,6 +498,7 @@ class TestProcessMessage:
                 credential,
                 True,
                 "",
+                timezone.now(),
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
@@ -521,6 +528,7 @@ class TestProcessMessage:
                 credential,
                 False,
                 "",
+                timezone.now(),
             )
 
         assert result == "250 OK"
@@ -546,6 +554,7 @@ class TestProcessMessage:
                 credential,
                 False,
                 "",
+                timezone.now(),
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
@@ -578,6 +587,7 @@ class TestProcessMessage:
                 credential,
                 False,
                 "",
+                timezone.now(),
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
@@ -615,6 +625,7 @@ class TestStoreOutgoingMessage:
                 ssl=True,
                 client_ip="192.0.2.1",
                 raw_bytes=raw_bytes,
+                started_at=timezone.now(),
             )
 
         spam_task.enqueue.assert_called_once_with(
@@ -647,6 +658,7 @@ class TestStoreOutgoingMessage:
                 ssl=False,
                 client_ip="192.0.2.1",
                 raw_bytes=raw_bytes,
+                started_at=timezone.now(),
             )
 
         spam_task.enqueue.assert_not_called()
@@ -670,6 +682,7 @@ class TestStoreOutgoingMessage:
             ssl=False,
             client_ip="",
             raw_bytes=message.as_bytes(),
+            started_at=timezone.now(),
         )
 
         assert stored.subject == "Test"

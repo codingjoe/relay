@@ -472,6 +472,8 @@
     sending_mta_ip_address: 116.203.34.11
     receiving_mx_ip_address: 172.253.148.27
     log_id: ''
+    started_at: 2026-08-22 09:14:27+00:00
+    finished_at: 2026-08-22 09:14:30+00:00
 - model: msa.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
   fields:
@@ -490,6 +492,8 @@
     sending_mta_ip_address: 116.203.34.11
     receiving_mx_ip_address: 103.168.172.222
     log_id: ''
+    started_at: 2026-08-24 11:30:26+00:00
+    finished_at: 2026-08-24 11:30:30+00:00
 - model: msa.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
   fields:
@@ -508,6 +512,8 @@
     sending_mta_ip_address: 116.203.34.11
     receiving_mx_ip_address: 185.205.70.128
     log_id: ''
+    started_at: 2026-08-25 15:45:28+00:00
+    finished_at: 2026-08-25 15:45:30+00:00
 - model: msa.msacredential
   pk: 1
   fields:
@@ -1170,6 +1176,8 @@
     tls_cipher: TLS_AES_256_GCM_SHA384
     submission_ip_address: 203.0.113.9
     log_id: ''
+    started_at: 2026-08-22 09:14:29+00:00
+    finished_at: 2026-08-22 09:14:30+00:00
 - model: msa.transmission
   pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
   fields:
@@ -1182,6 +1190,8 @@
     details: Temporary rejection, message retried
     tls_mode: starttls
     log_id: ''
+    started_at: 2026-08-23 13:20:57+00:00
+    finished_at: 2026-08-23 13:21:00+00:00
 - model: msa.transmission
   pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
   fields:
@@ -1194,6 +1204,8 @@
     details: Bounce received after retry
     tls_mode: plaintext
     log_id: ''
+    started_at: 2026-08-23 13:21:57+00:00
+    finished_at: 2026-08-23 13:22:00+00:00
 - model: msa.transmission
   pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
   fields:
@@ -1206,6 +1218,8 @@
     details: Temporary failure, will retry
     tls_mode: plaintext
     log_id: ''
+    started_at: 2026-08-27 17:10:55+00:00
+    finished_at: 2026-08-27 17:11:00+00:00
 - model: message.message
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0001
   fields:

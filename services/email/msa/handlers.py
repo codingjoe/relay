@@ -9,6 +9,7 @@ from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
+from django.utils import timezone
 
 from abstract.email_utils import decode_header_value
 from abstract.signals import request_scoped
@@ -78,6 +79,7 @@ class SMTPHandler(ProxyProtocolMixin):
             credential,
             getattr(session, "ssl", False),
             client_ip,
+            timezone.now(),
         )
         logger.info("Message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
@@ -169,6 +171,7 @@ def store_outgoing_message(
     ssl,
     client_ip,
     raw_bytes,
+    started_at,
 ):
     """
     Store an outgoing message with its submission record.
@@ -192,7 +195,7 @@ def store_outgoing_message(
         headers=OutgoingMessage.headers_from_raw(raw_bytes),
         raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
     )
-    Transmission.record_submission(message, ssl, client_ip)
+    Transmission.record_submission(message, ssl, started_at, client_ip)
     if status == OutgoingMessage.Status.PENDING:
         transaction.on_commit(
             lambda: check_outgoing_spam.enqueue(
@@ -205,7 +208,9 @@ def store_outgoing_message(
 
 @sync_to_async
 @request_scoped
-def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
+def process_message(
+    mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip, started_at
+):
     """
     Store a submitted outgoing message and enqueue its delivery.
 
@@ -248,6 +253,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
             ssl=ssl,
             client_ip=client_ip,
             raw_bytes=raw_bytes,
+            started_at=started_at,
         )
         logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
         return "250 OK"
@@ -274,5 +280,6 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
         ssl=ssl,
         client_ip=client_ip,
         raw_bytes=raw_bytes,
+        started_at=started_at,
     )
     return "250 OK"
