@@ -6,6 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
@@ -313,7 +314,11 @@ class Message(TimeStamped):
 
 
 class Timing(TimeStamped):
-    """Record the wall-clock duration of a message processing stage."""
+    """
+    Record the wall-clock duration of a message processing stage.
+
+    Use as a context manager to time a block and persist the timing on exit.
+    """
 
     id = models.UUIDField(
         primary_key=True,
@@ -328,7 +333,6 @@ class Timing(TimeStamped):
     stage = models.TextField(
         _("stage"),
         blank=True,
-        default="",
         help_text=_("Processing stage this timing measured, for example spam-check."),
     )
     started_at = models.DateTimeField(
@@ -346,3 +350,13 @@ class Timing(TimeStamped):
 
     def __str__(self):
         return f"{self.message} · {self.stage}"
+
+    def __enter__(self):
+        """Stamp the start of the timed block."""
+        self.started_at = timezone.now()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Stamp the end of the timed block and persist the timing."""
+        self.finished_at = timezone.now()
+        self.save(force_insert=True)

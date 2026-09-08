@@ -40,7 +40,6 @@ class Migration(migrations.Migration):
                     "stage",
                     models.TextField(
                         blank=True,
-                        default="",
                         help_text=(
                             "Processing stage this timing measured, for example spam-check."
                         ),

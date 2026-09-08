@@ -283,14 +283,8 @@ def check_outgoing_spam(message_pk, client_ip):
         return
 
     raw_bytes = message.raw_body.read()
-    with measure() as interval:
+    with Timing(message=message, stage="spam-check"):
         spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
-    Timing.objects.create(
-        message=message,
-        stage="spam-check",
-        started_at=interval.started_at,
-        finished_at=interval.finished_at,
-    )
     is_spam = (
         spam.action == SpamAction.REJECT
         or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE

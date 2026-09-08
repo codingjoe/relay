@@ -125,18 +125,16 @@ def timing_event(timing):
 
 def build_timeline(timings):
     """
-    Return profile chart events for a message's timings and transmissions.
+    Yield profile chart events for a message's timings and transmissions.
 
     Every event spans its own measured start and finish, so the chart shows
     real leg durations and the gaps between bars show queueing and retry
     delays the way a browser network waterfall does.
     """
-    events = []
     for timing in timings:
         try:
             transmission = timing.transmission
         except Transmission.DoesNotExist:
-            events.append(timing_event(timing))
+            yield timing_event(timing)
         else:
-            events.append(transmission_event(transmission))
-    return events
+            yield transmission_event(transmission)

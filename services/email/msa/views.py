@@ -57,7 +57,7 @@ class OutgoingMessageDetailView(
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
             "transmissions": transmissions,
-            "timeline": build_timeline(timings),
+            "timeline": list(build_timeline(timings)),
         }
 
 
