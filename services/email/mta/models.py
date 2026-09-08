@@ -8,7 +8,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import MissingAttachmentError, iter_attachments
-from abstract.models import TimeStamped
+from abstract.models import TimeStamped, Timing
 from accounts.models import OrganizationOwned
 from kms.models import SigningKey
 from services.email.message.models import Message
@@ -171,7 +171,7 @@ class Webhook(OrganizationOwned):
         return f"v1a,{base64.b64encode(self.signing_key.sign(signed_content)).decode()}"
 
 
-class WebhookDelivery(TimeStamped):
+class WebhookDelivery(Timing):
     """Track one webhook POST attempt and its outcome."""
 
     class Status(models.TextChoices):
@@ -216,6 +216,14 @@ class WebhookDelivery(TimeStamped):
         _("response body"),
         blank=True,
         help_text=_("Truncated response body from the webhook endpoint."),
+    )
+    started_at = models.DateTimeField(
+        _("started"),
+        help_text=_("When the webhook delivery started."),
+    )
+    finished_at = models.DateTimeField(
+        _("finished"),
+        help_text=_("When the webhook delivery finished."),
     )
 
     class Meta(TimeStamped.Meta):

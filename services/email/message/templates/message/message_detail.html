@@ -58,7 +58,19 @@
     </div>
   </header>
 
-  {% block transmission_card %}{% endblock %}
+  {% block transmission_card %}
+    {% if timeline %}
+      <section class="mb-6 flex flex-col gap-4">
+        <h3 class="font-semibold m-0">{% translate "timeline"|capfirst %}</h3>
+        {% include "message/timeline.html" %}
+        {% block timeline_dialogs %}{% endblock %}
+      </section>
+    {% else %}
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "No transmissions yet." %}
+      </p>
+    {% endif %}
+  {% endblock %}
 
   <section class="mb-6">
     <header class="flex items-center justify-between gap-2 mb-4">

@@ -67,3 +67,54 @@ def build_tls_chart(org):
         start,
         "result_type",
     )
+
+
+TIMELINE_COLORS = {
+    "sent": "var(--color-chart-green)",
+    "failed": "var(--color-chart-red)",
+}
+
+
+def build_incoming_timeline(message, deliveries):
+    """
+    Yield profile chart events for an incoming message.
+
+    The reception opens the timeline as an instantaneous event; every
+    webhook delivery follows with its own measured duration.
+    """
+    tls = " · ".join(
+        part for part in (message.tls_version, message.tls_cipher) if part
+    ) or ("plaintext" if not message.received_with_tls else "")
+    yield {
+        "name": (
+            f"received ({message.receiving_domain})"
+            if message.receiving_domain
+            else "received"
+        ),
+        "color": "var(--color-chart-blue)",
+        "start": int(message.created_at.timestamp() * 1000),
+        "end": int(message.created_at.timestamp() * 1000),
+        "duration": 0,
+        "ips": "",
+        "tls": tls,
+        "transcript": f"reception-{message.pk}",
+    }
+    for delivery in deliveries:
+        yield {
+            "name": (
+                f"{delivery.get_status_display()}"
+                f" ({delivery.webhook.signing_key.key_id})"
+            ),
+            "color": TIMELINE_COLORS[delivery.status],
+            "start": int(delivery.started_at.timestamp() * 1000),
+            "end": int(delivery.finished_at.timestamp() * 1000),
+            "duration": (delivery.finished_at - delivery.started_at).total_seconds()
+            * 1000,
+            "ips": "",
+            "tls": "",
+            "transcript": (
+                f"delivery-{delivery.pk}"
+                if delivery.response_code or delivery.response_body
+                else ""
+            ),
+        }

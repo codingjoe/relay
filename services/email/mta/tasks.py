@@ -173,40 +173,28 @@ def deliver_to_webhook(message, webhook, is_test=False):
     payload_bytes = json.dumps(payload, sort_keys=True, cls=WebhookJSONEncoder).encode()
     signature = webhook.sign(msg_id, timestamp, payload_bytes)
 
-    try:
-        response = httpx.post(
-            webhook.url,
-            content=payload_bytes,
-            headers={
-                "Content-Type": "application/json",
-                "webhook-id": msg_id,
-                "webhook-timestamp": str(timestamp),
-                "webhook-signature": signature,
-            },
-            timeout=settings.RELAY_WEBHOOK_TIMEOUT,
-        )
-        ok = response.is_success
-        status_code = response.status_code
-        WebhookDelivery.objects.create(
-            message=message,
-            webhook=webhook,
-            is_test=is_test,
-            status=WebhookDelivery.Status.SENT if ok else WebhookDelivery.Status.FAILED,
-            response_code=status_code,
-            response_body=response.text[:2000],
-        )
-    except httpx.HTTPError as e:
-        logger.exception("Webhook delivery to %s failed", webhook.url)
-        WebhookDelivery.objects.create(
-            message=message,
-            webhook=webhook,
-            is_test=is_test,
-            status=WebhookDelivery.Status.FAILED,
-            response_body=str(e)[:2000],
-        )
-        return False, 0
-
-    return ok, status_code
+    with WebhookDelivery(message=message, webhook=webhook, is_test=is_test) as timer:
+        try:
+            response = httpx.post(
+                webhook.url,
+                content=payload_bytes,
+                headers={
+                    "Content-Type": "application/json",
+                    "webhook-id": msg_id,
+                    "webhook-timestamp": str(timestamp),
+                    "webhook-signature": signature,
+                },
+                timeout=settings.RELAY_WEBHOOK_TIMEOUT,
+            )
+        except httpx.HTTPError as e:
+            logger.exception("Webhook delivery to %s failed", webhook.url)
+            timer.status = timer.Status.FAILED
+            timer.response_body = str(e)[:2000]
+            return False, 0
+        timer.status = timer.Status.SENT if response.is_success else timer.Status.FAILED
+        timer.response_code = response.status_code
+        timer.response_body = response.text[:2000]
+        return response.is_success, response.status_code
 
 
 @task

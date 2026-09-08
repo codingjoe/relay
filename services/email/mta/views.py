@@ -13,7 +13,7 @@ from domains.models import Domain
 from kms.models import SigningKey
 from services.email.message.views import MessageBreadcrumbMixin
 
-from .charts import build_tls_chart
+from .charts import build_incoming_timeline, build_tls_chart
 from .forms import WebhookForm
 from .models import IncomingMessage, TlsReport, Webhook, WebhookDelivery
 from .tasks import deliver_to_webhook
@@ -55,12 +55,14 @@ class IncomingMessageDetailView(
         message = self.object
         headers = message.parsed_headers
         is_report = message.content_type.model_class() is not IncomingMessage
+        deliveries = WebhookDelivery.objects.filter(message=message).select_related(
+            "webhook__signing_key"
+        )
         return context | {
             "headers": headers,
             "body": message.text_body,
-            "webhook_deliveries": WebhookDelivery.objects.filter(
-                message=message
-            ).select_related("webhook__signing_key"),
+            "webhook_deliveries": deliveries,
+            "timeline": list(build_incoming_timeline(message, deliveries)),
             "is_report": is_report,
             "report_url": message.get_absolute_url() if is_report else "",
             "report_kind": message.kind_display if is_report else "",

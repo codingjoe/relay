@@ -113,6 +113,7 @@ def spam_check_event(spam_check):
         "end": int(spam_check.finished_at.timestamp() * 1000),
         "duration": (spam_check.finished_at - spam_check.started_at).total_seconds()
         * 1000,
+        "score": spam_check.score,
         "ips": "",
         "tls": "",
         "transcript": "",

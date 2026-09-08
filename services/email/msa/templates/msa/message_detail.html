@@ -1,270 +1,83 @@
 {% extends "message/message_detail.html" %}
 {% load i18n abstract message %}
-{% block transmission_card %}
-  {% translate "duration" as duration_label %}
-  {% translate "click the bar to open the transcript" as transcript_hint %}
-  <section class="mb-6 flex flex-col gap-4">
-    <h3 class="font-semibold m-0">{% translate "timeline"|capfirst %}</h3>
-    {% if timeline %}
-      <article class="card">
-        <div
-          id="transmission-profile"
-          role="img"
-          aria-label='{% translate "timeline of transmissions and processing stages"|capfirst %}'
-        >
-        </div>
-        {{ timeline|json_script:"transmission-timeline" }}
-        <script type="module">
-          import * as echarts from "https://esm.sh/echarts@5.6.0";
-
-          const element = document.getElementById("transmission-profile");
-          const events = JSON.parse(
-            document.getElementById("transmission-timeline").textContent
-          );
-          if (element && events.length) {
-            const locale = document.documentElement.lang || "en";
-            const escapeHtml = (value) =>
-              value.replace(/[&<>"']/g, (character) =>
-                ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
-              );
-            const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-            const swatch = document.body.appendChild(document.createElement("span"));
-            swatch.hidden = true;
-            const toRgba = (value, alpha = 1, fallback = "#71717a") => {
-              const name = value.startsWith("var(") ? value.slice(4, -1) : null;
-              const color = name ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : value;
-              swatch.style.color = color || fallback;
-              probe.clearRect(0, 0, 1, 1);
-              probe.fillStyle = getComputedStyle(swatch).color;
-              probe.fillRect(0, 0, 1, 1);
-              const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
-              return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
-            };
-            const msFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
-            const secondFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
-            const timeFormat = new Intl.DateTimeFormat(locale, {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            });
-            const formatDuration = (ms) =>
-              ms >= 1000
-                ? `${secondFormat.format(ms / 1000)} s (${msFormat.format(ms)} ms)`
-                : `${msFormat.format(ms)} ms`;
-            const formatClock = (ms) =>
-              `${timeFormat.format(ms)}.${String(Math.floor(ms % 1000)).padStart(3, "0")}`;
-            const tooltipHtml = (event) =>
-              [
-                `<strong>${escapeHtml(event.name)}</strong>`,
-                `{{ duration_label|escapejs }}: ${formatDuration(event.duration)}`,
-                `${formatClock(event.start)} → ${formatClock(event.end)}`,
-                ...[event.ips, event.tls].filter(Boolean).map(escapeHtml),
-                event.transcript
-                  ? `<small>{{ transcript_hint|escapejs }}</small>`
-                  : "",
-              ]
-                .filter(Boolean)
-                .join("<br/>");
-            const muted = toRgba("var(--color-muted-foreground)");
-            const border = toRgba("var(--color-border)");
-            const start = Math.min(...events.map((event) => event.start));
-            const end = Math.max(...events.map((event) => event.end));
-            const fontFamily = getComputedStyle(document.documentElement).fontFamily;
-            const renderItem = (params, api) => {
-              const categoryIndex = api.value(0);
-              const from = api.coord([api.value(1), categoryIndex]);
-              const to = api.coord([api.value(2), categoryIndex]);
-              const height = api.size([0, 1])[1] * 0.6;
-              const rectShape = echarts.graphic.clipRectByRect(
-                {
-                  x: from[0],
-                  y: from[1] - height / 2,
-                  width: to[0] - from[0],
-                  height: height,
-                },
-                {
-                  x: params.coordSys.x,
-                  y: params.coordSys.y,
-                  width: params.coordSys.width,
-                  height: params.coordSys.height,
-                }
-              );
-              if (!rectShape) {
-                return null;
-              }
-              const name = events[categoryIndex]?.name ?? "";
-              const inside = rectShape.width > 80;
-              const characters = Math.floor((rectShape.width - 12) / 6.5);
-              const label =
-                inside && name.length > characters
-                  ? `${name.slice(0, Math.max(characters - 1, 0))}…`
-                  : name;
-              return {
-                type: "group",
-                children: [
-                  {
-                    type: "rect",
-                    transition: ["shape"],
-                    shape: rectShape,
-                    style: api.style(),
-                  },
-                  {
-                    type: "text",
-                    style: {
-                      text: label,
-                      x: inside ? rectShape.x + 6 : rectShape.x + rectShape.width + 6,
-                      y: rectShape.y + rectShape.height / 2,
-                      fill: inside ? "#fff" : muted,
-                      verticalAlign: "middle",
-                      font: `12px ${fontFamily}`,
-                    },
-                  },
-                ],
-              };
-            };
-            element.style.height = `${events.length * 48 + 72}px`;
-            const chart = echarts.init(element);
-            chart.setOption({
-              grid: { left: 8, right: 16, top: 8, bottom: 48, containLabel: true },
-              tooltip: {
-                trigger: "item",
-                confine: true,
-                formatter: (params) => tooltipHtml(params.data.event),
-              },
-              dataZoom: [
-                {
-                  type: "slider",
-                  filterMode: "weakFilter",
-                  showDataShadow: false,
-                  bottom: 8,
-                  labelFormatter: "",
-                },
-                { type: "inside", filterMode: "weakFilter" },
-              ],
-              xAxis: {
-                type: "value",
-                min: start,
-                max: end,
-                scale: true,
-                axisLabel: {
-                  color: muted,
-                  formatter: (value) =>
-                    end - start < 2000 ? formatClock(value) : timeFormat.format(value),
-                },
-                splitLine: { lineStyle: { color: border } },
-              },
-              yAxis: {
-                type: "category",
-                data: events.map((_, index) => index),
-                inverse: true,
-                show: false,
-              },
-              series: [
-                {
-                  type: "custom",
-                  renderItem: renderItem,
-                  itemStyle: { opacity: 0.8 },
-                  encode: { x: [1, 2], y: 0 },
-                  data: events.map((event, index) => ({
-                    name: event.name,
-                    value: [index, event.start, event.end, event.duration],
-                    itemStyle: { color: toRgba(event.color) },
-                    event: event,
-                  })),
-                },
-              ],
-            });
-            chart.on("click", (params) => {
-              const transcript = params.data?.event?.transcript;
-              if (transcript) document.getElementById(transcript)?.showModal();
-            });
-            window.addEventListener("resize", () => chart.resize());
-          }
-        </script>
-      </article>
-      {% for transmission in transmissions %}
-        {% if transmission.output or transmission.details or transmission.log_id %}
-          <dialog
-            id="transcript-{{ transmission.pk }}"
-            class="drawer"
-            data-side="bottom"
-            onclick="if (event.target === this) this.close()"
-          >
-            <article>
-              <header>
-                <h2>{% translate "SMTP transcript"|capfirst %}</h2>
-                <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
-              </header>
-              <section class="flex flex-col gap-4">
-                <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
-                  <span
-                    class="badge"
-                    data-size="sm"
-                    data-variant="{{ transmission.status_badge_variant }}"
-                  >
-                    {{ transmission.get_status_display }}
-                  </span>
-                  {% if transmission.tls_certificate %}
-                    <a
-                      class="link"
-                      href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
-                      data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }}"
-                    >{{ transmission.get_tls_mode_display }}</a>
-                  {% else %}
-                    {{ transmission.get_tls_mode_display }}
-                  {% endif %}
-                  {% if transmission.tls_version %}
-                    <span>{{ transmission.tls_version }}</span>
-                  {% endif %}
-                  {% if transmission.tls_cipher %}
-                    <span><code>{{ transmission.tls_cipher }}</code></span>
-                  {% endif %}
-                </p>
-                {% if transmission.sending_mta_ip_address or transmission.receiving_mx_ip_address %}
-                  <p class="m-0 text-sm text-muted-foreground">
-                    {{ transmission.sending_mta_ip_address|default:"-" }} →
-                    {{ transmission.receiving_mx_ip_address|default:"-" }}
-                  </p>
-                {% endif %}
-                {% if transmission.output %}
-                  <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
-                {% endif %}
-                {% if transmission.details %}
-                  <p class="m-0 text-sm">{{ transmission.details }}</p>
-                {% endif %}
-                {% if transmission.log_id %}
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm text-muted-foreground">{% translate "log ID"|capfirst context "noun" %}</span>
-                    <code class="break-all">{{ transmission.log_id }}</code>
-                    <button
-                      type="button"
-                      class="btn"
-                      data-variant="ghost"
-                      data-size="icon-xs"
-                      data-tooltip='{% translate "copy log ID"|capfirst %}'
-                      onclick="navigator.clipboard.writeText('{{ transmission.log_id|escapejs }}')"
-                      aria-label='{% translate "copy log ID"|capfirst %}'
-                    >
-                      <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                {% endif %}
-              </section>
-              <footer>
-                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
-                  {% translate "close"|capfirst %}
+{% block timeline_dialogs %}
+  {% for transmission in transmissions %}
+    {% if transmission.output or transmission.details or transmission.log_id %}
+      <dialog
+        id="transcript-{{ transmission.pk }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "SMTP transcript"|capfirst %}</h2>
+            <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+          </header>
+          <section class="flex flex-col gap-4">
+            <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ transmission.status_badge_variant }}"
+              >
+                {{ transmission.get_status_display }}
+              </span>
+              {% if transmission.tls_certificate %}
+                <a
+                  class="link"
+                  href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                  data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }}"
+                >{{ transmission.get_tls_mode_display }}</a>
+              {% else %}
+                {{ transmission.get_tls_mode_display }}
+              {% endif %}
+              {% if transmission.tls_version %}
+                <span>{{ transmission.tls_version }}</span>
+              {% endif %}
+              {% if transmission.tls_cipher %}
+                <span><code>{{ transmission.tls_cipher }}</code></span>
+              {% endif %}
+            </p>
+            {% if transmission.sending_mta_ip_address or transmission.receiving_mx_ip_address %}
+              <p class="m-0 text-sm text-muted-foreground">
+                {{ transmission.sending_mta_ip_address|default:"-" }} →
+                {{ transmission.receiving_mx_ip_address|default:"-" }}
+              </p>
+            {% endif %}
+            {% if transmission.output %}
+              <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
+            {% endif %}
+            {% if transmission.details %}
+              <p class="m-0 text-sm">{{ transmission.details }}</p>
+            {% endif %}
+            {% if transmission.log_id %}
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm text-muted-foreground">{% translate "log ID"|capfirst context "noun" %}</span>
+                <code class="break-all">{{ transmission.log_id }}</code>
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="ghost"
+                  data-size="icon-xs"
+                  data-tooltip='{% translate "copy log ID"|capfirst %}'
+                  onclick="navigator.clipboard.writeText('{{ transmission.log_id|escapejs }}')"
+                  aria-label='{% translate "copy log ID"|capfirst %}'
+                >
+                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
-              </footer>
-            </article>
-          </dialog>
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      <p class="m-0 text-sm text-muted-foreground">
-        {% translate "No transmissions yet." %}
-      </p>
+              </div>
+            {% endif %}
+          </section>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+              {% translate "close"|capfirst %}
+            </button>
+          </footer>
+        </article>
+      </dialog>
     {% endif %}
-  </section>
+  {% endfor %}
 {% endblock %}
 
 {% block extra_sections %}

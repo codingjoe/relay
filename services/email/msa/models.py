@@ -259,6 +259,12 @@ class SpamCheck(Timing):
         _("finished"),
         help_text=_("When the spam check finished."),
     )
+    score = models.FloatField(
+        _("score"),
+        null=True,
+        blank=True,
+        help_text=_("rspamd score the check returned."),
+    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["started_at", "created_at"]
