@@ -1,6 +1,7 @@
 {% load i18n %}
 {% translate "duration" as duration_label %}
 {% translate "click the bar to open the transcript" as transcript_hint %}
+{% translate "score" as score_label %}
 <article class="card">
   <div
     id="transmission-profile"
@@ -55,6 +56,9 @@
             ? `{{ duration_label|escapejs }}: ${formatDuration(event.duration)}`
             : "",
           `${formatClock(event.start)} → ${formatClock(event.end)}`,
+          event.score == null
+            ? ""
+            : `{{ score_label|escapejs }}: ${event.score}`,
           ...[event.ips, event.tls].filter(Boolean).map(escapeHtml),
           event.transcript
             ? `<small>{{ transcript_hint|escapejs }}</small>`

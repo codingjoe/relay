@@ -335,6 +335,8 @@
       - - MIME-Version
         - '1.0'
     received_with_tls: false
+    spam_score: 0.5
+    spam_action: no action
     status: sent
     domain: 1
 - model: message.message
@@ -383,6 +385,8 @@
       - - MIME-Version
         - '1.0'
     received_with_tls: false
+    spam_score: -1.2
+    spam_action: no action
     status: sent
     domain: 1
 - model: message.message
@@ -431,6 +435,8 @@
       - - MIME-Version
         - '1.0'
     received_with_tls: false
+    spam_score: 0.0
+    spam_action: no action
     status: sent
     domain: 1
 - model: msa.outgoingmessage
@@ -1040,6 +1046,8 @@
         - '1.0'
     raw_body: ''
     received_with_tls: false
+    spam_score: 0.8
+    spam_action: no action
     status: pending
     domain: 1
 - model: msa.outgoingmessage
@@ -1095,6 +1103,8 @@
         - '1.0'
     raw_body: ''
     received_with_tls: false
+    spam_score: 1.5
+    spam_action: no action
     status: bounced
     domain: 1
 - model: msa.outgoingmessage
@@ -1150,6 +1160,8 @@
         - '1.0'
     raw_body: ''
     received_with_tls: true
+    spam_score: -0.5
+    spam_action: no action
     status: failed
     domain: 2
 - model: msa.outgoingmessage
@@ -1308,6 +1320,7 @@
     message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
     started_at: '2026-08-22 09:14:26.5+00:00'
     finished_at: '2026-08-22 09:14:27+00:00'
+    score: 0.5
 - model: msa.spamcheck
   pk: 019fbe8f-5ee0-7a10-9a41-c8f012345682
   fields:
@@ -1316,6 +1329,7 @@
     message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
     started_at: '2026-08-24 11:30:25.5+00:00'
     finished_at: '2026-08-24 11:30:26+00:00'
+    score: -1.2
 - model: msa.spamcheck
   pk: 019fbe8f-5ee2-7a10-9a41-c8f012345684
   fields:
@@ -1324,6 +1338,7 @@
     message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
     started_at: '2026-08-25 15:45:27.5+00:00'
     finished_at: '2026-08-25 15:45:28+00:00'
+    score: 0.0
 - model: msa.spamcheck
   pk: 019fbe8f-5f6d-7a10-9a41-c8f012345686
   fields:
@@ -1332,6 +1347,7 @@
     message: 019fbe8f-5f6c-7190-8625-4fb14169749e
     started_at: '2026-08-26 08:05:25.5+00:00'
     finished_at: '2026-08-26 08:05:26+00:00'
+    score: 0.8
 - model: msa.spamcheck
   pk: 019fbe8f-5f7d-7a10-9a41-c8f012345688
   fields:
@@ -1340,6 +1356,7 @@
     message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
     started_at: '2026-08-23 13:20:55.5+00:00'
     finished_at: '2026-08-23 13:20:56+00:00'
+    score: 1.5
 - model: msa.spamcheck
   pk: 019fbe8f-5f8d-7a10-9a41-c8f01234568a
   fields:
@@ -1348,6 +1365,7 @@
     message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
     started_at: '2026-08-27 17:10:53.5+00:00'
     finished_at: '2026-08-27 17:10:54+00:00'
+    score: -0.5
 - model: message.message
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0001
   fields:
