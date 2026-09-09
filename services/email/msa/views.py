@@ -31,10 +31,16 @@ class OutgoingMessageDetailView(MessageDetailView):
         )
 
     def get_timings(self, message):
+        self.transmissions = message.transmissions.select_related("tls_certificate")
         return [
-            message.transmissions.select_related("tls_certificate"),
-            SpamCheck.objects.filter(message=message),
+            self.transmissions,
+            SpamCheck.objects.filter(message=message).select_related("message"),
         ]
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "transmissions": self.transmissions,
+        }
 
 
 class TestEmailView(OrganizationScopedView, generic.View):

@@ -1,7 +1,7 @@
 {% extends "message/message_detail.html" %}
 {% load i18n abstract message %}
 {% block timeline_dialogs %}
-  {% for transmission in message.transmissions.all %}
+  {% for transmission in transmissions %}
     {% if transmission.output or transmission.details or transmission.log_id %}
       <dialog
         id="transcript-{{ transmission.pk }}"
