@@ -75,3 +75,8 @@ class Timing(TimeStamped):
     def label(self) -> str:
         """Return the display name of this timing."""
         raise NotImplementedError
+
+    @property
+    def event(self) -> dict:
+        """Return the profile chart event payload for this timing."""
+        raise NotImplementedError

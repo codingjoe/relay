@@ -10,6 +10,7 @@ import pytest
 from django.utils import timezone
 
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.msa.handlers import (
     ImplicitTLSHandler,
     SMTPHandler,
@@ -22,7 +23,6 @@ from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
     SuppressionEntry,
-    Transmission,
 )
 
 

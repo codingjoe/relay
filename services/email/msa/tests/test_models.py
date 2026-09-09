@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import MsaCredential, OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import MsaCredential, OutgoingMessage
 
 
 def make_message(org, user, **kwargs):

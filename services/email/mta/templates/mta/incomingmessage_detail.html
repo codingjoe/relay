@@ -1,48 +1,54 @@
 {% extends "message/message_detail.html" %}
 {% load i18n abstract %}
 {% block timeline_dialogs %}
-  <dialog
-    id="reception-{{ message.pk }}"
-    class="drawer"
-    data-side="bottom"
-    onclick="if (event.target === this) this.close()"
-  >
-    <article>
-      <header>
-        <h2>{% translate "reception"|capfirst %}</h2>
-        <p class="m-0 text-sm text-muted-foreground">{% timestamp message.created_at %}</p>
-      </header>
-      <section class="flex flex-col gap-4">
-        <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
-          {% if message.received_with_tls %}
-            {% translate "received with TLS"|capfirst %}
-          {% else %}
-            {% translate "received without TLS"|capfirst %}
-          {% endif %}
-          {% if message.tls_version %}
-            <span>{{ message.tls_version }}{% if message.tls_cipher %} · {{ message.tls_cipher }}{% endif %}</span>
-          {% endif %}
-        </p>
-        {% if message.receiving_domain %}
-          <p class="m-0 text-sm"><code>{{ message.receiving_domain }}</code></p>
-        {% endif %}
-        {% if message.tls_certificate %}
-          <p class="m-0 text-sm">
-            <a
-              class="link"
-              href="{% url 'message:certificate-detail' org.slug message.tls_certificate.fingerprint %}"
-              data-tooltip="sha256:{{ message.tls_certificate.fingerprint }} · {{ message.tls_certificate.subject_alternative_names|default:message.tls_certificate.subject }}"
-            >{% translate "view certificate"|capfirst %}</a>
+  {% for transmission in message.transmissions.all %}
+    <dialog
+      id="transcript-{{ transmission.pk }}"
+      class="drawer"
+      data-side="bottom"
+      onclick="if (event.target === this) this.close()"
+    >
+      <article>
+        <header>
+          <h2>{% translate "reception"|capfirst %}</h2>
+          <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+        </header>
+        <section class="flex flex-col gap-4">
+          <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+            <span
+              class="badge"
+              data-size="sm"
+              data-variant="{{ transmission.status_badge_variant }}"
+            >
+              {{ transmission.get_status_display }}
+            </span>
+            {{ transmission.get_tls_mode_display }}
+            {% if transmission.tls_version %}
+              <span>{{ transmission.tls_version }}{% if transmission.tls_cipher %}
+                  · {{ transmission.tls_cipher }}{% endif %}</span>
+            {% endif %}
           </p>
-        {% endif %}
-      </section>
-      <footer>
-        <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
-          {% translate "close"|capfirst %}
-        </button>
-      </footer>
-    </article>
-  </dialog>
+          {% if message.receiving_domain %}
+            <p class="m-0 text-sm"><code>{{ message.receiving_domain }}</code></p>
+          {% endif %}
+          {% if transmission.tls_certificate %}
+            <p class="m-0 text-sm">
+              <a
+                class="link"
+                href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                data-tooltip="sha256:{{ transmission.tls_certificate.fingerprint }} · {{ transmission.tls_certificate.subject_alternative_names|default:transmission.tls_certificate.subject }}"
+              >{% translate "view certificate"|capfirst %}</a>
+            </p>
+          {% endif %}
+        </section>
+        <footer>
+          <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            {% translate "close"|capfirst %}
+          </button>
+        </footer>
+      </article>
+    </dialog>
+  {% endfor %}
   {% for delivery in webhook_deliveries %}
     {% if delivery.response_code or delivery.response_body %}
       <dialog

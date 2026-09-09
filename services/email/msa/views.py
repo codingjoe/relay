@@ -9,62 +9,32 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.dkim import sign_message
 from domains.models import Domain
-from services.email.message.views import MessageBreadcrumbMixin
+from services.email.message.views import MessageDetailView
 
-from .charts import build_suppression_chart, build_timeline
+from .charts import build_suppression_chart
 from .forms import SuppressionEntryForm
 from .handlers import add_feedback_id, store_outgoing_message
-from .models import (
-    MsaCredential,
-    OutgoingMessage,
-    SpamCheck,
-    SuppressionEntry,
-    Transmission,
-)
+from .models import MsaCredential, OutgoingMessage, SpamCheck, SuppressionEntry
 
 
-class OutgoingMessageDetailView(
-    OrganizationScopedView,
-    ConditionalGetMixin,
-    MessageBreadcrumbMixin,
-    generic.DetailView,
-):
+class OutgoingMessageDetailView(MessageDetailView):
     def get_template_names(self):
         return ["msa/message_detail.html"]
-
-    context_object_name = "message"
-    parent = "message:message-list"
 
     def get_queryset(self):
         return OutgoingMessage.objects.filter(org=self.org).select_related(
             "domain", "credential", "content_type"
         )
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        message = self.object
-        headers = message.parsed_headers
-        transmissions = Transmission.objects.filter(message=message).select_related(
-            "tls_certificate"
-        )
-        return context | {
-            "headers": headers,
-            "received": [v for k, v in headers if k.lower() == "received"],
-            "body": message.text_body,
-            "transmissions": transmissions,
-            "timeline": list(
-                build_timeline(
-                    [*SpamCheck.objects.filter(message=message), *transmissions]
-                )
-            ),
-        }
+    def get_timings(self, message):
+        return [
+            message.transmissions.select_related("tls_certificate"),
+            SpamCheck.objects.filter(message=message),
+        ]
 
 
 class TestEmailView(OrganizationScopedView, generic.View):

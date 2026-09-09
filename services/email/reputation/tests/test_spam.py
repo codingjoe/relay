@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.msa.tasks import check_outgoing_spam
 from services.email.mta.models import IncomingMessage
 from services.email.mta.tasks import check_incoming_spam

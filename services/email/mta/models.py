@@ -47,24 +47,6 @@ class IncomingMessage(Message):
     )
 
     email_url_name = "mta:message-detail"
-    tls_version = models.TextField(
-        _("TLS version"),
-        blank=True,
-        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
-    )
-    tls_cipher = models.TextField(
-        _("TLS cipher"),
-        blank=True,
-        help_text=_("Negotiated TLS cipher suite."),
-    )
-    tls_certificate = models.ForeignKey(
-        "kms.Certificate",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="incoming_messages",
-        help_text=_("Certificate the sending MTA presented, when one was offered."),
-    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
@@ -171,6 +153,12 @@ class Webhook(OrganizationOwned):
         return f"v1a,{base64.b64encode(self.signing_key.sign(signed_content)).decode()}"
 
 
+TIMELINE_COLORS = {
+    "sent": "var(--color-chart-green)",
+    "failed": "var(--color-chart-red)",
+}
+
+
 class WebhookDelivery(Timing):
     """Track one webhook POST attempt and its outcome."""
 
@@ -215,6 +203,23 @@ class WebhookDelivery(Timing):
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
+
+    @property
+    def event(self) -> dict:
+        """Return one profile chart event for this webhook delivery."""
+        return {
+            "name": f"{self.get_status_display()} ({self.webhook.signing_key.key_id})",
+            "color": TIMELINE_COLORS[self.status],
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": "",
+            "tls": "",
+            "transcript": (
+                f"delivery-{self.pk}"
+                if self.response_code or self.response_body
+                else ""
+            ),
+        }
 
     @property
     def status_badge_variant(self) -> str:

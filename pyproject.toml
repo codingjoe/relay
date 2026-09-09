@@ -250,7 +250,7 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Message depends only on domains, accounts, kms and abstract"
+name = "Message depends only on domains, accounts, kms, tls and abstract"
 type = "forbidden"
 source_modules = [ "services.email.message" ]
 forbidden_modules = [

@@ -3,6 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.dispatch import receiver
 
+from services.email.message.models import Transmission
 from services.email.mta.signals import report_received
 
 from .models import DmarcFailureReport, DmarcReport
@@ -21,6 +22,9 @@ def create_report(
     message_id,
     raw_bytes,
     tls_fields,
+    tls,
+    client_ip,
+    started_at,
     **kwargs,
 ):
     """Create a DMARC report from an incoming report email."""
@@ -53,5 +57,6 @@ def create_report(
             **tls_fields,
         )
         parse_task = parse_dmarc_failure_report
+    Transmission.record_reception(report, tls, started_at, client_ip)
     transaction.on_commit(lambda: parse_task.enqueue(report_pk=str(report.pk)))
     return True

@@ -460,7 +460,7 @@
     credential: 1
     feedback_id: 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
     status: sent
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ede-773a-8790-f0386847a6ac
   fields:
     modified_at: 2026-08-22 09:14:30+00:00
@@ -480,7 +480,7 @@
     log_id: ''
     started_at: 2026-08-22 09:14:27+00:00
     finished_at: 2026-08-22 09:14:30+00:00
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
   fields:
     modified_at: 2026-08-24 11:30:30+00:00
@@ -500,7 +500,7 @@
     log_id: ''
     started_at: 2026-08-24 11:30:26+00:00
     finished_at: 2026-08-24 11:30:30+00:00
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ee0-7a10-9a41-c8f012345681
   fields:
     modified_at: '2026-08-24 11:30:25.5+00:00'
@@ -515,7 +515,7 @@
     log_id: ''
     started_at: '2026-08-24 11:30:25+00:00'
     finished_at: '2026-08-24 11:30:25.5+00:00'
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
   fields:
     modified_at: 2026-08-25 15:45:30+00:00
@@ -535,7 +535,7 @@
     log_id: ''
     started_at: 2026-08-25 15:45:28+00:00
     finished_at: 2026-08-25 15:45:30+00:00
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ee2-7a10-9a41-c8f012345683
   fields:
     modified_at: '2026-08-25 15:45:27.5+00:00'
@@ -668,7 +668,7 @@
   pk: 019fbe8f-5edc-71e1-c414-e1481852cc47
   fields:
     modified_at: 2026-08-01 18:21:34.835000+00:00
-    created_at: 2026-08-01 18:21:34.835000+00:00
+    created_at: &id001 2026-08-01 18:21:34.835000+00:00
     org: 1
     content_type:
       - mta
@@ -716,7 +716,7 @@
   pk: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
   fields:
     modified_at: 2026-08-01 18:21:34.840000+00:00
-    created_at: 2026-08-01 18:21:34.840000+00:00
+    created_at: &id002 2026-08-01 18:21:34.840000+00:00
     org: 1
     content_type:
       - mta
@@ -764,7 +764,7 @@
   pk: 019fbe8f-5efc-70c3-995b-59556bf2aa13
   fields:
     modified_at: 2026-08-01 18:21:34.845000+00:00
-    created_at: 2026-08-01 18:21:34.845000+00:00
+    created_at: &id003 2026-08-01 18:21:34.845000+00:00
     org: 1
     content_type:
       - dmarc
@@ -854,7 +854,7 @@
   pk: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
   fields:
     modified_at: 2026-08-01 18:21:34.860000+00:00
-    created_at: 2026-08-01 18:21:34.860000+00:00
+    created_at: &id004 2026-08-01 18:21:34.860000+00:00
     org: 1
     content_type:
       - dmarc
@@ -918,7 +918,7 @@
   pk: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
   fields:
     modified_at: 2026-08-01 18:21:34.865000+00:00
-    created_at: 2026-08-01 18:21:34.865000+00:00
+    created_at: &id005 2026-08-01 18:21:34.865000+00:00
     org: 1
     content_type:
       - mta
@@ -1210,7 +1210,7 @@
     status: sent
     response_code: 200
     response_body: '{"status":"ok"}'
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5fcc-710b-a02b-fcc22eed5854
   fields:
     modified_at: '2026-08-22 09:14:26.5+00:00'
@@ -1225,7 +1225,7 @@
     log_id: ''
     started_at: '2026-08-22 09:14:26+00:00'
     finished_at: '2026-08-22 09:14:26.5+00:00'
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
   fields:
     modified_at: 2026-08-23 13:21:30+00:00
@@ -1239,7 +1239,7 @@
     log_id: ''
     started_at: 2026-08-23 13:20:57+00:00
     finished_at: 2026-08-23 13:21:00+00:00
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
   fields:
     modified_at: '2026-08-23 13:20:55.5+00:00'
@@ -1254,7 +1254,7 @@
     log_id: ''
     started_at: '2026-08-23 13:20:55+00:00'
     finished_at: '2026-08-23 13:20:55.5+00:00'
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
   fields:
     modified_at: 2026-08-23 13:22:30+00:00
@@ -1268,7 +1268,7 @@
     log_id: ''
     started_at: 2026-08-23 13:21:57+00:00
     finished_at: 2026-08-23 13:22:00+00:00
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
   fields:
     modified_at: '2026-08-23 13:20:55.5+00:00'
@@ -1283,7 +1283,7 @@
     log_id: ''
     started_at: '2026-08-23 13:20:55+00:00'
     finished_at: '2026-08-23 13:20:55.5+00:00'
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
   fields:
     modified_at: 2026-08-27 17:11:00+00:00
@@ -1297,7 +1297,7 @@
     log_id: ''
     started_at: 2026-08-27 17:10:55+00:00
     finished_at: 2026-08-27 17:11:00+00:00
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5f8d-7a10-9a41-c8f012345689
   fields:
     modified_at: '2026-08-27 17:10:53.5+00:00'
@@ -1370,7 +1370,7 @@
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0001
   fields:
     modified_at: 2026-08-27 12:00:12+00:00
-    created_at: 2026-08-27 12:00:00+00:00
+    created_at: &id006 2026-08-27 12:00:00+00:00
     org: 1
     content_type:
       - mta
@@ -1418,7 +1418,7 @@
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0002
   fields:
     modified_at: 2026-08-28 08:30:12+00:00
-    created_at: 2026-08-28 08:30:00+00:00
+    created_at: &id007 2026-08-28 08:30:00+00:00
     org: 1
     content_type:
       - mta
@@ -1498,7 +1498,7 @@
     original_mail_from: sender2@acme.com
     original_rcpt_to: recipient2@example.com
     original_message_id: <test2@acme.com>
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5f6d-7a10-9a41-c8f012345685
   fields:
     modified_at: '2026-08-26 08:05:25.5+00:00'
@@ -1513,3 +1513,87 @@
     log_id: ''
     started_at: '2026-08-26 08:05:25+00:00'
     finished_at: '2026-08-26 08:05:25.5+00:00'
+- model: message.transmission
+  pk: 62cdadd6-865a-4b9c-a649-e19148cbfa77
+  fields:
+    modified_at: *id001
+    created_at: *id001
+    message: 019fbe8f-5edc-71e1-c414-e1481852cc47
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id001
+    finished_at: *id001
+- model: message.transmission
+  pk: 5720f336-204e-44af-a0b1-da99be827669
+  fields:
+    modified_at: *id002
+    created_at: *id002
+    message: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id002
+    finished_at: *id002
+- model: message.transmission
+  pk: e55ee01b-3dc8-45a4-a252-31869e41b210
+  fields:
+    modified_at: *id003
+    created_at: *id003
+    message: 019fbe8f-5efc-70c3-995b-59556bf2aa13
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id003
+    finished_at: *id003
+- model: message.transmission
+  pk: 0d5dc8a2-57cb-4589-97f8-f3dc07e43d56
+  fields:
+    modified_at: *id004
+    created_at: *id004
+    message: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id004
+    finished_at: *id004
+- model: message.transmission
+  pk: 5e5429e9-cb75-47fd-b278-3977599c766f
+  fields:
+    modified_at: *id005
+    created_at: *id005
+    message: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id005
+    finished_at: *id005
+- model: message.transmission
+  pk: b313ff73-90d4-4317-b01f-177602094dad
+  fields:
+    modified_at: *id006
+    created_at: *id006
+    message: 019fbe8f-602c-73e0-9a10-6d5d082a0001
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id006
+    finished_at: *id006
+- model: message.transmission
+  pk: 587f32a1-d5e4-40bc-8315-1a03da423fd1
+  fields:
+    modified_at: *id007
+    created_at: *id007
+    message: 019fbe8f-602c-73e0-9a10-6d5d082a0002
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id007
+    finished_at: *id007

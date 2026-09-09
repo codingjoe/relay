@@ -8,11 +8,9 @@ from django.db.models import Lookup
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from abstract.models import FetchPeersManager, TimeStamped, Timing
+from abstract.models import TimeStamped, Timing
 from accounts.models import Credential, OrganizationOwned
-from kms.models import Certificate
 from services.email.message.models import Message
-from services.email.tls import parse_peer_certificates
 
 
 class OutgoingMessage(Message):
@@ -71,159 +69,6 @@ class OutgoingMessage(Message):
     url_name = "message-detail"
 
 
-class Transmission(Timing):
-    """
-    Track a single SMTP leg of an outgoing message.
-
-    Each message starts with the submission to relay's MSA and can gain
-    multiple delivery transmissions (for example, retry attempts).
-    """
-
-    class Status(models.TextChoices):
-        SUBMITTED = "submitted", _("submitted")
-        SENT = "sent", _("sent")
-        FAILED = "failed", _("failed")
-        RETRY = "retry", _("retry")
-        BOUNCED = "bounced", _("bounced")
-
-    class TlsMode(models.TextChoices):
-        PLAINTEXT = "plaintext", "plaintext"
-        STARTTLS = "starttls", "STARTTLS"
-        TLS = "tls", "TLS"
-
-    message = models.ForeignKey(
-        OutgoingMessage,
-        on_delete=models.CASCADE,
-        related_name="transmissions",
-    )
-    mx_host = models.TextField(
-        _("MX host"),
-        blank=True,
-        help_text=_("MX hostname this delivery attempt dialed."),
-    )
-    sending_mta_ip_address = models.GenericIPAddressField(
-        _("sending MTA IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address relay sent this delivery attempt from."),
-    )
-    receiving_mx_ip_address = models.GenericIPAddressField(
-        _("receiving MX IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address of the MX that handled this delivery attempt."),
-    )
-    submission_ip_address = models.GenericIPAddressField(
-        _("submission IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address that submitted this message to relay's MSA."),
-    )
-    status = models.TextField(
-        _("status"),
-        choices=Status,
-        help_text=_("Outcome of this delivery attempt."),
-    )
-    code = models.PositiveIntegerField(
-        _("code"),
-        null=True,
-        blank=True,
-        help_text=_("SMTP response code from the remote server."),
-    )
-    output = models.TextField(
-        _("output"),
-        blank=True,
-        help_text=_("Raw SMTP transcript from the remote server."),
-    )
-    details = models.TextField(
-        _("details"),
-        blank=True,
-        help_text=_("Human-readable explanation of the outcome."),
-    )
-    tls_mode = models.TextField(
-        _("TLS mode"),
-        choices=TlsMode,
-        default=TlsMode.PLAINTEXT,
-        help_text=_("TLS transport negotiated for this delivery attempt."),
-    )
-    tls_version = models.TextField(
-        _("TLS version"),
-        blank=True,
-        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
-    )
-    tls_cipher = models.TextField(
-        _("TLS cipher"),
-        blank=True,
-        help_text=_("Negotiated TLS cipher suite."),
-    )
-    tls_certificate = models.ForeignKey(
-        "kms.Certificate",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="transmissions",
-    )
-    log_id = models.TextField(
-        _("log ID"),
-        blank=True,
-        help_text=_("Remote server log identifier."),
-    )
-
-    objects = FetchPeersManager()
-
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
-
-    @classmethod
-    def record_submission(cls, message, ssl, started_at, client_ip=None):
-        """Record the submission relay accepted for a message."""
-        ssl_object = ssl.get("ssl_object") if isinstance(ssl, dict) else None
-        cipher = ssl_object.cipher() if ssl_object else None
-        if isinstance(ssl, dict):
-            tls_mode = cls.TlsMode.STARTTLS
-        elif ssl:
-            tls_mode = cls.TlsMode.TLS
-        else:
-            tls_mode = cls.TlsMode.PLAINTEXT
-        cls.objects.create(
-            message=message,
-            status=cls.Status.SUBMITTED,
-            code=250,
-            output="250 OK",
-            tls_mode=tls_mode,
-            tls_version=cipher[1] if cipher else "",
-            tls_cipher=cipher[0] if cipher else "",
-            tls_certificate=(
-                Certificate.store_presented_chain(parse_peer_certificates(ssl_object))
-                if ssl_object
-                else None
-            ),
-            submission_ip_address=client_ip,
-            started_at=started_at,
-            finished_at=timezone.now(),
-        )
-
-    @property
-    def status_badge_variant(self) -> str:
-        match self.status:
-            case self.Status.SENT:
-                return "success"
-            case self.Status.FAILED | self.Status.BOUNCED:
-                return "destructive"
-            case _:
-                return "outline"
-
-    @property
-    def label(self) -> str:
-        """Return the display name of this transmission."""
-        target = self.mx_host or self.submission_ip_address or ""
-        name = self.get_status_display()
-        return f"{name} ({target})" if target else name
-
-    def __str__(self):
-        return f"{self.message} → {self.status}"
-
-
 class SpamCheck(Timing):
     """Record the wall-clock duration of a spam check."""
 
@@ -242,6 +87,20 @@ class SpamCheck(Timing):
     class Meta(Timing.Meta):
         ordering = ["started_at", "created_at"]
         verbose_name = _("spam check")
+
+    @property
+    def event(self) -> dict:
+        """Return one profile chart event for this spam check."""
+        return {
+            "name": self.label,
+            "color": "var(--color-chart-gray)",
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": "",
+            "tls": "",
+            "transcript": "",
+            "score": self.score,
+        }
 
     @property
     def label(self) -> str:

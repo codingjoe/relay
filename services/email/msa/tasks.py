@@ -46,7 +46,9 @@ def deliver_message(message_id):
 
     Drop the message instead when the org is suspended.
     """
-    from .models import OutgoingMessage, Transmission
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
     if message.org.suspended_at:
@@ -98,7 +100,9 @@ def resolve_sender_domain(message):
 
 def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
-    from .models import OutgoingMessage, Transmission
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage
 
     resolve_sender_domain(message)
     raw_bytes = message.raw_body.read()
@@ -165,7 +169,9 @@ def send_outgoing_message(message):
 
 def record_bounce(message, code, output, mx_host, started_at):
     """Record a permanent bounce and suppress the recipient address."""
-    from .models import OutgoingMessage, SuppressionEntry, Transmission
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage, SuppressionEntry
 
     Transmission.objects.create(
         message=message,
@@ -206,8 +212,7 @@ async def send_via_mx(
     Returns the SMTP response with the negotiated TLS details.
     """
     from kms.models import Certificate
-
-    from .models import Transmission
+    from services.email.message.models import Transmission
 
     with measure() as interval:
         async with aiosmtplib.SMTP(
@@ -265,7 +270,7 @@ def check_outgoing_spam(message_pk, client_ip):
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
     if message.org.suspended_at:
-        from .models import Transmission
+        from services.email.message.models import Transmission
 
         message.status = OutgoingMessage.Status.DROPPED
         message.save(update_fields=["status", "modified_at"])

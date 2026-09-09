@@ -9,7 +9,8 @@ from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.mta.handlers import process_incoming_message
 from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport

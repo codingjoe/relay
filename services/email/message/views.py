@@ -1,12 +1,14 @@
 from django.db import models
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import NoStoreCacheMixin
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
+from .charts import build_timeline
 from .models import Message
 
 
@@ -70,6 +72,39 @@ class MessageBreadcrumbMixin:
         breadcrumbs = super().get_breadcrumbs()
         breadcrumbs[0]["title"] = self.object.subject or str(self.object)
         return breadcrumbs
+
+
+class MessageDetailView(
+    OrganizationScopedView,
+    ConditionalGetMixin,
+    MessageBreadcrumbMixin,
+    generic.DetailView,
+):
+    """Render the shared message detail page: timeline, headers, and body."""
+
+    context_object_name = "message"
+    parent = "message:message-list"
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
+
+    def get_timings(self, message):
+        """Return the Timing rows for the message timeline."""
+        return [message.transmissions.all()]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        message = self.object
+        headers = message.parsed_headers
+        timings = [
+            timing for queryset in self.get_timings(message) for timing in queryset
+        ]
+        return context | {
+            "headers": headers,
+            "received": [v for k, v in headers if k.lower() == "received"],
+            "body": message.text_body,
+            "timeline": list(build_timeline(timings)),
+        }
 
 
 class CertificateDetailView(

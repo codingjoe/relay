@@ -16,9 +16,10 @@ from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
+from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
