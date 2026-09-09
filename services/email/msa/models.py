@@ -239,9 +239,8 @@ class SpamCheck(Timing):
         help_text=_("rspamd score the check returned, or null when the check failed."),
     )
 
-    class Meta(TimeStamped.Meta):
+    class Meta(Timing.Meta):
         ordering = ["started_at", "created_at"]
-        indexes = [models.Index(fields=["message", "started_at"])]
         verbose_name = _("spam check")
 
     @property
