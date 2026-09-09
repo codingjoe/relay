@@ -29,26 +29,28 @@
       {% endif %}
     </div>
     <div class="flex items-center gap-2 shrink-0">
-      <span
+      <a
         class="badge"
         data-size="sm"
         data-variant="{{ message.status_badge_variant }}"
         data-tooltip='{% translate "Where this message stands in its delivery." %}'
+        href="{% url 'docs:detail' 'message-statuses' %}"
       >
         <i data-lucide="mailbox" class="size-3.5" aria-hidden="true"></i>
         {{ message.status_display }}
-      </span>
+      </a>
       {% if message.spam_action or message.spam_score is not None %}
-        <span
+        <a
           class="badge"
           data-size="sm"
           data-variant="{{ message.spam_badge_variant }}"
           data-tooltip='{% translate "The rspamd verdict and score assigned to this message." %}'
+          href="{% url 'docs:detail' 'message-statuses' %}"
         >
           <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
           {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
             ({{ message.spam_score }}){% endif %}
-        </span>
+        </a>
       {% endif %}
     </div>
   </header>
