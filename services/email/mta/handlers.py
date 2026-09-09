@@ -32,12 +32,7 @@ HELO_ALLOWED_CHARS = re.compile(r"[A-Za-z0-9.\-:\[\]]")
 
 
 def received_header(session) -> bytes:
-    """
-    Return the Received header line for an inbound message (RFC 5321 §4.4).
-
-    The HELO name is reduced to a safe charset so it cannot inject header
-    lines or Received clauses.
-    """
+    """Return the Received header line for an inbound message (RFC 5321 §4.4)."""
     helo = "".join(HELO_ALLOWED_CHARS.findall(getattr(session, "host_name", "") or ""))
     protocol = "ESMTPS" if getattr(session, "ssl", None) else "ESMTP"
     received = f"from {helo or 'unknown'}"
