@@ -45,7 +45,7 @@
               data-variant="{{ message.spam_badge_variant }}"
               data-tooltip='{% translate "rspamd verdict for this message"|capfirst %}'
             >
-              {{ message.get_spam_action_display }}
+              {% translate "rspamd:" %} {{ message.get_spam_action_display }}
             </span>
           {% endif %}
           {% if message.spam_score is not None %}
