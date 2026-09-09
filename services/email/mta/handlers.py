@@ -39,10 +39,9 @@ def received_header(session) -> bytes:
     lines or Received clauses.
     """
     helo = HELO_UNSAFE_CHARS.sub("", getattr(session, "host_name", "") or "")
-    ip = get_client_ip(session)
     protocol = "ESMTPS" if getattr(session, "ssl", None) else "ESMTP"
     received = f"from {helo or 'unknown'}"
-    if ip:
+    if ip := get_client_ip(session):
         received += f" ([{ip}])"
     received += (
         f"\r\n\tby {settings.RELAY_DNS_MX_HOSTNAMES[0]} with {protocol};\r\n\t"
