@@ -91,7 +91,10 @@ class MessageDetailView(
 
     def get_timings(self, message):
         self.transmissions = message.transmissions.select_related("tls_certificate")
-        return chain(self.transmissions, message.spamcheck_set.all())
+        return chain(
+            self.transmissions,
+            message.spamcheck_set.select_related("message"),
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
