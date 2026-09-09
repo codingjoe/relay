@@ -201,9 +201,6 @@ class WebhookDelivery(Timing):
         help_text=_("Truncated response body from the webhook endpoint."),
     )
 
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
-
     @property
     def event(self) -> dict:
         return {

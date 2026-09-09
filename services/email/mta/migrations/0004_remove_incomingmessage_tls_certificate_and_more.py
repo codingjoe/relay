@@ -10,6 +10,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterModelOptions(
+            "webhookdelivery",
+            options={
+                "ordering": ["started_at", "created_at"],
+                "get_latest_by": "created_at",
+            },
+        ),
         migrations.RemoveField(
             model_name="incomingmessage",
             name="tls_certificate",

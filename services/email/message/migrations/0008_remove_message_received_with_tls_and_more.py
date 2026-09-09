@@ -107,7 +107,6 @@ class Migration(migrations.Migration):
                     "message",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="spam_checks",
                         to="message.message",
                     ),
                 ),
@@ -115,6 +114,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "spam check",
                 "ordering": ["started_at", "created_at"],
+                "get_latest_by": "created_at",
                 "abstract": False,
             },
         ),
@@ -273,7 +273,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "ordering": ["-created_at"],
+                "ordering": ["started_at", "created_at"],
                 "get_latest_by": "created_at",
                 "abstract": False,
             },

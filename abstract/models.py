@@ -59,7 +59,8 @@ class Timing(TimeStamped):
         help_text=_("When the timing finished."),
     )
 
-    class Meta:
+    class Meta(TimeStamped.Meta):
+        ordering = ["started_at", "created_at"]
         abstract = True
 
     def __enter__(self):

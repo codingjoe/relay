@@ -298,11 +298,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   to a concrete parent. Per-kind fields stay on the children.
 
 - When siblings share only a couple of columns, prefer an abstract base
-  with concrete per-scenario models over multi-table inheritance. The
-  base carries the shared behavior and fields (for example, the `Timing`
-  context manager and its `started_at`/`finished_at` stamps); the
-  concrete models own the fields that differ and implement the base's
-  abstract members such as `Timing.label`.
+  with concrete per-scenario models over multi-table inheritance. Put
+  the shared behavior and fields on the base; concrete models implement
+  abstract members and own the fields that differ.
 
 - Indexes on shared columns live on the parent's `Meta.indexes`.
   Per-kind indexes stay on the child.

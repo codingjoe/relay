@@ -410,9 +410,6 @@ class Transmission(Timing):
 
     objects = FetchPeersManager()
 
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
-
     @classmethod
     def tls_session_fields(cls, ssl):
         """Return the TLS field values negotiated for an SMTP session."""
@@ -512,7 +509,6 @@ class SpamCheck(Timing):
     message = models.ForeignKey(
         Message,
         on_delete=models.CASCADE,
-        related_name="spam_checks",
     )
     score = models.FloatField(
         _("score"),
@@ -522,7 +518,6 @@ class SpamCheck(Timing):
     )
 
     class Meta(Timing.Meta):
-        ordering = ["started_at", "created_at"]
         verbose_name = _("spam check")
 
     @property

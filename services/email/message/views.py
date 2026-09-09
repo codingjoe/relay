@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.db import models
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -88,24 +90,23 @@ class MessageDetailView(
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
 
     def get_timings(self, message):
-        """Return the Timing rows for the message timeline."""
-        return [message.transmissions.all()]
+        self.transmissions = message.transmissions.select_related("tls_certificate")
+        return chain(self.transmissions, message.spamcheck_set.all())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = message.parsed_headers
-        timings = [
-            timing for queryset in self.get_timings(message) for timing in queryset
-        ]
+        timings = self.get_timings(message)
         return context | {
             "headers": headers,
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
-            "timeline": [
-                timing.event
-                for timing in sorted(timings, key=lambda timing: timing.started_at)
-            ],
+            "transmissions": self.transmissions,
+            "timeline": sorted(
+                (timing.event for timing in timings),
+                key=lambda event: event["start"],
+            ),
         }
 
 

@@ -13,7 +13,6 @@ from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.dkim import sign_message
 from domains.models import Domain
-from services.email.message.models import SpamCheck
 from services.email.message.views import MessageDetailView
 
 from .charts import build_suppression_chart
@@ -30,18 +29,6 @@ class OutgoingMessageDetailView(MessageDetailView):
         return OutgoingMessage.objects.filter(org=self.org).select_related(
             "domain", "credential", "content_type"
         )
-
-    def get_timings(self, message):
-        self.transmissions = message.transmissions.select_related("tls_certificate")
-        return [
-            self.transmissions,
-            SpamCheck.objects.filter(message=message).select_related("message"),
-        ]
-
-    def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {
-            "transmissions": self.transmissions,
-        }
 
 
 class TestEmailView(OrganizationScopedView, generic.View):
