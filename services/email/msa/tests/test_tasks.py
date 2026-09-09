@@ -132,7 +132,7 @@ class TestDeliverMessage:
         transmission = Transmission.objects.get(
             message=msg, status=Transmission.Status.SENT
         )
-        assert transmission.mx_host == "mx.example.com"
+        assert transmission.remote_host == "mx.example.com"
         assert transmission.tls_mode == Transmission.TlsMode.STARTTLS
         assert transmission.tls_version == "TLSv1.3"
         assert transmission.tls_cipher == "TLS_AES_256_GCM_SHA384"
