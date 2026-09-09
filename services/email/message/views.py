@@ -8,7 +8,6 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
-from .charts import build_timeline
 from .models import Message
 
 
@@ -103,7 +102,10 @@ class MessageDetailView(
             "headers": headers,
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
-            "timeline": list(build_timeline(timings)),
+            "timeline": [
+                timing.event
+                for timing in sorted(timings, key=lambda timing: timing.started_at)
+            ],
         }
 
 
