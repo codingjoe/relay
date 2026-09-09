@@ -29,23 +29,62 @@
       {% endif %}
     </div>
     <div class="flex items-center gap-2 shrink-0">
-      <span
-        class="badge"
-        data-size="sm"
-        data-variant="{{ message.status_badge_variant }}"
-      >
-        {% translate "status:" %} {{ message.status_display }}
-      </span>
-      {% if message.spam_action or message.spam_score is not None %}
-        <span
+      <div class="popover">
+        <button
+          type="button"
           class="badge"
           data-size="sm"
-          data-variant="{{ message.spam_badge_variant }}"
-          data-tooltip='{% translate "rspamd verdict for this message"|capfirst %}'
+          data-variant="{{ message.status_badge_variant }}"
+          id="status-badge-trigger"
+          aria-haspopup="dialog"
+          aria-controls="status-badge-popover"
+          aria-expanded="false"
         >
-          {% translate "spam:" %} {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
-            ({{ message.spam_score }}){% endif %}
-        </span>
+          <i data-lucide="mail" class="size-3.5" aria-hidden="true"></i>
+          {{ message.status_display }}
+        </button>
+        <div
+          id="status-badge-popover"
+          class="w-64 text-sm"
+          aria-hidden="true"
+          data-side="bottom"
+          data-align="end"
+          data-popover
+        >
+          <p class="m-0">
+            {% translate "Where this message stands in its delivery." %}
+          </p>
+        </div>
+      </div>
+      {% if message.spam_action or message.spam_score is not None %}
+        <div class="popover">
+          <button
+            type="button"
+            class="badge"
+            data-size="sm"
+            data-variant="{{ message.spam_badge_variant }}"
+            id="spam-badge-trigger"
+            aria-haspopup="dialog"
+            aria-controls="spam-badge-popover"
+            aria-expanded="false"
+          >
+            <i data-lucide="shield" class="size-3.5" aria-hidden="true"></i>
+            {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
+              ({{ message.spam_score }}){% endif %}
+          </button>
+          <div
+            id="spam-badge-popover"
+            class="w-64 text-sm"
+            aria-hidden="true"
+            data-side="bottom"
+            data-align="end"
+            data-popover
+          >
+            <p class="m-0">
+              {% translate "The rspamd verdict and score assigned to this message." %}
+            </p>
+          </div>
+        </div>
       {% endif %}
     </div>
   </header>
