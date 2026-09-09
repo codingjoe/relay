@@ -1,10 +1,44 @@
 import datetime
 import zoneinfo
 
+from django.core.paginator import Paginator
+from django.template import RequestContext, engines
+from django.test import RequestFactory
 from django.utils import timezone
 
 from ...utils import future
 from .. import abstract
+
+
+def test_param_replace():
+    request = RequestFactory().get("/messages/", {"direction": "sent"})
+    assert (
+        abstract.param_replace(RequestContext(request), page=2)
+        == "direction=sent&page=2"
+    )
+
+
+def test_param_replace__drops_empty_values():
+    request = RequestFactory().get("/messages/", {"direction": "sent", "email": "joe"})
+    assert abstract.param_replace(RequestContext(request), email="") == "direction=sent"
+
+
+def test_param_replace__isolated_context():
+    """Inclusion tags drop context processor values, but keep the request attribute."""
+    request = RequestFactory().get("/messages/", {"direction": "sent"})
+    context = RequestContext(request).new(
+        {"page_obj": Paginator(range(120), 50).page(2)}
+    )
+    assert abstract.param_replace(context, page=3) == "direction=sent&page=3"
+
+
+def test_pagination__multiple_pages():
+    """The pagination tag renders filter-preserving links once a second page exists."""
+    request = RequestFactory().get("/messages/", {"direction": "sent"})
+    template = engines["django"].from_string("{% load abstract %}{% pagination %}")
+    html = template.render({"page_obj": Paginator(range(120), 50).page(2)}, request)
+    assert "direction=sent&amp;page=1" in html
+    assert "direction=sent&amp;page=3" in html
 
 
 def test_include_md():

@@ -12,10 +12,12 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from accounts.models import Membership, Organization
 from domains.models import Domain
 from kms.models import SigningKey
+from services.email.message.models import Transmission
 from services.email.mta.models import (
     IncomingMessage,
     TlsFailure,
@@ -73,10 +75,16 @@ class TestWebhookEventFromMessage:
             rcpt_to="bob@example.com",
             subject="Hello",
             message_id="<abc@example.com>",
-            received_with_tls=True,
         )
         msg.raw_body.save("test.eml", ContentFile(b"raw bytes"), save=False)
         msg.save()
+        Transmission.objects.create(
+            message=msg,
+            status=Transmission.Status.RECEIVED,
+            tls_mode=Transmission.TlsMode.TLS,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
 
         event = WebhookEvent.from_message(msg)
         assert event.type == "email.received"

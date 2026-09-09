@@ -8,11 +8,11 @@ from django.core.files.base import ContentFile
 from django.utils.http import http_date
 
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
     SuppressionEntry,
-    Transmission,
 )
 
 
@@ -88,7 +88,7 @@ class TestMessageDetailView:
         assert "headers" in response.context
         assert "transmissions" in response.context
 
-    def test_get__shows_stored_headers_and_dkim_signatures(
+    def test_get__shows_stored_headers_including_dkim_signatures(
         self, admin_client, org, user
     ):
         msg = make_message(org, user)
@@ -106,22 +106,16 @@ class TestMessageDetailView:
         msg.save(update_fields=["headers"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
-        # DKIM-Signature rows have their own card and are excluded from the
-        # generic headers table.
         assert response.context["headers"] == [
             ["From", "alice@example.com"],
             ["Subject", "Test"],
-        ]
-        assert response.context["dkim_signatures"] == [
-            {
-                "v": "1",
-                "a": "ed25519-sha256",
-                "d": "acme.com",
-                "s": "relay",
-                "h": "from:subject",
-                "bh": "AAAA",
-                "b": "BBBB",
-            }
+            [
+                "DKIM-Signature",
+                (
+                    "v=1; a=ed25519-sha256; d=acme.com; s=relay; h=from:subject; "
+                    "bh=AAAA; b=BBBB"
+                ),
+            ],
         ]
 
     def test_get__malformed_dkim_signature_does_not_crash(
@@ -137,8 +131,9 @@ class TestMessageDetailView:
         msg.save(update_fields=["raw_body"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
-        assert response.context["dkim_signatures"] == [
-            {"v": "1", "a": "ed25519-sha256"}
+        assert response.context["headers"][-1] == [
+            "DKIM-Signature",
+            "v=1; a=ed25519-sha256; b",
         ]
 
 

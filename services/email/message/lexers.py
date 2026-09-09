@@ -1,6 +1,7 @@
 """Pygments lexers for email authentication syntax."""
 
 from pygments.lexer import RegexLexer, bygroups
+from pygments.lexers.email import EmailHeaderLexer
 from pygments.token import Comment, Keyword, Name, Operator, Text, Whitespace
 
 
@@ -62,3 +63,18 @@ class AuthenticationResultsLexer(RegexLexer):
             (r"[^\s;]+", Name.Label),
         ]
     }
+
+
+class HeaderValueLexer(EmailHeaderLexer):
+    """
+    Tokenize a single email header value without its field name.
+
+    Mailbox addresses become `Name.Label`, domains `Name.Function`, IPv4
+    addresses `Number.Integer`, dates `Name.Decorator`, SMTP keywords
+    `Keyword`, and RFC 2047 encoded words follow `EmailHeaderLexer`.
+    """
+
+    name = "Email header value"
+    aliases = ["email-header-value"]
+
+    tokens = {"root": EmailHeaderLexer.tokens["header"]}

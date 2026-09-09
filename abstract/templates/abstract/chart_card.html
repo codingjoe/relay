@@ -1,4 +1,4 @@
-{% load i18n abstract %}
+{% load i18n static abstract %}
 <section class="card {{ class }}">
   <header>
     <h3 class="m-0">{{ title }}</h3>
@@ -12,23 +12,12 @@
   {{ chart.rows|json_script:data_id }}
   <script type="module">
     import * as echarts from "https://esm.sh/echarts@5.6.0";
+    import { toRgba } from "{% static 'abstract/chart.js' %}";
+    import escapeHtml from "https://esm.sh/lodash.escape@4.0.1";
     const element = document.getElementById("{{ id }}");
     if (element) {
       const rows = JSON.parse(document.getElementById("{{ data_id }}").textContent);
       const locale = document.documentElement.lang;
-      const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-      const swatch = document.body.appendChild(document.createElement("span"));
-      swatch.hidden = true;
-      const toRgba = (value, alpha = 1, fallback = "#71717a") => {
-        const name = value.startsWith("var(") ? value.slice(4, -1) : null;
-        const color = name ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : value;
-        swatch.style.color = color || fallback;
-        probe.clearRect(0, 0, 1, 1);
-        probe.fillStyle = getComputedStyle(swatch).color;
-        probe.fillRect(0, 0, 1, 1);
-        const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
-        return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
-      };
       const fullDate = new Intl.DateTimeFormat(locale, {
         year: "numeric",
         month: "long",
@@ -36,10 +25,6 @@
         timeZone: "UTC",
       });
       const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
-      const escapeHtml = (value) =>
-        value.replace(/[&<>"']/g, (character) =>
-          ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
-        );
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
       const palette = [

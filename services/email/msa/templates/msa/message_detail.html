@@ -1,32 +1,21 @@
 {% extends "message/message_detail.html" %}
 {% load i18n abstract message %}
-{% block transmission_card %}
-  <section class="mb-6 flex flex-col gap-4">
-    <h3 class="font-semibold m-0">{% translate "transmissions"|capfirst context "noun" %}</h3>
-    {% if transmissions %}
-      <div class="item-group">
-        {% for transmission in transmissions %}
-          <article class="item" data-variant="outline" data-size="sm">
-            <section>
-              <h3 data-tooltip="{{ transmission.sending_mta_ip_address|default:'-' }} → {{ transmission.receiving_mx_ip_address|default:'-' }}">
-                <code>{{ transmission.mx_host|default:"-" }}</code>
-              </h3>
-              <p>
-                {% timestamp transmission.created_at %} ·
-                {% if transmission.tls_certificate %}
-                  <a
-                    class="link"
-                    href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
-                    data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }}"
-                  >{{ transmission.get_tls_mode_display }}</a>
-                {% else %}
-                  {{ transmission.get_tls_mode_display }}
-                {% endif %}
-                {% if transmission.tls_version %}
-                  · {{ transmission.tls_version }}{% endif %}
-              </p>
-            </section>
-            <aside class="flex items-center gap-2">
+{% block timeline_dialogs %}
+  {% for transmission in transmissions %}
+    {% if transmission.output or transmission.details or transmission.log_id %}
+      <dialog
+        id="transcript-{{ transmission.pk }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "SMTP transcript"|capfirst %}</h2>
+            <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+          </header>
+          <section class="flex flex-col gap-4">
+            <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
               <span
                 class="badge"
                 data-size="sm"
@@ -34,135 +23,34 @@
               >
                 {{ transmission.get_status_display }}
               </span>
-              {% if transmission.output or transmission.details or transmission.log_id %}
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="outline"
-                  data-size="xs"
-                  onclick="document.getElementById('transcript-{{ forloop.counter }}').showModal()"
-                  aria-haspopup="dialog"
-                >
-                  {% translate "transcript"|capfirst %}
-                </button>
+              {% if transmission.tls_certificate %}
+                <a
+                  class="link"
+                  href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                  data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }}"
+                >{{ transmission.get_tls_mode_display }}</a>
+              {% else %}
+                {{ transmission.get_tls_mode_display }}
               {% endif %}
-            </aside>
-          </article>
-        {% endfor %}
-      </div>
-      {% for transmission in transmissions %}
-        {% if transmission.output or transmission.details or transmission.log_id %}
-          <dialog
-            id="transcript-{{ forloop.counter }}"
-            class="drawer"
-            data-side="bottom"
-            onclick="if (event.target === this) this.close()"
-          >
-            <article>
-              <header>
-                <h2>{% translate "SMTP transcript"|capfirst %}</h2>
-                <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
-              </header>
-              <section class="flex flex-col gap-4">
-                {% if transmission.output %}
-                  <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
-                {% endif %}
-                {% if transmission.details %}
-                  <p class="m-0 text-sm">{{ transmission.details }}</p>
-                {% endif %}
-                {% if transmission.log_id %}
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm text-muted-foreground">{% translate "log ID"|capfirst context "noun" %}</span>
-                    <code class="break-all">{{ transmission.log_id }}</code>
-                    <button
-                      type="button"
-                      class="btn"
-                      data-variant="ghost"
-                      data-size="icon-xs"
-                      data-tooltip='{% translate "copy log ID"|capfirst %}'
-                      onclick="navigator.clipboard.writeText('{{ transmission.log_id|escapejs }}')"
-                      aria-label='{% translate "copy log ID"|capfirst %}'
-                    >
-                      <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                {% endif %}
-              </section>
-              <footer>
-                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
-                  {% translate "close"|capfirst %}
-                </button>
-              </footer>
-            </article>
-          </dialog>
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      <p class="m-0 text-sm text-muted-foreground">
-        {% translate "No transmissions yet." %}
-      </p>
-    {% endif %}
-  </section>
-{% endblock %}
-
-{% block extra_sections %}
-  {% if dkim_signatures %}
-    <div>
-      <h4 class="font-semibold m-0 mb-2">{% translate "DKIM signatures" %}</h4>
-      <div class="item-group">
-        {% for signature in dkim_signatures %}
-          <article class="item" data-variant="outline" data-size="sm">
-            <section>
-              <h3>
-                {% if signature.d %}
-                  <code class="break-all">{{ signature.d }}</code>
-                {% else %}
-                  <span class="text-sm text-muted-foreground">-</span>
-                {% endif %}
-              </h3>
-              {% if signature.s or signature.a %}
-                <p>
-                  {% if signature.s %}{% translate "selector" %} <code>{{ signature.s }}</code>{% endif %}
-                  {% if signature.s and signature.a %}
-                    ·
-                  {% endif %}
-                  {% if signature.a %}<code>{{ signature.a }}</code>{% endif %}
-                </p>
+              {% if transmission.tls_version %}
+                <span>{{ transmission.tls_version }}</span>
               {% endif %}
-            </section>
-            <aside class="flex items-center gap-2">
-              <button
-                type="button"
-                class="btn"
-                data-variant="outline"
-                data-size="xs"
-                onclick="document.getElementById('dkim-{{ forloop.counter }}').showModal()"
-                aria-haspopup="dialog"
-              >
-                {% translate "signature"|capfirst %}
-              </button>
-            </aside>
-          </article>
-        {% endfor %}
-      </div>
-    </div>
-    {% for signature in dkim_signatures %}
-      <dialog
-        id="dkim-{{ forloop.counter }}"
-        class="drawer"
-        data-side="bottom"
-        onclick="if (event.target === this) this.close()"
-      >
-        <article>
-          <header>
-            <h2>{% translate "DKIM signature"|capfirst %}</h2>
-            {% if signature.d %}
-              <p class="m-0 text-sm text-muted-foreground"><code>{{ signature.d }}</code></p>
+              {% if transmission.tls_cipher %}
+                <span><code>{{ transmission.tls_cipher }}</code></span>
+              {% endif %}
+            </p>
+            {% if transmission.local_ip_address or transmission.remote_ip_address %}
+              <p class="m-0 text-sm text-muted-foreground">
+                {{ transmission.local_ip_address|default:"-" }} →
+                {{ transmission.remote_ip_address|default:"-" }}
+              </p>
             {% endif %}
-          </header>
-          <section>
-            {% filter highlight_dkim %}{% autoescape off %}{% for key, value in signature.items %}{{ key }}={{ value }};
-                {% endfor %}{% endautoescape %}{% endfilter %}
+            {% if transmission.output %}
+              <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
+            {% endif %}
+            {% if transmission.details %}
+              <p class="m-0 text-sm">{{ transmission.details }}</p>
+            {% endif %}
           </section>
           <footer>
             <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
@@ -171,8 +59,11 @@
           </footer>
         </article>
       </dialog>
-    {% endfor %}
-  {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endblock %}
+
+{% block extra_sections %}
   {% if received %}
     <div>
       <h4 class="font-semibold m-0 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
@@ -201,7 +92,7 @@
             <h2>{% translate "received" context "email hop"|capfirst %} {{ forloop.counter }}</h2>
           </header>
           <section>
-            {{ hop|highlight_email }}
+            {{ hop|highlight_header }}
           </section>
           <footer>
             <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">

@@ -59,7 +59,7 @@ Organization → Domain, SmtpCredential
 - **Organization**: Owns resources (domains, credentials). Each user gets a personal org on signup.
 - **Domain**: Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
 - **SendingDomain**: Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
-- **ReceivingDomain**: Receiving domain with MX record pointing to the root domain's sender subdomain
+- **ReceivingDomain**: Receiving domain with MX record pointing to the relay MX hostnames
 - **SmtpCredential**: Per-org API key used to authenticate outgoing SMTP submissions
 - **Webhook**: Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
 - **DmarcReport**: Aggregate DMARC report (RUA) received from external organizations, parsed from XML
@@ -139,8 +139,8 @@ flowchart TD
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
-receiving domains (for example, `app.acme.com`) by pointing an MX record to their
-sender subdomain (for example, `MX app.acme.com → mail.relay.acme.com`). Webhooks
+receiving domains (for example, `app.acme.com`) by pointing an MX record to the
+relay MX hostnames (for example, `MX app.acme.com → mx1.relays.to`). Webhooks
 follow the [Standard Webhooks](https://standardwebhooks.com) specification -
 each delivery includes `webhook-id`, `webhook-timestamp`, and
 `webhook-signature` headers with an Ed25519 (`v1a`) signature. Each webhook

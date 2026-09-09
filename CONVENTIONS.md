@@ -53,6 +53,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - All fields must have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
+- Index fields used for ordering. A field listed in `Meta.ordering` needs an
+  index (for example, `SpamCheck.started_at`).
 - Drop `class Meta` entirely if it only inherits without overriding anything.
 - Use `TextField` instead of `CharField` for all fields unless you
   specifically want Django's `max_length` validation. In PostgreSQL there
@@ -294,6 +296,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - When sibling models share most columns, promote the shared columns
   to a concrete parent. Per-kind fields stay on the children.
+
+- When siblings share only a couple of columns, prefer an abstract base
+  with concrete per-scenario models over multi-table inheritance. Put
+  the shared behavior and fields on the base; concrete models implement
+  abstract members and own the fields that differ.
 
 - Indexes on shared columns live on the parent's `Meta.indexes`.
   Per-kind indexes stay on the child.

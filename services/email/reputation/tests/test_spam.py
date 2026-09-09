@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.msa.tasks import check_outgoing_spam
 from services.email.mta.models import IncomingMessage
 from services.email.mta.tasks import check_incoming_spam
@@ -125,6 +126,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -149,6 +152,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=450,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -174,6 +179,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -208,6 +215,8 @@ class TestCheckReputationOnHardBounce:
                 message=message,
                 status=Transmission.Status.BOUNCED,
                 code=550,
+                started_at=timezone.now(),
+                finished_at=timezone.now(),
             )
 
         org.refresh_from_db()
@@ -225,6 +234,8 @@ class TestCheckReputationOnHardBounce:
                 message=message,
                 status=Transmission.Status.BOUNCED,
                 code=450,
+                started_at=timezone.now(),
+                finished_at=timezone.now(),
             )
 
         org.refresh_from_db()

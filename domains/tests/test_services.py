@@ -1,5 +1,6 @@
 import dns.resolver
 import pytest
+from django.conf import settings
 from django.utils import timezone
 
 from accounts.models import Organization
@@ -375,7 +376,7 @@ class TestVerifyDomainDns:
             "TXT",
             f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
-        dns_resolver.add(domain.name, "MX", f"10 {domain.sender_domain}.")
+        dns_resolver.add(domain.name, "MX", f"10 {settings.RELAY_DNS_MX_HOSTNAMES[0]}.")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()
@@ -460,7 +461,7 @@ class TestVerifyDomainDns:
             "TXT",
             f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
-        dns_resolver.add(domain.name, "MX", f"10 {domain.sender_domain}.")
+        dns_resolver.add(domain.name, "MX", f"10 {settings.RELAY_DNS_MX_HOSTNAMES[0]}.")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()

@@ -3,6 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.dispatch import receiver
 
+from services.email.message.models import Transmission
 from services.email.mta.signals import report_received
 
 from .models import DmarcFailureReport, DmarcReport
@@ -20,38 +21,44 @@ def create_report(
     subject,
     message_id,
     raw_bytes,
-    tls_fields,
+    tls,
+    client_ip,
+    started_at,
     **kwargs,
 ):
     """Create a DMARC report from an incoming report email."""
     if local_part == settings.RELAY_DMARC_REPORT_LOCAL_PART:
-        report = DmarcReport.objects.create(
-            org=domain.org,
-            domain=domain,
-            receiving_domain=receiving_domain,
-            mail_from=mail_from,
-            rcpt_to=rcpt_to,
-            subject=subject,
-            message_id=message_id,
-            report_id="",
-            headers=DmarcReport.headers_from_raw(raw_bytes),
-            raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-            **tls_fields,
-        )
+        with Transmission.record_reception(tls, started_at, client_ip) as reception:
+            reception.message = report = DmarcReport.objects.create(
+                org=domain.org,
+                domain=domain,
+                receiving_domain=receiving_domain,
+                mail_from=mail_from,
+                rcpt_to=rcpt_to,
+                subject=subject,
+                message_id=message_id,
+                report_id="",
+                headers=DmarcReport.headers_from_raw(raw_bytes),
+                raw_body=SimpleUploadedFile(
+                    f"{message_id or 'message'}.eml", raw_bytes
+                ),
+            )
         parse_task = parse_dmarc_report
     else:
-        report = DmarcFailureReport.objects.create(
-            org=domain.org,
-            domain=domain,
-            receiving_domain=receiving_domain,
-            mail_from=mail_from,
-            rcpt_to=rcpt_to,
-            subject=subject,
-            message_id=message_id,
-            headers=DmarcFailureReport.headers_from_raw(raw_bytes),
-            raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-            **tls_fields,
-        )
+        with Transmission.record_reception(tls, started_at, client_ip) as reception:
+            reception.message = report = DmarcFailureReport.objects.create(
+                org=domain.org,
+                domain=domain,
+                receiving_domain=receiving_domain,
+                mail_from=mail_from,
+                rcpt_to=rcpt_to,
+                subject=subject,
+                message_id=message_id,
+                headers=DmarcFailureReport.headers_from_raw(raw_bytes),
+                raw_body=SimpleUploadedFile(
+                    f"{message_id or 'message'}.eml", raw_bytes
+                ),
+            )
         parse_task = parse_dmarc_failure_report
     transaction.on_commit(lambda: parse_task.enqueue(report_pk=str(report.pk)))
     return True

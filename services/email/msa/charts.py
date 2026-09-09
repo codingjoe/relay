@@ -23,6 +23,14 @@ SUPPRESSION_CHART_COLORS = {
     "manual": "var(--color-chart-gray)",
 }
 
+TIMELINE_COLORS = {
+    "submitted": "var(--color-chart-blue)",
+    "sent": "var(--color-chart-green)",
+    "retry": "var(--color-chart-yellow)",
+    "failed": "var(--color-chart-red)",
+    "bounced": "var(--color-chart-red)",
+}
+
 
 def build_outgoing_chart(org):
     """Return chart data for outgoing messages grouped by status."""

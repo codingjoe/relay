@@ -45,12 +45,3 @@ def sign_message(raw_bytes, domain):
                 signed, selector, sign_domain.name, key, INCLUDE_HEADERS
             )
     return signed
-
-
-def parse_signature_tags(value: str) -> dict[str, str]:
-    """Split a DKIM-Signature header value into its key=value fields."""
-    return dict(
-        parsed
-        for field in value.split(";")
-        if "=" in field.strip() and (parsed := field.strip().split("=", 1))
-    )
