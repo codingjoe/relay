@@ -239,8 +239,8 @@ async def send_via_mx(
         "tls_mode": Transmission.TlsMode.STARTTLS,
         "tls_cipher": cipher[0] or "",
         "tls_version": cipher[1] or "",
-        "sending_mta_ip_address": sockname[0] if sockname else None,
-        "receiving_mx_ip_address": peername[0] if peername else None,
+        "local_ip_address": sockname[0] if sockname else None,
+        "remote_ip_address": peername[0] if peername else None,
         "started_at": interval.started_at,
         "finished_at": interval.finished_at,
     }

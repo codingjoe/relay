@@ -356,23 +356,17 @@ class Transmission(Timing):
         blank=True,
         help_text=_("MX hostname this delivery attempt dialed."),
     )
-    sending_mta_ip_address = models.GenericIPAddressField(
-        _("sending MTA IP address"),
+    local_ip_address = models.GenericIPAddressField(
+        _("local IP address"),
         null=True,
         blank=True,
-        help_text=_("IP address the sending MTA used for this leg."),
+        help_text=_("IP address relay used for this leg."),
     )
-    receiving_mx_ip_address = models.GenericIPAddressField(
-        _("receiving MX IP address"),
+    remote_ip_address = models.GenericIPAddressField(
+        _("remote IP address"),
         null=True,
         blank=True,
-        help_text=_("IP address of the MX that handled this delivery attempt."),
-    )
-    submission_ip_address = models.GenericIPAddressField(
-        _("submission IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address that submitted this message to relay's MSA."),
+        help_text=_("IP address of the remote peer of this leg."),
     )
     status = models.TextField(
         _("status"),
@@ -459,7 +453,7 @@ class Transmission(Timing):
             code=250,
             output="250 OK",
             **cls.tls_session_fields(ssl),
-            submission_ip_address=client_ip,
+            remote_ip_address=client_ip,
             started_at=started_at,
         )
 
@@ -471,7 +465,7 @@ class Transmission(Timing):
             code=250,
             output="250 OK",
             **cls.tls_session_fields(ssl),
-            sending_mta_ip_address=client_ip or None,
+            remote_ip_address=client_ip or None,
             started_at=started_at,
         )
 
@@ -487,7 +481,7 @@ class Transmission(Timing):
 
     @property
     def label(self) -> str:
-        target = self.mx_host or self.submission_ip_address or ""
+        target = self.mx_host or self.remote_ip_address or ""
         name = self.get_status_display()
         return f"{name} ({target})" if target else name
 
@@ -508,9 +502,8 @@ class Transmission(Timing):
             "start": int(self.started_at.timestamp() * 1000),
             "end": int(self.finished_at.timestamp() * 1000),
             "ips": (
-                f"{self.sending_mta_ip_address or '-'} →"
-                f" {self.receiving_mx_ip_address or '-'}"
-                if (self.sending_mta_ip_address or self.receiving_mx_ip_address)
+                f"{self.local_ip_address or '-'} → {self.remote_ip_address or '-'}"
+                if (self.local_ip_address or self.remote_ip_address)
                 else ""
             ),
             "tls": tls,

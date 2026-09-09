@@ -39,10 +39,10 @@
                 <span><code>{{ transmission.tls_cipher }}</code></span>
               {% endif %}
             </p>
-            {% if transmission.sending_mta_ip_address or transmission.receiving_mx_ip_address %}
+            {% if transmission.local_ip_address or transmission.remote_ip_address %}
               <p class="m-0 text-sm text-muted-foreground">
-                {{ transmission.sending_mta_ip_address|default:"-" }} →
-                {{ transmission.receiving_mx_ip_address|default:"-" }}
+                {{ transmission.local_ip_address|default:"-" }} →
+                {{ transmission.remote_ip_address|default:"-" }}
               </p>
             {% endif %}
             {% if transmission.output %}
