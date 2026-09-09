@@ -34,28 +34,17 @@
         data-size="sm"
         data-variant="{{ message.status_badge_variant }}"
       >
-        {{ message.status_display }}
+        {% translate "status:" %} {{ message.status_display }}
       </span>
       {% if message.spam_action or message.spam_score is not None %}
-        <span class="flex items-center gap-2">
-          {% if message.spam_action %}
-            <span
-              class="badge"
-              data-size="sm"
-              data-variant="{{ message.spam_badge_variant }}"
-              data-tooltip='{% translate "rspamd verdict for this message"|capfirst %}'
-            >
-              {% translate "rspamd:" %} {{ message.get_spam_action_display }}
-            </span>
-          {% endif %}
-          {% if message.spam_score is not None %}
-            <span
-              class="text-sm text-muted-foreground"
-              data-tooltip='{% translate "rspamd score for this message"|capfirst %}'
-            >
-              {% translate "spam score"|capfirst %} {{ message.spam_score }}
-            </span>
-          {% endif %}
+        <span
+          class="badge"
+          data-size="sm"
+          data-variant="{{ message.spam_badge_variant }}"
+          data-tooltip='{% translate "rspamd verdict for this message"|capfirst %}'
+        >
+          {% translate "spam:" %} {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
+            ({{ message.spam_score }}){% endif %}
         </span>
       {% endif %}
     </div>

@@ -92,7 +92,7 @@ class Message(TimeStamped):
         blank=True,
         choices=[
             ("pass", _("pass")),
-            ("no action", _("no action")),
+            ("no action", _("pass")),
             ("greylist", _("greylist")),
             ("add header", _("add header")),
             ("rewrite subject", _("rewrite subject")),
