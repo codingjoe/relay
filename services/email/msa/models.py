@@ -88,6 +88,12 @@ class SpamCheck(Timing):
         ordering = ["started_at", "created_at"]
         verbose_name = _("spam check")
 
+    @property
+    def label(self) -> str:
+        """Return the display name of this spam check."""
+        name = str(self._meta.verbose_name)
+        return f"{name} ({self.score})" if self.score is not None else name
+
     TIMELINE_VARIANT_COLORS = {
         "success": "var(--color-chart-green)",
         "warning": "var(--color-chart-yellow)",
@@ -109,11 +115,6 @@ class SpamCheck(Timing):
             "transcript": "",
             "score": self.score,
         }
-
-    @property
-    def label(self) -> str:
-        """Return the display name of this spam check."""
-        return str(self._meta.verbose_name)
 
 
 class MsaCredential(Credential):
