@@ -110,22 +110,22 @@ def process_incoming_message(
                 return "250 OK"
 
         case settings.RELAY_TLS_REPORT_LOCAL_PART:
-            report = TlsReport.objects.create(
-                org=domain.org,
-                domain=domain,
-                receiving_domain=rcpt_domain,
-                mail_from=mail_from,
-                rcpt_to=rcpt_to,
-                subject=subject,
-                message_id=message_id,
-                report_id="",
-                headers=TlsReport.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
-                **tls_fields,
-            )
-            Transmission.record_reception(report, tls, started_at, client_ip)
+            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+                reception.message = report = TlsReport.objects.create(
+                    org=domain.org,
+                    domain=domain,
+                    receiving_domain=rcpt_domain,
+                    mail_from=mail_from,
+                    rcpt_to=rcpt_to,
+                    subject=subject,
+                    message_id=message_id,
+                    report_id="",
+                    headers=TlsReport.headers_from_raw(raw_bytes),
+                    raw_body=SimpleUploadedFile(
+                        f"{message_id or 'message'}.eml", raw_bytes
+                    ),
+                    **tls_fields,
+                )
             transaction.on_commit(
                 lambda: parse_tls_report.enqueue(report_pk=str(report.pk))
             )
@@ -135,42 +135,42 @@ def process_incoming_message(
             rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
             and mail_from.lower() in settings.RELAY_FBL_SENDERS
         ):
-            message = IncomingMessage.objects.create(
-                org=domain.org,
-                domain=domain,
-                receiving_domain=rcpt_domain,
-                mail_from=mail_from,
-                rcpt_to=rcpt_to,
-                subject=subject,
-                message_id=message_id,
-                status=status,
-                headers=IncomingMessage.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
-                **tls_fields,
-            )
-            Transmission.record_reception(message, tls, started_at, client_ip)
+            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+                reception.message = message = IncomingMessage.objects.create(
+                    org=domain.org,
+                    domain=domain,
+                    receiving_domain=rcpt_domain,
+                    mail_from=mail_from,
+                    rcpt_to=rcpt_to,
+                    subject=subject,
+                    message_id=message_id,
+                    status=status,
+                    headers=IncomingMessage.headers_from_raw(raw_bytes),
+                    raw_body=SimpleUploadedFile(
+                        f"{message_id or 'message'}.eml", raw_bytes
+                    ),
+                    **tls_fields,
+                )
             fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
     is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (
         local_part.startswith(f"{settings.RELAY_POSTMASTER_LOCAL_PART}+")
     )
-    message = IncomingMessage.objects.create(
-        org=domain.org,
-        domain=domain,
-        receiving_domain=rcpt_domain,
-        mail_from=mail_from,
-        rcpt_to=rcpt_to,
-        subject=subject,
-        message_id=message_id,
-        status=status,
-        headers=IncomingMessage.headers_from_raw(raw_bytes),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-        **tls_fields,
-    )
-    Transmission.record_reception(message, tls, started_at, client_ip)
+    with Transmission.record_reception(tls, started_at, client_ip) as reception:
+        reception.message = message = IncomingMessage.objects.create(
+            org=domain.org,
+            domain=domain,
+            receiving_domain=rcpt_domain,
+            mail_from=mail_from,
+            rcpt_to=rcpt_to,
+            subject=subject,
+            message_id=message_id,
+            status=status,
+            headers=IncomingMessage.headers_from_raw(raw_bytes),
+            raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+            **tls_fields,
+        )
     transaction.on_commit(
         lambda: check_incoming_spam.enqueue(
             message_pk=str(message.id), client_ip=client_ip

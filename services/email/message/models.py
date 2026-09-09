@@ -6,7 +6,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import FetchPeersManager, TimeStamped, Timing
@@ -453,31 +452,27 @@ class Transmission(Timing):
         }
 
     @classmethod
-    def record_submission(cls, message, ssl, started_at, client_ip=None):
-        """Record the submission relay accepted for a message."""
-        cls.objects.create(
-            message=message,
+    def record_submission(cls, ssl, started_at, client_ip=None):
+        """Return the unpersisted submission transmission for a message."""
+        return cls(
             status=cls.Status.SUBMITTED,
             code=250,
             output="250 OK",
             **cls.tls_session_fields(ssl),
             submission_ip_address=client_ip,
             started_at=started_at,
-            finished_at=timezone.now(),
         )
 
     @classmethod
-    def record_reception(cls, message, ssl, started_at, client_ip=None):
-        """Record the SMTP session that delivered an inbound message."""
-        cls.objects.create(
-            message=message,
+    def record_reception(cls, ssl, started_at, client_ip=None):
+        """Return the unpersisted reception transmission for a message."""
+        return cls(
             status=cls.Status.RECEIVED,
             code=250,
             output="250 OK",
             **cls.tls_session_fields(ssl),
             sending_mta_ip_address=client_ip or None,
             started_at=started_at,
-            finished_at=timezone.now(),
         )
 
     @property

@@ -39,7 +39,8 @@ class Timing(TimeStamped):
     Time a block of code and label it for the message timeline.
 
     Use as a context manager to stamp the start and end of a block and
-    persist the timing on exit. Concrete timings implement `label`.
+    persist the timing on exit. A start stamped before entering is kept.
+    Concrete timings implement `label`.
     """
 
     id = models.UUIDField(
@@ -62,7 +63,8 @@ class Timing(TimeStamped):
         abstract = True
 
     def __enter__(self):
-        self.started_at = timezone.now()
+        if self.started_at is None:
+            self.started_at = timezone.now()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

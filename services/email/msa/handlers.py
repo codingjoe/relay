@@ -182,21 +182,21 @@ def store_outgoing_message(
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = decode_header_value(parsed.get("Subject", ""))
-    message = OutgoingMessage.objects.create(
-        org=org,
-        rcpt_to=rcpt_to,
-        mail_from=mail_from,
-        subject=subject,
-        message_id=message_id,
-        domain=domain,
-        credential=credential,
-        feedback_id=feedback_id,
-        received_with_tls=bool(ssl),
-        status=status,
-        headers=OutgoingMessage.headers_from_raw(raw_bytes),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-    )
-    Transmission.record_submission(message, ssl, started_at, client_ip)
+    with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
+        transmission.message = message = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to=rcpt_to,
+            mail_from=mail_from,
+            subject=subject,
+            message_id=message_id,
+            domain=domain,
+            credential=credential,
+            feedback_id=feedback_id,
+            received_with_tls=bool(ssl),
+            status=status,
+            headers=OutgoingMessage.headers_from_raw(raw_bytes),
+            raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+        )
     if status == OutgoingMessage.Status.PENDING:
         transaction.on_commit(
             lambda: check_outgoing_spam.enqueue(
