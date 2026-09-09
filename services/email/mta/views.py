@@ -52,9 +52,6 @@ class IncomingMessageDetailView(MessageDetailView):
         message = self.object
         is_report = message.content_type.model_class() is not IncomingMessage
         return context | {
-            "webhook_deliveries": WebhookDelivery.objects.filter(
-                message=message
-            ).select_related("webhook__signing_key"),
             "is_report": is_report,
             "report_url": message.get_absolute_url() if is_report else "",
             "report_kind": message.kind_display if is_report else "",

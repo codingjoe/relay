@@ -121,8 +121,7 @@ class CertificateDetailView(
     def get_queryset(self):
         fingerprints = set(
             Certificate.objects.filter(
-                Q(incoming_messages__org=self.org)
-                | Q(transmissions__message__org=self.org)
+                transmissions__message__org=self.org
             ).values_list("fingerprint", flat=True)
         )
         level = fingerprints

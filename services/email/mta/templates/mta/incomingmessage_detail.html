@@ -49,7 +49,7 @@
       </article>
     </dialog>
   {% endfor %}
-  {% for delivery in webhook_deliveries %}
+  {% for delivery in message.webhook_deliveries.all %}
     {% if delivery.response_code or delivery.response_body %}
       <dialog
         id="delivery-{{ delivery.pk }}"
