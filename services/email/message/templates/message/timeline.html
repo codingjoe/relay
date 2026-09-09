@@ -85,20 +85,9 @@
           inside && name.length > characters
             ? `${name.slice(0, Math.max(characters - 1, 0))}…`
             : name;
-        const rowHeight = api.size([0, 1])[1];
         return {
           type: "group",
           children: [
-            {
-              type: "rect",
-              shape: {
-                x: rectShape.x - 6,
-                y: from[1] - rowHeight / 2,
-                width: Math.max(rectShape.width, 12),
-                height: rowHeight,
-              },
-              style: { fill: "rgba(0,0,0,0)" },
-            },
             {
               type: "rect",
               transition: ["shape"],
