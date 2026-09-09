@@ -49,8 +49,11 @@
             </span>
           {% endif %}
           {% if message.spam_score is not None %}
-            <span class="text-sm text-muted-foreground">
-              {% translate "score" %} {{ message.spam_score }}
+            <span
+              class="text-sm text-muted-foreground"
+              data-tooltip='{% translate "rspamd score for this message"|capfirst %}'
+            >
+              {% translate "spam score"|capfirst %} {{ message.spam_score }}
             </span>
           {% endif %}
         </span>

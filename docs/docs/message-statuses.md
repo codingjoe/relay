@@ -112,8 +112,10 @@ inbound SMTP transaction, a submission bar covers the outbound SMTP
 transaction, and a delivery bar covers the connection to the MX host. The
 gaps between bars show how long the message waited in the queue or between
 retries. Green bars mark successful attempts, red bars mark failures, and
-yellow bars mark retries. Blue bars mark the reception and submission legs
-and gray bars mark internal processing stages, such as the spam check. Hover a bar to
+yellow bars mark retries. Blue bars mark the reception and submission legs.
+The spam check bar takes the color of its verdict: green when the message
+is clean, yellow when rspamd holds or rewrites it, red when it rejects it,
+and gray when the check failed. Hover a bar to
 see its duration in milliseconds, its exact start and end times, the IP
 path, and the negotiated TLS settings. Click a bar to open the full SMTP
 transcript.

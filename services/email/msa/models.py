@@ -88,12 +88,20 @@ class SpamCheck(Timing):
         ordering = ["started_at", "created_at"]
         verbose_name = _("spam check")
 
+    TIMELINE_VARIANT_COLORS = {
+        "success": "var(--color-chart-green)",
+        "warning": "var(--color-chart-yellow)",
+        "destructive": "var(--color-chart-red)",
+    }
+
     @property
     def event(self) -> dict:
         """Return one profile chart event for this spam check."""
         return {
             "name": self.label,
-            "color": "var(--color-chart-gray)",
+            "color": self.TIMELINE_VARIANT_COLORS.get(
+                self.message.spam_badge_variant, "var(--color-chart-gray)"
+            ),
             "start": int(self.started_at.timestamp() * 1000),
             "end": int(self.finished_at.timestamp() * 1000),
             "ips": "",
