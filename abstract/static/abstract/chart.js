@@ -4,7 +4,7 @@ const probe = document.createElement("canvas").getContext("2d", {
 const swatch = document.body.appendChild(document.createElement("span"));
 swatch.hidden = true;
 
-export const toRgba = (value, alpha = 1, fallback = "#71717a") => {
+export function toRgba(value, alpha = 1, fallback = "#71717a") {
   const name = value.startsWith("var(") ? value.slice(4, -1) : null;
   const color = name
     ? getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -15,9 +15,10 @@ export const toRgba = (value, alpha = 1, fallback = "#71717a") => {
   probe.fillRect(0, 0, 1, 1);
   const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
   return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
-};
+}
 
-export const escapeHtml = (value) =>
-  value.replace(/[&<>"']/g, (character) =>
+export function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (character) =>
     ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
   );
+}
