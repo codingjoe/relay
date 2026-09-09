@@ -75,11 +75,6 @@ class Message(TimeStamped):
         blank=True,
         help_text=_("RFC 5322 header fields of the message, as [name, value] pairs."),
     )
-    received_with_tls = models.BooleanField(
-        _("received with TLS"),
-        default=False,
-        help_text=_("Submission received over TLS."),
-    )
     spam_score = models.FloatField(
         _("spam score"),
         null=True,
@@ -351,10 +346,10 @@ class Transmission(Timing):
         on_delete=models.CASCADE,
         related_name="transmissions",
     )
-    mx_host = models.TextField(
-        _("MX host"),
+    remote_host = models.TextField(
+        _("remote host"),
         blank=True,
-        help_text=_("MX hostname this delivery attempt dialed."),
+        help_text=_("Hostname of the remote peer of this leg, when known."),
     )
     local_ip_address = models.GenericIPAddressField(
         _("local IP address"),
@@ -412,11 +407,6 @@ class Transmission(Timing):
         blank=True,
         related_name="transmissions",
     )
-    log_id = models.TextField(
-        _("log ID"),
-        blank=True,
-        help_text=_("Remote server log identifier."),
-    )
 
     objects = FetchPeersManager()
 
@@ -462,8 +452,6 @@ class Transmission(Timing):
         """Return the unpersisted reception transmission for a message."""
         return cls(
             status=cls.Status.RECEIVED,
-            code=250,
-            output="250 OK",
             **cls.tls_session_fields(ssl),
             remote_ip_address=client_ip or None,
             started_at=started_at,
@@ -481,7 +469,7 @@ class Transmission(Timing):
 
     @property
     def label(self) -> str:
-        target = self.mx_host or self.remote_ip_address or ""
+        target = self.remote_host or self.remote_ip_address or ""
         name = self.get_status_display()
         return f"{name} ({target})" if target else name
 
@@ -509,10 +497,56 @@ class Transmission(Timing):
             "tls": tls,
             "transcript": (
                 f"transcript-{self.pk}"
-                if self.output or self.details or self.log_id
+                if self.output or self.details or self.status == self.Status.RECEIVED
                 else ""
             ),
         }
 
     def __str__(self):
         return f"{self.message} → {self.status}"
+
+
+class SpamCheck(Timing):
+    """Record the wall-clock duration of a spam check."""
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="spam_checks",
+    )
+    score = models.FloatField(
+        _("score"),
+        null=True,
+        blank=True,
+        help_text=_("rspamd score the check returned, or null when the check failed."),
+    )
+
+    class Meta(Timing.Meta):
+        ordering = ["started_at", "created_at"]
+        verbose_name = _("spam check")
+
+    @property
+    def label(self) -> str:
+        name = str(self._meta.verbose_name)
+        return f"{name} ({self.score})" if self.score is not None else name
+
+    TIMELINE_VARIANT_COLORS = {
+        "success": "var(--color-chart-green)",
+        "warning": "var(--color-chart-yellow)",
+        "destructive": "var(--color-chart-red)",
+    }
+
+    @property
+    def event(self) -> dict:
+        return {
+            "name": self.label,
+            "color": self.TIMELINE_VARIANT_COLORS.get(
+                self.message.spam_badge_variant, "var(--color-chart-gray)"
+            ),
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": "",
+            "tls": "",
+            "transcript": "",
+            "score": self.score,
+        }

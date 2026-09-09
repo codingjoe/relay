@@ -44,15 +44,6 @@ class TestOutgoingMessageDefaults:
         msg = make_message(org, user)
         assert msg.status == OutgoingMessage.Status.PENDING
 
-    def test_default_received_with_tls__false(self):
-        user = User.objects.create_user(username="alice", email="a@example.com")
-        org = Organization.objects.create(slug="o")
-        msg = make_message(org, user)
-        assert msg.received_with_tls is False
-
-
-@pytest.mark.django_db
-class TestTransmissionStr:
     def test_str__includes_message_and_status(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="o")

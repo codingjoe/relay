@@ -83,7 +83,6 @@ def process_incoming_message(
     subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
     started_at = timezone.now()
-    tls_fields = {"received_with_tls": bool(tls)}
 
     match local_part:
         case (
@@ -101,7 +100,6 @@ def process_incoming_message(
                 subject=subject,
                 message_id=message_id,
                 raw_bytes=raw_bytes,
-                tls_fields=tls_fields,
                 tls=tls,
                 client_ip=client_ip,
                 started_at=started_at,
@@ -124,7 +122,6 @@ def process_incoming_message(
                     raw_body=SimpleUploadedFile(
                         f"{message_id or 'message'}.eml", raw_bytes
                     ),
-                    **tls_fields,
                 )
             transaction.on_commit(
                 lambda: parse_tls_report.enqueue(report_pk=str(report.pk))
@@ -149,7 +146,6 @@ def process_incoming_message(
                     raw_body=SimpleUploadedFile(
                         f"{message_id or 'message'}.eml", raw_bytes
                     ),
-                    **tls_fields,
                 )
             fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
@@ -169,7 +165,6 @@ def process_incoming_message(
             status=status,
             headers=IncomingMessage.headers_from_raw(raw_bytes),
             raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-            **tls_fields,
         )
     transaction.on_commit(
         lambda: check_incoming_spam.enqueue(

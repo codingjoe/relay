@@ -51,23 +51,6 @@
             {% if transmission.details %}
               <p class="m-0 text-sm">{{ transmission.details }}</p>
             {% endif %}
-            {% if transmission.log_id %}
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-muted-foreground">{% translate "log ID"|capfirst context "noun" %}</span>
-                <code class="break-all">{{ transmission.log_id }}</code>
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-tooltip='{% translate "copy log ID"|capfirst %}'
-                  onclick="navigator.clipboard.writeText('{{ transmission.log_id|escapejs }}')"
-                  aria-label='{% translate "copy log ID"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
-              </div>
-            {% endif %}
           </section>
           <footer>
             <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">

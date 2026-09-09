@@ -13,12 +13,13 @@ from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.dkim import sign_message
 from domains.models import Domain
+from services.email.message.models import SpamCheck
 from services.email.message.views import MessageDetailView
 
 from .charts import build_suppression_chart
 from .forms import SuppressionEntryForm
 from .handlers import add_feedback_id, store_outgoing_message
-from .models import MsaCredential, OutgoingMessage, SpamCheck, SuppressionEntry
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 
 
 class OutgoingMessageDetailView(MessageDetailView):

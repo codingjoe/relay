@@ -21,7 +21,6 @@ def create_report(
     subject,
     message_id,
     raw_bytes,
-    tls_fields,
     tls,
     client_ip,
     started_at,
@@ -43,7 +42,6 @@ def create_report(
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
-                **tls_fields,
             )
         parse_task = parse_dmarc_report
     else:
@@ -60,7 +58,6 @@ def create_report(
                 raw_body=SimpleUploadedFile(
                     f"{message_id or 'message'}.eml", raw_bytes
                 ),
-                **tls_fields,
             )
         parse_task = parse_dmarc_failure_report
     transaction.on_commit(lambda: parse_task.enqueue(report_pk=str(report.pk)))

@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from threadmill.retry import ExponentialBackoff
 
+from services.email.message.models import Transmission
 from services.email.spam import SpamAction, check_message
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
@@ -144,6 +145,10 @@ class WebhookEvent:
                 receiving_domain="",
                 body_url=None,
             )
+        try:
+            reception = message.transmissions.get(status=Transmission.Status.RECEIVED)
+        except Transmission.DoesNotExist:
+            reception = None
         return cls(
             type="email.test" if is_test else "email.received",
             message_id=str(message.id),
@@ -151,7 +156,10 @@ class WebhookEvent:
             recipient=message.rcpt_to,
             subject=message.subject,
             rfc822_message_id=message.message_id,
-            received_with_tls=message.received_with_tls,
+            received_with_tls=(
+                reception is not None
+                and reception.tls_mode != Transmission.TlsMode.PLAINTEXT
+            ),
             receiving_domain=message.receiving_domain,
             body_url=message.raw_body.url if message.raw_body else None,
             spam_score=message.spam_score,
@@ -272,9 +280,13 @@ def notify_postmaster_recipients(message_pk):
 )
 def check_incoming_spam(message_pk, client_ip):
     """Check an incoming message for spam and dispatch webhook if clean."""
+    from services.email.message.models import SpamCheck
+
     message = IncomingMessage.objects.get(pk=message_pk)
     raw_bytes = message.raw_body.read()
-    spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    with SpamCheck(message=message) as check:
+        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+        check.score = spam.score
     is_spam = (
         spam.action == SpamAction.REJECT
         or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE

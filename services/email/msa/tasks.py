@@ -157,7 +157,7 @@ def send_outgoing_message(message):
                 message=message,
                 status=Transmission.Status.SENT,
                 output=str(response),
-                mx_host=mx_host,
+                remote_host=mx_host,
                 **tls_details,
             )
             message.status = OutgoingMessage.Status.SENT
@@ -167,7 +167,7 @@ def send_outgoing_message(message):
     raise MxHostsExhaustedError(rcpt_domain)
 
 
-def record_bounce(message, code, output, mx_host, started_at):
+def record_bounce(message, code, output, remote_host, started_at):
     """Record a permanent bounce and suppress the recipient address."""
     from services.email.message.models import Transmission
 
@@ -178,7 +178,7 @@ def record_bounce(message, code, output, mx_host, started_at):
         status=Transmission.Status.BOUNCED,
         code=code,
         output=output,
-        mx_host=mx_host,
+        remote_host=remote_host,
         started_at=started_at,
         finished_at=timezone.now(),
     )
@@ -266,7 +266,9 @@ def check_outgoing_spam(message_pk, client_ip):
     Messages for suspended orgs are dropped without a spam check. Clean
     messages are enqueued for delivery.
     """
-    from .models import OutgoingMessage, SpamCheck
+    from services.email.message.models import SpamCheck
+
+    from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
     if message.org.suspended_at:

@@ -192,7 +192,6 @@ def store_outgoing_message(
             domain=domain,
             credential=credential,
             feedback_id=feedback_id,
-            received_with_tls=bool(ssl),
             status=status,
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
             raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),

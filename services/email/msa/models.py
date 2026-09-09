@@ -8,7 +8,7 @@ from django.db.models import Lookup
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from abstract.models import TimeStamped, Timing
+from abstract.models import TimeStamped
 from accounts.models import Credential, OrganizationOwned
 from services.email.message.models import Message
 
@@ -67,52 +67,6 @@ class OutgoingMessage(Message):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
     url_name = "message-detail"
-
-
-class SpamCheck(Timing):
-    """Record the wall-clock duration of a spam check."""
-
-    message = models.ForeignKey(
-        OutgoingMessage,
-        on_delete=models.CASCADE,
-        related_name="spam_checks",
-    )
-    score = models.FloatField(
-        _("score"),
-        null=True,
-        blank=True,
-        help_text=_("rspamd score the check returned, or null when the check failed."),
-    )
-
-    class Meta(Timing.Meta):
-        ordering = ["started_at", "created_at"]
-        verbose_name = _("spam check")
-
-    @property
-    def label(self) -> str:
-        name = str(self._meta.verbose_name)
-        return f"{name} ({self.score})" if self.score is not None else name
-
-    TIMELINE_VARIANT_COLORS = {
-        "success": "var(--color-chart-green)",
-        "warning": "var(--color-chart-yellow)",
-        "destructive": "var(--color-chart-red)",
-    }
-
-    @property
-    def event(self) -> dict:
-        return {
-            "name": self.label,
-            "color": self.TIMELINE_VARIANT_COLORS.get(
-                self.message.spam_badge_variant, "var(--color-chart-gray)"
-            ),
-            "start": int(self.started_at.timestamp() * 1000),
-            "end": int(self.finished_at.timestamp() * 1000),
-            "ips": "",
-            "tls": "",
-            "transcript": "",
-            "score": self.score,
-        }
 
 
 class MsaCredential(Credential):

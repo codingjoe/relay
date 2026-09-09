@@ -334,7 +334,6 @@
         - 7bit
       - - MIME-Version
         - '1.0'
-    received_with_tls: false
     spam_score: 0.5
     spam_action: no action
     status: sent
@@ -384,7 +383,6 @@
         - 7bit
       - - MIME-Version
         - '1.0'
-    received_with_tls: false
     spam_score: -1.2
     spam_action: no action
     status: sent
@@ -434,7 +432,6 @@
         - 7bit
       - - MIME-Version
         - '1.0'
-    received_with_tls: false
     spam_score: 0.0
     spam_action: no action
     status: sent
@@ -473,11 +470,10 @@
     tls_mode: starttls
     tls_version: TLSv1.3
     tls_cipher: TLS_AES_256_GCM_SHA384
-    mx_host: gmail-smtp-in.l.google.com
+    remote_host: gmail-smtp-in.l.google.com
     tls_certificate: 6d8b07aa4e50806a1e2c70690cbc50976de62315be0cc4ae8edf8ff295442cb6
     local_ip_address: 116.203.34.11
     remote_ip_address: 172.253.148.27
-    log_id: ''
     started_at: 2026-08-22 09:14:27+00:00
     finished_at: 2026-08-22 09:14:30+00:00
 - model: message.transmission
@@ -493,11 +489,10 @@
     tls_mode: starttls
     tls_version: TLSv1.3
     tls_cipher: TLS_AES_128_GCM_SHA256
-    mx_host: in1-smtp.messagingengine.com
+    remote_host: in1-smtp.messagingengine.com
     tls_certificate: 313f6394e12d6187e7205329987b0ae819e62f172774607f2134f3a94b4e5250
     local_ip_address: 116.203.34.11
     remote_ip_address: 103.168.172.222
-    log_id: ''
     started_at: 2026-08-24 11:30:26+00:00
     finished_at: 2026-08-24 11:30:30+00:00
 - model: message.transmission
@@ -512,7 +507,6 @@
     details: ''
     tls_mode: plaintext
     remote_ip_address: 203.0.113.9
-    log_id: ''
     started_at: '2026-08-24 11:30:25+00:00'
     finished_at: '2026-08-24 11:30:25.5+00:00'
 - model: message.transmission
@@ -528,11 +522,10 @@
     tls_mode: starttls
     tls_version: TLSv1.3
     tls_cipher: TLS_AES_256_GCM_SHA384
-    mx_host: mail.protonmail.ch
+    remote_host: mail.protonmail.ch
     tls_certificate: 3c5182eaecc889c466ea43cad8c2c14ab32b8fab2d8ef2dbbc5b372cb4c3e6c1
     local_ip_address: 116.203.34.11
     remote_ip_address: 185.205.70.128
-    log_id: ''
     started_at: 2026-08-25 15:45:28+00:00
     finished_at: 2026-08-25 15:45:30+00:00
 - model: message.transmission
@@ -547,7 +540,6 @@
     details: ''
     tls_mode: plaintext
     remote_ip_address: 203.0.113.9
-    log_id: ''
     started_at: '2026-08-25 15:45:27+00:00'
     finished_at: '2026-08-25 15:45:27.5+00:00'
 - model: msa.msacredential
@@ -705,7 +697,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: webhook_sent
     domain: 1
 - model: mta.incomingmessage
@@ -753,7 +744,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: webhook_failed
     domain: 1
 - model: mta.incomingmessage
@@ -801,7 +791,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -891,7 +880,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -955,7 +943,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -1045,7 +1032,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: false
     spam_score: 0.8
     spam_action: no action
     status: pending
@@ -1102,7 +1088,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: false
     spam_score: 1.5
     spam_action: no action
     status: bounced
@@ -1159,7 +1144,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     spam_score: -0.5
     spam_action: no action
     status: failed
@@ -1222,7 +1206,6 @@
     details: ''
     tls_mode: plaintext
     remote_ip_address: 203.0.113.9
-    log_id: ''
     started_at: '2026-08-22 09:14:26+00:00'
     finished_at: '2026-08-22 09:14:26.5+00:00'
 - model: message.transmission
@@ -1236,7 +1219,6 @@
     output: 4.2.1 Mailbox full
     details: Temporary rejection, message retried
     tls_mode: starttls
-    log_id: ''
     started_at: 2026-08-23 13:20:57+00:00
     finished_at: 2026-08-23 13:21:00+00:00
 - model: message.transmission
@@ -1251,7 +1233,6 @@
     details: ''
     tls_mode: plaintext
     remote_ip_address: 203.0.113.9
-    log_id: ''
     started_at: '2026-08-23 13:20:55+00:00'
     finished_at: '2026-08-23 13:20:55.5+00:00'
 - model: message.transmission
@@ -1265,7 +1246,6 @@
     output: 5.4.4 Mailbox unavailable
     details: Bounce received after retry
     tls_mode: plaintext
-    log_id: ''
     started_at: 2026-08-23 13:21:57+00:00
     finished_at: 2026-08-23 13:22:00+00:00
 - model: message.transmission
@@ -1280,7 +1260,6 @@
     details: ''
     tls_mode: plaintext
     remote_ip_address: 203.0.113.9
-    log_id: ''
     started_at: '2026-08-23 13:20:55+00:00'
     finished_at: '2026-08-23 13:20:55.5+00:00'
 - model: message.transmission
@@ -1294,7 +1273,6 @@
     output: 4.4.2 Connection timed out
     details: Temporary failure, will retry
     tls_mode: plaintext
-    log_id: ''
     started_at: 2026-08-27 17:10:55+00:00
     finished_at: 2026-08-27 17:11:00+00:00
 - model: message.transmission
@@ -1309,10 +1287,9 @@
     details: ''
     tls_mode: tls
     remote_ip_address: 203.0.113.9
-    log_id: ''
     started_at: '2026-08-27 17:10:53+00:00'
     finished_at: '2026-08-27 17:10:53.5+00:00'
-- model: msa.spamcheck
+- model: message.spamcheck
   pk: 019fbe8f-5edd-7b2e-9a41-c8f012345678
   fields:
     modified_at: '2026-08-22 09:14:27+00:00'
@@ -1321,7 +1298,7 @@
     started_at: '2026-08-22 09:14:26.5+00:00'
     finished_at: '2026-08-22 09:14:27+00:00'
     score: 0.5
-- model: msa.spamcheck
+- model: message.spamcheck
   pk: 019fbe8f-5ee0-7a10-9a41-c8f012345682
   fields:
     modified_at: '2026-08-24 11:30:26+00:00'
@@ -1330,7 +1307,7 @@
     started_at: '2026-08-24 11:30:25.5+00:00'
     finished_at: '2026-08-24 11:30:26+00:00'
     score: -1.2
-- model: msa.spamcheck
+- model: message.spamcheck
   pk: 019fbe8f-5ee2-7a10-9a41-c8f012345684
   fields:
     modified_at: '2026-08-25 15:45:28+00:00'
@@ -1339,7 +1316,7 @@
     started_at: '2026-08-25 15:45:27.5+00:00'
     finished_at: '2026-08-25 15:45:28+00:00'
     score: 0.0
-- model: msa.spamcheck
+- model: message.spamcheck
   pk: 019fbe8f-5f6d-7a10-9a41-c8f012345686
   fields:
     modified_at: '2026-08-26 08:05:26+00:00'
@@ -1348,7 +1325,7 @@
     started_at: '2026-08-26 08:05:25.5+00:00'
     finished_at: '2026-08-26 08:05:26+00:00'
     score: 0.8
-- model: msa.spamcheck
+- model: message.spamcheck
   pk: 019fbe8f-5f7d-7a10-9a41-c8f012345688
   fields:
     modified_at: '2026-08-23 13:20:56+00:00'
@@ -1357,7 +1334,7 @@
     started_at: '2026-08-23 13:20:55.5+00:00'
     finished_at: '2026-08-23 13:20:56+00:00'
     score: 1.5
-- model: msa.spamcheck
+- model: message.spamcheck
   pk: 019fbe8f-5f8d-7a10-9a41-c8f01234568a
   fields:
     modified_at: '2026-08-27 17:10:54+00:00'
@@ -1407,7 +1384,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -1455,7 +1431,6 @@
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -1510,7 +1485,6 @@
     details: ''
     tls_mode: plaintext
     remote_ip_address: 203.0.113.9
-    log_id: ''
     started_at: '2026-08-26 08:05:25+00:00'
     finished_at: '2026-08-26 08:05:25.5+00:00'
 - model: message.transmission
