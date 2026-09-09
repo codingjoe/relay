@@ -12,7 +12,8 @@
   {{ timeline|json_script:"transmission-timeline" }}
   <script type="module">
     import * as echarts from "https://esm.sh/echarts@5.6.0";
-    import { escapeHtml, toRgba } from "{% static 'abstract/chart.js' %}";
+    import { toRgba } from "{% static 'abstract/chart.js' %}";
+    import { escape as escapeHtml } from "https://esm.sh/lodash.escape@4.0.1";
 
     const element = document.getElementById("transmission-profile");
     const events = JSON.parse(
@@ -65,7 +66,7 @@
             x: from[0],
             y: from[1] - height / 2,
             width: Math.max(to[0] - from[0], 3),
-            height: height,
+            height,
           },
           {
             x: params.coordSys.x,
@@ -147,14 +148,14 @@
         series: [
           {
             type: "custom",
-            renderItem: renderItem,
+            renderItem,
             itemStyle: { opacity: 0.8 },
             encode: { x: [1, 2], y: 0 },
             data: events.map((event, index) => ({
               name: event.name,
               value: [index, event.start, event.end],
               itemStyle: { color: toRgba(event.color) },
-              event: event,
+              event,
             })),
           },
         ],

@@ -39,7 +39,7 @@ class Timing(TimeStamped):
     Time a block of code and label it for the message timeline.
 
     Use as a context manager to stamp the start and end of a block and
-    persist the timing on exit. Concrete timings override the label.
+    persist the timing on exit. Concrete timings implement `label`.
     """
 
     id = models.UUIDField(
@@ -49,10 +49,12 @@ class Timing(TimeStamped):
     )
     started_at = models.DateTimeField(
         _("started"),
+        db_index=True,
         help_text=_("When the timing started."),
     )
     finished_at = models.DateTimeField(
         _("finished"),
+        db_index=True,
         help_text=_("When the timing finished."),
     )
 
@@ -72,4 +74,4 @@ class Timing(TimeStamped):
     @property
     def label(self) -> str:
         """Return the display name of this timing."""
-        return str(self._meta.verbose_name)
+        raise NotImplementedError

@@ -236,13 +236,18 @@ class SpamCheck(Timing):
         _("score"),
         null=True,
         blank=True,
-        help_text=_("rspamd score the check returned."),
+        help_text=_("rspamd score the check returned, or null when the check failed."),
     )
 
     class Meta(TimeStamped.Meta):
         ordering = ["started_at", "created_at"]
         indexes = [models.Index(fields=["message", "started_at"])]
         verbose_name = _("spam check")
+
+    @property
+    def label(self) -> str:
+        """Return the display name of this spam check."""
+        return str(self._meta.verbose_name)
 
 
 class MsaCredential(Credential):

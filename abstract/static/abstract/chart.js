@@ -16,9 +16,3 @@ export function toRgba(value, alpha = 1, fallback = "#71717a") {
   const [red, green, blue, sourceAlpha] = probe.getImageData(0, 0, 1, 1).data;
   return `rgba(${red}, ${green}, ${blue}, ${(sourceAlpha / 255) * alpha})`;
 }
-
-export function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (character) =>
-    ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[character]
-  );
-}
