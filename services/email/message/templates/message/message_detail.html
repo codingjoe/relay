@@ -10,55 +10,47 @@
         <i data-lucide="arrow-right" class="size-3.5 inline-block" aria-hidden="true"></i>
         <span class="break-all">{{ message.rcpt_to }}</span>
       </p>
-      {% if message.message_id %}
-        <p class="m-0 mt-2 flex items-center gap-2 text-sm">
-          <code class="text-xs text-muted-foreground break-all">{{ message.message_id }}</code>
-          <button
-            type="button"
-            class="btn shrink-0"
-            data-variant="ghost"
-            data-size="icon-xs"
-            data-align="end"
-            data-tooltip='{% translate "copy message ID"|capfirst %}'
-            onclick="navigator.clipboard.writeText('{{ message.message_id|escapejs }}')"
-            aria-label='{% translate "copy message ID"|capfirst %}'
-          >
-            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-          </button>
-        </p>
-      {% endif %}
     </div>
     <div class="flex items-center gap-2 shrink-0">
-      <span
+      <a
         class="badge"
         data-size="sm"
         data-variant="{{ message.status_badge_variant }}"
+        data-tooltip='{% translate "Where this message stands in its delivery." %}'
+        href="{% url 'docs:detail' 'message-statuses' %}"
       >
+        <i data-lucide="mailbox" class="size-3.5" aria-hidden="true"></i>
         {{ message.status_display }}
-      </span>
+      </a>
       {% if message.spam_action or message.spam_score is not None %}
-        <span class="flex items-center gap-2">
-          {% if message.spam_action %}
-            <span
-              class="badge"
-              data-size="sm"
-              data-variant="{{ message.spam_badge_variant }}"
-              data-tooltip='{% translate "rspamd verdict for this message"|capfirst %}'
-            >
-              {{ message.get_spam_action_display }}
-            </span>
-          {% endif %}
-          {% if message.spam_score is not None %}
-            <span class="text-sm text-muted-foreground">
-              {% translate "score" %} {{ message.spam_score }}
-            </span>
-          {% endif %}
-        </span>
+        <a
+          class="badge"
+          data-size="sm"
+          data-variant="{{ message.spam_badge_variant }}"
+          data-tooltip='{% translate "The rspamd verdict and score assigned to this message." %}'
+          href="{% url 'docs:detail' 'message-statuses' %}"
+        >
+          <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
+          {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
+            ({{ message.spam_score }}){% endif %}
+        </a>
       {% endif %}
     </div>
   </header>
 
-  {% block transmission_card %}{% endblock %}
+  {% block transmission_card %}
+    {% if timeline %}
+      <section class="mb-6 flex flex-col gap-4">
+        <h3 class="font-semibold m-0">{% translate "timeline"|capfirst %}</h3>
+        {% include "message/timeline.html" %}
+        {% block timeline_dialogs %}{% endblock %}
+      </section>
+    {% else %}
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "No transmissions yet." %}
+      </p>
+    {% endif %}
+  {% endblock %}
 
   <section class="mb-6">
     <header class="flex items-center justify-between gap-2 mb-4">

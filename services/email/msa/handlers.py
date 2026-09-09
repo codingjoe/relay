@@ -16,9 +16,10 @@ from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
+from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
@@ -181,21 +182,20 @@ def store_outgoing_message(
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = decode_header_value(parsed.get("Subject", ""))
-    message = OutgoingMessage.objects.create(
-        org=org,
-        rcpt_to=rcpt_to,
-        mail_from=mail_from,
-        subject=subject,
-        message_id=message_id,
-        domain=domain,
-        credential=credential,
-        feedback_id=feedback_id,
-        received_with_tls=bool(ssl),
-        status=status,
-        headers=OutgoingMessage.headers_from_raw(raw_bytes),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-    )
-    Transmission.record_submission(message, ssl, started_at, client_ip)
+    with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
+        transmission.message = message = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to=rcpt_to,
+            mail_from=mail_from,
+            subject=subject,
+            message_id=message_id,
+            domain=domain,
+            credential=credential,
+            feedback_id=feedback_id,
+            status=status,
+            headers=OutgoingMessage.headers_from_raw(raw_bytes),
+            raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+        )
     if status == OutgoingMessage.Status.PENDING:
         transaction.on_commit(
             lambda: check_outgoing_spam.enqueue(

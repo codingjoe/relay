@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import MsaCredential, OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import MsaCredential, OutgoingMessage
 
 
 def make_message(org, user, **kwargs):
@@ -43,15 +44,6 @@ class TestOutgoingMessageDefaults:
         msg = make_message(org, user)
         assert msg.status == OutgoingMessage.Status.PENDING
 
-    def test_default_received_with_tls__false(self):
-        user = User.objects.create_user(username="alice", email="a@example.com")
-        org = Organization.objects.create(slug="o")
-        msg = make_message(org, user)
-        assert msg.received_with_tls is False
-
-
-@pytest.mark.django_db
-class TestTransmissionStr:
     def test_str__includes_message_and_status(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="o")

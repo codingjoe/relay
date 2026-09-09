@@ -1,7 +1,5 @@
 import datetime
 import hashlib
-import uuid
-from collections.abc import Iterator
 from enum import nonmember
 
 from django.core.validators import validate_email
@@ -10,11 +8,9 @@ from django.db.models import Lookup
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from abstract.models import FetchPeersManager, TimeStamped
+from abstract.models import TimeStamped
 from accounts.models import Credential, OrganizationOwned
-from kms.models import Certificate
 from services.email.message.models import Message
-from services.email.tls import parse_peer_certificates
 
 
 class OutgoingMessage(Message):
@@ -71,201 +67,6 @@ class OutgoingMessage(Message):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
     url_name = "message-detail"
-
-
-class TransmissionQuerySet(models.QuerySet):
-    def gantt(self) -> str:
-        """
-        Return a Mermaid Gantt definition plotting the transmissions on a time axis.
-
-        Every bar spans a transmission's own start and finish, so the chart
-        shows real leg durations and the gaps between bars show queueing and
-        retry delays the way a browser network waterfall does.
-        """
-        return "\n".join(self.gantt_lines())
-
-    def gantt_lines(self) -> Iterator[str]:
-        """Yield the Mermaid Gantt definition for the transmissions, line by line."""
-        yield "gantt"
-        yield "    dateFormat YYYY-MM-DD HH:mm:ss.SSS"
-        yield "    axisFormat %H:%M:%S"
-        yield "    todayMarker off"
-        for transmission in self.order_by("created_at"):
-            match transmission.status_badge_variant:
-                case "success":
-                    tag = "done"
-                case "destructive":
-                    tag = "crit"
-                case _:
-                    tag = "active"
-            name = transmission.get_status_display()
-            target = transmission.mx_host or transmission.submission_ip_address or ""
-            if target:
-                name = f"{name} → {target.replace(':', ' ')}"
-            yield (
-                f"    {name} :{tag}, {transmission.pk},"
-                f" {timezone.localtime(transmission.started_at).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]},"
-                f" {timezone.localtime(transmission.finished_at).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}"
-            )
-
-
-class Transmission(TimeStamped):
-    """
-    Track a single SMTP leg of an outgoing message.
-
-    Each message starts with the submission to relay's MSA and can gain
-    multiple delivery transmissions (for example, retry attempts).
-    """
-
-    class Status(models.TextChoices):
-        SUBMITTED = "submitted", _("submitted")
-        SENT = "sent", _("sent")
-        FAILED = "failed", _("failed")
-        RETRY = "retry", _("retry")
-        BOUNCED = "bounced", _("bounced")
-
-    class TlsMode(models.TextChoices):
-        PLAINTEXT = "plaintext", "plaintext"
-        STARTTLS = "starttls", "STARTTLS"
-        TLS = "tls", "TLS"
-
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
-    message = models.ForeignKey(
-        OutgoingMessage,
-        on_delete=models.CASCADE,
-        related_name="transmissions",
-    )
-    mx_host = models.TextField(
-        _("MX host"),
-        blank=True,
-        help_text=_("MX hostname this delivery attempt dialed."),
-    )
-    sending_mta_ip_address = models.GenericIPAddressField(
-        _("sending MTA IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address relay sent this delivery attempt from."),
-    )
-    receiving_mx_ip_address = models.GenericIPAddressField(
-        _("receiving MX IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address of the MX that handled this delivery attempt."),
-    )
-    submission_ip_address = models.GenericIPAddressField(
-        _("submission IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address that submitted this message to relay's MSA."),
-    )
-    status = models.TextField(
-        _("status"),
-        choices=Status,
-        help_text=_("Outcome of this delivery attempt."),
-    )
-    code = models.PositiveIntegerField(
-        _("code"),
-        null=True,
-        blank=True,
-        help_text=_("SMTP response code from the remote server."),
-    )
-    output = models.TextField(
-        _("output"),
-        blank=True,
-        help_text=_("Raw SMTP transcript from the remote server."),
-    )
-    details = models.TextField(
-        _("details"),
-        blank=True,
-        help_text=_("Human-readable explanation of the outcome."),
-    )
-    tls_mode = models.TextField(
-        _("TLS mode"),
-        choices=TlsMode,
-        default=TlsMode.PLAINTEXT,
-        help_text=_("TLS transport negotiated for this delivery attempt."),
-    )
-    tls_version = models.TextField(
-        _("TLS version"),
-        blank=True,
-        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
-    )
-    tls_cipher = models.TextField(
-        _("TLS cipher"),
-        blank=True,
-        help_text=_("Negotiated TLS cipher suite."),
-    )
-    tls_certificate = models.ForeignKey(
-        "kms.Certificate",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="transmissions",
-    )
-    log_id = models.TextField(
-        _("log ID"),
-        blank=True,
-        help_text=_("Remote server log identifier."),
-    )
-    started_at = models.DateTimeField(
-        _("started"),
-        help_text=_("When this transmission leg started."),
-    )
-    finished_at = models.DateTimeField(
-        _("finished"),
-        help_text=_("When this transmission leg ended."),
-    )
-
-    objects = FetchPeersManager.from_queryset(TransmissionQuerySet)()
-
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
-
-    @classmethod
-    def record_submission(cls, message, ssl, started_at, client_ip=None):
-        """Record the submission relay accepted for a message."""
-        ssl_object = ssl.get("ssl_object") if isinstance(ssl, dict) else None
-        cipher = ssl_object.cipher() if ssl_object else None
-        if isinstance(ssl, dict):
-            tls_mode = cls.TlsMode.STARTTLS
-        elif ssl:
-            tls_mode = cls.TlsMode.TLS
-        else:
-            tls_mode = cls.TlsMode.PLAINTEXT
-        cls.objects.create(
-            message=message,
-            status=cls.Status.SUBMITTED,
-            code=250,
-            output="250 OK",
-            tls_mode=tls_mode,
-            tls_version=cipher[1] if cipher else "",
-            tls_cipher=cipher[0] if cipher else "",
-            tls_certificate=(
-                Certificate.store_presented_chain(parse_peer_certificates(ssl_object))
-                if ssl_object
-                else None
-            ),
-            submission_ip_address=client_ip,
-            started_at=started_at,
-            finished_at=timezone.now(),
-        )
-
-    @property
-    def status_badge_variant(self) -> str:
-        match self.status:
-            case self.Status.SENT:
-                return "success"
-            case self.Status.FAILED | self.Status.BOUNCED:
-                return "destructive"
-            case _:
-                return "outline"
-
-    def __str__(self):
-        return f"{self.message} → {self.status}"
 
 
 class MsaCredential(Credential):

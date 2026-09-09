@@ -329,12 +329,13 @@
       - - Date
         - Sat, 22 Aug 2026 09:14:00 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
-    received_with_tls: false
+    spam_score: 0.5
+    spam_action: no action
     status: sent
     domain: 1
 - model: message.message
@@ -377,12 +378,13 @@
       - - Date
         - Mon, 24 Aug 2026 11:30:00 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
-    received_with_tls: false
+    spam_score: -1.2
+    spam_action: no action
     status: sent
     domain: 1
 - model: message.message
@@ -425,12 +427,13 @@
       - - Date
         - Tue, 25 Aug 2026 15:45:00 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
-    received_with_tls: false
+    spam_score: 0.0
+    spam_action: no action
     status: sent
     domain: 1
 - model: msa.outgoingmessage
@@ -454,7 +457,7 @@
     credential: 1
     feedback_id: 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
     status: sent
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ede-773a-8790-f0386847a6ac
   fields:
     modified_at: 2026-08-22 09:14:30+00:00
@@ -467,14 +470,13 @@
     tls_mode: starttls
     tls_version: TLSv1.3
     tls_cipher: TLS_AES_256_GCM_SHA384
-    mx_host: gmail-smtp-in.l.google.com
+    remote_host: gmail-smtp-in.l.google.com
     tls_certificate: 6d8b07aa4e50806a1e2c70690cbc50976de62315be0cc4ae8edf8ff295442cb6
-    sending_mta_ip_address: 116.203.34.11
-    receiving_mx_ip_address: 172.253.148.27
-    log_id: ''
+    local_ip_address: 116.203.34.11
+    remote_ip_address: 172.253.148.27
     started_at: 2026-08-22 09:14:27+00:00
     finished_at: 2026-08-22 09:14:30+00:00
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5ee0-7515-8fa5-f5a26069f896
   fields:
     modified_at: 2026-08-24 11:30:30+00:00
@@ -487,14 +489,27 @@
     tls_mode: starttls
     tls_version: TLSv1.3
     tls_cipher: TLS_AES_128_GCM_SHA256
-    mx_host: in1-smtp.messagingengine.com
+    remote_host: in1-smtp.messagingengine.com
     tls_certificate: 313f6394e12d6187e7205329987b0ae819e62f172774607f2134f3a94b4e5250
-    sending_mta_ip_address: 116.203.34.11
-    receiving_mx_ip_address: 103.168.172.222
-    log_id: ''
+    local_ip_address: 116.203.34.11
+    remote_ip_address: 103.168.172.222
     started_at: 2026-08-24 11:30:26+00:00
     finished_at: 2026-08-24 11:30:30+00:00
-- model: msa.transmission
+- model: message.transmission
+  pk: 019fbe8f-5ee0-7a10-9a41-c8f012345681
+  fields:
+    modified_at: '2026-08-24 11:30:25.5+00:00'
+    created_at: '2026-08-24 11:30:25.5+00:00'
+    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-08-24 11:30:25+00:00'
+    finished_at: '2026-08-24 11:30:25.5+00:00'
+- model: message.transmission
   pk: 019fbe8f-5ee2-73a7-a08a-fa5e3f01f7e7
   fields:
     modified_at: 2026-08-25 15:45:30+00:00
@@ -507,13 +522,26 @@
     tls_mode: starttls
     tls_version: TLSv1.3
     tls_cipher: TLS_AES_256_GCM_SHA384
-    mx_host: mail.protonmail.ch
+    remote_host: mail.protonmail.ch
     tls_certificate: 3c5182eaecc889c466ea43cad8c2c14ab32b8fab2d8ef2dbbc5b372cb4c3e6c1
-    sending_mta_ip_address: 116.203.34.11
-    receiving_mx_ip_address: 185.205.70.128
-    log_id: ''
+    local_ip_address: 116.203.34.11
+    remote_ip_address: 185.205.70.128
     started_at: 2026-08-25 15:45:28+00:00
     finished_at: 2026-08-25 15:45:30+00:00
+- model: message.transmission
+  pk: 019fbe8f-5ee2-7a10-9a41-c8f012345683
+  fields:
+    modified_at: '2026-08-25 15:45:27.5+00:00'
+    created_at: '2026-08-25 15:45:27.5+00:00'
+    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-08-25 15:45:27+00:00'
+    finished_at: '2026-08-25 15:45:27.5+00:00'
 - model: msa.msacredential
   pk: 1
   fields:
@@ -632,7 +660,7 @@
   pk: 019fbe8f-5edc-71e1-c414-e1481852cc47
   fields:
     modified_at: 2026-08-01 18:21:34.835000+00:00
-    created_at: 2026-08-01 18:21:34.835000+00:00
+    created_at: &id001 2026-08-01 18:21:34.835000+00:00
     org: 1
     content_type:
       - mta
@@ -663,13 +691,12 @@
       - - Date
         - Sat, 01 Aug 2026 18:21:34 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: webhook_sent
     domain: 1
 - model: mta.incomingmessage
@@ -680,7 +707,7 @@
   pk: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
   fields:
     modified_at: 2026-08-01 18:21:34.840000+00:00
-    created_at: 2026-08-01 18:21:34.840000+00:00
+    created_at: &id002 2026-08-01 18:21:34.840000+00:00
     org: 1
     content_type:
       - mta
@@ -711,13 +738,12 @@
       - - Date
         - Sat, 01 Aug 2026 18:21:34 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: webhook_failed
     domain: 1
 - model: mta.incomingmessage
@@ -728,7 +754,7 @@
   pk: 019fbe8f-5efc-70c3-995b-59556bf2aa13
   fields:
     modified_at: 2026-08-01 18:21:34.845000+00:00
-    created_at: 2026-08-01 18:21:34.845000+00:00
+    created_at: &id003 2026-08-01 18:21:34.845000+00:00
     org: 1
     content_type:
       - dmarc
@@ -759,13 +785,12 @@
       - - Date
         - Sat, 01 Aug 2026 18:21:34 +0000
       - - Content-Type
-        - 'multipart/report; report-type="authentication-results"; boundary="----=_Part_0_1785608494"'
+        - multipart/report; report-type="authentication-results"; boundary="----=_Part_0_1785608494"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -818,7 +843,7 @@
   pk: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
   fields:
     modified_at: 2026-08-01 18:21:34.860000+00:00
-    created_at: 2026-08-01 18:21:34.860000+00:00
+    created_at: &id004 2026-08-01 18:21:34.860000+00:00
     org: 1
     content_type:
       - dmarc
@@ -849,13 +874,12 @@
       - - Date
         - Sat, 01 Aug 2026 18:21:34 +0000
       - - Content-Type
-        - 'multipart/report; report-type="authentication-results"; boundary="----=_Part_1_1785608494"'
+        - multipart/report; report-type="authentication-results"; boundary="----=_Part_1_1785608494"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -871,17 +895,18 @@
     arrival_at: 2026-07-20 14:30:00+00:00
     original_mail_from: spammer@evil.com
     original_rcpt_to: user@acme.com
-    authentication_results: 'dmarc=fail; dkim=fail; spf=fail'
+    authentication_results: dmarc=fail; dkim=fail; spf=fail
     delivery_result: rejected
-    original_headers: |-
-      From: spammer@evil.com
+    original_headers: 'From: spammer@evil.com
+
       To: user@acme.com
-      Subject: Urgent offer
+
+      Subject: Urgent offer'
 - model: message.message
   pk: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
   fields:
     modified_at: 2026-08-01 18:21:34.865000+00:00
-    created_at: 2026-08-01 18:21:34.865000+00:00
+    created_at: &id005 2026-08-01 18:21:34.865000+00:00
     org: 1
     content_type:
       - mta
@@ -912,13 +937,12 @@
       - - Date
         - Sat, 01 Aug 2026 18:21:34 +0000
       - - Content-Type
-        - 'multipart/report; report-type="tlsrpt"; boundary="----=_Part_2_1785608494"'
+        - multipart/report; report-type="tlsrpt"; boundary="----=_Part_2_1785608494"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -1002,13 +1026,14 @@
       - - Date
         - Wed, 26 Aug 2026 08:05:00 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: false
+    spam_score: 0.8
+    spam_action: no action
     status: pending
     domain: 1
 - model: msa.outgoingmessage
@@ -1057,13 +1082,14 @@
       - - Date
         - Sun, 23 Aug 2026 13:20:00 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: false
+    spam_score: 1.5
+    spam_action: no action
     status: bounced
     domain: 1
 - model: msa.outgoingmessage
@@ -1112,13 +1138,14 @@
       - - Date
         - Thu, 27 Aug 2026 17:10:00 +0000
       - - Content-Type
-        - 'text/plain; charset="utf-8"'
+        - text/plain; charset="utf-8"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
+    spam_score: -0.5
+    spam_action: no action
     status: failed
     domain: 2
 - model: msa.outgoingmessage
@@ -1133,6 +1160,8 @@
   fields:
     modified_at: 2026-08-01 18:21:34.895000+00:00
     created_at: 2026-08-01 18:21:34.895000+00:00
+    started_at: 2026-08-01 18:21:34.775000+00:00
+    finished_at: 2026-08-01 18:21:34.895000+00:00
     message: 019fbe8f-5edc-71e1-c414-e1481852cc47
     webhook: 1
     is_test: false
@@ -1144,6 +1173,8 @@
   fields:
     modified_at: 2026-08-01 18:21:34.900000+00:00
     created_at: 2026-08-01 18:21:34.900000+00:00
+    started_at: 2026-08-01 18:21:34.650000+00:00
+    finished_at: 2026-08-01 18:21:34.900000+00:00
     message: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
     webhook: 1
     is_test: false
@@ -1155,30 +1186,29 @@
   fields:
     modified_at: 2026-08-01 18:21:34.905000+00:00
     created_at: 2026-08-01 18:21:34.905000+00:00
+    started_at: 2026-08-01 18:21:34.825000+00:00
+    finished_at: 2026-08-01 18:21:34.905000+00:00
     message: null
     webhook: 1
     is_test: true
     status: sent
     response_code: 200
     response_body: '{"status":"ok"}'
-- model: msa.transmission
+- model: message.transmission
   pk: 019fbe8f-5fcc-710b-a02b-fcc22eed5854
   fields:
-    modified_at: 2026-08-22 09:14:30+00:00
-    created_at: 2026-08-22 09:14:30+00:00
+    modified_at: '2026-08-22 09:14:26.5+00:00'
+    created_at: '2026-08-22 09:14:26.5+00:00'
     message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
-    status: sent
+    status: submitted
     code: 250
-    output: OK
-    details: Accepted by recipient1@example.com
-    tls_mode: starttls
-    tls_version: TLSv1.3
-    tls_cipher: TLS_AES_256_GCM_SHA384
-    submission_ip_address: 203.0.113.9
-    log_id: ''
-    started_at: 2026-08-22 09:14:29+00:00
-    finished_at: 2026-08-22 09:14:30+00:00
-- model: msa.transmission
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-08-22 09:14:26+00:00'
+    finished_at: '2026-08-22 09:14:26.5+00:00'
+- model: message.transmission
   pk: 019fbe8f-5fdc-715e-965a-d7dca1b6f5e4
   fields:
     modified_at: 2026-08-23 13:21:30+00:00
@@ -1189,10 +1219,23 @@
     output: 4.2.1 Mailbox full
     details: Temporary rejection, message retried
     tls_mode: starttls
-    log_id: ''
     started_at: 2026-08-23 13:20:57+00:00
     finished_at: 2026-08-23 13:21:00+00:00
-- model: msa.transmission
+- model: message.transmission
+  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
+  fields:
+    modified_at: '2026-08-23 13:20:55.5+00:00'
+    created_at: '2026-08-23 13:20:55.5+00:00'
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-08-23 13:20:55+00:00'
+    finished_at: '2026-08-23 13:20:55.5+00:00'
+- model: message.transmission
   pk: 019fbe8f-5fec-70c3-d808-20225b2f6560
   fields:
     modified_at: 2026-08-23 13:22:30+00:00
@@ -1203,10 +1246,23 @@
     output: 5.4.4 Mailbox unavailable
     details: Bounce received after retry
     tls_mode: plaintext
-    log_id: ''
     started_at: 2026-08-23 13:21:57+00:00
     finished_at: 2026-08-23 13:22:00+00:00
-- model: msa.transmission
+- model: message.transmission
+  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345687
+  fields:
+    modified_at: '2026-08-23 13:20:55.5+00:00'
+    created_at: '2026-08-23 13:20:55.5+00:00'
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-08-23 13:20:55+00:00'
+    finished_at: '2026-08-23 13:20:55.5+00:00'
+- model: message.transmission
   pk: 019fbe8f-5ffc-70ec-c20f-65150359ac12
   fields:
     modified_at: 2026-08-27 17:11:00+00:00
@@ -1217,21 +1273,88 @@
     output: 4.4.2 Connection timed out
     details: Temporary failure, will retry
     tls_mode: plaintext
-    log_id: ''
     started_at: 2026-08-27 17:10:55+00:00
     finished_at: 2026-08-27 17:11:00+00:00
+- model: message.transmission
+  pk: 019fbe8f-5f8d-7a10-9a41-c8f012345689
+  fields:
+    modified_at: '2026-08-27 17:10:53.5+00:00'
+    created_at: '2026-08-27 17:10:53.5+00:00'
+    message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: tls
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-08-27 17:10:53+00:00'
+    finished_at: '2026-08-27 17:10:53.5+00:00'
+- model: message.spamcheck
+  pk: 019fbe8f-5edd-7b2e-9a41-c8f012345678
+  fields:
+    modified_at: '2026-08-22 09:14:27+00:00'
+    created_at: '2026-08-22 09:14:27+00:00'
+    message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
+    started_at: '2026-08-22 09:14:26.5+00:00'
+    finished_at: '2026-08-22 09:14:27+00:00'
+    score: 0.5
+- model: message.spamcheck
+  pk: 019fbe8f-5ee0-7a10-9a41-c8f012345682
+  fields:
+    modified_at: '2026-08-24 11:30:26+00:00'
+    created_at: '2026-08-24 11:30:26+00:00'
+    message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
+    started_at: '2026-08-24 11:30:25.5+00:00'
+    finished_at: '2026-08-24 11:30:26+00:00'
+    score: -1.2
+- model: message.spamcheck
+  pk: 019fbe8f-5ee2-7a10-9a41-c8f012345684
+  fields:
+    modified_at: '2026-08-25 15:45:28+00:00'
+    created_at: '2026-08-25 15:45:28+00:00'
+    message: 019fbe8f-5ee1-7145-951c-cd8ae282af25
+    started_at: '2026-08-25 15:45:27.5+00:00'
+    finished_at: '2026-08-25 15:45:28+00:00'
+    score: 0.0
+- model: message.spamcheck
+  pk: 019fbe8f-5f6d-7a10-9a41-c8f012345686
+  fields:
+    modified_at: '2026-08-26 08:05:26+00:00'
+    created_at: '2026-08-26 08:05:26+00:00'
+    message: 019fbe8f-5f6c-7190-8625-4fb14169749e
+    started_at: '2026-08-26 08:05:25.5+00:00'
+    finished_at: '2026-08-26 08:05:26+00:00'
+    score: 0.8
+- model: message.spamcheck
+  pk: 019fbe8f-5f7d-7a10-9a41-c8f012345688
+  fields:
+    modified_at: '2026-08-23 13:20:56+00:00'
+    created_at: '2026-08-23 13:20:56+00:00'
+    message: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
+    started_at: '2026-08-23 13:20:55.5+00:00'
+    finished_at: '2026-08-23 13:20:56+00:00'
+    score: 1.5
+- model: message.spamcheck
+  pk: 019fbe8f-5f8d-7a10-9a41-c8f01234568a
+  fields:
+    modified_at: '2026-08-27 17:10:54+00:00'
+    created_at: '2026-08-27 17:10:54+00:00'
+    message: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
+    started_at: '2026-08-27 17:10:53.5+00:00'
+    finished_at: '2026-08-27 17:10:54+00:00'
+    score: -0.5
 - model: message.message
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0001
   fields:
     modified_at: 2026-08-27 12:00:12+00:00
-    created_at: 2026-08-27 12:00:00+00:00
+    created_at: &id006 2026-08-27 12:00:00+00:00
     org: 1
     content_type:
       - mta
       - incomingmessage
     mail_from: staff@hotmail.com
     rcpt_to: fbl@acme.com
-    subject: 'complaint about message from 192.0.2.10'
+    subject: complaint about message from 192.0.2.10
     message_id: <fbl-1@hotmail.com>
     headers:
       - - ARC-Seal
@@ -1251,17 +1374,16 @@
       - - Message-ID
         - <fbl-1@hotmail.com>
       - - Subject
-        - 'complaint about message from 192.0.2.10'
+        - complaint about message from 192.0.2.10
       - - Date
         - Thu, 27 Aug 2026 12:00:00 +0000
       - - Content-Type
-        - 'multipart/report; report-type="feedback-report"; boundary="----=_Part_3_1787832000"'
+        - multipart/report; report-type="feedback-report"; boundary="----=_Part_3_1787832000"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -1272,14 +1394,14 @@
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0002
   fields:
     modified_at: 2026-08-28 08:30:12+00:00
-    created_at: 2026-08-28 08:30:00+00:00
+    created_at: &id007 2026-08-28 08:30:00+00:00
     org: 1
     content_type:
       - mta
       - incomingmessage
     mail_from: feedback-loops@yahoo.com
     rcpt_to: fbl@acme.com
-    subject: 'complaint about message from 192.0.2.11'
+    subject: complaint about message from 192.0.2.11
     message_id: <fbl-2@yahoo.com>
     headers:
       - - ARC-Seal
@@ -1299,17 +1421,16 @@
       - - Message-ID
         - <fbl-2@yahoo.com>
       - - Subject
-        - 'complaint about message from 192.0.2.11'
+        - complaint about message from 192.0.2.11
       - - Date
         - Fri, 28 Aug 2026 08:30:00 +0000
       - - Content-Type
-        - 'multipart/report; report-type="feedback-report"; boundary="----=_Part_4_1787905800"'
+        - multipart/report; report-type="feedback-report"; boundary="----=_Part_4_1787905800"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
         - '1.0'
     raw_body: ''
-    received_with_tls: true
     status: received
     domain: 1
 - model: mta.incomingmessage
@@ -1352,3 +1473,101 @@
     original_mail_from: sender2@acme.com
     original_rcpt_to: recipient2@example.com
     original_message_id: <test2@acme.com>
+- model: message.transmission
+  pk: 019fbe8f-5f6d-7a10-9a41-c8f012345685
+  fields:
+    modified_at: '2026-08-26 08:05:25.5+00:00'
+    created_at: '2026-08-26 08:05:25.5+00:00'
+    message: 019fbe8f-5f6c-7190-8625-4fb14169749e
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-08-26 08:05:25+00:00'
+    finished_at: '2026-08-26 08:05:25.5+00:00'
+- model: message.transmission
+  pk: 62cdadd6-865a-4b9c-a649-e19148cbfa77
+  fields:
+    modified_at: *id001
+    created_at: *id001
+    message: 019fbe8f-5edc-71e1-c414-e1481852cc47
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id001
+    finished_at: *id001
+- model: message.transmission
+  pk: 5720f336-204e-44af-a0b1-da99be827669
+  fields:
+    modified_at: *id002
+    created_at: *id002
+    message: 019fbe8f-5eec-7014-af2a-8a08de5eafd5
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id002
+    finished_at: *id002
+- model: message.transmission
+  pk: e55ee01b-3dc8-45a4-a252-31869e41b210
+  fields:
+    modified_at: *id003
+    created_at: *id003
+    message: 019fbe8f-5efc-70c3-995b-59556bf2aa13
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id003
+    finished_at: *id003
+- model: message.transmission
+  pk: 0d5dc8a2-57cb-4589-97f8-f3dc07e43d56
+  fields:
+    modified_at: *id004
+    created_at: *id004
+    message: 019fbe8f-5f2c-7240-cbaf-84b43e1932f6
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id004
+    finished_at: *id004
+- model: message.transmission
+  pk: 5e5429e9-cb75-47fd-b278-3977599c766f
+  fields:
+    modified_at: *id005
+    created_at: *id005
+    message: 019fbe8f-5f3c-7090-9b77-5a8ff08113c2
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id005
+    finished_at: *id005
+- model: message.transmission
+  pk: b313ff73-90d4-4317-b01f-177602094dad
+  fields:
+    modified_at: *id006
+    created_at: *id006
+    message: 019fbe8f-602c-73e0-9a10-6d5d082a0001
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id006
+    finished_at: *id006
+- model: message.transmission
+  pk: 587f32a1-d5e4-40bc-8315-1a03da423fd1
+  fields:
+    modified_at: *id007
+    created_at: *id007
+    message: 019fbe8f-602c-73e0-9a10-6d5d082a0002
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id007
+    finished_at: *id007

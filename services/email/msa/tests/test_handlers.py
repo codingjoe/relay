@@ -10,6 +10,7 @@ import pytest
 from django.utils import timezone
 
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.msa.handlers import (
     ImplicitTLSHandler,
     SMTPHandler,
@@ -22,7 +23,6 @@ from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
     SuppressionEntry,
-    Transmission,
 )
 
 
@@ -176,7 +176,7 @@ class TestHandleData:
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
         assert result == "250 OK"
-        assert outgoing.received_with_tls is True
+        assert outgoing.transmissions.get().tls_mode != Transmission.TlsMode.PLAINTEXT
         stored = message_from_bytes(outgoing.raw_body.read())
         assert stored["Feedback-ID"].startswith(f"{org.pk}::")
         assert outgoing.feedback_id == stored["Feedback-ID"]
@@ -504,7 +504,7 @@ class TestProcessMessage:
         outgoing = await OutgoingMessage.objects.aget(org=org)
         assert result == "250 OK"
         assert outgoing.domain == domain
-        assert outgoing.received_with_tls is True
+        assert outgoing.transmissions.get().tls_mode != Transmission.TlsMode.PLAINTEXT
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip=""
         )

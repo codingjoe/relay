@@ -1,0 +1,170 @@
+{% load i18n static %}
+{% translate "duration" as duration_label %}
+{% translate "click the bar to open the transcript" as transcript_hint %}
+{% translate "score" as score_label %}
+<article class="card">
+  <div
+    id="transmission-profile"
+    role="img"
+    aria-label='{% translate "timeline of transmissions and processing stages"|capfirst %}'
+  >
+  </div>
+  {{ timeline|json_script:"transmission-timeline" }}
+  <script type="module">
+    import * as echarts from "https://esm.sh/echarts@5.6.0";
+    import { toRgba } from "{% static 'abstract/chart.js' %}";
+    import escapeHtml from "https://esm.sh/lodash.escape@4.0.1";
+
+    const element = document.getElementById("transmission-profile");
+    const events = JSON.parse(
+      document.getElementById("transmission-timeline").textContent
+    );
+    if (element && events.length) {
+      const locale = document.documentElement.lang || "en";
+      const msFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+      const secondFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
+      const timeFormat = new Intl.DateTimeFormat(locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      const formatDuration = (ms) =>
+        ms >= 1000
+          ? `${secondFormat.format(ms / 1000)} s (${msFormat.format(ms)} ms)`
+          : `${msFormat.format(ms)} ms`;
+      const formatClock = (ms) =>
+        `${timeFormat.format(ms)}.${String(Math.floor(ms % 1000)).padStart(3, "0")}`;
+      const tooltipHtml = (event) =>
+        [
+          `<strong>${escapeHtml(event.name)}</strong>`,
+          event.end - event.start
+            ? `{{ duration_label|escapejs }}: ${formatDuration(event.end - event.start)}`
+            : "",
+          `${formatClock(event.start)} → ${formatClock(event.end)}`,
+          event.score == null
+            ? ""
+            : `{{ score_label|escapejs }}: ${event.score}`,
+          ...[event.ips, event.tls].filter(Boolean).map(escapeHtml),
+          event.transcript
+            ? `<small>{{ transcript_hint|escapejs }}</small>`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("<br/>");
+      const muted = toRgba("var(--color-muted-foreground)");
+      const border = toRgba("var(--color-border)");
+      const start = Math.min(...events.map((event) => event.start));
+      const end = Math.max(...events.map((event) => event.end));
+      const fontFamily = getComputedStyle(document.documentElement).fontFamily;
+      const renderItem = (params, api) => {
+        const categoryIndex = api.value(0);
+        const from = api.coord([api.value(1), categoryIndex]);
+        const to = api.coord([api.value(2), categoryIndex]);
+        const height = api.size([0, 1])[1] * 0.6;
+        const rectShape = echarts.graphic.clipRectByRect(
+          {
+            x: from[0],
+            y: from[1] - height / 2,
+            width: Math.max(to[0] - from[0], 3),
+            height,
+          },
+          {
+            x: params.coordSys.x,
+            y: params.coordSys.y,
+            width: params.coordSys.width,
+            height: params.coordSys.height,
+          }
+        );
+        if (!rectShape) {
+          return null;
+        }
+        const name = events[categoryIndex]?.name ?? "";
+        const inside = rectShape.width > 80;
+        const characters = Math.floor((rectShape.width - 12) / 6.5);
+        const label =
+          inside && name.length > characters
+            ? `${name.slice(0, Math.max(characters - 1, 0))}…`
+            : name;
+        return {
+          type: "group",
+          children: [
+            {
+              type: "rect",
+              transition: ["shape"],
+              shape: rectShape,
+              style: api.style(),
+            },
+            {
+              type: "text",
+              style: {
+                text: label,
+                x: inside ? rectShape.x + 6 : rectShape.x + rectShape.width + 6,
+                y: rectShape.y + rectShape.height / 2,
+                fill: inside ? "#fff" : muted,
+                verticalAlign: "middle",
+                font: `12px ${fontFamily}`,
+              },
+            },
+          ],
+        };
+      };
+      element.style.height = `${events.length * 48 + 72}px`;
+      const chart = echarts.init(element);
+      chart.setOption({
+        grid: { left: 8, right: 16, top: 8, bottom: 48, containLabel: true },
+        tooltip: {
+          trigger: "item",
+          confine: true,
+          formatter: (params) => tooltipHtml(params.data.event),
+        },
+        dataZoom: [
+          {
+            type: "slider",
+            filterMode: "weakFilter",
+            showDataShadow: false,
+            bottom: 8,
+            labelFormatter: "",
+          },
+          { type: "inside", filterMode: "weakFilter" },
+        ],
+        xAxis: {
+          type: "value",
+          min: start,
+          max: end,
+          scale: true,
+          axisLabel: {
+            color: muted,
+            formatter: (value) =>
+              end - start < 2000 ? formatClock(value) : timeFormat.format(value),
+          },
+          splitLine: { lineStyle: { color: border } },
+        },
+        yAxis: {
+          type: "category",
+          data: events.map((_, index) => index),
+          inverse: true,
+          show: false,
+        },
+        series: [
+          {
+            type: "custom",
+            renderItem,
+            itemStyle: { opacity: 0.8 },
+            encode: { x: [1, 2], y: 0 },
+            data: events.map((event, index) => ({
+              name: event.name,
+              value: [index, event.start, event.end],
+              itemStyle: { color: toRgba(event.color) },
+              event,
+            })),
+          },
+        ],
+      });
+      chart.on("click", (params) => {
+        const transcript = params.data?.event?.transcript;
+        if (transcript) document.getElementById(transcript)?.showModal();
+      });
+      window.addEventListener("resize", () => chart.resize());
+    }
+  </script>
+</article>

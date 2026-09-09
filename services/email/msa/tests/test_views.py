@@ -8,11 +8,11 @@ from django.core.files.base import ContentFile
 from django.utils.http import http_date
 
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
     SuppressionEntry,
-    Transmission,
 )
 
 

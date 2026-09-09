@@ -5,7 +5,8 @@ from django.utils import timezone
 
 from domains.models import Domain
 from kms.models import Certificate
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 
 
@@ -19,14 +20,22 @@ def make_certificate(issuer_certificate=None):
 
 def make_incoming(org, tls_certificate=None):
     domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-    return IncomingMessage.objects.create(
+    message = IncomingMessage.objects.create(
         org=org,
         domain=domain,
         receiving_domain="app.acme.com",
         mail_from="alice@external.com",
         rcpt_to="bob@app.acme.com",
-        tls_certificate=tls_certificate,
     )
+    Transmission.objects.create(
+        message=message,
+        status=Transmission.Status.RECEIVED,
+        tls_mode=Transmission.TlsMode.STARTTLS,
+        tls_certificate=tls_certificate,
+        started_at=timezone.now(),
+        finished_at=timezone.now(),
+    )
+    return message
 
 
 def make_transmission(org, tls_certificate=None):

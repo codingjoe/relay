@@ -99,6 +99,7 @@ The transmission list per message shows each attempt with its own outcome:
 
 | Transmission status | Meaning                                                        |
 | ------------------- | -------------------------------------------------------------- |
+| received            | relay accepted the message over inbound SMTP                   |
 | submitted           | relay accepted the message for delivery                        |
 | sent                | This attempt reached a recipient MX host that answered success |
 | bounced             | This attempt revealed a permanent rejection                    |
@@ -106,11 +107,18 @@ The transmission list per message shows each attempt with its own outcome:
 | retry               | Reserved for future automatic retry tracking                   |
 
 The message detail page also draws these records on a timeline. Each bar
-spans the time relay measured for that attempt: a submission bar covers the
-SMTP transaction, a delivery bar covers the connection to the MX host. The
+spans the time relay measured for that attempt: a reception bar covers the
+inbound SMTP transaction, a submission bar covers the outbound SMTP
+transaction, and a delivery bar covers the connection to the MX host. The
 gaps between bars show how long the message waited in the queue or between
 retries. Green bars mark successful attempts, red bars mark failures, and
-yellow bars mark pending records such as `submitted`.
+yellow bars mark retries. Blue bars mark the reception and submission legs.
+The spam check bar takes the color of its verdict: green when the message
+is clean, yellow when rspamd holds or rewrites it, red when it rejects it,
+and gray when the check failed. Hover a bar to
+see its duration in milliseconds, its exact start and end times, the IP
+path, and the negotiated TLS settings. Click a bar to open the full SMTP
+transcript.
 
 The same applies for inbound messages: one delivery record per webhook POST
 with the URL, response code, and a response excerpt.
