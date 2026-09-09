@@ -62,12 +62,10 @@ class Timing(TimeStamped):
         abstract = True
 
     def __enter__(self):
-        """Stamp the start of the timed block."""
         self.started_at = timezone.now()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Stamp the end of the timed block and persist the timing."""
         self.finished_at = timezone.now()
         self.save(force_insert=True)
 

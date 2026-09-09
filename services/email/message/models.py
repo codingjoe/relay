@@ -492,14 +492,12 @@ class Transmission(Timing):
 
     @property
     def label(self) -> str:
-        """Return the display name of this transmission."""
         target = self.mx_host or self.submission_ip_address or ""
         name = self.get_status_display()
         return f"{name} ({target})" if target else name
 
     @property
     def event(self) -> dict:
-        """Return one profile chart event for this transmission."""
         tls = " · ".join(
             part
             for part in (

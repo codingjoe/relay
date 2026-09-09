@@ -206,7 +206,6 @@ class WebhookDelivery(Timing):
 
     @property
     def event(self) -> dict:
-        """Return one profile chart event for this webhook delivery."""
         return {
             "name": f"{self.get_status_display()} ({self.webhook.signing_key.key_id})",
             "color": TIMELINE_COLORS[self.status],

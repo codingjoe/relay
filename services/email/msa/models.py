@@ -90,7 +90,6 @@ class SpamCheck(Timing):
 
     @property
     def label(self) -> str:
-        """Return the display name of this spam check."""
         name = str(self._meta.verbose_name)
         return f"{name} ({self.score})" if self.score is not None else name
 
@@ -102,7 +101,6 @@ class SpamCheck(Timing):
 
     @property
     def event(self) -> dict:
-        """Return one profile chart event for this spam check."""
         return {
             "name": self.label,
             "color": self.TIMELINE_VARIANT_COLORS.get(
