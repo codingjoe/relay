@@ -40,7 +40,7 @@
           aria-controls="status-badge-popover"
           aria-expanded="false"
         >
-          <i data-lucide="mail" class="size-3.5" aria-hidden="true"></i>
+          <i data-lucide="mailbox" class="size-3.5" aria-hidden="true"></i>
           {{ message.status_display }}
         </button>
         <div
@@ -68,7 +68,7 @@
             aria-controls="spam-badge-popover"
             aria-expanded="false"
           >
-            <i data-lucide="shield" class="size-3.5" aria-hidden="true"></i>
+            <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
             {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
               ({{ message.spam_score }}){% endif %}
           </button>
