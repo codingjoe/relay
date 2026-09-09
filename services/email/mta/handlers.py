@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # HELO names are attacker-controlled; only these characters may reach the
 # Received header so they cannot inject header lines or Received clauses.
-HELO_UNSAFE_CHARS = re.compile(r"[^A-Za-z0-9.\-:\[\]]")
+HELO_ALLOWED_CHARS = re.compile(r"[A-Za-z0-9.\-:\[\]]")
 
 
 def received_header(session) -> bytes:
@@ -38,7 +38,7 @@ def received_header(session) -> bytes:
     The HELO name is reduced to a safe charset so it cannot inject header
     lines or Received clauses.
     """
-    helo = HELO_UNSAFE_CHARS.sub("", getattr(session, "host_name", "") or "")
+    helo = "".join(HELO_ALLOWED_CHARS.findall(getattr(session, "host_name", "") or ""))
     protocol = "ESMTPS" if getattr(session, "ssl", None) else "ESMTP"
     received = f"from {helo or 'unknown'}"
     if ip := get_client_ip(session):
