@@ -115,9 +115,11 @@ Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
 `.playwright-mcp/`. The dev server binds to a random localhost port. Read
 it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
-The MCP server loads `.playwright-mcp-config.json` (via `--config`)
-for `headless` and `outputDir`; no request headers are required (dev
-requests are auto-authenticated as the bundled `test` user).
+The MCP server loads `.playwright-mcp-config.json` (via `--config`) and
+sends an `X-Playwright: 1` header with every request. The Django debug
+toolbar is hidden for requests with that header (see
+`root/settings.py`). Dev requests are auto-authenticated as the bundled
+`test` user.
 
 ## Test data
 

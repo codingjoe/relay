@@ -1,0 +1,9 @@
+{
+  "browser": {
+    "contextOptions": {
+      "extraHTTPHeaders": {
+        "X-Playwright": "1"
+      }
+    }
+  }
+}
