@@ -57,6 +57,22 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Show django-debug-toolbar for local development requests.
 INTERNAL_IPS = ["127.0.0.1"]
 
+
+def show_debug_toolbar(request):
+    # Headless browsers (e.g. Playwright MCP) get clean pages without the
+    # toolbar markup, so screenshots show the UI as users see it.
+    return (
+        DEBUG
+        and request.META.get("REMOTE_ADDR") in INTERNAL_IPS
+        and "HeadlessChrome" not in request.META.get("HTTP_USER_AGENT", "")
+    )
+
+
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": show_debug_toolbar,
+    "SHOW_COLLAPSED": True,
+}
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
