@@ -1,5 +1,7 @@
 import logging
+import re
 from email import message_from_bytes
+from email.utils import formatdate
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
@@ -23,6 +25,24 @@ from .signals import fbl_report_received, report_received
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
 
 logger = logging.getLogger(__name__)
+
+# HELO names are attacker-controlled; only these characters may reach the
+# Received header so they cannot inject header lines or Received clauses.
+HELO_ALLOWED_CHARS = re.compile(r"[A-Za-z0-9.\-:\[\]]")
+
+
+def received_header(session) -> bytes:
+    """Return the Received header line for an inbound message (RFC 5321 §4.4)."""
+    helo = "".join(HELO_ALLOWED_CHARS.findall(getattr(session, "host_name", "") or ""))
+    protocol = "ESMTPS" if getattr(session, "ssl", None) else "ESMTP"
+    received = f"from {helo or 'unknown'}"
+    if ip := get_client_ip(session):
+        received += f" ([{ip}])"
+    received += (
+        f"\r\n\tby {settings.RELAY_DNS_MX_HOSTNAMES[0]} with {protocol};\r\n\t"
+        + formatdate(usegmt=True)
+    )
+    return f"Received: {received}".encode()
 
 
 class MXHandler(ProxyProtocolMixin):
@@ -56,6 +76,7 @@ class MXHandler(ProxyProtocolMixin):
             if evaluation.disposition == Disposition.QUARANTINE
             else IncomingMessage.Status.RECEIVED
         )
+        raw_bytes = received_header(session) + b"\r\n" + raw_bytes
         raw_bytes = await sync_to_async(seal_message, thread_sensitive=False)(
             raw_bytes, evaluation, domain
         )
