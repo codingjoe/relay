@@ -61,10 +61,13 @@ INTERNAL_IPS = ["127.0.0.1"]
 def show_debug_toolbar(request):
     # Headless browsers (e.g. Playwright MCP) get clean pages without the
     # toolbar markup, so screenshots show the UI as users see it.
+    agent = request.META.get("HTTP_USER_AGENT", "").lower()
     return (
         DEBUG
         and request.META.get("REMOTE_ADDR") in INTERNAL_IPS
-        and "HeadlessChrome" not in request.META.get("HTTP_USER_AGENT", "")
+        and "headless" not in agent
+        and "playwright" not in agent
+        and "puppeteer" not in agent
     )
 
 
