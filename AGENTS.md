@@ -115,10 +115,6 @@ Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
 `.playwright-mcp/`. The dev server binds to a random localhost port. Read
 it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
-The MCP server loads `.playwright-mcp-config.json` (via `--config`)
-for `headless` and `outputDir`; no request headers are required (dev
-requests are auto-authenticated as the bundled `test` user).
-
 ## Test data
 
 Bundle: one user (`test`, password `test`), one org (`acme`), one
