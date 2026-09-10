@@ -97,6 +97,17 @@ repos:
     hooks:
       - id: import-linter
         language: python
+  - repo: local
+    hooks:
+      - id: svgo
+        name: svgo
+        language: node
+        additional_dependencies: [svgo]
+        entry: svgo
+        args: [--pretty, --multipass, --indent, "2"]
+        require_serial: true
+        pass_filenames: true
+        types: [svg]
 ci:
   skip:
     - no-commit-to-branch
