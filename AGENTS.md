@@ -115,6 +115,11 @@ Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
 `.playwright-mcp/`. The dev server binds to a random localhost port. Read
 it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
+Disable the browser cache before capturing screenshots
+(`Network.setCacheDisabled` via CDP). Conditional-get views answer
+revalidations with `304`, so the browser would otherwise reuse stale
+HTML that still contains the debug toolbar.
+
 ## Test data
 
 Bundle: one user (`test`, password `test`), one org (`acme`), one
