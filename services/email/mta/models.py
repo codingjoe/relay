@@ -13,7 +13,7 @@ from accounts.models import OrganizationOwned
 from kms.models import SigningKey
 from services.email.message.models import Message
 
-from .serializers import TlsReportSerializer
+from .parser import parse_tls_report
 
 
 class IncomingMessage(Message):
@@ -293,7 +293,7 @@ class TlsReport(IncomingMessage):
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
             raise MissingAttachmentError
-        meta, policies = TlsReportSerializer.parse_json(data)
+        meta, policies = parse_tls_report(data)
         report = cls(
             reporting_org=meta["reporting_org"],
             reporting_email=meta["reporting_email"],

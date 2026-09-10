@@ -1,24 +1,4 @@
-from django.utils import timezone
-
 from abstract import utils
-
-
-def test_future():
-    assert utils.future() > timezone.now()
-
-
-def test_future__min_offset():
-    now = timezone.now()
-    assert utils.future(now=now, min_offset=999) == now + timezone.timedelta(999)
-
-
-def test_future__max_offset():
-    now = timezone.now()
-    assert utils.future(now=now, max_offset=1) == now + timezone.timedelta(1)
-
-
-def test_past():
-    assert utils.past() < timezone.now()
 
 
 def test_md_2_html():

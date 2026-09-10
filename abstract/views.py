@@ -11,7 +11,7 @@ from django.utils.cache import (
 from django.views import generic
 from django.views.decorators.http import condition
 
-from abstract.utils import strip_frontmatter
+from abstract.utils import md_2_html, strip_frontmatter
 
 
 class CacheControlMixin:
@@ -202,4 +202,48 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
             "title": self.title,
             "markdown_template": self.get_markdown_template(),
             "toc_levels": self.toc_levels,
+        }
+
+
+class MarkdownListView(
+    MarkdownArticleMixin, CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView
+):
+    """Display all Markdown articles in a docs directory."""
+
+    cache_control = {"public": True, "max_age": 3600}
+    parent = "home"
+    docs_dir: pathlib.Path
+    slugs: frozenset[str]
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "articles": [
+                {
+                    "slug": slug,
+                    "title": metadata["name"],
+                    "description": md_2_html(metadata.get("description", "")),
+                }
+                for slug, metadata in self.get_articles()
+            ],
+        }
+
+
+class MarkdownArticleDetailView(MarkdownArticleMixin, MarkdownView):
+    """Render a single Markdown article from a docs directory."""
+
+    docs_dir: pathlib.Path
+    slugs: frozenset[str]
+
+    @classmethod
+    def get_title(cls, request):
+        return cls.get_article_metadata(request.resolver_match.kwargs["slug"])["name"]
+
+    def get_markdown_template(self):
+        return f"{self.kwargs['slug']}.md"
+
+    def get_context_data(self, **kwargs):
+        metadata = self.get_article_metadata(self.kwargs["slug"])
+        return super().get_context_data(**kwargs) | {
+            "title": metadata["name"],
+            "meta_description": metadata.get("description", ""),
         }
