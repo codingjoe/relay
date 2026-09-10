@@ -19,8 +19,7 @@
         "-y",
         "@playwright/mcp@latest",
         "--headless",
-        "--output-dir=.playwright-mcp",
-        "--config=.playwright-mcp-config.json"
+        "--output-dir=.playwright-mcp"
       ],
       "command": "npx",
       "tools": [

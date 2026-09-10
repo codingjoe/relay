@@ -59,12 +59,12 @@ INTERNAL_IPS = ["127.0.0.1"]
 
 
 def show_debug_toolbar(request):
-    # Playwright MCP sends X-Playwright on every request, so browser
-    # automation gets clean pages without the toolbar markup.
+    # Headless browsers (e.g. Playwright MCP) get clean pages without the
+    # toolbar markup, so screenshots show the UI as users see it.
     return (
         DEBUG
         and request.META.get("REMOTE_ADDR") in INTERNAL_IPS
-        and "HTTP_X_PLAYWRIGHT" not in request.META
+        and "HeadlessChrome" not in request.META.get("HTTP_USER_AGENT", "")
     )
 
 
