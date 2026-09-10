@@ -18,17 +18,6 @@ class UnsupportedAlgorithmError(ValueError):
         super().__init__(f"Unsupported algorithm: {algorithm}")
 
 
-class Algorithm:
-    RSA_2048 = "rsa-2048"
-    ED25519 = "ed25519"
-
-
-DEFAULT_DKIM_ALGORITHMS: tuple[str, ...] = (
-    Algorithm.RSA_2048,
-    Algorithm.ED25519,
-)
-
-
 @dataclass(frozen=True)
 class KeyPair:
     ciphertext: str  # Fernet-encrypted PEM
@@ -100,20 +89,18 @@ def generate(algorithm: str) -> KeyPair:
     )
 
 
-def decrypt(ciphertext: str) -> str:
-    return keystore.decrypt(ciphertext)
-
-
 def load(ciphertext: str):
-    pem = decrypt(ciphertext).encode("ascii")
+    pem = keystore.decrypt(ciphertext).encode("ascii")
     return serialization.load_pem_private_key(pem, password=None)
 
 
-def dkim_key_material_from_pem(private_pem: str, algorithm: str) -> tuple[bytes, bytes]:
+def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:
+    """Return the DKIM signing key bytes and signature algorithm for a signing key."""
+    private_pem = keystore.decrypt(ciphertext)
     match algorithm:
-        case Algorithm.RSA_2048:
+        case "rsa-2048":
             return private_pem.encode("ascii"), b"rsa-sha256"
-        case Algorithm.ED25519:
+        case "ed25519":
             private = serialization.load_pem_private_key(private_pem.encode(), None)
             raw_seed = private.private_bytes(
                 encoding=serialization.Encoding.Raw,
@@ -123,7 +110,3 @@ def dkim_key_material_from_pem(private_pem: str, algorithm: str) -> tuple[bytes,
             return base64.b64encode(raw_seed), b"ed25519-sha256"
         case _:
             raise UnsupportedAlgorithmError(algorithm)
-
-
-def dkim_key_material(ciphertext: str, algorithm: str) -> tuple[bytes, bytes]:
-    return dkim_key_material_from_pem(decrypt(ciphertext), algorithm)

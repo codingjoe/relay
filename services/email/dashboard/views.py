@@ -1,10 +1,8 @@
 from django.db import models
+from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
-from rest_framework.generics import RetrieveAPIView
-from rest_framework.response import Response
 
-from abstract.serializers import ChartDataSerializer
 from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -52,10 +50,8 @@ class DashboardView(OrganizationScopedView, generic.TemplateView):
         }
 
 
-class ChartDataView(OrganizationScopedView, RetrieveAPIView):
+class ChartDataView(OrganizationScopedView, generic.View):
     """Return chart data as JSON for interactive charts."""
-
-    serializer_class = ChartDataSerializer
 
     CHART_BUILDERS = {
         "outgoing": build_outgoing_chart,
@@ -65,12 +61,9 @@ class ChartDataView(OrganizationScopedView, RetrieveAPIView):
         "reputation": build_reputation_chart,
     }
 
-    def retrieve(self, request, *args, **kwargs):
-        chart_type = kwargs["chart_type"]
-        builder = self.CHART_BUILDERS[chart_type]
-        data = builder(self.org)
-        serializer = self.get_serializer(data)
-        return Response(serializer.data)
+    def get(self, request, *args, **kwargs):
+        builder = self.CHART_BUILDERS[kwargs["chart_type"]]
+        return JsonResponse(builder(self.org))
 
 
 class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):

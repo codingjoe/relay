@@ -1,11 +1,9 @@
-import datetime
 import logging
-import random
 import re
 from html import escape
 
+import frontmatter
 import markdown
-from django.utils import timezone
 from django.utils.safestring import SafeText, mark_safe
 from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.md_in_html import MarkdownInHtmlExtension
@@ -61,50 +59,11 @@ class MermaidExtension(markdown.Extension):
 
 def strip_frontmatter(text: str) -> str:
     """
-    Strip YAML frontmatter (`---` delimited) from the start of a Markdown document.
+    Return the Markdown document without its YAML frontmatter.
 
-    If the document does not start with a frontmatter block, return it unchanged.
+    Documents without a frontmatter block return unchanged.
     """
-    if not text.startswith("---\n"):
-        return text
-    lines = text.splitlines(keepends=True)
-    for i in range(1, len(lines)):
-        if lines[i].strip() == "---":
-            return "".join(lines[i + 1 :]).lstrip("\n")
-    return text
-
-
-def future(now=None, min_offset=1, max_offset=999):
-    """
-    Return random datetime in the near future.
-
-    Args:
-        now (datetime.datetime): Date on which to add the random offset.
-        min_offset (int): Minimum number of days to add.
-        max_offset (int): Maximum number of days to add.
-
-    Returns:
-        datetime.datetime: Random date in the future.
-
-    """
-    offset = random.randint(min_offset, max_offset)
-    return (now or timezone.localtime()) + datetime.timedelta(days=offset)
-
-
-def past(now=None):
-    """
-    Return random datetime in the near past.
-
-    Args:
-        now (datetime.datetime): Date on which to subtract the random offset.
-
-    Returns:
-        datetime.datetime: Random date in the past.
-
-    """
-    return (now or timezone.localtime()) - datetime.timedelta(
-        days=random.randint(1, 999),
-    )
+    return frontmatter.parse(text)[1]
 
 
 def md_2_html(document: str, baselevel: int = 1) -> SafeText:
