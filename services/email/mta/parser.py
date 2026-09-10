@@ -19,11 +19,23 @@ def snake_case_keys(value):
 
 
 def parse_datetime(value):
-    """Return an aware datetime from an RFC 3339 string, or None."""
+    """
+    Return an aware datetime from an RFC 3339 string, or None.
+
+    Raises `ValueError` for a well-formed but invalid datetime.
+    """
     parsed = dateparse.parse_datetime(value) if isinstance(value, str) else None
     if parsed is None:
         return None
     return timezone.make_aware(parsed) if timezone.is_naive(parsed) else parsed
+
+
+def parse_count(value):
+    """Return a session count as an int, or 0 when missing or malformed."""
+    try:
+        return int(value)
+    except TypeError, ValueError:
+        return 0
 
 
 def parse_tls_report(data):
@@ -49,8 +61,12 @@ def parse_tls_report(data):
             {
                 "policy_type": policy.get("policy_type", "sts"),
                 "policy_domain": policy.get("policy_domain", ""),
-                "successful_session_count": summary.get("successful_session_count", 0),
-                "failed_session_count": summary.get("failed_session_count", 0),
+                "successful_session_count": parse_count(
+                    summary.get("successful_session_count")
+                ),
+                "failed_session_count": parse_count(
+                    summary.get("failed_session_count")
+                ),
                 "failures": [
                     {
                         "result_type": detail.get("result_type", "other"),
@@ -59,7 +75,7 @@ def parse_tls_report(data):
                             "receiving_mx_hostname", ""
                         ),
                         "receiving_mx_ip_address": detail.get("receiving_mx_ip"),
-                        "count": detail.get("failed_session_count", 0),
+                        "count": parse_count(detail.get("failed_session_count")),
                         "additional_info": detail.get("additional_information", ""),
                     }
                     for detail in entry.get("failure_details", [])
