@@ -10,7 +10,7 @@ from django.utils import timezone
 from abstract.timing import measure
 from services.email.mta_sts import MtaStsPolicy
 from services.email.spam.client import SpamAction, check_message
-from services.email.spam.retry import retry_spam_scan
+from services.email.spam.retry import SPAM_SCAN_RETRY
 from services.email.tls import parse_peer_certificates
 
 logger = logging.getLogger(__name__)
@@ -249,14 +249,13 @@ async def send_via_mx(
     return response, tls_details
 
 
-@task(retry=retry_spam_scan)
-def check_outgoing_spam(message_pk, client_ip, is_renewal=False):
+@task(retry=SPAM_SCAN_RETRY)
+def check_outgoing_spam(message_pk, client_ip):
     """
     Check an outgoing message for spam before delivery.
 
     Messages for suspended orgs are dropped without a spam check. Clean
-    messages are enqueued for delivery. `is_renewal` marks a run that follows
-    the steady-state retry schedule.
+    messages are enqueued for delivery.
 
     """
     from services.email.message.models import SpamCheck

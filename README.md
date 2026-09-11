@@ -79,7 +79,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | DNS     | 5353         | Authoritative nameserver (dnslib, internal only)           |
 | SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)      |
 | MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS) |
-| rspamd  | 11334        | Spam detection, 2 replicas behind Caddy L7 (internal only) |
+| rspamd  | 11334        | Spam detection (internal only)                             |
 | Worker  | N/A          | Threadmill task worker                                     |
 
 ```mermaid

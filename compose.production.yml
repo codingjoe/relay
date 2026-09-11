@@ -190,11 +190,6 @@ services:
       - app
       - ingress
     labels:
-      # Scans reach the replicas through the Caddy layer 7 load balancer,
-      # which spreads them and ejects unresponsive replicas. The controller
-      # worker requires `RELAY_RSPAMD_PASSWORD`, so this site must never get
-      # a public `caddy=<hostname>` label. Every container that shares the
-      # box's ingress network can reach it, but not without the password.
       - "caddy_1=http://caddy:11334"
       - "caddy_1.reverse_proxy={{upstreams 11334}}"
       - "caddy_1.reverse_proxy.lb_policy=round_robin"

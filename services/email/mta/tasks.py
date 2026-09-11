@@ -17,7 +17,7 @@ from django.utils.translation import gettext_lazy as _
 
 from services.email.message.models import Transmission
 from services.email.spam.client import SpamAction, check_message
-from services.email.spam.retry import retry_spam_scan
+from services.email.spam.retry import SPAM_SCAN_RETRY
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -270,14 +270,9 @@ def notify_postmaster_recipients(message_pk):
             )
 
 
-@task(retry=retry_spam_scan)
-def check_incoming_spam(message_pk, client_ip, is_renewal=False):
-    """
-    Check an incoming message for spam and dispatch webhook if clean.
-
-    `is_renewal` marks a run that follows the steady-state retry schedule.
-
-    """
+@task(retry=SPAM_SCAN_RETRY)
+def check_incoming_spam(message_pk, client_ip):
+    """Check an incoming message for spam and dispatch webhook if clean."""
     from services.email.message.models import SpamCheck
 
     message = IncomingMessage.objects.get(pk=message_pk)
