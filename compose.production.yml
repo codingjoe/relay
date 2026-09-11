@@ -251,7 +251,7 @@ services:
       - "caddy_2.@mta_sts.path=/.well-known/mta-sts.txt"
       - "caddy_2.@mta_sts.protocol=https"
       - "caddy_2.handle=@mta_sts"
-      - "caddy_2.handle.reverse_proxy=web:8000"
+      - "caddy_2.handle.reverse_proxy={{upstreams 8000}}"
     deploy:
       resources:
         limits:
