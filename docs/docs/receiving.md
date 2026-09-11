@@ -30,6 +30,7 @@ sequenceDiagram
     participant Sender as Any mail server
     participant MX as relay MX (25)
     participant Store as Storage
+    participant Worker as relay worker
     participant Scan as rspamd
     participant Hook as Your webhook
 
@@ -41,9 +42,10 @@ sequenceDiagram
     MX->>MX: ARC seal of the evaluation
     MX-->>Sender: 250 accepted (or 550 per policy)
     MX->>Store: store message and metadata
-    MX->>Scan: spam scan
-    Scan-->>MX: score and action
-    MX->>Hook: signed webhook per configured endpoint
+    MX->>Worker: enqueue spam scan for the stored message
+    Worker->>Scan: scan through the load balancer
+    Scan-->>Worker: score and action
+    Worker->>Hook: signed webhook per configured endpoint
 ```
 
 ## The acceptance gates
@@ -64,7 +66,8 @@ signatures from older senders that use RSA-1024 keys.
 **Spam scan.** rspamd scores every accepted message. A message whose
 score reaches the reject threshold, or whose action is reject, lands as
 quarantined and never reaches your webhook. You can see the score in the
-dashboard.
+dashboard. Scanning happens after relay has answered `250`, so a busy
+scanner delays the webhook, not acceptance.
 
 **Received header.** relay stamps every accepted message with a
 `Received` header before sealing. It records the sending host's HELO

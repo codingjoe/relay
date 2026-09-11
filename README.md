@@ -79,7 +79,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | DNS     | 5353         | Authoritative nameserver (dnslib, internal only)           |
 | SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)      |
 | MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS) |
-| rspamd  | 11334        | Spam detection (internal only)                             |
+| rspamd  | 11334        | Spam detection, 2 replicas behind Caddy L7 (internal only) |
 | Worker  | N/A          | Threadmill task worker                                     |
 
 ```mermaid
@@ -100,7 +100,7 @@ flowchart TD
         msa[SMTP aiosmtpd :587 :2465]
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
-        rspamd[rspamd :11334]
+        rspamd[rspamd :11334, 2 replicas]
         minio[MinIO S3 :9000]
     end
 
@@ -120,8 +120,10 @@ flowchart TD
     sender -->|STARTTLS :25| caddy_l4
     caddy_l4 --> msa
     caddy_l4 --> mta
-    msa --> rspamd
-    mta --> rspamd
+    msa -->|enqueue| worker
+    mta -->|enqueue| worker
+    worker -->|scan| caddy_proxy
+    caddy_proxy --> rspamd
     rspamd --> redis
     web --> pg
     web --> redis

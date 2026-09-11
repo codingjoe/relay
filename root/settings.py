@@ -316,6 +316,9 @@ RELAY_PROXY_PROTOCOL_TIMEOUT = (
 )
 
 RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
+# Must match the mounted rspamd controller config. Stays empty in development,
+# which runs no rspamd service.
+RELAY_RSPAMD_PASSWORD = env("RELAY_RSPAMD_PASSWORD", default="")
 RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)
 RELAY_RSPAMD_HOLD_SCORE = env.float("RELAY_RSPAMD_HOLD_SCORE", default=6.0)
 

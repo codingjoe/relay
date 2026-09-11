@@ -188,9 +188,24 @@ services:
         target: /etc/rspamd/local.d/worker-controller.inc
     networks:
       - app
+      - ingress
     labels:
+      # Scans reach the replicas through the Caddy layer 7 load balancer,
+      # which spreads them and ejects unresponsive replicas. The controller
+      # worker requires `RELAY_RSPAMD_PASSWORD`, so this site must never get
+      # a public `caddy=<hostname>` label. Every container that shares the
+      # box's ingress network can reach it, but not without the password.
+      - "caddy_1=http://caddy:11334"
+      - "caddy_1.reverse_proxy={{upstreams 11334}}"
+      - "caddy_1.reverse_proxy.lb_policy=round_robin"
+      - "caddy_1.reverse_proxy.lb_try_duration=3s"
+      - "caddy_1.reverse_proxy.health_uri=/ping"
+      - "caddy_1.reverse_proxy.health_interval=10s"
+      - "caddy_1.reverse_proxy.health_timeout=5s"
+      - "caddy_1.reverse_proxy.fail_duration=10s"
       - dev.dozzle.icon=rspamd
     deploy:
+      replicas: 2
       resources:
         limits:
           cpus: "0.5"
@@ -230,6 +245,9 @@ services:
       AWS_STORAGE_BUCKET_NAME: relay
       AWS_S3_ADDRESSING_STYLE: path
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
+      # The Caddy load balancer fronts the rspamd replicas.
+      RELAY_RSPAMD_URL: http://caddy:11334
+      RELAY_RSPAMD_PASSWORD: ${RELAY_RSPAMD_PASSWORD}
     command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https" ]
@@ -287,8 +305,10 @@ configs:
       database = 1;
   rspamd_controller:
     content: |
-      secure_ip = "0.0.0.0/0";
-      secure_ip = "::/0";
+      # Reached through the Caddy load balancer on the shared ingress network,
+      # so every request outside the container needs the password.
+      # `/ping` stays unauthenticated for the load balancer's health checks.
+      password = "${RELAY_RSPAMD_PASSWORD:?RELAY_RSPAMD_PASSWORD must be set}";
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)

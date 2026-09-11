@@ -118,6 +118,13 @@ whatever you use elsewhere. You need no special headers.
   proves the proxy and at least one authoritative backend answer queries, so
   a broken chain shows up as an unhealthy container within about a minute
   instead of surfacing as missing DNS records.
+- **The spam scanners are redundant.** Two rspamd replicas sit behind the
+  internal Caddy load balancer, which spreads scans across both and ejects a
+  replica that stops answering its `/ping` check. One stalled scanner costs
+  throughput, not the scan path. Scans never run inside an SMTP session:
+  relay answers `250 OK` first and scans from the worker. The scanner needs
+  no published port, and every request other than `/ping` requires the
+  controller password relay sends along.
 
 ## Operational notes for high-volume senders
 

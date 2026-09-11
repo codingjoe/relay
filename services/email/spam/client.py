@@ -37,6 +37,8 @@ class SpamResult:
 async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
     """Return the rspamd score and action for a raw message."""
     headers = {"Ip": client_ip} if client_ip else {}
+    if password := settings.RELAY_RSPAMD_PASSWORD:
+        headers["Password"] = password
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.post(
             f"{settings.RELAY_RSPAMD_URL.rstrip('/')}/checkv2",
