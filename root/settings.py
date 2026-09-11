@@ -315,8 +315,11 @@ RELAY_PROXY_PROTOCOL_TIMEOUT = (
     else None
 )
 
-RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
-RELAY_RSPAMD_PASSWORD = env("RELAY_RSPAMD_PASSWORD", default="")
+rspamd_url = env.url("RELAY_RSPAMD_URL", default="http://rspamd:11334")
+RELAY_RSPAMD_PASSWORD = rspamd_url.password or ""
+RELAY_RSPAMD_URL = rspamd_url._replace(
+    netloc=rspamd_url.netloc.rpartition("@")[2]
+).geturl()
 RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)
 RELAY_RSPAMD_HOLD_SCORE = env.float("RELAY_RSPAMD_HOLD_SCORE", default=6.0)
 

@@ -240,9 +240,7 @@ services:
       AWS_STORAGE_BUCKET_NAME: relay
       AWS_S3_ADDRESSING_STYLE: path
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
-      # The Caddy load balancer fronts the rspamd replicas.
-      RELAY_RSPAMD_URL: http://caddy:11334
-      RELAY_RSPAMD_PASSWORD: ${RELAY_RSPAMD_PASSWORD}
+      RELAY_RSPAMD_URL: http://:${RELAY_RSPAMD_PASSWORD}@caddy:11334
     command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https" ]
