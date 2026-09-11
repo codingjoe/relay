@@ -1,258 +1,167 @@
 import asyncio
 import contextlib
-import datetime
 import math
 import time
 from argparse import ArgumentTypeError
 from collections import Counter
-from dataclasses import dataclass
 from email.message import EmailMessage
 from email.utils import make_msgid
 from urllib.parse import urlparse
 
 import aiosmtplib
 import environ
-from django.core.exceptions import ImproperlyConfigured
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-IMPLICIT_TLS_PORT = 465
-STARTTLS_PORT = 587
 PERCENTILE_STEPS = (50, 66, 75, 80, 90, 95, 98, 99, 100)
 
 
-@dataclass
-class SmtpUri:
-    """Submission endpoint and addresses parsed from an SMTP URI."""
-
-    hostname: str
-    port: int
-    username: str | None
-    password: str | None
-    sender: str
-    recipient: str
-    use_tls: bool
-
-
-@dataclass
-class SendResult:
-    """Outcome of one benchmark email."""
-
-    duration: datetime.timedelta
-    status_code: int | None
-    error: str
-    opened_connection: bool
-
-
-class UnsupportedSchemeError(ValueError):
-    """The SMTP URI scheme is neither smtp nor smtps."""
-
-    def __init__(self, scheme):
-        super().__init__(f"Unsupported scheme: {scheme}. Use smtp:// or smtps://")
-
-
-class MalformedSmtpUriError(ValueError):
-    """The SMTP URI could not be parsed."""
-
-    def __init__(self, reason):
-        super().__init__(f"Invalid SMTP URI: {reason}")
-
-
-class MissingHostnameError(ValueError):
-    """The SMTP URI has no hostname."""
-
-    def __init__(self):
-        super().__init__("The URI must include a hostname.")
-
-
-class MissingSenderError(ValueError):
-    """The SMTP URI has no sender in its path."""
-
-    def __init__(self):
-        super().__init__(
-            "The URI must include a sender in its path, for example "
-            "smtps://user:pass@msa.example.com/alice@example.com/bob@example.com"
-        )
-
-
-class PositiveIntRequiredError(ArgumentTypeError):
-    """A command option received a value smaller than one."""
-
-    def __init__(self, value):
-        super().__init__(f"The value must be at least 1, not {value}.")
-
-
-def positive_int(value):
-    """Parse a strictly positive integer, as an argparse option type."""
+def positive_int(value: str) -> int:
+    """Parse a whole number of at least 1 for an argparse option type."""
     number = int(value)
     if number < 1:
-        raise PositiveIntRequiredError(value)
+        raise ArgumentTypeError(  # noqa: TRY003
+            f"The value must be at least 1, not {value}."
+        )
     return number
 
 
-def parse_smtp_uri(smtp_uri: str) -> SmtpUri:
-    """
-    Parse an SMTP URI into its endpoint, sender, and recipient.
-
-    The URI path carries the sender and recipient, separated by a slash, for
-    example `smtps://user:pass@msa.example.com/alice@example.com/bob@example.com`.
-    `smtps://` uses implicit TLS, `smtp://` uses STARTTLS. The recipient
-    defaults to the sender when the URI omits it.
-    """
-    match urlparse(smtp_uri).scheme:
+def parse_smtp_url(smtp_url: str) -> dict:
+    """Return the email configuration of an SMTP submission URL."""
+    match urlparse(smtp_url).scheme:
         case "smtps":
-            use_tls, default_port = True, IMPLICIT_TLS_PORT
+            use_tls, default_port = True, 465
         case "smtp":
-            use_tls, default_port = False, STARTTLS_PORT
+            use_tls, default_port = False, 587
         case unsupported_scheme:
-            raise UnsupportedSchemeError(unsupported_scheme)
-    try:
-        config = environ.Env.email_url_config(smtp_uri)
-    except (ImproperlyConfigured, ValueError) as error:
-        raise MalformedSmtpUriError(error) from error
-
-    path = config["EMAIL_FILE_PATH"].strip("/")
-    sender, _, recipient = path.partition("/")
-    recipient = recipient or sender
+            raise ValueError(  # noqa: TRY003
+                f"Unsupported scheme: {unsupported_scheme}. Use smtp:// or smtps://"
+            )
+    config = environ.Env.email_url_config(smtp_url)
     if not config["EMAIL_HOST"]:
-        raise MissingHostnameError()
-    if not sender:
-        raise MissingSenderError()
-    return SmtpUri(
-        hostname=config["EMAIL_HOST"],
-        port=config["EMAIL_PORT"] or default_port,
-        username=config["EMAIL_HOST_USER"],
-        password=config["EMAIL_HOST_PASSWORD"],
-        sender=sender,
-        recipient=recipient,
-        use_tls=use_tls,
-    )
+        raise ValueError("The URL must include a hostname.")  # noqa: TRY003
+    return config | {
+        "EMAIL_PORT": config["EMAIL_PORT"] or default_port,
+        "EMAIL_USE_TLS": use_tls,
+    }
 
 
-def build_email(uri: SmtpUri) -> EmailMessage:
-    """Build one benchmark email from the sender and recipient in the URI."""
+def build_email(sender: str, recipients: list[str]) -> EmailMessage:
+    """Assemble one message with a unique Message-ID and a fixed subject and body."""
     message = EmailMessage()
-    message["From"] = uri.sender
-    message["To"] = uri.recipient
-    message["Message-ID"] = make_msgid()
+    message["From"] = sender
+    message["To"] = ", ".join(recipients)
+    message["Message-ID"] = make_msgid(domain="relay.example.com")
     message["Subject"] = "Relay benchmark email"
     message.set_content("This is a benchmark email from relay.\n")
     return message
 
 
-async def open_connection(uri: SmtpUri) -> aiosmtplib.SMTP:
-    """Connect, secure, and authenticate an SMTP submission connection."""
+async def open_connection(config: dict) -> aiosmtplib.SMTP:
+    """Dial the endpoint, negotiate TLS, and log in if credentials are given."""
     smtp = aiosmtplib.SMTP(
-        hostname=uri.hostname,
-        port=uri.port,
-        username=uri.username,
-        password=uri.password,
-        start_tls=not uri.use_tls,
-        use_tls=uri.use_tls,
+        hostname=config["EMAIL_HOST"],
+        port=config["EMAIL_PORT"],
+        username=config["EMAIL_HOST_USER"],
+        password=config["EMAIL_HOST_PASSWORD"],
+        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+        start_tls=not config["EMAIL_USE_TLS"],
+        use_tls=config["EMAIL_USE_TLS"],
     )
     await smtp.connect()
     return smtp
 
 
 async def benchmark_emails(
-    uri: SmtpUri,
+    config: dict,
+    sender: str,
+    recipients: list[str],
     count: int,
     concurrency: int,
     emails_per_connection: int,
     send_results: list,
-    report_progress,
-):
+) -> None:
     """
-    Send count emails over `concurrency` connections, appending each send result.
+    Send the requested messages across the given number of parallel connections.
 
-    Each connection carries at most `emails_per_connection` emails before it
-    is closed and reopened. The email that opens a connection carries its
-    connect and login time; transport errors close the connection. Failed
-    message submissions (SMTP rejections) keep it open, because the SMTP
-    envelope is reset. `report_progress` runs after every email with the
-    number of completed emails.
+    Append each send result to `send_results` as it completes.
     """
-    unsent_emails = asyncio.Queue()
-    for _ in range(count):
-        unsent_emails.put_nowait(None)
 
-    async def send_worker():
+    async def send_slice(indices: range) -> None:
         smtp = None
         emails_on_connection = 0
-        while True:
-            try:
-                unsent_emails.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-
+        for _ in indices:
             started_at = time.monotonic()
-            status_code, error = 250, ""
+            error = ""
             opened_connection = False
             try:
-                if emails_on_connection >= emails_per_connection:
+                if smtp is not None and emails_on_connection >= emails_per_connection:
                     with contextlib.suppress(aiosmtplib.SMTPException, OSError):
                         await smtp.quit()
                     smtp = None
                 if smtp is None:
-                    smtp = await open_connection(uri)
+                    smtp = await open_connection(config)
                     emails_on_connection = 0
                     opened_connection = True
-                await smtp.send_message(build_email(uri))
-                emails_on_connection += 1
-            except aiosmtplib.SMTPResponseException as smtp_error:
-                status_code = smtp_error.code
+                await smtp.send_message(build_email(sender, recipients))
+            except (
+                aiosmtplib.SMTPResponseException,
+                aiosmtplib.SMTPRecipientsRefused,
+            ) as smtp_error:
                 error = f"{type(smtp_error).__name__}: {smtp_error}"
             except (aiosmtplib.SMTPException, OSError) as send_error:
-                status_code, error = None, f"{type(send_error).__name__}: {send_error}"
+                error = f"{type(send_error).__name__}: {send_error}"
                 smtp = None
                 emails_on_connection = 0
+            emails_on_connection += 1
             send_results.append(
-                SendResult(
-                    datetime.timedelta(seconds=time.monotonic() - started_at),
-                    status_code,
-                    error,
-                    opened_connection,
-                )
+                ((time.monotonic() - started_at) * 1000, error, opened_connection)
             )
-            report_progress(len(send_results))
-
         if smtp is not None:
             with contextlib.suppress(aiosmtplib.SMTPException, OSError):
                 await smtp.quit()
 
-    await asyncio.gather(*(send_worker() for _ in range(concurrency)))
-
-
-def percentile(ascending_values: list, percent: int) -> float:
-    """Return the value at the given percentile of an ascending sequence."""
-    index = math.ceil(percent / 100 * len(ascending_values)) - 1
-    return ascending_values[max(index, 0)]
+    await asyncio.gather(
+        *(
+            send_slice(range(worker, count, concurrency))
+            for worker in range(concurrency)
+        )
+    )
 
 
 class Command(BaseCommand):
-    help = "Benchmark an SMTP submission endpoint by sending emails, like ab or hey"
+    help = (
+        "Benchmark an SMTP submission endpoint, like ab or hey. "
+        "The endpoint comes from the SMTP_URL environment variable."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "smtp_uri",
-            help=(
-                "SMTP URI, for example "
-                "smtps://user:pass@msa.example.com:465/"
-                "alice@example.com/bob@example.com"
-            ),
+            "recipients",
+            nargs="+",
+            help="Recipients of the benchmark email.",
+        )
+        parser.add_argument(
+            "--from",
+            dest="sender",
+            required=True,
+            help="Sender address of the benchmark email.",
         )
         parser.add_argument(
             "-n",
             "--count",
             type=positive_int,
             default=100,
-            help="Number of emails to send (default: 100)",
+            help="Total number of emails to send (default: 100).",
         )
         parser.add_argument(
             "-c",
             "--concurrency",
             type=positive_int,
             default=10,
-            help="Number of concurrent connections (default: 10)",
+            help=(
+                "Number of connections used at the same time (default: 10, at most -n)."
+            ),
         )
         parser.add_argument(
             "-e",
@@ -260,33 +169,38 @@ class Command(BaseCommand):
             type=positive_int,
             default=1,
             help=(
-                "Number of emails sent over the same connection "
-                "before it is reopened (default: 1)"
+                "Number of emails attempted over one connection before it is "
+                "closed and a new one is opened (default: 1)."
             ),
         )
 
     def handle(
         self,
         *args,
-        smtp_uri,
+        sender,
+        recipients,
         count,
         concurrency,
         emails_per_connection,
         **options,
     ):
+        smtp_url = environ.Env().str("SMTP_URL", default="")
+        if not smtp_url:
+            raise CommandError(  # noqa: TRY003
+                "Set the SMTP_URL environment variable to the submission endpoint, "
+                "for example smtps://user:password@msa.example.com:465. Use smtps:// "
+                "for implicit TLS (default port 465) or smtp:// for STARTTLS "
+                "(default port 587). Percent-encode special characters in the "
+                "credentials."
+            )
+        concurrency = min(concurrency, count)
         try:
-            uri = parse_smtp_uri(smtp_uri)
+            config = parse_smtp_url(smtp_url)
         except ValueError as error:
             raise CommandError(str(error)) from error
-        progress_interval = max(count // 10, 1)
-
-        def report_progress(completed):
-            if completed % progress_interval == 0 or completed == count:
-                self.stdout.write(f"Completed {completed} of {count} emails")
-
         self.stdout.write(
-            f"Benchmarking {uri.hostname}:{uri.port} with {count} emails "
-            f"at {concurrency} concurrent connections"
+            f"Benchmarking {config['EMAIL_HOST']}:{config['EMAIL_PORT']} with "
+            f"{count} emails at {concurrency} concurrent connections"
         )
         self.stdout.write("")
         send_results = []
@@ -294,114 +208,77 @@ class Command(BaseCommand):
         try:
             asyncio.run(
                 benchmark_emails(
-                    uri,
+                    config,
+                    sender,
+                    recipients,
                     count,
                     concurrency,
                     emails_per_connection,
                     send_results,
-                    report_progress,
                 )
             )
-        except KeyboardInterrupt:
+        except KeyboardInterrupt as interrupt:
+            if not send_results:
+                raise CommandError("No emails were sent.") from interrupt  # noqa: TRY003
             self.stdout.write("Benchmark interrupted. Printing partial results.")
-        total_duration = datetime.timedelta(seconds=time.monotonic() - started_at)
+        total_secs = time.monotonic() - started_at
         self.stdout.write("")
-        self.print_summary(
-            uri, send_results, concurrency, emails_per_connection, total_duration
-        )
+        complete_count = len(send_results)
+        failed_count = sum(bool(error) for _, error, _ in send_results)
+        durations_ms = sorted(duration_ms for duration_ms, _, _ in send_results)
+        connections_opened = sum(opened for _, _, opened in send_results)
+        tls_mode = "implicit TLS" if config["EMAIL_USE_TLS"] else "STARTTLS"
+        summary_rows = [
+            ("Sender:", sender),
+            ("Recipients:", ", ".join(recipients)),
+            (
+                "Endpoint:",
+                f"{config['EMAIL_HOST']}:{config['EMAIL_PORT']} ({tls_mode})",
+            ),
+            ("Concurrent connections:", str(concurrency)),
+            ("Emails per connection:", str(emails_per_connection)),
+            ("Time taken for tests:", f"{total_secs:.3f} secs"),
+            ("Emails attempted:", str(complete_count)),
+            ("Emails sent:", str(complete_count - failed_count)),
+            ("Emails failed:", str(failed_count)),
+            ("Connections opened:", str(connections_opened)),
+            (
+                "Emails per second:",
+                f"{complete_count / total_secs:.2f} [#/sec] (mean)",
+            ),
+            (
+                "Time per email:",
+                f"{sum(durations_ms) / complete_count:.2f} [ms] (mean)",
+            ),
+            ("Fastest email:", f"{durations_ms[0]:.2f} [ms]"),
+            ("Slowest email:", f"{durations_ms[-1]:.2f} [ms]"),
+        ]
+        label_width = max(len(label) for label, _ in summary_rows) + 2
+        for label, value in summary_rows:
+            self.stdout.write(f"{label:<{label_width}}{value}")
 
-    def print_summary(
-        self,
-        uri: SmtpUri,
-        send_results: list,
-        concurrency: int,
-        emails_per_connection: int,
-        total_duration,
-    ):
-        """Print ab-style statistics for the benchmark send results."""
-        if not send_results:
-            self.stdout.write(self.style.ERROR("No emails were sent."))
-        else:
-            complete_count = len(send_results)
-            failed_count = sum(bool(result.error) for result in send_results)
-            connections_opened = sum(
-                result.opened_connection for result in send_results
-            )
-            total_secs = total_duration.total_seconds()
-            durations_ms = sorted(
-                result.duration.total_seconds() * 1000 for result in send_results
-            )
-            tls_mode = "implicit TLS" if uri.use_tls else "STARTTLS"
-            summary_rows = [
-                ("Sender:", uri.sender),
-                ("Recipient:", uri.recipient),
-                ("Endpoint:", f"{uri.hostname}:{uri.port} ({tls_mode})"),
-                ("Concurrent connections:", str(concurrency)),
-                ("Emails per connection:", str(emails_per_connection)),
-                ("Time taken for tests:", f"{total_secs:.3f} secs"),
-                ("Emails attempted:", str(complete_count)),
-                ("Emails sent:", str(complete_count - failed_count)),
-                ("Emails failed:", str(failed_count)),
-                ("Connections opened:", str(connections_opened)),
-                (
-                    "Emails per second:",
-                    f"{complete_count / total_secs:.2f} [#/sec] (mean)",
-                ),
-                (
-                    "Time per email:",
-                    f"{sum(durations_ms) / complete_count:.2f} [ms] (mean)",
-                ),
-                (
-                    "Time per email:",
-                    (
-                        f"{total_secs * 1000 / complete_count:.2f} [ms] "
-                        "(mean, across all concurrent connections)"
-                    ),
-                ),
-                ("Fastest email:", f"{durations_ms[0]:.2f} [ms]"),
-                ("Slowest email:", f"{durations_ms[-1]:.2f} [ms]"),
-            ]
-            label_width = max(len(label) for label, _ in summary_rows) + 2
-            for label, value in summary_rows:
-                self.stdout.write(f"{label:<{label_width}}{value}")
-
-            self.stdout.write("")
+        self.stdout.write("")
+        self.stdout.write("Percentage of the emails served within a certain time (ms):")
+        for percent in PERCENTILE_STEPS:
+            index = math.ceil(percent / 100 * complete_count) - 1
+            slowest_suffix = " (slowest)" if percent == 100 else ""
             self.stdout.write(
-                "Percentage of the emails served within a certain time (ms):"
+                f"  {percent:>3}%  {durations_ms[index]:8.1f}{slowest_suffix}"
             )
-            for percent in PERCENTILE_STEPS:
-                slowest_suffix = " (slowest)" if percent == 100 else ""
-                self.stdout.write(
-                    f"  {percent:>3}%  "
-                    f"{percentile(durations_ms, percent):8.1f}{slowest_suffix}"
-                )
 
-            status_codes = Counter(
-                result.status_code
-                for result in send_results
-                if result.status_code is not None
-            )
-            if status_codes:
-                self.stdout.write("")
-                self.stdout.write("SMTP status codes:")
-                for status_code, status_count in sorted(status_codes.items()):
-                    self.stdout.write(f"  {status_code}    {status_count} emails")
-
-            errors = Counter(result.error for result in send_results if result.error)
-            if errors:
-                self.stdout.write("")
-                self.stdout.write("Errors:")
-                for error_name, error_count in errors.most_common():
-                    self.stdout.write(f"  {error_name}    {error_count} emails")
-
+        errors = Counter(error for _, error, _ in send_results if error)
+        if errors:
             self.stdout.write("")
-            if failed_count:
-                self.stdout.write(
-                    self.style.ERROR(
-                        f"{failed_count} of {complete_count} emails failed."
-                    )
-                )
-            else:
-                self.stdout.write(
-                    self.style.SUCCESS(f"All {complete_count} emails were sent.")
-                )
+            self.stdout.write("Errors:")
+            for error_name, error_count in errors.most_common():
+                self.stdout.write(f"  {error_name}    {error_count} emails")
+
+        self.stdout.write("")
+        if failed_count:
+            self.stdout.write(
+                self.style.ERROR(f"{failed_count} of {complete_count} emails failed.")
+            )
+        else:
+            self.stdout.write(
+                self.style.SUCCESS(f"All {complete_count} emails were sent.")
+            )
