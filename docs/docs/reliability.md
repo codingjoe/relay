@@ -81,11 +81,25 @@ flowchart TD
 
 relay defines explicit retry behavior for external systems:
 
-| Action             | Schedule                                                 | Notes                                   |
-| ------------------ | -------------------------------------------------------- | --------------------------------------- |
-| Outbound spam scan | Backoff 1 s to 5 min, up to 5 attempts                   | Only network errors (HTTP and OS) retry |
-| Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry         |
-| Inbound spam scan  | 1 s to 5 min backoff, up to 5 attempts                   | Same error classes as outbound          |
+| Action             | Schedule                                                 | Notes                              |
+| ------------------ | -------------------------------------------------------- | ---------------------------------- |
+| Outbound spam scan | Backoff 1 s to 128 s, then one attempt per hour          | Retries until the scan succeeds    |
+| Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry    |
+| Inbound spam scan  | Backoff 1 s to 128 s, then one attempt per hour          | Same schedule as the outbound scan |
+
+A spam scan that cannot be completed is retried, whatever the reason. One run
+retries after 1, 2, 4, and up to 128 seconds, then hands the message to a fresh
+run that waits an hour before its first attempt and probes once an hour after
+that. An outage of the scanner delays mail instead of losing it, so fix the
+scanner and the backlog drains on its own, at about one attempt per message
+per hour.
+
+Two cases are not retried:
+
+- A message whose stored body is gone cannot be scanned or forwarded. relay
+  marks it `failed` and stops retrying, rather than holding a worker on it.
+- A worker process that is killed mid-scan is not retried. The message stays
+  unscanned and keeps its status.
 
 Webhook retries stop early on success. Every delivery attempt carries its
 URL, response code, and a response excerpt of 2,000 characters, so an

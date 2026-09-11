@@ -1,18 +1,21 @@
-import datetime
 import logging
 
 import aiosmtplib
 import dns.resolver
-import httpx
 from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.tasks import task
 from django.utils import timezone
-from threadmill.retry import ExponentialBackoff
 
 from abstract.timing import measure
 from services.email.mta_sts import MtaStsPolicy
-from services.email.spam import SpamAction, check_message
+from services.email.spam import (
+    SpamAction,
+    UnscannableMessageError,
+    UnscannableReason,
+    check_message,
+    retry_spam_scan,
+)
 from services.email.tls import parse_peer_certificates
 
 logger = logging.getLogger(__name__)
@@ -251,26 +254,24 @@ async def send_via_mx(
     return response, tls_details
 
 
-@task(
-    retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
-        max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
-    )
-)
-def check_outgoing_spam(message_pk, client_ip):
+@task(retry=retry_spam_scan)
+def check_outgoing_spam(message_pk, client_ip, is_renewal=False):
     """
     Check an outgoing message for spam before delivery.
 
     Messages for suspended orgs are dropped without a spam check. Clean
-    messages are enqueued for delivery.
+    messages are enqueued for delivery. `is_renewal` marks a run that follows
+    the steady-state retry schedule.
+
     """
     from services.email.message.models import SpamCheck
 
     from .models import OutgoingMessage
 
-    message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
+    try:
+        message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
+    except OutgoingMessage.DoesNotExist as error:
+        raise UnscannableMessageError(UnscannableReason.MESSAGE_GONE) from error
     if message.org.suspended_at:
         from services.email.message.models import Transmission
 
@@ -287,7 +288,12 @@ def check_outgoing_spam(message_pk, client_ip):
         )
         return
 
-    raw_bytes = message.raw_body.read()
+    try:
+        raw_bytes = message.raw_body.read()
+    except FileNotFoundError as error:
+        message.status = OutgoingMessage.Status.FAILED
+        message.save(update_fields=["status", "modified_at"])
+        raise UnscannableMessageError(UnscannableReason.BODY_GONE) from error
     with SpamCheck(message=message) as timer:
         spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
         timer.score = spam.score

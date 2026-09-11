@@ -14,10 +14,15 @@ from django.tasks import task
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from threadmill.retry import ExponentialBackoff
 
 from services.email.message.models import Transmission
-from services.email.spam import SpamAction, check_message
+from services.email.spam import (
+    SpamAction,
+    UnscannableMessageError,
+    UnscannableReason,
+    check_message,
+    retry_spam_scan,
+)
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -270,20 +275,25 @@ def notify_postmaster_recipients(message_pk):
             )
 
 
-@task(
-    retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
-        max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
-    )
-)
-def check_incoming_spam(message_pk, client_ip):
-    """Check an incoming message for spam and dispatch webhook if clean."""
+@task(retry=retry_spam_scan)
+def check_incoming_spam(message_pk, client_ip, is_renewal=False):
+    """
+    Check an incoming message for spam and dispatch webhook if clean.
+
+    `is_renewal` marks a run that follows the steady-state retry schedule.
+
+    """
     from services.email.message.models import SpamCheck
 
-    message = IncomingMessage.objects.get(pk=message_pk)
-    raw_bytes = message.raw_body.read()
+    try:
+        message = IncomingMessage.objects.get(pk=message_pk)
+        raw_bytes = message.raw_body.read()
+    except IncomingMessage.DoesNotExist as error:
+        raise UnscannableMessageError(UnscannableReason.MESSAGE_GONE) from error
+    except FileNotFoundError as error:
+        message.status = IncomingMessage.Status.FAILED
+        message.save(update_fields=["status", "modified_at"])
+        raise UnscannableMessageError(UnscannableReason.BODY_GONE) from error
     with SpamCheck(message=message) as check:
         spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
         check.score = spam.score

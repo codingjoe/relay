@@ -14,6 +14,7 @@ CHART_COLORS = {
     "webhook_sent": "var(--color-chart-green-deep)",
     "webhook_failed": "var(--color-chart-red)",
     "dropped": "var(--color-chart-red)",
+    "failed": "var(--color-chart-red)",
 }
 
 TLS_CHART_COLORS = {
