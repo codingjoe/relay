@@ -169,6 +169,7 @@ TEMPLATES = [
                 "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "root.context_processors.settings_context",
             ],
             "debug": DEBUG,
             "loaders": (
