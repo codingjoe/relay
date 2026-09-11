@@ -318,11 +318,20 @@ configs:
         action = "reject";
         # Matches StreamMaxLength; ARC sealing adds bytes after SMTP acceptance.
         max_size = 41943040;
+        # Archives tripping MaxRecursion or MaxFiles are deterministic, so they
+        # get their own symbol and skip the retry schedule. See rspamd_force_actions.
+        patterns_fail = {
+          CLAM_VIRUS_LIMITS = "Limits Exceeded";
+        };
       }
   rspamd_force_actions:
     content: |
       force_actions {
         rules {
+          CLAMAV_LIMITS {
+            action = "reject";
+            expression = "CLAM_VIRUS_LIMITS";
+          }
           CLAMAV_FAIL {
             action = "soft reject";
             expression = "CLAM_VIRUS_FAIL";

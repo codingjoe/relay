@@ -64,10 +64,12 @@ signatures from older senders that use RSA-1024 keys.
 **Spam scan.** rspamd scores every accepted message. A message whose
 score reaches the reject threshold, or whose action is reject, lands as
 quarantined and never reaches your webhook. The same scan detects malware
-with ClamAV. A virus finding quarantines the message as well. While the
-malware scanner is unavailable, messages wait unscanned and relay keeps
-retrying the scan, so none reach your webhook unscanned. You can see the
-score in the dashboard.
+with ClamAV. A virus finding quarantines the message as well. So does an
+archive that exceeds the scanner's nesting or file limits; a retry cannot
+change that verdict, so relay quarantines it at once. While the malware
+scanner is unavailable, messages wait unscanned and relay keeps retrying
+the scan, so none reach your webhook unscanned. You can see the score in
+the dashboard.
 
 **Received header.** relay stamps every accepted message with a
 `Received` header before sealing. It records the sending host's HELO

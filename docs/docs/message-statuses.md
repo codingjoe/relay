@@ -76,13 +76,13 @@ stateDiagram-v2
     webhook_failed --> [*]
 ```
 
-| Status         | Trigger                                                                                                 | What happens next                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| received       | Stored after acceptance, before the inbound spam check finishes                                         | The spam scan runs, then webhooks fire; while the malware scanner is unavailable, the message waits. |
-| quarantined    | A DMARC quarantine disposition at acceptance, a spam score at or above the reject threshold, or malware | Final state, no webhook, readable in the dashboard with its score                                    |
-| dropped        | Billing is inactive, or no active webhook matches the recipient                                         | Final state, the message stays stored                                                                |
-| webhook_sent   | A POST to a matching active webhook answered 2xx                                                        | Final state, the delivery record shows the response                                                  |
-| webhook_failed | The Standard Webhooks retry schedule ended without a 2xx, or the webhook was inactive or answered 410   | Final state, every attempt is in the delivery record                                                 |
+| Status         | Trigger                                                                                                                                                       | What happens next                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| received       | Stored after acceptance, before the inbound spam check finishes                                                                                               | The spam scan runs, then webhooks fire; while the malware scanner is unavailable, the message waits. |
+| quarantined    | A DMARC quarantine disposition at acceptance, a spam score at or above the reject threshold, malware, or an archive past the scanner's nesting or file limits | Final state, no webhook, readable in the dashboard with its score                                    |
+| dropped        | Billing is inactive, or no active webhook matches the recipient                                                                                               | Final state, the message stays stored                                                                |
+| webhook_sent   | A POST to a matching active webhook answered 2xx                                                                                                              | Final state, the delivery record shows the response                                                  |
+| webhook_failed | The Standard Webhooks retry schedule ended without a 2xx, or the webhook was inactive or answered 410                                                         | Final state, every attempt is in the delivery record                                                 |
 
 Two details worth knowing:
 
