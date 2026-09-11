@@ -9,13 +9,8 @@ from django.utils import timezone
 
 from abstract.timing import measure
 from services.email.mta_sts import MtaStsPolicy
-from services.email.spam import (
-    SpamAction,
-    UnscannableMessageError,
-    UnscannableReason,
-    check_message,
-    retry_spam_scan,
-)
+from services.email.spam.client import SpamAction, check_message
+from services.email.spam.retry import retry_spam_scan
 from services.email.tls import parse_peer_certificates
 
 logger = logging.getLogger(__name__)
@@ -268,10 +263,7 @@ def check_outgoing_spam(message_pk, client_ip, is_renewal=False):
 
     from .models import OutgoingMessage
 
-    try:
-        message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
-    except OutgoingMessage.DoesNotExist as error:
-        raise UnscannableMessageError(UnscannableReason.MESSAGE_GONE) from error
+    message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
     if message.org.suspended_at:
         from services.email.message.models import Transmission
 
@@ -288,12 +280,7 @@ def check_outgoing_spam(message_pk, client_ip, is_renewal=False):
         )
         return
 
-    try:
-        raw_bytes = message.raw_body.read()
-    except FileNotFoundError as error:
-        message.status = OutgoingMessage.Status.FAILED
-        message.save(update_fields=["status", "modified_at"])
-        raise UnscannableMessageError(UnscannableReason.BODY_GONE) from error
+    raw_bytes = message.raw_body.read()
     with SpamCheck(message=message) as timer:
         spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
         timer.score = spam.score

@@ -68,11 +68,14 @@ sequenceDiagram
     MSA->>Worker: enqueue spam scan for the stored message
     Worker->>Scan: scan through the load balancer
     Scan-->>Worker: score and action
-    Worker->>Worker: held if spammy, else continue
-    Worker->>Sign: sign with RSA-2048, Ed25519
-    Sign-->>Worker: signed message
-    Worker->>Remote: STARTTLS on 25, per-MX attempts
-    Remote-->>Worker: SMTP response, recorded in the dashboard
+    alt score reaches the hold threshold
+        Worker->>Worker: status held, stop
+    else clean
+        Worker->>Sign: sign with RSA-2048, Ed25519
+        Sign-->>Worker: signed message
+        Worker->>Remote: STARTTLS on 25, per-MX attempts
+        Remote-->>Worker: SMTP response, recorded in the dashboard
+    end
 ```
 
 Each step has a user-visible consequence in the dashboard, listed in the next

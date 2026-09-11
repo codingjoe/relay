@@ -25,7 +25,6 @@ class IncomingMessage(Message):
         WEBHOOK_SENT = "webhook_sent", _("webhook sent")
         WEBHOOK_FAILED = "webhook_failed", _("webhook failed")
         DROPPED = "dropped", _("dropped")
-        FAILED = "failed", _("failed")
         DEFAULT = nonmember("received")
 
         @property
@@ -36,11 +35,7 @@ class IncomingMessage(Message):
                     return "success"
                 case status_class.QUARANTINED:
                     return "warning"
-                case (
-                    status_class.FAILED
-                    | status_class.WEBHOOK_FAILED
-                    | status_class.DROPPED
-                ):
+                case status_class.WEBHOOK_FAILED | status_class.DROPPED:
                     return "destructive"
                 case _:
                     return "outline"

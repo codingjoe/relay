@@ -69,13 +69,11 @@ stateDiagram-v2
     received --> dropped : billing inactive or no matching webhook
     received --> webhook_sent : a matching webhook answered 2xx
     received --> webhook_failed : webhook retries exhausted without success
-    received --> failed : the stored body is gone before the spam scan
 
     quarantined --> [*]
     dropped --> [*]
     webhook_sent --> [*]
     webhook_failed --> [*]
-    failed --> [*]
 ```
 
 | Status         | Trigger                                                                                               | What happens next                                                 |
@@ -85,7 +83,6 @@ stateDiagram-v2
 | dropped        | Billing is inactive, or no active webhook matches the recipient                                       | Final state, the message stays stored                             |
 | webhook_sent   | A POST to a matching active webhook answered 2xx                                                      | Final state, the delivery record shows the response               |
 | webhook_failed | The Standard Webhooks retry schedule ended without a 2xx, or the webhook was inactive or answered 410 | Final state, every attempt is in the delivery record              |
-| failed         | The stored message body is gone, so the spam scan cannot run                                          | Final state, retries stop, the scan record keeps the error        |
 
 Two details worth knowing:
 
@@ -95,9 +92,6 @@ Two details worth knowing:
 - The 410 answer of a webhook is special: 410 tells a caller that the
   endpoint is gone. It deactivates the webhook for future traffic, and the
   message ends as `webhook_failed`.
-- `failed` is rare. Reaching it means storage lost the raw body, and no
-  retry can scan or forward a message without it. relay stops retrying
-  instead of holding a worker on a message it cannot process.
 
 ## The attempt records under the status
 

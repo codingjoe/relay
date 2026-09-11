@@ -16,13 +16,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from services.email.message.models import Transmission
-from services.email.spam import (
-    SpamAction,
-    UnscannableMessageError,
-    UnscannableReason,
-    check_message,
-    retry_spam_scan,
-)
+from services.email.spam.client import SpamAction, check_message
+from services.email.spam.retry import retry_spam_scan
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -285,15 +280,8 @@ def check_incoming_spam(message_pk, client_ip, is_renewal=False):
     """
     from services.email.message.models import SpamCheck
 
-    try:
-        message = IncomingMessage.objects.get(pk=message_pk)
-        raw_bytes = message.raw_body.read()
-    except IncomingMessage.DoesNotExist as error:
-        raise UnscannableMessageError(UnscannableReason.MESSAGE_GONE) from error
-    except FileNotFoundError as error:
-        message.status = IncomingMessage.Status.FAILED
-        message.save(update_fields=["status", "modified_at"])
-        raise UnscannableMessageError(UnscannableReason.BODY_GONE) from error
+    message = IncomingMessage.objects.get(pk=message_pk)
+    raw_bytes = message.raw_body.read()
     with SpamCheck(message=message) as check:
         spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
         check.score = spam.score
