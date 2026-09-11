@@ -83,13 +83,13 @@ relay defines explicit retry behavior for external systems:
 
 | Action             | Schedule                                                 | Notes                              |
 | ------------------ | -------------------------------------------------------- | ---------------------------------- |
-| Outbound spam scan | Backoff 2 s to 1 h, then one attempt per hour            | Retries until the scan succeeds    |
+| Outbound spam scan | Backoff 2 s to 1 h, then one attempt per hour            | Stops after about a day            |
 | Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry    |
 | Inbound spam scan  | Backoff 2 s to 1 h, then one attempt per hour            | Same schedule as the outbound scan |
 
-A spam scan that cannot be completed is retried until it succeeds. Recovery
-costs about one attempt per message per hour, so a scanner outage delays mail
-instead of losing it.
+A spam scan that cannot be completed is retried for about a day, then the
+message keeps its status. Recovery costs about one attempt per message per
+hour, so a scanner outage delays mail instead of losing it.
 
 A worker process that is killed mid-scan is not retried, and the message keeps
 its status.
