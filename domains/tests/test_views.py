@@ -265,3 +265,69 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.example.com"
         )
         assert response["Vary"] == "Host"
+
+
+class TestMtaStsAuthorizeView:
+    @pytest.mark.django_db
+    def test_get__ok_for_mta_sts_host(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.example.com"}
+        )
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
+    def test_get__ok_for_managed_domain(self, client, org):
+        managed_name = f"{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": f"mta-sts.{managed_name}"}
+        )
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_non_managed_platform_subdomain(self, client, org):
+        Domain.objects.create(name="foo.localhost", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.foo.localhost"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_plain_subdomain(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "app.example.com"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_mta_sts_subdomain(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.app.example.com"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_apex(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get("/internal/mta-sts/authorize/", {"domain": "example.com"})
+        assert response.status_code == 403
+
+    def test_get__forbidden_without_domain_parameter(self, client):
+        response = client.get("/internal/mta-sts/authorize/")
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_unknown_name(self, client):
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.unknown.com"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("name", ["mta-sts.example.com", "mta-sts.unknown.com"])
+    def test_get__no_store_cache_control_header(self, client, org, name):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get("/internal/mta-sts/authorize/", {"domain": name})
+        assert response.headers["Cache-Control"] == "private, no-store"

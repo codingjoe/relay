@@ -17,11 +17,7 @@ class SpamAction(StrEnum):
 
 
 class ScannerUnavailableError(Exception):
-    """
-    rspamd reported `soft reject`: no verdict right now.
-
-    The message is unscanned; the caller must retry it later.
-    """
+    """rspamd reported `soft reject`, so the message is still unscanned."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,12 +39,10 @@ class SpamResult:
 
 
 async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
-    """
-    Return the rspamd score and action for a raw message.
-
-    Raise `ScannerUnavailableError` when rspamd reports `soft reject`.
-    """
-    headers = {"Ip": client_ip} if client_ip else {}
+    """Return the rspamd score and action for a raw message."""
+    headers = {"Password": settings.RELAY_RSPAMD_PASSWORD}
+    if client_ip:
+        headers["Ip"] = client_ip
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.post(
             f"{settings.RELAY_RSPAMD_URL.rstrip('/')}/checkv2",

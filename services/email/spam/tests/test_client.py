@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from services.email.spam import (
+from services.email.spam.client import (
     ScannerUnavailableError,
     SpamAction,
     SpamResult,

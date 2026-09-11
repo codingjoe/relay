@@ -30,6 +30,7 @@ sequenceDiagram
     participant Sender as Any mail server
     participant MX as relay MX (25)
     participant Store as Storage
+    participant Worker as relay worker
     participant Scan as rspamd
     participant Hook as Your webhook
 
@@ -41,9 +42,10 @@ sequenceDiagram
     MX->>MX: ARC seal of the evaluation
     MX-->>Sender: 250 accepted (or 550 per policy)
     MX->>Store: store message and metadata
-    MX->>Scan: spam scan
-    Scan-->>MX: score and action
-    MX->>Hook: signed webhook per configured endpoint
+    MX->>Worker: enqueue spam scan for the stored message
+    Worker->>Scan: scan through the load balancer
+    Scan-->>Worker: score and action
+    Worker->>Hook: signed webhook per configured endpoint
 ```
 
 ## The acceptance gates
@@ -67,9 +69,10 @@ quarantined and never reaches your webhook. The same scan detects malware
 with ClamAV. A virus finding quarantines the message as well. So does an
 archive that exceeds the scanner's nesting or file limits; a retry cannot
 change that verdict, so relay quarantines it at once. While the malware
-scanner is unavailable, messages wait unscanned and relay keeps retrying
-the scan, so none reach your webhook unscanned. You can see the score in
-the dashboard.
+scanner is unavailable, the message waits unscanned and relay retries the
+scan for about a day, so it never reaches your webhook unscanned. You can
+see the score in the dashboard. Scanning happens after relay has answered
+`250`, so a busy scanner delays the webhook, not acceptance.
 
 **Received header.** relay stamps every accepted message with a
 `Received` header before sealing. It records the sending host's HELO

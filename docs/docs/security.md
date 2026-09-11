@@ -108,8 +108,8 @@ both with their scores. The same scan detects malware with ClamAV. A virus
 finding quarantines the message, and no webhook fires. An archive that
 exceeds the scanner's nesting or file limits quarantines at once, since a
 retry cannot change that verdict. While the malware scanner is unavailable,
-messages wait unscanned and relay keeps retrying the scan, so none reach a
-webhook unscanned.
+the message waits unscanned and relay retries the scan for about a day, so
+nothing reaches a webhook unscanned.
 
 ## Error monitoring and secrets
 

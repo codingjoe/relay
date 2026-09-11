@@ -57,6 +57,7 @@ equation above.
 sequenceDiagram
     participant App as Your application
     participant MSA as relay SMTP (587/465)
+    participant Worker as relay worker
     participant Scan as rspamd
     participant Sign as DKIM signer
     participant Remote as Recipient MX
@@ -64,13 +65,17 @@ sequenceDiagram
     App->>MSA: STARTTLS, AUTH, message
     MSA->>MSA: sender-domain, suppression, billing checks
     MSA-->>App: 250 OK enqueued
-    MSA->>Scan: full message scan
-    Scan-->>MSA: score and action
-    MSA->>MSA: held if spammy, else continue
-    MSA->>Sign: sign with RSA-2048, Ed25519
-    Sign-->>MSA: signed message
-    MSA->>Remote: STARTTLS on 25, per-MX attempts
-    Remote-->>MSA: SMTP response, recorded in the dashboard
+    MSA->>Worker: enqueue spam scan for the stored message
+    Worker->>Scan: scan through the load balancer
+    Scan-->>Worker: score and action
+    alt score reaches the hold threshold
+        Worker->>Worker: status held, stop
+    else clean
+        Worker->>Sign: sign with RSA-2048, Ed25519
+        Sign-->>Worker: signed message
+        Worker->>Remote: STARTTLS on 25, per-MX attempts
+        Remote-->>Worker: SMTP response, recorded in the dashboard
+    end
 ```
 
 Each step has a user-visible consequence in the dashboard, listed in the next
@@ -98,8 +103,8 @@ malware with ClamAV. A message whose score reaches the hold threshold, or
 that contains malware, stays HELD and does not reach the recipient. So does
 an attachment archive that exceeds the scanner's nesting or file limits,
 since a retry cannot change that verdict. While the malware scanner is
-unavailable, messages wait for the scan and relay keeps retrying it, so
-nothing leaves unscanned. You see the score, the
+unavailable, the message waits for the scan and relay retries it for about
+a day, so nothing leaves unscanned. You see the score, the
 spam action, and the message content in the dashboard, so you can fix the
 template, not fight the queue. This gate catches compromised credentials,
 broken templates, and spamtraps before they hurt your domain.

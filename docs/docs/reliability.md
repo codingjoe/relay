@@ -83,9 +83,8 @@ relay defines explicit retry behavior for external systems:
 
 | Action             | Schedule                                                 | Notes                                                                       |
 | ------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Outbound spam scan | Backoff 30 s to 5 min, up to 10 attempts                 | Network errors (HTTP and OS) and scanner errors retry                       |
+| Spam scan          | Retried for about a day                                  | Delays mail instead of losing it                                            |
 | Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry                                             |
-| Inbound spam scan  | 30 s to 5 min backoff, up to 10 attempts                 | Same error classes as outbound                                              |
 | Scanner limit trip | No retry                                                 | An archive past the scanner's nesting or file limits is quarantined at once |
 
 Webhook retries stop early on success. Every delivery attempt carries its

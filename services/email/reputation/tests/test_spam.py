@@ -17,7 +17,7 @@ from services.email.reputation.evaluation import (
     compute_org_reputation,
 )
 from services.email.reputation.models import FblReport
-from services.email.spam import SpamAction, SpamResult
+from services.email.spam.client import SpamAction, SpamResult
 
 
 @pytest.mark.django_db

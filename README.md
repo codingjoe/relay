@@ -101,7 +101,7 @@ flowchart TD
         msa[SMTP aiosmtpd :587 :2465]
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
-        rspamd[rspamd :11334]
+        rspamd[rspamd :11334, 2 replicas]
         clamav[clamav :3310]
         minio[MinIO S3 :9000]
     end
@@ -122,8 +122,10 @@ flowchart TD
     sender -->|STARTTLS :25| caddy_l4
     caddy_l4 --> msa
     caddy_l4 --> mta
-    msa --> rspamd
-    mta --> rspamd
+    msa -->|enqueue| worker
+    mta -->|enqueue| worker
+    worker -->|scan| caddy_proxy
+    caddy_proxy --> rspamd
     rspamd --> redis
     rspamd --> clamav
     web --> pg
