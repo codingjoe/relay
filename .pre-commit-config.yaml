@@ -21,6 +21,10 @@ repos:
         args: [--branch, main]
       - id: detect-private-key
         exclude: ^(domains|kms)/tests/test_models\.py$|kms/tests/test_keys\.py$
+  - repo: https://github.com/codingjoe/esupgrade
+    rev: 2025.22.2
+    hooks:
+      - id: esupgrade
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
@@ -40,7 +44,7 @@ repos:
           - mdformat-web
           - mdformat-frontmatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.5
+    rev: v0.16.6
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
@@ -89,10 +93,21 @@ repos:
       - id: relint
         args: []
   - repo: https://github.com/seddonym/import-linter
-    rev: v2.14
+    rev: v2.15
     hooks:
       - id: import-linter
         language: python
+  - repo: local
+    hooks:
+      - id: svgo
+        name: svgo
+        language: node
+        additional_dependencies: [svgo]
+        entry: svgo
+        args: [--pretty, --multipass, --indent, "2"]
+        require_serial: true
+        pass_filenames: true
+        types: [svg]
 ci:
   skip:
     - no-commit-to-branch

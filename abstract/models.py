@@ -1,4 +1,7 @@
+import uuid
+
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 
@@ -29,3 +32,52 @@ class TimeStamped(models.Model):
         ordering = ("-modified_at", "-created_at")
         get_latest_by = "created_at"
         abstract = True
+
+
+class Timing(TimeStamped):
+    """
+    Time a block of code and label it for the message timeline.
+
+    Use as a context manager to stamp the start and end of a block and
+    persist the timing on exit. A start stamped before entering is kept.
+    Concrete timings implement `label`.
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid7,
+        editable=False,
+    )
+    started_at = models.DateTimeField(
+        _("started"),
+        db_index=True,
+        help_text=_("When the timing started."),
+    )
+    finished_at = models.DateTimeField(
+        _("finished"),
+        db_index=True,
+        help_text=_("When the timing finished."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        ordering = ["started_at", "created_at"]
+        abstract = True
+
+    def __enter__(self):
+        if self.started_at is None:
+            self.started_at = timezone.now()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.finished_at = timezone.now()
+        self.save(force_insert=True)
+
+    @property
+    def label(self) -> str:
+        """Return the display name of this timing."""
+        raise NotImplementedError
+
+    @property
+    def event(self) -> dict:
+        """Return the profile chart event payload for this timing."""
+        raise NotImplementedError

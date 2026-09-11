@@ -18,10 +18,9 @@ class IncomingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "rcpt_to",
         "receiving_domain",
         "status",
-        "received_with_tls",
         "created_at",
     ]
-    list_filter = ["status", "received_with_tls"]
+    list_filter = ["status"]
     search_fields = ["mail_from", "rcpt_to", "subject", "message_id"]
     readonly_fields = ["id", "created_at"]
 

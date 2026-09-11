@@ -12,7 +12,8 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.msa.tasks import (
     check_outgoing_spam,
     deliver_message,
@@ -131,12 +132,12 @@ class TestDeliverMessage:
         transmission = Transmission.objects.get(
             message=msg, status=Transmission.Status.SENT
         )
-        assert transmission.mx_host == "mx.example.com"
+        assert transmission.remote_host == "mx.example.com"
         assert transmission.tls_mode == Transmission.TlsMode.STARTTLS
         assert transmission.tls_version == "TLSv1.3"
         assert transmission.tls_cipher == "TLS_AES_256_GCM_SHA384"
-        assert transmission.sending_mta_ip_address == "198.51.100.25"
-        assert transmission.receiving_mx_ip_address == "203.0.113.10"
+        assert transmission.local_ip_address == "198.51.100.25"
+        assert transmission.remote_ip_address == "203.0.113.10"
         stored_certificate = transmission.tls_certificate
         assert (
             stored_certificate.fingerprint

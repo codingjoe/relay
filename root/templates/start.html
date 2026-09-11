@@ -194,14 +194,20 @@
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
-            <img
-              src="{% static 'img/email-overview.png' %}"
-              alt="relay email message list with filters and delivery statuses"
-              width="1182"
-              height="788"
-              loading="lazy"
-              class="block w-full h-auto"
-            >
+            <picture>
+              <source
+                srcset="{% static 'img/email-overview-dark.png' %}"
+                media="(prefers-color-scheme: dark)"
+              >
+              <img
+                src="{% static 'img/email-overview-light.png' %}"
+                alt="relay email message list with filters and delivery statuses"
+                width="1182"
+                height="788"
+                loading="lazy"
+                class="block w-full h-auto"
+              >
+            </picture>
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}
@@ -216,14 +222,20 @@
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
               <span class="size-2.5 rounded-full bg-muted-foreground/25"></span>
             </div>
-            <img
-              src="{% static 'img/email-detail.png' %}"
-              alt="relay message detail with transmission log, headers, and email body"
-              width="1182"
-              height="788"
-              loading="lazy"
-              class="block w-full h-auto"
-            >
+            <picture>
+              <source
+                srcset="{% static 'img/email-detail-dark.png' %}"
+                media="(prefers-color-scheme: dark)"
+              >
+              <img
+                src="{% static 'img/email-detail-light.png' %}"
+                alt="relay message detail with transmission log, headers, and email body"
+                width="1182"
+                height="788"
+                loading="lazy"
+                class="block w-full h-auto"
+              >
+            </picture>
           </div>
           <figcaption class="text-sm text-muted-foreground text-center m-0">
             {% blocktranslate trimmed %}

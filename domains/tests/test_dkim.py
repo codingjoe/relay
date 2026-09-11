@@ -172,7 +172,7 @@ class TestSignMessage:
 
 class TestAddDkimSignature:
     def test_add_dkim_signature__prepends_signature(self):
-        key = make_signing_key(kms_keys.Algorithm.RSA_2048)
+        key = make_signing_key(SigningKey.Algorithm.RSA_2048)
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(
@@ -187,7 +187,9 @@ class TestAddDkimSignature:
         assert signed.endswith(original)
 
     def test_add_dkim_signature__returns_original_on_signing_failure(self):
-        key = make_signing_key(kms_keys.Algorithm.ED25519, kms_keys.Algorithm.RSA_2048)
+        key = make_signing_key(
+            SigningKey.Algorithm.ED25519, SigningKey.Algorithm.RSA_2048
+        )
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(

@@ -1,168 +1,81 @@
 {% extends "message/message_detail.html" %}
-{% load i18n abstract message %}
-{% block transmission_card %}
-  <section class="mb-6 flex flex-col gap-4">
-    <h3 class="font-semibold m-0">{% translate "transmission"|capfirst context "noun" %}</h3>
-    <div class="item-group">
-      <article class="item" data-variant="outline" data-size="sm">
-        <section>
-          <h3 class="flex items-center gap-2">
-            {% if message.received_with_tls %}
-              <i data-lucide="lock" class="size-4 text-success" aria-hidden="true"></i>
-              {% translate "received with TLS"|capfirst %}
-            {% else %}
-              <i data-lucide="lock-open" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-              {% translate "received without TLS"|capfirst %}
-            {% endif %}
-          </h3>
-          <p class="flex items-center gap-2 flex-wrap">
-            {% if message.receiving_domain %}
-              <code>{{ message.receiving_domain }}</code>
-            {% endif %}
-            {% if message.tls_version %}
-              <span>{{ message.tls_version }}{% if message.tls_cipher %} · {{ message.tls_cipher }}{% endif %}</span>
-            {% endif %}
-            {% if message.tls_certificate %}
-              <a
-                class="link"
-                href="{% url 'message:certificate-detail' org.slug message.tls_certificate.fingerprint %}"
-                data-tooltip="sha256:{{ message.tls_certificate.fingerprint }} · {{ message.tls_certificate.subject_alternative_names|default:message.tls_certificate.subject }}"
-              >{% translate "view certificate"|capfirst %}</a>
+{% load i18n abstract %}
+{% block timeline_dialogs %}
+  {% for transmission in transmissions %}
+    <dialog
+      id="transcript-{{ transmission.pk }}"
+      class="drawer"
+      data-side="bottom"
+      onclick="if (event.target === this) this.close()"
+    >
+      <article>
+        <header>
+          <h2>{% translate "reception"|capfirst %}</h2>
+          <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+        </header>
+        <section class="flex flex-col gap-4">
+          <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+            <span
+              class="badge"
+              data-size="sm"
+              data-variant="{{ transmission.status_badge_variant }}"
+            >
+              {{ transmission.get_status_display }}
+            </span>
+            {{ transmission.get_tls_mode_display }}
+            {% if transmission.tls_version %}
+              <span>{{ transmission.tls_version }}{% if transmission.tls_cipher %}
+                  · {{ transmission.tls_cipher }}{% endif %}</span>
             {% endif %}
           </p>
-        </section>
-      </article>
-    </div>
-    {% if webhook_deliveries %}
-      <div>
-        <h4 class="font-semibold m-0 mb-3">{% translate "webhook deliveries"|capfirst context "noun" %}</h4>
-        <div class="item-group">
-          {% for delivery in webhook_deliveries %}
-            <article class="item" data-variant="outline" data-size="sm">
-              <section>
-                <h3><code>{{ delivery.webhook.signing_key.key_id }}</code></h3>
-                <p>
-                  {% timestamp delivery.created_at %} · HTTP
-                  {{ delivery.response_code|default:"-" }}{% if delivery.response_body %}
-                    · {{ delivery.response_body|truncatechars:80 }}{% endif %}
-                </p>
-              </section>
-              <aside>
-                <span
-                  class="badge"
-                  data-size="sm"
-                  data-variant="{{ delivery.status_badge_variant }}"
-                >
-                  {{ delivery.get_status_display }}
-                </span>
-              </aside>
-            </article>
-          {% endfor %}
-        </div>
-      </div>
-    {% endif %}
-  </section>
-{% endblock %}
-
-{% block extra_sections %}
-  {% if authentication_results or arc_headers %}
-    <div>
-      <h4 class="font-semibold m-0 mb-2">{% translate "authentication"|capfirst %}</h4>
-      <div class="flex flex-col gap-3">
-        {% for auth in authentication_results %}
-          {% if auth.verdicts %}
-            <div class="flex items-center gap-2 flex-wrap">
-              {% if auth.is_relay %}
-                <span class="text-sm font-medium">{% translate "verified by relay"|capfirst %}</span>
-              {% elif auth.authserv_id %}
-                <span class="text-sm text-muted-foreground">
-                  {% translate "evaluated by" %} <code>{{ auth.authserv_id }}</code>
-                </span>
-              {% endif %}
-              {% for verdict in auth.verdicts %}
-                <span class="inline-flex items-center gap-1.5">
-                  <code class="text-sm">{{ verdict.method }}</code>
-                  <span class="badge" data-size="sm" data-variant="{{ verdict.variant }}">{{ verdict.result }}</span>
-                </span>
-              {% endfor %}
-              <button
-                type="button"
-                class="btn"
-                data-variant="outline"
-                data-size="xs"
-                onclick="document.getElementById('authres-{{ forloop.counter }}').showModal()"
-                aria-haspopup="dialog"
-              >
-                {% translate "header"|capfirst %}
-              </button>
-            </div>
+          {% if message.receiving_domain %}
+            <p class="m-0 text-sm"><code>{{ message.receiving_domain }}</code></p>
           {% endif %}
-        {% endfor %}
-        {% if arc_headers %}
-          <div>
-            <button
-              type="button"
-              class="btn"
-              data-variant="outline"
-              data-size="xs"
-              onclick="document.getElementById('arc-chain').showModal()"
-              aria-haspopup="dialog"
-            >
-              {% translate "ARC seal chain"|capfirst %}
-            </button>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-    {% for auth in authentication_results %}
-      {% if auth.verdicts %}
-        <dialog
-          id="authres-{{ forloop.counter }}"
-          class="drawer"
-          data-side="bottom"
-          onclick="if (event.target === this) this.close()"
-        >
-          <article>
-            <header>
-              <h2>{% translate "Authentication-Results"|capfirst %}</h2>
-              {% if auth.authserv_id %}
-                <p class="m-0 text-sm text-muted-foreground"><code>{{ auth.authserv_id }}</code></p>
-              {% endif %}
-            </header>
-            <section>
-              {{ auth.raw|highlight_authres }}
-            </section>
-            <footer>
-              <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
-                {% translate "close"|capfirst %}
-              </button>
-            </footer>
-          </article>
-        </dialog>
-      {% endif %}
-    {% endfor %}
-    {% if arc_headers %}
+          {% if transmission.tls_certificate %}
+            <p class="m-0 text-sm">
+              <a
+                class="link"
+                href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                data-tooltip="sha256:{{ transmission.tls_certificate.fingerprint }} · {{ transmission.tls_certificate.subject_alternative_names|default:transmission.tls_certificate.subject }}"
+              >{% translate "view certificate"|capfirst %}</a>
+            </p>
+          {% endif %}
+        </section>
+        <footer>
+          <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            {% translate "close"|capfirst %}
+          </button>
+        </footer>
+      </article>
+    </dialog>
+  {% endfor %}
+  {% for delivery in webhook_deliveries %}
+    {% if delivery.response_code or delivery.response_body %}
       <dialog
-        id="arc-chain"
+        id="delivery-{{ delivery.pk }}"
         class="drawer"
         data-side="bottom"
         onclick="if (event.target === this) this.close()"
       >
         <article>
           <header>
-            <h2>{% translate "ARC seal chain"|capfirst %}</h2>
+            <h2>{% translate "webhook delivery"|capfirst %}</h2>
+            <p class="m-0 text-sm text-muted-foreground">{% timestamp delivery.created_at %}</p>
           </header>
           <section class="flex flex-col gap-4">
-            {% for key, value in arc_headers %}
-              <div class="flex flex-col gap-1">
-                <code class="text-sm font-semibold">{{ key }}</code>
-                {% if key.lower == "arc-authentication-results" %}
-                  {{ value|highlight_authres }}
-                {% else %}
-                  {{ value|highlight_dkim }}
-                {% endif %}
-              </div>
-            {% endfor %}
+            <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ delivery.status_badge_variant }}"
+              >
+                {{ delivery.get_status_display }}
+              </span>
+              <span>HTTP {{ delivery.response_code|default:"-" }}</span>
+            </p>
+            {% if delivery.response_body %}
+              <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ delivery.response_body }}</pre>
+            {% endif %}
           </section>
           <footer>
             <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
@@ -172,8 +85,8 @@
         </article>
       </dialog>
     {% endif %}
-  {% endif %}
-{% endblock extra_sections %}
+  {% endfor %}
+{% endblock %}
 
 {% block body %}
   {% if is_report %}

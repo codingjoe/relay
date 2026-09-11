@@ -9,15 +9,17 @@ from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
+from django.utils import timezone
 
 from abstract.email_utils import decode_header_value
 from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
+from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
@@ -78,6 +80,7 @@ class SMTPHandler(ProxyProtocolMixin):
             credential,
             getattr(session, "ssl", False),
             client_ip,
+            timezone.now(),
         )
         logger.info("Message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
@@ -169,6 +172,7 @@ def store_outgoing_message(
     ssl,
     client_ip,
     raw_bytes,
+    started_at,
 ):
     """
     Store an outgoing message with its submission record.
@@ -178,21 +182,20 @@ def store_outgoing_message(
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = decode_header_value(parsed.get("Subject", ""))
-    message = OutgoingMessage.objects.create(
-        org=org,
-        rcpt_to=rcpt_to,
-        mail_from=mail_from,
-        subject=subject,
-        message_id=message_id,
-        domain=domain,
-        credential=credential,
-        feedback_id=feedback_id,
-        received_with_tls=bool(ssl),
-        status=status,
-        headers=OutgoingMessage.headers_from_raw(raw_bytes),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-    )
-    Transmission.record_submission(message, ssl)
+    with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
+        transmission.message = message = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to=rcpt_to,
+            mail_from=mail_from,
+            subject=subject,
+            message_id=message_id,
+            domain=domain,
+            credential=credential,
+            feedback_id=feedback_id,
+            status=status,
+            headers=OutgoingMessage.headers_from_raw(raw_bytes),
+            raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+        )
     if status == OutgoingMessage.Status.PENDING:
         transaction.on_commit(
             lambda: check_outgoing_spam.enqueue(
@@ -205,7 +208,9 @@ def store_outgoing_message(
 
 @sync_to_async
 @request_scoped
-def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
+def process_message(
+    mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip, started_at
+):
     """
     Store a submitted outgoing message and enqueue its delivery.
 
@@ -248,6 +253,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
             ssl=ssl,
             client_ip=client_ip,
             raw_bytes=raw_bytes,
+            started_at=started_at,
         )
         logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
         return "250 OK"
@@ -274,5 +280,6 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
         ssl=ssl,
         client_ip=client_ip,
         raw_bytes=raw_bytes,
+        started_at=started_at,
     )
     return "250 OK"

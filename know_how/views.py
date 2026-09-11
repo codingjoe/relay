@@ -5,15 +5,9 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.template import loader
 from django.utils.translation import gettext_lazy as _
-from django.views import generic
 
 from abstract.utils import md_2_html
-from abstract.views import (
-    BreadcrumbViewMixin,
-    CacheControlMixin,
-    MarkdownArticleMixin,
-    MarkdownView,
-)
+from abstract.views import MarkdownArticleDetailView, MarkdownListView
 
 KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
 SLUGS = frozenset(p.stem for p in KNOW_HOW_DIR.glob("*.md"))
@@ -27,53 +21,30 @@ LICENSE_MARKDOWN = (
 LICENSE_YAML = "CC-BY-SA-4.0"
 
 
-class KnowHowListView(
-    MarkdownArticleMixin, CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView
-):
+class KnowHowListView(MarkdownListView):
     """Display all know-how articles."""
 
     template_name = "know_how/list.html"
     title = _("Know how")
-    parent = "home"
-    cache_control = {"public": True, "max_age": 3600}
     docs_dir = KNOW_HOW_DIR
     slugs = SLUGS
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "articles": [
-                {
-                    "slug": slug,
-                    "title": metadata["name"],
-                    "description": md_2_html(metadata.get("description", "")),
-                }
-                for slug, metadata in self.get_articles()
-            ],
             "license": md_2_html(LICENSE_MARKDOWN),
         }
 
 
-class KnowHowDetailView(MarkdownArticleMixin, MarkdownView):
+class KnowHowDetailView(MarkdownArticleDetailView):
     """Render a single know-how article."""
 
     parent = "know_how:list"
     docs_dir = KNOW_HOW_DIR
     slugs = SLUGS
 
-    @classmethod
-    def get_title(cls, request):
-        return cls.get_article_metadata(request.resolver_match.kwargs["slug"])["name"]
-
-    def get_markdown_template(self):
-        return f"{self.kwargs['slug']}.md"
-
     def get_context_data(self, **kwargs):
-        metadata = self.get_article_metadata(self.kwargs["slug"])
         return super().get_context_data(**kwargs) | {
-            "title": metadata["name"],
             "license": md_2_html(LICENSE_MARKDOWN),
-            "meta_description": metadata.get("description", ""),
-            "metadata": metadata,
         }
 
     def render_markdown(self, request, **kwargs):

@@ -57,6 +57,25 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Show django-debug-toolbar for local development requests.
 INTERNAL_IPS = ["127.0.0.1"]
 
+
+def show_debug_toolbar(request):
+    # Headless browsers (e.g. Playwright MCP) get clean pages without the
+    # toolbar markup, so screenshots show the UI as users see it.
+    agent = request.META.get("HTTP_USER_AGENT", "").lower()
+    return (
+        DEBUG
+        and request.META.get("REMOTE_ADDR") in INTERNAL_IPS
+        and "headless" not in agent
+        and "playwright" not in agent
+        and "puppeteer" not in agent
+    )
+
+
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": show_debug_toolbar,
+    "SHOW_COLLAPSED": True,
+}
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
@@ -80,7 +99,6 @@ INSTALLED_APPS = [
     "health_check",
     "social_django",
     "storages",
-    "rest_framework",
     "threadmill",
     *(["debug_toolbar"] if DEBUG else []),
     # First-party apps
@@ -241,7 +259,6 @@ AWS_S3_ACCESS_KEY_ID = env("AWS_S3_ACCESS_KEY_ID", default="")
 AWS_S3_SECRET_ACCESS_KEY = env("AWS_S3_SECRET_ACCESS_KEY", default="")
 AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default="")
 AWS_S3_ADDRESSING_STYLE = env("AWS_S3_ADDRESSING_STYLE", default="auto")
-AWS_S3_MESSAGE_PREFIX = env("AWS_S3_MESSAGE_PREFIX", default="messages/")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
@@ -274,7 +291,6 @@ RELAY_DNS_SMTP_IPS = [
     ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
 ]
 RELAY_SMTP_PUBLIC_HOSTNAME = f"smtp.{RELAY_PLATFORM_DOMAIN}"
-RELAY_DNS_SPF_INCLUDE = f"spf.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")
 
 RELAY_MANAGED_SENDER_DOMAIN = f"open.{RELAY_PLATFORM_DOMAIN}"
@@ -438,10 +454,6 @@ LOGGING = {
         "handlers": ["console"],
         "level": "INFO",
     },
-}
-
-THREADMILL = {
-    "REDIS_URL": REDIS_URL,
 }
 
 

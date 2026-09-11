@@ -6,7 +6,7 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers.email import EmailLexer
 
-from ..lexers import AuthenticationResultsLexer, DkimTagLexer
+from ..lexers import AuthenticationResultsLexer, DkimTagLexer, HeaderValueLexer
 
 register = template.Library()
 
@@ -27,12 +27,12 @@ def highlight_email(value: str) -> str:
 
 
 @register.filter
-def highlight_dkim(value: str) -> str:
-    """Convert a DKIM-Signature header value to syntax-colored HTML."""
-    return render(value, DkimTagLexer())
-
-
-@register.filter
-def highlight_authres(value: str) -> str:
-    """Convert an Authentication-Results header to syntax-colored HTML."""
-    return render(value, AuthenticationResultsLexer())
+def highlight_header(value: str, name: str = "") -> str:
+    """Convert an email header value to syntax-colored HTML."""
+    match name.lower():
+        case "dkim-signature" | "arc-message-signature" | "arc-seal":
+            return render(value, DkimTagLexer())
+        case "authentication-results" | "arc-authentication-results":
+            return render(value, AuthenticationResultsLexer())
+        case _:
+            return render(value, HeaderValueLexer())
