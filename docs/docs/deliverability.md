@@ -57,6 +57,7 @@ equation above.
 sequenceDiagram
     participant App as Your application
     participant MSA as relay SMTP (587/465)
+    participant Worker as relay worker
     participant Scan as rspamd
     participant Sign as DKIM signer
     participant Remote as Recipient MX
@@ -64,13 +65,17 @@ sequenceDiagram
     App->>MSA: STARTTLS, AUTH, message
     MSA->>MSA: sender-domain, suppression, billing checks
     MSA-->>App: 250 OK enqueued
-    MSA->>Scan: full message scan
-    Scan-->>MSA: score and action
-    MSA->>MSA: held if spammy, else continue
-    MSA->>Sign: sign with RSA-2048, Ed25519
-    Sign-->>MSA: signed message
-    MSA->>Remote: STARTTLS on 25, per-MX attempts
-    Remote-->>MSA: SMTP response, recorded in the dashboard
+    MSA->>Worker: enqueue spam scan for the stored message
+    Worker->>Scan: scan through the load balancer
+    Scan-->>Worker: score and action
+    alt score reaches the hold threshold
+        Worker->>Worker: status held, stop
+    else clean
+        Worker->>Sign: sign with RSA-2048, Ed25519
+        Sign-->>Worker: signed message
+        Worker->>Remote: STARTTLS on 25, per-MX attempts
+        Remote-->>Worker: SMTP response, recorded in the dashboard
+    end
 ```
 
 Each step has a user-visible consequence in the dashboard, listed in the next

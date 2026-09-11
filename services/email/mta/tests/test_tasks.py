@@ -39,7 +39,7 @@ from services.email.mta.tasks import (
     parse_tls_report,
     webhook_retry,
 )
-from services.email.spam import SpamAction, SpamResult
+from services.email.spam.client import SpamAction, SpamResult
 
 
 class TestWebhookEventFromTest:
