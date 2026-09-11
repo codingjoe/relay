@@ -1,14 +1,15 @@
 {% load i18n %}
 <header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0">
-  <a
-    href="{% url 'home' %}"
-    class="brand font-bold text-lg"
-    aria-label="relay"
-  >
-    relay
-  </a>
-  <div class="grow"></div>
-  <div class="flex items-center gap-2 ms-auto">
+  <div class="flex items-baseline gap-2 grow">
+    <!-- `leading-6` on the wordmark is load-bearing; see partials/topbar.html -->
+    <a
+      href="{% url 'home' %}"
+      class="brand font-bold text-lg leading-6"
+      aria-label="relay"
+    >
+      relay
+    </a>
+    <div class="grow"></div>
     <a href="{% url 'accounts:org-list' %}" class="btn" data-size="sm">
       {% translate "get started free"|capfirst %}
     </a>
