@@ -242,6 +242,16 @@ services:
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
       - dev.dozzle.icon=django
+      # Global options need their own label group. The same keys on the `caddy`
+      # group would be scoped into the relays.to site block.
+      - "caddy_1.on_demand_tls.permission=http http://web:8000/internal/mta-sts/authorize/"
+      # Keys identical to the-box's catch-all block, so the blocks merge.
+      - "caddy_2=:80, :443"
+      - "caddy_2.tls.on_demand"
+      - "caddy_2.@mta_sts.path=/.well-known/mta-sts.txt"
+      - "caddy_2.@mta_sts.protocol=https"
+      - "caddy_2.handle=@mta_sts"
+      - "caddy_2.handle.reverse_proxy=web:8000"
     deploy:
       resources:
         limits:
