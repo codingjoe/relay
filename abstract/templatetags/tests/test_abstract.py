@@ -6,7 +6,6 @@ from django.template import RequestContext, engines
 from django.test import RequestFactory
 from django.utils import timezone
 
-from ...utils import future
 from .. import abstract
 
 
@@ -117,7 +116,11 @@ def test_naturaltime():
         == "Aug. 14, 1918 midnight"
     )
     assert (
-        abstract.naturaltime(future(max_offset=1).replace(hour=8, minute=0))
+        abstract.naturaltime(
+            (timezone.localtime() + datetime.timedelta(days=1)).replace(
+                hour=8, minute=0
+            )
+        )
         == "tomorrow 8 a.m."
     )
 

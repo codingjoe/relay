@@ -69,6 +69,12 @@ malware scanner is unavailable, messages wait unscanned and relay keeps
 retrying the scan, so none reach your webhook unscanned. You can see the
 score in the dashboard.
 
+**Received header.** relay stamps every accepted message with a
+`Received` header before sealing. It records the sending host's HELO
+name and IP address, the receiving MX host, the transport protocol
+(ESMTP or ESMTPS), and the reception time. The ARC seal covers the
+header, so downstream receivers can trust the recorded hop.
+
 ## ARC sealing
 
 relay records its SPF, DKIM, and DMARC evaluation of every accepted

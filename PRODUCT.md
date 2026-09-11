@@ -72,8 +72,9 @@ Developer workflow, confirmed from product code and copy:
   testimonials ("early supporters") still fed from placeholder data
   (`TESTIMONIALS`) pending real quotes; real email-log screenshots
   captured from the product, overview and detail
-  (`root/static/img/email-overview.png`,
-  `root/static/img/email-detail.png`); a code-example tabs section
+  (`root/static/img/email-overview-dark.png` and
+  `root/static/img/email-overview-light.png`, plus the matching
+  `email-detail-*.png` pair); a code-example tabs section
   (Django and Next, sending and receiving each, the Django send using
   the `MAILERS` setting); and a "no black box" trust band (SPF, DKIM,
   DMARC, MTA-STS, TLS-RPT, FBL, ARC, Standard Webhooks linked to the
