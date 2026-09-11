@@ -298,9 +298,6 @@ configs:
       database = 1;
   rspamd_controller:
     content: |
-      # Reached through the Caddy load balancer on the shared ingress network,
-      # so every request outside the container needs the password.
-      # `/ping` stays unauthenticated for the load balancer's health checks.
       password = "${RELAY_RSPAMD_PASSWORD:?RELAY_RSPAMD_PASSWORD must be set}";
   dnsdist:
     content: |
