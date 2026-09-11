@@ -9,7 +9,8 @@ services:
     # Avoid the daily memory spike from concurrent signature reloads.
     environment:
       CLAMD_CONF_ConcurrentDatabaseReload: "no"
-      # Alert on archives exceeding MaxFileSize instead of scanning them clean.
+      # Report archives tripping MaxRecursion or MaxFiles instead of scanning
+      # them clean. rspamd turns that into CLAM_VIRUS_FAIL.
       CLAMD_CONF_AlertExceedsMax: "yes"
       CLAMD_CONF_StreamMaxLength: "40M" # above the 2**25 SMTP DATA limit
       FRESHCLAM_CONF_TestDatabases: "no"
