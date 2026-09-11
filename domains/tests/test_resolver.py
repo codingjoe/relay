@@ -150,6 +150,14 @@ class TestResolve:
             settings.RELAY_DNS_SMTP_IPS
         )
 
+    def test_resolve_records__a_records_for_user_domain_sender(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        records = DNSResolver().resolve_records(DNSLabel(domain.sender_domain), QTYPE.A)
+        assert {str(record.rdata) for record in records} == set(
+            settings.RELAY_DNS_SMTP_IPS
+        )
+
     def test_resolve_records__does_not_publish_a_for_domain_apex(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -271,12 +279,15 @@ class TestResolve:
 
     def test_resolve_records__mta_sts_cname(self):
         org = Organization.objects.create(slug="o")
-        Domain.objects.create(name="example.com", org=org)
+        domain = Domain.objects.create(name="example.com", org=org)
+
         records = DNSResolver().resolve_records(
-            DNSLabel("mta-sts.mail.relay.example.com"), QTYPE.CNAME
+            DNSLabel(f"mta-sts.{domain.name}"), QTYPE.CNAME
         )
+
         assert len(records) == 1
-        assert str(records[0].rdata) == f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}."
+        assert records[0].rtype == QTYPE.CNAME
+        assert str(records[0].rdata) == f"mta-sts.{domain.sender_domain}."
 
     def test_resolve_records__mta_sts_cname_takes_priority_for_other_query_types(self):
         org = Organization.objects.create(slug="o")
@@ -291,12 +302,39 @@ class TestResolve:
         assert str(records[0].rdata) == "mta-sts.mail.relay.example.com."
 
     def test_resolve_records__mta_sts_cname_managed_domain(self):
-        Organization.objects.create(slug="acme")
+        org = Organization.objects.create(slug="acme")
+        domain = Domain.objects.get(org=org, is_managed=True)
+
         records = DNSResolver().resolve_records(
-            DNSLabel("mta-sts.mail.relay.acme.open.localhost"), QTYPE.CNAME
+            DNSLabel(f"mta-sts.{domain.name}"), QTYPE.CNAME
         )
+
         assert len(records) == 1
-        assert str(records[0].rdata) == f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}."
+        assert str(records[0].rdata) == f"mta-sts.{domain.sender_domain}."
+
+    def test_resolve_records__mta_sts_sender_domain_a_records(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        records = DNSResolver().resolve_records(
+            DNSLabel(f"mta-sts.{domain.sender_domain}"), QTYPE.A
+        )
+
+        assert {str(record.rdata) for record in records} == set(
+            settings.RELAY_DNS_SMTP_IPS
+        )
+
+    def test_resolve_records__mta_sts_sender_domain_any_records(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        records = DNSResolver().resolve_records(
+            DNSLabel(f"mta-sts.{domain.sender_domain}"), QTYPE.ANY
+        )
+
+        assert {str(record.rdata) for record in records} == set(
+            settings.RELAY_DNS_SMTP_IPS
+        )
 
     def test_resolve_records__mta_sts_no_cname_for_other_subdomains(self):
         org = Organization.objects.create(slug="o")

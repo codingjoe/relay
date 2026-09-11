@@ -103,12 +103,18 @@ For a delegated domain the authoritative nameserver answers:
 | `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses               |
 | `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                         |
 | `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                                |
-| `mta-sts.acme.com`                        | CNAME | the relay policy host                              |
+| `mta-sts.acme.com`                        | CNAME | `mta-sts.mail.relay.acme.com`                      |
 | `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector                   |
 | `mail.relay.acme.com`                     | NS    | the relay nameservers                              |
 
 The dashboard always shows the current record set with concrete names and
 the check state per record, so you never hand-edit names here.
+
+The MTA-STS CNAME points at `mta-sts.mail.relay.acme.com`. That name sits
+in the sender subdomain `mail.relay.acme.com`, which the relay nameserver
+already serves. relay serves the policy over HTTPS and issues the
+certificate for `mta-sts.acme.com` on the first fetch. You add no record
+and no certificate for that name.
 
 ## Receiving-domain notes
 

@@ -69,9 +69,17 @@ policy file:
 
 - the TXT record at `_mta-sts.{your-domain}` carrying the policy id that
   matches the policy host,
-- a CNAME at `mta-sts.{your-domain}` into the relay policy host,
+- a CNAME at `mta-sts.{your-domain}` to `mta-sts.mail.relay.{your-domain}`,
 - the policy document at
   `https://mta-sts.{your-domain}/.well-known/mta-sts.txt`.
+
+For a delegated domain, the CNAME target sits in the sender subdomain that
+you delegate to relay, so the relay nameserver answers it. The dashboard
+shows the single CNAME that points at it. relay serves the policy over
+HTTPS and issues the certificate for `mta-sts.{your-domain}` on the first
+fetch. You do not configure a certificate yourself. Managed domains need
+no action: relay hosts the whole zone, so it serves the policy host and the
+certificate as well.
 
 The policy document sets `mode: enforce`, a max-age of 7 days, and the relay
 MX hostnames as the only valid delivery targets. The policy id changes when
