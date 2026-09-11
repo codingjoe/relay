@@ -15,14 +15,9 @@ class MtaStsHostMiddleware:
         path = request.META.get("PATH_INFO", "")
         host = request.META.get("HTTP_HOST", "").split(":")[0].lower()
         match path, host.startswith("mta-sts."):
-            # Caddy is the only ingress. It serves the public site addresses in
-            # ALLOWED_HOSTS and answers other hosts with the 421 catch-all.
-            # Caddy sends GET /internal/mta-sts/authorize/?domain=<requested SNI>
-            # before it issues an on-demand certificate. A 200 means "issue the
-            # certificate". Any other status means "refuse". The address comes
-            # from the compose label caddy_1.on_demand_tls.permission, which
-            # Caddy calls as http://web:8000. So a request with a host outside
-            # ALLOWED_HOSTS comes from the internal network.
+            # Caddy sends GET /internal/mta-sts/authorize/?domain=<requested SNI>.
+            # A 200 means "issue the certificate". Any other status means "refuse".
+            # The address comes from the caddy_1.on_demand_tls.permission label.
             case ("/internal/mta-sts/authorize/", _) if not validate_host(
                 host, settings.ALLOWED_HOSTS
             ):
