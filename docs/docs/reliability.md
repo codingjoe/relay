@@ -81,11 +81,10 @@ flowchart TD
 
 relay defines explicit retry behavior for external systems:
 
-| Action             | Schedule                                                 | Notes                                                                       |
-| ------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Spam scan          | Retried for about a day                                  | Delays mail instead of losing it                                            |
-| Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry                                             |
-| Scanner limit trip | No retry                                                 | An archive past the scanner's nesting or file limits is quarantined at once |
+| Action                | Schedule                                                 | Notes                            |
+| --------------------- | -------------------------------------------------------- | -------------------------------- |
+| Spam and malware scan | Retried for about a day                                  | Delays mail instead of losing it |
+| Webhook delivery      | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry  |
 
 Webhook retries stop early on success. Every delivery attempt carries its
 URL, response code, and a response excerpt of 2,000 characters, so an

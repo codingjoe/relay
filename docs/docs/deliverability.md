@@ -98,13 +98,10 @@ privacy</a> for what that means.
 
 ## Content quality: the outbound spam gate
 
-Before delivery, rspamd scores each outgoing message and checks it for
-malware with ClamAV. A message whose score reaches the hold threshold, or
-that contains malware, stays HELD and does not reach the recipient. So does
-an attachment archive that exceeds the scanner's nesting or file limits,
-since a retry cannot change that verdict. While the malware scanner is
-unavailable, the message waits for the scan and relay retries it for about
-a day, so nothing leaves unscanned. You see the score, the
+Before delivery, rspamd scores each outgoing message and scans it for
+malware. A message whose score reaches the hold threshold, or that the scan
+rejects, stays HELD and does not reach the recipient. If the scanner cannot
+run, the message stays pending instead of being held. You see the score, the
 spam action, and the message content in the dashboard, so you can fix the
 template, not fight the queue. This gate catches compromised credentials,
 broken templates, and spamtraps before they hurt your domain.

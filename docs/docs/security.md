@@ -103,13 +103,9 @@ flowchart TD
 
 A reject disposition returns an SMTP failure to the sending server inside the
 SMTP transaction. The message never enters the platform. A high spam score
-quarantines the message instead of delivering it, and the dashboard shows
-both with their scores. The same scan detects malware with ClamAV. A virus
-finding quarantines the message, and no webhook fires. An archive that
-exceeds the scanner's nesting or file limits quarantines at once, since a
-retry cannot change that verdict. While the malware scanner is unavailable,
-the message waits unscanned and relay retries the scan for about a day, so
-nothing reaches a webhook unscanned.
+quarantines the message instead of delivering it, and no webhook fires. The
+same applies to malware and to any other message the scan rejects. The
+dashboard shows every quarantined message with its score.
 
 ## Error monitoring and secrets
 

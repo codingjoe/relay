@@ -6,6 +6,12 @@ from enum import StrEnum
 import httpx
 from django.conf import settings
 
+# relay's rspamd antivirus rule sets `symbol = "CLAM_VIRUS"`, so the antivirus
+# module reports a clamd outage or error as `<symbol>_FAIL`. The action is not
+# usable as the signal: rspamd reuses `soft reject` for its own greylisting and
+# rate limiting.
+SCANNER_FAILURE_SYMBOL = "CLAM_VIRUS_FAIL"
+
 
 class SpamAction(StrEnum):
     NO_ACTION = "no action"
@@ -17,7 +23,7 @@ class SpamAction(StrEnum):
 
 
 class ScannerUnavailableError(Exception):
-    """rspamd reported `soft reject`, so the message is still unscanned."""
+    """ClamAV did not complete a scan, so the message is still unscanned."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +56,7 @@ async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
             headers=headers,
         )
         response.raise_for_status()
-    result = SpamResult.from_response(response.json())
-    if result.action == SpamAction.SOFT_REJECT:
+    data = response.json()
+    if SCANNER_FAILURE_SYMBOL in data["symbols"]:
         raise ScannerUnavailableError
-    return result
+    return SpamResult.from_response(data)

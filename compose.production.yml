@@ -6,7 +6,8 @@ services:
     image: clamav/clamav:1.5
     volumes:
       - clamav:/var/lib/clamav
-    # Avoid the daily memory spike from concurrent signature reloads.
+    # Concurrent reloads spike memory daily and block scanning for the whole
+    # swap; to rspamd that is a hang. No failover: a blocked replica fails closed.
     environment:
       CLAMD_CONF_ConcurrentDatabaseReload: "no"
       # Report archives tripping MaxRecursion or MaxFiles instead of scanning
@@ -21,6 +22,9 @@ services:
     labels:
       - dev.dozzle.icon=clam-av
     deploy:
+      # rspamd round-robins the `clamav` A records, so load spreads with no
+      # proxy (clamd is not HTTP). The shared volume keeps both replicas current.
+      replicas: 2
       resources:
         limits:
           memory: 4g # clamd needs 3-4 GiB
@@ -336,28 +340,36 @@ configs:
         symbol = "CLAM_VIRUS";
         score = 10.0;
         action = "reject";
-        # Matches StreamMaxLength; ARC sealing adds bytes after SMTP acceptance.
-        max_size = 41943040;
+        # retransmits counts attempts after the first: the default 2 spends its
+        # 5 s timeout three times (15 s), past rspamd's 8 s task_timeout, so a
+        # hung clamd ships on spam score alone with no CLAM symbol. One attempt
+        # caps the scan at 5 s, inside the 8 s task timeout and the 10 s the
+        # scan worker allows.
+        retransmits = 0;
+        # No max_size: a skip records no symbol and reads as a pass. clamd's
+        # StreamMaxLength errors instead of skipping, so the scan cannot pass by
+        # size. Only MIME parts are sent to clamd at all, never a plain body.
         # Archives tripping MaxRecursion or MaxFiles are deterministic, so they
         # get their own symbol and skip the retry schedule. See rspamd_force_actions.
         patterns_fail = {
           CLAM_VIRUS_LIMITS = "Limits Exceeded";
         };
       }
+  # rspamd includes this file inside its own `force_actions` section, so the
+  # body below is the section content, not a second `force_actions` block.
   rspamd_force_actions:
     content: |
-      force_actions {
-        rules {
-          CLAMAV_LIMITS {
-            action = "reject";
-            expression = "CLAM_VIRUS_LIMITS";
-          }
-          # `soft reject` makes the client raise ScannerUnavailableError, which the
-          # scan task retries. Without it a failed scan would read as a pass.
-          CLAMAV_FAIL {
-            action = "soft reject";
-            expression = "CLAM_VIRUS_FAIL";
-          }
+      rules {
+        CLAMAV_LIMITS {
+          action = "reject";
+          expression = "CLAM_VIRUS_LIMITS";
+        }
+        # `soft reject` defers the message, which the scan task retries. The
+        # client keys that retry on CLAM_VIRUS_FAIL, because rspamd also uses
+        # `soft reject` for its own greylisting and rate limiting.
+        CLAMAV_FAIL {
+          action = "soft reject";
+          expression = "CLAM_VIRUS_FAIL";
         }
       }
   dnsdist:
