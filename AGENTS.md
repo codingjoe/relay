@@ -56,10 +56,6 @@ with wireit).
 - `uv run python manage.py dns`. Start DNS server.
 - `uv run python manage.py msa`. Start MSA (SMTP submission) server.
 - `uv run python manage.py mta`. Start MTA (MX receiving) server.
-- `uv run python manage.py mailbench`. Benchmark an SMTP submission endpoint,
-  like `ab` or `hey`. Set `SMTP_URL` to the endpoint, pass `--from=<mail>` and
-  one or more recipients, plus `-n` emails, `-c` concurrent connections, and
-  `-e` emails per connection.
 - `uv run pre-commit run --all-files`. Lint/format (ruff, djangofmt, pyupgrade,
   mdformat, dockerfmt).
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
