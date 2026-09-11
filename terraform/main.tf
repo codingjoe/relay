@@ -53,7 +53,7 @@ variable "server_type" {
 
 variable "server_location" {
   type    = string
-  default = "nbg1"
+  default = "fsn1"
 }
 
 variable "ssh_public_keys" {
@@ -80,12 +80,12 @@ variable "s3_secret_key" {
 
 variable "s3_endpoint" {
   type    = string
-  default = "nbg1.your-objectstorage.com"
+  default = "fsn1.your-objectstorage.com"
 }
 
 variable "s3_region" {
   type    = string
-  default = "nbg1"
+  default = "fsn1"
 }
 
 variable "s3_bucket_name" {
