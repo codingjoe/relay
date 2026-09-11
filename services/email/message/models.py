@@ -8,7 +8,9 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from abstract.models import TimeStamped
+from abstract.models import FetchPeersManager, TimeStamped, Timing
+from kms.models import Certificate
+from services.email.tls import parse_peer_certificates
 
 
 class Message(TimeStamped):
@@ -54,7 +56,7 @@ class Message(TimeStamped):
     subject = models.TextField(
         _("subject"),
         blank=True,
-        help_text=_("RFC 5322 Subject header value."),
+        help_text=_("Subject header value with RFC 2047 encoded-words decoded."),
     )
     message_id = models.TextField(
         _("message ID"),
@@ -73,11 +75,6 @@ class Message(TimeStamped):
         blank=True,
         help_text=_("RFC 5322 header fields of the message, as [name, value] pairs."),
     )
-    received_with_tls = models.BooleanField(
-        _("received with TLS"),
-        default=False,
-        help_text=_("Submission received over TLS."),
-    )
     spam_score = models.FloatField(
         _("spam score"),
         null=True,
@@ -87,6 +84,16 @@ class Message(TimeStamped):
     spam_action = models.TextField(
         _("spam action"),
         blank=True,
+        choices=[
+            ("pass", _("pass")),
+            ("no action", _("pass")),
+            ("greylist", _("greylist")),
+            ("add header", _("add header")),
+            ("rewrite subject", _("rewrite subject")),
+            ("soft reject", _("soft reject")),
+            ("reject", _("reject")),
+            ("drop", _("drop")),
+        ],
         help_text=_("rspamd action assigned to the message."),
     )
 
@@ -162,6 +169,19 @@ class Message(TimeStamped):
         status_class = self.content_type.model_class().Status
         return status_class(self.status).badge_variant
 
+    @property
+    def spam_badge_variant(self) -> str:
+        """Map the rspamd verdict to a badge variant."""
+        match self.spam_action:
+            case "pass" | "no action":
+                return "success"
+            case "greylist" | "add header" | "rewrite subject":
+                return "warning"
+            case "reject" | "soft reject" | "drop":
+                return "destructive"
+            case _:
+                return "outline"
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
@@ -207,14 +227,23 @@ class Message(TimeStamped):
             # name), e.g. pruned or fixture-only rows.
             return message_from_bytes(b"body pruned")
 
+    def raw_bytes(self) -> bytes:
+        """Return the stored message content, or empty bytes when pruned."""
+        try:
+            self.raw_body.seek(0)
+            return self.raw_body.read()
+        except FileNotFoundError, ValueError:
+            return b""
+
     @property
     def text_body(self) -> bytes:
         """
         Return the decoded text payload of the stored body.
 
-        Multipart messages yield their first text part.
+        Multipart messages yield their first text part. Messages whose
+        raw body is pruned or unreadable have no text payload.
         """
-        if not self.raw_body:
+        if not self.raw_bytes():
             return b""
         return next(
             (
@@ -273,3 +302,246 @@ class Message(TimeStamped):
             return self.headers_from_raw(self.raw_body.read())
         except FileNotFoundError, ValueError:
             return []
+
+    @property
+    def headers_text(self) -> str:
+        """Return the message headers as RFC 5322 header lines."""
+        return "\n".join(f"{name}: {value}" for name, value in self.parsed_headers)
+
+
+TIMELINE_COLORS = {
+    "submitted": "var(--color-chart-blue)",
+    "received": "var(--color-chart-blue)",
+    "sent": "var(--color-chart-green)",
+    "retry": "var(--color-chart-yellow)",
+    "failed": "var(--color-chart-red)",
+    "bounced": "var(--color-chart-red)",
+}
+
+
+class Transmission(Timing):
+    """
+    Track a single SMTP leg of a message.
+
+    An incoming message starts with the reception on relay's MTA, an
+    outgoing message starts with the submission to relay's MSA and can
+    gain multiple delivery transmissions (for example, retry attempts).
+    """
+
+    class Status(models.TextChoices):
+        RECEIVED = "received", _("received")
+        SUBMITTED = "submitted", _("submitted")
+        SENT = "sent", _("sent")
+        FAILED = "failed", _("failed")
+        RETRY = "retry", _("retry")
+        BOUNCED = "bounced", _("bounced")
+
+    class TlsMode(models.TextChoices):
+        PLAINTEXT = "plaintext", "plaintext"
+        STARTTLS = "starttls", "STARTTLS"
+        TLS = "tls", "TLS"
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="transmissions",
+    )
+    remote_host = models.TextField(
+        _("remote host"),
+        blank=True,
+        help_text=_("Hostname of the remote peer of this leg, when known."),
+    )
+    local_ip_address = models.GenericIPAddressField(
+        _("local IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address relay used for this leg."),
+    )
+    remote_ip_address = models.GenericIPAddressField(
+        _("remote IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address of the remote peer of this leg."),
+    )
+    status = models.TextField(
+        _("status"),
+        choices=Status,
+        help_text=_("Outcome of this delivery attempt."),
+    )
+    code = models.PositiveIntegerField(
+        _("code"),
+        null=True,
+        blank=True,
+        help_text=_("SMTP response code from the remote server."),
+    )
+    output = models.TextField(
+        _("output"),
+        blank=True,
+        help_text=_("Raw SMTP transcript from the remote server."),
+    )
+    details = models.TextField(
+        _("details"),
+        blank=True,
+        help_text=_("Human-readable explanation of the outcome."),
+    )
+    tls_mode = models.TextField(
+        _("TLS mode"),
+        choices=TlsMode,
+        default=TlsMode.PLAINTEXT,
+        help_text=_("TLS transport negotiated for this leg."),
+    )
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="transmissions",
+    )
+
+    objects = FetchPeersManager()
+
+    @classmethod
+    def tls_session_fields(cls, ssl):
+        """Return the TLS field values negotiated for an SMTP session."""
+        ssl_object = ssl.get("ssl_object") if isinstance(ssl, dict) else None
+        cipher = ssl_object.cipher() if ssl_object else None
+        if isinstance(ssl, dict):
+            tls_mode = cls.TlsMode.STARTTLS
+        elif ssl:
+            tls_mode = cls.TlsMode.TLS
+        else:
+            tls_mode = cls.TlsMode.PLAINTEXT
+        return {
+            "tls_mode": tls_mode,
+            "tls_version": cipher[1] if cipher else "",
+            "tls_cipher": cipher[0] if cipher else "",
+            "tls_certificate": (
+                Certificate.store_presented_chain(parse_peer_certificates(ssl_object))
+                if ssl_object
+                else None
+            ),
+        }
+
+    @classmethod
+    def record_submission(cls, ssl, started_at, client_ip=None):
+        """Return the unpersisted submission transmission for a message."""
+        return cls(
+            status=cls.Status.SUBMITTED,
+            code=250,
+            output="250 OK",
+            **cls.tls_session_fields(ssl),
+            remote_ip_address=client_ip,
+            started_at=started_at,
+        )
+
+    @classmethod
+    def record_reception(cls, ssl, started_at, client_ip=None):
+        """Return the unpersisted reception transmission for a message."""
+        return cls(
+            status=cls.Status.RECEIVED,
+            **cls.tls_session_fields(ssl),
+            remote_ip_address=client_ip or None,
+            started_at=started_at,
+        )
+
+    @property
+    def status_badge_variant(self) -> str:
+        match self.status:
+            case self.Status.SENT | self.Status.RECEIVED:
+                return "success"
+            case self.Status.FAILED | self.Status.BOUNCED:
+                return "destructive"
+            case _:
+                return "outline"
+
+    @property
+    def label(self) -> str:
+        target = self.remote_host or self.remote_ip_address or ""
+        name = self.get_status_display()
+        return f"{name} ({target})" if target else name
+
+    @property
+    def event(self) -> dict:
+        tls = " · ".join(
+            part
+            for part in (
+                self.get_tls_mode_display(),
+                self.tls_version,
+                self.tls_cipher,
+            )
+            if part
+        )
+        return {
+            "name": self.label,
+            "color": TIMELINE_COLORS[self.status],
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": (
+                f"{self.local_ip_address or '-'} → {self.remote_ip_address or '-'}"
+                if (self.local_ip_address or self.remote_ip_address)
+                else ""
+            ),
+            "tls": tls,
+            "transcript": (
+                f"transcript-{self.pk}"
+                if self.output or self.details or self.status == self.Status.RECEIVED
+                else ""
+            ),
+        }
+
+    def __str__(self):
+        return f"{self.message} → {self.status}"
+
+
+class SpamCheck(Timing):
+    """Record the wall-clock duration of a spam check."""
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+    )
+    score = models.FloatField(
+        _("score"),
+        null=True,
+        blank=True,
+        help_text=_("rspamd score the check returned, or null when the check failed."),
+    )
+
+    class Meta(Timing.Meta):
+        verbose_name = _("spam check")
+
+    @property
+    def label(self) -> str:
+        name = str(self._meta.verbose_name)
+        return f"{name} ({self.score})" if self.score is not None else name
+
+    TIMELINE_VARIANT_COLORS = {
+        "success": "var(--color-chart-green)",
+        "warning": "var(--color-chart-yellow)",
+        "destructive": "var(--color-chart-red)",
+    }
+
+    @property
+    def event(self) -> dict:
+        return {
+            "name": self.label,
+            "color": self.TIMELINE_VARIANT_COLORS.get(
+                self.message.spam_badge_variant, "var(--color-chart-gray)"
+            ),
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": "",
+            "tls": "",
+            "transcript": "",
+            "score": self.score,
+        }

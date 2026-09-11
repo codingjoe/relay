@@ -13,11 +13,15 @@ the result to your webhooks. This page explains each stage.
 
 ## The one-time receiving-domain setup
 
-Point the MX record of your receiving domain at your sender subdomain, for
-example `MX app.acme.com` to `mail.relay.acme.com`. The relay nameserver
-serves that subdomain's zone, so the MX host and its TLS records exist
-without further work. The dashboard's webhook check shows a wrong MX
-record, with the observed value and the time of the last check.
+Point the MX record of your receiving domain at the relay MX hostnames, for
+example `MX app.acme.com` to `mx1.relays.to` and
+`mx2.relays.to`. Those are the MX hostnames of the relay platform domain
+`relays.to`, the same one that serves `smtp.relays.to`; relay
+runs the MTA on both MX hostnames and presents each hostname's own
+certificate. Those names are static and served by the relay platform, so
+the MX host and its TLS records exist without further work. The
+dashboard's webhook check shows a wrong MX record, with the observed value
+and the time of the last check.
 
 Inbound flow:
 
@@ -62,6 +66,12 @@ score reaches the reject threshold, or whose action is reject, lands as
 quarantined and never reaches your webhook. You can see the score in the
 dashboard.
 
+**Received header.** relay stamps every accepted message with a
+`Received` header before sealing. It records the sending host's HELO
+name and IP address, the receiving MX host, the transport protocol
+(ESMTP or ESMTPS), and the reception time. The ARC seal covers the
+header, so downstream receivers can trust the recorded hop.
+
 ## ARC sealing
 
 relay records its SPF, DKIM, and DMARC evaluation of every accepted
@@ -89,7 +99,10 @@ evaluation instead.
 
 Sealing happens before the message is stored, so the raw message opened
 in the dashboard or downloaded through a webhook's signed body URL
-contains the complete header set. See the know-how article on
+contains the complete header set. The message detail page shows relay's
+evaluation as per-method verdicts (ARC, SPF, DKIM, DMARC) and lists the
+seals of the ARC chain, upstream evaluations included, verbatim. See the
+know-how article on
 <a href="{% url 'know_how:detail' slug='arc' %}">ARC</a> for the protocol
 background.
 

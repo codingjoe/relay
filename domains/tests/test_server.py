@@ -36,24 +36,30 @@ class TestResolve:
         assert reply.header.ra == 0
         assert reply.rr
 
-    def test_resolve__dns_error(self):
+    def test_resolve__dns_error(self, django_db_blocker):
         resolver = DNSResolver()
-        with patch.object(
-            resolver,
-            "resolve_records",
-            side_effect=DNSError("Invalid DNS record"),
+        with (
+            django_db_blocker.unblock(),
+            patch.object(
+                resolver,
+                "resolve_records",
+                side_effect=DNSError("Invalid DNS record"),
+            ),
         ):
             reply = resolver.resolve(DNSRecord.question("example.com"), None)
 
         assert reply.header.rcode == RCODE.SERVFAIL
         assert reply.rr == []
 
-    def test_resolve__database_error(self):
+    def test_resolve__database_error(self, django_db_blocker):
         resolver = DNSResolver()
-        with patch.object(
-            resolver,
-            "resolve_records",
-            side_effect=DatabaseError("Database unavailable"),
+        with (
+            django_db_blocker.unblock(),
+            patch.object(
+                resolver,
+                "resolve_records",
+                side_effect=DatabaseError("Database unavailable"),
+            ),
         ):
             reply = resolver.resolve(DNSRecord.question("example.com"), None)
 

@@ -5,64 +5,36 @@ from django.contrib import messages
 from django.core.exceptions import BadRequest
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.dkim import sign_message
 from domains.models import Domain
+from services.email.message.views import MessageDetailView
 
 from .charts import build_suppression_chart
 from .forms import SuppressionEntryForm
 from .handlers import add_feedback_id, store_outgoing_message
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 
 
-class OutgoingMessageDetailView(
-    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
-):
+class OutgoingMessageDetailView(MessageDetailView):
     def get_template_names(self):
         return ["msa/message_detail.html"]
-
-    context_object_name = "message"
-    parent = "message:message-list"
 
     def get_queryset(self):
         return OutgoingMessage.objects.filter(org=self.org).select_related(
             "domain", "credential", "content_type"
         )
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        message = self.object
-        headers = message.parsed_headers
-        dkim_signatures = [
-            dict(
-                s.strip().split("=", 1)
-                for field in value.split(";")
-                if (s := field.strip()) and "=" in s
-            )
-            for k, value in headers
-            if k.lower() == "dkim-signature"
-        ]
-        return context | {
-            "headers": headers,
-            "dkim_signatures": dkim_signatures,
-            "received": [v for k, v in headers if k.lower() == "received"],
-            "body": message.text_body,
-            "transmissions": Transmission.objects.filter(
-                message=message
-            ).select_related("tls_certificate"),
-        }
-
 
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         domain = get_object_or_404(Domain, pk=request.POST["domain"], org=self.org)
+        started_at = timezone.now()
         mail_from = f"postmaster@{domain.name}"
 
         if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
@@ -88,6 +60,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
             ssl=request.is_secure(),
             client_ip=request.META.get("REMOTE_ADDR", ""),
             raw_bytes=raw_bytes,
+            started_at=started_at,
         )
         messages.success(request, _("Queued test message for delivery."))
         return redirect("message:message-list", org_slug=org_slug)

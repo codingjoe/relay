@@ -33,9 +33,11 @@ WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
-App dependencies flow in one direction. See the graph in `README.md`:
-`dashboard → msa, mta, dmarc, message`, `msa, mta, dmarc → message, domains, accounts, kms`, `message → domains, accounts`, `domains → accounts, kms`, `accounts → kms`. Apps
-must not import from their dependents.
+App dependencies flow in one direction: apps must not import from their
+dependents. The graph is enforced by import-linter; the authoritative
+contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
+`lint-imports` to check them. When a refactor changes the graph, update
+the contracts.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS
@@ -113,9 +115,10 @@ Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
 `.playwright-mcp/`. The dev server binds to a random localhost port. Read
 it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
-The MCP server loads `.playwright-mcp-config.json` (via `--config`)
-for `headless` and `outputDir`; no request headers are required (dev
-requests are auto-authenticated as the bundled `test` user).
+Disable the browser cache before capturing screenshots
+(`Network.setCacheDisabled` via CDP). Conditional-get views answer
+revalidations with `304`, so the browser would otherwise reuse stale
+HTML that still contains the debug toolbar.
 
 ## Test data
 

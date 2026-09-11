@@ -1,5 +1,3 @@
-import secrets
-
 import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -7,74 +5,6 @@ from django.db import IntegrityError
 from django.urls import reverse
 
 from accounts.models import Membership, Organization
-from services.email.msa.models import MsaCredential
-
-
-@pytest.mark.django_db
-class TestCredential:
-    def test_salt__returns_class_path(self):
-        cred = MsaCredential(org=Organization.objects.create(slug="o"))
-        assert cred.salt == "services.email.msa.models.MsaCredential"
-
-    def test_set_key__stores_hash_and_prefix(self):
-        cred = MsaCredential(org=Organization.objects.create(slug="o"))
-        raw_key = secrets.token_urlsafe(15)
-        cred.set_key(raw_key)
-        assert cred.key_hash != raw_key
-        assert cred.key_prefix == raw_key[:8]
-
-    def test_verify_key__correct_key(self):
-        org = Organization.objects.create(slug="o")
-        cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
-        assert cred.last_used_at is None
-        assert cred.verify_key(raw_key) is True
-        cred.refresh_from_db()
-        assert cred.last_used_at is not None
-
-    def test_verify_key__wrong_key(self):
-        org = Organization.objects.create(slug="o")
-        cred, _raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
-        assert cred.verify_key("wrong-key-12345678") is False
-
-    def test_verify_key__does_not_update_last_used_on_failure(self):
-        org = Organization.objects.create(slug="o")
-        cred, _raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
-        cred.verify_key("wrong-key-12345678")
-        cred.refresh_from_db()
-        assert cred.last_used_at is None
-
-    def test_hold__excluded_from_query(self, user, org):
-        cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
-        cred.hold = True
-        cred.save(update_fields=["hold"])
-        qs = MsaCredential.objects.select_related("org").filter(
-            key_prefix=raw_key[:8],
-            org__memberships__user__username=user.username,
-            type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
-            hold=False,
-        )
-        assert not qs.exists()
-
-    def test_not_hold__included_in_query(self, user, org):
-        _cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
-        qs = MsaCredential.objects.select_related("org").filter(
-            key_prefix=raw_key[:8],
-            org__memberships__user__username=user.username,
-            type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
-            hold=False,
-        )
-        assert qs.exists()
-
-
-@pytest.mark.django_db
-class TestCredentialQuerySet:
-    def test_create_with_key__returns_credential_and_raw_key(self):
-        org = Organization.objects.create(slug="o")
-        cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="prod")
-        assert cred.pk is not None
-        assert cred.key_prefix == raw_key[:8]
-        assert cred.org == org
-        assert cred.name == "prod"
 
 
 class TestOrganization:

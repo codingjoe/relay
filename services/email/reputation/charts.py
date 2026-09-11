@@ -5,7 +5,8 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 
 from .models import FblReport
 

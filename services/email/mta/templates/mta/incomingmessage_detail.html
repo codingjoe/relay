@@ -1,92 +1,107 @@
 {% extends "message/message_detail.html" %}
 {% load i18n abstract %}
-{% block transmission_card %}
-  <div class="px-6 py-6">
-    <h3 class="font-semibold m-0 mb-3">{% translate "transmission"|capfirst context "noun" %}</h3>
-    <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 m-0">
-      {% if message.receiving_domain %}
-        <dt class="font-semibold">{% translate "domain"|capfirst context "noun" %}</dt>
-        <dd class="m-0"><code>{{ message.receiving_domain }}</code></dd>
-      {% endif %}
-      <dt class="font-semibold">{% translate "TLS"|capfirst %}</dt>
-      <dd class="m-0">
-        {% if message.received_with_tls %}
-          <span class="inline-flex items-center gap-2">
-            {% if message.tls_certificate %}
+{% block timeline_dialogs %}
+  {% for transmission in transmissions %}
+    <dialog
+      id="transcript-{{ transmission.pk }}"
+      class="drawer"
+      data-side="bottom"
+      onclick="if (event.target === this) this.close()"
+    >
+      <article>
+        <header>
+          <h2>{% translate "reception"|capfirst %}</h2>
+          <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+        </header>
+        <section class="flex flex-col gap-4">
+          <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+            <span
+              class="badge"
+              data-size="sm"
+              data-variant="{{ transmission.status_badge_variant }}"
+            >
+              {{ transmission.get_status_display }}
+            </span>
+            {{ transmission.get_tls_mode_display }}
+            {% if transmission.tls_version %}
+              <span>{{ transmission.tls_version }}{% if transmission.tls_cipher %}
+                  · {{ transmission.tls_cipher }}{% endif %}</span>
+            {% endif %}
+          </p>
+          {% if message.receiving_domain %}
+            <p class="m-0 text-sm"><code>{{ message.receiving_domain }}</code></p>
+          {% endif %}
+          {% if transmission.tls_certificate %}
+            <p class="m-0 text-sm">
               <a
-                href="{% url 'message:certificate-detail' org.slug message.tls_certificate.fingerprint %}"
-                data-tooltip="sha256:{{ message.tls_certificate.fingerprint }} · {{ message.tls_certificate.subject_alternative_names|default:message.tls_certificate.subject }}"
+                class="link"
+                href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                data-tooltip="sha256:{{ transmission.tls_certificate.fingerprint }} · {{ transmission.tls_certificate.subject_alternative_names|default:transmission.tls_certificate.subject }}"
+              >{% translate "view certificate"|capfirst %}</a>
+            </p>
+          {% endif %}
+        </section>
+        <footer>
+          <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            {% translate "close"|capfirst %}
+          </button>
+        </footer>
+      </article>
+    </dialog>
+  {% endfor %}
+  {% for delivery in webhook_deliveries %}
+    {% if delivery.response_code or delivery.response_body %}
+      <dialog
+        id="delivery-{{ delivery.pk }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "webhook delivery"|capfirst %}</h2>
+            <p class="m-0 text-sm text-muted-foreground">{% timestamp delivery.created_at %}</p>
+          </header>
+          <section class="flex flex-col gap-4">
+            <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ delivery.status_badge_variant }}"
               >
-                <i data-lucide="lock" class="size-4 text-success" aria-hidden="true"></i>
-                <span class="sr-only">{% translate "view certificate"|capfirst %}</span>
-              </a>
-            {% else %}
-              <i data-lucide="lock" class="size-4 text-success" aria-hidden="true"></i>
-            {% endif %}
-            {% if message.tls_version %}
-              <span class="text-sm text-muted-foreground">
-                {{ message.tls_version }}{% if message.tls_cipher %} · {{ message.tls_cipher }}{% endif %}
+                {{ delivery.get_status_display }}
               </span>
+              <span>HTTP {{ delivery.response_code|default:"-" }}</span>
+            </p>
+            {% if delivery.response_body %}
+              <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ delivery.response_body }}</pre>
             {% endif %}
-          </span>
-        {% else %}
-          <i data-lucide="unlock" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-        {% endif %}
-      </dd>
-    </dl>
-  </div>
-  {% if webhook_deliveries %}
-    <div class="px-6">
-      <h4 class="font-semibold m-0 mb-3">{% translate "webhook deliveries"|capfirst context "noun" %}</h4>
-    </div>
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">{% translate "webhook"|capfirst %}</th>
-            <th scope="col">{% translate "status"|capfirst context "noun" %}</th>
-            <th scope="col">{% translate "code"|capfirst context "noun" %}</th>
-            <th scope="col">{% translate "delivered at"|capfirst %}</th>
-            <th scope="col">{% translate "response"|capfirst context "noun" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for delivery in webhook_deliveries %}
-            <tr>
-              <td><code>{{ delivery.webhook.signing_key.key_id }}</code></td>
-              <td>
-                <span
-                  class="badge"
-                  data-size="sm"
-                  data-variant="{{ delivery.status_badge_variant }}"
-                >
-                  {{ delivery.get_status_display }}
-                </span>
-              </td>
-              <td>{{ delivery.response_code|default:"-" }}</td>
-              <td>
-                {% timestamp delivery.created_at %}
-              </td>
-              <td>{{ delivery.response_body|truncatechars:120 }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
+          </section>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+              {% translate "close"|capfirst %}
+            </button>
+          </footer>
+        </article>
+      </dialog>
+    {% endif %}
+  {% endfor %}
 {% endblock %}
 
 {% block body %}
   {% if is_report %}
-    <div class="flex items-center justify-between gap-4">
-      <p class="m-0 text-sm text-muted-foreground">
-        {% translate "This email carried a report." %}
-      </p>
-      <a class="btn shrink-0" data-variant="secondary" href="{{ report_url }}">
-        <i data-lucide="{{ message.kind_icon }}" class="size-4" aria-hidden="true"></i>
-        {{ report_kind|capfirst }}
-      </a>
-    </div>
+    <section class="empty">
+      <header>
+        <figure><i data-lucide="{{ message.kind_icon }}" aria-hidden="true"></i></figure>
+        <h3>{{ report_kind|capfirst }}</h3>
+        <p>{% translate "This email carried a report." %}</p>
+      </header>
+      <footer>
+        <a class="btn" href="{{ report_url }}">
+          {% translate "open"|capfirst %}
+        </a>
+      </footer>
+    </section>
   {% else %}
     {{ block.super }}
   {% endif %}

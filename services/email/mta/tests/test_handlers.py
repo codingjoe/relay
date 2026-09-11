@@ -7,11 +7,13 @@ from django.core import mail
 
 from abstract.mailauth import Disposition
 from domains.models import Domain
-from services.email.dmarc.models import DmarcFailureReport, DmarcReport
-from services.email.mta.handlers import MXHandler, process_incoming_message
+from services.email.mta.handlers import (
+    MXHandler,
+    process_incoming_message,
+    received_header,
+)
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.mta.tests.conftest import make_dmarc_evaluation, make_raw_email
-from services.email.reputation.models import FblReport
 
 
 class TestProcessIncomingMessagePostmaster:
@@ -214,30 +216,13 @@ class TestHandleRcpt:
 
 class TestProcessIncomingMessageReports:
     @pytest.mark.django_db(transaction=True)
-    @pytest.mark.parametrize(
-        ("local_part", "report_model"),
-        [
-            (settings.RELAY_DMARC_REPORT_LOCAL_PART, DmarcReport),
-            (settings.RELAY_TLS_REPORT_LOCAL_PART, TlsReport),
-            (settings.RELAY_DMARC_RUF_LOCAL_PART, DmarcFailureReport),
-        ],
-    )
-    async def test_report_recipient__binds_report_to_domain(
-        self,
-        org,
-        local_part,
-        report_model,
-    ):
+    async def test_report_recipient__binds_report_to_domain(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
 
-        with (
-            patch("services.email.dmarc.tasks.parse_dmarc_report"),
-            patch("services.email.mta.handlers.parse_tls_report"),
-            patch("services.email.dmarc.tasks.parse_dmarc_failure_report"),
-        ):
+        with patch("services.email.mta.handlers.parse_tls_report"):
             result = await process_incoming_message(
                 "external@example.org",
-                f"{local_part}@example.com",
+                f"{settings.RELAY_TLS_REPORT_LOCAL_PART}@example.com",
                 make_raw_email(),
                 {"ssl_object": None},
                 domain,
@@ -245,7 +230,7 @@ class TestProcessIncomingMessageReports:
                 "",
             )
 
-        report = await report_model.objects.aget(domain=domain)
+        report = await TlsReport.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
 
@@ -380,7 +365,6 @@ class TestMXHandler:
             result = await MXHandler().handle_DATA(None, session, envelope)
 
         assert result == "250 OK"
-        assert not await FblReport.objects.aexists()
         report_task.enqueue.assert_called_once_with(
             message_pk=str((await IncomingMessage.objects.aget()).id)
         )
@@ -410,7 +394,6 @@ class TestMXHandler:
             result = await MXHandler().handle_DATA(None, session, envelope)
 
         assert result == "250 OK"
-        assert not await FblReport.objects.aexists()
         spam_task.enqueue.assert_called_once()
 
     @pytest.mark.django_db(transaction=True)
@@ -436,7 +419,6 @@ class TestMXHandler:
             result = await MXHandler().handle_DATA(None, session, envelope)
 
         assert result == "250 OK"
-        assert not await FblReport.objects.aexists()
         spam_task.enqueue.assert_called_once()
 
     @pytest.mark.django_db(transaction=True)
@@ -463,3 +445,73 @@ class TestMXHandler:
         assert result == "250 OK"
         assert b"ARC-Authentication-Results" in message.raw_body.read()
         spam_task.enqueue.assert_called_once()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__stamps_received_header_on_accepted_message(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="external@example.org",
+            rcpt_tos=["info@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam"),
+        ):
+            await MXHandler().handle_DATA(None, session, envelope)
+
+        raw = (await IncomingMessage.objects.aget(domain=domain)).raw_body.read()
+        received = raw.index(b"Received: from unknown ([127.0.0.1])")
+        original = raw.index(b"From: external@example.org")
+        assert received < original
+
+
+class TestReceivedHeader:
+    def test_received_header__helo_ip_and_tls(self):
+        session = SimpleNamespace(
+            peer=("198.51.100.7", 25),
+            ssl={"ssl_object": None},
+            host_name="mx.sender.example",
+        )
+
+        received = received_header(session).decode()
+
+        assert received.startswith("Received: from mx.sender.example ([198.51.100.7])")
+        assert f"by {settings.RELAY_DNS_MX_HOSTNAMES[0]} with ESMTPS;" in received
+        assert received.endswith("GMT")
+
+    def test_received_header__unknown_helo_without_tls(self):
+        session = SimpleNamespace(peer=("127.0.0.1", 25), ssl=False)
+
+        received = received_header(session).decode()
+
+        assert received.startswith("Received: from unknown ([127.0.0.1])")
+        assert "with ESMTP;" in received
+
+    def test_received_header__strips_unsafe_helo_chars(self):
+        session = SimpleNamespace(
+            peer=("198.51.100.7", 25),
+            ssl=False,
+            host_name="mail.example\r\nBcc: victim@example.com",
+        )
+
+        received = received_header(session).decode()
+
+        assert received.splitlines()[0] == (
+            "Received: from mail.exampleBcc:victimexample.com ([198.51.100.7])"
+        )
+        assert received.count("\r\n") == 2
+
+    def test_received_header__omits_missing_ip(self):
+        session = SimpleNamespace(peer=None, ssl=False, host_name="mx.example")
+
+        received = received_header(session).decode()
+
+        assert received.startswith("Received: from mx.example\r\n")
+        assert "([127.0.0.1])" not in received

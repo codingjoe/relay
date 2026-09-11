@@ -8,12 +8,12 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import MissingAttachmentError, iter_attachments
-from abstract.models import TimeStamped
+from abstract.models import TimeStamped, Timing
 from accounts.models import OrganizationOwned
 from kms.models import SigningKey
 from services.email.message.models import Message
 
-from .serializers import TlsReportSerializer
+from .parser import parse_tls_report
 
 
 class IncomingMessage(Message):
@@ -47,24 +47,6 @@ class IncomingMessage(Message):
     )
 
     email_url_name = "mta:message-detail"
-    tls_version = models.TextField(
-        _("TLS version"),
-        blank=True,
-        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
-    )
-    tls_cipher = models.TextField(
-        _("TLS cipher"),
-        blank=True,
-        help_text=_("Negotiated TLS cipher suite."),
-    )
-    tls_certificate = models.ForeignKey(
-        "kms.Certificate",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="incoming_messages",
-        help_text=_("Certificate the sending MTA presented, when one was offered."),
-    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
@@ -171,18 +153,19 @@ class Webhook(OrganizationOwned):
         return f"v1a,{base64.b64encode(self.signing_key.sign(signed_content)).decode()}"
 
 
-class WebhookDelivery(TimeStamped):
+TIMELINE_COLORS = {
+    "sent": "var(--color-chart-green)",
+    "failed": "var(--color-chart-red)",
+}
+
+
+class WebhookDelivery(Timing):
     """Track one webhook POST attempt and its outcome."""
 
     class Status(models.TextChoices):
         SENT = "sent", _("sent")
         FAILED = "failed", _("failed")
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
     message = models.ForeignKey(
         IncomingMessage,
         on_delete=models.CASCADE,
@@ -218,8 +201,21 @@ class WebhookDelivery(TimeStamped):
         help_text=_("Truncated response body from the webhook endpoint."),
     )
 
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
+    @property
+    def event(self) -> dict:
+        return {
+            "name": f"{self.get_status_display()} ({self.webhook.signing_key.key_id})",
+            "color": TIMELINE_COLORS[self.status],
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": "",
+            "tls": "",
+            "transcript": (
+                f"delivery-{self.pk}"
+                if self.response_code or self.response_body
+                else ""
+            ),
+        }
 
     @property
     def status_badge_variant(self) -> str:
@@ -297,7 +293,7 @@ class TlsReport(IncomingMessage):
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
             raise MissingAttachmentError
-        meta, policies = TlsReportSerializer.parse_json(data)
+        meta, policies = parse_tls_report(data)
         report = cls(
             reporting_org=meta["reporting_org"],
             reporting_email=meta["reporting_email"],

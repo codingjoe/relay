@@ -5,12 +5,7 @@ import pytest
 from django.conf import settings
 
 from accounts.models import Organization
-from domains.dkim import (
-    INCLUDE_HEADERS,
-    add_dkim_signature,
-    sign_message,
-    verify_signature,
-)
+from domains.dkim import INCLUDE_HEADERS, add_dkim_signature, sign_message
 from domains.models import Domain, canonicalize_domain_name
 from kms import keys as kms_keys
 from kms.models import SigningKey
@@ -177,7 +172,7 @@ class TestSignMessage:
 
 class TestAddDkimSignature:
     def test_add_dkim_signature__prepends_signature(self):
-        key = make_signing_key(kms_keys.Algorithm.RSA_2048)
+        key = make_signing_key(SigningKey.Algorithm.RSA_2048)
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(
@@ -192,7 +187,9 @@ class TestAddDkimSignature:
         assert signed.endswith(original)
 
     def test_add_dkim_signature__returns_original_on_signing_failure(self):
-        key = make_signing_key(kms_keys.Algorithm.ED25519, kms_keys.Algorithm.RSA_2048)
+        key = make_signing_key(
+            SigningKey.Algorithm.ED25519, SigningKey.Algorithm.RSA_2048
+        )
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(
@@ -204,18 +201,3 @@ class TestAddDkimSignature:
         )
 
         assert signed == original
-
-
-class TestVerifySignature:
-    def test_verify_signature__handles_signed_message(self):
-        verified, _ = verify_signature(make_email().as_bytes())
-        assert isinstance(verified, bool | type(None))
-
-    def test_verify_signature__rejects_unsigned(self):
-        verified, _ = verify_signature(make_email().as_bytes())
-        assert verified is not True
-
-    def test_verify_signature__returns_false_for_malformed_message(self):
-        verified, _ = verify_signature(b"garbage\r\n")
-
-        assert verified is False

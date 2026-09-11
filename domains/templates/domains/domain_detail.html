@@ -308,17 +308,24 @@
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
               </button>
               <span>MX</span>
-              <input type="text" readonly value="10 {{ domain.sender_domain }}." onfocus="this.select()">
-              <button
-                type="button"
-                class="btn min-h-11 min-w-11"
-                data-variant="ghost"
-                data-size="icon-sm"
-                onclick="navigator.clipboard.writeText('10 {{ domain.sender_domain }}.')"
-                aria-label='{% translate "copy value"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
+              {% for mx_hostname in mx_hostnames %}
+                <input
+                  type="text"
+                  readonly
+                  value="10 {{ mx_hostname }}."
+                  onfocus="this.select()"
+                >
+                <button
+                  type="button"
+                  class="btn min-h-11 min-w-11"
+                  data-variant="ghost"
+                  data-size="icon-sm"
+                  onclick="navigator.clipboard.writeText('10 {{ mx_hostname }}.')"
+                  aria-label='{% translate "copy value"|capfirst %}'
+                >
+                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                </button>
+              {% endfor %}
             </div>
           </div>
 

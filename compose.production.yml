@@ -1,11 +1,15 @@
 include:
-  - oci://docker.io/codingjoe/the-box-postgres:main
-  - oci://docker.io/codingjoe/the-box-redis:main
+  - oci://ghcr.io/codingjoe/the-box-postgres:main
+  - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
   dns:
     networks: !override
-      - app
-      - dnsdist
+      app: ~
+      dnsdist:
+        aliases:
+          # Reserved internal name for dnsdist's backend discovery; never
+          # resolvable upstream, so a mid-deploy lookup fails cleanly.
+          - dns.relay.internal
     command: [ "-m", "manage", "dns", "--port", "5353" ]
     healthcheck:
       test: [ "CMD", "python", "-c", "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)" ]
@@ -13,7 +17,16 @@ services:
       retries: 5
       start_period: 10s
       timeout: 10s
-    labels: !reset []
+    # Dozzle app icons, see https://dozzle.dev/guide/app-icons. The slugs are
+    # upstream dashboard-icons names and only render once Dozzle bundles them,
+    # see https://github.com/amir20/dozzle/issues/4988.
+    labels: !override
+      - dev.dozzle.icon=django
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
     extends:
       service: web
   dnsdist:
@@ -30,6 +43,20 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
+    # Proves the dnsdist-to-dns chain; a timestamped qname bypasses the cache.
+    healthcheck:
+      test: [ "CMD", "python3", "-c", "import socket, time; label = str(int(time.time())).encode(); query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\\x06health\\x00' + b'\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(query, ('127.0.0.1', 53)); response = s.recv(512); assert response[:2] == query[:2]; assert response[3] & 0xF == 0" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    labels:
+      - dev.dozzle.icon=powerdns
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
   migration:
     depends_on: !override
       postgres:
@@ -42,10 +69,12 @@ services:
         restart: false
     command: [ "-m", "manage", "migrate", "--noinput" ]
     restart: no
-    labels: !reset []
+    labels: !override
+      - dev.dozzle.icon=django
     deploy: !reset {}
     extends:
       service: web
+    memswap_limit: !reset ""
   msa:
     volumes:
       - caddy_data:/data:ro
@@ -67,6 +96,7 @@ services:
     labels: !override
       - "caddy=smtp.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
+      - dev.dozzle.icon=django
       - "caddy_1.layer4.:587.route.proxy=msa:587"
       - "caddy_1.layer4.:587.route.proxy.lb_policy=round_robin"
       - "caddy_1.layer4.:587.route.proxy.lb_try_duration=3s"
@@ -84,9 +114,10 @@ services:
     volumes:
       - caddy_data:/data:ro
     # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    # One pair per MX hostname; the MTA serves them by SNI.
     environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.crt,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.key,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.key
       RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
     command: [ "-m", "manage", "mta" ]
     healthcheck:
@@ -98,13 +129,16 @@ services:
       start_period: 30s
       timeout: 10s
     labels: !override
-      - "caddy=mail.${HOSTNAME:-localhost}"
+      - "caddy=mx1.${HOSTNAME:-localhost}"
       - "caddy.respond=OK"
+      - dev.dozzle.icon=django
       - "caddy_1.layer4.:25.route.proxy=mta:25"
       - "caddy_1.layer4.:25.route.proxy.lb_policy=round_robin"
       - "caddy_1.layer4.:25.route.proxy.lb_try_duration=3s"
       - "caddy_1.layer4.:25.route.proxy.fail_duration=10s"
       - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
+      - "caddy_2=mx2.${HOSTNAME:-localhost}"
+      - "caddy_2.respond=OK"
     extends:
       service: web
   # Loopback ports for the host-networked worker.
@@ -122,12 +156,19 @@ services:
     configs:
       - source: rspamd_redis
         target: /etc/rspamd/local.d/redis.conf
-      - source: rspamd_worker
-        target: /etc/rspamd/local.d/worker-normal.inc
+      - source: rspamd_controller
+        target: /etc/rspamd/local.d/worker-controller.inc
     ports:
       - '127.0.0.1:11334:11334'
     networks:
       - app
+    labels:
+      - dev.dozzle.icon=rspamd
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
   web:
     image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
@@ -143,10 +184,11 @@ services:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
       DEBUG: ${DEBUG:-false}
-      GRANIAN_INTERFACE: asgi # Options: asgi, wsgi, rsgi (default)
+      GRANIAN_INTERFACE: asginl
       GRANIAN_LOG_ACCESS_ENABLED: true
-      GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
       GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}' # JSON format
+      GRANIAN_LOG_CONFIG: granian.log.config.json
+      GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
       SENTRY_DSN: ${SENTRY_DSN:-}
@@ -171,6 +213,12 @@ services:
       - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy.health_uri=/health/"
       - "caddy.cache"
+      - dev.dozzle.icon=django
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
     pull_policy: always
   # Host networking lets the worker bind egress IPs from RELAY_SMTP_SOURCE_IPS.
   worker:
@@ -180,10 +228,15 @@ services:
       RELAY_RSPAMD_URL: http://127.0.0.1:11334
     networks: !reset []
     network_mode: host
-    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
+    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
-    labels: !reset []
+    labels: !override
+      - dev.dozzle.icon=django
+    deploy:
+      resources:
+        limits:
+          memory: 1g
     extends:
       service: web
 networks:
@@ -200,9 +253,10 @@ configs:
       servers = "redis";
       password = "${REDIS_PASSWORD}";
       database = 1;
-  rspamd_worker:
+  rspamd_controller:
     content: |
-      bind_socket = "*:11334";
+      secure_ip = "0.0.0.0/0";
+      secure_ip = "::/0";
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)
@@ -211,17 +265,55 @@ configs:
       -- Authoritative nameserver: allow queries from all sources
       setACL({"0.0.0.0/0", "::/0"})
 
-      -- Resolve all 'dns' service replicas via Docker's embedded DNS
-      local handle = io.popen("getent ahosts dns")
-      local result = handle:read("*a")
-      handle:close()
+      -- One backend per 'dns' replica, re-synced every 10 seconds so
+      -- scaled and redeployed replicas are picked up without a restart.
+      -- The absolute, reserved 'internal' name keeps a mid-deploy lookup
+      -- from falling through to public DNS.
+      local replicas = {}
+      local generation = 0
 
-      -- Add each unique replica as a downstream server for redundancy
-      local seen = {}
-      for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
-          if not seen[ip] then
-              seen[ip] = true
-              newServer({address=ip .. ":5353", name="authoritative"})
+      local function syncReplicas(resolvedAddresses)
+          local resolved = {}
+          for _, resolvedAddress in ipairs(resolvedAddresses) do
+              if resolvedAddress:isIPv4() then
+                  local address = resolvedAddress:toString()
+                  resolved[address] = true
+                  if not replicas[address] then
+                      replicas[address] = newServer({address=address .. ":5353", name="authoritative"})
+                  end
+              end
+          end
+          -- Empty result (e.g. mid-deploy): keep the known replicas.
+          if next(resolved) == nil then
+              return
+          end
+          for address, server in pairs(replicas) do
+              if not resolved[address] then
+                  rmServer(server)
+                  replicas[address] = nil
+              end
+          end
+      end
+
+      local function resolveReplicas()
+          generation = generation + 1
+          local currentGeneration = generation
+          getAddressInfo("dns.relay.internal.", function(_, resolvedAddresses)
+              -- Drop stale snapshots.
+              if currentGeneration == generation then
+                  syncReplicas(resolvedAddresses)
+              end
+          end)
+      end
+
+      resolveReplicas()
+
+      -- Re-resolve every 10 maintenance ticks (~10s).
+      local ticks = 0
+      function maintenance()
+          ticks = ticks + 1
+          if ticks % 10 == 0 then
+              resolveReplicas()
           end
       end
 

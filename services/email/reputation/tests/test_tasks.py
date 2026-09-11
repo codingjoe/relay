@@ -5,10 +5,12 @@ from unittest.mock import patch
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.mta.handlers import process_incoming_message
 from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
@@ -103,6 +105,8 @@ class TestParseFblReport:
             message=message,
             code=550,
             status=Transmission.Status.BOUNCED,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
         report = make_report(org, make_arf_email())
 

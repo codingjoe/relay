@@ -88,13 +88,15 @@ def check_dkim_cname(domain):
 def check_mx(domain):
     try:
         mx_records = dns.resolver.resolve(domain.name, "MX")
-        expected_exchange = domain.sender_domain.lower()
-        return any(
-            str(record.exchange).rstrip(".").lower() == expected_exchange
-            for record in mx_records
-        )
     except dns.exception.DNSException:
         return False
+    expected_exchanges = {
+        hostname.rstrip(".").lower() for hostname in settings.RELAY_DNS_MX_HOSTNAMES
+    }
+    return any(
+        str(record.exchange).rstrip(".").lower() in expected_exchanges
+        for record in mx_records
+    )
 
 
 def check_mta_sts(domain):

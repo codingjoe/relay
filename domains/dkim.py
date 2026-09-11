@@ -1,4 +1,4 @@
-"""DKIM signing and verification for outbound messages."""
+"""DKIM signing for outbound messages."""
 
 import logging
 
@@ -45,11 +45,3 @@ def sign_message(raw_bytes, domain):
                 signed, selector, sign_domain.name, key, INCLUDE_HEADERS
             )
     return signed
-
-
-def verify_signature(raw_bytes):
-    try:
-        verified = dkim.verify(raw_bytes)
-    except dkim.DKIMException:
-        return False, None
-    return verified, None

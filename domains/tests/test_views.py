@@ -115,7 +115,7 @@ class TestDomainDetailView:
 
         assert b"Sending records" in response.content
         assert b"Receiving records" in response.content
-        assert f"10 {domain.sender_domain}.".encode() in response.content
+        assert f"10 {settings.RELAY_DNS_MX_HOSTNAMES[0]}.".encode() in response.content
 
     def test_get__not_found_for_managed_domain(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -210,7 +210,7 @@ class TestMtaStsPolicyView:
         body = response.content.decode()
         assert "version: STSv1" in body
         assert "mode:" in body
-        assert "mx: mail.relay.example.com" in body
+        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in body
         assert "max_age:" in body
 
     def test_get__returns_421_for_unknown_domain(self, client):
@@ -240,7 +240,7 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.app.example.com"
         )
         assert response.status_code == 200
-        assert "mx: mail.relay.example.com" in response.content.decode()
+        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in response.content.decode()
 
     def test_get__selects_most_specific_domain(self, client, org):
         Domain.objects.create(name="example.com", org=org)
@@ -249,7 +249,7 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.app.example.com"
         )
         assert response.status_code == 200
-        assert "mx: mail.relay.app.example.com" in response.content.decode()
+        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in response.content.decode()
 
     def test_get__handles_uppercase_mta_sts_prefix(self, client, org):
         Domain.objects.create(name="example.com", org=org)

@@ -14,7 +14,7 @@ def render_toasts(context):
     Uses `get_messages` to read messages directly from the request. This avoids
     a name collision with a view that exposes a queryset as `context['messages']`.
     """
-    request = context["request"]
+    request = context.request
     toasts = [
         {
             "category": m.tags or m.level_tag,

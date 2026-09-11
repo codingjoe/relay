@@ -1,9 +1,12 @@
+from itertools import chain
+
 from django.db import models
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import NoStoreCacheMixin
+from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
@@ -63,6 +66,53 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         }
 
 
+class MessageBreadcrumbMixin:
+    """Start the trail with the message subject instead of the object string."""
+
+    def get_breadcrumbs(self):
+        breadcrumbs = super().get_breadcrumbs()
+        breadcrumbs[0]["title"] = self.object.subject or str(self.object)
+        return breadcrumbs
+
+
+class MessageDetailView(
+    OrganizationScopedView,
+    ConditionalGetMixin,
+    MessageBreadcrumbMixin,
+    generic.DetailView,
+):
+    """Render the shared message detail page: timeline, headers, and body."""
+
+    context_object_name = "message"
+    parent = "message:message-list"
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
+
+    def get_timings(self, message):
+        self.transmissions = message.transmissions.select_related("tls_certificate")
+        return chain(
+            self.transmissions,
+            message.spamcheck_set.select_related("message"),
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        message = self.object
+        headers = message.parsed_headers
+        timings = self.get_timings(message)
+        return context | {
+            "headers": headers,
+            "received": [v for k, v in headers if k.lower() == "received"],
+            "body": message.text_body,
+            "transmissions": self.transmissions,
+            "timeline": sorted(
+                (timing.event for timing in timings),
+                key=lambda event: event["start"],
+            ),
+        }
+
+
 class CertificateDetailView(
     OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
 ):
@@ -77,8 +127,7 @@ class CertificateDetailView(
     def get_queryset(self):
         fingerprints = set(
             Certificate.objects.filter(
-                Q(incoming_messages__org=self.org)
-                | Q(transmissions__message__org=self.org)
+                transmissions__message__org=self.org
             ).values_list("fingerprint", flat=True)
         )
         level = fingerprints

@@ -9,6 +9,7 @@ from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel, DNSRecord
 from dnslib.dns import QTYPE, RCODE, DNSError
 from dnslib.server import BaseResolver
 
+from abstract.signals import request_scope
 from kms.models import SigningKey
 
 from .models import Domain
@@ -44,7 +45,10 @@ class DNSResolver(BaseResolver):
         reply = request.reply(ra=0)
 
         try:
-            reply.add_answer(*self.resolve_records(request.q.qname, request.q.qtype))
+            with request_scope(type(self)):
+                reply.add_answer(
+                    *self.resolve_records(request.q.qname, request.q.qtype)
+                )
         except DNSError, DatabaseError:
             reply.header.rcode = RCODE.SERVFAIL
 
@@ -54,8 +58,9 @@ class DNSResolver(BaseResolver):
         """Return matching DNS records."""
         query_name = str(qname).strip().rstrip(".").lower()
         match qtype:
-            case QTYPE.A | QTYPE.ANY if (
-                query_name == settings.RELAY_SMTP_PUBLIC_HOSTNAME
+            case QTYPE.A | QTYPE.ANY if query_name in (
+                settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+                *settings.RELAY_DNS_MX_HOSTNAMES,
             ):
                 return [
                     RR(
@@ -95,12 +100,13 @@ class DNSResolver(BaseResolver):
                         qname, QTYPE.A, rdata=A(smtp_ip_address), ttl=self.RECORD_TTL
                     )
             case QTYPE.MX | QTYPE.ANY:
-                yield RR(
-                    qname,
-                    QTYPE.MX,
-                    rdata=MX(domain.sender_domain, self.MX_PRIORITY),
-                    ttl=self.RECORD_TTL,
-                )
+                for hostname in settings.RELAY_DNS_MX_HOSTNAMES:
+                    yield RR(
+                        qname,
+                        QTYPE.MX,
+                        rdata=MX(hostname, self.MX_PRIORITY),
+                        ttl=self.RECORD_TTL,
+                    )
             case QTYPE.TXT | QTYPE.ANY:
                 yield from self.resolve_txt(qname, qtype, query_name, domain)
             case QTYPE.NS | QTYPE.ANY:

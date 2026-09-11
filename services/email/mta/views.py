@@ -1,4 +1,5 @@
 import json
+from itertools import chain
 
 from django.contrib import messages
 from django.db import transaction
@@ -11,6 +12,7 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import SigningKey
+from services.email.message.views import MessageDetailView
 
 from .charts import build_tls_chart
 from .forms import WebhookForm
@@ -32,32 +34,27 @@ WEBHOOK_PAYLOAD = {
 }
 
 
-class IncomingMessageDetailView(
-    OrganizationScopedView, ConditionalGetMixin, generic.DetailView
-):
-    context_object_name = "message"
-    parent = "message:message-list"
-
+class IncomingMessageDetailView(MessageDetailView):
     def get_queryset(self):
         return IncomingMessage.objects.filter(org=self.org).select_related(
-            "org", "content_type", "tls_certificate"
+            "org", "content_type"
         )
 
-    def get_object(self, queryset=None):
-        return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
+    def get_timings(self, message):
+        self.deliveries = WebhookDelivery.objects.filter(
+            message=message
+        ).select_related("webhook__signing_key")
+        return chain(super().get_timings(message), self.deliveries)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        is_report = self.object.content_type.model_class() is not IncomingMessage
+        message = self.object
+        is_report = message.content_type.model_class() is not IncomingMessage
         return context | {
-            "headers": self.object.parsed_headers,
-            "body": self.object.text_body,
-            "webhook_deliveries": WebhookDelivery.objects.filter(
-                message=self.object
-            ).select_related("webhook__signing_key"),
+            "webhook_deliveries": self.deliveries,
             "is_report": is_report,
-            "report_url": self.object.get_absolute_url() if is_report else "",
-            "report_kind": self.object.kind_display if is_report else "",
+            "report_url": message.get_absolute_url() if is_report else "",
+            "report_kind": message.kind_display if is_report else "",
         }
 
 

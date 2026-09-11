@@ -32,7 +32,7 @@ server refuses AUTH over plaintext on port 587.
 The submission exchange:
 
 ```text
-openssl s_client -starttls smtp -connect smtp.relay.example.com:587
+openssl s_client -starttls smtp -connect smtp.relays.to:587
   EHLO your-app.example.com
   AUTH PLAIN <base64 of \0org-slug\0api-key>
   MAIL FROM: <billing@acme.com>
@@ -103,8 +103,9 @@ Important details of the pipeline:
 - **Signing covers the message as stored.** relay signs with the private
   keys of the sender domain for RSA-2048 and Ed25519 at once.
   All signatures cover the same headers: From, To, Subject, Date,
-  Message-ID, and `Feedback-ID`. The message detail page shows the stored
-  headers, so you can inspect every signature relay applied.
+  Message-ID, and `Feedback-ID`. The message detail page lists every
+  signature relay applied in its own card, next to the signing domain,
+  selector, and algorithm. The raw tag list is one click away.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
   keys of the platform domain. relay also sets a `Feedback-ID` header with
   its own token. This token replaces a customer-supplied `Feedback-ID`, so
@@ -157,7 +158,7 @@ Python with the standard library:
 ```python
 import smtplib, ssl
 
-with smtplib.SMTP("smtp.relay.example.com", 587) as server:
+with smtplib.SMTP("smtp.relays.to", 587) as server:
     server.starttls(context=ssl.create_default_context())
     server.login("acme", "your-smtp-credential-key")
     server.sendmail(
