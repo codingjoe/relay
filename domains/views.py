@@ -6,6 +6,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 
 from .models import Domain, canonicalize_domain_name
@@ -161,7 +162,7 @@ class MtaStsPolicyView(generic.DetailView):
         return response
 
 
-class MtaStsAuthorizeView(generic.View):
+class MtaStsAuthorizeView(NoStoreCacheMixin, generic.View):
     """Approve on-demand TLS issuance for the MTA-STS host of a registered domain."""
 
     def get(self, request, *args, **kwargs):

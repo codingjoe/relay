@@ -324,3 +324,10 @@ class TestMtaStsAuthorizeView:
             "/internal/mta-sts/authorize/", {"domain": "mta-sts.unknown.com"}
         )
         assert response.status_code == 403
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("name", ["mta-sts.example.com", "mta-sts.unknown.com"])
+    def test_get__no_store_cache_control_header(self, client, org, name):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get("/internal/mta-sts/authorize/", {"domain": name})
+        assert response.headers["Cache-Control"] == "private, no-store"
