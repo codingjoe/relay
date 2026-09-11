@@ -15,8 +15,10 @@ class MtaStsHostMiddleware:
         path = request.META.get("PATH_INFO", "")
         host = request.META.get("HTTP_HOST", "").split(":")[0].lower()
         match path, host.startswith("mta-sts."):
-            # Caddy serves the public site addresses from ALLOWED_HOSTS, so a
-            # request for any other host can only come from inside the network.
+            # Caddy is the only ingress. It serves the public site addresses in
+            # ALLOWED_HOSTS and answers other hosts with the 421 catch-all.
+            # Caddy calls this path as http://web:8000, so a request with a host
+            # outside ALLOWED_HOSTS comes from the internal network.
             case ("/internal/mta-sts/authorize/", _) if not validate_host(
                 host, settings.ALLOWED_HOSTS
             ):
