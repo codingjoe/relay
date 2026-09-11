@@ -13,7 +13,7 @@ import environ
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-PERCENTILE_STEPS = (50, 66, 75, 80, 90, 95, 98, 99, 100)
+PERCENTILE_STEPS = (50, 75, 95)
 
 
 def positive_int(value: str) -> int:
@@ -261,10 +261,7 @@ class Command(BaseCommand):
         self.stdout.write("Percentage of the emails served within a certain time (ms):")
         for percent in PERCENTILE_STEPS:
             index = math.ceil(percent / 100 * complete_count) - 1
-            slowest_suffix = " (slowest)" if percent == 100 else ""
-            self.stdout.write(
-                f"  {percent:>3}%  {durations_ms[index]:8.1f}{slowest_suffix}"
-            )
+            self.stdout.write(f"  {percent:>3}%  {durations_ms[index]:8.1f}")
 
         errors = Counter(error for _, error, _ in send_results if error)
         if errors:
