@@ -63,11 +63,12 @@ and it protects your inbox from spoofing attempts. relay signs outgoing mail
 with RSA-2048 and Ed25519 keys, but inbound DKIM verification still accepts
 signatures from older senders that use RSA-1024 keys.
 
-**Spam scan.** rspamd scores every accepted message. A message whose
-score reaches the reject threshold, or whose action is reject, lands as
-quarantined and never reaches your webhook. You can see the score in the
-dashboard. Scanning happens after relay has answered `250`, so a busy
-scanner delays the webhook, not acceptance.
+**Spam scan.** rspamd scores every accepted message, and you can see the
+score in the dashboard. A message whose score reaches the reject
+threshold, or whose action is reject, lands as quarantined and never
+reaches your webhook. The same scan checks for malware, so an infected
+message is quarantined too. Scanning happens after relay has answered
+`250`, so a busy scanner delays the webhook, not acceptance.
 
 **Received header.** relay stamps every accepted message with a
 `Received` header before sealing. It records the sending host's HELO

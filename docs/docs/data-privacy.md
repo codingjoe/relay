@@ -26,7 +26,7 @@ Germany:
 | PostgreSQL               | Message metadata, org and domain state | Postgres 18+                                                  |
 | Redis                    | Caching and rate limiting              | Redis                                                         |
 | Object storage           | Raw message bodies                     | S3-compatible storage in the same region                      |
-| Spam scoring             | Content filter                         | rspamd, cluster-internal                                      |
+| Spam and virus scanning  | Content filter                         | rspamd with ClamAV, cluster-internal                          |
 
 No component of this stack belongs to a provider in a third country. There
 are no third-country data transfers.

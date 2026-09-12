@@ -6,6 +6,10 @@ from enum import StrEnum
 import httpx
 from django.conf import settings
 
+# rspamd reuses `soft reject` for greylisting and rate limiting, so the failure
+# symbol is the only signal that a scan did not complete.
+SCANNER_FAILURE_SYMBOL = "CLAM_VIRUS_FAIL"
+
 
 class SpamAction(StrEnum):
     NO_ACTION = "no action"
@@ -14,6 +18,10 @@ class SpamAction(StrEnum):
     REWRITE_SUBJECT = "rewrite subject"
     SOFT_REJECT = "soft reject"
     REJECT = "reject"
+
+
+class ScannerUnavailableError(Exception):
+    """ClamAV did not complete a scan, so the message is still unscanned."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,4 +54,7 @@ async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
             headers=headers,
         )
         response.raise_for_status()
-    return SpamResult.from_response(response.json())
+    data = response.json()
+    if SCANNER_FAILURE_SYMBOL in data["symbols"]:
+        raise ScannerUnavailableError
+    return SpamResult.from_response(data)
