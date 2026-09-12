@@ -35,9 +35,9 @@ Two things matter in that graph:
 - **Your domain carries your reputation.** Other relay customers cannot
   harm your domain's grade, because signatures are not shared and the sending
   identity differs.
-- **The infrastructure identity stays consistent.** The relay SMTP servers
-  identify with hostnames that match their PTR records, so receivers see one
-  stable, verified platform identity, which also protects your domain from
+- **The infrastructure identity stays consistent.** Every relay sending IP
+  carries a hostname that matches its PTR record, so receivers see stable,
+  verified platform identities, which also protects your domain from
   strangers sending as "you".
 
 Consequences for migration: a domain that switches to relay does inherit its
