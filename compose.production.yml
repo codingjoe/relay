@@ -3,11 +3,11 @@ include:
   - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
   clamav:
-    image: clamav/clamav:1.5
+    image: clamav/clamav:1.5.4-debian13-slim
     volumes:
       - clamav:/var/lib/clamav
     # CLAMD_CONF_* overrides, see
-    # https://github.com/Cisco-Talos/clamav-docker/blob/main/clamav/README-alpine.md
+    # https://github.com/Cisco-Talos/clamav-docker/blob/main/clamav/README-debian.md
     environment:
       CLAMD_CONF_ConcurrentDatabaseReload: "no"
       CLAMD_CONF_AlertExceedsMax: "yes"
