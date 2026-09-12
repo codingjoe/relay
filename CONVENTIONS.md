@@ -78,6 +78,19 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Use generator functions when a function produces a sequence for lazy
   consumption, for example when walking database relations.
 
+## Comments
+
+- Comment only when the code is unexpected or hard to read. A comment that
+  restates the line beneath it is a defect.
+- Never explain configuration in prose. For a setting, add a single link to
+  the documentation page for that setting or that service, and keep only the
+  fact a reader cannot get from the docs, for example
+  `# rspamd pools the A records, see https://docs.rspamd.com/configuration/upstream/`.
+- Keep the reasoning that stops a later edit from undoing a fix, and state it
+  in one line rather than a paragraph.
+- Prefer a trailing annotation on an unexpected literal to a block above it,
+  for example `"40M" # above the 2**25 SMTP DATA limit`.
+
 ## Docstrings
 
 - Use Google-style Markdown docstrings (Napoleon). Not RST.

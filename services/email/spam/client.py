@@ -6,10 +6,8 @@ from enum import StrEnum
 import httpx
 from django.conf import settings
 
-# relay's rspamd antivirus rule sets `symbol = "CLAM_VIRUS"`, so the antivirus
-# module reports a clamd outage or error as `<symbol>_FAIL`. The action is not
-# usable as the signal: rspamd reuses `soft reject` for its own greylisting and
-# rate limiting.
+# rspamd reuses `soft reject` for greylisting and rate limiting, so the failure
+# symbol is the only signal that a scan did not complete.
 SCANNER_FAILURE_SYMBOL = "CLAM_VIRUS_FAIL"
 
 
