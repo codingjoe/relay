@@ -19,7 +19,7 @@ from services.email.msa.tasks import (
     deliver_message,
     fetch_mx_hosts,
 )
-from services.email.spam import SpamAction, SpamResult
+from services.email.spam.client import SpamAction, SpamResult
 
 
 def make_certificate(common_name):

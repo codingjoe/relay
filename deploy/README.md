@@ -132,6 +132,10 @@ A  *.relay.example.com      <server_ip>
 A record hostnames for the SMTP IP pool must match their PTR records. PTR
 records are set by the script automatically.
 
+The worker scans through `https://rspamd.<HOSTNAME>`, the public route Caddy
+builds from the rspamd service labels. The wildcard record above covers it
+when `HOSTNAME` is the zone apex. Otherwise add that record too.
+
 ## Step 4: Add the OAuth credentials
 
 The script writes the infrastructure values to `.env.production`. GitHub OAuth
@@ -161,9 +165,14 @@ CI builds and pushes the image to ghcr.io, then the-box deploys via SSH.
 
 ```bash
 curl https://relay.example.com/health/
+curl https://rspamd.relay.example.com/ping
 openssl s_client -connect smtp1.relay.example.com:587 -starttls smtp
 dig MX example.com @dns.example.com
 ```
+
+`/ping` is the same URI the deployment's own health check uses, so a `200`
+means Caddy reaches the scan pool. The route carries the
+`RELAY_RSPAMD_PASSWORD`, which the scan client sends as a `Password` header.
 
 ## IP reputation and blacklist rotation
 

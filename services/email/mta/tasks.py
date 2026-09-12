@@ -14,10 +14,10 @@ from django.tasks import task
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from threadmill.retry import ExponentialBackoff
 
 from services.email.message.models import Transmission
-from services.email.spam import SpamAction, check_message
+from services.email.spam.client import SpamAction, check_message
+from services.email.spam.retry import SPAM_SCAN_RETRY
 
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
@@ -270,14 +270,7 @@ def notify_postmaster_recipients(message_pk):
             )
 
 
-@task(
-    retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
-        max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
-    )
-)
+@task(retry=SPAM_SCAN_RETRY)
 def check_incoming_spam(message_pk, client_ip):
     """Check an incoming message for spam and dispatch webhook if clean."""
     from services.email.message.models import SpamCheck

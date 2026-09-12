@@ -94,7 +94,10 @@ class DNSResolver(BaseResolver):
             return
 
         match qtype:
-            case QTYPE.A | QTYPE.ANY if query_name == domain.sender_domain:
+            case QTYPE.A | QTYPE.ANY if query_name in (
+                domain.sender_domain,
+                f"mta-sts.{domain.sender_domain}",
+            ):
                 for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS:
                     yield RR(
                         qname, QTYPE.A, rdata=A(smtp_ip_address), ttl=self.RECORD_TTL
@@ -214,15 +217,9 @@ class DNSResolver(BaseResolver):
         """Build CNAME records for MTA-STS."""
         match query_name:
             case name if name == f"mta-sts.{domain.name}":
-                target = f"mta-sts.{domain.sender_domain}"
-            case name if name == f"mta-sts.{domain.sender_domain}":
-                target = f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}"
-            case _:
-                return
-
-        yield RR(
-            qname,
-            QTYPE.CNAME,
-            rdata=CNAME(DNSLabel(target)),
-            ttl=self.RECORD_TTL,
-        )
+                yield RR(
+                    qname,
+                    QTYPE.CNAME,
+                    rdata=CNAME(DNSLabel(f"mta-sts.{domain.sender_domain}")),
+                    ttl=self.RECORD_TTL,
+                )

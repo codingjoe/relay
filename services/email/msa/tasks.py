@@ -1,19 +1,17 @@
-import datetime
 import logging
 import random
 
 import aiosmtplib
 import dns.resolver
-import httpx
 from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.tasks import task
 from django.utils import timezone
-from threadmill.retry import ExponentialBackoff
 
 from abstract.timing import measure
 from services.email.mta_sts import MtaStsPolicy
-from services.email.spam import SpamAction, check_message
+from services.email.spam.client import SpamAction, check_message
+from services.email.spam.retry import SPAM_SCAN_RETRY
 from services.email.tls import parse_peer_certificates
 
 logger = logging.getLogger(__name__)
@@ -257,20 +255,14 @@ async def send_via_mx(
     return response, tls_details
 
 
-@task(
-    retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
-        max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
-    )
-)
+@task(retry=SPAM_SCAN_RETRY)
 def check_outgoing_spam(message_pk, client_ip):
     """
     Check an outgoing message for spam before delivery.
 
     Messages for suspended orgs are dropped without a spam check. Clean
     messages are enqueued for delivery.
+
     """
     from services.email.message.models import SpamCheck
 

@@ -1,14 +1,15 @@
 from django.conf import settings
 from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 
-from .models import Domain
+from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
 
 
@@ -159,3 +160,28 @@ class MtaStsPolicyView(generic.DetailView):
         response["Cache-Control"] = f"public, max-age={settings.RELAY_MTA_STS_MAX_AGE}"
         response["Vary"] = "Host"
         return response
+
+
+class MtaStsAuthorizeView(NoStoreCacheMixin, generic.View):
+    """Approve on-demand TLS issuance for the MTA-STS host of a registered domain."""
+
+    def get(self, request, *args, **kwargs):
+        host = request.GET.get("domain", "")
+        name = host.removeprefix("mta-sts.")
+        match name:
+            case "":
+                domain = None
+            case _:
+                try:
+                    domain = Domain.objects.get(name=name)
+                except Domain.DoesNotExist:
+                    domain = None
+        # Every organization can register a name below the platform domain, so
+        # only relay's own managed domains are valid hosts there.
+        platform = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+        authorized = (
+            domain is not None
+            and host == f"mta-sts.{domain.name}"
+            and (domain.is_managed or not name.endswith(f".{platform}"))
+        )
+        return HttpResponse(status=200 if authorized else 403)

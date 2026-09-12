@@ -214,7 +214,7 @@ if [ -f "$REPO_ROOT/.env.keys" ]; then
     dotenvx set AWS_S3_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID" -f .env.production
     dotenvx set AWS_S3_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY" -f .env.production
 
-    for key in POSTGRES_PASSWORD REDIS_PASSWORD SECRET_KEY; do
+    for key in POSTGRES_PASSWORD REDIS_PASSWORD RELAY_RSPAMD_PASSWORD SECRET_KEY; do
         if dotenvx get "$key" -f .env.production >/dev/null 2>&1; then
             log "$key is already set, leaving it alone"
         else
@@ -249,6 +249,7 @@ Generate or restore .env.keys, then run these commands in the repository root:
   dotenvx set AWS_S3_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY" -f .env.production
   dotenvx set POSTGRES_PASSWORD "\$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" -f .env.production
   dotenvx set REDIS_PASSWORD "\$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" -f .env.production
+  dotenvx set RELAY_RSPAMD_PASSWORD "\$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" -f .env.production
   dotenvx set SECRET_KEY "\$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" -f .env.production
   dotenvx get DOTENV_PRIVATE_KEY_PRODUCTION -f .env.keys | gh secret set DOTENV_PRIVATE_KEY_PRODUCTION
 

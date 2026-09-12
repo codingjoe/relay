@@ -24,7 +24,7 @@ stateDiagram-v2
     [*] --> pending : submission accepted over TLS
     [*] --> suppressed : recipient on the suppression list
 
-    pending --> held : rspamd score reaches the hold threshold
+    pending --> held : rspamd score reaches the hold threshold or malware is found
     pending --> sent : delivery completed
     pending --> bounced : permanent rejection (5xx)
     pending --> failed : no MX relayed or transport error
@@ -43,7 +43,7 @@ stateDiagram-v2
 | sent       | At least one recipient MX host accepted the message after STARTTLS                        | Final state, the transmission records keep the SMTP transcript |
 | bounced    | A recipient server answered with a permanent 5xx rejection                                | Final state, relay suppresses the address automatically        |
 | failed     | No MX records, every MX host failed, or a transport or storage error stopped the pipeline | Final state, the last transcript explains why                  |
-| held       | rspamd rejects the action or the score reaches the hold threshold                         | Final state until a human sees the dashboard                   |
+| held       | rspamd rejects the action, the score reaches the hold threshold, or malware is found      | Final state until a human sees the dashboard                   |
 
 Notes on reading the diagram:
 
@@ -65,7 +65,7 @@ stateDiagram-v2
     [*] --> received : accepted without a DMARC disposition
     [*] --> quarantined : accepted with a DMARC quarantine disposition
 
-    received --> quarantined : rspamd score reaches the reject threshold
+    received --> quarantined : rspamd score reaches the reject threshold or malware is found
     received --> dropped : billing inactive or no matching webhook
     received --> webhook_sent : a matching webhook answered 2xx
     received --> webhook_failed : webhook retries exhausted without success
@@ -76,13 +76,13 @@ stateDiagram-v2
     webhook_failed --> [*]
 ```
 
-| Status         | Trigger                                                                                               | What happens next                                                 |
-| -------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| received       | Stored after acceptance, before the inbound spam check finishes                                       | The spam scan runs, then webhooks fire                            |
-| quarantined    | A DMARC quarantine disposition at acceptance, or a spam score at or above the reject threshold        | Final state, no webhook, readable in the dashboard with its score |
-| dropped        | Billing is inactive, or no active webhook matches the recipient                                       | Final state, the message stays stored                             |
-| webhook_sent   | A POST to a matching active webhook answered 2xx                                                      | Final state, the delivery record shows the response               |
-| webhook_failed | The Standard Webhooks retry schedule ended without a 2xx, or the webhook was inactive or answered 410 | Final state, every attempt is in the delivery record              |
+| Status         | Trigger                                                                                                                    | What happens next                                                 |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| received       | Stored after acceptance, before the inbound spam check finishes                                                            | The scan runs, then webhooks fire                                 |
+| quarantined    | A DMARC quarantine disposition at acceptance, a spam score at or above the reject threshold, or a message the scan rejects | Final state, no webhook, readable in the dashboard with its score |
+| dropped        | Billing is inactive, or no active webhook matches the recipient                                                            | Final state, the message stays stored                             |
+| webhook_sent   | A POST to a matching active webhook answered 2xx                                                                           | Final state, the delivery record shows the response               |
+| webhook_failed | The Standard Webhooks retry schedule ended without a 2xx, or the webhook was inactive or answered 410                      | Final state, every attempt is in the delivery record              |
 
 Two details worth knowing:
 
