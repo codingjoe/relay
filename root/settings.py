@@ -347,9 +347,10 @@ RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 
-_email = env.email_url(
-    "EMAIL_URL",
-    default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
+# compose passes an unset EMAIL_URL through as an empty string
+_email = env.email_url_config(
+    env("EMAIL_URL", default="")
+    or ("consolemail://" if DEBUG or TEST else "smtp://localhost:25")
 )
 MAILERS = {
     "default": {

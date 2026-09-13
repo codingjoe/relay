@@ -119,7 +119,7 @@ Your delegated domain receives report traffic automatically:
 | `dmarc@{sender-subdomain}` | DMARC aggregate reports (RUA)   | Store, parse the XML, show in the dashboard  |
 | `ruf@{sender-subdomain}`   | DMARC failure reports (RUF/ARF) | Store, parse, show in the dashboard          |
 | `tls@{sender-subdomain}`   | TLS-RPT reports                 | Store, parse the JSON, show in the dashboard |
-| `postmaster` (+extensions) | Human mail to postmaster        | Store, and notify your team                  |
+| `postmaster` (+extensions) | Human mail to postmaster        | Store, then forward a link to your team      |
 
 These addresses exist because your DMARC and DNS records must name a
 collector, and relay is that collector. You see who authenticates as your
@@ -147,9 +147,18 @@ you can still read it in the dashboard.
 
 ## Postmaster handling
 
-relay stores messages to `postmaster@{your-domain}` and dispatches them
-like any other, with one addition: relay notifies the organization's members about
-postmaster mail, because [RFC 5321][rfc-5321] requires postmaster to be reachable.
+relay stores messages to `postmaster@{your-domain}` and forwards each one to
+every organization member with an email address, because [RFC 5321][rfc-5321]
+requires postmaster to remain reachable. Each copy is a real, replyable
+message, sent from the platform's postmaster address through relay's own
+submission path: replies go to the original author, and the subject carries a
+`Fwd:` prefix. The copy names the address that received the message and links
+to the stored message in the relay dashboard, where the full message stays
+readable.
+
+Forwarding happens after the spam scan, so a slow scanner delays the copy, not
+acceptance. A message that arrives under DMARC quarantine, or that the scan
+quarantines, is never forwarded and stays readable in the dashboard only.
 
 ## Reading arriving mail
 

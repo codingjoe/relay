@@ -22,7 +22,7 @@ from .models import (
     TlsReport,
 )
 from .signals import fbl_report_received, report_received
-from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
+from .tasks import check_incoming_spam, parse_tls_report
 
 logger = logging.getLogger(__name__)
 
@@ -171,9 +171,6 @@ def process_incoming_message(
             fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
-    is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (
-        local_part.startswith(f"{settings.RELAY_POSTMASTER_LOCAL_PART}+")
-    )
     with Transmission.record_reception(tls, started_at, client_ip) as reception:
         reception.message = message = IncomingMessage.objects.create(
             org=domain.org,
@@ -192,8 +189,4 @@ def process_incoming_message(
             message_pk=str(message.id), client_ip=client_ip
         )
     )
-    if is_postmaster_recipient:
-        transaction.on_commit(
-            lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))
-        )
     return "250 OK"
