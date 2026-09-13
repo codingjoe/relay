@@ -233,7 +233,13 @@ services:
         limits:
           cpus: "0.5"
           memory: 512m
+  # Host networking lets the sender bind RELAY_SMTP_SOURCE_IPS addresses.
   sender:
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@pg.${HOSTNAME:-localhost}:443/postgres?sslmode=require
+      REDIS_URL: rediss://:${REDIS_PASSWORD}@redis.${HOSTNAME:-localhost}:443/
+    networks: !reset []
+    network_mode: host
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     extends:
       service: worker
@@ -272,6 +278,7 @@ services:
       AWS_STORAGE_BUCKET_NAME: relay
       AWS_S3_ADDRESSING_STYLE: path
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
+      RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
       RELAY_RSPAMD_URL: http://:${RELAY_RSPAMD_PASSWORD}@caddy:11334
     command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
     healthcheck:
