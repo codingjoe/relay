@@ -72,16 +72,17 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                                                |
-| ------- | ------------ | ---------------------------------------------------------- |
-| Web     | 8000         | Django web UI (Granian)                                    |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                        |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)           |
-| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)      |
-| MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS) |
-| rspamd  | 11334        | Spam detection (internal only)                             |
-| clamav  | 3310         | Malware scanning (internal only)                           |
-| Worker  | N/A          | Threadmill task worker                                     |
+| Service | Port         | Description                                                    |
+| ------- | ------------ | -------------------------------------------------------------- |
+| Web     | 8000         | Django web UI (Granian)                                        |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                            |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)               |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)          |
+| MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS)     |
+| rspamd  | 11334        | Spam detection (internal only)                                 |
+| clamav  | 3310         | Malware scanning (internal only)                               |
+| Worker  | N/A          | Threadmill task worker for ingress, egress, and default queues |
+| Sender  | N/A          | Threadmill task worker for delivery to remote MX hosts         |
 
 ```mermaid
 flowchart TD
@@ -101,6 +102,7 @@ flowchart TD
         msa[SMTP aiosmtpd :587 :2465]
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
+        mail_sender[Sender Threadmill]
         rspamd[rspamd :11334, 2 replicas]
         clamav[clamav :3310]
         minio[MinIO S3 :9000]
@@ -124,6 +126,8 @@ flowchart TD
     caddy_l4 --> mta
     msa -->|enqueue| worker
     mta -->|enqueue| worker
+    worker -->|enqueue delivery| mail_sender
+    mail_sender -->|STARTTLS :25| sender
     worker -->|scan| caddy_proxy
     caddy_proxy --> rspamd
     rspamd --> redis
@@ -151,6 +155,27 @@ has its own keypair, so clients verify with the webhook's public key
 data with a storage URL for the raw message body. The payload never includes
 the raw body inline. You can filter webhooks by receiving domain and recipient
 address glob pattern.
+
+### Task queues
+
+Async work is split across four queues, so each pipeline stage can run on its
+own worker and scale on its own:
+
+- `ingress`: tasks that process received mail, so the inbound spam scan,
+  webhook delivery, TLS-RPT parsing, and postmaster notices.
+- `egress`: tasks that process outgoing submissions, currently the outbound
+  spam scan.
+- `delivery`: SMTP delivery to remote MX hosts. The sender worker is the only
+  consumer, so it can be given dedicated outbound addresses.
+- `default`: everything else, so DMARC and reputation reporting.
+
+`TASKS["default"]["QUEUES"]` in `root/settings.py` holds the queue list. A task
+whose queue is missing there fails at import time.
+
+A worker serves its queues in the order given on the command line: threadmill
+takes from the first non-empty queue, so a full queue always wins over the
+queues after it. Keep the mail pipeline queues ahead of `default`, which
+carries report parsing that can back up without delaying mail.
 
 ### Feedback loop (FBL) reports
 

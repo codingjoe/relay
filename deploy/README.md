@@ -25,6 +25,7 @@ flowchart LR
       smtp["SMTP"]
       mx["MX"]
       worker["Worker"]
+      sender["Sender"]
       pg["PostgreSQL"]
       redis["Redis"]
       caddy["Caddy"]
@@ -41,12 +42,13 @@ flowchart LR
   web --> s3
   web --> pg
   web --> redis
-  worker -->|"egress :25 via SMTP IPs"| internet
+  sender -->|"egress :25 via SMTP IPs"| internet
   worker --> pg
+  sender --> pg
 ```
 
-Outgoing mail is delivered by the worker only, which egresses from the SMTP IP
-pool above. The web and SMTP-in containers never egress from pool IPs.
+Outgoing mail is delivered by the sender only, which egresses from the SMTP IP
+pool above. The web, worker, and SMTP-in containers never egress from pool IPs.
 
 Each floating IP has its own PTR record, `smtp<n>.<hostname>`. If one gets
 blacklisted, rotate to the next IP in both `RELAY_DNS_SMTP_IPS` and
@@ -132,11 +134,12 @@ A  *.relay.example.com      <server_ip>
 A record hostnames for the SMTP IP pool must match their PTR records. PTR
 records are set by the script automatically.
 
-The worker runs on the host network, which has no Docker DNS, so it reaches
-`rspamd.<HOSTNAME>` over HTTPS and `pg.<HOSTNAME>` / `redis.<HOSTNAME>` over
-the-box's Layer 4 SNI routes on `:443`. Caddy terminates TLS there and proxies
-to the internal ports, which is why the worker's `DATABASE_URL` carries
-`sslmode=require` and `REDIS_URL` uses `rediss://`. The wildcard record above
+The worker and sender run on the host network, which has no Docker DNS, so
+they reach `rspamd.<HOSTNAME>` over HTTPS and `pg.<HOSTNAME>` /
+`redis.<HOSTNAME>` over the-box's Layer 4 SNI routes on `:443`. Caddy
+terminates TLS there and proxies to the internal ports, which is why their
+`DATABASE_URL` carries `sslmode=require` and `REDIS_URL` uses `rediss://`. The
+wildcard record above
 covers all three when `HOSTNAME` is the zone apex. Otherwise add those records
 too.
 
@@ -186,7 +189,7 @@ for sending.
 
 - `RELAY_DNS_SMTP_IPS` is read by web and published in SPF and Return-Path
   records.
-- `RELAY_SMTP_SOURCE_IPS` is read by the worker, which runs on the host network
+- `RELAY_SMTP_SOURCE_IPS` is read by the sender, which runs on the host network
   and picks one at random for each send. An empty list sends from the primary
   IP.
 
@@ -237,9 +240,9 @@ The bucket holds stored mail and is kept unless you set `DELETE_BUCKET=1`. Set
   cloud-init binds them at first boot and on network events via
   `networkd-dispatcher`
 - **SMTP refused**: `hcloud server ssh <hostname> docker compose logs msa`
-- **Outgoing delivery failing**: `hcloud server ssh <hostname> docker compose logs worker`
-- **Worker cannot reach PostgreSQL or Redis**: both are reached over Caddy's
-  Layer 4 SNI listener on `:443`, so `dig +short pg.<hostname>` and
+- **Outgoing delivery failing**: `hcloud server ssh <hostname> docker compose logs sender`
+- **Worker or sender cannot reach PostgreSQL or Redis**: both are reached over
+  Caddy's Layer 4 SNI listener on `:443`, so `dig +short pg.<hostname>` and
   `dig +short redis.<hostname>` must both answer
 - **TLS not issuing**: `dig <hostname>` then `hcloud server ssh <hostname> docker compose logs caddy`
 - **S3 access denied**: Verify credentials in `.env.production` match Hetzner
