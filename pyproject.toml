@@ -52,7 +52,7 @@ test = [
   "pytest-asyncio>=1.4",
   "pytest-cov>=7.1",
   "pytest-django>=4.14",
-  "pytest-env>=1.7",
+  "pytest-env>=1.7.1",
   "pytest-randomly>=5",
   "pytest-xdist>=3.8",
 ]
