@@ -58,7 +58,7 @@ def webhook_retry(context):
     return datetime.timedelta(seconds=delay)
 
 
-@task
+@task(queue_name="ingress")
 def dispatch_webhook(message_id):
     """Distribute an incoming message to all matching active webhooks."""
     message = IncomingMessage.objects.get(pk=message_id)
@@ -82,7 +82,7 @@ def dispatch_webhook(message_id):
                 )
 
 
-@task(retry=webhook_retry)
+@task(queue_name="ingress", retry=webhook_retry)
 def deliver_webhook(message_id, webhook_id):
     """Deliver to a single webhook and retry per the Standard Webhooks schedule."""
     message = IncomingMessage.objects.get(pk=message_id)
@@ -205,7 +205,7 @@ def deliver_to_webhook(message, webhook, is_test=False):
         return response.is_success, response.status_code
 
 
-@task
+@task(queue_name="ingress")
 def parse_tls_report(report_pk):
     """Parse a received TLS-RPT report and store its failures."""
     report = TlsReport.objects.get(pk=report_pk)
@@ -236,7 +236,7 @@ def parse_tls_report(report_pk):
     TlsFailure.objects.bulk_create(failures)
 
 
-@task
+@task(queue_name="ingress")
 def notify_postmaster_recipients(message_pk):
     """Email all org members with a link to the received message."""
     message = IncomingMessage.objects.get(pk=message_pk)
@@ -270,7 +270,7 @@ def notify_postmaster_recipients(message_pk):
             )
 
 
-@task(retry=SPAM_SCAN_RETRY)
+@task(queue_name="ingress", retry=SPAM_SCAN_RETRY)
 def check_incoming_spam(message_pk, client_ip):
     """Check an incoming message for spam and dispatch webhook if clean."""
     from services.email.message.models import SpamCheck
