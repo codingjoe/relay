@@ -17,6 +17,7 @@ from pathlib import Path
 
 import environ
 from cryptography.fernet import Fernet
+from django.tasks import DEFAULT_TASK_QUEUE_NAME
 
 env = environ.Env(
     # set casting, default value
@@ -378,7 +379,7 @@ DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 # Queues split the mail pipeline so each stage runs on its own worker:
 # ingress (received mail), egress (submissions), delivery (SMTP to remote
 # MX hosts, which needs its own outbound addresses), default (the rest).
-TASK_QUEUES = ["ingress", "egress", "delivery", "default"]
+TASK_QUEUES = ["ingress", "egress", "delivery", DEFAULT_TASK_QUEUE_NAME]
 
 if TEST:
     TASKS = {
