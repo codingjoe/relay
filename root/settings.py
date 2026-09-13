@@ -375,16 +375,23 @@ DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 # Django task framework
 # Production uses Threadmill with a Redis backend and a worker process.
 # Tests use ImmediateRetryBackend, which runs tasks synchronously.
+# Queues split the mail pipeline so each stage runs on its own worker:
+# ingress (received mail), egress (submissions), delivery (SMTP to remote
+# MX hosts, which needs its own outbound addresses), default (the rest).
+TASK_QUEUES = ["default", "ingress", "egress", "delivery"]
+
 if TEST:
     TASKS = {
         "default": {
             "BACKEND": "root.backends.ImmediateRetryBackend",
+            "QUEUES": TASK_QUEUES,
         },
     }
 else:
     TASKS = {
         "default": {
             "BACKEND": "threadmill.backends.redis.RedisTaskBackend",
+            "QUEUES": TASK_QUEUES,
             "REDIS_URL": REDIS_URL,
         },
     }

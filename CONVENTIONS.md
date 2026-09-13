@@ -126,6 +126,17 @@ A rule lives either in this document or in `.relint.yml`, never both.
   instead of custom OAuth code.
 - Custom pipeline steps live in `accounts/pipelines.py`.
 
+## Tasks
+
+- Declare the queue on the task itself, so the pipeline stage is visible at
+  the definition: `@task(queue_name="ingress")`.
+- Pick the queue by pipeline stage: `ingress` for received mail, `egress`
+  for outgoing submissions, `delivery` for SMTP delivery to remote MX hosts,
+  and `default` for everything else.
+- Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
+  commands in `compose.yml` and `compose.production.yml`. A task whose queue
+  is missing from the settings raises at import time.
+
 ## Naming
 
 - Use names that cover both ingress and egress when a model tracks

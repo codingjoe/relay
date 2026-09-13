@@ -37,7 +37,7 @@ class SenderDomainMismatchError(ValueError):
         super().__init__("Outgoing message sender domain does not match")
 
 
-@task
+@task(queue_name="delivery")
 def deliver_message(message_id):
     """
     Deliver a queued outgoing message to its recipients.
@@ -249,7 +249,7 @@ async def send_via_mx(
     return response, tls_details
 
 
-@task(retry=SPAM_SCAN_RETRY)
+@task(queue_name="egress", retry=SPAM_SCAN_RETRY)
 def check_outgoing_spam(message_pk, client_ip):
     """
     Check an outgoing message for spam before delivery.
