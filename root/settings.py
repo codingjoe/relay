@@ -348,10 +348,7 @@ RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T10000
 
 
 # compose passes an unset EMAIL_URL through as an empty string
-_email = env.email_url_config(
-    env("EMAIL_URL", default="")
-    or ("consolemail://" if DEBUG or TEST else "smtp://localhost:25")
-)
+_email = env.email_url_config(env("EMAIL_URL", default="") or "consolemail://")
 MAILERS = {
     "default": {
         "BACKEND": _email["EMAIL_BACKEND"],

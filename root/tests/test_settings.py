@@ -3,7 +3,7 @@ from pathlib import Path
 
 SETTINGS_PATH = Path(__file__).resolve().parents[1] / "settings.py"
 SMTP_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-LOCAL_SMTP = {"host": "localhost", "port": 25}
+CONSOLE_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 def load_settings(monkeypatch, **environment):
@@ -20,20 +20,20 @@ def load_settings(monkeypatch, **environment):
 
 
 class TestEmailURL:
-    def test_load__empty_email_url_falls_back_to_default(self, monkeypatch):
+    def test_load__empty_email_url_falls_back_to_console(self, monkeypatch):
         module = load_settings(monkeypatch, EMAIL_URL="", DEBUG=None, TEST=None)
 
         assert module.MAILERS["default"] == {
-            "BACKEND": SMTP_BACKEND,
-            "OPTIONS": LOCAL_SMTP,
+            "BACKEND": CONSOLE_BACKEND,
+            "OPTIONS": {},
         }
 
-    def test_load__unset_email_url_falls_back_to_default(self, monkeypatch):
+    def test_load__unset_email_url_falls_back_to_console(self, monkeypatch):
         module = load_settings(monkeypatch, EMAIL_URL=None, DEBUG=None, TEST=None)
 
         assert module.MAILERS["default"] == {
-            "BACKEND": SMTP_BACKEND,
-            "OPTIONS": LOCAL_SMTP,
+            "BACKEND": CONSOLE_BACKEND,
+            "OPTIONS": {},
         }
 
     def test_load__configured_email_url_wins(self, monkeypatch):
