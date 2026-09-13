@@ -58,7 +58,14 @@ test = [
 ]
 
 [tool.ruff]
-lint.extend-select = [
+[tool.ruff.lint.per-file-ignores]
+# aiosmtpd and python-markdown require these method names by protocol.
+"abstract/utils.py" = [ "N802" ]
+"services/email/msa/handlers.py" = [ "N802" ]
+"services/email/mta/handlers.py" = [ "N802" ]
+"services/email/proxy_protocol.py" = [ "N802" ]
+[tool.ruff.lint]
+extend-select = [
   "C90",
   "D",
   "DJ",
@@ -76,14 +83,10 @@ lint.extend-select = [
   "UP",
   "W",
 ]
-lint.ignore = [ "D1", "D203", "D212", "E501", "RUF01" ]
+ignore = [ "D1", "D203", "D212", "E501", "RUF01" ]
 
-[tool.ruff.lint.per-file-ignores]
-# aiosmtpd and python-markdown require these method names by protocol.
-"abstract/utils.py" = [ "N802" ]
-"services/email/msa/handlers.py" = [ "N802" ]
-"services/email/mta/handlers.py" = [ "N802" ]
-"services/email/proxy_protocol.py" = [ "N802" ]
+[tool.pyproject-fmt]
+table_format = "long"
 
 [tool.pytest]
 addopts = [ "--tb=native", "--fail-on-template-vars", "--reuse-db", "-n", "auto", "-q" ]
@@ -100,7 +103,8 @@ norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".workt
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
 
 [tool.coverage]
-report.omit = [
+[tool.coverage.report]
+omit = [
   "*/baker_recipes.py",
   "*/migrations/*",
   "*/tests/*",
@@ -109,9 +113,9 @@ report.omit = [
   "manage.py",
   "node_modules/*",
 ]
-report.skip_covered = true
-report.skip_empty = true
-report.show_missing = true
+skip_covered = true
+skip_empty = true
+show_missing = true
 
 [tool.importlinter]
 root_packages = [
@@ -127,7 +131,6 @@ root_packages = [
   "services",
   "well_known",
 ]
-
 [[tool.importlinter.contracts]]
 name = "Abstract depends on no first-party app"
 type = "forbidden"
