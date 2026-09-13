@@ -132,9 +132,13 @@ A  *.relay.example.com      <server_ip>
 A record hostnames for the SMTP IP pool must match their PTR records. PTR
 records are set by the script automatically.
 
-The worker scans through `https://rspamd.<HOSTNAME>`, the public route Caddy
-builds from the rspamd service labels. The wildcard record above covers it
-when `HOSTNAME` is the zone apex. Otherwise add that record too.
+The worker runs on the host network, which has no Docker DNS, so it reaches
+`rspamd.<HOSTNAME>` over HTTPS and `pg.<HOSTNAME>` / `redis.<HOSTNAME>` over
+the-box's Layer 4 SNI routes on `:443`. Caddy terminates TLS there and proxies
+to the internal ports, which is why the worker's `DATABASE_URL` carries
+`sslmode=require` and `REDIS_URL` uses `rediss://`. The wildcard record above
+covers all three when `HOSTNAME` is the zone apex. Otherwise add those records
+too.
 
 ## Step 4: Add the OAuth credentials
 
@@ -234,6 +238,9 @@ The bucket holds stored mail and is kept unless you set `DELETE_BUCKET=1`. Set
   `networkd-dispatcher`
 - **SMTP refused**: `hcloud server ssh <hostname> docker compose logs msa`
 - **Outgoing delivery failing**: `hcloud server ssh <hostname> docker compose logs worker`
+- **Worker cannot reach PostgreSQL or Redis**: both are reached over Caddy's
+  Layer 4 SNI listener on `:443`, so `dig +short pg.<hostname>` and
+  `dig +short redis.<hostname>` must both answer
 - **TLS not issuing**: `dig <hostname>` then `hcloud server ssh <hostname> docker compose logs caddy`
 - **S3 access denied**: Verify credentials in `.env.production` match Hetzner
   Console

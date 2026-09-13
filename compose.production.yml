@@ -163,13 +163,6 @@ services:
       - "caddy_2.respond=OK"
     extends:
       service: web
-  # Loopback ports for the host-networked worker.
-  postgres:
-    ports:
-      - '127.0.0.1:5432:5432'
-  redis:
-    ports:
-      - '127.0.0.1:6379:6379'
   rspamd:
     image: rspamd/rspamd:4.1
     depends_on:
@@ -278,10 +271,13 @@ services:
           memory: 512m
     pull_policy: always
   # Host networking lets the worker bind egress IPs from RELAY_SMTP_SOURCE_IPS.
+  # A host network namespace has neither Docker DNS nor a bridge route, so the
+  # worker reaches PostgreSQL and Redis over the-box's Layer 4 SNI routes on
+  # :443, which terminate TLS and proxy to the internal ports.
   worker:
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/postgres
-      REDIS_URL: redis://:${REDIS_PASSWORD}@127.0.0.1:6379/
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@pg.${HOSTNAME:-localhost}:443/postgres?sslmode=require
+      REDIS_URL: rediss://:${REDIS_PASSWORD}@redis.${HOSTNAME:-localhost}:443/
       RELAY_RSPAMD_URL: https://:${RELAY_RSPAMD_PASSWORD}@rspamd.${HOSTNAME:-localhost}
     networks: !reset []
     network_mode: host
