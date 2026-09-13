@@ -302,7 +302,7 @@ services:
           memory: 512m
     pull_policy: always
   worker:
-    command: [ "-m", "manage", "threadmill", "worker", "--queues", "default", "ingress", "egress", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "ingress", "egress", "default", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
     labels: !override

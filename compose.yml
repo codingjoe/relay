@@ -81,5 +81,5 @@ services:
       - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-    command: [ "-m", "manage", "threadmill", "worker", "--queues", "default", "ingress", "egress" ]
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "ingress", "egress", "default" ]
     pull_policy: build

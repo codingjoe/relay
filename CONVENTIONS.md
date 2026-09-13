@@ -134,8 +134,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   for outgoing submissions, `delivery` for SMTP delivery to remote MX hosts,
   and `default` for everything else.
 - Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
-  commands in `compose.yml` and `compose.production.yml`. A task whose queue
-  is missing from the settings raises at import time.
+  commands in `compose.yml` and `compose.production.yml`, with the mail
+  pipeline queues ahead of `default`. A task whose queue is missing from the
+  settings raises at import time.
 
 ## Naming
 

@@ -378,7 +378,7 @@ DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 # Queues split the mail pipeline so each stage runs on its own worker:
 # ingress (received mail), egress (submissions), delivery (SMTP to remote
 # MX hosts, which needs its own outbound addresses), default (the rest).
-TASK_QUEUES = ["default", "ingress", "egress", "delivery"]
+TASK_QUEUES = ["ingress", "egress", "delivery", "default"]
 
 if TEST:
     TASKS = {
