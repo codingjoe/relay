@@ -191,16 +191,6 @@ services:
       - "caddy_1.reverse_proxy.health_interval=10s"
       - "caddy_1.reverse_proxy.health_timeout=5s"
       - "caddy_1.reverse_proxy.fail_duration=10s"
-      # The worker runs on the host network, which cannot resolve `caddy` or
-      # reach its unpublished :11334 listener, so it scans over the public route.
-      - "caddy_2=https://rspamd.${HOSTNAME:-localhost}"
-      - "caddy_2.reverse_proxy={{upstreams 11334}}"
-      - "caddy_2.reverse_proxy.lb_policy=round_robin"
-      - "caddy_2.reverse_proxy.lb_try_duration=3s"
-      - "caddy_2.reverse_proxy.health_uri=/ping"
-      - "caddy_2.reverse_proxy.health_interval=10s"
-      - "caddy_2.reverse_proxy.health_timeout=5s"
-      - "caddy_2.reverse_proxy.fail_duration=10s"
       - dev.dozzle.icon=rspamd
     deploy:
       replicas: 2
@@ -208,7 +198,18 @@ services:
         limits:
           cpus: "0.5"
           memory: 512m
+  # Only the delivery queue leaves from the SMTP pool, so the sender runs on
+  # the host network to bind RELAY_SMTP_SOURCE_IPS addresses from eth0. A host
+  # network namespace has neither Docker DNS nor a bridge route, so it reaches
+  # PostgreSQL and Redis over the-box's Layer 4 SNI routes on :443, which
+  # terminate TLS and proxy to the internal ports. Delivery does not scan, so
+  # the inherited internal rspamd URL stays unused.
   sender:
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@pg.${HOSTNAME:-localhost}:443/postgres?sslmode=require
+      REDIS_URL: rediss://:${REDIS_PASSWORD}@redis.${HOSTNAME:-localhost}:443/
+    networks: !reset []
+    network_mode: host
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     extends:
       service: worker
@@ -274,17 +275,9 @@ services:
           cpus: "1.0"
           memory: 512m
     pull_policy: always
-  # Host networking lets the mail workers bind egress IPs from
-  # RELAY_SMTP_SOURCE_IPS. A host network namespace has neither Docker DNS nor
-  # a bridge route, so they reach PostgreSQL and Redis over the-box's Layer 4
-  # SNI routes on :443, which terminate TLS and proxy to the internal ports.
+  # The worker stays on the bridge: it scans spam through the internal
+  # `caddy:11334` route and resolves PostgreSQL and Redis by service name.
   worker:
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@pg.${HOSTNAME:-localhost}:443/postgres?sslmode=require
-      REDIS_URL: rediss://:${REDIS_PASSWORD}@redis.${HOSTNAME:-localhost}:443/
-      RELAY_RSPAMD_URL: https://:${RELAY_RSPAMD_PASSWORD}@rspamd.${HOSTNAME:-localhost}
-    networks: !reset []
-    network_mode: host
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "ingress", "egress", "default", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]

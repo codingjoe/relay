@@ -25,7 +25,8 @@ flowchart LR
       smtp["SMTP"]
       mx["MX"]
       worker["Worker"]
-      sender["Sender"]
+      sender["Sender
+      (host network)"]
       pg["PostgreSQL"]
       redis["Redis"]
       caddy["Caddy"]
@@ -44,11 +45,14 @@ flowchart LR
   web --> redis
   sender -->|"egress :25 via SMTP IPs"| internet
   worker --> pg
-  sender --> pg
+  worker --> redis
+  sender -->|"L4 SNI :443"| pg
+  sender -->|"L4 SNI :443"| redis
 ```
 
-Outgoing mail is delivered by the sender only, which egresses from the SMTP IP
-pool above. The web, worker, and SMTP-in containers never egress from pool IPs.
+Outgoing mail is delivered by the sender only, which needs the source
+addresses, so it alone runs on the host network. The web, worker, and SMTP-in
+containers never egress from pool IPs.
 
 Each floating IP has its own PTR record, `smtp<n>.<hostname>`. If one gets
 blacklisted, rotate to the next IP in both `RELAY_DNS_SMTP_IPS` and
@@ -134,14 +138,13 @@ A  *.relay.example.com      <server_ip>
 A record hostnames for the SMTP IP pool must match their PTR records. PTR
 records are set by the script automatically.
 
-The worker and sender run on the host network, which has no Docker DNS, so
-they reach `rspamd.<HOSTNAME>` over HTTPS and `pg.<HOSTNAME>` /
-`redis.<HOSTNAME>` over the-box's Layer 4 SNI routes on `:443`. Caddy
-terminates TLS there and proxies to the internal ports, which is why their
-`DATABASE_URL` carries `sslmode=require` and `REDIS_URL` uses `rediss://`. The
-wildcard record above
-covers all three when `HOSTNAME` is the zone apex. Otherwise add those records
-too.
+The sender runs on the host network, which has no Docker DNS, so it reaches
+`pg.<HOSTNAME>` and `redis.<HOSTNAME>` over the-box's Layer 4 SNI routes on
+`:443`. Caddy terminates TLS there and proxies to the internal ports, which is
+why its `DATABASE_URL` carries `sslmode=require` and its `REDIS_URL` uses
+`rediss://`. The wildcard record above covers both when `HOSTNAME` is the zone
+apex. Otherwise add those records too. Every other container, including the
+worker, stays on the bridge and uses Docker DNS.
 
 ## Step 4: Add the OAuth credentials
 
@@ -172,14 +175,16 @@ CI builds and pushes the image to ghcr.io, then the-box deploys via SSH.
 
 ```bash
 curl https://relay.example.com/health/
-curl https://rspamd.relay.example.com/ping
 openssl s_client -connect smtp1.relay.example.com:587 -starttls smtp
 dig MX example.com @dns.example.com
+dig +short pg.relay.example.com
+dig +short redis.relay.example.com
 ```
 
-`/ping` is the same URI the deployment's own health check uses, so a `200`
-means Caddy reaches the scan pool. The route carries the
-`RELAY_RSPAMD_PASSWORD`, which the scan client sends as a `Password` header.
+The last two must answer: the sender resolves PostgreSQL and Redis through
+them, then Caddy's Layer 4 listener terminates TLS and proxies to the internal
+ports. Spam scans never leave the bridge; the worker reaches rspamd through the
+internal `caddy:11334` route.
 
 ## IP reputation and blacklist rotation
 
@@ -241,9 +246,10 @@ The bucket holds stored mail and is kept unless you set `DELETE_BUCKET=1`. Set
   `networkd-dispatcher`
 - **SMTP refused**: `hcloud server ssh <hostname> docker compose logs msa`
 - **Outgoing delivery failing**: `hcloud server ssh <hostname> docker compose logs sender`
-- **Worker or sender cannot reach PostgreSQL or Redis**: both are reached over
-  Caddy's Layer 4 SNI listener on `:443`, so `dig +short pg.<hostname>` and
-  `dig +short redis.<hostname>` must both answer
+- **Worker or sender cannot reach PostgreSQL or Redis**: only the sender is
+  off the bridge, and it goes through Caddy's Layer 4 SNI listener on `:443`,
+  so `dig +short pg.<hostname>` and `dig +short redis.<hostname>` must both
+  answer
 - **TLS not issuing**: `dig <hostname>` then `hcloud server ssh <hostname> docker compose logs caddy`
 - **S3 access denied**: Verify credentials in `.env.production` match Hetzner
   Console
