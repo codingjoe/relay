@@ -52,7 +52,7 @@ services:
     extends:
       service: web
   dnsdist:
-    image: powerdns/dnsdist-21:2.1.1
+    image: powerdns/dnsdist-21:2.1.2
     depends_on:
       dns:
         condition: service_started
