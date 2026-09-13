@@ -52,7 +52,7 @@ services:
     extends:
       service: web
   dnsdist:
-    image: powerdns/dnsdist-21:2.1.1
+    image: powerdns/dnsdist-21:2.1.2
     depends_on:
       dns:
         condition: service_started
@@ -233,6 +233,10 @@ services:
         limits:
           cpus: "0.5"
           memory: 512m
+  sender:
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
+    extends:
+      service: worker
   web:
     image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
@@ -299,7 +303,7 @@ services:
           memory: 512m
     pull_policy: always
   worker:
-    command: [ "-m", "manage", "threadmill", "worker", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "ingress", "egress", "default", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
     labels: !override
