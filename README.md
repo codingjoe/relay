@@ -205,6 +205,11 @@ scanned. To exercise the whole path, send an EICAR test attachment through
 submission or the MX: it must land held (outbound) or quarantined (inbound)
 with `CLAM_VIRUS` in the stored symbols.
 
+One `clamav-updater` container owns the shared signature volume and runs
+freshclam. The scanning replicas run with `CLAMAV_NO_FRESHCLAMD=true` and start
+only once that database exists, so a cold host downloads the signature set once
+instead of once per replica.
+
 The client asks for a profiled reply, so the check record also keeps the
 duration rspamd measured for the task and, for the messages rspamd chooses
 to profile, the per-symbol breakdown and the share the antivirus took.
