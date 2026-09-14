@@ -1,13 +1,17 @@
+# Local development builds on the debug distroless flavor, so shells work in `docker compose exec`.
+x-development-args: &development-args
+  DISTROLESS_FLAVOR: debug-nonroot
+
 include:
   - path:
       - compose.production.yml
 #      - oci://ghcr.io/codingjoe/the-box:main
+
 services:
   dns:
     build:
       target: development
-      args:
-        DISTROLESS_FLAVOR: debug-nonroot
+      args: *development-args
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,14 +26,12 @@ services:
       - '127.0.0.1:53:53/tcp'
   migration:
     build:
-      args:
-        DISTROLESS_FLAVOR: debug-nonroot
+      args: *development-args
     pull_policy: build
   msa:
     build:
       target: development
-      args:
-        DISTROLESS_FLAVOR: debug-nonroot
+      args: *development-args
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,8 +46,7 @@ services:
   mta:
     build:
       target: development
-      args:
-        DISTROLESS_FLAVOR: debug-nonroot
+      args: *development-args
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,8 +61,7 @@ services:
   sender:
     build:
       target: development
-      args:
-        DISTROLESS_FLAVOR: debug-nonroot
+      args: *development-args
     depends_on:
       postgres:
         condition: service_healthy
@@ -76,8 +76,7 @@ services:
   web:
     build:
       target: development
-      args:
-        DISTROLESS_FLAVOR: debug-nonroot
+      args: *development-args
     volumes:
       - .:/app:cached
     command: [ "-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}" ]
@@ -85,8 +84,7 @@ services:
   worker:
     build:
       target: development
-      args:
-        DISTROLESS_FLAVOR: debug-nonroot
+      args: *development-args
     depends_on:
       postgres:
         condition: service_healthy
