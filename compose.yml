@@ -1,11 +1,17 @@
+# Local development builds on the debug distroless flavor, so shells work in `docker compose exec`.
+x-development-build: &development-build
+  target: development
+  args: &development-args
+    DISTROLESS_FLAVOR: debug-nonroot
+
 include:
   - path:
       - compose.production.yml
 #      - oci://ghcr.io/codingjoe/the-box:main
+
 services:
   dns:
-    build:
-      target: development
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
@@ -19,10 +25,11 @@ services:
       - '127.0.0.1:53:53/udp'
       - '127.0.0.1:53:53/tcp'
   migration:
+    build:
+      args: *development-args
     pull_policy: build
   msa:
-    build:
-      target: development
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,8 +42,7 @@ services:
       RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/local/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
     pull_policy: build
   mta:
-    build:
-      target: development
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,8 +55,7 @@ services:
       RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/local/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
     pull_policy: build
   sender:
-    build:
-      target: development
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,15 +68,13 @@ services:
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery" ]
     pull_policy: build
   web:
-    build:
-      target: development
+    build: *development-build
     volumes:
       - .:/app:cached
     command: [ "-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}" ]
     pull_policy: build
   worker:
-    build:
-      target: development
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
