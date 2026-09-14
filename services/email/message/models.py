@@ -96,6 +96,33 @@ class Message(TimeStamped):
         ],
         help_text=_("rspamd action assigned to the message."),
     )
+    # Values mirror services.email.spam.client.VirusAction. The client is a
+    # shared module that must not import this app, so both sides keep the list.
+    virus_action = models.TextField(
+        _("virus action"),
+        blank=True,
+        choices=[
+            ("clean", _("no virus")),
+            ("infected", _("virus")),
+            ("encrypted", _("encrypted part")),
+            ("macro", _("macro")),
+            ("limits", _("scan limits")),
+        ],
+        help_text=_(
+            "Antivirus verdict derived from the rspamd symbols, empty until a check completes."
+        ),
+    )
+    virus_name = models.TextField(
+        _("virus name"),
+        blank=True,
+        help_text=_("Name of the virus rspamd detected, empty when it found none."),
+    )
+    virus_symbols = models.JSONField(
+        _("virus symbols"),
+        default=dict,
+        blank=True,
+        help_text=_("Antivirus symbols rspamd reported for the message."),
+    )
 
     class Status(models.TextChoices):
         """Base status choices. Subclasses must override and set DEFAULT."""
@@ -181,6 +208,25 @@ class Message(TimeStamped):
                 return "destructive"
             case _:
                 return "outline"
+
+    @property
+    def virus_badge_variant(self) -> str:
+        """Map the antivirus verdict to a badge variant."""
+        match self.virus_action:
+            case "clean":
+                return "success"
+            case "infected":
+                return "destructive"
+            case "encrypted" | "macro" | "limits":
+                return "warning"
+            case _:
+                return "outline"
+
+    @property
+    def virus_display(self) -> str:
+        """Return the antivirus verdict with the virus name when one was found."""
+        label = self.get_virus_action_display()
+        return f"{label}: {self.virus_name}" if self.virus_name else label
 
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
@@ -516,6 +562,28 @@ class SpamCheck(Timing):
         blank=True,
         help_text=_("rspamd score the check returned, or null when the check failed."),
     )
+    scan_ms = models.FloatField(
+        _("scan time"),
+        null=True,
+        blank=True,
+        help_text=_("Milliseconds rspamd measured for the check itself."),
+    )
+    antivirus_ms = models.FloatField(
+        _("antivirus time"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Milliseconds the antivirus took, or null when rspamd did not profile the check."
+        ),
+    )
+    profile_ms = models.JSONField(
+        _("profile"),
+        default=dict,
+        blank=True,
+        help_text=_(
+            "Milliseconds rspamd spent per symbol, empty when it did not profile the check."
+        ),
+    )
 
     class Meta(Timing.Meta):
         verbose_name = _("spam check")
@@ -544,4 +612,5 @@ class SpamCheck(Timing):
             "tls": "",
             "transcript": "",
             "score": self.score,
+            "antivirus": self.antivirus_ms,
         }

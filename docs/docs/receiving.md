@@ -67,7 +67,8 @@ signatures from older senders that use RSA-1024 keys.
 score in the dashboard. A message whose score reaches the reject
 threshold, or whose action is reject, lands as quarantined and never
 reaches your webhook. The same scan checks for malware, so an infected
-message is quarantined too. Scanning happens after relay has answered
+message is quarantined too, and the message detail page names the virus it
+found. Scanning happens after relay has answered
 `250`, so a busy scanner delays the webhook, not acceptance.
 
 **Received header.** relay stamps every accepted message with a

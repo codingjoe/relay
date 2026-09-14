@@ -336,6 +336,9 @@
         - '1.0'
     spam_score: 0.5
     spam_action: no action
+    virus_action: clean
+    virus_name: ''
+    virus_symbols: {}
     status: sent
     domain: 1
 - model: message.message
@@ -385,6 +388,9 @@
         - '1.0'
     spam_score: -1.2
     spam_action: no action
+    virus_action: clean
+    virus_name: ''
+    virus_symbols: {}
     status: sent
     domain: 1
 - model: message.message
@@ -434,6 +440,9 @@
         - '1.0'
     spam_score: 0.0
     spam_action: no action
+    virus_action: clean
+    virus_name: ''
+    virus_symbols: {}
     status: sent
     domain: 1
 - model: msa.outgoingmessage
@@ -1034,6 +1043,9 @@
     raw_body: ''
     spam_score: 0.8
     spam_action: no action
+    virus_action: clean
+    virus_name: ''
+    virus_symbols: {}
     status: pending
     domain: 1
 - model: msa.outgoingmessage
@@ -1090,6 +1102,9 @@
     raw_body: ''
     spam_score: 1.5
     spam_action: no action
+    virus_action: clean
+    virus_name: ''
+    virus_symbols: {}
     status: bounced
     domain: 1
 - model: msa.outgoingmessage
@@ -1146,6 +1161,9 @@
     raw_body: ''
     spam_score: -0.5
     spam_action: no action
+    virus_action: clean
+    virus_name: ''
+    virus_symbols: {}
     status: failed
     domain: 2
 - model: msa.outgoingmessage
@@ -1298,6 +1316,12 @@
     started_at: '2026-08-22 09:14:26.5+00:00'
     finished_at: '2026-08-22 09:14:27+00:00'
     score: 0.5
+    scan_ms: 412.3
+    antivirus_ms: 42.7
+    profile_ms:
+      CLAM_VIRUS: 42.7
+      SPF_ALLOW: 3.1
+      DKIM_TRACE: 12.4
 - model: message.spamcheck
   pk: 019fbe8f-5ee0-7a10-9a41-c8f012345682
   fields:
@@ -1307,6 +1331,9 @@
     started_at: '2026-08-24 11:30:25.5+00:00'
     finished_at: '2026-08-24 11:30:26+00:00'
     score: -1.2
+    scan_ms: 388.5
+    antivirus_ms: null
+    profile_ms: {}
 - model: message.spamcheck
   pk: 019fbe8f-5ee2-7a10-9a41-c8f012345684
   fields:
@@ -1316,6 +1343,12 @@
     started_at: '2026-08-25 15:45:27.5+00:00'
     finished_at: '2026-08-25 15:45:28+00:00'
     score: 0.0
+    scan_ms: 431.0
+    antivirus_ms: 45.9
+    profile_ms:
+      CLAM_VIRUS: 45.9
+      SPF_ALLOW: 2.8
+      DKIM_TRACE: 14.1
 - model: message.spamcheck
   pk: 019fbe8f-5f6d-7a10-9a41-c8f012345686
   fields:
@@ -1325,6 +1358,9 @@
     started_at: '2026-08-26 08:05:25.5+00:00'
     finished_at: '2026-08-26 08:05:26+00:00'
     score: 0.8
+    scan_ms: 455.2
+    antivirus_ms: null
+    profile_ms: {}
 - model: message.spamcheck
   pk: 019fbe8f-5f7d-7a10-9a41-c8f012345688
   fields:
@@ -1334,6 +1370,9 @@
     started_at: '2026-08-23 13:20:55.5+00:00'
     finished_at: '2026-08-23 13:20:56+00:00'
     score: 1.5
+    scan_ms: 397.8
+    antivirus_ms: null
+    profile_ms: {}
 - model: message.spamcheck
   pk: 019fbe8f-5f8d-7a10-9a41-c8f01234568a
   fields:
@@ -1343,6 +1382,12 @@
     started_at: '2026-08-27 17:10:53.5+00:00'
     finished_at: '2026-08-27 17:10:54+00:00'
     score: -0.5
+    scan_ms: 468.9
+    antivirus_ms: 39.4
+    profile_ms:
+      CLAM_VIRUS: 39.4
+      SPF_ALLOW: 4.6
+      DKIM_TRACE: 11.2
 - model: message.message
   pk: 019fbe8f-602c-73e0-9a10-6d5d082a0001
   fields:
@@ -1571,3 +1616,78 @@
     tls_mode: starttls
     started_at: *id007
     finished_at: *id007
+- model: message.message
+  pk: 019fbe8f-61a0-7a10-9a41-c8f01234568c
+  fields:
+    modified_at: 2026-09-01 10:15:01+00:00
+    created_at: &id008 2026-09-01 10:15:00+00:00
+    org: 1
+    content_type:
+      - mta
+      - incomingmessage
+    mail_from: invoices@example.net
+    rcpt_to: billing@acme.com
+    subject: Invoice 2026-09 overdue
+    message_id: <invoice-2026-09@example.net>
+    headers:
+      - - Authentication-Results
+        - mail.relay.acme.com; arc=none; spf=pass smtp.mailfrom=example.net; dkim=none; dmarc=pass (dis=none) header.from=example.net
+      - - From
+        - invoices@example.net
+      - - To
+        - billing@acme.com
+      - - Message-ID
+        - <invoice-2026-09@example.net>
+      - - Subject
+        - Invoice 2026-09 overdue
+      - - Date
+        - Tue, 01 Sep 2026 10:14:58 +0000
+      - - Content-Type
+        - multipart/mixed; boundary="----=_Part_7_1788254098"
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
+    raw_body: ''
+    spam_score: 10.0
+    spam_action: reject
+    virus_action: infected
+    virus_name: Eicar-Test-Signature
+    virus_symbols:
+      CLAM_VIRUS:
+        score: 10.0
+        options:
+          - Eicar-Test-Signature
+    status: quarantined
+    domain: 1
+- model: mta.incomingmessage
+  pk: 019fbe8f-61a0-7a10-9a41-c8f01234568c
+  fields:
+    receiving_domain: acme.com
+- model: message.spamcheck
+  pk: 019fbe8f-61a1-7a10-9a41-c8f01234568e
+  fields:
+    modified_at: '2026-09-01 10:15:01+00:00'
+    created_at: '2026-09-01 10:15:01+00:00'
+    message: 019fbe8f-61a0-7a10-9a41-c8f01234568c
+    started_at: '2026-09-01 10:15:00+00:00'
+    finished_at: '2026-09-01 10:15:01+00:00'
+    score: 10.0
+    scan_ms: 812.4
+    antivirus_ms: 703.6
+    profile_ms:
+      CLAM_VIRUS: 703.6
+      SPF_ALLOW: 3.4
+      DKIM_TRACE: 8.9
+- model: message.transmission
+  pk: 4c8f1d67-9a25-4b1e-8f30-6d2c7e5a9b41
+  fields:
+    modified_at: *id008
+    created_at: *id008
+    message: 019fbe8f-61a0-7a10-9a41-c8f01234568c
+    status: received
+    code: 250
+    output: 250 OK
+    tls_mode: starttls
+    started_at: *id008
+    finished_at: *id008

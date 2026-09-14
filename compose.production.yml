@@ -343,6 +343,7 @@ configs:
         score = 10.0;
         action = "reject";
         retransmits = 0;
+        log_clean = true; # a clean scan adds no symbol, so the log line is the only proof
         # A limits trip is deterministic, so it gets its own symbol, not a failure.
         patterns_fail = {
           CLAM_VIRUS_LIMITS = "Limits Exceeded";
