@@ -30,11 +30,25 @@
           data-tooltip='{% translate "The rspamd verdict and score assigned to this message." %}'
           href="{% url 'docs:detail' 'message-statuses' %}"
         >
-          <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
+          <i data-lucide="shield-alert" class="size-3.5" aria-hidden="true"></i>
           {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
             ({{ message.spam_score }}){% endif %}
         </a>
       {% endif %}
+      <a
+        class="badge"
+        data-size="sm"
+        data-variant="{{ message.virus_badge_variant }}"
+        data-tooltip='{% translate "Whether rspamd scanned this message for viruses." %}'
+        href="{% url 'docs:detail' 'message-statuses' %}"
+      >
+        <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
+        {% if message.virus_action %}
+          {{ message.virus_display }}
+        {% else %}
+          {% translate "not scanned" %}
+        {% endif %}
+      </a>
     </div>
   </header>
 

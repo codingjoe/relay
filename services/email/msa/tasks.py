@@ -283,14 +283,29 @@ def check_outgoing_spam(message_pk, client_ip):
     with SpamCheck(message=message) as timer:
         spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
         timer.score = spam.score
+        timer.scan_ms = spam.scan_ms
+        timer.antivirus_ms = spam.antivirus_ms
+        timer.profile_ms = spam.profile_ms
     is_spam = (
         spam.action == SpamAction.REJECT
         or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
     )
     message.spam_score = spam.score
     message.spam_action = spam.action
+    message.virus_action = spam.virus_action
+    message.virus_name = spam.virus_name
+    message.virus_symbols = spam.virus_symbols
     if is_spam:
         message.status = OutgoingMessage.Status.HELD
-    message.save(update_fields=["spam_score", "spam_action", "status"])
+    message.save(
+        update_fields=[
+            "spam_score",
+            "spam_action",
+            "virus_action",
+            "virus_name",
+            "virus_symbols",
+            "status",
+        ]
+    )
     if not is_spam:
         deliver_message.enqueue(message_id=str(message.pk))
