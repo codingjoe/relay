@@ -223,25 +223,20 @@ class TestForwardPostmasterMessage:
             in mail.outbox[0].body
         )
 
-    def test_forward_postmaster_message__body_links_to_stored_message(
-        self, org, settings
-    ):
-        settings.DEBUG = False
-        settings.TEST = True
+    def test_forward_postmaster_message__body_links_to_stored_message(self, org):
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
         assert (
-            f"http://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
+            f"{settings.RELAY_PLATFORM_BASE_URL}{message.get_absolute_url()}"
             in mail.outbox[0].body
         )
 
     def test_forward_postmaster_message__body_links_over_https_in_production(
         self, org, settings
     ):
-        settings.DEBUG = False
-        settings.TEST = False
+        settings.RELAY_PLATFORM_BASE_URL = f"https://{settings.RELAY_PLATFORM_DOMAIN}"
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))

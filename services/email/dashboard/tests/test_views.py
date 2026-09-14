@@ -1,4 +1,5 @@
 import pytest
+from django.urls import reverse
 
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcRecord, DmarcReport
@@ -37,9 +38,19 @@ class TestDashboardView:
         assert response.context["total_domains"] == 3
         assert response.context["total_messages"] == 1
 
-    def test_get__context_has_domains(self, admin_client, org):
+    def test_get__renders_dialog_with_header_trigger(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/")
-        assert "domains" in response.context
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="dlg-test-email"' in content
+        assert (
+            f'action="{reverse("msa:message-test", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert (
+            "getElementById('dlg-test-email').showModal()"
+            in content.split('id="dlg-test-email"', 1)[0]
+        )
 
     def test_get__counts_scoped_to_org(self, admin_client, org, write_org, user):
         Domain.objects.create(name="other.com", org=write_org)

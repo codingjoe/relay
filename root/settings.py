@@ -277,6 +277,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Relay config
 
 RELAY_PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
+RELAY_PLATFORM_BASE_URL = (
+    f"{'http' if DEBUG or TEST else 'https'}://{RELAY_PLATFORM_DOMAIN}"
+)
 
 RELAY_SENDER_SUBDOMAIN_PREFIX = env(
     "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"

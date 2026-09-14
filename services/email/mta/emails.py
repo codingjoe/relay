@@ -27,11 +27,7 @@ class PostmasterForwardEmail(TemplateEmail):
         self.incoming_message = message
         super().__init__(
             language=language or settings.LANGUAGE_CODE,
-            base_url=base_url
-            or (
-                f"{'http' if settings.DEBUG or settings.TEST else 'https'}"
-                f"://{settings.RELAY_PLATFORM_DOMAIN}"
-            ),
+            base_url=base_url or settings.RELAY_PLATFORM_BASE_URL,
             reply_to=[self.sender] if self.sender else None,
             **kwargs,
         )
