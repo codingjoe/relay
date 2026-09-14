@@ -354,7 +354,9 @@ class Domain(TimeStamped):
 
     @property
     def spf_record(self):
-        return "v=spf1 a mx ~all"
+        """Return the SPF record with one ip4 term per relay sending address."""
+        terms = [f"ip4:{address}" for address in settings.RELAY_DNS_SMTP_IPS]
+        return " ".join(["v=spf1", *terms, "-all"])
 
     @property
     def root_spf_record(self):

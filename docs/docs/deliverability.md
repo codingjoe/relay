@@ -22,7 +22,7 @@ one:
 | Check         | Where relay looks                  | What it wants to see                                 |
 | ------------- | ---------------------------------- | ---------------------------------------------------- |
 | NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
-| SPF           | root and sender subdomain TEXT     | a record that authorizes the relay sender host       |
+| SPF           | root and sender subdomain TXT      | a record that authorizes each relay sending IP       |
 | DKIM          | two CNAME records                  | `{selector}._domainkey` pointing into the relay zone |
 | DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
 | MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
