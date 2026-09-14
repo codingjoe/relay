@@ -82,22 +82,18 @@ class SpamResult:
             action = SpamAction(data.get("action", "no action"))
         except ValueError:
             action = SpamAction.NO_ACTION
-        # rspamd profiles a sample of tasks, so the map is usually empty.
+        # rspamd profiles a sample of tasks, so the map is usually empty. A
+        # reported zero is a cached scan, so it counts as measured.
         profile_ms = {
             name: round(float(timing), 1)
             for name, timing in (data.get("profile") or {}).items()
         }
-        antivirus_ms = (
-            round(
-                sum(
-                    timing
-                    for name, timing in profile_ms.items()
-                    if name.startswith(ANTIVIRUS_SYMBOL_PREFIX)
-                ),
-                1,
-            )
-            or None
-        )
+        antivirus_timings = [
+            timing
+            for name, timing in profile_ms.items()
+            if name.startswith(ANTIVIRUS_SYMBOL_PREFIX)
+        ]
+        antivirus_ms = round(sum(antivirus_timings), 1) if antivirus_timings else None
         time_real_secs = data.get("time_real")
         scan_ms = (
             None if time_real_secs is None else round(float(time_real_secs) * 1000, 1)

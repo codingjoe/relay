@@ -39,10 +39,10 @@
         if (event.antivirus == null) {
           return "";
         }
-        const share =
-          event.end > event.start
-            ? ` (${Math.round((event.antivirus / (event.end - event.start)) * 100)}%)`
-            : "";
+        const span = event.end - event.start;
+        const percent =
+          span > 0 ? Math.min(Math.round((event.antivirus / span) * 100), 100) : 0;
+        const share = span > 0 ? ` (${percent}%)` : "";
         return `{{ antivirus_label|escapejs }}: ${formatDuration(event.antivirus)}${share}`;
       };
       const tooltipHtml = (event) =>

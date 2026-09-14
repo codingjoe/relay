@@ -101,11 +101,11 @@ privacy</a> for what that means.
 Before delivery, rspamd scores each outgoing message and scans it for
 malware. A message whose score reaches the hold threshold, or that the scan
 rejects, stays HELD and does not reach the recipient. If the scanner cannot
-run, the message stays pending instead of being held. You see the score, the
-spam action, the malware verdict, and the message content in the dashboard,
-so you can fix the
-template, not fight the queue. This gate catches compromised credentials,
-broken templates, and spamtraps before they hurt your domain.
+run, the message stays pending instead of being held. You see the score,
+the spam action, the malware verdict, and the message content in the
+dashboard, so you can fix the template, not fight the queue. This gate
+catches compromised credentials, broken templates, and spamtraps before
+they hurt your domain.
 
 ## When delivery fails
 

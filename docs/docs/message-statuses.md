@@ -119,11 +119,10 @@ and gray when the check failed. When the scanner measured the malware scan,
 the check bar also carries a shaded segment for it. The width of that
 segment is the share of the check the scan took, never a place inside the
 check, because the scanner reports how long the scan ran and not when it
-started. Hover a bar to
-see its duration in milliseconds, its exact start and end times, the IP
-path, and the negotiated TLS settings. The spam check bar adds the spam
-score and the share the malware scan took. Click a bar to open the full
-SMTP transcript.
+started. Hover a bar to see its duration in milliseconds, its exact start
+and end times, the IP path, and the negotiated TLS settings. The spam check
+bar adds the spam score and the share the malware scan took. Click a bar to
+open the full SMTP transcript.
 
 The same applies for inbound messages: one delivery record per webhook POST
 with the URL, response code, and a response excerpt.
