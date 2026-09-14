@@ -1,3 +1,5 @@
+ARG DISTROLESS_FLAVOR=nonroot
+
 FROM node:26-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
@@ -33,7 +35,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-editable
 
-FROM gcr.io/distroless/cc:debug AS development
+FROM gcr.io/distroless/cc:${DISTROLESS_FLAVOR} AS development
 
 # Copy binary dependencies
 COPY --from=build /dpkg /

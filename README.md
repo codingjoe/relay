@@ -177,6 +177,43 @@ takes from the first non-empty queue, so a full queue always wins over the
 queues after it. Keep the mail pipeline queues ahead of `default`, which
 carries report parsing that can back up without delaying mail.
 
+### Spam and virus scanning
+
+The egress and ingress workers scan every stored message with rspamd before
+delivery or webhook dispatch, and record the score, the action, and the
+antivirus verdict on the message.
+
+| Variable                    | Default               | Description                                                     |
+| --------------------------- | --------------------- | --------------------------------------------------------------- |
+| `RELAY_RSPAMD_URL`          | `http://rspamd:11334` | Controller address, the password may ride along as URL userinfo |
+| `RELAY_RSPAMD_PASSWORD`     | _(from the URL)_      | Controller password                                             |
+| `RELAY_RSPAMD_HOLD_SCORE`   | `6.0`                 | Outbound score at which a message is held                       |
+| `RELAY_RSPAMD_REJECT_SCORE` | `15.0`                | Inbound score at which a message is quarantined                 |
+
+ClamAV reports one symbol per outcome, and the client maps them: `CLAM_VIRUS`
+with the virus name for a detection, `CLAM_VIRUS_ENCRYPTED` and
+`CLAM_VIRUS_MACRO` for content the scanner cannot read, `CLAM_VIRUS_LIMITS`
+for a part that exceeded the scanner's working limits, and `CLAM_VIRUS_FAIL`
+when clamd did not answer, which retries the scan instead of storing a
+verdict.
+
+A clean scan carries no symbol at all, so rspamd never confirms that
+ClamAV ran. The `clamav` block of `compose.production.yml` sets
+`log_clean`, which logs every part ClamAV reports clean, and the controller
+statistics behind `RELAY_RSPAMD_PASSWORD` count the messages rspamd
+scanned. To exercise the whole path, send an EICAR test attachment through
+submission or the MX: it must land held (outbound) or quarantined (inbound)
+with `CLAM_VIRUS` in the stored symbols.
+
+The client asks for a profiled reply, so the check record also keeps the
+duration rspamd measured for the task and, for the messages rspamd chooses
+to profile, the per-symbol breakdown and the share the antivirus took.
+rspamd profiles a sample rather than every task: the first task per worker
+process per minute, about a percent of the rest, anything of 2 MiB or more,
+and rules that have already run slow. The antivirus timing is therefore
+present on a minority of checks, and the message timeline shades the share
+of the check it took whenever it is.
+
 ### Feedback loop (FBL) reports
 
 FBL complaints arrive at `RELAY_FBL_ADDRESS` and count only for senders

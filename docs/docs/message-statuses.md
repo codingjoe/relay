@@ -115,10 +115,14 @@ retries. Green bars mark successful attempts, red bars mark failures, and
 yellow bars mark retries. Blue bars mark the reception and submission legs.
 The spam check bar takes the color of its verdict: green when the message
 is clean, yellow when rspamd holds or rewrites it, red when it rejects it,
-and gray when the check failed. Hover a bar to
-see its duration in milliseconds, its exact start and end times, the IP
-path, and the negotiated TLS settings. Click a bar to open the full SMTP
-transcript.
+and gray when the check failed. When the scanner measured the malware scan,
+the check bar also carries a shaded segment for it. The width of that
+segment is the share of the check the scan took, never a place inside the
+check, because the scanner reports how long the scan ran and not when it
+started. Hover a bar to see its duration in milliseconds, its exact start
+and end times, the IP path, and the negotiated TLS settings. The spam check
+bar adds the spam score and the share the malware scan took. Click a bar to
+open the full SMTP transcript.
 
 The same applies for inbound messages: one delivery record per webhook POST
 with the URL, response code, and a response excerpt.
@@ -133,6 +137,28 @@ with the URL, response code, and a response excerpt.
 - The message detail page shows the status next to the transcripts and
   delivery records.
 - Filters let you watch only failed or quarantined traffic.
+
+## The antivirus badge
+
+The message detail page carries a second badge for the malware scan that
+runs on every message alongside the spam score:
+
+| Badge          | Meaning                                                                      |
+| -------------- | ---------------------------------------------------------------------------- |
+| no virus       | The scan ran and found nothing                                               |
+| virus: name    | The scan found a virus, and the badge names it                               |
+| encrypted part | The scan could not read a password-protected attachment                      |
+| macro          | The scan could not inspect an attachment that carries Office macros          |
+| scan limits    | The attachment exceeded what the scanner inspects, so part of it went unseen |
+| not scanned    | No scan has completed for the message yet, or the scan is still retrying     |
+
+An encrypted part, macros, and exceeded limits all hide content from the
+scanner, so relay treats them as a detection and holds or quarantines the
+message. The badge stays on not scanned until a scan completes, so a message
+that is still queued and a message whose scan keeps failing both show that
+state. The scanner reports only what it finds, so no virus means the scan
+finished without a finding, and it does not promise that every attachment
+was readable.
 
 ## Related pages
 

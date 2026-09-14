@@ -1162,7 +1162,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-environ", specifier = ">=0.14" },
     { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.5.1" },
-    { name = "django-letter", specifier = ">=0.1.0" },
+    { name = "django-letter", specifier = ">=0.1" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
     { name = "dnslib", specifier = ">=0.9.26" },

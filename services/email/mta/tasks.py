@@ -269,13 +269,25 @@ def check_incoming_spam(message_pk, client_ip):
     with SpamCheck(message=message) as check:
         spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
         check.score = spam.score
+        check.scan_ms = spam.scan_ms
+        check.antivirus_ms = spam.antivirus_ms
+        check.profile_ms = spam.profile_ms
     is_spam = (
         spam.action == SpamAction.REJECT
         or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
     )
     message.spam_score = spam.score
     message.spam_action = spam.action
-    update_fields = ["spam_score", "spam_action"]
+    message.virus_action = spam.virus_action
+    message.virus_name = spam.virus_name
+    message.virus_symbols = spam.virus_symbols
+    update_fields = [
+        "spam_score",
+        "spam_action",
+        "virus_action",
+        "virus_name",
+        "virus_symbols",
+    ]
     if is_spam:
         message.status = IncomingMessage.Status.QUARANTINED
         update_fields.append("status")
