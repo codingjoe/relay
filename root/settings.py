@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "django.contrib.humanize",
     # Third-party apps
+    "django_letter",
     "health_check",
     "social_django",
     "storages",

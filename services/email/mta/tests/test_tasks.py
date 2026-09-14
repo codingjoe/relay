@@ -18,6 +18,7 @@ from accounts.models import Membership, Organization
 from domains.models import Domain
 from kms.models import SigningKey
 from services.email.message.models import Transmission
+from services.email.mta.emails import PostmasterForwardEmail
 from services.email.mta.models import (
     IncomingMessage,
     TlsFailure,
@@ -152,6 +153,10 @@ POSTMASTER_RAW_BODY = (
     b"From: author@example.org\r\nSubject: Alert\r\n\r\nSomething happened\r\n"
 )
 RAW_BODY_WITHOUT_SENDER = b"Subject: Alert\r\n\r\nSomething happened\r\n"
+RAW_BODY_WITH_ENCODED_SENDER = (
+    b"From: =?utf-8?q?J=C3=B6rg_M=C3=BCller?= <joerg@example.org>\r\n"
+    b"Subject: Alert\r\n\r\nSomething happened\r\n"
+)
 
 
 def make_postmaster_message(
@@ -292,6 +297,93 @@ class TestForwardPostmasterMessage:
             ["alice@example.com"],
             ["bob@example.com"],
         ]
+
+    def test_forward_postmaster_message__sends_html_alternative(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert [mimetype for _, mimetype in mail.outbox[0].alternatives] == [
+            "text/html"
+        ]
+
+
+@pytest.mark.django_db
+class TestPostmasterForwardEmail:
+    def test_render__html_alternative_names_sender_subject_and_recipient(self, org):
+        message = make_postmaster_message(org)
+        email = PostmasterForwardEmail(message, to=["alice@example.com"])
+
+        email.render()
+
+        assert [mimetype for _, mimetype in email.alternatives] == ["text/html"]
+        html = email.alternatives[0][0]
+        assert ">author@example.org<" in html
+        assert ">Alert<" in html
+        assert ">postmaster@example.com<" in html
+
+    def test_render__links_to_stored_message_in_html_and_body(self, org):
+        message = make_postmaster_message(org)
+        email = PostmasterForwardEmail(message, to=["alice@example.com"])
+
+        email.render()
+
+        detail_url = (
+            f"http://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
+        )
+        assert f'href="{detail_url}"' in email.alternatives[0][0]
+        assert detail_url in email.body
+
+    def test_render_preview__uses_sample_values_without_message(self):
+        email = PostmasterForwardEmail.render_preview()
+
+        assert email.subject == "Fwd: Delivery delayed"
+        assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
+        assert ">sender@example.org<" in email.html
+        assert ">Delivery delayed<" in email.html
+        assert f">postmaster@{settings.RELAY_PLATFORM_DOMAIN}<" in email.html
+        assert (
+            f"http://{settings.RELAY_PLATFORM_DOMAIN}"
+            f"{email.incoming_message.get_absolute_url()}" in email.body
+        )
+        assert not IncomingMessage.objects.exists()
+
+    def test_render_preview__uses_given_message(self, org):
+        message = make_postmaster_message(org)
+
+        email = PostmasterForwardEmail.render_preview(message=message)
+
+        assert email.subject == "Fwd: Alert"
+        assert ">author@example.org<" in email.html
+        assert "Delivery delayed" not in email.html
+
+    def test_render_preview__language_argument_wins(self, org):
+        message = make_postmaster_message(org)
+
+        email = PostmasterForwardEmail.render_preview(message=message, language="de")
+
+        assert email.language == "de"
+        assert '<html lang="de">' in email.html
+
+    def test_init__base_url_argument_wins(self, org):
+        message = make_postmaster_message(org)
+
+        email = PostmasterForwardEmail(
+            message, to=["alice@example.com"], base_url="https://mail.example.org"
+        )
+        email.render()
+
+        assert (
+            f'href="https://mail.example.org{message.get_absolute_url()}"'
+            in email.alternatives[0][0]
+        )
+
+    def test_init__decodes_encoded_from_header(self, org):
+        message = make_postmaster_message(org, raw_body=RAW_BODY_WITH_ENCODED_SENDER)
+
+        email = PostmasterForwardEmail(message, to=["alice@example.com"])
+
+        assert email.reply_to == ["Jörg Müller <joerg@example.org>"]
 
 
 def make_incoming_message(

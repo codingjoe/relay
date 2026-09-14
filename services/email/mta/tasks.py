@@ -9,17 +9,16 @@ from dataclasses import dataclass, field
 import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.core.mail import EmailMessage, mailers
+from django.core.mail import mailers
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
-from abstract.email_utils import decode_header_value
 from services.email.message.models import Transmission
 from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
 
+from .emails import PostmasterForwardEmail
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
 logger = logging.getLogger(__name__)
@@ -247,27 +246,9 @@ def forward_postmaster_message(message_pk):
     """
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.exclude(user__email="").select_related("user")
-    author = (
-        decode_header_value(message.parsed_email().get("From", "")) or message.mail_from
-    )
-    scheme = "http" if settings.DEBUG or settings.TEST else "https"
-    detail_url = (
-        f"{scheme}://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
-    )
-    subject = f"Fwd: {message.subject}"
-    body = _("A message sent to %(recipient)s was forwarded to your organization.") % {
-        "recipient": message.rcpt_to
-    }
-    body += f"\n\n{_('View the full message in the relay dashboard:')}\n{detail_url}"
     mailers["default"].send_messages(
         [
-            EmailMessage(
-                subject=subject,
-                body=body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[membership.user.email],
-                reply_to=[author] if author else None,
-            )
+            PostmasterForwardEmail(message, to=[membership.user.email])
             for membership in memberships
         ]
     )
