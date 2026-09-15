@@ -1,68 +1,10 @@
 include:
+  - oci://ghcr.io/codingjoe/the-box:main
   - oci://ghcr.io/codingjoe/the-box-postgres:main
   - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
   caddy:
-    image: ghcr.io/codingjoe/the-box-caddy:main
-    container_name: caddy
-    depends_on:
-      - caddy-redis
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/localtime:/etc/localtime:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    ports:
-      - '0.0.0.0:25:25'
-      - '0.0.0.0:80:80'
-      - '0.0.0.0:443:443'
-      - '0.0.0.0:443:443/udp'
-      - '0.0.0.0:465:465'
-      - '0.0.0.0:587:587'
-    networks:
-      - caddy-wan
-      - caddy-cache
-    command: [ "docker-proxy", "--caddyfile-path", "/etc/caddy/Caddyfile" ]
-    restart: unless-stopped
-    healthcheck:
-      test: caddy validate --config /etc/caddy/Caddyfile
-    labels:
-      - "dev.dozzle.group=the-box"
-      - "dev.dozzle.icon=caddy"
-    cap_add:
-      - NET_ADMIN
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 256m
-    memswap_limit: 512m
-    # relay owns the Box host stack, so every deploy refreshes these images.
-    pull_policy: always
-  caddy-redis:
-    image: redis:8.10.1-alpine
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - caddy_redis:/data
-    networks:
-      - caddy-cache
-    command: [ "redis-server", "--maxmemory", "96mb", "--maxmemory-policy", "noeviction" ]
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 10s
-    labels:
-      - "dev.dozzle.group=the-box"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 128m
-    memswap_limit: 256m
-    pull_policy: always
+    pull_policy: always # the Box publishes only a rolling `main` tag
   clamav:
     image: clamav/clamav:1.5.4_base-debian13-slim
     depends_on:
@@ -158,35 +100,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 128m
-  dozzle:
-    image: amir20/dozzle:v11.0.1
-    container_name: dozzle
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      DOZZLE_ENABLE_ACTIONS: true
-      DOZZLE_ENABLE_SHELL: true
-      DOZZLE_ENABLE_MCP: true
-    ports:
-      - '127.0.0.1:8080:8080'
-    networks:
-      - dozzle
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "/dozzle", "healthcheck" ]
-      interval: 5s
-      retries: 5
-      start_period: 5s
-    labels:
-      - "dev.dozzle.group=the-box"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 128m
-    memswap_limit: 256m
-    pull_policy: always
   migration:
     depends_on: !override
       postgres:
@@ -410,29 +323,14 @@ services:
     extends:
       service: web
 networks:
-  caddy-cache:
-    name: caddy-cache
-    internal: true
-    external: false
-  caddy-wan:
-    name: caddy-wan
-    internal: false
   dnsdist:
     internal: true
   dnsdist-wan:
-  dozzle:
-    name: dozzle
-    internal: false
 volumes:
-  # Caddy's volumes predate the move into relay. Keeping their names adopts the
-  # data that already exists on the host, above all the ACME certificates in
-  # `caddy_data`.
-  caddy_config:
-    name: the-box_caddy_config
+  # Caddy's ACME certificates predate the move into relay. Keeping the volume
+  # name adopts the certificates the host already issued.
   caddy_data:
     name: the-box_caddy_data
-  caddy_redis:
-    name: the-box_caddy_redis
   clamav:
   redis-tasks:
 configs:
