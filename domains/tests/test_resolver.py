@@ -208,7 +208,8 @@ class TestResolve:
             settings.RELAY_DNS_NS_NAMESERVERS
         )
 
-    def test_resolve_records__spf_txt(self):
+    def test_resolve_records__spf_txt(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10", "203.0.113.11"]
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve_records(
@@ -216,7 +217,19 @@ class TestResolve:
         )
         assert len(records) == 1
         txt_data = b"".join(records[0].rdata.data)
-        assert b"v=spf1" in txt_data
+        assert txt_data == b"v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
+
+    def test_resolve_records__spf_txt_splits_long_pool(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = ["198.51.100.1"] * 20
+        org = Organization.objects.create(slug="o")
+        Domain.objects.create(name="example.com", org=org)
+        records = DNSResolver().resolve_records(
+            DNSLabel("mail.relay.example.com"), QTYPE.TXT
+        )
+        assert len(records[0].rdata.data) > 1
+        txt_data = b"".join(records[0].rdata.data)
+        assert txt_data.startswith(b"v=spf1 ip4:198.51.100.1")
+        assert txt_data.endswith(b"-all")
 
     def test_resolve_records__dmarc_txt_managed_domain(self):
         Organization.objects.create(slug="acme")

@@ -42,7 +42,7 @@ The body is flat JSON, and the raw message body is never inlined:
   "rfc822_message_id": "<ab12@example.net>",
   "received_with_tls": true,
   "receiving_domain": "app.acme.com",
-  "body_url": "https://storage.relays.to/msg-0199....eml",
+  "body_url": "https://storage.relays.to/msg-0199....eml?signature=...",
   "spam_score": 1.5,
   "spam_action": "no action",
   "received_at": "2026-08-29T09:41:18Z"
@@ -50,7 +50,7 @@ The body is flat JSON, and the raw message body is never inlined:
 ```
 
 `message_id` is the relay message id. `spam_score` and `spam_action` carry
-the rspamd result. Test deliveries (from the dashboard button) use type
+the scan result. Test deliveries (from the dashboard button) use type
 `email.test`, with most fields empty, so you can build your endpoint before
 real mail arrives.
 

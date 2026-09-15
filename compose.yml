@@ -7,7 +7,6 @@ x-development-build: &development-build
 include:
   - path:
       - compose.production.yml
-#      - oci://ghcr.io/codingjoe/the-box:main
 
 services:
   dns:

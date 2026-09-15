@@ -24,7 +24,7 @@ stateDiagram-v2
     [*] --> pending : submission accepted over TLS
     [*] --> suppressed : recipient on the suppression list
 
-    pending --> held : rspamd score reaches the hold threshold or malware is found
+    pending --> held : the spam score reaches the hold threshold or malware is found
     pending --> sent : delivery completed
     pending --> bounced : permanent rejection (5xx)
     pending --> failed : no MX relayed or transport error
@@ -43,7 +43,7 @@ stateDiagram-v2
 | sent       | At least one recipient MX host accepted the message after STARTTLS                        | Final state, the transmission records keep the SMTP transcript |
 | bounced    | A recipient server answered with a permanent 5xx rejection                                | Final state, relay suppresses the address automatically        |
 | failed     | No MX records, every MX host failed, or a transport or storage error stopped the pipeline | Final state, the last transcript explains why                  |
-| held       | rspamd rejects the action, the score reaches the hold threshold, or malware is found      | Final state until a human sees the dashboard                   |
+| held       | The scan rejects the action, the score reaches the hold threshold, or malware is found    | Final state until a human sees the dashboard                   |
 
 Notes on reading the diagram:
 
@@ -65,7 +65,7 @@ stateDiagram-v2
     [*] --> received : accepted without a DMARC disposition
     [*] --> quarantined : accepted with a DMARC quarantine disposition
 
-    received --> quarantined : rspamd score reaches the reject threshold or malware is found
+    received --> quarantined : the spam score reaches the reject threshold or malware is found
     received --> dropped : billing inactive or no matching webhook
     received --> webhook_sent : a matching webhook answered 2xx
     received --> webhook_failed : webhook retries exhausted without success
@@ -114,7 +114,7 @@ gaps between bars show how long the message waited in the queue or between
 retries. Green bars mark successful attempts, red bars mark failures, and
 yellow bars mark retries. Blue bars mark the reception and submission legs.
 The spam check bar takes the color of its verdict: green when the message
-is clean, yellow when rspamd holds or rewrites it, red when it rejects it,
+is clean, yellow when the scan holds or rewrites it, red when it rejects it,
 and gray when the check failed. When the scanner measured the malware scan,
 the check bar also carries a shaded segment for it. The width of that
 segment is the share of the check the scan took, never a place inside the
