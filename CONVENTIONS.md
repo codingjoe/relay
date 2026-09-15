@@ -90,9 +90,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   in one line rather than a paragraph.
 - Prefer a trailing annotation on an unexpected literal to a block above it,
   for example `"40M" # above the 2**25 SMTP DATA limit`.
-- Never make a comment the first line inside a mapping in a Compose file.
-  `dclint --fix` drops it, so the next lint run silently deletes the note.
-  Put it above a later key instead.
 
 ## Docstrings
 
