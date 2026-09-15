@@ -50,7 +50,7 @@ The body is flat JSON, and the raw message body is never inlined:
 ```
 
 `message_id` is the relay message id. `spam_score` and `spam_action` carry
-the rspamd result. Test deliveries (from the dashboard button) use type
+the scan result. Test deliveries (from the dashboard button) use type
 `email.test`, with most fields empty, so you can build your endpoint before
 real mail arrives.
 
