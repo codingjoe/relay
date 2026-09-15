@@ -12,8 +12,7 @@ services:
     # CLAMD_CONF_* overrides, see
     # https://github.com/Cisco-Talos/clamav-docker/blob/main/clamav/README-debian.md
     environment:
-      # Only clamav-updater pulls signatures, so the replicas never race each
-      # other over the shared database volume.
+      # clamav-updater owns the shared database volume
       CLAMAV_NO_FRESHCLAMD: "true"
       CLAMD_CONF_ConcurrentDatabaseReload: "no"
       CLAMD_CONF_AlertExceedsMax: "yes"
