@@ -210,6 +210,10 @@ CACHES = {"default": env.cache("REDIS_URL", default="locmemcache://")}
 
 REDIS_URL = env("REDIS_URL", default="redis:///")
 
+# Queued work must not share an instance with the cache: acquire.lua drops a task
+# whose hash was evicted, without a result and without an error.
+TASK_REDIS_URL = env("TASK_REDIS_URL", default=REDIS_URL)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators
@@ -393,7 +397,7 @@ else:
         "default": {
             "BACKEND": "threadmill.backends.redis.RedisTaskBackend",
             "QUEUES": TASK_QUEUES,
-            "REDIS_URL": REDIS_URL,
+            "REDIS_URL": TASK_REDIS_URL,
         },
     }
 
