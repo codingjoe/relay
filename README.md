@@ -106,12 +106,15 @@ flowchart TD
         mail_sender[Sender Threadmill]
         rspamd[rspamd :11334, 2 replicas]
         clamav[clamav :3310]
-        minio[MinIO S3 :9000]
     end
 
     subgraph data[data services]
         pg[PostgreSQL 18+]
         redis[Redis]
+    end
+
+    subgraph storage[object storage]
+        s3[S3-compatible bucket]
     end
 
     subgraph dns[dnsdist network]
@@ -135,11 +138,11 @@ flowchart TD
     rspamd --> clamav
     web --> pg
     web --> redis
-    web --> minio
+    web --> s3
     msa --> pg
-    msa --> minio
+    msa --> s3
     mta --> pg
-    mta --> minio
+    mta --> s3
     dnsdist --> dns_ns
     sender -->|DNS :53| dnsdist
 ```
