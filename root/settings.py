@@ -210,8 +210,7 @@ CACHES = {"default": env.cache("REDIS_URL", default="locmemcache://")}
 
 REDIS_URL = env("REDIS_URL", default="redis:///")
 
-# Queued work must not share an instance with the cache: acquire.lua drops a task
-# whose hash was evicted, without a result and without an error.
+# Queued work needs a noeviction Redis of its own: acquire.lua drops evicted tasks.
 TASK_REDIS_URL = env("TASK_REDIS_URL", default=REDIS_URL)
 
 
