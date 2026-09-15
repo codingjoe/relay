@@ -3,19 +3,22 @@ include:
   - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
   clamav:
-    image: clamav/clamav:1.5.4-debian13-slim
+    image: clamav/clamav:1.5.4_base-debian13-slim
+    depends_on:
+      clamav-updater:
+        condition: service_completed_successfully
     volumes:
       - clamav:/var/lib/clamav
     # CLAMD_CONF_* overrides, see
     # https://github.com/Cisco-Talos/clamav-docker/blob/main/clamav/README-debian.md
     environment:
+      # clamav-updater owns the shared database volume
+      CLAMAV_NO_FRESHCLAMD: "true"
       CLAMD_CONF_ConcurrentDatabaseReload: "no"
       CLAMD_CONF_AlertExceedsMax: "yes"
       CLAMD_CONF_StreamMaxLength: "40M" # above the 2**25 SMTP DATA limit
-      FRESHCLAM_CONF_TestDatabases: "no"
     networks:
       - app
-      - app-wan # freshclam needs egress for signature updates
     restart: unless-stopped
     labels:
       - dev.dozzle.icon=clam-av
@@ -24,6 +27,21 @@ services:
       resources:
         limits:
           memory: 4g # clamd needs 3-4 GiB
+  # One-shot signature updater, see
+  # https://docs.clamav.net/manual/Installing/Docker.html
+  clamav-updater:
+    depends_on: !reset []
+    environment: !override
+      FRESHCLAM_CONF_TestDatabases: "no"
+    networks: !override
+      - app-wan
+    command: [ "sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd" ]
+    restart: no
+    healthcheck:
+      disable: true
+    deploy: !reset {}
+    extends:
+      service: clamav
   dns:
     networks: !override
       app: ~
