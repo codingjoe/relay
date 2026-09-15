@@ -72,7 +72,24 @@ class TestDomainPropertiesNoDb:
             == "mail.relay.acme.open.localhost"
         )
 
-    def test_spf_record__includes_spf_include(self):
+    def test_spf_record__authorizes_each_pool_address(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10", "203.0.113.11"]
+
+        assert Domain(name="example.com").spf_record == (
+            "v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
+        )
+
+    def test_spf_record__rejects_senders_outside_the_pool(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10"]
+
+        assert Domain(name="example.com").spf_record.endswith("-all")
+
+    def test_spf_record__empty_pool(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = []
+
+        assert Domain(name="example.com").spf_record == "v=spf1 -all"
+
+    def test_root_spf_record__includes_sender_domain(self):
         record = Domain(name="example.com").root_spf_record
         assert "v=spf1" in record
         assert "include:mail.relay.example.com" in record

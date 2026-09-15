@@ -28,7 +28,8 @@ The platform operator must set up the following records on the
    an A/AAAA record for the web UI.
 1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
    public hostname (`smtp.{platform_domain}`) and sender subdomains resolve
-   to the SMTP server IPs.
+   to the SMTP server IPs, and the SPF record of each sender subdomain
+   authorizes every one of them.
 1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
    record with the hosting provider. Outbound SMTP must use the corresponding
    hostname for EHLO.

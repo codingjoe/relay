@@ -97,7 +97,7 @@ For a delegated domain the authoritative nameserver answers:
 | Query name (for acme.com)                 | Type  | Value served                                       |
 | ----------------------------------------- | ----- | -------------------------------------------------- |
 | `acme.com`                                | MX    | `mx1.relays.to` and `mx2.relays.to`, preference 10 |
-| `mail.relay.acme.com`                     | TXT   | SPF record for the relay sender addresses          |
+| `mail.relay.acme.com`                     | TXT   | SPF record authorizing each relay sending IP       |
 | `a.relay-acme._domainkey...` (both zones) | TXT   | DKIM public keys, one per algorithm                |
 | `acme.com`                                | TXT   | root SPF include of the sender subdomain           |
 | `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses               |
