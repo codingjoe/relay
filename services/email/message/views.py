@@ -105,6 +105,8 @@ class MessageDetailView(
             "headers": headers,
             "received": [v for k, v in headers if k.lower() == "received"],
             "body": message.text_body,
+            "is_encrypted": bool(message.sealed_file_key),
+            "body_url": message.raw_body.url if message.raw_body else None,
             "transmissions": self.transmissions,
             "timeline": sorted(
                 (timing.event for timing in timings),

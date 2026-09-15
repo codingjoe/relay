@@ -1,3 +1,4 @@
+import json
 import pathlib
 
 import frontmatter
@@ -12,6 +13,23 @@ from django.views import generic
 from django.views.decorators.http import condition
 
 from abstract.utils import md_2_html, strip_frontmatter
+
+
+class JSONBodyView:
+    """
+    Parse the request body as JSON before the handler runs.
+
+    `self.body_data` holds the parsed body, or None when the body is
+    empty or not valid JSON. Handlers answer malformed bodies with
+    HTTP 400.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            self.body_data = json.loads(request.body)
+        except json.JSONDecodeError, UnicodeDecodeError:
+            self.body_data = None
+        return super().dispatch(request, *args, **kwargs)
 
 
 class CacheControlMixin:

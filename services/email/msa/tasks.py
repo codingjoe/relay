@@ -47,6 +47,7 @@ def deliver_message(message_id):
     """
     from services.email.message.models import Transmission
 
+    from .handlers import encrypt_stored_body
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
@@ -78,6 +79,12 @@ def deliver_message(message_id):
         )
         message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
+        if not message.sealed_file_key:
+            try:
+                body = message.raw_body.read()
+                encrypt_stored_body(message, body)
+            except Exception:  # noqa: BLE001
+                logger.warning("Could not encrypt body for message %r", message_id)
 
 
 def resolve_sender_domain(message):
@@ -101,6 +108,7 @@ def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
     from services.email.message.models import Transmission
 
+    from .handlers import encrypt_stored_body
     from .models import OutgoingMessage
 
     resolve_sender_domain(message)
@@ -161,6 +169,7 @@ def send_outgoing_message(message):
             )
             message.status = OutgoingMessage.Status.SENT
             message.save(update_fields=["status"])
+            encrypt_stored_body(message, raw_bytes)
             return
 
     raise MxHostsExhaustedError(rcpt_domain)
@@ -170,6 +179,7 @@ def record_bounce(message, code, output, remote_host, started_at):
     """Record a permanent bounce and suppress the recipient address."""
     from services.email.message.models import Transmission
 
+    from .handlers import encrypt_stored_body
     from .models import OutgoingMessage, SuppressionEntry
 
     Transmission.objects.create(
@@ -188,6 +198,7 @@ def record_bounce(message, code, output, remote_host, started_at):
         email=message.rcpt_to,
         reason=SuppressionEntry.Reason.BOUNCE,
     )
+    encrypt_stored_body(message, message.raw_body.read())
 
 
 def fetch_mx_hosts(domain):

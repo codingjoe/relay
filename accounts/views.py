@@ -1,10 +1,17 @@
+from collections.abc import Mapping
+
 from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
-from django.core.exceptions import PermissionDenied
+from django.contrib.auth.views import PasswordResetView
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.forms import (
     CharField,
+    EmailField,
     ModelForm,
     SlugField,
     TextInput,
@@ -16,8 +23,18 @@ from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
 from abstract.views import BreadcrumbViewMixin
+from kms.envelope import decode_key
+from kms.models import OrgEncryptionKey
 
-from .models import Membership, Organization
+from .models import (
+    EmailVerification,
+    Membership,
+    MembershipEncryptionKey,
+    Organization,
+    UserEncryptionKey,
+    organization_slug_validator,
+)
+from .tasks import send_verification_email
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
@@ -66,8 +83,214 @@ class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
         }
 
 
-class LoginView(generic.TemplateView):
-    template_name = "login.html"
+class SignupForm(UserCreationForm):
+    """Create a user whose username doubles as their organization slug."""
+
+    username = SlugField(
+        max_length=63,
+        validators=[organization_slug_validator],
+        help_text=_(
+            "At most 63 lowercase letters, digits, and hyphens. Used as your "
+            "organization URL."
+        ),
+    )
+    email = EmailField(
+        help_text=_(
+            "Receives account notifications. Verify it after signup to receive mail."
+        ),
+    )
+
+    class Meta(UserCreationForm.Meta):
+        fields = UserCreationForm.Meta.fields + ("email",)
+
+    def clean_username(self):
+        """Reject usernames that collide with an existing organization slug."""
+        if Organization.objects.filter(slug=self.cleaned_data["username"]).exists():
+            raise ValidationError(_("This username is already taken."))
+        return self.cleaned_data["username"]
+
+    def clean_email(self):
+        """Reject emails another account already uses, case-insensitively."""
+        if User.objects.filter(email__iexact=self.cleaned_data["email"]).exists():
+            raise ValidationError(_("This email is already in use."))
+        return self.cleaned_data["email"]
+
+
+KEY_FIELDS = (
+    "org_public_key",
+    "user_public_key",
+    "encrypted_master_key",
+    "encrypted_private_key",
+    "sealed_org_private_key",
+    "recovery_sealed_org_private_key",
+)
+
+PUBLIC_KEY_SIZE_BYTES = 32
+KEY_ID_MAX_LENGTH = 16
+
+
+def validate_encryption_keys(keys: Mapping[str, str]) -> None:
+    """Validate client-supplied key payloads before they reach the database."""
+    for name, value in keys.items():
+        if not isinstance(value, str):
+            # ValueError, not TypeError: callers map ValueError to HTTP 400.
+            raise ValueError(_("Invalid encryption key payload."))  # noqa: TRY004
+        match name:
+            case "key_id" | "org_key_id" | "user_key_id":
+                valid = len(value) <= KEY_ID_MAX_LENGTH
+            case "public_key" | "org_public_key" | "user_public_key":
+                try:
+                    valid = len(decode_key(value)) == PUBLIC_KEY_SIZE_BYTES
+                except ValueError:
+                    valid = False
+            case _:
+                valid = bool(value)
+        if not valid:
+            raise ValueError(_("Invalid encryption key payload."))
+
+
+def create_encryption_keys(
+    org: Organization,
+    user: User,
+    membership: Membership,
+    keys: Mapping[str, str],
+) -> tuple[OrgEncryptionKey, UserEncryptionKey]:
+    """Create the org, user, and membership encryption keys."""
+    org_key = OrgEncryptionKey(
+        org=org,
+        public_key=keys["org_public_key"],
+        key_id=keys.get("org_key_id", ""),
+        is_active=True,
+        recovery_sealed_org_private_key=keys["recovery_sealed_org_private_key"],
+    )
+    org_key.save(force_insert=True)
+    user_key = UserEncryptionKey(
+        user=user,
+        public_key=keys["user_public_key"],
+        key_id=keys.get("user_key_id", ""),
+        encrypted_master_key=keys["encrypted_master_key"],
+        encrypted_private_key=keys["encrypted_private_key"],
+    )
+    user_key.save(force_insert=True)
+    MembershipEncryptionKey(
+        membership=membership,
+        org_encryption_key=org_key,
+        sealed_org_private_key=keys["sealed_org_private_key"],
+    ).save(force_insert=True)
+    return org_key, user_key
+
+
+class SignupView(generic.FormView):
+    """
+    Create a user, their organization, and all encryption keys in one transaction.
+
+    The client derives every key from the signup password before submitting.
+    The server receives only ciphertext and public keys, so the operator
+    cannot decrypt stored org messages.
+    """
+
+    form_class = SignupForm
+    template_name = "signup.html"
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {"key_fields": KEY_FIELDS}
+
+    def form_valid(self, form):
+        # JavaScript-off submits carry empty hidden fields, so an absent or
+        # blank key payload both mean the browser could not generate keys.
+        if not all(self.request.POST.get(name) for name in KEY_FIELDS):
+            form.add_error(
+                None,
+                _("Key generation failed. Please make sure JavaScript is enabled."),
+            )
+            return self.form_invalid(form)
+        try:
+            keys = {name: self.request.POST[name] for name in KEY_FIELDS}
+            validate_encryption_keys(keys)
+        except ValueError as err:
+            form.add_error(None, str(err))
+            return self.form_invalid(form)
+        try:
+            with transaction.atomic():
+                user = form.save()
+                org = Organization.objects.create(slug=user.username)
+                membership = Membership.objects.create(
+                    org=org,
+                    user=user,
+                    role=Membership.Role.ADMIN,
+                )
+                create_encryption_keys(
+                    org=org, user=user, membership=membership, keys=keys
+                )
+                verification = EmailVerification(user=user, email=user.email)
+                verification.save(force_insert=True)
+                transaction.on_commit(
+                    lambda: send_verification_email.enqueue(
+                        email_verification_id=verification.pk
+                    )
+                )
+        except IntegrityError:
+            # A concurrent signup claimed the username (and its org slug) first.
+            form.add_error(None, _("This username is already taken."))
+            return self.form_invalid(form)
+        login(
+            self.request,
+            user,
+            backend="django.contrib.auth.backends.ModelBackend",
+        )
+        messages.info(
+            self.request,
+            _("We sent a verification link to %(email)s.") % {"email": user.email},
+        )
+        return redirect(org)
+
+
+class VerifiedPasswordResetForm(PasswordResetForm):
+    """
+    Only send reset links to verified email addresses.
+
+    An unverified address may belong to someone else, so mailing a reset
+    link there would let anyone send relay-branded security mail to
+    arbitrary addresses.
+    """
+
+    def get_users(self, email):
+        return (
+            user
+            for user in super().get_users(email)
+            if EmailVerification.objects.filter(
+                user=user,
+                verified_at__isnull=False,
+            ).exists()
+        )
+
+
+class VerifiedPasswordResetView(PasswordResetView):
+    """Send reset links only to verified email addresses."""
+
+    form_class = VerifiedPasswordResetForm
+
+
+class EmailVerificationView(generic.TemplateView):
+    """Confirm an email address when the user opens their verification link."""
+
+    template_name = "registration/email_verification.html"
+
+    def get(self, request, token):
+        verification = EmailVerification.fetch_by_token(token)
+        if verification is None:
+            state = "invalid"
+        elif verification.verified_at:
+            state = "already_verified"
+        else:
+            verification.mark_verified()
+            state = "verified"
+        return self.render_to_response(
+            self.get_context_data(
+                state=state,
+                username=verification.user.username if verification else None,
+            )
+        )
 
 
 class OrganizationListView(LoginRequiredMixin, generic.ListView):

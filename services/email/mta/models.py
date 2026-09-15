@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from abstract.email_utils import MissingAttachmentError, iter_attachments
 from abstract.models import TimeStamped, Timing
 from accounts.models import OrganizationOwned
+from kms import envelope
 from kms.models import SigningKey
 from services.email.message.models import Message
 
@@ -400,3 +401,83 @@ class TlsFailure(TimeStamped):
 
     def __str__(self):
         return f"{self.get_result_type_display()} ×{self.count} ({self.receiving_mx_hostname})"
+
+
+class WebhookEncryptionKey(TimeStamped):
+    """
+    Store a webhook recipient's X25519 public key for per-file sealing.
+
+    Each file key is sealed with the webhook's public key so the recipient
+    application can decrypt messages independently. The application holds
+    the corresponding private key; Relay never sees it.
+    """
+
+    webhook = models.OneToOneField(
+        Webhook,
+        on_delete=models.CASCADE,
+        related_name="encryption_key",
+    )
+    public_key = models.TextField(
+        _("public key"),
+        help_text=_("Base64-encoded X25519 public key for the webhook recipient."),
+    )
+    key_id = models.CharField(
+        _("key ID"),
+        max_length=16,
+        editable=False,
+        help_text=_("Short SHA256 fingerprint of the public key."),
+    )
+
+    def __str__(self):
+        return f"{self.webhook} / {self.key_id}"
+
+    def save(self, *args, **kwargs):
+        if not self.key_id:
+            self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
+        super().save(*args, **kwargs)
+
+
+class SealedFileKey(TimeStamped):
+    """
+    Store a file key sealed for a specific webhook recipient.
+
+    Each incoming message gets one sealed file key per matching webhook,
+    encrypted with that webhook's X25519 public key via crypto_box_seal.
+    Only the webhook application's private key can unseal it.
+    """
+
+    message = models.ForeignKey(
+        IncomingMessage,
+        on_delete=models.CASCADE,
+        related_name="sealed_file_keys",
+    )
+    webhook = models.ForeignKey(
+        Webhook,
+        on_delete=models.CASCADE,
+        related_name="sealed_file_keys",
+    )
+    sealed_key = models.TextField(
+        _("sealed key"),
+        help_text=_(
+            "File key sealed with the webhook's X25519 public key via crypto_box_seal."
+        ),
+    )
+    webhook_key_id = models.CharField(
+        _("webhook key ID"),
+        max_length=16,
+        blank=True,
+        default="",
+        editable=False,
+        help_text=_("Fingerprint of the webhook encryption key used for sealing."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["message", "webhook"],
+                name="unique_sealed_file_key_per_message_webhook",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.message} → {self.webhook}"

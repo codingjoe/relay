@@ -10,8 +10,12 @@ Last updated: {{ last_updated }}
 
 ### Account data
 
-- GitHub username and user ID
-- Email address from your GitHub account
+- Username you choose at signup, also used in your organization URL
+- Email address, stored in plain text. We send one verification link at signup; password reset and account notifications are only sent to verified addresses
+- Password, sent over TLS and stored only as a salted hash
+- Public encryption keys and encrypted key material generated in your browser
+
+The encryption keys are derived in your browser from your login password. We store public keys and ciphertext only; we never receive private keys or the keys derived from your password.
 
 ### Usage data
 

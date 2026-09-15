@@ -1,7 +1,23 @@
-from django.contrib.auth.views import LogoutView
-from django.urls import include, path
+from django.contrib.auth.views import (
+    LoginView,
+    LogoutView,
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+)
+from django.urls import include, path, reverse_lazy
 
 from . import views
+from .encryption_views import (
+    EncryptionSetupPageView,
+    EncryptionSetupView,
+    EncryptionStatusView,
+    MembershipEncryptionKeyDeleteView,
+    MembershipEncryptionKeyListView,
+    RecoveryPageView,
+    RecoveryTriggerView,
+    UserEncryptionKeyView,
+)
 
 app_name = "accounts"
 
@@ -10,8 +26,53 @@ urlpatterns = [
         "account/",
         include(
             [
-                path("login", views.LoginView.as_view(), name="login"),
+                path(
+                    "login",
+                    LoginView.as_view(template_name="login.html"),
+                    name="login",
+                ),
+                path("signup", views.SignupView.as_view(), name="signup"),
+                path(
+                    "verify-email/<str:token>",
+                    views.EmailVerificationView.as_view(),
+                    name="email-verify",
+                ),
                 path("logout", LogoutView.as_view(), name="logout"),
+                path(
+                    "password-reset/",
+                    include(
+                        [
+                            path(
+                                "",
+                                views.VerifiedPasswordResetView.as_view(
+                                    success_url=reverse_lazy(
+                                        "accounts:password-reset-done"
+                                    )
+                                ),
+                                name="password-reset",
+                            ),
+                            path(
+                                "done",
+                                PasswordResetDoneView.as_view(),
+                                name="password-reset-done",
+                            ),
+                            path(
+                                "<uidb64>/<token>",
+                                PasswordResetConfirmView.as_view(
+                                    success_url=reverse_lazy(
+                                        "accounts:password-reset-complete"
+                                    )
+                                ),
+                                name="password-reset-confirm",
+                            ),
+                            path(
+                                "complete",
+                                PasswordResetCompleteView.as_view(),
+                                name="password-reset-complete",
+                            ),
+                        ]
+                    ),
+                ),
             ]
         ),
     ),
@@ -31,6 +92,53 @@ urlpatterns = [
                     "",
                     views.OrganizationHomeView.as_view(),
                     name="org-home",
+                ),
+                path(
+                    "encryption/",
+                    include(
+                        [
+                            path(
+                                "",
+                                EncryptionStatusView.as_view(),
+                                name="encryption-status",
+                            ),
+                            path(
+                                "setup/",
+                                EncryptionSetupView.as_view(),
+                                name="encryption-setup",
+                            ),
+                            path(
+                                "setup",
+                                EncryptionSetupPageView.as_view(),
+                                name="encryption-setup-page",
+                            ),
+                            path(
+                                "user-key/",
+                                UserEncryptionKeyView.as_view(),
+                                name="user-encryption-key",
+                            ),
+                            path(
+                                "membership-key/",
+                                MembershipEncryptionKeyListView.as_view(),
+                                name="membership-encryption-key-list",
+                            ),
+                            path(
+                                "membership-key/<int:membership_pk>/delete",
+                                MembershipEncryptionKeyDeleteView.as_view(),
+                                name="membership-encryption-key-delete",
+                            ),
+                            path(
+                                "recover",
+                                RecoveryTriggerView.as_view(),
+                                name="encryption-recover",
+                            ),
+                            path(
+                                "recover-page",
+                                RecoveryPageView.as_view(),
+                                name="encryption-recover-page",
+                            ),
+                        ]
+                    ),
                 ),
                 path(
                     "settings/",

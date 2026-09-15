@@ -1,0 +1,7 @@
+Encryption recovery triggered for {{ org_slug }}
+
+{{ triggered_by }} triggered encryption recovery for {{ org_slug }} at {{ created_at }}.
+
+If you did not expect this, contact your organization administrator immediately.
+
+Organization: {{ org_url }}

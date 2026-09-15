@@ -7,15 +7,19 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from domains.models import Domain
+from kms import envelope
+from kms.models import OrgEncryptionKey
 from services.email.message.models import Transmission
 from services.email.msa.handlers import (
     ImplicitTLSHandler,
     SMTPHandler,
     add_feedback_id,
     authenticate,
+    encrypt_stored_body,
     process_message,
     store_outgoing_message,
 )
@@ -737,6 +741,55 @@ class TestAuthenticate:
         result = await authenticate(org.slug, raw_key)
         assert result is not None
         assert result.name == "test"
+
+
+def make_org_encryption_key(org):
+    pair = envelope.generate_x25519_keypair()
+    key = OrgEncryptionKey.objects.create(
+        org=org,
+        public_key=envelope.encode_key(pair.public_key),
+        is_active=True,
+    )
+    return key, pair.private_key
+
+
+def make_outgoing(org, plaintext):
+    domain = Domain.objects.get(org=org, is_managed=True)
+    message = OutgoingMessage(
+        org=org,
+        domain=domain,
+        rcpt_to="bob@example.com",
+        mail_from="alice@example.com",
+    )
+    message.raw_body.save(f"{message.id}.eml", ContentFile(plaintext), save=False)
+    message.save(force_insert=True)
+    return message
+
+
+@pytest.mark.django_db
+class TestEncryptStoredBody:
+    def test_encrypt_stored_body__encrypts_when_org_has_key(self, user, org):
+        org_key, org_private_key = make_org_encryption_key(org)
+        plaintext = b"From: a@b\r\nSubject: secret\r\n\r\nbody"
+        message = make_outgoing(org, plaintext)
+        encrypt_stored_body(message, plaintext)
+        message.refresh_from_db()
+        assert message.sealed_file_key
+        assert message.org_encryption_key_id == org_key.key_id
+        ciphertext = message.raw_body.read()
+        assert ciphertext != plaintext
+        file_key = envelope.unseal_file_key(
+            envelope.decode_key(message.sealed_file_key), org_private_key
+        )
+        assert envelope.decrypt_body(ciphertext, file_key) == plaintext
+
+    def test_encrypt_stored_body__keeps_plaintext_when_no_key(self, user, org):
+        plaintext = b"From: a@b\r\nSubject: hi\r\n\r\nbody"
+        message = make_outgoing(org, plaintext)
+        encrypt_stored_body(message, plaintext)
+        message.refresh_from_db()
+        assert message.sealed_file_key == ""
+        assert message.raw_body.read() == plaintext
 
 
 class TestImplicitTLSHandler:

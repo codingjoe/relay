@@ -7,7 +7,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from django.db import IntegrityError
 
-from kms.models import Certificate, SigningKey
+from kms import envelope
+from kms.models import Certificate, OrgEncryptionKey, RecoveryEvent, SigningKey
 
 
 @pytest.mark.django_db
@@ -109,6 +110,17 @@ class TestSigningKeyConstraints:
             )
 
 
+def make_org_encryption_key(org, is_active=True):
+    """Create an OrgEncryptionKey with a fresh X25519 keypair."""
+    pair = envelope.generate_x25519_keypair()
+    return OrgEncryptionKey.objects.create(
+        org=org,
+        public_key=envelope.encode_key(pair.public_key),
+        key_id=envelope.key_fingerprint(pair.public_key),
+        is_active=is_active,
+    )
+
+
 def make_certificate(common_name):
     """Return a self-signed TLS certificate for the given DNS name."""
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -128,6 +140,110 @@ def make_certificate(common_name):
         )
         .sign(key, hashes.SHA256())
     )
+
+
+@pytest.mark.django_db
+class TestOrgEncryptionKeyCreate:
+    def test_create__persists_fields(self, org):
+        pair = envelope.generate_x25519_keypair()
+        public_key = envelope.encode_key(pair.public_key)
+        key_id = envelope.key_fingerprint(pair.public_key)
+        key = OrgEncryptionKey.objects.create(
+            org=org,
+            public_key=public_key,
+            key_id=key_id,
+            is_active=True,
+        )
+        key.refresh_from_db()
+        assert key.org == org
+        assert key.public_key == public_key
+        assert key.key_id == key_id
+        assert key.is_active is True
+
+
+@pytest.mark.django_db
+class TestOrgEncryptionKeyStr:
+    def test_str__active(self, org):
+        key = make_org_encryption_key(org, is_active=True)
+        assert str(key) == f"{org} / {key.key_id} (active)"
+
+    def test_str__inactive(self, org):
+        key = make_org_encryption_key(org, is_active=False)
+        assert str(key) == f"{org} / {key.key_id}"
+
+
+@pytest.mark.django_db
+class TestOrgEncryptionKeyConstraints:
+    def test_unique_active__only_one_per_org(self, org):
+        make_org_encryption_key(org, is_active=True)
+        with pytest.raises(IntegrityError):
+            make_org_encryption_key(org, is_active=True)
+
+    def test_multiple_inactive__allowed_for_same_org(self, org):
+        make_org_encryption_key(org, is_active=False)
+        make_org_encryption_key(org, is_active=False)
+        assert OrgEncryptionKey.objects.filter(org=org).count() == 2
+
+
+@pytest.mark.django_db
+class TestRecoveryEvent:
+    def test_recovery_event__creates_with_correct_fields(self, org, user):
+        org_key = make_org_encryption_key(org)
+        event = RecoveryEvent.objects.create(
+            org_encryption_key=org_key,
+            triggered_by=user,
+        )
+        event.refresh_from_db()
+        assert event.org_encryption_key == org_key
+        assert event.triggered_by == user
+        assert event.created_at is not None
+        assert event.modified_at is not None
+
+    def test_recovery_event__str_shows_org_user_and_date(self, org, user):
+        org_key = make_org_encryption_key(org)
+        event = RecoveryEvent.objects.create(
+            org_encryption_key=org_key,
+            triggered_by=user,
+        )
+        assert str(event) == f"{org} / {user} / {event.created_at}"
+
+    def test_recovery_event__ordered_by_created_at_desc(self, org, user):
+        org_key = make_org_encryption_key(org)
+        first = RecoveryEvent.objects.create(
+            org_encryption_key=org_key,
+            triggered_by=user,
+        )
+        second = RecoveryEvent.objects.create(
+            org_encryption_key=org_key,
+            triggered_by=user,
+        )
+        # Force distinct timestamps (auto_now_add sets both at creation).
+        RecoveryEvent.objects.filter(pk=first.pk).update(
+            created_at=second.created_at - datetime.timedelta(seconds=10)
+        )
+        events = list(RecoveryEvent.objects.all())
+        assert events[0].pk == second.pk
+        assert events[1].pk == first.pk
+
+
+@pytest.mark.django_db
+class TestOrgEncryptionKeyRecoveryField:
+    def test_org_encryption_key__recovery_sealed_org_private_key_blank_by_default(
+        self, org
+    ):
+        key = make_org_encryption_key(org)
+        key.refresh_from_db()
+        assert key.recovery_sealed_org_private_key == ""
+
+    def test_org_encryption_key__stores_recovery_sealed_org_private_key(self, org):
+        pair = envelope.generate_x25519_keypair()
+        key = OrgEncryptionKey.objects.create(
+            org=org,
+            public_key=envelope.encode_key(pair.public_key),
+            recovery_sealed_org_private_key="sealed-recovery-key",
+        )
+        key.refresh_from_db()
+        assert key.recovery_sealed_org_private_key == "sealed-recovery-key"
 
 
 @pytest.mark.django_db

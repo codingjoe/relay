@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "verify email"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <div class="flex flex-col items-center justify-center text-center gap-6 py-12">
+    <h1 class="text-4xl font-bold m-0 flex items-center gap-3">
+      <i data-lucide="mailboxes" class="size-8" aria-hidden="true"></i>
+      relay
+    </h1>
+    {% if state == "verified" %}
+      <div class="alert" data-variant="success" data-size="sm">
+        <i data-lucide="check-circle-2" class="size-4" aria-hidden="true"></i>
+        <p>
+          {% blocktranslate trimmed with username=username %}
+            Email address for {{ username }} verified.
+          {% endblocktranslate %}
+        </p>
+      </div>
+      <p class="text-muted-foreground">
+        {% translate "Password reset and account notifications are now enabled." %}
+      </p>
+    {% elif state == "already_verified" %}
+      <div class="alert" data-size="sm">
+        <i data-lucide="info" class="size-4" aria-hidden="true"></i>
+        <p>
+          {% blocktranslate trimmed with username=username %}
+            The email address for {{ username }} is already verified.
+          {% endblocktranslate %}
+        </p>
+      </div>
+    {% else %}
+      <div class="alert" data-variant="destructive" data-size="sm">
+        <i data-lucide="shield-alert" class="size-4" aria-hidden="true"></i>
+        <p>{% translate "This verification link is invalid or expired." %}</p>
+      </div>
+      <p class="text-muted-foreground">
+        {% translate "You can still sign in with your password. Contact support to have your address verified." %}
+      </p>
+    {% endif %}
+    <a href="{% url 'accounts:login' %}" class="btn btn-primary">
+      {% translate "Continue to login"|capfirst %}
+    </a>
+  </div>
+{% endblock %}

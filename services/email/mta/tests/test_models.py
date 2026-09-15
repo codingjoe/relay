@@ -2,10 +2,17 @@ import base64
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from django.db import IntegrityError
 
 from domains.models import Domain
+from kms import envelope
 from kms.models import SigningKey
-from services.email.mta.models import Webhook
+from services.email.mta.models import (
+    IncomingMessage,
+    SealedFileKey,
+    Webhook,
+    WebhookEncryptionKey,
+)
 
 
 @pytest.fixture
@@ -153,3 +160,107 @@ class TestSign:
             webhook.signing_key.public_bytes_raw()
         )
         public_key.verify(sig_bytes, signed_content)
+
+
+@pytest.fixture
+def incoming_message(org):
+    domain = Domain.objects.get(org=org, is_managed=True)
+    return IncomingMessage.objects.create(
+        org=org,
+        domain=domain,
+        receiving_domain="example.com",
+        mail_from="alice@example.com",
+        rcpt_to="bob@example.com",
+        subject="Hello",
+        message_id="<abc@example.com>",
+    )
+
+
+def _make_webhook_encryption_key(webhook):
+    """Create a WebhookEncryptionKey with a fresh X25519 keypair."""
+    pair = envelope.generate_x25519_keypair()
+    return WebhookEncryptionKey.objects.create(
+        webhook=webhook,
+        public_key=envelope.encode_key(pair.public_key),
+        key_id=envelope.key_fingerprint(pair.public_key),
+    )
+
+
+class TestWebhookEncryptionKeyCreate:
+    @pytest.mark.django_db
+    def test_create__persists_fields(self, webhook):
+        pair = envelope.generate_x25519_keypair()
+        public_key = envelope.encode_key(pair.public_key)
+        key_id = envelope.key_fingerprint(pair.public_key)
+        key = WebhookEncryptionKey.objects.create(
+            webhook=webhook,
+            public_key=public_key,
+            key_id=key_id,
+        )
+        key.refresh_from_db()
+        assert key.webhook == webhook
+        assert key.public_key == public_key
+        assert key.key_id == key_id
+
+    @pytest.mark.django_db
+    def test_str__shows_webhook_and_key_id(self, webhook):
+        pair = envelope.generate_x25519_keypair()
+        key_id = envelope.key_fingerprint(pair.public_key)
+        key = WebhookEncryptionKey.objects.create(
+            webhook=webhook,
+            public_key=envelope.encode_key(pair.public_key),
+            key_id=key_id,
+        )
+        assert str(key) == f"{webhook} / {key_id}"
+
+
+class TestWebhookEncryptionKeyConstraints:
+    @pytest.mark.django_db
+    def test_one_to_one__only_one_per_webhook(self, webhook):
+        _make_webhook_encryption_key(webhook)
+        with pytest.raises(IntegrityError):
+            _make_webhook_encryption_key(webhook)
+
+
+class TestSealedFileKeyCreate:
+    @pytest.mark.django_db
+    def test_create__persists_fields(self, webhook, incoming_message):
+        webhook_key = _make_webhook_encryption_key(webhook)
+        file_key = envelope.generate_file_key()
+        sealed = envelope.seal_file_key(
+            file_key, envelope.decode_key(webhook_key.public_key)
+        )
+        sfk = SealedFileKey.objects.create(
+            message=incoming_message,
+            webhook=webhook,
+            sealed_key=envelope.encode_key(sealed),
+        )
+        sfk.refresh_from_db()
+        assert sfk.message == incoming_message
+        assert sfk.webhook == webhook
+        assert sfk.sealed_key == envelope.encode_key(sealed)
+
+    @pytest.mark.django_db
+    def test_str__shows_message_and_webhook(self, webhook, incoming_message):
+        sfk = SealedFileKey.objects.create(
+            message=incoming_message,
+            webhook=webhook,
+            sealed_key="sealed-key",
+        )
+        assert str(sfk) == f"{incoming_message} → {webhook}"
+
+
+class TestSealedFileKeyConstraints:
+    @pytest.mark.django_db
+    def test_unique__message_and_webhook(self, webhook, incoming_message):
+        SealedFileKey.objects.create(
+            message=incoming_message,
+            webhook=webhook,
+            sealed_key="sealed1",
+        )
+        with pytest.raises(IntegrityError):
+            SealedFileKey.objects.create(
+                message=incoming_message,
+                webhook=webhook,
+                sealed_key="sealed2",
+            )

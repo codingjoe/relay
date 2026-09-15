@@ -4,10 +4,12 @@ from abstract.admin import TimeStampedAdminMixin
 
 from .models import (
     IncomingMessage,
+    SealedFileKey,
     TlsFailure,
     TlsReport,
     Webhook,
     WebhookDelivery,
+    WebhookEncryptionKey,
 )
 
 
@@ -76,3 +78,15 @@ class TlsFailureAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "sending_mta_ip_address",
         "report__report_id",
     ]
+
+
+@admin.register(WebhookEncryptionKey)
+class WebhookEncryptionKeyAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+    list_display = ["webhook", "key_id", "created_at"]
+    search_fields = ["webhook__url", "webhook__name", "key_id"]
+
+
+@admin.register(SealedFileKey)
+class SealedFileKeyAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+    list_display = ["message", "webhook", "created_at"]
+    search_fields = ["webhook__url", "webhook__name"]
