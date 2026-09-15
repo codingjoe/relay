@@ -22,14 +22,20 @@ source "$DEPLOY_DIR/hcloud.sh"
 source "$DEPLOY_DIR/dns.sh"
 
 environment_is_set() {
-    local address
+    local address secrets
     address="$(fetch_server_address)"
     [ -n "$address" ] || return 1
     [ "$(gh variable get SSH_HOSTNAME 2>/dev/null)" = "$address" ] || return 1
     [ "$(gh variable get HOSTNAME --env production 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
-    gh secret list 2>/dev/null | grep -q "^SSH_PRIVATE_KEY" || return 1
+    # Both are read by the deploy workflow, and an empty known-hosts file stops
+    # it at host key verification rather than at anything that names the cause.
+    [ -n "$(gh variable get SSH_KNOWN_HOSTS 2>/dev/null)" ] || return 1
+    secrets="$(gh secret list 2>/dev/null || true)"
+    printf '%s\n' "$secrets" | grep -q "^SSH_PRIVATE_KEY" || return 1
+    printf '%s\n' "$secrets" | grep -q "^DOTENV_PRIVATE_KEY_PRODUCTION" || return 1
     [ "$(dotenvx get HOSTNAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
     [ "$(dotenvx get AWS_S3_ENDPOINT_URL -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_ENDPOINT_URL" ] || return 1
+    [ "$(dotenvx get AWS_STORAGE_BUCKET_NAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_BUCKET" ] || return 1
     [ "$(dotenvx get RELAY_STORAGE_DOMAIN -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$(storage_hostname)" ] || return 1
 }
 
