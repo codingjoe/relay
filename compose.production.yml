@@ -1,7 +1,10 @@
 include:
+  - oci://ghcr.io/codingjoe/the-box:main
   - oci://ghcr.io/codingjoe/the-box-postgres:main
   - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
+  caddy:
+    pull_policy: always # the Box publishes only a rolling `main` tag
   clamav:
     image: clamav/clamav:1.5.4_base-debian13-slim
     depends_on:
@@ -354,10 +357,11 @@ networks:
     internal: true
   dnsdist-wan:
 volumes:
-  clamav:
+  # Caddy's ACME certificates predate the move into relay. Keeping the volume
+  # name adopts the certificates the host already issued.
   caddy_data:
     name: the-box_caddy_data
-    external: true
+  clamav:
   redis-tasks:
 configs:
   rspamd_redis:
