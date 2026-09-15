@@ -52,7 +52,6 @@ if delegation_is_live; then
     confirm_step delegation "$RELAY_HOSTNAME is delegated to $NAMESERVERS"
 fi
 
-
 cat <<EOF
 
 Point $RELAY_HOSTNAME at these nameservers in your registrar:

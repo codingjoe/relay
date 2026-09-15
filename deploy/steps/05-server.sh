@@ -43,9 +43,12 @@ fi
 [ -f "${DEPLOY_KEY}.pub" ] ||
 fail "no deploy key at ${DEPLOY_KEY}.pub. Run ./deploy/provision.sh keys first"
 
+# A partial pool has to stop here. The assignment loop below would otherwise
+# ask hcloud to assign an address that was never created and fail with an
+# opaque error instead of the step that actually needs running.
 read -ra smtp_addresses <<<"$(fetch_smtp_floating_ip_addresses)"
-[ -n "${smtp_addresses[0]:-}" ] ||
-fail "no SMTP floating IPs found. Run ./deploy/provision.sh egress first"
+[ "${#smtp_addresses[@]}" -eq "$SMTP_FLOATING_IP_COUNT" ] ||
+fail "the pool holds ${#smtp_addresses[@]} of $SMTP_FLOATING_IP_COUNT addresses. Run ./deploy/provision.sh egress first"
 
 validate_server_type_location
 

@@ -50,8 +50,8 @@ read -ra nameservers <<<"$(fetch_zone_nameservers)"
 fail "zone $RELAY_HOSTNAME does not exist. Run ./deploy/provision.sh zone first"
 
 read -ra smtp_addresses <<<"$(fetch_smtp_floating_ip_addresses)"
-[ -n "${smtp_addresses[0]:-}" ] ||
-fail "no SMTP floating IPs found. Run ./deploy/provision.sh egress first"
+[ "${#smtp_addresses[@]}" -eq "$SMTP_FLOATING_IP_COUNT" ] ||
+fail "the pool holds ${#smtp_addresses[@]} of $SMTP_FLOATING_IP_COUNT addresses. Run ./deploy/provision.sh egress first"
 
 while read -r record_name; do
     hcloud zone rrset set-records --record "$SERVER_ADDRESS" "$RELAY_HOSTNAME" "$record_name" A >/dev/null

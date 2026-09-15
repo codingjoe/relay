@@ -54,9 +54,13 @@ uploaded_ssh_key() {
     hcloud ssh-key describe "$1" -o json 2>/dev/null | jq -r '.public_key // empty' || true
 }
 
+# hcloud reports the assigned nameservers as FQDNs with a trailing dot
+# ("hydrogen.ns.hetzner.com."). Drop it, so they read as hostnames in the state
+# file and the note handed to the registrar, and so dig accepts one as a
+# resolver: "dig @hydrogen.ns.hetzner.com." fails outright.
 fetch_zone_nameservers() {
     hcloud zone describe "$RELAY_HOSTNAME" -o json 2>/dev/null |
-    jq -r '[.authoritative_nameservers.assigned[]?] | join(" ")' || true
+    jq -r '[.authoritative_nameservers.assigned[]? | sub("\\.$"; "")] | join(" ")' || true
 }
 
 fetch_zone_delegation_status() {

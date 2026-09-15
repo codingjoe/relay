@@ -28,6 +28,7 @@
 #                           stored message bodies on, inside the zone
 #   SSH_PUBLIC_KEY_FILES    (~/.ssh/id_ed25519.pub)  space separated
 #   DEPLOY_KEY              (deploy/id_ed25519)
+#   RELAY_STATE_DIR         (deploy/.state)          where a run records itself
 #   PUBLIC_RESOLVERS        (1.1.1.1 9.9.9.9)        space separated
 #   WAIT_TIMEOUT_SECS       (600)
 #   WAIT_INTERVAL_SECS      (15)

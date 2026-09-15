@@ -34,7 +34,6 @@ if egress_addresses_exist; then
     confirm_step egress "the pool of $SMTP_FLOATING_IP_COUNT floating IPs exists"
 fi
 
-
 for ((index = 1; index <= SMTP_FLOATING_IP_COUNT; index++)); do
     name="$(smtp_floating_ip_name "$index")"
     if floating_ip_exists "$name"; then
@@ -51,9 +50,12 @@ for ((index = 1; index <= SMTP_FLOATING_IP_COUNT; index++)); do
 done
 
 read -ra smtp_addresses <<<"$(fetch_smtp_floating_ip_addresses)"
-[ -n "${smtp_addresses[0]:-}" ] ||
-fail "created the floating IPs but hcloud reports no address for them"
+[ "${#smtp_addresses[@]}" -eq "$SMTP_FLOATING_IP_COUNT" ] ||
+fail "created the floating IPs but hcloud reports ${#smtp_addresses[@]} of $SMTP_FLOATING_IP_COUNT addresses"
 
-note "Egress pool: $(fetch_smtp_floating_ip_addresses)"
-save_state "SMTP_FLOATING_IP_ADDRESSES=$(fetch_smtp_floating_ip_addresses)"
-record_step egress "created ${#smtp_addresses[@]} egress addresses: $(fetch_smtp_floating_ip_addresses)"
+# The state keeps the addresses the way env.list reads them, the same as the
+# server and records steps write it.
+note "Egress pool: ${smtp_addresses[*]}"
+SMTP_FLOATING_IP_ADDRESSES="$(comma_list "${smtp_addresses[@]}")"
+save_state "SMTP_FLOATING_IP_ADDRESSES=$SMTP_FLOATING_IP_ADDRESSES"
+record_step egress "created ${#smtp_addresses[@]} egress addresses: ${smtp_addresses[*]}"

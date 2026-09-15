@@ -9,6 +9,12 @@
 #
 # Sources deploy/config.sh and deploy/hcloud.sh. Step scripts source all three.
 
+# Answers come back as FQDNs with a trailing dot, and hcloud reports the zone's
+# nameservers the same way, so fold both sides of a comparison the same way.
+fold_dns_values() {
+    sed 's/\.$//' | tr '[:upper:]' '[:lower:]'
+}
+
 dns_answers() {
     local type="$1"
     local name="$2"
@@ -17,7 +23,7 @@ dns_answers() {
     if [ -n "$resolver" ]; then
         arguments+=("@$resolver")
     fi
-    dig "${arguments[@]}" 2>/dev/null | sed 's/\.$//' | tr '[:upper:]' '[:lower:]' | sort -u || true
+    dig "${arguments[@]}" 2>/dev/null | fold_dns_values | sort -u || true
 }
 
 dns_ptr_name() {
@@ -27,7 +33,7 @@ dns_ptr_name() {
     if [ -n "$resolver" ]; then
         arguments+=("@$resolver")
     fi
-    dig "${arguments[@]}" 2>/dev/null | sed 's/\.$//' | tr '[:upper:]' '[:lower:]' | head -n 1 || true
+    dig "${arguments[@]}" 2>/dev/null | fold_dns_values | head -n 1 || true
 }
 
 # The resolver answers exactly the expected values and nothing else.
@@ -36,7 +42,7 @@ dns_has_records() {
     local name="$2"
     local resolver="$3"
     shift 3
-    [ "$(printf '%s\n' "$@" | sort -u)" = "$(dns_answers "$type" "$name" "$resolver")" ]
+    [ "$(printf '%s\n' "$@" | fold_dns_values | sort -u)" = "$(dns_answers "$type" "$name" "$resolver")" ]
 }
 
 # The relative record names the zone holds. The wildcard carries pg and redis,
@@ -65,14 +71,6 @@ storage_hostname_is_covered() {
         *."$RELAY_HOSTNAME") ;;
         *) return 1 ;;
     esac
-}
-
-absolute_name() {
-    if [ "$1" = "@" ]; then
-        printf '%s' "$RELAY_HOSTNAME"
-        return 0
-    fi
-    printf '%s.%s' "$1" "$RELAY_HOSTNAME"
 }
 
 # One name per egress address, so a blacklisted address rotates out on its own.
