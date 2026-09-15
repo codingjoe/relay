@@ -28,22 +28,19 @@ services:
       resources:
         limits:
           memory: 4g # clamd needs 3-4 GiB
-  # The base image ships no signatures, so a one-shot container loads them for
-  # every clamd replica, then exits. Each `docker compose up` re-runs it. A
-  # failed update still succeeds when signatures are already on the volume, so
-  # a mirror outage cannot hold back clamd; only a cold volume fails the deploy.
-  # The image healthcheck pings clamd, which this container does not run.
+  # One-shot signature updater, see
+  # https://docs.clamav.net/manual/Installing/Docker.html
   clamav-updater:
-    depends_on: !reset [] # cancels the depends_on that extends would inherit
+    depends_on: !reset []
     environment: !override
       FRESHCLAM_CONF_TestDatabases: "no"
     networks: !override
-      - app-wan # freshclam needs egress for signature updates
+      - app-wan
     command: [ "sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd" ]
     restart: no
     healthcheck:
       disable: true
-    deploy: !reset {} # one-shot: no second replica racing over the volume
+    deploy: !reset {}
     extends:
       service: clamav
   dns:
