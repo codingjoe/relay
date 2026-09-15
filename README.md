@@ -205,15 +205,6 @@ scanned. To exercise the whole path, send an EICAR test attachment through
 submission or the MX: it must land held (outbound) or quarantined (inbound)
 with `CLAM_VIRUS` in the stored symbols.
 
-One `clamav-updater` container owns the shared signature volume. It runs
-freshclam, exits, and every `docker compose up` re-runs it, so signatures
-refresh on each deploy. The scanning replicas run with
-`CLAMAV_NO_FRESHCLAMD=true` and start only after the updater exits
-successfully, so a cold host downloads the signature set once instead of once
-per replica. When freshclam cannot reach the mirror but signatures are already
-on the volume, the updater still exits successfully and clamd starts with what
-it has; only a cold volume fails the deploy.
-
 The client asks for a profiled reply, so the check record also keeps the
 duration rspamd measured for the task and, for the messages rspamd chooses
 to profile, the per-symbol breakdown and the share the antivirus took.
