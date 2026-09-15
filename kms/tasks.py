@@ -17,7 +17,7 @@ def notify_recovery_triggered(recovery_event_id):
         "org_encryption_key__org", "triggered_by"
     ).get(pk=recovery_event_id)
     org = event.org_encryption_key.org
-    memberships = org.memberships.exclude(user__email="").select_related("user")
+    memberships = org.memberships.email_verified().select_related("user")
 
     scheme = "http" if settings.DEBUG or settings.TEST else "https"
     org_url = f"{scheme}://{settings.RELAY_PLATFORM_DOMAIN}{org.get_absolute_url()}"

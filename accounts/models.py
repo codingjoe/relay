@@ -1,8 +1,10 @@
 import secrets
 import string
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
+from django.core import signing
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -10,6 +12,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
+
+VERIFICATION_TOKEN_MAX_AGE = timedelta(days=7)
 
 
 def generate_api_key():
@@ -54,6 +58,12 @@ class Organization(TimeStamped):
         return reverse("accounts:org-home", kwargs={"org_slug": self.slug})
 
 
+class MembershipQuerySet(models.QuerySet):
+    def email_verified(self):
+        """Only memberships whose user has a verified email address."""
+        return self.filter(user__email_verification__verified_at__isnull=False)
+
+
 class Membership(TimeStamped):
     class Role(models.TextChoices):
         WRITE = "write", _("write")
@@ -77,6 +87,8 @@ class Membership(TimeStamped):
             "Write members can use services. Admin members can also manage users."
         ),
     )
+
+    objects = MembershipQuerySet.as_manager()
 
     class Meta:
         constraints = [
@@ -282,3 +294,56 @@ class MembershipEncryptionKey(TimeStamped):
 
     def __str__(self):
         return f"{self.membership} / {self.org_encryption_key.key_id}"
+
+
+class EmailVerification(TimeStamped):
+    """Track whether a user has proven control of their email address.
+
+    Security-sensitive mail (password reset, recovery, and postmaster
+    notifications) is only sent to verified addresses. Without this gate,
+    anyone could sign up with someone else's address and have relay send
+    branded security mail to that address. The server never sees more
+    than a signed link click; no secrets are involved.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_verification",
+    )
+    email = models.EmailField(
+        _("email address"),
+        help_text=_("The address being verified. Snapshot taken at signup."),
+    )
+    verified_at = models.DateTimeField(
+        _("verified"),
+        null=True,
+        blank=True,
+        help_text=_("Set when the user opened their verification link."),
+    )
+
+    def __str__(self):
+        return f"{self.user} / {self.email}"
+
+    def generate_token(self):
+        """Return a signed token that verifies this address for seven days."""
+        return signing.dumps({"id": self.pk}, salt="accounts.EmailVerification")
+
+    @classmethod
+    def fetch_by_token(cls, token):
+        """Return the verification for a valid, unexpired token, or None."""
+        try:
+            data = signing.loads(
+                token,
+                salt="accounts.EmailVerification",
+                max_age=VERIFICATION_TOKEN_MAX_AGE,
+            )
+            return cls.objects.select_related("user").get(pk=data["id"])
+        except signing.BadSignature, KeyError, cls.DoesNotExist:
+            return None
+
+    def mark_verified(self):
+        """Record that the user has proven control of the address."""
+        if self.verified_at is None:
+            self.verified_at = timezone.now()
+            self.save(update_fields=["verified_at", "modified_at"])

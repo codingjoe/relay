@@ -8,9 +8,20 @@
       relay
     </h1>
     <h2 class="text-xl text-muted-foreground m-0">{% translate "sign in to continue"|title %}</h2>
-    <form method="post" action="{% url 'social:begin' 'github' %}">
+    <form method="post" action="{% url 'accounts:login' %}" class="w-full max-w-sm">
       {% csrf_token %}
-      <button type="submit" class="btn" data-size="lg">{% translate "sign in with GitHub"|title %}</button>
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <fieldset class="fieldset">
+        {{ form }}
+      </fieldset>
+      <button type="submit" class="btn btn-primary w-full mt-4">{% translate "login"|capfirst context "verb" %}</button>
     </form>
+    <p class="m-0">
+      <a href="{% url 'accounts:password-reset' %}">{% translate "forgot password?" %}</a>
+    </p>
+    <p class="m-0">
+      {% translate "no account?" %}
+      <a href="{% url 'accounts:signup' %}">{% translate "sign up"|capfirst %}</a>
+    </p>
   </div>
 {% endblock %}

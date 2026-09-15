@@ -129,12 +129,11 @@
   </div>
 
   {% csrf_token %}
-  <script defer>
+  <script>
     (function () {
       "use strict";
 
       const orgSlug = "{{ org.slug }}";
-      const enc = window.relayEncryption;
       const errorEl = document.getElementById("encryption-setup-error");
       const submitBtn = document.getElementById("encryption-setup-submit");
 
@@ -208,6 +207,12 @@
         if (window.lucide) window.lucide.createIcons();
 
         try {
+          const enc = window.relayEncryption;
+          if (!enc) {
+            throw new Error(
+              "Encryption is still loading. Please try again in a moment.",
+            );
+          }
           await enc.init();
 
           // 1. Generate salt and derive KEK from passphrase.

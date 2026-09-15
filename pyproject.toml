@@ -32,7 +32,6 @@ dependencies = [
   "pyyaml>=6.0.3",
   "redis>=8.1",
   "sentry-sdk>=2.68",
-  "social-auth-app-django>=6.0.1",
   "threadmill[redis]>=0.6.1",
   "validators>=0.35",
   "whitenoise>=6.12",

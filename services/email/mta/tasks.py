@@ -259,7 +259,7 @@ def parse_tls_report(report_pk):
 def notify_postmaster_recipients(message_pk):
     """Email all org members with a link to the received message."""
     message = IncomingMessage.objects.get(pk=message_pk)
-    memberships = message.org.memberships.exclude(user__email="").select_related("user")
+    memberships = message.org.memberships.email_verified().select_related("user")
 
     scheme = "http" if settings.DEBUG or settings.TEST else "https"
     detail_url = (

@@ -42,8 +42,8 @@
   </div>
 </dialog>
 
-<script defer>
-  (function () {
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
     "use strict";
 
     // In-memory key cache, never persisted to storage.
@@ -162,5 +162,5 @@
     window.relayEncryption.hasCachedKeys = function () {
       return keyCache !== null;
     };
-  })();
+  });
 </script>

@@ -75,7 +75,6 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     # Third-party apps
     "health_check",
-    "social_django",
     "storages",
     "rest_framework",
     "threadmill",
@@ -123,6 +122,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
+            BASE_DIR / "root" / "templates",
             BASE_DIR / "legal" / "docs",
             BASE_DIR / "know_how" / "docs",
             BASE_DIR / "alternative_to" / "docs",
@@ -325,32 +325,11 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "accounts:org-list"
 LOGOUT_REDIRECT_URL = "home"
 
-GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
-GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
-
-# python-social-auth
 AUTHENTICATION_BACKENDS = (
     ["django.contrib.auth.backends.RemoteUserBackend"] if DEBUG and not TEST else []
 ) + [
-    "social_core.backends.github.GithubOAuth2",
     "django.contrib.auth.backends.ModelBackend",
 ]
-
-SOCIAL_AUTH_GITHUB_KEY = GITHUB_CLIENT_ID
-SOCIAL_AUTH_GITHUB_SECRET = GITHUB_CLIENT_SECRET
-
-SOCIAL_AUTH_PIPELINE = (
-    "social_core.pipeline.social_auth.social_details",
-    "social_core.pipeline.social_auth.social_uid",
-    "social_core.pipeline.social_auth.auth_allowed",
-    "social_core.pipeline.social_auth.social_user",
-    "social_core.pipeline.user.get_username",
-    "social_core.pipeline.user.create_user",
-    "social_core.pipeline.social_auth.associate_user",
-    "social_core.pipeline.social_auth.load_extra_data",
-    "social_core.pipeline.user.user_details",
-    "accounts.pipelines.create_default_organization",
-)
 
 # Logging
 # https://docs.djangoproject.com/en/stable/topics/logging/

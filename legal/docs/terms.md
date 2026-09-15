@@ -12,7 +12,7 @@ If you access or use the service, you agree to these terms. If you do not agree,
 
 ## 3. User accounts
 
-Access to the service requires a valid account. You create an account with GitHub OAuth authentication. You are responsible for the security of your account and credentials.
+Access to the service requires a valid account. You create an account with a username and password. The same password derives the encryption keys that protect your messages. You are responsible for the security of your account and credentials. We cannot recover encrypted messages if you lose your password and your recovery seed.
 
 ## 4. Acceptable use
 

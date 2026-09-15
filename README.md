@@ -194,6 +194,7 @@ graph BT
  well_known[well_known]
  domains --> accounts
  accounts --> abstract
+ accounts --> kms
  domains --> kms
  legal --> abstract
  know_how --> abstract

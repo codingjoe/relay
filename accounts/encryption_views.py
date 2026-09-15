@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -15,7 +15,11 @@ from kms.models import OrgEncryptionKey, RecoveryEvent
 from kms.tasks import notify_recovery_triggered
 
 from .models import Membership, MembershipEncryptionKey, UserEncryptionKey
-from .views import OrganizationScopedView
+from .views import (
+    OrganizationScopedView,
+    create_encryption_keys,
+    validate_encryption_keys,
+)
 
 
 class AdminOnlyView(OrganizationScopedView, APIView):
@@ -94,52 +98,41 @@ class EncryptionSetupView(AdminOnlyView):
                 status=status.HTTP_409_CONFLICT,
             )
         try:
-            (
-                org_public_key,
-                user_public_key,
-                encrypted_master_key,
-                encrypted_private_key,
-                sealed_org_private_key,
-                recovery_sealed_org_private_key,
-            ) = (
-                request.data["org_public_key"],
-                request.data["user_public_key"],
-                request.data["encrypted_master_key"],
-                request.data["encrypted_private_key"],
-                request.data["sealed_org_private_key"],
-                request.data["recovery_sealed_org_private_key"],
-            )
+            keys = {
+                "org_public_key": request.data["org_public_key"],
+                "user_public_key": request.data["user_public_key"],
+                "encrypted_master_key": request.data["encrypted_master_key"],
+                "encrypted_private_key": request.data["encrypted_private_key"],
+                "sealed_org_private_key": request.data["sealed_org_private_key"],
+                "recovery_sealed_org_private_key": request.data[
+                    "recovery_sealed_org_private_key"
+                ],
+                "org_key_id": request.data.get("org_key_id", ""),
+                "user_key_id": request.data.get("user_key_id", ""),
+            }
         except KeyError as missing:
             return Response(
                 {"error": f"Missing required field: {missing.args[0]}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        org_key_id = request.data.get("org_key_id", "")
-        user_key_id = request.data.get("user_key_id", "")
-        with transaction.atomic():
-            org_key = OrgEncryptionKey(
-                org=self.org,
-                public_key=org_public_key,
-                key_id=org_key_id,
-                is_active=True,
-                recovery_sealed_org_private_key=recovery_sealed_org_private_key,
+        try:
+            validate_encryption_keys(keys)
+        except ValueError as err:
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with transaction.atomic():
+                org_key, user_key = create_encryption_keys(
+                    org=self.org,
+                    user=request.user,
+                    membership=self.org.memberships.get(user=request.user),
+                    keys=keys,
+                )
+        except IntegrityError:
+            # A concurrent request configured the same active org encryption key.
+            return Response(
+                {"error": "Encryption is already configured for this organization."},
+                status=status.HTTP_409_CONFLICT,
             )
-            org_key.save(force_insert=True)
-            user_key = UserEncryptionKey(
-                user=request.user,
-                public_key=user_public_key,
-                key_id=user_key_id,
-                encrypted_master_key=encrypted_master_key,
-                encrypted_private_key=encrypted_private_key,
-            )
-            user_key.save(force_insert=True)
-            membership = self.org.memberships.get(user=request.user)
-            membership_key = MembershipEncryptionKey(
-                membership=membership,
-                org_encryption_key=org_key,
-                sealed_org_private_key=sealed_org_private_key,
-            )
-            membership_key.save(force_insert=True)
         return Response(
             {
                 "org_key_id": org_key.key_id,
@@ -176,6 +169,17 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         key_id = request.data.get("key_id", "")
+        try:
+            validate_encryption_keys(
+                {
+                    "public_key": public_key,
+                    "key_id": key_id,
+                    "encrypted_master_key": encrypted_master_key,
+                    "encrypted_private_key": encrypted_private_key,
+                }
+            )
+        except ValueError as err:
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
         user_key = UserEncryptionKey(
             user=request.user,
             public_key=public_key,
@@ -183,7 +187,13 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
             encrypted_master_key=encrypted_master_key,
             encrypted_private_key=encrypted_private_key,
         )
-        user_key.save(force_insert=True)
+        try:
+            user_key.save(force_insert=True)
+        except IntegrityError:
+            return Response(
+                {"error": _("A key with this key_id already exists.")},
+                status=status.HTTP_409_CONFLICT,
+            )
         return Response(
             {"key_id": user_key.key_id},
             status=status.HTTP_201_CREATED,
@@ -202,6 +212,17 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         key_id = request.data.get("key_id", "")
+        try:
+            validate_encryption_keys(
+                {
+                    "public_key": public_key,
+                    "key_id": key_id,
+                    "encrypted_master_key": encrypted_master_key,
+                    "encrypted_private_key": encrypted_private_key,
+                }
+            )
+        except ValueError as err:
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
         user_key = get_object_or_404(UserEncryptionKey, user=request.user)
         user_key.public_key = public_key
         user_key.key_id = key_id

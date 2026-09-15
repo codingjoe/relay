@@ -18,11 +18,36 @@
       <meta name="twitter:card" content="summary">
     {% endblock meta_tags %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/chart.min.js" defer></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.15/dist/libsodium-wrappers.min.js" defer></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js"
+      integrity="sha384-rD2ZCuReXV7nIneJcn1lsTn6yOv87YARLQyUsemVAxrYYHdy5hcAW8XZEQxx87Dj"
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+      integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/chart.min.js"
+      integrity="sha384-Sn28rPtKJJwqYWDSBOVgYGvXTIcKeCH/1Bul1EX+r3f/HqDzRtF1Z5Eyq0AKFr5Q"
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/lucide@1.35.0/dist/umd/lucide.min.js"
+      integrity="sha384-eZXpDHN86IMQuxntjYbYprDla50QW8NC+8P9nUywt9PSVNqZE2Ri3YZ2WWKoliDw"
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.15/dist/modules/libsodium-wrappers.min.js"
+      integrity="sha384-ybNIPiJO6EYWqgjFY6vMafI6c5AdcUKPozTk0hSkZU22suZVE7PN8E/doGFiPiM0"
+      crossorigin="anonymous"
+      defer
+    ></script>
     <script src="{% static 'js/encryption.js' %}" defer></script>
     <script src="{% static 'js/bip39.js' %}" defer></script>
     {% if current_org %}
@@ -48,6 +73,7 @@
       {% include "partials/sidebar.html" %}
     {% endif %}
     <main class="flex-1 flex flex-col min-w-0">
+      {% include "accounts/email_verification_banner.html" %}
       {% block topbar %}{% include "partials/topbar.html" %}{% endblock %}
       {% block chrome %}
         <div class="flex items-center gap-2 px-6 h-14">

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "signup"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <div class="max-w-lg mx-auto py-8">
+    <form id="signup-form" method="post" action="{% url 'accounts:signup' %}" class="card">
+      <header>
+        <h2>{% translate "create your account"|capfirst %}</h2>
+        <p>
+          {% translate "one password signs you in and protects your encryption keys. your browser derives the keys locally from your password, and the server never holds them." %}
+        </p>
+      </header>
+      <section>
+        {% csrf_token %}
+        <fieldset class="fieldset">
+          {{ form }}
+        </fieldset>
+        <div class="alert mt-4" data-variant="warning" data-size="sm">
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          <p>
+            {% translate "if you lose this password, your account and all encrypted messages become permanently unreadable. there is no recovery except the 12-word seed you will see next." %}
+          </p>
+        </div>
+        <p id="signup-error" class="text-destructive text-sm mt-2 hidden"></p>
+      </section>
+      <footer>
+        <button id="signup-submit" type="submit" class="btn">
+          <i data-lucide="user-plus" class="size-4" aria-hidden="true"></i>
+          {% translate "create account"|capfirst %}
+        </button>
+      </footer>
+      {% for field in key_fields %}
+        <input type="hidden" name="{{ field }}">
+      {% endfor %}
+    </form>
+
+    <div id="signup-mnemonic" class="card hidden">
+      <header>
+        <h2>{% translate "save your recovery seed"|capfirst %}</h2>
+        <p>
+          {% translate "write down these 12 words and store them offline. anyone with access can decrypt all org messages. they are never shown again and never sent to the server." %}
+        </p>
+      </header>
+      <section>
+        <div class="alert" data-variant="destructive" data-size="sm">
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          <p>{% translate "this is your only chance to save the recovery seed. it will not be shown again." %}</p>
+        </div>
+        <div id="mnemonic-display" class="mt-4 p-4 bg-muted rounded font-mono text-lg break-words"></div>
+        <button id="mnemonic-copy" class="btn mt-2" data-variant="secondary" data-size="sm">
+          <i data-lucide="copy" class="size-4" aria-hidden="true"></i>
+          {% translate "copy to clipboard"|capfirst %}
+        </button>
+        <div role="group" class="field mt-4">
+          <label class="flex items-center gap-2">
+            <input id="mnemonic-confirmed" type="checkbox" class="checkbox">
+            <span>{% translate "i have written down the recovery seed" %}</span>
+          </label>
+        </div>
+      </section>
+      <footer>
+        <button id="mnemonic-continue" class="btn" disabled>
+          {% translate "continue"|capfirst %}
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const form = document.getElementById("signup-form");
+      const errorEl = document.getElementById("signup-error");
+      const submitBtn = document.getElementById("signup-submit");
+
+      function showError(message) {
+        errorEl.textContent = message;
+        errorEl.classList.remove("hidden");
+        submitBtn.disabled = false;
+      }
+
+      function showMnemonic(mnemonicStr, onContinue) {
+        document.getElementById("mnemonic-display").textContent = mnemonicStr;
+        form.classList.add("hidden");
+        document.getElementById("signup-mnemonic").classList.remove("hidden");
+        if (window.lucide) window.lucide.createIcons();
+        const confirmBox = document.getElementById("mnemonic-confirmed");
+        const continueBtn = document.getElementById("mnemonic-continue");
+        confirmBox.addEventListener("change", () => {
+          continueBtn.disabled = !confirmBox.checked;
+        });
+        continueBtn.addEventListener("click", onContinue);
+        document.getElementById("mnemonic-copy").addEventListener("click", () => {
+          navigator.clipboard.writeText(mnemonicStr);
+        });
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        encryptKeys();
+      });
+
+      async function encryptKeys() {
+        errorEl.classList.add("hidden");
+        submitBtn.disabled = true;
+        try {
+          const enc = window.relayEncryption;
+          if (!enc) {
+            throw new Error(
+              "Encryption is still loading. Please try again in a moment.",
+            );
+          }
+          await enc.init();
+          const passphrase = form.elements.password1.value;
+          const salt = sodium.randombytes_buf(enc.SALT_BYTES);
+          const kek = await enc.deriveKEK(passphrase, salt);
+          const masterKey = enc.generateMasterKey();
+          const userKeypair = enc.generateKeypair();
+          const orgKeypair = enc.generateKeypair();
+
+          for (const [name, value] of [
+            ["org_public_key", orgKeypair.publicKey],
+            ["user_public_key", userKeypair.publicKey],
+            [
+              "encrypted_master_key",
+              enc.encryptMasterKey(masterKey, kek, salt),
+            ],
+            [
+              "encrypted_private_key",
+              enc.encryptSecretKey(userKeypair.privateKey, masterKey),
+            ],
+            [
+              "sealed_org_private_key",
+              enc.toBase64(enc.seal(orgKeypair.privateKey, userKeypair.publicKey)),
+            ],
+          ]) {
+            form.elements[name].value = typeof value === "string"
+              ? value
+              : enc.toBase64(value);
+          }
+
+          const mnemonic = await relayEntropy.generateMnemonic();
+          const entropy = await relayEntropy.mnemonicToEntropy(mnemonic);
+          form.elements.recovery_sealed_org_private_key.value =
+            await relayEntropy.sealRecoveryKey(orgKeypair.privateKey, entropy);
+
+          showMnemonic(mnemonic.join(" "), () => form.submit());
+        } catch (err) {
+          showError(err.message);
+        }
+      }
+    })();
+  </script>
+{% endblock %}
