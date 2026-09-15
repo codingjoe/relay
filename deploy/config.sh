@@ -18,22 +18,13 @@
 #
 #   RELAY_HOSTNAME          (relays.to)              public hostname
 #   SERVER_TYPE             (ccx33)                  hcloud server type
-#   SERVER_IMAGE            (docker-ce)              hcloud image
 #   SERVER_LOCATION         (fsn1)                   hcloud location
 #   SMTP_FLOATING_IP_COUNT  (2)                      size of the SMTP egress pool
-#   S3_ENDPOINT             (fsn1.your-objectstorage.com)
-#   S3_REGION               (fsn1)
 #   S3_BUCKET               (relay-<hostname with dots replaced by dashes>)
-#   RELAY_STORAGE_DOMAIN    (storage.<hostname>)  the name Caddy serves
-#                           stored message bodies on, inside the zone
 #   SSH_PUBLIC_KEY_FILES    (~/.ssh/id_ed25519.pub)  space separated
 #   DEPLOY_KEY              (deploy/id_ed25519)
-#   RELAY_STATE_DIR         (deploy/.state)          where a run records itself
-#   PUBLIC_RESOLVERS        (1.1.1.1 9.9.9.9)        space separated
-#   WAIT_TIMEOUT_SECS       (600)
-#   WAIT_INTERVAL_SECS      (15)
 #
-# See deploy/README.md for the full operator guide.
+# See deploy/README.md for the operator guide.
 
 # A step returns these instead of failing: provision.sh reports them and stops.
 EXIT_SKIPPED=10
@@ -46,7 +37,7 @@ REPO_ROOT="$(dirname "$DEPLOY_DIR")"
 # working directory.
 cd "$REPO_ROOT" || exit 1
 
-STATE_DIR="${RELAY_STATE_DIR:-$DEPLOY_DIR/.state}"
+STATE_DIR="$DEPLOY_DIR/.state"
 STATE_FILE="$STATE_DIR/state.env"
 STEP_RECORD_DIR="$STATE_DIR/steps"
 
@@ -59,7 +50,6 @@ STATE_KEYS=(
     SMTP_SOURCE_ADDRESSES
     ZONE_NAMESERVERS
     SSH_KNOWN_HOSTS
-    S3_ENDPOINT_URL
     S3_BUCKET
     UPDATED_AT
 )
@@ -99,9 +89,11 @@ require_env() {
 # arguments, for example: wait_until "the delegation" delegation_is_live
 wait_until() {
     local description="$1"
-    local timeout_secs="$2"
-    local interval_secs="$3"
-    shift 3
+    shift
+    # A stray argument here would otherwise be run as a command, fail every
+    # time, and spend the whole timeout looking like an unreachable resource.
+    command -v "${1:-}" >/dev/null 2>&1 ||
+    fail "wait_until was given \"${1:-}\", which is not a check it can run"
     local started_secs="$SECONDS"
     local elapsed_secs=0
     while :; do
@@ -109,12 +101,12 @@ wait_until() {
             note "$description is ready after ${elapsed_secs}s"
             return 0
         fi
-        if ((elapsed_secs >= timeout_secs)); then
-            warn "$description did not appear within ${timeout_secs}s"
+        if ((elapsed_secs >= WAIT_TIMEOUT_SECS)); then
+            warn "$description did not appear within ${WAIT_TIMEOUT_SECS}s"
             return 1
         fi
-        printf '    waiting for %s (%ss of %ss)\n' "$description" "$elapsed_secs" "$timeout_secs"
-        sleep "$interval_secs"
+        printf '    waiting for %s (%ss of %ss)\n' "$description" "$elapsed_secs" "$WAIT_TIMEOUT_SECS"
+        sleep "$WAIT_INTERVAL_SECS"
         elapsed_secs=$((SECONDS - started_secs))
     done
 }
@@ -179,22 +171,31 @@ fi
 RELAY_HOSTNAME="${RELAY_HOSTNAME_REQUESTED:-${RELAY_HOSTNAME:-relays.to}}"
 
 SERVER_TYPE="${SERVER_TYPE:-ccx33}"
-SERVER_IMAGE="${SERVER_IMAGE:-docker-ce}"
 SERVER_LOCATION="${SERVER_LOCATION:-fsn1}"
 SMTP_FLOATING_IP_COUNT="${SMTP_FLOATING_IP_COUNT:-2}"
-S3_ENDPOINT="${S3_ENDPOINT:-fsn1.your-objectstorage.com}"
-S3_REGION="${S3_REGION:-fsn1}"
-S3_ENDPOINT_URL="${S3_ENDPOINT_URL:-https://$S3_ENDPOINT}"
 S3_BUCKET="${S3_BUCKET:-relay-${RELAY_HOSTNAME//./-}}"
 DEPLOY_KEY="${DEPLOY_KEY:-$DEPLOY_DIR/id_ed25519}"
 DEPLOY_KEY_NAME="${RELAY_HOSTNAME}-deploy"
-PUBLIC_RESOLVERS="${PUBLIC_RESOLVERS:-1.1.1.1 9.9.9.9}"
-WAIT_TIMEOUT_SECS="${WAIT_TIMEOUT_SECS:-600}"
-WAIT_INTERVAL_SECS="${WAIT_INTERVAL_SECS:-15}"
 
-# Space separated inputs that a step iterates over.
+# The single server runs Hetzner's docker-ce image and keeps its bucket in the
+# same location.
+SERVER_IMAGE="docker-ce"
+S3_REGION="fsn1"
+S3_ENDPOINT_URL="https://fsn1.your-objectstorage.com"
+
+# Caddy serves stored message bodies on this name, which the zone's wildcard
+# record covers.
+STORAGE_HOSTNAME="storage.$RELAY_HOSTNAME"
+
+# Two unrelated resolvers, so a delegation or a record has to be live in public
+# DNS rather than in one cache. A registrar change and a cached negative answer
+# both settle in minutes, so the waits give them ten before they hand the work
+# back to the operator.
+PUBLIC_RESOLVERS=(1.1.1.1 9.9.9.9)
+WAIT_TIMEOUT_SECS=600
+WAIT_INTERVAL_SECS=15
+
 read -ra SSH_PUBLIC_KEY_FILES <<<"${SSH_PUBLIC_KEY_FILES:-$HOME/.ssh/id_ed25519.pub}"
-read -ra PUBLIC_RESOLVERS <<<"$PUBLIC_RESOLVERS"
 
 AWS_DEFAULT_REGION="$S3_REGION"
 export AWS_DEFAULT_REGION

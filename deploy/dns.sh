@@ -51,26 +51,12 @@ zone_record_names() {
     printf '%s\n' "@" "*" ns1 ns2 mx1 mx2 smtp
 }
 
-# The hostnames the zone answers for. The wildcard covers pg, redis and
-# storage, so a name without a record of its own still resolves.
+# The hostnames the zone answers for. The wildcard covers pg, redis and the
+# storage host, so a name without a record of its own still resolves.
 platform_hostnames() {
     printf '%s\n' "$RELAY_HOSTNAME" "ns1.$RELAY_HOSTNAME" "ns2.$RELAY_HOSTNAME" \
         "mx1.$RELAY_HOSTNAME" "mx2.$RELAY_HOSTNAME" "smtp.$RELAY_HOSTNAME" \
-        "pg.$RELAY_HOSTNAME" "redis.$RELAY_HOSTNAME"
-}
-
-# The name Caddy serves stored message bodies on. It resolves through the
-# wildcard while it sits under the zone, and needs a record of its own
-# elsewhere.
-storage_hostname() {
-    printf '%s' "${RELAY_STORAGE_DOMAIN:-storage.$RELAY_HOSTNAME}"
-}
-
-storage_hostname_is_covered() {
-    case "$(storage_hostname)" in
-        *."$RELAY_HOSTNAME") ;;
-        *) return 1 ;;
-    esac
+        "pg.$RELAY_HOSTNAME" "redis.$RELAY_HOSTNAME" "$STORAGE_HOSTNAME"
 }
 
 # One name per egress address, so a blacklisted address rotates out on its own.
@@ -91,9 +77,6 @@ a_records_resolve() {
     for hostname in $(platform_hostnames); do
         dns_has_records A "$hostname" "$resolver" "$address" || return 1
     done
-    if storage_hostname_is_covered; then
-        dns_has_records A "$(storage_hostname)" "$resolver" "$address" || return 1
-    fi
     for ((index = 0; index < ${#smtp_addresses[@]}; index++)); do
         position=$((index + 1))
         hostname="$(sender_hostname "$position")"

@@ -65,16 +65,19 @@ replace it in both `RELAY_DNS_SMTP_IPS` and `RELAY_SMTP_SOURCE_IPS`.
 
 ## Prerequisites
 
-- **hcloud CLI** (`brew install hcloud`)
-- **AWS CLI** (`brew install awscli`), for Hetzner Object Storage
-- **jq**, **envsubst** (`brew install jq gettext`), **ssh-keygen**, **dig**
-  (`brew install bind` or your distribution's `dnsutils`)
-- **GitHub CLI** (`gh`) installed and authenticated
-- **dotenvx** (`npm install -g @dotenvx/dotenvx`)
-- **A Hetzner Cloud API token** (Console → Security → API Tokens)
-- **Hetzner S3 credentials** (Console → Object Storage → Credentials)
-- **Your SSH public key** (for root access)
-- **A DNS domain** with A record access
+The tools are already on the machine that runs this: `hcloud` 1.68, `aws` 2.36,
+`jq` 1.8, `gh` 2.98, `dotenvx` 2.26, `envsubst`, `ssh-keygen` and `dig`. What
+you need an account for:
+
+- **A Hetzner Cloud API token** (Console → Security → API Tokens), with write
+  access to zones, servers, floating IPs and SSH keys
+- **Hetzner Object Storage credentials** (Console → Object Storage →
+  Credentials)
+- **`.env.keys`** in the repository root. It holds the private key that
+  decrypts the committed `.env.production`, and it is git-ignored, so restore
+  it from wherever you keep it before provisioning.
+- **Your SSH public key**, for root access to the server
+- **A domain** whose delegation you can change at the registrar
 
 > [!IMPORTANT]
 > Open outbound ports 25 and 465 before you cut over. The egress pool carries
@@ -103,25 +106,17 @@ replace it in both `RELAY_DNS_SMTP_IPS` and `RELAY_SMTP_SOURCE_IPS`.
 ./deploy/provision.sh --list       # the steps, in order
 ```
 
-The order is the dependency order. The zone is what every later step is
-verified against, the delegation is the one thing only you can do, the egress
-pool has to exist before the server boots with it, and the records need the
-address the server only gets when it exists.
-
-A step ends in one of three ways:
-
-- It created or updated something.
-- `nothing to do`: the resource is already there.
-- It stopped and the run halts. The step prints what it needs, and running the
-  same command again retries it.
+The order is the dependency order: the zone is what every later step is
+verified against, the egress pool has to exist before the server boots with it,
+and the records need an address the server only gets once it exists. A step
+either changed something, reports `nothing to do`, or stops and halts the run
+with what it needs. Rerunning the same command retries it.
 
 ### What the run remembers
 
 The run writes what it created to `deploy/.state/`, which is git-ignored:
-
-- `state.env` holds the values of the deployment: the server address, the
-  egress addresses, the nameservers and the bucket.
-- `steps/<name>` holds, per step, when it last ran and what it did.
+`state.env` holds the values of the deployment, and `steps/<name>` holds when
+each step last ran and what it did.
 
 Those files are a record, not a decision. Every step verifies the resource
 itself, so deleting a record, a floating IP or the whole directory makes the
@@ -129,22 +124,17 @@ step run again rather than trust what was written.
 
 ### How stored mail is served
 
-The bucket itself stays private and its endpoint is never handed to a browser.
-A `storage` container runs [s3proxy](https://github.com/andrewgaul/s3proxy)
+The bucket stays private and its endpoint is never handed to a browser. A
+`storage` container runs [s3proxy](https://github.com/andrewgaul/s3proxy)
 between Caddy and Hetzner Object Storage: relay signs a URL for the name Caddy
-serves, Caddy routes it to the proxy, and the proxy talks to Hetzner with the
-real credentials.
+serves, Caddy routes it to the proxy, and the proxy carries the real
+credentials to Hetzner.
 
-That is why `AWS_S3_ENDPOINT_URL` in `.env.production` is the Hetzner endpoint
-and not the public one. The proxy reads it as its upstream, and
-`compose.production.yml` gives the application containers
-`https://storage.<hostname>` instead. The name is covered by the zone's
-wildcard record, so it resolves without a record of its own, and Caddy issues
-its certificate on first start.
-
-Set `RELAY_STORAGE_DOMAIN` to serve message bodies from another name. The
-record for that name has to resolve to this server before the deploy, or Caddy
-cannot issue its certificate.
+So `AWS_S3_ENDPOINT_URL` in `.env.production` is the Hetzner endpoint, which the
+proxy reads as its upstream, while `compose.production.yml` gives the
+application containers `https://storage.<hostname>`. The zone's wildcard record
+covers that name, so it needs no record of its own and Caddy issues its
+certificate on first start.
 
 ## Step 1: Configure hcloud
 
@@ -156,7 +146,10 @@ hcloud server list
 ## Step 2: Provision
 
 Export the Object Storage credentials and run the entry point. It walks the
-steps in order and stops at the first one that needs you.
+steps in order and stops at the first one that needs you, which is normally the
+delegation: that step prints the nameservers to hand your registrar and waits
+for them, so you can either set them while it waits or start the run again
+later.
 
 ```bash
 export AWS_ACCESS_KEY_ID="<your-s3-access-key>"
@@ -167,35 +160,28 @@ RELAY_HOSTNAME="relays.to" \
     ./deploy/provision.sh
 ```
 
-The first stop is normally the delegation. The step prints the nameservers to
-hand your registrar and waits for them, so you can either set them while it
-waits or stop the run and start it again later.
-
 > [!TIP]
 > A rerun resumes. Every step verifies the resource it manages before it
 > changes anything, so a run that stopped keeps the work it did and never
 > touches a credential that is already live.
 
 > [!TIP]
-> Only the `storage` and `environment` steps read the credentials above, so the
-> DNS zone, the delegation and the server work before you have them.
+> Only `storage` and `environment` read the credentials above, so the zone, the
+> delegation and the server work before you have them.
 
-It provisions:
-
-- Hetzner Cloud server (CCX33) on Hetzner's `docker-ce` app image: Ubuntu 24.04
-  with Docker CE and the Compose plugin
-- A pool of floating IPs for SMTP, each with a PTR record, bound to `eth0` at
-  first boot
-- S3 bucket on Hetzner Object Storage
-- Deployment SSH key pair at `deploy/id_ed25519`
+It provisions a Hetzner Cloud server (CCX33, on Hetzner's `docker-ce` image:
+Ubuntu 24.04 with Docker CE and the Compose plugin), a pool of floating IPs for
+SMTP with a PTR record each, bound to `eth0` at first boot, a bucket on Hetzner
+Object Storage, and the deployment SSH key pair at `deploy/id_ed25519`.
 
 > [!CAUTION]
 > The bucket holds stored mail. Emptying it deletes that mail.
 
 ### Overrides
 
-The steps supply defaults for everything else. These are the values worth
-knowing before you run them:
+Everything else is set for one server in `fsn1` on Hetzner's `docker-ce` image,
+with its bucket in the same location. Three values are worth knowing before you
+run it:
 
 - `SMTP_FLOATING_IP_COUNT` (default `2`) sets the egress pool size. Raise it to
   keep a spare address for rotation, then run `./deploy/provision.sh egress records` to create the address and publish its records.
@@ -206,29 +192,12 @@ knowing before you run them:
 - `S3_BUCKET` (default `relay-<hostname with dots as dashes>`) names the
   bucket. Bucket names are unique across Hetzner Object Storage, so override it
   when the derived name is taken.
-- `SERVER_IMAGE` (default `docker-ce`) selects Hetzner's app image, which is
-  Ubuntu 24.04 with Docker CE and the Compose plugin, so cloud-init only
-  creates the users and binds the floating IPs. Point it at a plain system
-  image to install Docker yourself.
-- `RELAY_STORAGE_DOMAIN` (default `storage.<hostname>`) is the name Caddy
-  serves stored message bodies on. The wildcard record covers the default, so
-  a different name needs its own record before the deploy.
-- `PUBLIC_RESOLVERS` (default `1.1.1.1 9.9.9.9`) are the resolvers the
-  delegation and propagation steps wait for. Every one of them has to agree
-  before a step passes.
-- `WAIT_TIMEOUT_SECS` (default `600`) and `WAIT_INTERVAL_SECS` (default `15`)
-  bound how long those steps wait before they stop and let you run them again.
-- `RELAY_STATE_DIR` moves the directory the run records itself in.
 
 ## Step 3: Delegate DNS
 
-The `zone` step creates the zone in Hetzner Cloud DNS, and the `delegation`
-step hands you the nameservers it returns. The `records` step writes the
-records below, then waits for public resolvers to answer with them. The
-`sender-<n>.mail` records mirror the floating IPs, so raising
-`SMTP_FLOATING_IP_COUNT` and running the `egress` and `records` steps adds
-them. Excluding an address from sending changes only `RELAY_DNS_SMTP_IPS` and
-`RELAY_SMTP_SOURCE_IPS`, which the containers read from `.env.production`.
+The `zone` step creates the zone in Hetzner Cloud DNS and `delegation` hands
+you the nameservers it returns. `records` writes these records, then
+`propagation` waits for public resolvers to answer with them:
 
 ```
 A  relays.to                 <server_ip>
@@ -241,34 +210,36 @@ A  ns2.relays.to             <server_ip>
 A  *.relays.to               <server_ip>
 ```
 
+The `sender-<n>.mail` records mirror the floating IPs, so raising
+`SMTP_FLOATING_IP_COUNT` and running `egress` and `records` adds them.
+Excluding an address from sending changes only `RELAY_DNS_SMTP_IPS` and
+`RELAY_SMTP_SOURCE_IPS` in `.env.production`.
+
 > [!IMPORTANT]
-> Delegate `relays.to` to the nameservers the `delegation` step prints.
-> Nothing in the zone resolves until your registrar points at them. The step
-> passes once a public resolver answers with them. Confirm with
+> Delegate `relays.to` to the nameservers `delegation` prints. Nothing in the
+> zone resolves until your registrar points at them, and the step only passes
+> once a public resolver answers with them. Confirm with
 > `hcloud zone describe relays.to -o json | jq .authoritative_nameservers`,
 > where `delegation_status` reads `valid` once it is right.
 
 > [!IMPORTANT]
 > Each `sender-<n>.mail` record has to match the PTR record on the same address.
-> The `records` step sets the PTR records, and receivers confirm them by looking
-> up the name forward, so these records are what make the pool verifiable. It
-> checks both directions before it reports the work as done.
+> Receivers confirm a PTR by looking the name up forward, so these records are
+> what make the pool verifiable. `records` checks both directions before it
+> reports the work as done.
 
 The `ns` and `mx` hostnames match `RELAY_DNS_NS_NAMESERVERS` and
-`RELAY_DNS_MX_HOSTNAMES` in `root/settings.py`.
-
-The sender reaches `pg.<HOSTNAME>` and `redis.<HOSTNAME>` over the-box's Layer
-4 SNI routes on `:443`, where Caddy terminates TLS and proxies to the internal
-ports. That is why its `DATABASE_URL` carries `sslmode=require` and its
-`REDIS_URL` uses `rediss://`. The wildcard record covers both, and covers
-`storage.<HOSTNAME>` for the same reason, while `HOSTNAME` is the zone apex.
-Add those records when the deployment serves a name outside the zone. Every
-other container reaches PostgreSQL and Redis over the bridge by Docker DNS.
+`RELAY_DNS_MX_HOSTNAMES` in `root/settings.py`. The wildcard covers
+`pg.<hostname>`, `redis.<hostname>` and `storage.<hostname>`, which the sender
+and Caddy reach over the-box's Layer 4 SNI routes on `:443`. That is why the
+sender's `DATABASE_URL` carries `sslmode=require` and its `REDIS_URL` uses
+`rediss://`. Every other container reaches PostgreSQL and Redis over the bridge
+by Docker DNS.
 
 ## Step 4: Add the OAuth credentials
 
-The script writes the infrastructure values to `.env.production`. GitHub OAuth
-credentials are user-specific and stay manual:
+The `environment` step writes the infrastructure values to `.env.production`.
+GitHub OAuth credentials are user-specific and stay manual:
 
 ```bash
 dotenvx set GITHUB_CLIENT_ID "<oauth-client-id>" -f .env.production
@@ -278,9 +249,6 @@ git add .env.production
 git commit -m "Add OAuth credentials"
 git push
 ```
-
-If the `environment` step printed a list of `dotenvx` commands instead, run
-those first.
 
 ## Step 5: Deploy
 
@@ -311,24 +279,22 @@ bodies, so a message download from the dashboard exercises it end to end.
 ## IP reputation and blacklist rotation
 
 `RELAY_DNS_SMTP_IPS` and `RELAY_SMTP_SOURCE_IPS` carry the same addresses: the
-floating IP pool plus the server primary IP, so every address is published and
-used for sending.
-
-- `RELAY_DNS_SMTP_IPS` is read by web and published in SPF and Return-Path
-  records.
-- `RELAY_SMTP_SOURCE_IPS` is read by the sender, which picks one at random for
-  each send.
-
-Set `SMTP_FLOATING_IP_COUNT` high enough to keep a spare address for rotation.
+floating IP pool plus the server primary IP. Web publishes them in SPF and
+Return-Path records, and the sender picks one at random for each send. Set
+`SMTP_FLOATING_IP_COUNT` high enough to keep a spare for rotation.
 
 To rotate away from a blacklisted address:
 
-1. Update env: `dotenvx set RELAY_DNS_SMTP_IPS "<remaining IPs>,<server_ip>" -f .env.production -p`
-1. Update env: `dotenvx set RELAY_SMTP_SOURCE_IPS "<remaining IPs>,<server_ip>" -f .env.production -p`
-1. Push: `git add .env.production && git commit -m "Switch SMTP IP" && git push`
-   Web then publishes the updated IPs in SPF and Return-Path records.
-1. Track the address at [MXToolbox](https://mxtoolbox.com/blacklists.aspx) and
-   keep it assigned until it clears.
+1. Drop it from both values, in `.env.production`:
+
+   ```bash
+   dotenvx set RELAY_DNS_SMTP_IPS "<remaining IPs>,<server_ip>" -f .env.production -p
+   dotenvx set RELAY_SMTP_SOURCE_IPS "<remaining IPs>,<server_ip>" -f .env.production -p
+   git add .env.production && git commit -m "Switch SMTP IP" && git push
+   ```
+
+1. Track it at [MXToolbox](https://mxtoolbox.com/blacklists.aspx) and keep it
+   assigned until it clears, then add it back the same way.
 
 ## Day-2 operations
 

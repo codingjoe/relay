@@ -7,7 +7,7 @@
 # delegation, watches it, and stops when it does not appear in time. Run it
 # again after you changed the delegation at your registrar.
 #
-# Inputs: RELAY_HOSTNAME, PUBLIC_RESOLVERS, WAIT_TIMEOUT_SECS, WAIT_INTERVAL_SECS
+# Inputs: RELAY_HOSTNAME
 
 set -euo pipefail
 
@@ -61,7 +61,7 @@ $(printf '  %s\n' "${nameservers[@]}")
 Hetzner currently reports the delegation as $(fetch_zone_delegation_status).
 EOF
 
-if ! wait_until "the delegation of $RELAY_HOSTNAME" "$WAIT_TIMEOUT_SECS" "$WAIT_INTERVAL_SECS" delegation_is_live; then
+if ! wait_until "the delegation of $RELAY_HOSTNAME" delegation_is_live; then
     cat <<EOF
 
 The registrars are not there yet. Nothing else can be verified before they

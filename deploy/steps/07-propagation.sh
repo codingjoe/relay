@@ -8,7 +8,7 @@
 # name that did not exist yet. This step is what makes a browser, a mail relay
 # and the certificate authority agree.
 #
-# Inputs: RELAY_HOSTNAME, PUBLIC_RESOLVERS, WAIT_TIMEOUT_SECS, WAIT_INTERVAL_SECS
+# Inputs: RELAY_HOSTNAME
 
 set -euo pipefail
 
@@ -42,8 +42,7 @@ if records_are_propagated; then
 fi
 
 note "Waiting for ${PUBLIC_RESOLVERS[*]} to answer with the records of $RELAY_HOSTNAME"
-if ! wait_until "the records of $RELAY_HOSTNAME" \
-    "$WAIT_TIMEOUT_SECS" "$WAIT_INTERVAL_SECS" records_are_propagated; then
+if ! wait_until "the records of $RELAY_HOSTNAME" records_are_propagated; then
     cat <<EOF
 
 The resolvers still answer with something else:

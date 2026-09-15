@@ -5,7 +5,7 @@
 # The server boots with cloud-init, which creates the deploy users and binds
 # the floating IPs to eth0, so the pool has to exist first.
 #
-# Inputs: RELAY_HOSTNAME, SERVER_TYPE, SERVER_IMAGE, SERVER_LOCATION,
+# Inputs: RELAY_HOSTNAME, SERVER_TYPE, SERVER_LOCATION,
 #         SMTP_FLOATING_IP_COUNT, DEPLOY_KEY, SSH_PUBLIC_KEY_FILES
 
 set -euo pipefail
