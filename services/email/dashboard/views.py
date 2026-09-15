@@ -27,7 +27,6 @@ class DashboardView(OrganizationScopedView, generic.TemplateView):
     def get_context_data(self, **kwargs):
         domains = list(Domain.objects.filter(org=self.org))
         return super().get_context_data(**kwargs) | {
-            "domains": domains,
             "total_domains": len(domains),
             "total_messages": Message.objects.filter(org=self.org).count(),
             "managed_domain": next(

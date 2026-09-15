@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "django.contrib.humanize",
     # Third-party apps
+    "django_letter",
     "health_check",
     "social_django",
     "storages",
@@ -276,6 +277,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Relay config
 
 RELAY_PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
+RELAY_PLATFORM_BASE_URL = (
+    f"{'http' if DEBUG or TEST else 'https'}://{RELAY_PLATFORM_DOMAIN}"
+)
 
 RELAY_SENDER_SUBDOMAIN_PREFIX = env(
     "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"
@@ -348,10 +352,8 @@ RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 
-_email = env.email_url(
-    "EMAIL_URL",
-    default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
-)
+# compose passes an unset EMAIL_URL through as an empty string
+_email = env.email_url_config(env("EMAIL_URL", default="") or "consolemail://")
 MAILERS = {
     "default": {
         "BACKEND": _email["EMAIL_BACKEND"],

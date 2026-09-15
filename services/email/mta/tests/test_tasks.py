@@ -18,6 +18,7 @@ from accounts.models import Membership, Organization
 from domains.models import Domain
 from kms.models import SigningKey
 from services.email.message.models import Transmission
+from services.email.mta.emails import PostmasterForwardEmail
 from services.email.mta.models import (
     IncomingMessage,
     TlsFailure,
@@ -34,8 +35,8 @@ from services.email.mta.tasks import (
     deliver_to_webhook,
     deliver_webhook,
     dispatch_webhook,
+    forward_postmaster_message,
     mark_failed_if_pending,
-    notify_postmaster_recipients,
     parse_tls_report,
     webhook_retry,
 )
@@ -148,93 +149,248 @@ class TestRetrySchedule:
         assert WEBHOOK_RETRY_DELAYS[-1] == 24 * 60 * 60
 
 
-class TestNotifyPostmasterRecipients:
-    @pytest.mark.django_db(transaction=True)
-    def test_notify__sends_to_all_members_with_email(self, org, user, other_user):
+POSTMASTER_RAW_BODY = (
+    b"From: author@example.org\r\nSubject: Alert\r\n\r\nSomething happened\r\n"
+)
+RAW_BODY_WITHOUT_SENDER = b"Subject: Alert\r\n\r\nSomething happened\r\n"
+RAW_BODY_WITH_ENCODED_SENDER = (
+    b"From: =?utf-8?q?J=C3=B6rg_M=C3=BCller?= <joerg@example.org>\r\n"
+    b"Subject: Alert\r\n\r\nSomething happened\r\n"
+)
+
+
+def make_postmaster_message(
+    org, raw_body=POSTMASTER_RAW_BODY, mail_from="bounce@example.org"
+):
+    message = IncomingMessage(
+        org=org,
+        domain=Domain.objects.get(org=org),
+        receiving_domain="example.com",
+        mail_from=mail_from,
+        rcpt_to="postmaster@example.com",
+        subject="Alert",
+    )
+    message.raw_body.save("test.eml", ContentFile(raw_body), save=False)
+    message.save()
+    return message
+
+
+@pytest.mark.django_db(transaction=True)
+class TestForwardPostmasterMessage:
+    def test_forward_postmaster_message__sends_to_every_member_with_email(
+        self, org, other_user
+    ):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        msg = IncomingMessage.objects.create(
-            org=org,
-            domain=domain,
-            receiving_domain="example.com",
-            mail_from="external@example.org",
-            rcpt_to="postmaster@example.com",
-            subject="Alert",
-            message_id="<abc@example.org>",
-        )
-        notify_postmaster_recipients.func(message_pk=str(msg.id))
-        recipients = sorted(m.to for m in mail.outbox)
-        assert recipients == [
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert sorted(m.to for m in mail.outbox) == [
             ["alice@example.com"],
             ["bob@example.com"],
         ]
 
-    @pytest.mark.django_db(transaction=True)
-    def test_notify__skips_members_without_email(self, org):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        no_email_user = User.objects.create_user(
-            username="carol", email="", password="test"
-        )
-        Membership.objects.create(
-            org=org, user=no_email_user, role=Membership.Role.WRITE
-        )
-        msg = IncomingMessage.objects.create(
-            org=org,
-            domain=domain,
-            receiving_domain="example.com",
-            mail_from="external@example.org",
-            rcpt_to="postmaster@example.com",
-            subject="Alert",
-            message_id="<abc@example.org>",
-        )
-        notify_postmaster_recipients.func(message_pk=str(msg.id))
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == ["alice@example.com"]
+    def test_forward_postmaster_message__skips_members_without_email(self, org):
+        carol = User.objects.create_user(username="carol", email="")
+        Membership.objects.create(org=org, user=carol, role=Membership.Role.WRITE)
+        message = make_postmaster_message(org)
 
-    @pytest.mark.django_db(transaction=True)
-    def test_notify__includes_detail_url_in_body(self, org, user):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        msg = IncomingMessage.objects.create(
-            org=org,
-            domain=domain,
-            receiving_domain="example.com",
-            mail_from="external@example.org",
-            rcpt_to="postmaster@example.com",
-            subject="Alert",
-            message_id="<abc@example.org>",
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert [m.to for m in mail.outbox] == [["alice@example.com"]]
+
+    def test_forward_postmaster_message__prefixes_original_subject(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert mail.outbox[0].subject == f"Fwd: {message.subject}"
+
+    def test_forward_postmaster_message__sends_from_default_from_email(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
+
+    def test_forward_postmaster_message__body_names_recipient(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert (
+            "A message sent to postmaster@example.com was forwarded to your organization."
+            in mail.outbox[0].body
         )
-        notify_postmaster_recipients.func(message_pk=str(msg.id))
-        expected_url = (
-            f"http://{settings.RELAY_PLATFORM_DOMAIN}{msg.get_absolute_url()}"
+
+    def test_forward_postmaster_message__body_links_to_stored_message(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert (
+            f"{settings.RELAY_PLATFORM_BASE_URL}{message.get_absolute_url()}"
+            in mail.outbox[0].body
         )
-        assert expected_url in mail.outbox[0].body
 
-    @pytest.mark.django_db(transaction=True)
-    def test_notify__logs_and_continues_when_sending_fails(self, org):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        msg = IncomingMessage.objects.create(
-            org=org,
-            domain=domain,
-            receiving_domain="example.com",
-            mail_from="external@example.org",
-            rcpt_to="postmaster@example.com",
-            subject="Alert",
-            message_id="<abc@example.org>",
+    def test_forward_postmaster_message__body_links_over_https_in_production(
+        self, org, settings
+    ):
+        settings.RELAY_PLATFORM_BASE_URL = f"https://{settings.RELAY_PLATFORM_DOMAIN}"
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert (
+            f"https://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
+            in mail.outbox[0].body
         )
-        with patch.object(User, "email_user", side_effect=OSError("smtp down")):
-            notify_postmaster_recipients.func(message_pk=str(msg.id))
 
-        assert len(mail.outbox) == 0
+    def test_forward_postmaster_message__sends_no_attachment(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert mail.outbox[0].attachments == []
+
+    def test_forward_postmaster_message__replies_to_original_author(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert mail.outbox[0].reply_to == ["author@example.org"]
+
+    def test_forward_postmaster_message__replies_to_envelope_sender_without_from_header(
+        self, org
+    ):
+        message = make_postmaster_message(org, raw_body=RAW_BODY_WITHOUT_SENDER)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert mail.outbox[0].reply_to == ["bounce@example.org"]
+
+    def test_forward_postmaster_message__omits_reply_to_without_sender(self, org):
+        message = make_postmaster_message(
+            org, raw_body=RAW_BODY_WITHOUT_SENDER, mail_from=""
+        )
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert mail.outbox[0].reply_to == []
+        assert "Reply-To" not in mail.outbox[0].extra_headers
+
+    def test_forward_postmaster_message__sends_one_batch(self, org, other_user):
+        Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
+        message = make_postmaster_message(org)
+
+        with patch("services.email.mta.tasks.mailers") as mock_mailers:
+            forward_postmaster_message.func(message_pk=str(message.pk))
+
+        send_messages = mock_mailers["default"].send_messages
+        send_messages.assert_called_once()
+        assert sorted(m.to for m in send_messages.call_args.args[0]) == [
+            ["alice@example.com"],
+            ["bob@example.com"],
+        ]
+
+    def test_forward_postmaster_message__sends_html_alternative(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert [mimetype for _, mimetype in mail.outbox[0].alternatives] == [
+            "text/html"
+        ]
 
 
-def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
+@pytest.mark.django_db
+class TestPostmasterForwardEmail:
+    def test_render__html_alternative_names_sender_subject_and_recipient(self, org):
+        message = make_postmaster_message(org)
+        email = PostmasterForwardEmail(message, to=["alice@example.com"])
+
+        email.render()
+
+        assert [mimetype for _, mimetype in email.alternatives] == ["text/html"]
+        html = email.alternatives[0][0]
+        assert ">author@example.org<" in html
+        assert ">Alert<" in html
+        assert ">postmaster@example.com<" in html
+
+    def test_render__links_to_stored_message_in_html_and_body(self, org):
+        message = make_postmaster_message(org)
+        email = PostmasterForwardEmail(message, to=["alice@example.com"])
+
+        email.render()
+
+        detail_url = (
+            f"http://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
+        )
+        assert f'href="{detail_url}"' in email.alternatives[0][0]
+        assert detail_url in email.body
+
+    def test_render_preview__uses_sample_values_without_message(self):
+        email = PostmasterForwardEmail.render_preview()
+
+        assert email.subject == "Fwd: Delivery delayed"
+        assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
+        assert ">sender@example.org<" in email.html
+        assert ">Delivery delayed<" in email.html
+        assert f">postmaster@{settings.RELAY_PLATFORM_DOMAIN}<" in email.html
+        assert (
+            f"http://{settings.RELAY_PLATFORM_DOMAIN}"
+            f"{email.incoming_message.get_absolute_url()}" in email.body
+        )
+        assert not IncomingMessage.objects.exists()
+
+    def test_render_preview__uses_given_message(self, org):
+        message = make_postmaster_message(org)
+
+        email = PostmasterForwardEmail.render_preview(message=message)
+
+        assert email.subject == "Fwd: Alert"
+        assert ">author@example.org<" in email.html
+        assert "Delivery delayed" not in email.html
+
+    def test_render_preview__language_argument_wins(self, org):
+        message = make_postmaster_message(org)
+
+        email = PostmasterForwardEmail.render_preview(message=message, language="de")
+
+        assert email.language == "de"
+        assert '<html lang="de">' in email.html
+
+    def test_init__base_url_argument_wins(self, org):
+        message = make_postmaster_message(org)
+
+        email = PostmasterForwardEmail(
+            message, to=["alice@example.com"], base_url="https://mail.example.org"
+        )
+        email.render()
+
+        assert (
+            f'href="https://mail.example.org{message.get_absolute_url()}"'
+            in email.alternatives[0][0]
+        )
+
+    def test_init__decodes_encoded_from_header(self, org):
+        message = make_postmaster_message(org, raw_body=RAW_BODY_WITH_ENCODED_SENDER)
+
+        email = PostmasterForwardEmail(message, to=["alice@example.com"])
+
+        assert email.reply_to == ["Jörg Müller <joerg@example.org>"]
+
+
+def make_incoming_message(
+    org, status=IncomingMessage.Status.RECEIVED, rcpt_to="inbox@example.com"
+):
     domain = Domain.objects.get(org=org)
     msg = IncomingMessage(
         org=org,
         domain=domain,
         receiving_domain="example.com",
         mail_from="spam@acme.com",
-        rcpt_to="inbox@example.com",
+        rcpt_to=rcpt_to,
         status=status,
     )
     msg.raw_body.save("test.eml", ContentFile(b"spam body"), save=False)
@@ -245,13 +401,16 @@ def make_incoming_message(org, status=IncomingMessage.Status.RECEIVED):
 @pytest.mark.django_db(transaction=True)
 class TestCheckIncomingSpam:
     def test_check_incoming_spam__quarantines_spam(self, org):
-        msg = make_incoming_message(org)
+        msg = make_incoming_message(org, rcpt_to="postmaster@example.com")
         with (
             patch(
                 "services.email.mta.tasks.check_message",
                 return_value=SpamResult(score=20.0, action=SpamAction.REJECT),
             ),
             patch("services.email.mta.tasks.dispatch_webhook") as mock_webhook,
+            patch(
+                "services.email.mta.tasks.forward_postmaster_message"
+            ) as mock_forward,
         ):
             check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
 
@@ -259,7 +418,7 @@ class TestCheckIncomingSpam:
         assert msg.status == IncomingMessage.Status.QUARANTINED
         assert msg.spam_score == 20.0
         mock_webhook.enqueue.assert_not_called()
-        assert len(mail.outbox) == 0
+        mock_forward.enqueue.assert_not_called()
 
     def test_check_incoming_spam__dispatches_webhook_for_clean_message(self, org):
         msg = make_incoming_message(org)
@@ -269,27 +428,87 @@ class TestCheckIncomingSpam:
                 return_value=SpamResult(score=0.0),
             ),
             patch("services.email.mta.tasks.dispatch_webhook") as mock_webhook,
+            patch(
+                "services.email.mta.tasks.forward_postmaster_message"
+            ) as mock_forward,
         ):
             check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
 
         msg.refresh_from_db()
         assert msg.status == IncomingMessage.Status.RECEIVED
         mock_webhook.enqueue.assert_called_once_with(message_id=str(msg.pk))
+        mock_forward.enqueue.assert_not_called()
 
-    def test_check_incoming_spam__skips_webhook_for_already_quarantined(self, org):
-        msg = make_incoming_message(org, status=IncomingMessage.Status.QUARANTINED)
+    def test_check_incoming_spam__forwards_postmaster_message(self, org):
+        msg = make_incoming_message(org, rcpt_to="postmaster@example.com")
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.mta.tasks.dispatch_webhook"),
+            patch(
+                "services.email.mta.tasks.forward_postmaster_message"
+            ) as mock_forward,
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        mock_forward.enqueue.assert_called_once_with(message_pk=str(msg.pk))
+
+    def test_check_incoming_spam__forwards_postmaster_extension(self, org):
+        msg = make_incoming_message(org, rcpt_to="postmaster+bounces@example.com")
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.mta.tasks.dispatch_webhook"),
+            patch(
+                "services.email.mta.tasks.forward_postmaster_message"
+            ) as mock_forward,
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        mock_forward.enqueue.assert_called_once_with(message_pk=str(msg.pk))
+
+    def test_check_incoming_spam__forwards_uppercase_postmaster_recipient(self, org):
+        msg = make_incoming_message(org, rcpt_to="POSTMASTER@example.com")
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.mta.tasks.dispatch_webhook"),
+            patch(
+                "services.email.mta.tasks.forward_postmaster_message"
+            ) as mock_forward,
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        mock_forward.enqueue.assert_called_once_with(message_pk=str(msg.pk))
+
+    def test_check_incoming_spam__skips_handling_for_dmarc_quarantine(self, org):
+        msg = make_incoming_message(
+            org,
+            status=IncomingMessage.Status.QUARANTINED,
+            rcpt_to="postmaster@example.com",
+        )
         with (
             patch(
                 "services.email.mta.tasks.check_message",
                 return_value=SpamResult(score=0.0),
             ),
             patch("services.email.mta.tasks.dispatch_webhook") as mock_webhook,
+            patch(
+                "services.email.mta.tasks.forward_postmaster_message"
+            ) as mock_forward,
         ):
             check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
 
         msg.refresh_from_db()
         assert msg.status == IncomingMessage.Status.QUARANTINED
         mock_webhook.enqueue.assert_not_called()
+        mock_forward.enqueue.assert_not_called()
 
 
 def make_webhook(org, address_pattern="*", is_active=True):

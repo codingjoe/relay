@@ -9,16 +9,16 @@ from dataclasses import dataclass, field
 import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.core.mail import mailers
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
-from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 from services.email.message.models import Transmission
 from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
 
+from .emails import PostmasterForwardEmail
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
 logger = logging.getLogger(__name__)
@@ -237,42 +237,31 @@ def parse_tls_report(report_pk):
 
 
 @task(queue_name="ingress")
-def notify_postmaster_recipients(message_pk):
-    """Email all org members with a link to the received message."""
+def forward_postmaster_message(message_pk):
+    """
+    Send every member of the receiving organization a replyable copy.
+
+    The copy names the recipient, links to the stored message in the relay
+    dashboard, and replies reach the original author.
+    """
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.exclude(user__email="").select_related("user")
-
-    scheme = "http" if settings.DEBUG or settings.TEST else "https"
-    detail_url = (
-        f"{scheme}://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
+    mailers["default"].send_messages(
+        [
+            PostmasterForwardEmail(message, to=[membership.user.email])
+            for membership in memberships
+        ]
     )
-    context = {
-        "subject": message.subject or _("(no subject)"),
-        "mail_from": message.mail_from,
-        "rcpt_to": message.rcpt_to,
-        "detail_url": detail_url,
-    }
-    body = render_to_string("mta/postmaster_notification.txt", context)
-    subject = _("Postmaster message received: %(subject)s") % {
-        "subject": message.subject
-    }
-    for membership in memberships:
-        try:
-            membership.user.email_user(
-                subject=subject,
-                message=body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-            )
-        except OSError:
-            logger.exception(
-                "Postmaster notification to %s failed",
-                membership.user.email,
-            )
 
 
 @task(queue_name="ingress", retry=SPAM_SCAN_RETRY)
 def check_incoming_spam(message_pk, client_ip):
-    """Check an incoming message for spam and dispatch webhook if clean."""
+    """
+    Evaluate the stored mail and dispatch what the scan clears.
+
+    Clean mail reaches the matching webhooks, and mail addressed to postmaster
+    reaches every organization member.
+    """
     from services.email.message.models import SpamCheck
 
     message = IncomingMessage.objects.get(pk=message_pk)
@@ -305,3 +294,8 @@ def check_incoming_spam(message_pk, client_ip):
     message.save(update_fields=update_fields)
     if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
         dispatch_webhook.enqueue(message_id=str(message.pk))
+        if (
+            message.rcpt_to.partition("@")[0].partition("+")[0].lower()
+            == settings.RELAY_POSTMASTER_LOCAL_PART
+        ):
+            forward_postmaster_message.enqueue(message_pk=str(message.pk))

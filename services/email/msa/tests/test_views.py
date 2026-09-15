@@ -1,10 +1,13 @@
-from email import message_from_bytes
+from email import message_from_bytes, policy
 from email.message import EmailMessage
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
+from django.urls import reverse
 from django.utils.http import http_date
 
 from domains.models import Domain
@@ -144,31 +147,67 @@ class TestTestEmailView:
         admin_client,
         django_capture_on_commit_callbacks,
         org,
-        user,
     ):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        domain = Domain.objects.get(org=org, is_managed=True)
         with (
             patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
             django_capture_on_commit_callbacks(execute=True),
         ):
-            response = admin_client.post(
-                f"/org/{org.slug}/email/messages/test",
-                {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
-            )
+            response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, subject="Test")
-        assert msg.subject == "Test"
+        assert response.url == reverse(
+            "message:message-list", kwargs={"org_slug": org.slug}
+        )
+        msg = OutgoingMessage.objects.get(org=org)
         assert msg.domain == domain
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(msg.id), client_ip="127.0.0.1"
         )
 
-    def test_post__signs_message_and_mints_feedback_id(self, admin_client, org, user):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    def test_post__sets_templated_headers(self, admin_client, org, user):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+        assert response.status_code == 302
+        stored = message_from_bytes(
+            OutgoingMessage.objects.get(org=org).raw_body.read(),
+            policy=policy.default,
+        )
+        assert stored["Subject"] == f"Test email from {domain.name}"
+        assert stored["From"] == f"postmaster@{domain.name}"
+        assert stored["To"] == user.email
+        assert stored["Reply-To"] is None
+
+    def test_post__stores_html_and_plain_parts(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+        assert response.status_code == 302
+        stored = message_from_bytes(
+            OutgoingMessage.objects.get(org=org).raw_body.read(),
+            policy=policy.default,
+        )
+        parts = {
+            part.get_content_type(): part.get_content() for part in stored.iter_parts()
+        }
+        assert set(parts) == {"text/html", "text/plain"}
+        assert f"postmaster@{domain.name}" in parts["text/html"]
+        assert f"postmaster@{domain.name}" in parts["text/plain"]
+        link = f"{settings.RELAY_PLATFORM_BASE_URL}/org/{org.slug}/email/messages/"
+        assert f'href="{link}"' in parts["text/html"]
+        assert f"<{link}>" in parts["text/plain"]
+
+    def test_post__ignores_submitted_content(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+            {"domain": "", "subject": "Injected", "body": "Injected"},
         )
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.subject == f"Test email from {domain.name}"
+        assert b"Injected" not in msg.raw_body.read()
+
+    def test_post__signs_message_and_mints_feedback_id(self, admin_client, org):
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org)
         stored = message_from_bytes(msg.raw_body.read())
@@ -177,47 +216,63 @@ class TestTestEmailView:
         assert msg.feedback_id
         assert msg.feedback_id == stored["Feedback-ID"]
 
-    def test_post__records_submission(self, admin_client, org, user):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        response = admin_client.post(
-            f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
-        )
+    def test_post__records_submission(self, admin_client, org):
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org)
         transmission = Transmission.objects.get(message=msg)
         assert transmission.status == Transmission.Status.SUBMITTED
 
-    def test_post__with_real_domain(self, admin_client, org, user):
-        domain = Domain.objects.create(name="example.com", org=org)
-        response = admin_client.post(
-            f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
-        )
+    def test_post__uses_managed_domain(self, admin_client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, subject="Hi")
-        assert msg.domain == domain
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.domain == Domain.objects.get(org=org, is_managed=True)
 
     def test_post__does_not_use_domain_from_other_org(
         self,
         admin_client,
         org,
         write_org,
-        user,
     ):
-        domain = Domain.objects.create(name="other.com", org=write_org)
-        admin_client.raise_request_exception = False
+        other_domain = Domain.objects.get(org=write_org, is_managed=True)
 
-        response = admin_client.post(
-            f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Cross-org", "body": "Hello"},
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.domain == Domain.objects.get(org=org, is_managed=True)
+        assert msg.domain != other_domain
+
+    def test_post__without_managed_domain(self, admin_client, org):
+        Domain.objects.filter(org=org, is_managed=True).delete()
+
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "message:message-list", kwargs={"org_slug": org.slug}
+        )
+        assert not OutgoingMessage.objects.filter(org=org).exists()
+        assert any(
+            "Add a sending domain first." in str(message)
+            for message in get_messages(response.wsgi_request)
         )
 
-        assert response.status_code == 404
-        assert not OutgoingMessage.objects.filter(
-            org=org,
-            subject="Cross-org",
-        ).exists()
+    def test_post__refuses_suppressed_recipient(self, admin_client, org, user):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email=user.email, reason=SuppressionEntry.Reason.MANUAL
+        )
+
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+
+        assert response.status_code == 302
+        assert not OutgoingMessage.objects.filter(org=org).exists()
+        assert any(
+            "Recipient is on the suppression list." in str(message)
+            for message in get_messages(response.wsgi_request)
+        )
 
 
 @pytest.mark.django_db
