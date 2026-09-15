@@ -5,8 +5,10 @@ deliverability, Hetzner Object Storage for file storage, and deploy relay via
 [the-box](https://github.com/codingjoe/the-box) (Docker Compose) with GitHub
 Actions CI/CD.
 
-Everything in this directory is driven by one shell script and the `hcloud`
-CLI.
+`provision.sh` runs the steps in `steps/`, one script per step, in the order a
+deployment needs them. Every step checks the resource it manages before it
+changes anything, so a rerun skips what is done and picks up where the last run
+stopped.
 
 ## Architecture
 
@@ -61,7 +63,8 @@ replace it in both `RELAY_DNS_SMTP_IPS` and `RELAY_SMTP_SOURCE_IPS`.
 
 - **hcloud CLI** (`brew install hcloud`)
 - **AWS CLI** (`brew install awscli`), for Hetzner Object Storage
-- **jq**, **envsubst** (`brew install jq gettext`), **ssh-keygen**
+- **jq**, **envsubst** (`brew install jq gettext`), **ssh-keygen**, **dig**
+  (`brew install bind` or your distribution's `dnsutils`)
 - **GitHub CLI** (`gh`) installed and authenticated
 - **dotenvx** (`npm install -g @dotenvx/dotenvx`)
 - **A Hetzner Cloud API token** (Console → Security → API Tokens)
@@ -75,6 +78,60 @@ replace it in both `RELAY_DNS_SMTP_IPS` and `RELAY_SMTP_SOURCE_IPS`.
 > first invoice you can open them in the Console; before that, request it
 > through the support form with your use case.
 
+## The provisioning steps
+
+| Step          | What it does                                                               | What it needs from you            |
+| ------------- | -------------------------------------------------------------------------- | --------------------------------- |
+| `zone`        | Creates the Hetzner Cloud DNS zone                                         |                                   |
+| `delegation`  | Waits until your registrar delegates the domain to the Hetzner nameservers | the delegation, at your registrar |
+| `keys`        | Creates the deployment SSH key pair and uploads your SSH keys              |                                   |
+| `egress`      | Creates the pool of floating IPs                                           |                                   |
+| `server`      | Creates the server and assigns the pool to it                              |                                   |
+| `records`     | Publishes the A records and the PTR records                                |                                   |
+| `propagation` | Waits until public resolvers answer with those records                     |                                   |
+| `storage`     | Creates the Object Storage bucket                                          | S3 credentials                    |
+| `environment` | Writes the GitHub variables, secrets and `.env.production`                 | `gh` and `dotenvx`                |
+
+```bash
+./deploy/provision.sh              # run every step that is not done yet
+./deploy/provision.sh records      # run one step, by name
+./deploy/provision.sh --status     # what is done, what is pending, and when
+./deploy/provision.sh --list       # the steps, in order
+```
+
+The order is the dependency order. The zone is what every later step is
+verified against, the delegation is the one thing only you can do, the egress
+pool has to exist before the server boots with it, and the records need the
+address the server only gets when it exists.
+
+A step ends in one of three ways:
+
+- It created or updated something.
+- `nothing to do`: the resource is already there.
+- It stopped and the run halts. The step prints what it needs, and running the
+  same command again retries it.
+
+### What the run remembers
+
+The run writes what it created to `deploy/.state/`, which is git-ignored:
+
+- `state.env` holds the values of the deployment: the server address, the
+  egress addresses, the nameservers and the bucket.
+- `steps/<name>` holds, per step, when it last ran and what it did.
+
+Those files are a record, not a decision. Every step verifies the resource
+itself, so deleting a record, a floating IP or the whole directory makes the
+step run again rather than trust what was written.
+
+### A custom domain for the bucket
+
+Hetzner Object Storage has no support for a custom domain on a bucket. A CNAME
+alone sends the wrong `Host` header, and rewriting it breaks the signature on
+the URLs relay hands to browsers for message downloads. Serving stored mail
+from a domain of your own needs a proxy in front of the bucket, such as
+[s3-proxy](https://github.com/oxyno-zeta/s3-proxy), which is a change of its
+own.
+
 ## Step 1: Configure hcloud
 
 ```bash
@@ -84,10 +141,8 @@ hcloud server list
 
 ## Step 2: Provision
 
-Export the Object Storage credentials and run the script. It creates the
-deploy SSH key pair, uploads the SSH keys, creates the SMTP floating IPs,
-creates the server with cloud-init, assigns the floating IPs, sets all PTR
-records, creates the S3 bucket, and writes the GitHub variables and secrets.
+Export the Object Storage credentials and run the entry point. It walks the
+steps in order and stops at the first one that needs you.
 
 ```bash
 export AWS_ACCESS_KEY_ID="<your-s3-access-key>"
@@ -98,9 +153,18 @@ RELAY_HOSTNAME="relays.to" \
     ./deploy/provision.sh
 ```
 
+The first stop is normally the delegation. The step prints the nameservers to
+hand your registrar and waits for them, so you can either set them while it
+waits or stop the run and start it again later.
+
 > [!TIP]
-> The script is idempotent. Re-running it keeps the existing resources and the
-> existing `POSTGRES_PASSWORD`, `REDIS_PASSWORD` and `SECRET_KEY` values.
+> A rerun resumes. Every step verifies the resource it manages before it
+> changes anything, so a run that stopped keeps the work it did and never
+> touches a credential that is already live.
+
+> [!TIP]
+> Only the `storage` and `environment` steps read the credentials above, so the
+> DNS zone, the delegation and the server work before you have them.
 
 It provisions:
 
@@ -116,15 +180,15 @@ It provisions:
 
 ### Overrides
 
-`provision.sh` supplies defaults for everything else. These are the values
-worth knowing before you run it:
+The steps supply defaults for everything else. These are the values worth
+knowing before you run them:
 
 - `SMTP_FLOATING_IP_COUNT` (default `2`) sets the egress pool size. Raise it to
-  keep a spare address for rotation.
+  keep a spare address for rotation, then run `./deploy/provision.sh egress records` to create the address and publish its records.
 - `SERVER_TYPE` (default `ccx33`) and `SERVER_LOCATION` (default `fsn1`) pick
   the box. Override them when your account or location does not offer that
-  type. The script checks the pairing against the hcloud API before it creates
-  anything.
+  type. The server step checks the pairing against the hcloud API before it
+  creates anything.
 - `S3_BUCKET` (default `relay-<hostname with dots as dashes>`) names the
   bucket. Bucket names are unique across Hetzner Object Storage, so override it
   when the derived name is taken.
@@ -132,15 +196,22 @@ worth knowing before you run it:
   Ubuntu 24.04 with Docker CE and the Compose plugin, so cloud-init only
   creates the users and binds the floating IPs. Point it at a plain system
   image to install Docker yourself.
+- `PUBLIC_RESOLVERS` (default `1.1.1.1 9.9.9.9`) are the resolvers the
+  delegation and propagation steps wait for. Every one of them has to agree
+  before a step passes.
+- `WAIT_TIMEOUT_SECS` (default `600`) and `WAIT_INTERVAL_SECS` (default `15`)
+  bound how long those steps wait before they stop and let you run them again.
+- `RELAY_STATE_DIR` moves the directory the run records itself in.
 
 ## Step 3: Delegate DNS
 
-`provision.sh` creates the zone in Hetzner Cloud DNS and writes these records,
-then prints the nameservers to hand your registrar. The `sender-<n>.mail`
-records mirror the floating IPs, so raising `SMTP_FLOATING_IP_COUNT` and
-re-running the script adds them. Excluding an address from sending changes only
-`RELAY_DNS_SMTP_IPS` and `RELAY_SMTP_SOURCE_IPS`, which the containers read from
-`.env.production`.
+The `zone` step creates the zone in Hetzner Cloud DNS, and the `delegation`
+step hands you the nameservers it returns. The `records` step writes the
+records below, then waits for public resolvers to answer with them. The
+`sender-<n>.mail` records mirror the floating IPs, so raising
+`SMTP_FLOATING_IP_COUNT` and running the `egress` and `records` steps adds
+them. Excluding an address from sending changes only `RELAY_DNS_SMTP_IPS` and
+`RELAY_SMTP_SOURCE_IPS`, which the containers read from `.env.production`.
 
 ```
 A  relays.to                 <server_ip>
@@ -154,15 +225,17 @@ A  *.relays.to               <server_ip>
 ```
 
 > [!IMPORTANT]
-> Delegate `relays.to` to the nameservers `provision.sh` prints. Nothing in the
-> zone resolves until your registrar points at them. Confirm with
+> Delegate `relays.to` to the nameservers the `delegation` step prints.
+> Nothing in the zone resolves until your registrar points at them. The step
+> passes once a public resolver answers with them. Confirm with
 > `hcloud zone describe relays.to -o json | jq .authoritative_nameservers`,
 > where `delegation_status` reads `valid` once it is right.
 
 > [!IMPORTANT]
 > Each `sender-<n>.mail` record has to match the PTR record on the same address.
-> `provision.sh` sets the PTR records, and receivers confirm them by looking up
-> the name forward, so these records are what make the pool verifiable.
+> The `records` step sets the PTR records, and receivers confirm them by looking
+> up the name forward, so these records are what make the pool verifiable. It
+> checks both directions before it reports the work as done.
 
 The `ns` and `mx` hostnames match `RELAY_DNS_NS_NAMESERVERS` and
 `RELAY_DNS_MX_HOSTNAMES` in `root/settings.py`.
@@ -188,8 +261,8 @@ git commit -m "Add OAuth credentials"
 git push
 ```
 
-If `provision.sh` printed a list of `dotenvx` commands instead, run those
-first.
+If the `environment` step printed a list of `dotenvx` commands instead, run
+those first.
 
 ## Step 5: Deploy
 
@@ -249,8 +322,8 @@ hcloud all list --paid                        # everything that costs money
 
 > [!IMPORTANT]
 > `user_data` is applied at first boot. To grow the pool later, raise
-> `SMTP_FLOATING_IP_COUNT`, re-run `provision.sh` to create and assign the
-> addresses, then bind the new one on the server:
+> `SMTP_FLOATING_IP_COUNT`, run the `egress` and `server` steps to create and
+> assign the addresses, then bind the new one on the server:
 
 ```bash
 hcloud server ssh relays.to "sudo ip addr add <new_ip>/32 dev eth0"
@@ -260,6 +333,8 @@ hcloud server ssh relays.to "sudo ip addr add <new_ip>/32 dev eth0"
 
 Run these against a running box:
 
+- `./deploy/provision.sh --status` shows which steps are done, which are
+  pending, and when each last ran
 - `hcloud server ssh <hostname> docker compose ps` shows container state
 - `hcloud server ssh <hostname> ip addr show eth0` shows the bound pool
   addresses, which cloud-init adds at first boot and `networkd-dispatcher`

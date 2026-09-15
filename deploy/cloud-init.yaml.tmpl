@@ -1,8 +1,8 @@
 #cloud-config
 #
-# Rendered by provision.sh with envsubst, which replaces the deploy public key
-# and the space separated SMTP pool only. Other shell variables, such as the
-# loop variable below, are left untouched.
+# Rendered by deploy/steps/05-server.sh with envsubst, which replaces the deploy
+# public key and the space separated SMTP pool only. Other shell variables,
+# such as the loop variable below, are left untouched.
 users:
   - default
   - name: github

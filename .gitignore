@@ -234,6 +234,9 @@ root/static/css/app.css
 deploy/id_ed25519
 deploy/id_ed25519.pub
 
+# Deployment state, written by deploy/provision.sh as it runs
+deploy/.state/
+
 # Impeccable design critique artifacts
 .impeccable/
 
