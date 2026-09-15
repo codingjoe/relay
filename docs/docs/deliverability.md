@@ -58,7 +58,7 @@ sequenceDiagram
     participant App as Your application
     participant MSA as relay SMTP (587/465)
     participant Worker as relay worker
-    participant Scan as rspamd
+    participant Scan as Scanner
     participant Sign as DKIM signer
     participant Remote as Recipient MX
 
@@ -66,7 +66,7 @@ sequenceDiagram
     MSA->>MSA: sender-domain, suppression, billing checks
     MSA-->>App: 250 OK enqueued
     MSA->>Worker: enqueue spam scan for the stored message
-    Worker->>Scan: scan through the load balancer
+    Worker->>Scan: scan the stored message
     Scan-->>Worker: score and action
     alt score reaches the hold threshold
         Worker->>Worker: status held, stop
@@ -98,7 +98,7 @@ privacy</a> for what that means.
 
 ## Content quality: the outbound spam gate
 
-Before delivery, rspamd scores each outgoing message and scans it for
+Before delivery, relay scores each outgoing message and scans it for
 malware. A message whose score reaches the hold threshold, or that the scan
 rejects, stays HELD and does not reach the recipient. If the scanner cannot
 run, the message stays pending instead of being held. You see the score,
