@@ -347,27 +347,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - The shared app owns the merged list views and the template-tag
   library. Siblings keep their own detail views.
 
-## Deployment scripts
-
-- Run provisioning through `deploy/provision.sh`, which executes the step
-  scripts in `deploy/steps/` in filename order. A step script is readable
-  and runnable on its own.
-
-- Start every step with `set -euo pipefail` and source `deploy/config.sh`,
-  plus `deploy/hcloud.sh` or `deploy/dns.sh` when it talks to Hetzner
-  Cloud or to a resolver. `config.sh` resolves the configuration and
-  loads the state file the previous runs wrote.
-
-- Give every step a `--check` mode that reports whether its work is done
-  without changing anything, and use the same predicate for the skip path.
-  Return `EXIT_SKIPPED` when the work is done and `EXIT_INCOMPLETE` when
-  the step needs the operator.
-
-- Never decide from the recorded state alone. A step verifies the resource
-  with `hcloud`, `dig` or `aws`, so deleting a resource makes the step run
-  again. The state file records what a run created, it does not replace
-  the check.
-
 ## Markdown docs apps
 
 - Serve each markdown docs area from one app with a `docs/` folder.
