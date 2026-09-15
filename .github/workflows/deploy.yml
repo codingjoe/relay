@@ -13,9 +13,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    # A manual dispatch is the operator's redeploy path, so only the CI trigger
-    # has a conclusion to check.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # The deploy action derives the Compose project from the ref, so a dispatch
+    # from any other branch would build a parallel stack instead. Only main
+    # deploys; the CI trigger is already limited to it. A manual dispatch is the
+    # operator's redeploy path, so only the CI trigger has a conclusion to check.
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     name: Deploy to production
     runs-on: ubuntu-latest
     environment:
