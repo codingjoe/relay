@@ -226,8 +226,6 @@ services:
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     extends:
       service: worker
-  # Serves body URLs on relay's own domain and re-signs them to the bucket,
-  # so the bucket stays private.
   storage:
     image: andrewgaul/s3proxy:4.1.1
     environment:
