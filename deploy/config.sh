@@ -24,6 +24,8 @@
 #   S3_ENDPOINT             (fsn1.your-objectstorage.com)
 #   S3_REGION               (fsn1)
 #   S3_BUCKET               (relay-<hostname with dots replaced by dashes>)
+#   RELAY_STORAGE_DOMAIN    (storage.<hostname>)  the name Caddy serves
+#                           stored message bodies on, inside the zone
 #   SSH_PUBLIC_KEY_FILES    (~/.ssh/id_ed25519.pub)  space separated
 #   DEPLOY_KEY              (deploy/id_ed25519)
 #   PUBLIC_RESOLVERS        (1.1.1.1 9.9.9.9)        space separated

@@ -40,5 +40,5 @@ aws --endpoint-url "$S3_ENDPOINT_URL" s3api put-bucket-ownership-controls \
 save_state "S3_ENDPOINT_URL=$S3_ENDPOINT_URL" "S3_BUCKET=$S3_BUCKET"
 record_step storage "created bucket $S3_BUCKET at $S3_ENDPOINT_URL"
 
-note "Objects are private. Relay serves them with signed URLs that expire."
+note "Objects are private. The storage container serves them through Caddy on signed URLs that expire."
 note "The bucket holds stored mail, so emptying it deletes that mail."

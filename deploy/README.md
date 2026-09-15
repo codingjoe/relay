@@ -32,6 +32,8 @@ flowchart LR
       pg["PostgreSQL"]
       redis["Redis"]
       caddy["Caddy"]
+      storage["Storage
+      (s3proxy)"]
     end
 
     s3["S3 Object Storage
@@ -42,7 +44,9 @@ flowchart LR
   internet -->|:53| dns
   internet -->|:587| smtp
   internet -->|:25| mx
-  web --> s3
+  internet -->|signed body URL| caddy
+  caddy --> storage
+  storage --> s3
   web --> pg
   web --> redis
   sender -->|"egress :25 via SMTP IPs"| internet
@@ -123,14 +127,24 @@ Those files are a record, not a decision. Every step verifies the resource
 itself, so deleting a record, a floating IP or the whole directory makes the
 step run again rather than trust what was written.
 
-### A custom domain for the bucket
+### How stored mail is served
 
-Hetzner Object Storage has no support for a custom domain on a bucket. A CNAME
-alone sends the wrong `Host` header, and rewriting it breaks the signature on
-the URLs relay hands to browsers for message downloads. Serving stored mail
-from a domain of your own needs a proxy in front of the bucket, such as
-[s3-proxy](https://github.com/oxyno-zeta/s3-proxy), which is a change of its
-own.
+The bucket itself stays private and its endpoint is never handed to a browser.
+A `storage` container runs [s3proxy](https://github.com/andrewgaul/s3proxy)
+between Caddy and Hetzner Object Storage: relay signs a URL for the name Caddy
+serves, Caddy routes it to the proxy, and the proxy talks to Hetzner with the
+real credentials.
+
+That is why `AWS_S3_ENDPOINT_URL` in `.env.production` is the Hetzner endpoint
+and not the public one. The proxy reads it as its upstream, and
+`compose.production.yml` gives the application containers
+`https://storage.<hostname>` instead. The name is covered by the zone's
+wildcard record, so it resolves without a record of its own, and Caddy issues
+its certificate on first start.
+
+Set `RELAY_STORAGE_DOMAIN` to serve message bodies from another name. The
+record for that name has to resolve to this server before the deploy, or Caddy
+cannot issue its certificate.
 
 ## Step 1: Configure hcloud
 
@@ -196,6 +210,9 @@ knowing before you run them:
   Ubuntu 24.04 with Docker CE and the Compose plugin, so cloud-init only
   creates the users and binds the floating IPs. Point it at a plain system
   image to install Docker yourself.
+- `RELAY_STORAGE_DOMAIN` (default `storage.<hostname>`) is the name Caddy
+  serves stored message bodies on. The wildcard record covers the default, so
+  a different name needs its own record before the deploy.
 - `PUBLIC_RESOLVERS` (default `1.1.1.1 9.9.9.9`) are the resolvers the
   delegation and propagation steps wait for. Every one of them has to agree
   before a step passes.
@@ -243,9 +260,10 @@ The `ns` and `mx` hostnames match `RELAY_DNS_NS_NAMESERVERS` and
 The sender reaches `pg.<HOSTNAME>` and `redis.<HOSTNAME>` over the-box's Layer
 4 SNI routes on `:443`, where Caddy terminates TLS and proxies to the internal
 ports. That is why its `DATABASE_URL` carries `sslmode=require` and its
-`REDIS_URL` uses `rediss://`. The wildcard record covers both while `HOSTNAME`
-is the zone apex; add those two records when it is not. Every other container
-reaches PostgreSQL and Redis over the bridge by Docker DNS.
+`REDIS_URL` uses `rediss://`. The wildcard record covers both, and covers
+`storage.<HOSTNAME>` for the same reason, while `HOSTNAME` is the zone apex.
+Add those records when the deployment serves a name outside the zone. Every
+other container reaches PostgreSQL and Redis over the bridge by Docker DNS.
 
 ## Step 4: Add the OAuth credentials
 
@@ -280,12 +298,15 @@ openssl s_client -connect smtp.relays.to:587 -starttls smtp
 dig MX relays.to @ns1.relays.to
 dig +short pg.relays.to
 dig +short redis.relays.to
+dig +short storage.relays.to
 ```
 
-The final two confirm the sender's path to PostgreSQL and Redis: Caddy's Layer
-4 listener terminates TLS and proxies to the internal ports. Spam scanning runs
-on the bridge, where the worker reaches rspamd over the internal `caddy:11334`
-route.
+The last three confirm the names the containers reach each other on.
+`pg` and `redis` take Caddy's Layer 4 listener, which terminates TLS and
+proxies to the internal ports, so spam scanning runs on the bridge, where the
+worker reaches rspamd over the internal `caddy:11334` route. `storage` takes
+the HTTPS listener, which proxies to the s3proxy container serving message
+bodies, so a message download from the dashboard exercises it end to end.
 
 ## IP reputation and blacklist rotation
 

@@ -18,6 +18,8 @@ STEPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(dirname "$STEPS_DIR")/config.sh"
 # shellcheck source=../hcloud.sh
 source "$DEPLOY_DIR/hcloud.sh"
+# shellcheck source=../dns.sh
+source "$DEPLOY_DIR/dns.sh"
 
 environment_is_set() {
     local address
@@ -28,6 +30,7 @@ environment_is_set() {
     gh secret list 2>/dev/null | grep -q "^SSH_PRIVATE_KEY" || return 1
     [ "$(dotenvx get HOSTNAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
     [ "$(dotenvx get AWS_S3_ENDPOINT_URL -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_ENDPOINT_URL" ] || return 1
+    [ "$(dotenvx get RELAY_STORAGE_DOMAIN -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$(storage_hostname)" ] || return 1
 }
 
 # cloud-init has to finish before the host keys exist.
@@ -76,6 +79,7 @@ gh secret set SSH_PRIVATE_KEY <"$DEPLOY_KEY"
 if [ -f "$REPO_ROOT/.env.keys" ]; then
     note "Writing the infrastructure values to .env.production"
     dotenvx set HOSTNAME "$RELAY_HOSTNAME" -f .env.production --plain
+    dotenvx set RELAY_STORAGE_DOMAIN "$(storage_hostname)" -f .env.production --plain
     dotenvx set RELAY_DNS_SMTP_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
     dotenvx set RELAY_SMTP_SOURCE_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
     dotenvx set AWS_S3_ENDPOINT_URL "$S3_ENDPOINT_URL" -f .env.production --plain
@@ -110,6 +114,7 @@ else
 Generate or restore .env.keys, then run these commands in the repository root:
 
   dotenvx set HOSTNAME "$RELAY_HOSTNAME" -f .env.production -p
+  dotenvx set RELAY_STORAGE_DOMAIN "$(storage_hostname)" -f .env.production -p
   dotenvx set RELAY_DNS_SMTP_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production -p
   dotenvx set RELAY_SMTP_SOURCE_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production -p
   dotenvx set AWS_S3_ENDPOINT_URL "$S3_ENDPOINT_URL" -f .env.production -p
