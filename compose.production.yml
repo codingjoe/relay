@@ -245,6 +245,34 @@ services:
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     extends:
       service: worker
+  storage:
+    image: andrewgaul/s3proxy:4.1.1
+    environment:
+      S3PROXY_ENDPOINT: http://0.0.0.0:8080
+      S3PROXY_AUTHORIZATION: aws-v4
+      S3PROXY_IDENTITY: ${AWS_S3_ACCESS_KEY_ID:?AWS_S3_ACCESS_KEY_ID must be set}
+      S3PROXY_CREDENTIAL: ${AWS_S3_SECRET_ACCESS_KEY:?AWS_S3_SECRET_ACCESS_KEY must be set}
+      JCLOUDS_PROVIDER: aws-s3
+      JCLOUDS_IDENTITY: ${AWS_S3_ACCESS_KEY_ID}
+      JCLOUDS_CREDENTIAL: ${AWS_S3_SECRET_ACCESS_KEY}
+      JCLOUDS_ENDPOINT: ${AWS_S3_ENDPOINT_URL:?AWS_S3_ENDPOINT_URL must be set}
+      JCLOUDS_REGION: ${AWS_S3_REGION_NAME:-fsn1}
+    networks:
+      - app-wan
+      - ingress
+    restart: unless-stopped
+    labels:
+      - "caddy=${RELAY_STORAGE_DOMAIN:-storage.${HOSTNAME:-localhost}}"
+      - "caddy.reverse_proxy={{upstreams 8080}}"
+      - "caddy.reverse_proxy.health_uri=/healthz"
+      - "caddy.reverse_proxy.health_interval=10s"
+      - "caddy.reverse_proxy.health_timeout=5s"
+      - "caddy.reverse_proxy.fail_duration=10s"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
   web:
     image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
@@ -257,6 +285,8 @@ services:
       migration:
         condition: service_completed_successfully
       redis-tasks:
+        condition: service_healthy
+      storage:
         condition: service_healthy
     environment:
       HOSTNAME: ${HOSTNAME:-localhost}
@@ -272,7 +302,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
-      AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL}
+      AWS_S3_ENDPOINT_URL: https://${RELAY_STORAGE_DOMAIN:-storage.${HOSTNAME:-localhost}}
       AWS_S3_ACCESS_KEY_ID: ${AWS_S3_ACCESS_KEY_ID}
       AWS_S3_SECRET_ACCESS_KEY: ${AWS_S3_SECRET_ACCESS_KEY}
       AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-relay}

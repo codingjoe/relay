@@ -25,7 +25,7 @@ Germany:
 | Task worker              | Asynchronous delivery, scans, webhooks | Threadmill task runner                                        |
 | PostgreSQL               | Message metadata, org and domain state | Postgres 18+                                                  |
 | Redis                    | Caching and rate limiting              | Redis                                                         |
-| Object storage           | Raw message bodies                     | S3-compatible storage in the same region                      |
+| Object storage           | Raw message bodies                     | S3-compatible bucket, behind a proxy that serves signed links |
 | Spam and virus scanning  | Content filter                         | rspamd with ClamAV, cluster-internal                          |
 
 No component of this stack belongs to a provider in a third country. There
@@ -50,7 +50,8 @@ policy</a>. This table describes how the platform implements it.
 - **Plain suppressed addresses.** A suppression entry is a salted SHA-256
   hash of the lowercased address. relay can compare, but not read back.
 - **The message body inside webhook payloads.** A delivery carries the event
-  and a storage URL. The body never travels inline.
+  and a signed, expiring storage URL. The link grants read access to that one
+  message for an hour. The body never travels inline.
 - **Passwords.** GitHub OAuth signs in, and relay stores no password at all.
 - **API keys in plain form.** The database holds prefixes and hashes. The
   plain key is visible once at creation.
