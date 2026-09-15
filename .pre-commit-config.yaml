@@ -21,6 +21,10 @@ repos:
         args: [--branch, main]
       - id: detect-private-key
         exclude: ^(domains|kms)/tests/test_models\.py$|kms/tests/test_keys\.py$
+  - repo: https://github.com/codingjoe/esupgrade
+    rev: 2025.22.2
+    hooks:
+      - id: esupgrade
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
@@ -40,21 +44,22 @@ repos:
           - mdformat-web
           - mdformat-frontmatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.3
+    rev: v0.16.7
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.28.0
+    rev: v2.29.4
     hooks:
       - id: pyproject-fmt
   - repo: https://github.com/google/yamlfmt
     rev: v0.21.0
     hooks:
       - id: yamlfmt
+        exclude: ^(docker-)?compose(\..+)?\.ya?ml$
   - repo: https://github.com/poexam/poexam
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
       - id: poexam
   - repo: https://github.com/UnknownPlatypus/djangofmt-pre-commit
@@ -68,6 +73,12 @@ repos:
       - id: dockerfmt
         files: ^.*(Container|Docker)file.*$
         args: ["--write", "--newline"]
+  - repo: https://github.com/docker-compose-linter/pre-commit-dclint
+    rev: v3.1.0
+    hooks:
+      - id: dclint
+        files: ^(docker-)?compose(\..+)?\.ya?ml$
+        args: [--fix]
   - repo: https://github.com/koalaman/shellcheck-precommit
     rev: v0.11.0
     hooks:
@@ -81,6 +92,22 @@ repos:
     hooks:
       - id: relint
         args: []
+  - repo: https://github.com/seddonym/import-linter
+    rev: v2.15
+    hooks:
+      - id: import-linter
+        language: python
+  - repo: local
+    hooks:
+      - id: svgo
+        name: svgo
+        language: node
+        additional_dependencies: [svgo]
+        entry: svgo
+        args: [--pretty, --multipass, --indent, "2"]
+        require_serial: true
+        pass_filenames: true
+        types: [svg]
 ci:
   skip:
     - no-commit-to-branch

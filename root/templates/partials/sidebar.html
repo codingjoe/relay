@@ -27,6 +27,13 @@
             </a>
           </li>
           <li>
+            {% url 'reputation:overview' current_org.slug as reputation_url %}
+            <a href="{{ reputation_url }}" {% if request.path == reputation_url %}aria-current="page"{% endif %}>
+              <i data-lucide="gauge" class="shrink-0" aria-hidden="true"></i>
+              <span>{% translate "reputation"|capfirst %}</span>
+            </a>
+          </li>
+          <li>
             {% url 'domains:domain-list' current_org.slug as domain_list_url %}
             <a
               href="{{ domain_list_url }}"

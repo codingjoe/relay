@@ -1,5 +1,5 @@
-MIGRATION_PACKAGES = $(wildcard */migrations/__init__.py)
-MIGRATIONS = $(wildcard */migrations/[!_]*.py*)
+MIGRATION_PACKAGES = $(wildcard */migrations/__init__.py) $(wildcard services/email/*/migrations/__init__.py)
+MIGRATIONS = $(wildcard */migrations/[!_]*.py*) $(wildcard services/email/*/migrations/[!_]*.py*)
 PYTHON = $(shell command -v python3)
 
 .PHONY: migrations clear-migrations squash-migrations

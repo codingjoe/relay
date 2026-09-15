@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load i18n message %}
+{% block title %}{{ message.subject|default:_("(no subject)")|truncatechars:50 }} | relay{% endblock %}
+{% block content %}
+  <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
+      <h2 class="m-0 break-words">{{ message.subject|default:_("(no subject)") }}</h2>
+      <p class="m-0 mt-1 text-sm text-muted-foreground">
+        <span class="break-all">{{ message.mail_from }}</span>
+        <i data-lucide="arrow-right" class="size-3.5 inline-block" aria-hidden="true"></i>
+        <span class="break-all">{{ message.rcpt_to }}</span>
+      </p>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <a
+        class="badge"
+        data-size="sm"
+        data-variant="{{ message.status_badge_variant }}"
+        data-tooltip='{% translate "Where this message stands in its delivery." %}'
+        href="{% url 'docs:detail' 'message-statuses' %}"
+      >
+        <i data-lucide="mailbox" class="size-3.5" aria-hidden="true"></i>
+        {{ message.status_display }}
+      </a>
+      {% if message.spam_action or message.spam_score is not None %}
+        <a
+          class="badge"
+          data-size="sm"
+          data-variant="{{ message.spam_badge_variant }}"
+          data-tooltip='{% translate "The rspamd verdict and score assigned to this message." %}'
+          href="{% url 'docs:detail' 'message-statuses' %}"
+        >
+          <i data-lucide="shield-alert" class="size-3.5" aria-hidden="true"></i>
+          {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
+            ({{ message.spam_score }}){% endif %}
+        </a>
+      {% endif %}
+      <a
+        class="badge"
+        data-size="sm"
+        data-variant="{{ message.virus_badge_variant }}"
+        data-tooltip='{% translate "Whether rspamd scanned this message for viruses." %}'
+        href="{% url 'docs:detail' 'message-statuses' %}"
+      >
+        <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
+        {% if message.virus_action %}
+          {{ message.virus_display }}
+        {% else %}
+          {% translate "Not scanned" %}
+        {% endif %}
+      </a>
+    </div>
+  </header>
+
+  {% block transmission_card %}
+    {% if timeline %}
+      <section class="mb-6 flex flex-col gap-4">
+        <h3 class="font-semibold m-0">{% translate "timeline"|capfirst %}</h3>
+        {% include "message/timeline.html" %}
+        {% block timeline_dialogs %}{% endblock %}
+      </section>
+    {% else %}
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "No transmissions yet." %}
+      </p>
+    {% endif %}
+  {% endblock %}
+
+  <section class="mb-6">
+    <header class="flex items-center justify-between gap-2 mb-4">
+      <h3 class="font-semibold m-0">{% translate "message"|capfirst context "noun" %}</h3>
+      <div class="flex items-center gap-1">
+        {% if message.headers_text %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-xs"
+            data-tooltip='{% translate "copy headers"|capfirst %}'
+            onclick="navigator.clipboard.writeText('{{ message.headers_text|escapejs }}')"
+            aria-label='{% translate "copy headers"|capfirst %}'
+          >
+            <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+          </button>
+        {% endif %}
+        {% if message.raw_body %}
+          <a
+            class="btn"
+            data-variant="ghost"
+            data-size="icon-xs"
+            data-tooltip='{% translate "download message"|capfirst %}'
+            href="{{ message.raw_body.url }}"
+            download
+            aria-label='{% translate "download message"|capfirst %}'
+          >
+            <i data-lucide="download" class="size-3.5" aria-hidden="true"></i>
+          </a>
+        {% endif %}
+      </div>
+    </header>
+    <article class="card gap-0 p-0 overflow-hidden">
+      <div class="table-container">
+        <table class="table">
+          <tbody>
+            {% for key, value in headers %}
+              <tr>
+                <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
+                <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-6 py-6 flex flex-col gap-6">
+        {% block extra_sections %}{% endblock %}
+        <div>
+          {% block body %}
+            {% if is_encrypted %}
+              <div id="encrypted-body">
+                <div class="alert" data-variant="default">
+                  <i data-lucide="lock" class="size-4" aria-hidden="true"></i>
+                  <p>
+                    {% translate "this message body is encrypted. Click decrypt to view it."|capfirst %}
+                  </p>
+                </div>
+                <button id="decrypt-body-btn" class="btn mt-3" onclick="relayDecryptBody()">
+                  <i data-lucide="unlock" class="size-4" aria-hidden="true"></i>
+                  {% translate "decrypt"|capfirst %}
+                </button>
+                <div id="decrypted-body-content" class="mt-3 hidden"></div>
+                <p id="decrypt-error" class="text-destructive text-sm mt-2 hidden"></p>
+              </div>
+              <script defer>
+                (function () {
+                  "use strict";
+                  const orgSlug = "{{ org.slug }}";
+                  const messagePk = "{{ message.pk }}";
+                  const bodyUrl = "{{ body_url }}";
+                  const enc = window.relayEncryption;
+
+                  async function relayDecryptBody() {
+                    const btn = document.getElementById("decrypt-body-btn");
+                    const errorEl = document.getElementById("decrypt-error");
+                    const contentEl = document.getElementById("decrypted-body-content");
+                    errorEl.classList.add("hidden");
+                    btn.disabled = true;
+                    btn.innerHTML =
+                      '<i data-lucide="loader-circle" class="size-4 animate-spin" aria-hidden="true"></i> {% translate "decrypting…"|capfirst %}';
+                    if (window.lucide) window.lucide.createIcons();
+
+                    try {
+                      const keys = await enc.promptPassphrase(orgSlug);
+                      await enc.init();
+
+                      const keyResp = await fetch(
+                        `/org/${orgSlug}/email/messages/${messagePk}/sealed-key`,
+                        { headers: { Accept: "application/json" } },
+                      );
+                      if (!keyResp.ok) throw new Error("No sealed file key for this message.");
+                      const keyData = await keyResp.json();
+
+                      const sealedFileKey = enc.fromBase64(keyData.sealed_file_key);
+                      const fileKey = enc.unseal(sealedFileKey, keys.orgPrivateKey);
+
+                      const bodyResp = await fetch(bodyUrl);
+                      const encryptedBody = new Uint8Array(await bodyResp.arrayBuffer());
+
+                      const plaintext = enc.decryptBody(encryptedBody, fileKey);
+                      const decoded = new TextDecoder().decode(plaintext);
+
+                      contentEl.innerHTML = decoded;
+                      contentEl.classList.remove("hidden");
+                      btn.classList.add("hidden");
+                    } catch (err) {
+                      errorEl.textContent = err.message;
+                      errorEl.classList.remove("hidden");
+                      btn.disabled = false;
+                      btn.innerHTML =
+                        '<i data-lucide="unlock" class="size-4" aria-hidden="true"></i> {% translate "decrypt"|capfirst %}';
+                      if (window.lucide) window.lucide.createIcons();
+                    }
+                  }
+
+                  window.relayDecryptBody = relayDecryptBody;
+                })();
+              </script>
+            {% elif body %}
+              {{ body|highlight_email }}
+            {% else %}
+              <section class="empty">
+                <header>
+                  <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
+                  <h3>{% translate "Body pruned." %}</h3>
+                  <p>{% translate "The raw message body is not available." %}</p>
+                </header>
+              </section>
+            {% endif %}
+          {% endblock body %}
+        </div>
+      </div>
+    </article>
+  </section>
+{% endblock %}

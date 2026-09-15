@@ -43,11 +43,11 @@ def parse_mta_sts_txt_record(value):
 def verify_nameserver_delegation(domain):
     try:
         ns_records = dns.resolver.resolve(domain.sender_domain, "NS")
-        our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
-        their_ns = {str(r.target).rstrip(".").lower() for r in ns_records}
-        return our_ns == their_ns
     except dns.exception.DNSException:
         return False
+    our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
+    their_ns = {str(r.target).rstrip(".").lower() for r in ns_records}
+    return our_ns == their_ns
 
 
 def check_dmarc(domain):
@@ -85,6 +85,20 @@ def check_dkim_cname(domain):
         return False
 
 
+def check_mx(domain):
+    try:
+        mx_records = dns.resolver.resolve(domain.name, "MX")
+    except dns.exception.DNSException:
+        return False
+    expected_exchanges = {
+        hostname.rstrip(".").lower() for hostname in settings.RELAY_DNS_MX_HOSTNAMES
+    }
+    return any(
+        str(record.exchange).rstrip(".").lower() in expected_exchanges
+        for record in mx_records
+    )
+
+
 def check_mta_sts(domain):
     try:
         txt_records = dns.resolver.resolve(f"_mta-sts.{domain.name}", "TXT")
@@ -106,11 +120,10 @@ def check_mta_sts(domain):
 
         cname_records = dns.resolver.resolve(f"mta-sts.{domain.name}", "CNAME")
         expected_target = f"mta-sts.{domain.sender_domain}."
-        cname_is_valid = any(
+        return any(
             str(record.target).lower() == expected_target.lower()
             for record in cname_records
         )
-        return cname_is_valid
     except dns.exception.DNSException, UnicodeError:
         return False
 
@@ -118,29 +131,29 @@ def check_mta_sts(domain):
 def check_tls_rpt(domain):
     try:
         txt_records = dns.resolver.resolve(f"_smtp._tls.{domain.name}", "TXT")
-        expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
-        for txt_record in txt_records:
-            value = "".join(
-                string.decode() if isinstance(string, bytes) else string
-                for string in txt_record.strings
-            )
-            fields = [field.strip() for field in value.split(";")]
-            match fields:
-                case [version, *tag_fields] if version.lower() == "v=tlsrptv1":
-                    tags = {}
-                    for field in tag_fields:
-                        if "=" in field:
-                            tag_name, tag_value = field.split("=", 1)
-                            tags[tag_name.strip().lower()] = tag_value.strip()
-                    reporting_uris = {
-                        uri.strip().lower().split("!", 1)[0]
-                        for uri in tags.get("rua", "").split(",")
-                    }
-                    if expected_reporting_uri in reporting_uris:
-                        return True
-        return False
     except dns.exception.DNSException:
         return False
+    expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
+    for txt_record in txt_records:
+        value = "".join(
+            string.decode() if isinstance(string, bytes) else string
+            for string in txt_record.strings
+        )
+        fields = [field.strip() for field in value.split(";")]
+        match fields:
+            case [version, *tag_fields] if version.lower() == "v=tlsrptv1":
+                tags = {}
+                for field in tag_fields:
+                    if "=" in field:
+                        tag_name, tag_value = field.split("=", 1)
+                        tags[tag_name.strip().lower()] = tag_value.strip()
+                reporting_uris = {
+                    uri.strip().lower().split("!", 1)[0]
+                    for uri in tags.get("rua", "").split(",")
+                }
+                if expected_reporting_uri in reporting_uris:
+                    return True
+    return False
 
 
 def verify_domain_dns(domain):
@@ -150,6 +163,7 @@ def verify_domain_dns(domain):
         "spf": check_spf,
         "dkim": check_dkim_cname,
         "dmarc": check_dmarc,
+        "mx": check_mx,
         "mta_sts": check_mta_sts,
         "tls_rpt": check_tls_rpt,
     }
@@ -174,7 +188,13 @@ def verify_domain_dns(domain):
     domain.dns_checked_at = timezone.now()
 
     if (
-        all(getattr(domain, f"{f}_status") == Domain.Status.OK for f in checks)
+        all(
+            getattr(domain, f"{field}_status") == Domain.Status.OK
+            for field in (
+                *Domain.SENDING_CHECK_FIELDS,
+                *Domain.RECEIVING_CHECK_FIELDS,
+            )
+        )
         and domain.verified_at is None
     ):
         domain.verified_at = timezone.now()
@@ -189,6 +209,8 @@ def verify_domain_dns(domain):
             "dkim_error",
             "dmarc_status",
             "dmarc_error",
+            "mx_status",
+            "mx_error",
             "mta_sts_status",
             "mta_sts_error",
             "tls_rpt_status",

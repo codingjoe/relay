@@ -9,7 +9,8 @@ register = template.Library()
 
 @register.simple_tag
 def gravatar_url(user: User, size: int = 80) -> str:
-    """Return the Gravatar URL for the given user.
+    """
+    Return the Gravatar URL for the given user.
 
     If the user has no email or no registered Gravatar, the function returns
     an `identicon` URL instead. The URL uses HTTPS.
@@ -20,6 +21,7 @@ def gravatar_url(user: User, size: int = 80) -> str:
 
     Returns:
         The Gravatar URL string.
+
     """
     email = (getattr(user, "email", "") or "").strip().lower()
     digest = hashlib.md5(email.encode("utf-8")).hexdigest()

@@ -1,9 +1,16 @@
 from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.dispatch import Signal, receiver
 
 from domains.models import Domain
 
 from .models import Webhook
+
+fbl_report_received = Signal()  # senders provide a `message` kwarg
+
+# Senders provide the incoming report email metadata. Receivers return a
+# truthy value when they stored the report, which short-circuits generic
+# storage in the MX handler.
+report_received = Signal()
 
 
 @receiver(post_save, sender=Domain)

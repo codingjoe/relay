@@ -1,0 +1,51 @@
+{
+  "disable_existing_loggers": false,
+  "formatters": {
+    "access": {
+      "()": "logging.Formatter",
+      "fmt": "%(message)s"
+    },
+    "json": {
+      "()": "pythonjsonlogger.json.JsonFormatter",
+      "fmt": [
+        "levelname",
+        "name",
+        "message"
+      ],
+      "rename_fields": {
+        "levelname": "level",
+        "name": "logger"
+      },
+      "timestamp": true
+    }
+  },
+  "handlers": {
+    "access": {
+      "class": "logging.StreamHandler",
+      "formatter": "access",
+      "stream": "ext://sys.stdout"
+    },
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "json",
+      "stream": "ext://sys.stdout"
+    }
+  },
+  "loggers": {
+    "_granian": {
+      "handlers": [
+        "console"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "granian.access": {
+      "handlers": [
+        "access"
+      ],
+      "level": "INFO",
+      "propagate": false
+    }
+  },
+  "version": 1
+}

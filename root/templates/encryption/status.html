@@ -2,7 +2,7 @@
 <section id="encryption-status" class="card" data-size="sm" data-org-slug="{{ org_slug }}">
   <header>
     <h2>{% translate "encryption"|capfirst %}</h2>
-    <p>{% translate "client-side end-to-end encryption for message bodies." %}</p>
+    <p>{% translate "Client-side end-to-end encryption for message bodies." %}</p>
   </header>
   <section>
     <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2">
@@ -54,7 +54,7 @@
             '<a class="btn" data-size="sm" href="/org/' + orgSlug + '/encryption/setup"><i data-lucide="shield-plus" class="size-4" aria-hidden="true"></i> {% translate "set up encryption"|capfirst %}</a>';
         } else if (!data.has_sealed_org_key) {
           actionsEl.innerHTML =
-            '<p class="text-sm text-muted-foreground">{% translate "ask an admin to seal the org key for your account." %}</p>';
+            '<p class="text-sm text-muted-foreground">{% translate "Ask an admin to seal the org key for your account." %}</p>';
         }
 
         if (window.lucide) window.lucide.createIcons();

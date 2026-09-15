@@ -12,7 +12,7 @@ author: Johannes Maron
 
 A PTR (Pointer) record is a DNS record that performs a reverse lookup. It maps an IP address to a hostname. This is the opposite of an A record, which maps a hostname to an IP address.
 
-PTR records are part of the DNS specification in [RFC 1035](https://datatracker.ietf.org/doc/html/rfc1035).
+PTR records are part of the DNS specification in [RFC 1035][rfc-1035].
 
 ## Why PTR matters
 
@@ -63,8 +63,8 @@ The hostname must match the sending domain so that the PTR record passes the FCr
 
 ## Further reading
 
-- [RFC 1035: Domain Names: Implementation and Specification (Section 3.5: PTR)](https://datatracker.ietf.org/doc/html/rfc1035#section-3.5)
-- [RFC 1912: Common DNS Operational and Configuration Errors (Section 2.1: PTR)](https://datatracker.ietf.org/doc/html/rfc1912#section-2.1)
+- [RFC 1035][rfc-1035]: Domain Names: Implementation and Specification (Section 3.5: PTR)
+- [RFC 1912][rfc-1912]: Common DNS Operational and Configuration Errors (Section 2.1: PTR)
 - <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
 - <a href="{% url 'know_how:detail' slug='mx' %}">MX</a>: Mail Exchange records
 
@@ -73,3 +73,6 @@ The hostname must match the sending domain so that the PTR record passes the FCr
 [^fcrdns-weakness]: FCrDNS is a weak authentication check. An attacker who controls both the forward and reverse DNS zones for an IP address can set up valid FCrDNS. The check is useful as a spam signal, not as a security boundary.
 
 [^ptr-ownership]: The PTR record for an IP address is published in the reverse DNS zone. This zone is delegated to the IP address owner, not the domain owner. For cloud servers, the hosting provider (for example, AWS, GCP, or Hetzner) usually provides a control panel or API to set the PTR record.
+
+[rfc-1035]: https://www.rfc-editor.org/info/rfc1035/
+[rfc-1912]: https://www.rfc-editor.org/info/rfc1912/

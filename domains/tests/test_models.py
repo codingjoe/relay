@@ -1,9 +1,12 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
-from domains.models import Domain, validate_domain_name
+from accounts.models import Organization
+from domains.models import Domain, canonicalize_domain_name, validate_domain_name
 from kms import keys as kms_keys
 
 
@@ -59,8 +62,6 @@ class TestDomainPropertiesNoDb:
         assert Domain(name="example.com").is_verified is False
 
     def test_is_verified__true(self):
-        from django.utils import timezone
-
         assert (
             Domain(name="example.com", verified_at=timezone.now()).is_verified is True
         )
@@ -71,7 +72,24 @@ class TestDomainPropertiesNoDb:
             == "mail.relay.acme.open.localhost"
         )
 
-    def test_spf_record__includes_spf_include(self):
+    def test_spf_record__authorizes_each_pool_address(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10", "203.0.113.11"]
+
+        assert Domain(name="example.com").spf_record == (
+            "v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
+        )
+
+    def test_spf_record__rejects_senders_outside_the_pool(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10"]
+
+        assert Domain(name="example.com").spf_record.endswith("-all")
+
+    def test_spf_record__empty_pool(self, settings):
+        settings.RELAY_DNS_SMTP_IPS = []
+
+        assert Domain(name="example.com").spf_record == "v=spf1 -all"
+
+    def test_root_spf_record__includes_sender_domain(self):
         record = Domain(name="example.com").root_spf_record
         assert "v=spf1" in record
         assert "include:mail.relay.example.com" in record
@@ -109,8 +127,6 @@ class TestDomainClean:
 
     @pytest.mark.django_db
     def test_save__rejects_cross_org_child_domain(self):
-        from accounts.models import Organization
-
         parent_org = Organization.objects.create(slug="parent")
         child_org = Organization.objects.create(slug="child")
         Domain.objects.create(name="example.com", org=parent_org)
@@ -120,8 +136,6 @@ class TestDomainClean:
 
     @pytest.mark.django_db
     def test_save__rejects_cross_org_parent_domain(self):
-        from accounts.models import Organization
-
         child_org = Organization.objects.create(slug="child")
         parent_org = Organization.objects.create(slug="parent")
         Domain.objects.create(name="app.example.com", org=child_org)
@@ -131,8 +145,6 @@ class TestDomainClean:
 
     @pytest.mark.django_db
     def test_save__allows_nested_domains_for_same_org(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
 
@@ -142,14 +154,70 @@ class TestDomainClean:
 
     @pytest.mark.django_db
     def test_save__rejects_unicode_dot_cross_org_child(self):
-        from accounts.models import Organization
-
         parent_org = Organization.objects.create(slug="parent")
         child_org = Organization.objects.create(slug="child")
         Domain.objects.create(name="example.com", org=parent_org)
 
         with pytest.raises(ValidationError):
             Domain.objects.create(name="app。example.com", org=child_org)
+
+    @pytest.mark.django_db
+    def test_save__allows_platform_domain_with_existing_managed_domains(self):
+        managed_org = Organization.objects.create(slug="acme")
+        platform_org = Organization.objects.create(slug="platform-org")
+
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+
+        assert platform.pk is not None
+        assert Domain.objects.filter(org=managed_org, is_managed=True).exists()
+
+    @pytest.mark.django_db
+    def test_save__creates_new_org_after_platform_domain(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+
+        org = Organization.objects.create(slug="acme")
+        managed = Domain.objects.get(org=org, is_managed=True)
+
+        assert managed.name == f"acme.open.{platform.name}"
+
+    @pytest.mark.django_db
+    def test_save__allows_managed_sender_beneath_platform_domain(self):
+        platform_org = Organization.objects.create(slug="platform-org")
+        platform = Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=platform_org,
+        )
+        org = Organization.objects.create(slug="acme")
+
+        domain = Domain.objects.create(
+            name=f"delegation.open.{platform.name}",
+            org=org,
+            is_managed=True,
+        )
+
+        assert domain.pk is not None
+
+    @pytest.mark.django_db
+    def test_save__rejects_second_platform_domain(self):
+        first_org = Organization.objects.create(slug="first")
+        second_org = Organization.objects.create(slug="second")
+        Domain.objects.create(
+            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            org=first_org,
+        )
+
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Domain.objects.create(
+                name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+                org=second_org,
+            )
 
 
 @pytest.mark.django_db
@@ -159,17 +227,12 @@ class TestDomainSave:
             Domain.objects.create(name="example.com")
 
     def test_save__creates_dkim_keys(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         assert domain.dkim_key_rsa2048 is not None
-        assert domain.dkim_key_rsa1024 is not None
         assert domain.dkim_key_ed25519 is not None
 
     def test_save__normalizes_name_to_lowercase(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="Example.COM", org=org)
 
@@ -177,16 +240,12 @@ class TestDomainSave:
         assert Domain.objects.filter(name="example.com").exists()
 
     def test_save__stores_unicode_name_as_ascii_idna(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="éxample.com", org=org)
 
         assert domain.name == "xn--xample-9ua.com"
 
     def test_save__rejects_idna_alias_owned_by_other_org(self):
-        from accounts.models import Organization
-
         unicode_org = Organization.objects.create(slug="unicode")
         ascii_org = Organization.objects.create(slug="ascii")
         Domain.objects.create(name="éxample.com", org=unicode_org)
@@ -195,8 +254,6 @@ class TestDomainSave:
             Domain.objects.create(name="xn--xample-9ua.com", org=ascii_org)
 
     def test_save__does_not_duplicate_dkim_keys(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         first = domain.dkim_key_rsa2048
@@ -206,17 +263,13 @@ class TestDomainSave:
 
 @pytest.mark.django_db
 class TestDkimCiphers:
-    def test_dkim_ciphers__returns_all_three_with_prefix(self):
-        from accounts.models import Organization
-
+    def test_dkim_ciphers__returns_all_with_prefix(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         selectors = [selector for selector, _ in domain.dkim_ciphers]
-        assert selectors == ["relay-rsa2048", "relay-rsa1024", "relay-ed25519"]
+        assert selectors == ["relay-rsa2048", "relay-ed25519"]
 
     def test_dkim_ciphers__all_keys_present(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         for _, key in domain.dkim_ciphers:
@@ -226,20 +279,16 @@ class TestDkimCiphers:
 @pytest.mark.django_db
 class TestDkimCnames:
     def test_dkim_cnames__one_per_cipher(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         cnames = domain.dkim_cnames
-        assert len(cnames) == 3
+        assert len(cnames) == 2
         for name, target in cnames:
             assert name.startswith("relay-")
             assert name.endswith("._domainkey.example.com")
             assert target.endswith("._domainkey.mail.relay.example.com")
 
     def test_dkim_cnames__managed_domain_uses_sender_subdomain(self):
-        from accounts.models import Organization
-
         Organization.objects.create(slug="acme")
         domain = Domain.objects.get(name="acme.open.localhost")
         for name, target in domain.dkim_cnames:
@@ -250,8 +299,6 @@ class TestDkimCnames:
 @pytest.mark.django_db
 class TestDomainGetAbsoluteUrl:
     def test_get_absolute_url__returns_detail_url(self):
-        from accounts.models import Organization
-
         org = Organization.objects.create(slug="acme")
         domain = Domain.objects.create(name="example.com", org=org)
         url = domain.get_absolute_url()

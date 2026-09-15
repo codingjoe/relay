@@ -1,5 +1,4 @@
 import secrets
-import string
 from datetime import timedelta
 
 from django.conf import settings
@@ -12,15 +11,9 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
+from kms import envelope
 
 VERIFICATION_TOKEN_MAX_AGE = timedelta(days=7)
-
-
-def generate_api_key():
-    """Generate a 32-character random secret for use as an API key."""
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(32))
-
 
 organization_slug_validator = RegexValidator(
     regex=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
@@ -43,6 +36,12 @@ class Organization(TimeStamped):
         settings.AUTH_USER_MODEL,
         through="Membership",
         related_name="organizations",
+    )
+    suspended_at = models.DateTimeField(
+        _("suspended at"),
+        null=True,
+        blank=True,
+        help_text=_("Suspended organizations cannot send outgoing messages."),
     )
 
     billing_is_active = True
@@ -103,7 +102,8 @@ class Membership(TimeStamped):
 
 
 class OrganizationOwned(TimeStamped):
-    """Provide a required `org` foreign key for resources always owned by an organization.
+    """
+    Provide a required `org` foreign key for resources always owned by an organization.
 
     Use this mixin for resources that always belong to an org (for example,
     credentials). Models that need a custom reverse relation define their own
@@ -123,12 +123,13 @@ class OrganizationOwned(TimeStamped):
 
 class CredentialQuerySet(models.QuerySet):
     def create_with_key(self, *, org, name="", **kwargs):
-        """Create and persist a credential with a generated key.
+        """
+        Create and persist a credential with a generated key.
 
         Return a `(credential, raw_key)` tuple. The caller sees the raw key
         only once.
         """
-        raw_key = generate_api_key()
+        raw_key = secrets.token_urlsafe(15)
         credential = self.model(org=org, name=name, **kwargs)
         credential.set_key(raw_key)
         credential.save(force_insert=True)
@@ -136,7 +137,8 @@ class CredentialQuerySet(models.QuerySet):
 
 
 class Credential(OrganizationOwned):
-    """Abstract base for per-service credentials.
+    """
+    Abstract base for per-service credentials.
 
     The plaintext key is never stored. Only a hash (like Django passwords).
     The key_prefix (the first 8 characters) makes an O(1) lookup possible
@@ -188,7 +190,8 @@ class Credential(OrganizationOwned):
         return f"{self.__class__.__module__}.{self.__class__.__name__}"
 
     def set_key(self, raw_key):
-        """Persist a one-way representation of the key.
+        """
+        Persist a one-way representation of the key.
 
         The caller sees the plaintext once. The plaintext is never stored.
         """
@@ -196,7 +199,8 @@ class Credential(OrganizationOwned):
         self.key_prefix = raw_key[:8]
 
     def verify_key(self, raw_key):
-        """Verify the provided key against the stored credential.
+        """
+        Verify the provided key against the stored credential.
 
         Records a successful verification as the last use, and returns whether
         the key matched.
@@ -209,7 +213,8 @@ class Credential(OrganizationOwned):
 
 
 class UserEncryptionKey(TimeStamped):
-    """Store a user's X25519 public key and encrypted private key material.
+    """
+    Store a user's X25519 public key and encrypted private key material.
 
     The private key is encrypted with the user's Master Key, which is in turn
     encrypted with a KEK derived from the user's encryption passphrase. The
@@ -260,14 +265,13 @@ class UserEncryptionKey(TimeStamped):
 
     def save(self, *args, **kwargs):
         if not self.key_id:
-            from kms import envelope
-
             self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
         super().save(*args, **kwargs)
 
 
 class MembershipEncryptionKey(TimeStamped):
-    """Distribute an org's private key to a member via sealed encryption.
+    """
+    Distribute an org's private key to a member via sealed encryption.
 
     The org private key is sealed (encrypted) with the member's X25519 public
     key using crypto_box_seal. Only the member's private key can unseal it.
@@ -297,7 +301,8 @@ class MembershipEncryptionKey(TimeStamped):
 
 
 class EmailVerification(TimeStamped):
-    """Track whether a user has proven control of their email address.
+    """
+    Track whether a user has proven control of their email address.
 
     Security-sensitive mail (password reset, recovery, and postmaster
     notifications) is only sent to verified addresses. Without this gate,

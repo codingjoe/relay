@@ -11,6 +11,7 @@ class TestOrganizationAdmin:
     def test_organization_admin__list_display(self):
         assert "slug" in OrganizationAdmin.list_display
         assert "created_at" in OrganizationAdmin.list_display
+        assert "suspended_at" in OrganizationAdmin.list_display
 
     def test_organization_admin__search_fields(self):
         assert "slug" in OrganizationAdmin.search_fields

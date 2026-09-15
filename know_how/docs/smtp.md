@@ -12,7 +12,7 @@ author: Johannes Maron
 
 SMTP (Simple Mail Transfer Protocol) is the standard protocol for sending and relaying email across the internet. It defines the commands that a mail client sends to a mail server to submit a message, and the commands that mail servers exchange to deliver messages to each other.
 
-SMTP is defined in [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321). The message format that SMTP carries is defined in [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322).
+SMTP is defined in [RFC 5321][rfc-5321]. The message format that SMTP carries is defined in [RFC 5322][rfc-5322].
 
 ## Why SMTP matters
 
@@ -100,18 +100,26 @@ The server queues the message for delivery and reports the result back to the cl
 
 ## Further reading
 
-- [RFC 5321: Simple Mail Transfer Protocol](https://datatracker.ietf.org/doc/html/rfc5321)
-- [RFC 5322: Internet Message Format](https://datatracker.ietf.org/doc/html/rfc5322)
-- [RFC 3207: SMTP Service Extension for Secure SMTP over Transport Layer Security](https://datatracker.ietf.org/doc/html/rfc3207)
+- [RFC 5321][rfc-5321]: Simple Mail Transfer Protocol
+- [RFC 5322][rfc-5322]: Internet Message Format
+- [RFC 3207][rfc-3207]: SMTP Service Extension for Secure SMTP over Transport Layer Security
 - <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
 - <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>: DomainKeys Identified Mail
 - <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>: Domain-based Message Authentication, Reporting, and Conformance
 - <a href="{% url 'know_how:detail' slug='return-path' %}">Return-Path</a>: The bounce address and envelope sender
 
-[^rfc821]: The original SMTP specification was [RFC 821](https://datatracker.ietf.org/doc/html/rfc821) (August 1982). It was obsoleted by [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321) in October 2008. The core command set is the same, but RFC 5321 added clarity, error handling, and security considerations.
+[^rfc821]: The original SMTP specification was [RFC 821][rfc-821] (August 1982). It was obsoleted by [RFC 5321][rfc-5321] in October 2008. The core command set is the same, but [RFC 5321][rfc-5321] added clarity, error handling, and security considerations.
 
-[^ehlo-vs-helo]: `EHLO` was introduced in [RFC 1869](https://datatracker.ietf.org/doc/html/rfc1869) (SMTP Service Extensions). It lets the server advertise supported extensions. `HELO` is the original greeting from RFC 821 and does not support extensions. Modern clients should use `EHLO` and fall back to `HELO` only if the server rejects it.
+[^ehlo-vs-helo]: `EHLO` was introduced in [RFC 1869][rfc-1869] (SMTP Service Extensions). It lets the server advertise supported extensions. `HELO` is the original greeting from RFC 821 and does not support extensions. Modern clients should use `EHLO` and fall back to `HELO` only if the server rejects it.
 
-[^dsn-spec]: Delivery Status Notifications (DSN) are defined in [RFC 3464](https://datatracker.ietf.org/doc/html/rfc3464). The bounce message format includes structured fields for the original recipient, the failure reason, and the diagnostic code.
+[^dsn-spec]: Delivery Status Notifications (DSN) are defined in [RFC 3464][rfc-3464]. The bounce message format includes structured fields for the original recipient, the failure reason, and the diagnostic code.
 
-[^port25-blocked]: Port 25 blocking by ISPs started in the late 1990s to combat spam from compromised home computers. This practice is now standard among most consumer ISPs. The blocking is one reason that authenticated submission on port 587 was introduced in [RFC 4409](https://datatracker.ietf.org/doc/html/rfc4409).
+[^port25-blocked]: Port 25 blocking by ISPs started in the late 1990s to combat spam from compromised home computers. This practice is now standard among most consumer ISPs. The blocking is one reason that authenticated submission on port 587 was introduced in [RFC 4409][rfc-4409].
+
+[rfc-1869]: https://www.rfc-editor.org/info/rfc1869/
+[rfc-3207]: https://www.rfc-editor.org/info/rfc3207/
+[rfc-3464]: https://www.rfc-editor.org/info/rfc3464/
+[rfc-4409]: https://www.rfc-editor.org/info/rfc4409/
+[rfc-5321]: https://www.rfc-editor.org/info/rfc5321/
+[rfc-5322]: https://www.rfc-editor.org/info/rfc5322/
+[rfc-821]: https://www.rfc-editor.org/info/rfc821/

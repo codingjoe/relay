@@ -19,14 +19,14 @@
       <header>
         <h2>{% translate "set up encryption"|capfirst %}</h2>
         <p>
-          {% translate "choose an encryption passphrase. this passphrase protects your keys on this device. it is never sent to the server." %}
+          {% translate "Choose an encryption passphrase. This passphrase protects your keys on this device. It is never sent to the server." %}
         </p>
       </header>
       <section>
         <div class="alert" data-variant="warning" data-size="sm">
           <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
           <p>
-            {% translate "if you lose this passphrase, all encrypted messages become permanently unreadable. there is no recovery." %}
+            {% translate "If you lose this passphrase, all encrypted messages become permanently unreadable. There is no recovery." %}
           </p>
         </div>
         <fieldset class="fieldset mt-4">
@@ -72,7 +72,7 @@
       <section>
         <div class="alert" data-variant="success" data-size="sm">
           <i data-lucide="circle-check" class="size-4" aria-hidden="true"></i>
-          <p>{% translate "end-to-end encryption is now active for your organization." %}</p>
+          <p>{% translate "End-to-end encryption is now active for your organization." %}</p>
         </div>
       </section>
       <footer>
@@ -86,13 +86,13 @@
       <header>
         <h2>{% translate "save your recovery seed"|capfirst %}</h2>
         <p>
-          {% translate "write down these 12 words and store them offline. anyone with access can decrypt all org messages. using them will notify all org members. they are never shown again." %}
+          {% translate "Write down these 12 words and store them offline. Anyone with access can decrypt all org messages. Using them will notify all org members. They are never shown again." %}
         </p>
       </header>
       <section>
         <div class="alert" data-variant="destructive" data-size="sm">
           <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
-          <p>{% translate "this is your only chance to save the recovery seed. it will not be shown again." %}</p>
+          <p>{% translate "This is your only chance to save the recovery seed. It will not be shown again." %}</p>
         </div>
         <div id="mnemonic-display" class="mt-4 p-4 bg-muted rounded font-mono text-lg break-words"></div>
         <button id="mnemonic-copy" class="btn mt-2" data-variant="secondary" data-size="sm">
@@ -102,7 +102,7 @@
         <div role="group" class="field mt-4">
           <label class="flex items-center gap-2">
             <input id="mnemonic-confirmed" type="checkbox" class="checkbox">
-            <span>{% translate "i have written down the recovery seed" %}</span>
+            <span>{% translate "I have written down the recovery seed" %}</span>
           </label>
         </div>
       </section>
@@ -118,7 +118,7 @@
         <h2>{% translate "encryption already configured"|capfirst %}</h2>
       </header>
       <section>
-        <p>{% translate "this organization already has encryption enabled." %}</p>
+        <p>{% translate "This organization already has encryption enabled." %}</p>
       </section>
       <footer>
         <a class="btn" data-variant="outline" href="{% url 'accounts:org-home' org_slug=org.slug %}">

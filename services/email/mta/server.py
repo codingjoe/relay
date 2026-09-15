@@ -1,5 +1,6 @@
 """MX receiving server with STARTTLS support."""
 
+import datetime
 import logging
 import signal
 import sys
@@ -7,7 +8,8 @@ import time
 
 from aiosmtpd.controller import Controller
 
-from services.email.tls import build_tls_context
+from services.email.proxy_protocol import proxy_protocol_timeout_seconds
+from services.email.tls import build_tls_context, wait_for_certificate_and_key
 
 from .handlers import MXHandler
 
@@ -21,30 +23,27 @@ class MXServer:
         ports=(25,),
         tls_cert_path="",
         tls_key_path="",
+        proxy_protocol_timeout: datetime.timedelta | None = None,
     ):
         self.host = host
         self.ports = ports
         self.tls_cert_path = tls_cert_path
         self.tls_key_path = tls_key_path
+        self.proxy_protocol_timeout = proxy_protocol_timeout
         self.controllers = []
 
     def start(self):
         handler = MXHandler()
-        try:
-            tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
-        except OSError:
-            logger.warning(
-                "TLS certificate (%s) or key (%s) not found; starting without STARTTLS",
-                self.tls_cert_path,
-                self.tls_key_path,
-            )
-            tls_context = None
+        tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
         for port in self.ports:
             controller = Controller(
                 handler,
                 hostname=self.host,
                 port=port,
                 tls_context=tls_context,
+                proxy_protocol_timeout=proxy_protocol_timeout_seconds(
+                    self.proxy_protocol_timeout
+                ),
             )
             try:
                 controller.start()
@@ -52,7 +51,7 @@ class MXServer:
                 self.stop()
                 raise
             self.controllers.append(controller)
-            logger.info(f"MX server listening on {self.host}:{port}")
+            logger.info("MX server listening on %s:%s", self.host, port)
 
     def stop(self):
         for controller in self.controllers:
@@ -66,13 +65,16 @@ def run_mx_server(
     ports=(25,),
     tls_cert_path="",
     tls_key_path="",
+    proxy_protocol_timeout: datetime.timedelta | None = None,
 ):
     server = MXServer(
         host=host,
         ports=ports,
         tls_cert_path=tls_cert_path,
         tls_key_path=tls_key_path,
+        proxy_protocol_timeout=proxy_protocol_timeout,
     )
+    wait_for_certificate_and_key(tls_cert_path, tls_key_path)
     server.start()
 
     def signal_handler(sig, frame):

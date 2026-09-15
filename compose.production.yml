@@ -1,137 +1,103 @@
 include:
-  - oci://docker.io/codingjoe/the-box-postgres:main
-  - oci://docker.io/codingjoe/the-box-redis:main
+  - oci://ghcr.io/codingjoe/the-box-postgres:main
+  - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
-  web:
-    pull_policy: build
-    image: app
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ${TARGET:-production}
-      args:
-        UV_NO_DEV: 0
+  clamav:
+    image: clamav/clamav:1.5.4_base-debian13-slim
+    depends_on:
+      clamav-updater:
+        condition: service_completed_successfully
+    volumes:
+      - clamav:/var/lib/clamav
+    # CLAMD_CONF_* overrides, see
+    # https://github.com/Cisco-Talos/clamav-docker/blob/main/clamav/README-debian.md
     environment:
-      HOSTNAME: ${HOSTNAME:-localhost}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
-      DEBUG: ${DEBUG:-false}
-      GRANIAN_INTERFACE: asgi # Options: asgi, wsgi, rsgi (default)
-      GRANIAN_LOG_ACCESS_ENABLED: true
-      GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
-      GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}' # JSON format
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
-      AWS_S3_ENDPOINT_URL: http://minio:9000
-      AWS_S3_ACCESS_KEY_ID: minioadmin
-      AWS_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      AWS_STORAGE_BUCKET_NAME: relay
-      AWS_S3_ADDRESSING_STYLE: path
-      RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
-    command: ["-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application"]
+      # clamav-updater owns the shared database volume
+      CLAMAV_NO_FRESHCLAMD: "true"
+      CLAMD_CONF_ConcurrentDatabaseReload: "no"
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_StreamMaxLength: "40M" # above the 2**25 SMTP DATA limit
+    networks:
+      - app
+    restart: unless-stopped
+    labels:
+      - dev.dozzle.icon=clam-av
+    deploy:
+      replicas: 2 # rspamd pools the A records: https://docs.rspamd.com/configuration/upstream/
+      resources:
+        limits:
+          memory: 4g # clamd needs 3-4 GiB
+  # One-shot signature updater, see
+  # https://docs.clamav.net/manual/Installing/Docker.html
+  clamav-updater:
+    depends_on: !reset []
+    environment: !override
+      FRESHCLAM_CONF_TestDatabases: "no"
+    networks: !override
+      - app-wan
+    command: [ "sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd" ]
+    restart: no
     healthcheck:
-      test: ["CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https"]
+      disable: true
+    deploy: !reset {}
+    extends:
+      service: clamav
+  dns:
+    networks: !override
+      app: ~
+      dnsdist:
+        aliases:
+          # Reserved internal name for dnsdist's backend discovery; never
+          # resolvable upstream, so a mid-deploy lookup fails cleanly.
+          - dns.relay.internal
+    command: [ "-m", "manage", "dns", "--port", "5353" ]
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
+    # Dozzle app icons, see https://dozzle.dev/guide/app-icons. The slugs are
+    # upstream dashboard-icons names and only render once Dozzle bundles them,
+    # see https://github.com/amir20/dozzle/issues/4988.
+    labels: !override
+      - dev.dozzle.icon=django
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
+    extends:
+      service: web
+  dnsdist:
+    image: powerdns/dnsdist-21:2.1.2
+    depends_on:
+      dns:
+        condition: service_started
+    configs:
+      - source: dnsdist
+        target: /etc/dnsdist/dnsdist.conf
+    ports:
+      - '0.0.0.0:53:53/udp'
+      - '0.0.0.0:53:53/tcp'
+    networks:
+      - dnsdist
+      - dnsdist-wan
+    # Proves the dnsdist-to-dns chain; a timestamped qname bypasses the cache.
+    healthcheck:
+      test: [ "CMD", "python3", "-c", "import socket, time; label = str(int(time.time())).encode(); query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\\x06health\\x00' + b'\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(query, ('127.0.0.1', 53)); response = s.recv(512); assert response[:2] == query[:2]; assert response[3] & 0xF == 0" ]
       interval: 10s
       retries: 5
       start_period: 30s
       timeout: 10s
-    depends_on:
-      migration:
-        condition: service_completed_successfully
-      minio-init:
-        condition: service_completed_successfully
-        required: true
-        restart: true
     labels:
-      - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
-      - "caddy.reverse_proxy.health_uri=/health/"
-      - "caddy.cache"
-  dns:
-    extends:
-      service: web
-    labels: !reset
-    command: ["-m", "manage", "dns", "--port", "5353"]
-    networks: !override
-      - app
-      - dnsdist
-  dnsdist:
-    image: powerdns/dnsdist-21:2.1.1
-    ports:
-      - "0.0.0.0:53:53/udp"
-      - "0.0.0.0:53:53/tcp"
-    networks:
-      - dnsdist
-      - dnsdist-wan
-    configs:
-      - source: dnsdist
-        target: /etc/dnsdist/dnsdist.conf
-    depends_on:
-      dns:
-        condition: service_started
-  msa:
-    extends:
-      service: web
-    labels: !override
-      - "caddy=smtp.${HOSTNAME:-localhost}"
-      - "caddy.respond=OK"
-    deploy: !reset
-    command: ["-m", "manage", "msa"]
-    ports:
-      - "0.0.0.0:587:587"
-      - "0.0.0.0:465:465"
-    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
-    environment:
-      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
-      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory//smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
-    volumes:
-      - caddy_data:/data:ro
-    networks: !override
-      - app
-      - app-wan
-  mta:
-    extends:
-      service: web
-    labels: !override
-      - "caddy=mail.${HOSTNAME:-localhost}"
-      - "caddy.respond=OK"
-    deploy: !reset
-    command: ["-m", "manage", "mta"]
-    ports:
-      - "0.0.0.0:25:25"
-    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
-    environment:
-      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.crt
-      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${HOSTNAME:-localhost}.key
-    volumes:
-      - caddy_data:/data:ro
-    networks: !override
-      - app
-      - app-wan
-  rspamd:
-    image: rspamd/rspamd:4.1
-    configs:
-      - source: rspamd_redis
-        target: /etc/rspamd/local.d/redis.conf
-      - source: rspamd_worker
-        target: /etc/rspamd/local.d/worker-normal.inc
-    networks:
-      - app
-    depends_on:
-      redis:
-        condition: service_healthy
-  worker:
-    extends:
-      service: web
-    labels: !reset
-    deploy: !reset
-    command: ["-m", "manage", "threadmill", "worker"]
+      - dev.dozzle.icon=powerdns
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
   migration:
-    extends:
-      service: web
-    restart: no
-    command: ["-m", "manage", "migrate", "--noinput"]
-    deploy: !reset
-    labels: !reset
     depends_on: !override
       postgres:
         condition: service_healthy
@@ -141,54 +107,246 @@ services:
         condition: service_healthy
         required: true
         restart: false
-  minio:
-    image: minio/minio
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: ["server", "/data", "--console-address", ":9001"]
+    command: [ "-m", "manage", "migrate", "--noinput" ]
+    restart: no
+    labels: !override
+      - dev.dozzle.icon=django
+    deploy: !reset {}
+    extends:
+      service: web
+    memswap_limit: !reset ""
+  msa:
     volumes:
-      - s3:/data
+      - caddy_data:/data:ro
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    environment:
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+      RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
+    command: [ "-m", "manage", "msa", "--ports", "587" ]
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      # Caddy fronts the submission port with a PROXY protocol header.
+      # Send the unattributed v1 "UNKNOWN" header, then expect the SMTP
+      # banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
       interval: 10s
       retries: 5
-      start_period: 10s
-      timeout: 5s
-    networks:
-      - app
-      - app-wan
-  minio-init:
-    image: minio/mc
+      start_period: 30s
+      timeout: 10s
+    labels: !override
+      - "caddy=smtp.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+      - dev.dozzle.icon=django
+      - "caddy_1.layer4.:587.route.proxy=msa:587"
+      - "caddy_1.layer4.:587.route.proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:587.route.proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:587.route.proxy.fail_duration=10s"
+      - "caddy_1.layer4.:587.route.proxy.proxy_protocol=v2"
+      - "caddy_1.layer4.:465.route.0_tls="
+      - "caddy_1.layer4.:465.route.1_proxy=msa:2465"
+      - "caddy_1.layer4.:465.route.1_proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:465.route.1_proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:465.route.1_proxy.fail_duration=10s"
+      - "caddy_1.layer4.:465.route.1_proxy.proxy_protocol=v2"
+    extends:
+      service: web
+  mta:
+    volumes:
+      - caddy_data:/data:ro
+    # Caddy stores certs at <data>/certificates/<issuer>/<domain>/<domain>.crt|.key
+    # One pair per MX hostname; the MTA serves them by SNI.
+    environment:
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.crt,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx1.${HOSTNAME:-localhost}/mx1.${HOSTNAME:-localhost}.key,/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mx2.${HOSTNAME:-localhost}/mx2.${HOSTNAME:-localhost}.key
+      RELAY_PROXY_PROTOCOL_TIMEOUT: ${RELAY_PROXY_PROTOCOL_TIMEOUT:-3}
+    command: [ "-m", "manage", "mta" ]
+    healthcheck:
+      # Caddy fronts the MX port with a PROXY protocol header. Send the
+      # unattributed v1 "UNKNOWN" header, then expect the SMTP banner.
+      test: [ "CMD", "python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    labels: !override
+      - "caddy=mx1.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+      - dev.dozzle.icon=django
+      - "caddy_1.layer4.:25.route.proxy=mta:25"
+      - "caddy_1.layer4.:25.route.proxy.lb_policy=round_robin"
+      - "caddy_1.layer4.:25.route.proxy.lb_try_duration=3s"
+      - "caddy_1.layer4.:25.route.proxy.fail_duration=10s"
+      - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
+      - "caddy_2=mx2.${HOSTNAME:-localhost}"
+      - "caddy_2.respond=OK"
+    extends:
+      service: web
+  rspamd:
+    image: rspamd/rspamd:4.1
     depends_on:
-      minio:
+      clamav:
         condition: service_healthy
-        required: true
-        restart: true
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - mc alias set root http://minio:9000 minioadmin ${MINIO_ROOT_PASSWORD} && mc mb root/relay --ignore-existing
-    restart: "no"
+      redis:
+        condition: service_healthy
+    configs:
+      - source: rspamd_redis
+        target: /etc/rspamd/local.d/redis.conf
+      - source: rspamd_controller
+        target: /etc/rspamd/local.d/worker-controller.inc
+      - source: rspamd_antivirus
+        target: /etc/rspamd/local.d/antivirus.conf
+      - source: rspamd_force_actions
+        target: /etc/rspamd/local.d/force_actions.conf
     networks:
       - app
-volumes:
-  s3:
-  caddy_data:
-    name: the-box_caddy_data
-    external: true
+      - ingress
+    labels:
+      - "caddy_1=http://caddy:11334"
+      - "caddy_1.reverse_proxy={{upstreams 11334}}"
+      - "caddy_1.reverse_proxy.lb_policy=round_robin"
+      - "caddy_1.reverse_proxy.lb_try_duration=3s"
+      - "caddy_1.reverse_proxy.health_uri=/ping"
+      - "caddy_1.reverse_proxy.health_interval=10s"
+      - "caddy_1.reverse_proxy.health_timeout=5s"
+      - "caddy_1.reverse_proxy.fail_duration=10s"
+      - dev.dozzle.icon=rspamd
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+  # Host networking lets the sender bind RELAY_SMTP_SOURCE_IPS addresses.
+  sender:
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@pg.${HOSTNAME:-localhost}:443/postgres?sslmode=require
+      REDIS_URL: rediss://:${REDIS_PASSWORD}@redis.${HOSTNAME:-localhost}:443/
+    networks: !reset []
+    network_mode: host
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
+    extends:
+      service: worker
+  web:
+    image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${TARGET:-production}
+      args:
+        UV_NO_DEV: 0
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    environment:
+      HOSTNAME: ${HOSTNAME:-localhost}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
+      DEBUG: ${DEBUG:-false}
+      GRANIAN_INTERFACE: asginl
+      GRANIAN_LOG_ACCESS_ENABLED: true
+      GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}' # JSON format
+      GRANIAN_LOG_CONFIG: granian.log.config.json
+      GRANIAN_WORKERS: ${WEB_CONCURRENCY:-2}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
+      AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL}
+      AWS_S3_ACCESS_KEY_ID: ${AWS_S3_ACCESS_KEY_ID}
+      AWS_S3_SECRET_ACCESS_KEY: ${AWS_S3_SECRET_ACCESS_KEY}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-relay}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-fsn1}
+      AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-path}
+      RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
+      RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
+      RELAY_RSPAMD_URL: http://:${RELAY_RSPAMD_PASSWORD}@caddy:11334
+    command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
+    healthcheck:
+      test: [ "CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    labels:
+      - "caddy=${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}"
+      - "caddy.reverse_proxy.health_uri=/health/"
+      - "caddy.cache"
+      - dev.dozzle.icon=django
+      # Global options need their own label group. The same keys on the `caddy`
+      # group would be scoped into the relays.to site block.
+      - "caddy_1.on_demand_tls.permission=http http://web:8000/internal/mta-sts/authorize/"
+      # Keys identical to the-box's catch-all block, so the blocks merge.
+      - "caddy_2=:80, :443"
+      - "caddy_2.tls.on_demand"
+      - "caddy_2.@mta_sts.path=/.well-known/mta-sts.txt"
+      - "caddy_2.@mta_sts.protocol=https"
+      - "caddy_2.handle=@mta_sts"
+      - "caddy_2.handle.reverse_proxy={{upstreams 8000}}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+    pull_policy: always
+  worker:
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "ingress", "egress", "default", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
+    healthcheck:
+      test: [ "CMD", "python", "-m", "manage", "health_check", "health", "--no-http" ]
+    labels: !override
+      - dev.dozzle.icon=django
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    extends:
+      service: web
 networks:
   dnsdist:
     internal: true
   dnsdist-wan:
+volumes:
+  clamav:
+  caddy_data:
+    name: the-box_caddy_data
+    external: true
 configs:
   rspamd_redis:
     content: |
       servers = "redis";
       password = "${REDIS_PASSWORD}";
       database = 1;
-  rspamd_worker:
+  rspamd_controller:
     content: |
-      bind_socket = "*:11334";
+      password = "${RELAY_RSPAMD_PASSWORD:?RELAY_RSPAMD_PASSWORD must be set}";
+  # One attempt only, so a hung clamd fails inside rspamd's 8 s task timeout.
+  # See https://docs.rspamd.com/modules/antivirus/
+  rspamd_antivirus:
+    content: |
+      clamav {
+        type = "clamav";
+        servers = "clamav:3310";
+        symbol = "CLAM_VIRUS";
+        score = 10.0;
+        action = "reject";
+        retransmits = 0;
+        log_clean = true; # a clean scan adds no symbol, so the log line is the only proof
+        # A limits trip is deterministic, so it gets its own symbol, not a failure.
+        patterns_fail = {
+          CLAM_VIRUS_LIMITS = "Limits Exceeded";
+        };
+      }
+  # Section body, not a nested `force_actions` block.
+  # See https://docs.rspamd.com/modules/force_actions/
+  rspamd_force_actions:
+    content: |
+      rules {
+        CLAMAV_LIMITS {
+          action = "reject";
+          expression = "CLAM_VIRUS_LIMITS";
+        }
+        CLAMAV_FAIL {
+          action = "soft reject";
+          expression = "CLAM_VIRUS_FAIL";
+        }
+      }
   dnsdist:
     content: |
       -- Listen on port 53 (UDP + TCP)
@@ -197,17 +355,55 @@ configs:
       -- Authoritative nameserver: allow queries from all sources
       setACL({"0.0.0.0/0", "::/0"})
 
-      -- Resolve all 'dns' service replicas via Docker's embedded DNS
-      local handle = io.popen("getent ahosts dns")
-      local result = handle:read("*a")
-      handle:close()
+      -- One backend per 'dns' replica, re-synced every 10 seconds so
+      -- scaled and redeployed replicas are picked up without a restart.
+      -- The absolute, reserved 'internal' name keeps a mid-deploy lookup
+      -- from falling through to public DNS.
+      local replicas = {}
+      local generation = 0
 
-      -- Add each unique replica as a downstream server for redundancy
-      local seen = {}
-      for ip in result:gmatch("(%d+%.%d+%.%d+%.%d+)") do
-          if not seen[ip] then
-              seen[ip] = true
-              newServer({address=ip .. ":5353", name="authoritative"})
+      local function syncReplicas(resolvedAddresses)
+          local resolved = {}
+          for _, resolvedAddress in ipairs(resolvedAddresses) do
+              if resolvedAddress:isIPv4() then
+                  local address = resolvedAddress:toString()
+                  resolved[address] = true
+                  if not replicas[address] then
+                      replicas[address] = newServer({address=address .. ":5353", name="authoritative"})
+                  end
+              end
+          end
+          -- Empty result (e.g. mid-deploy): keep the known replicas.
+          if next(resolved) == nil then
+              return
+          end
+          for address, server in pairs(replicas) do
+              if not resolved[address] then
+                  rmServer(server)
+                  replicas[address] = nil
+              end
+          end
+      end
+
+      local function resolveReplicas()
+          generation = generation + 1
+          local currentGeneration = generation
+          getAddressInfo("dns.relay.internal.", function(_, resolvedAddresses)
+              -- Drop stale snapshots.
+              if currentGeneration == generation then
+                  syncReplicas(resolvedAddresses)
+              end
+          end)
+      end
+
+      resolveReplicas()
+
+      -- Re-resolve every 10 maintenance ticks (~10s).
+      local ticks = 0
+      function maintenance()
+          ticks = ticks + 1
+          if ticks % 10 == 0 then
+              resolveReplicas()
           end
       end
 

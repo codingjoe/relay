@@ -1,16 +1,16 @@
 from datetime import timedelta
+from http import HTTPStatus
 
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views import generic
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from django.views import View, generic
 
+from abstract.views import JSONBodyView
 from kms.models import OrgEncryptionKey, RecoveryEvent
 from kms.tasks import notify_recovery_triggered
 
@@ -22,7 +22,7 @@ from .views import (
 )
 
 
-class AdminOnlyView(OrganizationScopedView, APIView):
+class AdminOnlyView(OrganizationScopedView, JSONBodyView, View):
     """Restrict access to org admins."""
 
     def dispatch(self, request, *args, **kwargs):
@@ -33,7 +33,7 @@ class AdminOnlyView(OrganizationScopedView, APIView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class EncryptionStatusView(OrganizationScopedView, APIView):
+class EncryptionStatusView(OrganizationScopedView, JSONBodyView, View):
     """Return whether the org has encryption configured and the user's key status."""
 
     def get(self, request, *args, **kwargs):
@@ -59,20 +59,22 @@ class EncryptionStatusView(OrganizationScopedView, APIView):
         sealed_org_private_key = None
         if hasattr(membership, "encryption_key"):
             sealed_org_private_key = membership.encryption_key.sealed_org_private_key
-        recent_recovery = (
-            RecoveryEvent.objects.filter(
-                org_encryption_key__org=self.org,
-                created_at__gte=timezone.now() - timedelta(hours=24),
+        try:
+            recent_recovery = (
+                RecoveryEvent.objects.filter(
+                    org_encryption_key__org=self.org,
+                    created_at__gte=timezone.now() - timedelta(hours=24),
+                )
+                .select_related("triggered_by")
+                .latest("created_at")
             )
-            .select_related("triggered_by")
-            .first()  # noqa: relint - latest of 0+ events
-        )
-        recovery_triggered_at = None
-        recovery_triggered_by = None
-        if recent_recovery:
+        except RecoveryEvent.DoesNotExist:
+            recovery_triggered_at = None
+            recovery_triggered_by = None
+        else:
             recovery_triggered_at = recent_recovery.created_at.isoformat()
             recovery_triggered_by = str(recent_recovery.triggered_by)
-        return Response(
+        return JsonResponse(
             {
                 "org_has_encryption": org_key_id is not None,
                 "org_public_key": org_public_key,
@@ -92,33 +94,38 @@ class EncryptionSetupView(AdminOnlyView):
     """Create the org encryption key, the admin's user key, and the sealed membership key."""
 
     def post(self, request, *args, **kwargs):
+        if self.body_data is None:
+            return JsonResponse(
+                {"error": _("Invalid JSON body.")},
+                status=HTTPStatus.BAD_REQUEST,
+            )
         if self.org.encryption_keys.filter(is_active=True).exists():
-            return Response(
+            return JsonResponse(
                 {"error": "Encryption is already configured for this organization."},
-                status=status.HTTP_409_CONFLICT,
+                status=HTTPStatus.CONFLICT,
             )
         try:
             keys = {
-                "org_public_key": request.data["org_public_key"],
-                "user_public_key": request.data["user_public_key"],
-                "encrypted_master_key": request.data["encrypted_master_key"],
-                "encrypted_private_key": request.data["encrypted_private_key"],
-                "sealed_org_private_key": request.data["sealed_org_private_key"],
-                "recovery_sealed_org_private_key": request.data[
+                "org_public_key": self.body_data["org_public_key"],
+                "user_public_key": self.body_data["user_public_key"],
+                "encrypted_master_key": self.body_data["encrypted_master_key"],
+                "encrypted_private_key": self.body_data["encrypted_private_key"],
+                "sealed_org_private_key": self.body_data["sealed_org_private_key"],
+                "recovery_sealed_org_private_key": self.body_data[
                     "recovery_sealed_org_private_key"
                 ],
-                "org_key_id": request.data.get("org_key_id", ""),
-                "user_key_id": request.data.get("user_key_id", ""),
+                "org_key_id": self.body_data.get("org_key_id", ""),
+                "user_key_id": self.body_data.get("user_key_id", ""),
             }
         except KeyError as missing:
-            return Response(
+            return JsonResponse(
                 {"error": f"Missing required field: {missing.args[0]}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=HTTPStatus.BAD_REQUEST,
             )
         try:
             validate_encryption_keys(keys)
         except ValueError as err:
-            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({"error": str(err)}, status=HTTPStatus.BAD_REQUEST)
         try:
             with transaction.atomic():
                 org_key, user_key = create_encryption_keys(
@@ -129,25 +136,25 @@ class EncryptionSetupView(AdminOnlyView):
                 )
         except IntegrityError:
             # A concurrent request configured the same active org encryption key.
-            return Response(
+            return JsonResponse(
                 {"error": "Encryption is already configured for this organization."},
-                status=status.HTTP_409_CONFLICT,
+                status=HTTPStatus.CONFLICT,
             )
-        return Response(
+        return JsonResponse(
             {
                 "org_key_id": org_key.key_id,
                 "user_key_id": user_key.key_id,
             },
-            status=status.HTTP_201_CREATED,
+            status=HTTPStatus.CREATED,
         )
 
 
-class UserEncryptionKeyView(OrganizationScopedView, APIView):
+class UserEncryptionKeyView(OrganizationScopedView, JSONBodyView, View):
     """Get, create, or rotate the current user's personal encryption key."""
 
     def get(self, request, *args, **kwargs):
         user_key = get_object_or_404(UserEncryptionKey, user=request.user)
-        return Response(
+        return JsonResponse(
             {
                 "public_key": user_key.public_key,
                 "key_id": user_key.key_id,
@@ -157,18 +164,23 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
         )
 
     def post(self, request, *args, **kwargs):
+        if self.body_data is None:
+            return JsonResponse(
+                {"error": _("Invalid JSON body.")},
+                status=HTTPStatus.BAD_REQUEST,
+            )
         try:
             public_key, encrypted_master_key, encrypted_private_key = (
-                request.data["public_key"],
-                request.data["encrypted_master_key"],
-                request.data["encrypted_private_key"],
+                self.body_data["public_key"],
+                self.body_data["encrypted_master_key"],
+                self.body_data["encrypted_private_key"],
             )
         except KeyError as missing:
-            return Response(
+            return JsonResponse(
                 {"error": f"Missing required field: {missing.args[0]}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=HTTPStatus.BAD_REQUEST,
             )
-        key_id = request.data.get("key_id", "")
+        key_id = self.body_data.get("key_id", "")
         try:
             validate_encryption_keys(
                 {
@@ -179,7 +191,7 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
                 }
             )
         except ValueError as err:
-            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({"error": str(err)}, status=HTTPStatus.BAD_REQUEST)
         user_key = UserEncryptionKey(
             user=request.user,
             public_key=public_key,
@@ -190,28 +202,33 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
         try:
             user_key.save(force_insert=True)
         except IntegrityError:
-            return Response(
+            return JsonResponse(
                 {"error": _("A key with this key_id already exists.")},
-                status=status.HTTP_409_CONFLICT,
+                status=HTTPStatus.CONFLICT,
             )
-        return Response(
+        return JsonResponse(
             {"key_id": user_key.key_id},
-            status=status.HTTP_201_CREATED,
+            status=HTTPStatus.CREATED,
         )
 
     def put(self, request, *args, **kwargs):
+        if self.body_data is None:
+            return JsonResponse(
+                {"error": _("Invalid JSON body.")},
+                status=HTTPStatus.BAD_REQUEST,
+            )
         try:
             public_key, encrypted_master_key, encrypted_private_key = (
-                request.data["public_key"],
-                request.data["encrypted_master_key"],
-                request.data["encrypted_private_key"],
+                self.body_data["public_key"],
+                self.body_data["encrypted_master_key"],
+                self.body_data["encrypted_private_key"],
             )
         except KeyError as missing:
-            return Response(
+            return JsonResponse(
                 {"error": f"Missing required field: {missing.args[0]}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=HTTPStatus.BAD_REQUEST,
             )
-        key_id = request.data.get("key_id", "")
+        key_id = self.body_data.get("key_id", "")
         try:
             validate_encryption_keys(
                 {
@@ -222,7 +239,7 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
                 }
             )
         except ValueError as err:
-            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({"error": str(err)}, status=HTTPStatus.BAD_REQUEST)
         user_key = get_object_or_404(UserEncryptionKey, user=request.user)
         user_key.public_key = public_key
         user_key.key_id = key_id
@@ -237,7 +254,7 @@ class UserEncryptionKeyView(OrganizationScopedView, APIView):
                 "modified_at",
             ]
         )
-        return Response({"key_id": user_key.key_id})
+        return JsonResponse({"key_id": user_key.key_id})
 
 
 class MembershipEncryptionKeyListView(AdminOnlyView):
@@ -255,7 +272,7 @@ class MembershipEncryptionKeyListView(AdminOnlyView):
                 )
             )
         )
-        return Response(
+        return JsonResponse(
             [
                 {
                     "membership_id": mk.membership_id,
@@ -267,19 +284,25 @@ class MembershipEncryptionKeyListView(AdminOnlyView):
                     "has_sealed_org_key": True,
                 }
                 for mk in membership_keys
-            ]
+            ],
+            safe=False,
         )
 
     def post(self, request, *args, **kwargs):
+        if self.body_data is None:
+            return JsonResponse(
+                {"error": _("Invalid JSON body.")},
+                status=HTTPStatus.BAD_REQUEST,
+            )
         try:
             membership_id, sealed_org_private_key = (
-                request.data["membership_id"],
-                request.data["sealed_org_private_key"],
+                self.body_data["membership_id"],
+                self.body_data["sealed_org_private_key"],
             )
         except KeyError as missing:
-            return Response(
+            return JsonResponse(
                 {"error": f"Missing required field: {missing.args[0]}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=HTTPStatus.BAD_REQUEST,
             )
         membership = get_object_or_404(Membership, pk=membership_id, org=self.org)
         org_key = get_object_or_404(OrgEncryptionKey, org=self.org, is_active=True)
@@ -302,9 +325,9 @@ class MembershipEncryptionKeyListView(AdminOnlyView):
                     "modified_at",
                 ]
             )
-        return Response(
+        return JsonResponse(
             {"membership_id": membership.pk},
-            status=status.HTTP_201_CREATED,
+            status=HTTPStatus.CREATED,
         )
 
 
@@ -314,7 +337,7 @@ class MembershipEncryptionKeyDeleteView(AdminOnlyView):
     def delete(self, request, membership_pk, *args, **kwargs):
         membership = get_object_or_404(Membership, pk=membership_pk, org=self.org)
         get_object_or_404(MembershipEncryptionKey, membership=membership).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return HttpResponse(status=HTTPStatus.NO_CONTENT)
 
 
 class EncryptionSetupPageView(OrganizationScopedView, generic.TemplateView):
@@ -325,8 +348,9 @@ class EncryptionSetupPageView(OrganizationScopedView, generic.TemplateView):
     parent = "accounts:org-home"
 
 
-class RecoveryTriggerView(OrganizationScopedView, APIView):
-    """Log a break-glass recovery event and notify all org members.
+class RecoveryTriggerView(OrganizationScopedView, JSONBodyView, View):
+    """
+    Log a break-glass recovery event and notify all org members.
 
     Called by the browser after successfully decrypting the org private key
     from the BIP39 mnemonic. The mnemonic itself is the authorization. Any
@@ -337,9 +361,9 @@ class RecoveryTriggerView(OrganizationScopedView, APIView):
     def post(self, request, *args, **kwargs):
         org_key = get_object_or_404(OrgEncryptionKey, org=self.org, is_active=True)
         if not org_key.recovery_sealed_org_private_key:
-            return Response(
+            return JsonResponse(
                 {"error": "This organization has no recovery key configured."},
-                status=status.HTTP_404_NOT_FOUND,
+                status=HTTPStatus.NOT_FOUND,
             )
         event = RecoveryEvent.objects.create(
             org_encryption_key=org_key,
@@ -348,12 +372,12 @@ class RecoveryTriggerView(OrganizationScopedView, APIView):
         transaction.on_commit(
             lambda: notify_recovery_triggered.enqueue(recovery_event_id=event.pk)
         )
-        return Response(
+        return JsonResponse(
             {
                 "recovery_event_id": event.pk,
                 "created_at": event.created_at.isoformat(),
             },
-            status=status.HTTP_201_CREATED,
+            status=HTTPStatus.CREATED,
         )
 
 

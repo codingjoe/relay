@@ -3,7 +3,10 @@
 > B2B SaaS communication platform with a built-in authoritative nameserver.
 > Users set NS delegation and DMARC. The nameserver serves MX, SPF, DKIM, and Return-Path automatically.
 
-## Know how
+## Docs
+
+{% for article in docs_articles %}- [{{ article.title }}]({{ article.url }})
+{% endfor %}## Know how
 
 {% for article in articles %}- [{{ article.title }}]({{ article.url }})
 {% endfor %}

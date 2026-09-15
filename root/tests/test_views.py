@@ -2,9 +2,11 @@ import itertools
 
 import pytest
 from django.conf import settings
+from django.db import connections
 from django.http import HttpResponse
 from django.template import engines as template_engines
 from django.test import RequestFactory
+from django.urls import reverse
 from django.utils.module_loading import import_string
 
 from root.views import HomeView
@@ -35,6 +37,76 @@ class TestHomeViewRender:
     def test_get__renders_for_authenticated(self, admin_client):
         response = admin_client.get("/")
         assert response.status_code == 200
+
+
+class TestPublicChrome:
+    """Public pages render the static chrome: no session access, no Vary: Cookie."""
+
+    public_urls = [
+        "/",
+        "/docs/security/",
+        "/legal/imprint/",
+    ]
+
+    def test_get__no_vary_cookie(self, client):
+        for url in self.public_urls:
+            response = client.get(url)
+            assert response.status_code == 200
+            assert "Cookie" not in (response.headers.get("Vary") or "")
+
+    @pytest.mark.django_db
+    def test_get__no_vary_cookie_when_authenticated(self, admin_client):
+        for url in self.public_urls:
+            response = admin_client.get(url)
+            assert response.status_code == 200
+            assert "Cookie" not in (response.headers.get("Vary") or "")
+
+    @staticmethod
+    def track_queries(request):
+        """Return the SQL statements executed while calling `request()`."""
+        queries = []
+
+        def tracker(execute, sql, params, many, context):
+            queries.append(sql)
+            return execute(sql, params, many, context)
+
+        wrappers = [alias.execute_wrapper(tracker) for alias in connections.all()]
+        for wrapper in wrappers:
+            wrapper.__enter__()
+        request()
+        for wrapper in wrappers:
+            wrapper.__exit__(None, None, None)
+        return queries
+
+    def test_get__no_queries(self, client):
+        for url in self.public_urls:
+            queries = self.track_queries(lambda url=url: client.get(url))
+            assert not queries, f"{url} ran {len(queries)} queries"
+
+    @pytest.mark.django_db
+    def test_get__no_queries_when_authenticated(self, admin_client):
+        for url in self.public_urls:
+            queries = self.track_queries(lambda url=url: admin_client.get(url))
+            assert not queries, f"{url} ran {len(queries)} queries"
+
+    def test_get__renders_static_chrome(self, client):
+        for url in self.public_urls:
+            body = client.get(url).content.decode()
+            assert 'id="toaster"' not in body
+            assert "gravatar.com" not in body
+        response = client.get("/docs/security/")
+        body = response.content.decode()
+        assert reverse("accounts:org-list") in body
+
+    @pytest.mark.django_db
+    def test_get__renders_static_chrome_when_authenticated(self, admin_client):
+        for url in self.public_urls:
+            body = admin_client.get(url).content.decode()
+            assert 'id="toaster"' not in body
+            assert "gravatar.com" not in body
+        response = admin_client.get("/docs/security/")
+        body = response.content.decode()
+        assert reverse("accounts:org-list") in body
 
 
 class TestNoIO:

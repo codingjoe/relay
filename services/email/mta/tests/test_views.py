@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 from django.core.files.base import ContentFile
+from django.utils.html import escapejs
 
 from domains.models import Domain
 from kms.models import SigningKey
@@ -88,7 +89,18 @@ class TestIncomingMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 404
 
-    def test_get__context_has_headers_and_parts(self, admin_client, org):
+    def test_get__not_modified_when_etag_matches(self, admin_client, org):
+        msg = make_incoming(org)
+        url = f"/org/{org.slug}/email/incoming/{msg.id}"
+        etag = admin_client.get(url).headers["ETag"]
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 304
+
+    def test_get__no_store_on_list(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")
+        assert response.headers["Cache-Control"] == "private, no-store"
+
+    def test_get__context_has_headers(self, admin_client, org):
         raw = (
             b"From: alice@example.com\r\n"
             b"To: bob@example.com\r\n"
@@ -101,7 +113,6 @@ class TestIncomingMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 200
         assert "headers" in response.context
-        assert "parts" in response.context
         assert "webhook_deliveries" in response.context
         assert any(h[0] == "Subject" for h in response.context["headers"])
 
@@ -122,7 +133,6 @@ class TestIncomingMessageDetailView:
         msg = make_incoming(org, raw_body=raw)
         response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 200
-        assert len(response.context["parts"]) >= 1
 
 
 @pytest.mark.django_db
@@ -135,6 +145,26 @@ class TestWebhookListView:
     def test_get__ok_for_member(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert response.status_code == 200
+
+    def test_get__context_has_webhook_payload(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
+        assert response.status_code == 200
+        assert "webhook_payload" in response.context
+        assert '"type": "email.received"' in response.context["webhook_payload"]
+        assert b"codehilite" in response.content
+
+    def test_get__copy_button_escapes_public_key(
+        self, admin_client, org, webhook_server
+    ):
+        webhook = make_webhook(org, url=f"{webhook_server}/x")
+        response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert (
+            f"navigator.clipboard.writeText('{escapejs(webhook.public_key_serialized)}')"
+            in content
+        )
+        assert 'aria-label="Copy public key"' in content
 
     def test_get__filters_by_org(self, admin_client, org, write_org, webhook_server):
         make_webhook(org, url=f"{webhook_server}/a")

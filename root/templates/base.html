@@ -6,33 +6,44 @@
     <title>{% block title %}relay{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
+    {% if DEBUG %}
+      <link rel="icon" href="{% static 'img/favicon-development.svg' %}" type="image/svg+xml">
+    {% else %}
+      <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+    {% endif %}
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6200d1">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#bb80ff">
     {% block meta_tags %}
       <meta
         name="description"
-        content="{% block meta_description %}relay: infrastructure as a service. Email sending, receiving, and reputation monitoring with a built-in authoritative nameserver.{% endblock %}"
+        content="{% block meta_description %}relay: communication as a service. Email sending, receiving, and reputation monitoring for developers, with near-zero configuration. relay handles the DNS and email plumbing.{% endblock %}"
       >
       <link rel="canonical" href="{{ request.build_absolute_uri }}">
       <meta property="og:site_name" content="relay">
       <meta property="og:type" content="{% block og_type %}website{% endblock %}">
       <meta property="og:url" content="{{ request.build_absolute_uri }}">
-      <meta name="twitter:card" content="summary">
+      <meta
+        property="og:image"
+        content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/og-image.png' %}"
+      >
+      <meta property="og:image:width" content="1200">
+      <meta property="og:image:height" content="630">
+      <meta
+        property="og:image:alt"
+        content="relay logo and the tagline communication as a service"
+      >
+      <meta name="twitter:card" content="summary_large_image">
+      <meta
+        name="twitter:image"
+        content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/og-image.png' %}"
+      >
     {% endblock meta_tags %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script
       src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js"
       integrity="sha384-rD2ZCuReXV7nIneJcn1lsTn6yOv87YARLQyUsemVAxrYYHdy5hcAW8XZEQxx87Dj"
-      crossorigin="anonymous"
-      defer
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
-      integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
-      crossorigin="anonymous"
-      defer
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/chart.min.js"
-      integrity="sha384-Sn28rPtKJJwqYWDSBOVgYGvXTIcKeCH/1Bul1EX+r3f/HqDzRtF1Z5Eyq0AKFr5Q"
       crossorigin="anonymous"
       defer
     ></script>
@@ -73,7 +84,9 @@
       {% include "partials/sidebar.html" %}
     {% endif %}
     <main class="flex-1 flex flex-col min-w-0">
-      {% include "accounts/email_verification_banner.html" %}
+      {% if current_org %}
+        {% include "accounts/email_verification_banner.html" %}
+      {% endif %}
       {% block topbar %}{% include "partials/topbar.html" %}{% endblock %}
       {% block chrome %}
         <div class="flex items-center gap-2 px-6 h-14">
@@ -85,6 +98,6 @@
       </div>
       {% include "partials/footer.html" %}
     </main>
-    {% include "partials/toaster.html" %}
+    {% if not request.public_cache %}{% include "partials/toaster.html" %}{% endif %}
   </body>
 </html>

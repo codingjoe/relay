@@ -2,6 +2,7 @@
 
 This document records coding conventions for the Relay project.
 Update it based on review feedback.
+A rule lives either in this document or in `.relint.yml`, never both.
 
 ## URLs
 
@@ -52,6 +53,8 @@ Update it based on review feedback.
 
 - All fields must have `verbose_name` and `help_text` (except FK and PK).
 - Use `db_defaults` where a database-side default is appropriate.
+- Index fields used for ordering. A field listed in `Meta.ordering` needs an
+  index (for example, `SpamCheck.started_at`).
 - Drop `class Meta` entirely if it only inherits without overriding anything.
 - Use `TextField` instead of `CharField` for all fields unless you
   specifically want Django's `max_length` validation. In PostgreSQL there
@@ -70,6 +73,23 @@ Update it based on review feedback.
 ## Functions
 
 - Function names must be descriptive, not ambiguous.
+- Do not write one-liner functions that only wrap a single expression. Inline
+  the expression at its call site.
+- Use generator functions when a function produces a sequence for lazy
+  consumption, for example when walking database relations.
+
+## Comments
+
+- Comment only when the code is unexpected or hard to read. A comment that
+  restates the line beneath it is a defect.
+- Never explain configuration in prose. For a setting, add a single link to
+  the documentation page for that setting or that service, and keep only the
+  fact a reader cannot get from the docs, for example
+  `# rspamd pools the A records, see https://docs.rspamd.com/configuration/upstream/`.
+- Keep the reasoning that stops a later edit from undoing a fix, and state it
+  in one line rather than a paragraph.
+- Prefer a trailing annotation on an unexpected literal to a block above it,
+  for example `"40M" # above the 2**25 SMTP DATA limit`.
 
 ## Docstrings
 
@@ -87,14 +107,14 @@ Update it based on review feedback.
 ## Control Flow
 
 - Prefer `match`/`case` statements over if-chains where applicable.
+- No early returns. Exit a function from a single `return` statement at the
+  end. `.relint.yml` enforces the bare `return` and `continue` subset.
 - Use `.get()` with EAFP (try/except) instead of `.first()` with a `None`
   check. Use `get_object_or_404()` in views to convert `DoesNotExist` to
   `Http404` automatically.
 
 ## Imports
 
-- All imports at the top of a file, except inside Celery/Django tasks where
-  late imports are needed to avoid import cycles.
 - Import views as `from . import views` in URL configs, then reference
   `views.MyView.as_view()`.
 - Do not import with different names (no `import x as y`) unless necessary.
@@ -110,6 +130,18 @@ Update it based on review feedback.
 - Client-side key generation happens at signup in `signup.html` (see
   `root/static/js/encryption.js`).
 
+## Tasks
+
+- Declare the queue on the task itself, so the pipeline stage is visible at
+  the definition: `@task(queue_name="ingress")`.
+- Pick the queue by pipeline stage: `ingress` for received mail, `egress`
+  for outgoing submissions, `delivery` for SMTP delivery to remote MX hosts,
+  and `default` for everything else.
+- Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
+  commands in `compose.yml` and `compose.production.yml`, with the mail
+  pipeline queues ahead of `default`. A task whose queue is missing from the
+  settings raises at import time.
+
 ## Naming
 
 - Use names that cover both ingress and egress when a model tracks
@@ -119,6 +151,8 @@ Update it based on review feedback.
   and help text.
 - Email-specific abbreviations are OK since they are more common than
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
+- Do not wrap technical protocol terms in `gettext`, for example STARTTLS,
+  TLS, or plaintext. They read the same in every language.
 
 ## Templates & UI
 
@@ -138,10 +172,23 @@ Update it based on review feedback.
     buttons inside a `button-group`. Use `data-variant="destructive"` for
     delete/remove actions. Omit `data-variant` entirely for the primary
     action in a group.
-  - Cards: `<article class="card">`.
+  - Cards: `<article class="card">`. Never nest a card inside another card.
+    Group content within a card using headings, `<hr>`, or padded blocks.
+  - Tables inside cards sit flush with the card edges: use
+    `<article class="card gap-0 p-0 overflow-hidden">`, put the preceding
+    content (heading, metadata) in an inner `<div class="px-6 pt-6">` block,
+    and place the `<div class="table-container">` directly inside the card.
+  - Do not put counter badges in section headings (for example,
+    `Headers 6`). The section content is directly below; a count adds noise,
+    not information.
   - Tables: wrap in `<div class="table-container"><table class="table">`.
   - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
     open with `.showModal()` and close with `.close()`.
+  - Translatable strings. Msgids start lowercase. `|capfirst` and `|title`
+    set the display casing. A msgid that renders without a casing filter is a
+    sentence, so it starts with a capital letter. Sentences after the first
+    inside a msgid also start with a capital letter, because no filter reaches
+    them.
   - Form controls: `<input class="input">`, `<select class="select w-full">`,
     `<textarea class="textarea">`. Always pair form controls with `w-full` so
     they fill the field width inside dialogs and filter rows. Wrap each form
@@ -153,6 +200,8 @@ Update it based on review feedback.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
+  - Tooltips: use the basecoat `data-tooltip` attribute on any element.
+    Do not use native `title` attributes for tooltips.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (for example, organizations). Prefer items
@@ -215,6 +264,20 @@ Update it based on review feedback.
   `class="link"` to entity anchors so they get primary color and
   underline from `src/css/app.css`.
 
+## Views & Queries
+
+- Publicly cacheable views (`public: True`) render the static chrome
+  (`request.public_cache`): no user menu, no toasts, no org switcher. The
+  response carries no `Vary: Cookie` and no queries.
+- Do not add context processors that provide querysets. Template chrome data
+  (for example, `user_orgs`) comes from the view's mixin.
+- Fetch a list once and derive counts, flags, and related objects from it
+  instead of separate `count()`, `exists()`, and `get()` queries.
+- List views answer `private, no-store`; detail views mix in
+  `ConditionalGetMixin` for ETag/`Last-Modified` revalidation.
+- `TimeStamped` models default to `models.FETCH_PEERS` (`FetchPeersManager`).
+  Do not call `.fetch_mode()` in views.
+
 ## Testing
 
 - Use `pytest.mark.django_db` (not the `db` fixture) when a test needs the
@@ -241,12 +304,12 @@ Update it based on review feedback.
     `test_get__arbitrary_suffix` / `test_post__arbitrary_suffix`
     (for example, `test_get__not_found`, `test_post__creates_org`).
 
+- One test per scenario. Do not write parametrised mega-tests that obscure individual
+  assertions.
+
 - Group related tests in classes. No comment headlines (`# ── … ──`).
   Use plain `class TestSomething:` with no decorator unless a class-level
   `@pytest.mark.django_db` is needed.
-
-- One test per scenario. Do not write parametrised mega-tests that obscure individual
-  assertions.
 
 - Avoid mocking and patching unless the code under test performs external I/O
   (DNS lookups, SMTP delivery, HTTP requests). Mocks can diverge from the real
@@ -262,6 +325,11 @@ Update it based on review feedback.
 
 - When sibling models share most columns, promote the shared columns
   to a concrete parent. Per-kind fields stay on the children.
+
+- When siblings share only a couple of columns, prefer an abstract base
+  with concrete per-scenario models over multi-table inheritance. Put
+  the shared behavior and fields on the base; concrete models implement
+  abstract members and own the fields that differ.
 
 - Indexes on shared columns live on the parent's `Meta.indexes`.
   Per-kind indexes stay on the child.
@@ -282,3 +350,21 @@ Update it based on review feedback.
 
 - The shared app owns the merged list views and the template-tag
   library. Siblings keep their own detail views.
+
+## Markdown docs apps
+
+- Serve each markdown docs area from one app with a `docs/` folder.
+  Extend `MarkdownArticleMixin` from `abstract.views`.
+
+- Keep article slugs unique across all docs apps. The template loader
+  resolves `<slug>.md` against every TEMPLATES DIRS entry in order, so a
+  duplicate slug renders the wrong file.
+
+- Keep `know_how/docs` brand-agnostic. Write relay-specific user docs in
+  `docs/docs`.
+
+- Write `docs/docs` for relay users, not developers. Environment variable
+  names, setting keys, and other code references have no place there.
+  Describe behavior and configuration in product terms: the platform
+  domain, the dashboard, a submission host. Internal names such as
+  `RELAY_*` belong in `README.md`.

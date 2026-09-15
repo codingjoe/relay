@@ -4,6 +4,7 @@ from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 
 from alternative_to.views import AlternativeToListView
+from docs.views import DocsListView
 from know_how.views import KnowHowListView
 
 
@@ -31,6 +32,19 @@ class LegalSitemap(Sitemap):
 
     def location(self, item):
         return reverse(item)
+
+
+class DocsSitemap(Sitemap):
+    """One entry per product documentation article."""
+
+    changefreq = "monthly"
+    priority = 0.6
+
+    def items(self):
+        return [slug for slug, _ in DocsListView.get_articles()]
+
+    def location(self, slug):
+        return reverse("docs:detail", args=[slug])
 
 
 class KnowHowSitemap(Sitemap):

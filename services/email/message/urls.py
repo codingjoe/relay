@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
@@ -9,5 +9,17 @@ urlpatterns = [
         "messages/",
         views.MessageListView.as_view(),
         name="message-list",
+    ),
+    path(
+        "certificates/",
+        include(
+            [
+                path(
+                    "<slug:fingerprint>",
+                    views.CertificateDetailView.as_view(),
+                    name="certificate-detail",
+                ),
+            ]
+        ),
     ),
 ]

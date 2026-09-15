@@ -1,13 +1,10 @@
 import datetime
 import hashlib
-import uuid
 from enum import nonmember
 
-from django.conf import settings
 from django.core.validators import validate_email
 from django.db import models
 from django.db.models import Lookup
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -22,7 +19,6 @@ class OutgoingMessage(Message):
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
         SENT = "sent", _("sent")
-        DELIVERED = "delivered", _("delivered")
         HELD = "held", _("held")
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
@@ -32,20 +28,17 @@ class OutgoingMessage(Message):
 
         @property
         def badge_variant(self) -> str:
-            Status = type(self)
+            status_class = type(self)
             match self:
-                case Status.SENT | Status.DELIVERED:
-                    return "primary"
-                case Status.BOUNCED | Status.DROPPED | Status.FAILED:
+                case status_class.SENT:
+                    return "success"
+                case status_class.HELD:
+                    return "warning"
+                case status_class.BOUNCED | status_class.DROPPED | status_class.FAILED:
                     return "destructive"
                 case _:
                     return "outline"
 
-    sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="outgoing_messages",
-    )
     credential = models.ForeignKey(
         "MsaCredential",
         on_delete=models.SET_NULL,
@@ -53,90 +46,27 @@ class OutgoingMessage(Message):
         blank=True,
         related_name="outgoing_messages",
     )
+    feedback_id = models.TextField(
+        _("Feedback-ID"),
+        blank=True,
+        default="",
+        db_index=True,
+        help_text=_(
+            "Feedback-ID header relay minted for this message. Providers "
+            "echo it in FBL complaints, proving per-message identity when "
+            "they do not echo the VERP envelope sender."
+        ),
+    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
 
+    email_url_name = "msa:message-detail"
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "msa:message-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.id},
-        )
-
-
-class Transmission(TimeStamped):
-    """Track a single delivery attempt for an outgoing message.
-
-    Each message can have multiple transmissions (for example, retry attempts).
-    """
-
-    class Status(models.TextChoices):
-        SENT = "sent", _("sent")
-        DELIVERED = "delivered", _("delivered")
-        FAILED = "failed", _("failed")
-        RETRY = "retry", _("retry")
-        BOUNCED = "bounced", _("bounced")
-
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
-    message = models.ForeignKey(
-        OutgoingMessage,
-        on_delete=models.CASCADE,
-        related_name="transmissions",
-    )
-    status = models.TextField(
-        _("status"),
-        choices=Status,
-        help_text=_("Outcome of this delivery attempt."),
-    )
-    code = models.PositiveIntegerField(
-        _("code"),
-        null=True,
-        blank=True,
-        help_text=_("SMTP response code from the remote server."),
-    )
-    output = models.TextField(
-        _("output"),
-        blank=True,
-        help_text=_("Raw SMTP transcript from the remote server."),
-    )
-    details = models.TextField(
-        _("details"),
-        blank=True,
-        help_text=_("Human-readable explanation of the outcome."),
-    )
-    sent_with_ssl = models.BooleanField(
-        _("sent with SSL"),
-        default=False,
-        help_text=_("Delivered over TLS."),
-    )
-    log_id = models.TextField(
-        _("log ID"),
-        blank=True,
-        help_text=_("Remote server log identifier."),
-    )
-
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
-
-    @property
-    def status_badge_variant(self) -> str:
-        match self.status:
-            case self.Status.SENT | self.Status.DELIVERED:
-                return "primary"
-            case self.Status.FAILED | self.Status.BOUNCED:
-                return "destructive"
-            case _:
-                return "outline"
-
-    def __str__(self):
-        return f"{self.message} → {self.status}"
+    url_name = "message-detail"
 
 
 class MsaCredential(Credential):
@@ -183,7 +113,8 @@ class SuppressionQuerySet(models.QuerySet):
         return self.update_or_create(defaults=defaults, **kwargs)
 
     def is_suppressed(self, org, email) -> bool:
-        """Check whether an email is suppressed for the given org.
+        """
+        Check whether an email is suppressed for the given org.
 
         All entries for the current org suppress regardless of age or reason.
         Bounce entries from any other org suppress for 30 days after creation.
@@ -205,7 +136,8 @@ class SuppressionQuerySet(models.QuerySet):
 
 
 class SuppressionEntry(OrganizationOwned):
-    """Store a salted hash of an email address that should not receive mail.
+    """
+    Store a salted hash of an email address that should not receive mail.
 
     The plain email address is never stored. Bounces are added automatically;
     users can add or remove entries manually. Use the `__email` lookup to

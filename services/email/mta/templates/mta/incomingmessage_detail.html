@@ -1,165 +1,108 @@
-{% extends "base.html" %}
-{% load i18n message abstract %}
-{% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
-{% block content %}
-  {% if webhook_deliveries %}
-    <details open class="mb-4">
-      <summary class="cursor-pointer font-semibold">{% translate "webhook deliveries"|capfirst %}</summary>
-      <div class="table-container mt-3">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{% translate "webhook"|capfirst %}</th>
-              <th>{% translate "status"|capfirst context "noun" %}</th>
-              <th>{% translate "code"|capfirst context "noun" %}</th>
-              <th>{% translate "delivered at"|capfirst %}</th>
-              <th>{% translate "response"|capfirst context "noun" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for delivery in webhook_deliveries %}
-              <tr>
-                <td><code>{{ delivery.webhook.key_id }}</code></td>
-                <td>
-                  <span
-                    class="badge"
-                    data-size="sm"
-                    data-variant="{{ delivery.status_badge_variant }}"
-                  >
-                    {{ delivery.get_status_display }}
-                  </span>
-                </td>
-                <td>{{ delivery.response_code|default:"-" }}</td>
-                <td>
-                  {% timestamp delivery.created_at %}
-                </td>
-                <td>{{ delivery.response_body|truncatechars:120 }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </details>
-  {% endif %}
-
-  <details open class="mb-4">
-    <summary class="cursor-pointer font-semibold">{% translate "headers"|capfirst context "noun" %}</summary>
-    <div class="table-container mt-3">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>{% translate "header"|capfirst context "noun" %}</th>
-            <th>{% translate "value"|capfirst context "noun" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for key, value in headers %}
-            <tr>
-              <td>{{ key }}</td>
-              <td><code>{{ value }}</code></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </details>
-
-  <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 mb-6">
-    {% if message.receiving_domain %}
-      <dt class="font-semibold">{% translate "domain"|capfirst context "noun" %}</dt>
-      <dd><code>{{ message.receiving_domain }}</code></dd>
+{% extends "message/message_detail.html" %}
+{% load i18n abstract %}
+{% block timeline_dialogs %}
+  {% for transmission in transmissions %}
+    <dialog
+      id="transcript-{{ transmission.pk }}"
+      class="drawer"
+      data-side="bottom"
+      onclick="if (event.target === this) this.close()"
+    >
+      <article>
+        <header>
+          <h2>{% translate "reception"|capfirst %}</h2>
+          <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+        </header>
+        <section class="flex flex-col gap-4">
+          <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+            <span
+              class="badge"
+              data-size="sm"
+              data-variant="{{ transmission.status_badge_variant }}"
+            >
+              {{ transmission.get_status_display }}
+            </span>
+            {{ transmission.get_tls_mode_display }}
+            {% if transmission.tls_version %}
+              <span>{{ transmission.tls_version }}{% if transmission.tls_cipher %}
+                  · {{ transmission.tls_cipher }}{% endif %}</span>
+            {% endif %}
+          </p>
+          {% if message.receiving_domain %}
+            <p class="m-0 text-sm"><code>{{ message.receiving_domain }}</code></p>
+          {% endif %}
+          {% if transmission.tls_certificate %}
+            <p class="m-0 text-sm">
+              <a
+                class="link"
+                href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                data-tooltip="sha256:{{ transmission.tls_certificate.fingerprint }} · {{ transmission.tls_certificate.subject_alternative_names|default:transmission.tls_certificate.subject }}"
+              >{% translate "view certificate"|capfirst %}</a>
+            </p>
+          {% endif %}
+        </section>
+        <footer>
+          <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            {% translate "close"|capfirst %}
+          </button>
+        </footer>
+      </article>
+    </dialog>
+  {% endfor %}
+  {% for delivery in webhook_deliveries %}
+    {% if delivery.response_code or delivery.response_body %}
+      <dialog
+        id="delivery-{{ delivery.pk }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "webhook delivery"|capfirst %}</h2>
+            <p class="m-0 text-sm text-muted-foreground">{% timestamp delivery.created_at %}</p>
+          </header>
+          <section class="flex flex-col gap-4">
+            <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ delivery.status_badge_variant }}"
+              >
+                {{ delivery.get_status_display }}
+              </span>
+              <span>HTTP {{ delivery.response_code|default:"-" }}</span>
+            </p>
+            {% if delivery.response_body %}
+              <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ delivery.response_body }}</pre>
+            {% endif %}
+          </section>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+              {% translate "close"|capfirst %}
+            </button>
+          </footer>
+        </article>
+      </dialog>
     {% endif %}
-    <dt class="font-semibold">{% translate "received"|capfirst context "noun" %}</dt>
-    <dd>
-      {% timestamp message.created_at %}
-    </dd>
-    <dt class="font-semibold">{% translate "TLS"|capfirst %}</dt>
-    <dd>
-      {% if message.received_with_tls %}
-        <i data-lucide="lock" class="size-4 text-success" aria-hidden="true"></i>
-      {% else %}
-        <i data-lucide="unlock" class="size-4 text-muted-foreground" aria-hidden="true"></i>
-      {% endif %}
-    </dd>
-  </dl>
-
-  {% if is_encrypted %}
-    <div id="encrypted-body" class="mb-4">
-      <div class="alert" data-variant="default">
-        <i data-lucide="lock" class="size-4" aria-hidden="true"></i>
-        <p>{% translate "this message body is encrypted. click decrypt to view it."|capfirst %}</p>
-      </div>
-      <button id="decrypt-body-btn" class="btn mt-3" onclick="relayDecryptBody()">
-        <i data-lucide="unlock" class="size-4" aria-hidden="true"></i>
-        {% translate "decrypt"|capfirst %}
-      </button>
-      <div id="decrypted-body-content" class="mt-3 hidden"></div>
-      <p id="decrypt-error" class="text-destructive text-sm mt-2 hidden"></p>
-    </div>
-    <script defer>
-      (function () {
-        "use strict";
-        const orgSlug = "{{ org.slug }}";
-        const messagePk = "{{ message.pk }}";
-        const bodyUrl = "{{ body_url }}";
-        const enc = window.relayEncryption;
-
-        async function relayDecryptBody() {
-          const btn = document.getElementById("decrypt-body-btn");
-          const errorEl = document.getElementById("decrypt-error");
-          const contentEl = document.getElementById("decrypted-body-content");
-          errorEl.classList.add("hidden");
-          btn.disabled = true;
-          btn.innerHTML =
-            '<i data-lucide="loader-circle" class="size-4 animate-spin" aria-hidden="true"></i> {% translate "decrypting…"|capfirst %}';
-          if (window.lucide) window.lucide.createIcons();
-
-          try {
-            const keys = await enc.promptPassphrase(orgSlug);
-            await enc.init();
-
-            // Fetch sealed file key from API.
-            const keyResp = await fetch(
-              `/org/${orgSlug}/email/messages/${messagePk}/sealed-key`,
-              { headers: { Accept: "application/json" } },
-            );
-            if (!keyResp.ok) throw new Error("No sealed file key for this message.");
-            const keyData = await keyResp.json();
-
-            // Unseal file key with org private key.
-            const sealedFileKey = enc.fromBase64(keyData.sealed_file_key);
-            const fileKey = enc.unseal(sealedFileKey, keys.orgPrivateKey);
-
-            // Fetch encrypted body from S3.
-            const bodyResp = await fetch(bodyUrl);
-            const encryptedBody = new Uint8Array(await bodyResp.arrayBuffer());
-
-            // Decrypt body: nonce (24 bytes) + ciphertext.
-            const plaintext = enc.decryptBody(encryptedBody, fileKey);
-            const decoded = new TextDecoder().decode(plaintext);
-
-            contentEl.innerHTML = decoded;
-            contentEl.classList.remove("hidden");
-            btn.classList.add("hidden");
-          } catch (err) {
-            errorEl.textContent = err.message;
-            errorEl.classList.remove("hidden");
-            btn.disabled = false;
-            btn.innerHTML =
-              '<i data-lucide="unlock" class="size-4" aria-hidden="true"></i> {% translate "decrypt"|capfirst %}';
-            if (window.lucide) window.lucide.createIcons();
-          }
-        }
-
-        window.relayDecryptBody = relayDecryptBody;
-      })();
-    </script>
-  {% elif body %}
-    <details open class="mb-4">
-      <summary class="cursor-pointer font-semibold">{% translate "body"|capfirst context "noun" %}</summary>
-      <div class="mt-3">
-        {{ body|highlight_email }}
-      </div>
-    </details>
-  {% endif %}
+  {% endfor %}
 {% endblock %}
+
+{% block body %}
+  {% if is_report %}
+    <section class="empty">
+      <header>
+        <figure><i data-lucide="{{ message.kind_icon }}" aria-hidden="true"></i></figure>
+        <h3>{{ report_kind|capfirst }}</h3>
+        <p>{% translate "This email carried a report." %}</p>
+      </header>
+      <footer>
+        <a class="btn" href="{{ report_url }}">
+          {% translate "open"|capfirst %}
+        </a>
+      </footer>
+    </section>
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock body %}

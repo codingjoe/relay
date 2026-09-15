@@ -2,14 +2,14 @@ from django.contrib import admin
 
 from abstract.admin import TimeStampedAdminMixin
 
-from .models import OrgEncryptionKey, RecoveryEvent, SigningKey
+from .models import Certificate, OrgEncryptionKey, RecoveryEvent
 
 
-@admin.register(SigningKey)
-class SigningKeyAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = ["algorithm", "key_id", "created_at"]
-    list_filter = ["algorithm"]
-    search_fields = ["key_id"]
+@admin.register(Certificate)
+class CertificateAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+    list_display = ["subject", "issuer", "serial_number", "not_after", "created_at"]
+    search_fields = ["fingerprint", "subject", "issuer"]
+    readonly_fields = ["created_at", "modified_at"]
 
 
 @admin.register(OrgEncryptionKey)

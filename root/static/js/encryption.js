@@ -6,7 +6,7 @@
  * Keys are never persisted, they live only in JavaScript variables for the
  * lifetime of the page.
  */
-(function () {
+((() => {
   "use strict";
 
   const SALT_BYTES = 16; // crypto_pwhash_SALTBYTES
@@ -108,7 +108,7 @@
   async function fingerprint(publicKey) {
     const hashBuffer = await crypto.subtle.digest("SHA-256", publicKey);
     const hashArray = new Uint8Array(hashBuffer);
-    return Array.from(hashArray.slice(0, 8))
+    return [...hashArray.slice(0, 8)]
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
   }
@@ -125,10 +125,8 @@
   }
 
   function getCSRFToken() {
-    return (
-      document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
-      document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ""
-    );
+    return (document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+    document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "");
   }
 
   // BIP39: 128-bit entropy to 12 words and back.
@@ -143,7 +141,7 @@
     return cachedOrgPrivateKey;
   }
 
-  window.relayEncryption = {
+  globalThis.relayEncryption = {
     init,
     deriveKEK,
     generateMasterKey,
@@ -164,4 +162,4 @@
     SALT_BYTES,
     NONCE_BYTES,
   };
-})();
+}))();

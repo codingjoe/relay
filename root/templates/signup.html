@@ -7,7 +7,7 @@
       <header>
         <h2>{% translate "create your account"|capfirst %}</h2>
         <p>
-          {% translate "one password signs you in and protects your encryption keys. your browser derives the keys locally from your password, and the server never holds them." %}
+          {% translate "One password signs you in and protects your encryption keys. Your browser derives the keys locally from your password, and the server never holds them." %}
         </p>
       </header>
       <section>
@@ -18,7 +18,7 @@
         <div class="alert mt-4" data-variant="warning" data-size="sm">
           <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
           <p>
-            {% translate "if you lose this password, your account and all encrypted messages become permanently unreadable. there is no recovery except the 12-word seed you will see next." %}
+            {% translate "If you lose this password, your account and all encrypted messages become permanently unreadable. There is no recovery except the 12-word seed you will see next." %}
           </p>
         </div>
         <p id="signup-error" class="text-destructive text-sm mt-2 hidden"></p>
@@ -38,13 +38,13 @@
       <header>
         <h2>{% translate "save your recovery seed"|capfirst %}</h2>
         <p>
-          {% translate "write down these 12 words and store them offline. anyone with access can decrypt all org messages. they are never shown again and never sent to the server." %}
+          {% translate "Write down these 12 words and store them offline. Anyone with access can decrypt all org messages. They are never shown again and never sent to the server." %}
         </p>
       </header>
       <section>
         <div class="alert" data-variant="destructive" data-size="sm">
           <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
-          <p>{% translate "this is your only chance to save the recovery seed. it will not be shown again." %}</p>
+          <p>{% translate "This is your only chance to save the recovery seed. It will not be shown again." %}</p>
         </div>
         <div id="mnemonic-display" class="mt-4 p-4 bg-muted rounded font-mono text-lg break-words"></div>
         <button id="mnemonic-copy" class="btn mt-2" data-variant="secondary" data-size="sm">
@@ -54,7 +54,7 @@
         <div role="group" class="field mt-4">
           <label class="flex items-center gap-2">
             <input id="mnemonic-confirmed" type="checkbox" class="checkbox">
-            <span>{% translate "i have written down the recovery seed" %}</span>
+            <span>{% translate "I have written down the recovery seed" %}</span>
           </label>
         </div>
       </section>

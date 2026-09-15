@@ -1,58 +1,88 @@
+# Local development builds on the debug distroless flavor, so shells work in `docker compose exec`.
+x-development-build: &development-build
+  target: development
+  args: &development-args
+    DISTROLESS_FLAVOR: debug-nonroot
+
 include:
   - path:
       - compose.production.yml
-#      - oci://docker.io/codingjoe/the-box:main
+#      - oci://ghcr.io/codingjoe/the-box:main
+
 services:
-  web:
-    build:
-      target: development
-    command: ["-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}"]
-    volumes:
-      - .:/app:cached
   dns:
-    build:
-      target: development
-    volumes:
-      - .:/app:cached
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+    pull_policy: build
   dnsdist:
     ports: !override
-      - "127.0.0.1:53:53/udp"
-      - "127.0.0.1:53:53/tcp"
+      - '127.0.0.1:53:53/udp'
+      - '127.0.0.1:53:53/tcp'
+  migration:
+    build:
+      args: *development-args
+    pull_policy: build
   msa:
-    build:
-      target: development
-    volumes:
-      - .:/app:cached
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      # The dev box's Caddy issues localhost certificates with its local CA.
+      RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/local/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
+      RELAY_SMTP_TLS_KEY_PATH: /data/caddy/certificates/local/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.key
+    pull_policy: build
   mta:
-    build:
-      target: development
-    volumes:
-      - .:/app:cached
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-  worker:
-    build:
-      target: development
     volumes:
       - .:/app:cached
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+      # The dev box's Caddy issues localhost certificates with its local CA.
+      RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/local/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
+      RELAY_MX_TLS_KEY_PATH: /data/caddy/certificates/local/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.key
+    pull_policy: build
+  sender:
+    build: *development-build
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - .:/app:cached
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
-    command: ["-m", "manage", "threadmill", "worker"]
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery" ]
+    pull_policy: build
+  web:
+    build: *development-build
+    volumes:
+      - .:/app:cached
+    command: [ "-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}" ]
+    pull_policy: build
+  worker:
+    build: *development-build
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app:cached
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+    command: [ "-m", "manage", "threadmill", "worker", "--queues", "ingress", "egress", "default" ]
+    pull_policy: build

@@ -36,24 +36,30 @@ class TestResolve:
         assert reply.header.ra == 0
         assert reply.rr
 
-    def test_resolve__dns_error(self):
+    def test_resolve__dns_error(self, django_db_blocker):
         resolver = DNSResolver()
-        with patch.object(
-            resolver,
-            "resolve_records",
-            side_effect=DNSError("Invalid DNS record"),
+        with (
+            django_db_blocker.unblock(),
+            patch.object(
+                resolver,
+                "resolve_records",
+                side_effect=DNSError("Invalid DNS record"),
+            ),
         ):
             reply = resolver.resolve(DNSRecord.question("example.com"), None)
 
         assert reply.header.rcode == RCODE.SERVFAIL
         assert reply.rr == []
 
-    def test_resolve__database_error(self):
+    def test_resolve__database_error(self, django_db_blocker):
         resolver = DNSResolver()
-        with patch.object(
-            resolver,
-            "resolve_records",
-            side_effect=DatabaseError("Database unavailable"),
+        with (
+            django_db_blocker.unblock(),
+            patch.object(
+                resolver,
+                "resolve_records",
+                side_effect=DatabaseError("Database unavailable"),
+            ),
         ):
             reply = resolver.resolve(DNSRecord.question("example.com"), None)
 
@@ -82,7 +88,7 @@ def make_domain_with_dkim_key(algorithm):
 class TestResolveTxt:
     def test_resolve_txt__ed25519_dkim_record_includes_k_tag(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.ED25519)
-        selector, _ = domain.dkim_ciphers[2]
+        selector, _ = domain.dkim_ciphers[1]
         query_name = f"{selector}._domainkey.{domain.name}"
         records = list(
             DNSResolver().resolve_txt(
@@ -94,7 +100,7 @@ class TestResolveTxt:
 
     def test_resolve_txt__ed25519_dkim_record_has_raw_public_key(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.ED25519)
-        selector, _ = domain.dkim_ciphers[2]
+        selector, _ = domain.dkim_ciphers[1]
         query_name = f"{selector}._domainkey.{domain.name}"
         records = list(
             DNSResolver().resolve_txt(

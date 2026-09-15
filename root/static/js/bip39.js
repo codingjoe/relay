@@ -5,7 +5,7 @@
  * Uses the official BIP39 English wordlist loaded from CDN.
  * No full HD-wallet functionality, just entropy → words → entropy.
  */
-(function () {
+((() => {
   "use strict";
 
   const ENTROPY_BITS = 128;
@@ -130,7 +130,7 @@
     );
   }
 
-  window.relayEntropy = {
+  globalThis.relayEntropy = {
     generateMnemonic,
     mnemonicToEntropy,
     sealRecoveryKey,
@@ -139,4 +139,4 @@
     fromBase64: (str) =>
       sodium.from_base64(str, sodium.base64_variants.ORIGINAL),
   };
-})();
+}))();

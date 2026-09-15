@@ -1,28 +1,79 @@
+import json
 import pathlib
 
 import frontmatter
 from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
-from django.utils.cache import patch_cache_control, patch_vary_headers
+from django.utils.cache import (
+    patch_cache_control,
+    patch_vary_headers,
+)
 from django.views import generic
+from django.views.decorators.http import condition
 
-from abstract.utils import strip_frontmatter
+from abstract.utils import md_2_html, strip_frontmatter
+
+
+class JSONBodyView:
+    """
+    Parse the request body as JSON before the handler runs.
+
+    `self.body_data` holds the parsed body, or None when the body is
+    empty or not valid JSON. Handlers answer malformed bodies with
+    HTTP 400.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            self.body_data = json.loads(request.body)
+        except json.JSONDecodeError, UnicodeDecodeError:
+            self.body_data = None
+        return super().dispatch(request, *args, **kwargs)
 
 
 class CacheControlMixin:
-    """Set cache control headers on the response of a class based view."""
+    """Set cache control headers and flag `public` responses for the static chrome."""
 
     cache_control: dict[str, bool | int] = {}
 
     def dispatch(self, request, *args, **kwargs):
+        request.public_cache = "public" in self.cache_control
         response = super().dispatch(request, *args, **kwargs)
         patch_cache_control(response, **self.cache_control)
         return response
 
 
+class ConditionalGetMixin:
+    """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
+
+    def get_etag(self, obj) -> str:
+        """Return the ETag for `obj`."""
+        return f'"{int(obj.pk):x}-{int(obj.modified_at.timestamp() * 1e6):x}"'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        response = condition(
+            etag_func=lambda request, *a, **kw: self.get_etag(self.object),
+            last_modified_func=lambda request, *a, **kw: self.object.modified_at,
+        )(
+            lambda request: self.render_to_response(
+                self.get_context_data(object=self.object)
+            )
+        )(request)
+        patch_cache_control(response, private=True, no_cache=True)
+        return response
+
+
+class NoStoreCacheMixin(CacheControlMixin):
+    """Prevent caching entirely with `private, no-store`."""
+
+    cache_control = {"private": True, "no_store": True}
+
+
 class MarkdownArticleMixin:
-    """Mixin for views that serve Markdown articles from a docs directory.
+    """
+    Mixin for views that serve Markdown articles from a docs directory.
 
     Subclasses must set:
     - `docs_dir`: pathlib.Path to the docs directory.
@@ -34,17 +85,19 @@ class MarkdownArticleMixin:
 
     @classmethod
     def get_articles(cls):
-        """Yield (slug, metadata) for each article in the docs directory."""
-        for slug in sorted(cls.slugs):
+        """Yield (slug, metadata) for each article that exists on disk."""
+        slugs = cls.slugs & {p.stem for p in cls.docs_dir.glob("*.md")}
+        for slug in sorted(slugs):
             metadata, _ = frontmatter.parse((cls.docs_dir / f"{slug}.md").read_text())
             yield slug, metadata
 
     @classmethod
     def get_article_path(cls, slug: str) -> pathlib.Path:
         """Resolve the filesystem path for an article or raise Http404."""
-        if slug in cls.slugs:
-            return cls.docs_dir / f"{slug}.md"
-        raise Http404("Article not found")
+        path = cls.docs_dir / f"{slug}.md"
+        if slug in cls.slugs and path.is_file():
+            return path
+        raise Http404
 
     @classmethod
     def get_article_metadata(cls, slug: str) -> dict[str, str]:
@@ -56,7 +109,8 @@ class MarkdownArticleMixin:
 
 
 class BreadcrumbViewMixin:
-    """Build breadcrumbs by traversing parent references.
+    """
+    Build breadcrumbs by traversing parent references.
 
     Each view sets:
     - `title`: the breadcrumb title for this page (class attribute).
@@ -146,7 +200,8 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
         return await super().aget(request, *args, **kwargs)
 
     def render_markdown(self, request, **kwargs):
-        """Return the raw Markdown source as a text/markdown response.
+        """
+        Return the raw Markdown source as a text/markdown response.
 
         Frontmatter is stripped so metadata is not exposed in the raw
         Markdown endpoint of generic views.
@@ -165,4 +220,48 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
             "title": self.title,
             "markdown_template": self.get_markdown_template(),
             "toc_levels": self.toc_levels,
+        }
+
+
+class MarkdownListView(
+    MarkdownArticleMixin, CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView
+):
+    """Display all Markdown articles in a docs directory."""
+
+    cache_control = {"public": True, "max_age": 3600}
+    parent = "home"
+    docs_dir: pathlib.Path
+    slugs: frozenset[str]
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "articles": [
+                {
+                    "slug": slug,
+                    "title": metadata["name"],
+                    "description": md_2_html(metadata.get("description", "")),
+                }
+                for slug, metadata in self.get_articles()
+            ],
+        }
+
+
+class MarkdownArticleDetailView(MarkdownArticleMixin, MarkdownView):
+    """Render a single Markdown article from a docs directory."""
+
+    docs_dir: pathlib.Path
+    slugs: frozenset[str]
+
+    @classmethod
+    def get_title(cls, request):
+        return cls.get_article_metadata(request.resolver_match.kwargs["slug"])["name"]
+
+    def get_markdown_template(self):
+        return f"{self.kwargs['slug']}.md"
+
+    def get_context_data(self, **kwargs):
+        metadata = self.get_article_metadata(self.kwargs["slug"])
+        return super().get_context_data(**kwargs) | {
+            "title": metadata["name"],
+            "meta_description": metadata.get("description", ""),
         }

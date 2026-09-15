@@ -9,7 +9,14 @@ from django.contrib.auth.views import PasswordResetView
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
-from django.forms import CharField, EmailField, ModelForm, SlugField, TextInput
+from django.forms import (
+    CharField,
+    EmailField,
+    ModelForm,
+    SlugField,
+    TextInput,
+)
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import NoReverseMatch, reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -31,7 +38,8 @@ from .tasks import send_verification_email
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
-    """Base for org-scoped views. Loads the org from the URL and enforces membership.
+    """
+    Base for org-scoped views. Loads the org from the URL and enforces membership.
 
     Subclasses receive `self.org`, and `org` is added to the template context.
     The current org is also stashed on the request for the navbar context
@@ -53,16 +61,26 @@ class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
         except NoReverseMatch:
             return reverse(cls.parent, kwargs={"org_slug": kwargs["org_slug"]})
 
+    user_orgs = None
+
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         if request.user.is_authenticated:
-            self.org = get_object_or_404(
-                request.user.organizations.all(), slug=kwargs["org_slug"]
+            self.user_orgs = list(request.user.organizations.all())
+            self.org = next(
+                (org for org in self.user_orgs if org.slug == kwargs["org_slug"]),
+                None,
             )
+            if self.org is None:
+                raise Http404
             request.current_org = self.org
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {"org": self.org}
+        return super().get_context_data(**kwargs) | {
+            "org": self.org,
+            "current_org": self.org,
+            "user_orgs": self.user_orgs,
+        }
 
 
 class SignupForm(UserCreationForm):
@@ -163,7 +181,8 @@ def create_encryption_keys(
 
 
 class SignupView(generic.FormView):
-    """Create a user, their organization, and all encryption keys in one transaction.
+    """
+    Create a user, their organization, and all encryption keys in one transaction.
 
     The client derives every key from the signup password before submitting.
     The server receives only ciphertext and public keys, so the operator
@@ -227,7 +246,8 @@ class SignupView(generic.FormView):
 
 
 class VerifiedPasswordResetForm(PasswordResetForm):
-    """Only send reset links to verified email addresses.
+    """
+    Only send reset links to verified email addresses.
 
     An unverified address may belong to someone else, so mailing a reset
     link there would let anyone send relay-branded security mail to
@@ -289,6 +309,12 @@ class OrganizationListView(LoginRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {"form": OrganizationForm()}
 
+    def get(self, request, *args, **kwargs):
+        organizations = self.get_queryset()
+        if len(organizations) == 1:
+            return redirect("accounts:org-home", org_slug=organizations[0].slug)
+        return super().get(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         form = OrganizationForm(request.POST)
         if not form.is_valid():
@@ -323,9 +349,9 @@ class OrganizationForm(ModelForm):
         fields = ["slug"]
 
 
-class OrganizationHomeView(OrganizationScopedView, generic.DetailView):
-    template_name_suffix = "_home"
-    context_object_name = "organization"
+class OrganizationHomeView(OrganizationScopedView, generic.View):
+    """Redirect to the only live product area until VoIP ships."""
+
     parent = ""
 
     @classmethod
@@ -335,8 +361,8 @@ class OrganizationHomeView(OrganizationScopedView, generic.DetailView):
             return str(request.current_org)
         return ""
 
-    def get_object(self, queryset=None):
-        return self.org
+    def get(self, request, *args, **kwargs):
+        return redirect("email-dashboard:dashboard", org_slug=self.org.slug)
 
 
 class OrganizationDetailView(OrganizationScopedView, generic.DetailView):

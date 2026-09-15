@@ -9,7 +9,7 @@
     </h2>
   </header>
 
-  <div class="card mb-6">
+  <div class="card p-6 mb-6">
     <dl class="grid grid-cols-2 gap-4 m-0">
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
@@ -93,7 +93,7 @@
             <td>{{ failure.get_policy_type_display }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="6">{% translate "no failures in this report." %}</td></tr>
+          <tr><td colspan="6">{% translate "No failures in this report." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

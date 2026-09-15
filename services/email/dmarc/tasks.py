@@ -4,8 +4,9 @@ import logging
 from django.tasks import task
 from django.utils import timezone
 
+from abstract.mailauth import Disposition, DmarcEvaluation
+
 from .models import DmarcFailureReport, DmarcReport
-from .types import Disposition, DmarcEvaluation
 
 logger = logging.getLogger(__name__)
 

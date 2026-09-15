@@ -14,7 +14,7 @@ DMARC (Domain-based Message Authentication, Reporting, and Conformance) is an em
 
 Without DMARC, a receiving mail server has no instructions from the domain owner. It decides on its own whether to deliver, quarantine, or reject a message that fails SPF or DKIM. DMARC solves this problem. The domain owner publishes a policy in DNS, and receivers follow that policy.
 
-DMARC is defined in [RFC 7489](https://datatracker.ietf.org/doc/html/rfc7489).[^rfc-status]
+DMARC is defined in [RFC 7489][rfc-7489].[^rfc-status]
 
 ## Why DMARC matters
 
@@ -71,7 +71,7 @@ Aggregate reports are daily XML summaries. They contain statistics about all mes
 
 Aggregate reports help you identify all senders that use your domain. You can use this data to find unauthorized senders and to verify that your legitimate senders pass authentication.
 
-The aggregate report format is defined in [Section 8.3 of RFC 7489](https://datatracker.ietf.org/doc/html/rfc7489#section-8.3).
+The aggregate report format is defined in Section 8.3 of [RFC 7489][rfc-7489].
 
 ### Forensic reports (RUF)
 
@@ -91,13 +91,15 @@ The policy applies to the root domain and all subdomains. You do not need a sepa
 
 ## Further reading
 
-- [RFC 7489: Domain-based Message Authentication, Reporting, and Conformance](https://datatracker.ietf.org/doc/html/rfc7489)
+- [RFC 7489][rfc-7489]: Domain-based Message Authentication, Reporting, and Conformance
 - [DMARC.org: Official DMARC website](https://dmarc.org/)
 - <a href="{% url 'know_how:detail' slug='spf' %}">SPF</a>: Sender Policy Framework
 - <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a>: DomainKeys Identified Mail
 
-[^rfc-status]: RFC 7489 is classified as "Informational", not "Standards Track". Despite this, DMARC is widely adopted by major email providers and is the de facto standard for email authentication policy.
+[^rfc-status]: [RFC 7489][rfc-7489] is classified as "Informational", not "Standards Track". Despite this, DMARC is widely adopted by major email providers and is the de facto standard for email authentication policy.
 
 [^pct-rollout]: The `pct` tag lets you apply the policy to a percentage of messages. Start with `pct=1` and `p=quarantine`, then increase the percentage as you gain confidence. This staged rollout prevents sudden delivery failures for legitimate senders.
 
-[^org-domain]: The organizational domain is extracted using the Public Suffix List. For `mail.example.com`, the organizational domain is `example.com`. For `mail.example.co.uk`, it is `example.co.uk`. See [RFC 7489 Appendix A](https://datatracker.ietf.org/doc/html/rfc7489#appendix-A) for the algorithm.
+[^org-domain]: The organizational domain is extracted using the Public Suffix List. For `mail.example.com`, the organizational domain is `example.com`. For `mail.example.co.uk`, it is `example.co.uk`. See [RFC 7489][rfc-7489] Appendix A for the algorithm.
+
+[rfc-7489]: https://www.rfc-editor.org/info/rfc7489/

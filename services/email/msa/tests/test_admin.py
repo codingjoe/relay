@@ -1,11 +1,12 @@
 from django.contrib import admin
 
+from services.email.message.admin import TransmissionAdmin
+from services.email.message.models import Transmission
 from services.email.msa.admin import (
     MsaCredentialAdmin,
     OutgoingMessageAdmin,
-    TransmissionAdmin,
 )
-from services.email.msa.models import MsaCredential, OutgoingMessage, Transmission
+from services.email.msa.models import MsaCredential, OutgoingMessage
 
 
 class TestOutgoingMessageAdmin:
@@ -19,7 +20,10 @@ class TestOutgoingMessageAdmin:
 
 class TestTransmissionAdmin:
     def test_transmission_admin__registered(self):
-        assert isinstance(admin.site._registry[Transmission], TransmissionAdmin)
+        assert isinstance(
+            admin.site._registry[Transmission],
+            TransmissionAdmin,
+        )
 
 
 class TestMsaCredentialAdmin:

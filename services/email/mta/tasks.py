@@ -14,9 +14,10 @@ from django.tasks import task
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from threadmill.retry import ExponentialBackoff
 
-from services.email.spam import SpamAction, check_message
+from services.email.message.models import Transmission
+from services.email.spam.client import SpamAction, check_message
+from services.email.spam.retry import SPAM_SCAN_RETRY
 
 from .models import (
     IncomingMessage,
@@ -47,7 +48,11 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 )
 
 
-class WebhookDeliveryError(Exception): ...
+class WebhookDeliveryError(Exception):
+    """A webhook endpoint responded with a retryable failure."""
+
+    def __init__(self, status_code):
+        super().__init__(f"Webhook returned status {status_code}")
 
 
 def webhook_retry(context):
@@ -60,7 +65,7 @@ def webhook_retry(context):
     return datetime.timedelta(seconds=delay)
 
 
-@task
+@task(queue_name="ingress")
 def dispatch_webhook(message_id):
     """Distribute an incoming message to all matching active webhooks."""
     message = IncomingMessage.objects.get(pk=message_id)
@@ -84,7 +89,7 @@ def dispatch_webhook(message_id):
                 )
 
 
-@task(retry=webhook_retry)
+@task(queue_name="ingress", retry=webhook_retry)
 def deliver_webhook(message_id, webhook_id):
     """Deliver to a single webhook and retry per the Standard Webhooks schedule."""
     message = IncomingMessage.objects.get(pk=message_id)
@@ -103,7 +108,7 @@ def deliver_webhook(message_id, webhook_id):
             Webhook.objects.filter(pk=webhook.pk).update(is_active=False)
             mark_failed_if_pending(message_id)
         case (False, _):
-            raise WebhookDeliveryError(f"Webhook returned status {status_code}")
+            raise WebhookDeliveryError(status_code)
 
 
 def mark_failed_if_pending(message_id):
@@ -149,6 +154,10 @@ class WebhookEvent:
                 body_url=None,
                 sealed_file_key=None,
             )
+        try:
+            reception = message.transmissions.get(status=Transmission.Status.RECEIVED)
+        except Transmission.DoesNotExist:
+            reception = None
         return cls(
             type="email.test" if is_test else "email.received",
             message_id=str(message.id),
@@ -156,7 +165,10 @@ class WebhookEvent:
             recipient=message.rcpt_to,
             subject=message.subject,
             rfc822_message_id=message.message_id,
-            received_with_tls=message.received_with_tls,
+            received_with_tls=(
+                reception is not None
+                and reception.tls_mode != Transmission.TlsMode.PLAINTEXT
+            ),
             receiving_domain=message.receiving_domain,
             body_url=message.raw_body.url if message.raw_body else None,
             sealed_file_key=sealed_file_key,
@@ -188,43 +200,31 @@ def deliver_to_webhook(message, webhook, is_test=False):
     payload_bytes = json.dumps(payload, sort_keys=True, cls=WebhookJSONEncoder).encode()
     signature = webhook.sign(msg_id, timestamp, payload_bytes)
 
-    try:
-        response = httpx.post(
-            webhook.url,
-            content=payload_bytes,
-            headers={
-                "Content-Type": "application/json",
-                "webhook-id": msg_id,
-                "webhook-timestamp": str(timestamp),
-                "webhook-signature": signature,
-            },
-            timeout=settings.RELAY_WEBHOOK_TIMEOUT,
-        )
-        ok = response.is_success
-        status_code = response.status_code
-        WebhookDelivery.objects.create(
-            message=message,
-            webhook=webhook,
-            is_test=is_test,
-            status=WebhookDelivery.Status.SENT if ok else WebhookDelivery.Status.FAILED,
-            response_code=status_code,
-            response_body=response.text[:2000],
-        )
-    except httpx.HTTPError as e:
-        logger.exception("Webhook delivery to %s failed", webhook.url)
-        WebhookDelivery.objects.create(
-            message=message,
-            webhook=webhook,
-            is_test=is_test,
-            status=WebhookDelivery.Status.FAILED,
-            response_body=str(e)[:2000],
-        )
-        return False, 0
-
-    return ok, status_code
+    with WebhookDelivery(message=message, webhook=webhook, is_test=is_test) as timer:
+        try:
+            response = httpx.post(
+                webhook.url,
+                content=payload_bytes,
+                headers={
+                    "Content-Type": "application/json",
+                    "webhook-id": msg_id,
+                    "webhook-timestamp": str(timestamp),
+                    "webhook-signature": signature,
+                },
+                timeout=settings.RELAY_WEBHOOK_TIMEOUT,
+            )
+        except httpx.HTTPError as e:
+            logger.exception("Webhook delivery to %s failed", webhook.url)
+            timer.status = timer.Status.FAILED
+            timer.response_body = str(e)[:2000]
+            return False, 0
+        timer.status = timer.Status.SENT if response.is_success else timer.Status.FAILED
+        timer.response_code = response.status_code
+        timer.response_body = response.text[:2000]
+        return response.is_success, response.status_code
 
 
-@task
+@task(queue_name="ingress")
 def parse_tls_report(report_pk):
     """Parse a received TLS-RPT report and store its failures."""
     report = TlsReport.objects.get(pk=report_pk)
@@ -255,7 +255,7 @@ def parse_tls_report(report_pk):
     TlsFailure.objects.bulk_create(failures)
 
 
-@task
+@task(queue_name="ingress")
 def notify_postmaster_recipients(message_pk):
     """Email all org members with a link to the received message."""
     message = IncomingMessage.objects.get(pk=message_pk)
@@ -289,27 +289,46 @@ def notify_postmaster_recipients(message_pk):
             )
 
 
-@task(
-    retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
-        max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
-    )
-)
+@task(queue_name="ingress", retry=SPAM_SCAN_RETRY)
 def check_incoming_spam(message_pk, client_ip):
     """Check an incoming message for spam and dispatch webhook if clean."""
+    from services.email.message.models import SpamCheck
+
+    from .handlers import save_encrypted_body, seal_file_keys_for_webhooks
+
     message = IncomingMessage.objects.get(pk=message_pk)
     raw_bytes = message.raw_body.read()
-    spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    with SpamCheck(message=message) as check:
+        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+        check.score = spam.score
+        check.scan_ms = spam.scan_ms
+        check.antivirus_ms = spam.antivirus_ms
+        check.profile_ms = spam.profile_ms
     is_spam = (
         spam.action == SpamAction.REJECT
         or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
     )
     message.spam_score = spam.score
     message.spam_action = spam.action
+    message.virus_action = spam.virus_action
+    message.virus_name = spam.virus_name
+    message.virus_symbols = spam.virus_symbols
+    update_fields = [
+        "spam_score",
+        "spam_action",
+        "virus_action",
+        "virus_name",
+        "virus_symbols",
+    ]
     if is_spam:
         message.status = IncomingMessage.Status.QUARANTINED
-    message.save(update_fields=["spam_score", "spam_action", "status"])
+        update_fields.append("status")
+    message.save(update_fields=update_fields)
+    # Scanning needs the plaintext body, so encryption at rest happens
+    # only now, after the verdict and before the webhook dispatch.
+    file_key = save_encrypted_body(message, raw_bytes, message.org)
+    if file_key:
+        message.save(update_fields=["sealed_file_key", "org_encryption_key_id"])
+        seal_file_keys_for_webhooks(message, file_key, message.rcpt_to)
     if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
         dispatch_webhook.enqueue(message_id=str(message.pk))

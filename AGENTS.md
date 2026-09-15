@@ -2,10 +2,12 @@
 
 ## Project overview
 
-Relay is a B2B SaaS communication platform (email, VoIP, and more) on
-Django 6.0 / Python 3.14. The key feature is a **built-in authoritative
-nameserver**. Users only set NS delegation and DMARC. The nameserver
-serves MX, SPF, DKIM, and Return-Path automatically. Django's
+relay is a B2B SaaS communication platform (email, VoIP, and more) on
+Django 6.0 / Python 3.14. Its differentiator is simplicity: relay handles
+the DNS and email plumbing, so sending and receiving work with near-zero
+configuration. A built-in authoritative nameserver delivers this: users
+only set NS delegation and DMARC, and relay serves MX, SPF, DKIM,
+Return-Path, MTA-STS, and TLS-RPT automatically. Django's
 username/password signup handles authentication, and the login password
 derives the client-side encryption keys.
 
@@ -32,9 +34,11 @@ WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
-App dependencies flow in one direction. See the graph in `README.md`:
-`dashboard → msa, mta, dmarc, message`, `msa, mta, dmarc → message, domains, accounts, kms`, `message → domains, accounts`, `domains → accounts, kms`, `accounts → kms`. Apps
-must not import from their dependents.
+App dependencies flow in one direction: apps must not import from their
+dependents. The graph is enforced by import-linter; the authoritative
+contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
+`lint-imports` to check them. When a refactor changes the graph, update
+the contracts.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, basecoat CSS (via PostCSS
@@ -68,6 +72,9 @@ with wireit).
   Linting/formatting via pre-commit is the current quality gate.
 - **Update `CONVENTIONS.md`** when a reviewer identifies a new convention or
   corrects a pattern. This file is the authoritative coding-conventions source.
+- **Update `docs/docs/`** when a change alters documented behavior (sending,
+  receiving, DNS, webhooks, message statuses, hosting, security, privacy).
+  The user-facing docs describe how relay works and must not fall behind the code.
 - **Extend `.relint.yml`** when a convention can be enforced by regex. Move
   enforced rules out of `CONVENTIONS.md`: `CONVENTIONS.md` documents for
   humans, `.relint.yml` enforces for machines.
@@ -89,8 +96,19 @@ Before you finish, always:
   missing migrations for model changes.
 - Verify that URL reversals work for any changed or added routes.
 - Update `CONVENTIONS.md` if a review introduces a new convention.
+- Update `docs/docs/` when the change touches documented behavior
+  (sending, receiving, DNS, webhooks, statuses, hosting, privacy, reliability).
 - Follow the `naming-things` guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
+
+## Running tests
+
+- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput`
+  must run in advance; the Django checks and templates tests fail without it.
+- `uv run --group test pytest`. The last line is always the outcome summary, e.g.
+  `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
+  to assert results. Nothing is measured by default.
+- `--maxfail=3` stops after three failures.
 
 ## Browser automation
 
@@ -98,15 +116,16 @@ Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
 `.playwright-mcp/`. The dev server binds to a random localhost port. Read
 it from the `runserver` output, then navigate to `http://localhost:<port>`.
 
-The MCP server loads `.playwright-mcp-config.json` (via `--config`)
-for `headless` and `outputDir`; no request headers are required (dev
-requests are auto-authenticated as the bundled `test` user).
+Disable the browser cache before capturing screenshots
+(`Network.setCacheDisabled` via CDP). Conditional-get views answer
+revalidations with `304`, so the browser would otherwise reuse stale
+HTML that still contains the debug toolbar.
 
 ## Test data
 
 Bundle: one user (`test`, password `test`), one org (`acme`), one
 domain (`acme.com`), one SMTP credential, three outgoing messages,
-three transmissions, three SigningKeys. Load with
+three transmissions, two SigningKeys. Load with
 `manage.py loaddata fixtures/initial_data.yaml`. Refresh with:
 
 1. Wipe the database and re-apply migrations:
@@ -136,6 +155,7 @@ developer still has the same UX without needing a superuser.
 - `REVIEW.md`. The reviewer's standing rules (conventions, dependency
   direction). `CLAUDE.md` and `.github/copilot-instructions.md` symlink to it.
 - `root/settings.py`. All `RELAY_*` config and environment variables.
+- `docs/docs/`. User-facing product documentation, served at `/docs/`.
 - `legal/docs/`. Legal page Markdown sources (imprint, privacy, terms).
 
 ## Examples

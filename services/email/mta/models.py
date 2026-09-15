@@ -5,16 +5,16 @@ from fnmatch import fnmatch
 
 from django.core.validators import RegexValidator
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from abstract.email_utils import iter_attachments
-from abstract.models import TimeStamped
+from abstract.email_utils import MissingAttachmentError, iter_attachments
+from abstract.models import TimeStamped, Timing
 from accounts.models import OrganizationOwned
+from kms import envelope
 from kms.models import SigningKey
 from services.email.message.models import Message
 
-from .serializers import TlsReportSerializer
+from .parser import parse_tls_report
 
 
 class IncomingMessage(Message):
@@ -30,11 +30,13 @@ class IncomingMessage(Message):
 
         @property
         def badge_variant(self) -> str:
-            Status = type(self)
+            status_class = type(self)
             match self:
-                case Status.RECEIVED:
-                    return "primary"
-                case Status.QUARANTINED | Status.WEBHOOK_FAILED | Status.DROPPED:
+                case status_class.RECEIVED | status_class.WEBHOOK_SENT:
+                    return "success"
+                case status_class.QUARANTINED:
+                    return "warning"
+                case status_class.WEBHOOK_FAILED | status_class.DROPPED:
                     return "destructive"
                 case _:
                     return "outline"
@@ -44,6 +46,8 @@ class IncomingMessage(Message):
         blank=True,
         help_text=_("Domain part of the recipient address, for example app.acme.com."),
     )
+
+    email_url_name = "mta:message-detail"
 
     class Meta(TimeStamped.Meta):
         ordering = ["-created_at"]
@@ -55,11 +59,7 @@ class IncomingMessage(Message):
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "mta:message-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.id},
-        )
+    url_name = "message-detail"
 
 
 class Webhook(OrganizationOwned):
@@ -154,18 +154,19 @@ class Webhook(OrganizationOwned):
         return f"v1a,{base64.b64encode(self.signing_key.sign(signed_content)).decode()}"
 
 
-class WebhookDelivery(TimeStamped):
+TIMELINE_COLORS = {
+    "sent": "var(--color-chart-green)",
+    "failed": "var(--color-chart-red)",
+}
+
+
+class WebhookDelivery(Timing):
     """Track one webhook POST attempt and its outcome."""
 
     class Status(models.TextChoices):
         SENT = "sent", _("sent")
         FAILED = "failed", _("failed")
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
     message = models.ForeignKey(
         IncomingMessage,
         on_delete=models.CASCADE,
@@ -201,14 +202,27 @@ class WebhookDelivery(TimeStamped):
         help_text=_("Truncated response body from the webhook endpoint."),
     )
 
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
+    @property
+    def event(self) -> dict:
+        return {
+            "name": f"{self.get_status_display()} ({self.webhook.signing_key.key_id})",
+            "color": TIMELINE_COLORS[self.status],
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": "",
+            "tls": "",
+            "transcript": (
+                f"delivery-{self.pk}"
+                if self.response_code or self.response_body
+                else ""
+            ),
+        }
 
     @property
     def status_badge_variant(self) -> str:
         match self.status:
             case self.Status.SENT:
-                return "primary"
+                return "success"
             case self.Status.FAILED:
                 return "destructive"
             case _:
@@ -266,22 +280,21 @@ class TlsReport(IncomingMessage):
     def __str__(self):
         return f"{self.reporting_org} → {self.domain or '?'} ({self.report_id})"
 
-    def get_absolute_url(self):
-        return reverse(
-            "mta:tls-report-detail",
-            kwargs={"org_slug": self.org.slug, "pk": self.pk},
-        )
+    url_name = "tls-report-detail"
+
+    icon = "lock"
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
-        """Return a TlsReport instance and TlsFailure list parsed from a raw email.
+        """
+        Return a TlsReport instance and TlsFailure list parsed from a raw email.
 
         Raises `ValueError` if no JSON attachment is found.
         """
         data = next(iter_attachments(raw_bytes), None)
         if data is None:
-            raise ValueError("No attachment found in TLS-RPT report email.")
-        meta, policies = TlsReportSerializer.parse_json(data)
+            raise MissingAttachmentError
+        meta, policies = parse_tls_report(data)
         report = cls(
             reporting_org=meta["reporting_org"],
             reporting_email=meta["reporting_email"],
@@ -391,7 +404,8 @@ class TlsFailure(TimeStamped):
 
 
 class WebhookEncryptionKey(TimeStamped):
-    """Store a webhook recipient's X25519 public key for per-file sealing.
+    """
+    Store a webhook recipient's X25519 public key for per-file sealing.
 
     Each file key is sealed with the webhook's public key so the recipient
     application can decrypt messages independently. The application holds
@@ -419,14 +433,13 @@ class WebhookEncryptionKey(TimeStamped):
 
     def save(self, *args, **kwargs):
         if not self.key_id:
-            from kms import envelope
-
             self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
         super().save(*args, **kwargs)
 
 
 class SealedFileKey(TimeStamped):
-    """Store a file key sealed for a specific webhook recipient.
+    """
+    Store a file key sealed for a specific webhook recipient.
 
     Each incoming message gets one sealed file key per matching webhook,
     encrypted with that webhook's X25519 public key via crypto_box_seal.

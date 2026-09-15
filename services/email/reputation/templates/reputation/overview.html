@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{% translate "reputation"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "reputation"|capfirst %}</h2>
+  </header>
+
+  <div class="grid gap-4 sm:grid-cols-3 mb-6">
+    <section class="card p-6">
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "status"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold">
+        {% if org.suspended_at %}
+          <span class="text-destructive">{% translate "suspended"|capfirst %}</span>
+        {% else %}
+          <span class="text-primary">{% translate "ok"|capfirst %}</span>
+        {% endif %}
+      </p>
+    </section>
+    <section class="card p-6">
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "hard bounce rate"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold">
+        {{ stats.hard_bounce_rate|percent:"2" }}
+        {% if stats.hard_bounce_rate > bounce_threshold %}
+          <i data-lucide="triangle-alert" class="size-4 text-destructive" aria-hidden="true"></i>
+        {% endif %}
+      </p>
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "limit"|capfirst %}: {{ bounce_threshold|percent:"2" }}
+      </p>
+    </section>
+    <section class="card p-6">
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "complaint rate"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold">
+        {{ stats.complaint_rate|percent:"2" }}
+        {% if stats.complaint_rate > complaint_threshold %}
+          <i data-lucide="triangle-alert" class="size-4 text-destructive" aria-hidden="true"></i>
+        {% endif %}
+      </p>
+      <p class="m-0 text-sm text-muted-foreground">
+        {% translate "limit"|capfirst %}: {{ complaint_threshold|percent:"2" }}
+      </p>
+    </section>
+  </div>
+
+  {% include "abstract/chart_card.html" with id="chart-reputation-rates" data_id="chart-reputation-rates-data" title=_("rates and limits")|capfirst chart=chart_rates class="" %}
+
+  {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation: sent, bounces, and complaints")|capfirst chart=chart class="mt-6" %}
+
+  <p class="text-sm text-muted-foreground mt-6">
+    {% blocktranslate count days=window_days trimmed %}
+      Counts accumulate over the last day.
+    {% plural %}Counts accumulate over the last {{ days }} days.
+    {% endblocktranslate %}
+    {% blocktranslate count volume=min_volume trimmed %}
+      Status changes apply from one sent message.
+    {% plural %}Status changes apply from {{ volume }} sent messages.
+    {% endblocktranslate %}
+  </p>
+{% endblock %}

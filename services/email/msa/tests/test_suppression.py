@@ -1,5 +1,8 @@
+import datetime
+
 import pytest
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from accounts.models import Organization
 from services.email.msa.models import SuppressionEntry
@@ -67,7 +70,8 @@ class TestCreateOrUpdate:
         e2, c2 = SuppressionEntry.objects.create_or_update(
             org=org2, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
-        assert c1 and c2
+        assert c1
+        assert c2
         assert e1 != e2
 
 
@@ -91,7 +95,6 @@ class TestIsSuppressed:
 
     @pytest.mark.django_db
     def test_bounce_entry_suppresses_globally_within_30_days(self):
-
         org1 = Organization.objects.create(slug="o1")
         org2 = Organization.objects.create(slug="o2")
         SuppressionEntry.objects.create_or_update(
@@ -101,10 +104,6 @@ class TestIsSuppressed:
 
     @pytest.mark.django_db
     def test_bounce_entry_does_not_suppress_after_30_days(self):
-        import datetime
-
-        from django.utils import timezone
-
         org1 = Organization.objects.create(slug="o1")
         org2 = Organization.objects.create(slug="o2")
         entry, _ = SuppressionEntry.objects.create_or_update(

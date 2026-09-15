@@ -89,7 +89,11 @@
         </a>
       </div>
     {% empty %}
-      <p class="text-muted-foreground">{% translate "no organizations yet." %}</p>
+      <p class="text-muted-foreground">
+        {% blocktranslate trimmed %}
+          No organizations yet. Create one and relay pre-verifies a managed sender domain for you.
+        {% endblocktranslate %}
+      </p>
     {% endfor %}
   </div>
 {% endblock %}

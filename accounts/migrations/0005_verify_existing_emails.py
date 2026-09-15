@@ -3,7 +3,8 @@ from django.utils import timezone
 
 
 def verify_existing_emails(apps, schema_editor):
-    """Treat existing users' email addresses as already verified.
+    """
+    Treat existing users' email addresses as already verified.
 
     Legacy emails were confirmed by the removed GitHub OAuth provider or
     set by the operator, so security mail to them must keep flowing after

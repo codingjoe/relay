@@ -11,7 +11,8 @@ FILE_KEY_SIZE = 32  # bytes, for XSalsa20-Poly1305
 
 @dataclass(frozen=True)
 class X25519KeyPair:
-    """An X25519 keypair for sealed-box encryption.
+    """
+    An X25519 keypair for sealed-box encryption.
 
     Only the public key is stored server-side.
     """
@@ -35,7 +36,8 @@ def generate_file_key() -> bytes:
 
 
 def encrypt_body(plaintext: bytes, file_key: bytes) -> bytes:
-    """Encrypt a message body using authenticated symmetric encryption.
+    """
+    Encrypt a message body using authenticated symmetric encryption.
 
     Return the nonce prepended to the ciphertext.
     """
@@ -50,7 +52,8 @@ def decrypt_body(ciphertext: bytes, file_key: bytes) -> bytes:
 
 
 def seal_file_key(file_key: bytes, recipient_public_key: bytes) -> bytes:
-    """Seal a file key with a recipient's X25519 public key.
+    """
+    Seal a file key with a recipient's X25519 public key.
 
     The sender does not need a keypair; only the recipient can unseal.
     """
@@ -58,7 +61,8 @@ def seal_file_key(file_key: bytes, recipient_public_key: bytes) -> bytes:
 
 
 def unseal_file_key(sealed: bytes, recipient_private_key: bytes) -> bytes:
-    """Unseal a file key sealed with `seal_file_key`.
+    """
+    Unseal a file key sealed with `seal_file_key`.
 
     Used client-side (browser), not server-side.
     """
@@ -93,7 +97,8 @@ class EncryptionResult:
 def seal_and_encrypt(
     plaintext: bytes, recipient_public_key: bytes, key_id: str
 ) -> EncryptionResult:
-    """Encrypt plaintext and seal the file key with the recipient's public key.
+    """
+    Encrypt plaintext and seal the file key with the recipient's public key.
 
     Return the ciphertext (for S3), a base64 sealed file key (for the DB),
     the key ID used for sealing, and the raw file key (for sealing additional

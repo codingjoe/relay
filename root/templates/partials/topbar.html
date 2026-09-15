@@ -1,6 +1,6 @@
 {% load i18n accounts %}
-<header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0">
-  {% if current_org %}
+<header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0 z-30">
+  {% if current_org and request.resolver_match.namespace != 'accounts' %}
     <button
       type="button"
       class="btn"
@@ -13,48 +13,56 @@
     </button>
   {% endif %}
 
-  <a
-    href="{% url 'home' %}"
-    class="font-bold text-lg tracking-tight"
-    aria-label="relay"
-  >
-    relay
-  </a>
+  <!--
+    The wordmark and the nav share one baseline. Space Mono ascends higher
+    than Fira Sans, so a vertically centered wordmark sits 3px below the nav
+    labels. `leading-6` on the wordmark is load-bearing: it keeps the buttons
+    the tallest items, so the shared baseline stays where the buttons were
+    centered before. Removing it shifts the whole group down 0.5px.
+  -->
+  <div class="flex items-baseline gap-2 grow">
+    <a
+      href="{% url 'home' %}"
+      class="brand font-bold text-lg leading-6"
+      aria-label="relay"
+    >
+      relay
+    </a>
 
-  {% if current_org %}
-    <nav class="flex items-center gap-1 grow" aria-label='{% translate "main"|capfirst %}'>
-      {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
+    <nav class="flex items-baseline gap-1" aria-label='{% translate "main"|capfirst %}'>
+      {% if current_org %}
+        {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
+        <a
+          href="{{ email_url }}"
+          class="btn"
+          data-size="sm"
+          data-variant="ghost"
+          {% if request.path == email_url %}aria-current="page"{% endif %}
+        >{% translate "email"|capfirst context "noun" %}</a>
+      {% endif %}
       <a
-        href="{{ email_url }}"
+        href="{% url 'docs:list' %}"
         class="btn"
         data-size="sm"
         data-variant="ghost"
-        {% if request.path == email_url %}aria-current="page"{% endif %}
-      >{% translate "email"|capfirst context "noun" %}</a>
-      <button
-        type="button"
-        class="btn"
-        data-size="sm"
-        data-variant="ghost"
-        aria-disabled="true"
-        title='{% translate "coming soon" %}'
-      >
-        {% translate "VoIP" context "acronym" %}
-        <span class="badge" data-size="sm">{% translate "coming soon" %}</span>
-      </button>
+        {% if "/docs" in request.path %}aria-current="page"{% endif %}
+      >{% translate "docs"|capfirst %}</a>
     </nav>
-  {% else %}
-    <div class="grow"></div>
-  {% endif %}
+  </div>
 
   <div class="flex items-center gap-2 ms-auto">
-    {% if user.is_authenticated %}
+    {% if request.public_cache or not user.is_authenticated %}
+      <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
+        {% translate "login"|capfirst context "noun" %}
+      </a>
+    {% else %}
       {% if current_org %}
         <div class="dropdown-menu" id="org-switcher">
           <button
             type="button"
             class="btn"
             data-size="sm"
+            data-variant="secondary"
             id="org-switcher-trigger"
             aria-controls="org-switcher-menu"
             aria-haspopup="menu"
@@ -142,10 +150,6 @@
           </div>
         </div>
       </div>
-    {% else %}
-      <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
-        {% translate "login"|capfirst context "noun" %}
-      </a>
     {% endif %}
   </div>
 </header>

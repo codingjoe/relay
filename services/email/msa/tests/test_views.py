@@ -1,18 +1,24 @@
+from email import message_from_bytes
 from email.message import EmailMessage
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
+from django.utils.http import http_date
 
 from domains.models import Domain
-from services.email.msa.models import MsaCredential, OutgoingMessage
+from services.email.message.models import Transmission
+from services.email.msa.models import (
+    MsaCredential,
+    OutgoingMessage,
+    SuppressionEntry,
+)
 
 
 def make_message(org, user, **kwargs):
     domain = kwargs.pop("domain", None) or Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage(
-        sender=user,
         org=org,
         domain=domain,
         rcpt_to=kwargs.get("rcpt_to", "bob@example.com"),
@@ -38,6 +44,35 @@ class TestMessageDetailView:
         assert response.status_code == 200
         assert response.context["message"] == msg
 
+    def test_get__sets_etag_and_last_modified(self, admin_client, org, user):
+        msg = make_message(org, user)
+        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
+        assert response.status_code == 200
+        assert response.headers["ETag"] == (
+            f'"{int(msg.pk):x}-{int(msg.modified_at.timestamp() * 1e6):x}"'
+        )
+        assert response.headers["Last-Modified"] == http_date(
+            msg.modified_at.timestamp()
+        )
+        assert response.headers["Cache-Control"] == "private, no-cache"
+
+    def test_get__not_modified_when_etag_matches(self, admin_client, org, user):
+        msg = make_message(org, user)
+        url = f"/org/{org.slug}/email/messages/{msg.id}"
+        etag = admin_client.get(url).headers["ETag"]
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 304
+
+    def test_get__renders_when_message_changed(self, admin_client, org, user):
+        msg = make_message(org, user)
+        url = f"/org/{org.slug}/email/messages/{msg.id}"
+        etag = admin_client.get(url).headers["ETag"]
+        msg.status = OutgoingMessage.Status.SENT
+        msg.save(update_fields=["status", "modified_at"])
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
+
     def test_get__not_found_for_other_org_message(
         self, admin_client, org, user, write_org
     ):
@@ -53,6 +88,54 @@ class TestMessageDetailView:
         assert "headers" in response.context
         assert "transmissions" in response.context
 
+    def test_get__shows_stored_headers_including_dkim_signatures(
+        self, admin_client, org, user
+    ):
+        msg = make_message(org, user)
+        msg.headers = [
+            ["From", "alice@example.com"],
+            ["Subject", "Test"],
+            [
+                "DKIM-Signature",
+                (
+                    "v=1; a=ed25519-sha256; d=acme.com; s=relay; h=from:subject; "
+                    "bh=AAAA; b=BBBB"
+                ),
+            ],
+        ]
+        msg.save(update_fields=["headers"])
+        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
+        assert response.status_code == 200
+        assert response.context["headers"] == [
+            ["From", "alice@example.com"],
+            ["Subject", "Test"],
+            [
+                "DKIM-Signature",
+                (
+                    "v=1; a=ed25519-sha256; d=acme.com; s=relay; h=from:subject; "
+                    "bh=AAAA; b=BBBB"
+                ),
+            ],
+        ]
+
+    def test_get__malformed_dkim_signature_does_not_crash(
+        self, admin_client, org, user
+    ):
+        msg = make_message(org, user)
+        raw = msg.raw_bytes().replace(
+            b"\n\n",
+            b"\nDKIM-Signature: v=1; a=ed25519-sha256; b\n\n",
+            1,
+        )
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
+        response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
+        assert response.status_code == 200
+        assert response.context["headers"][-1] == [
+            "DKIM-Signature",
+            "v=1; a=ed25519-sha256; b",
+        ]
+
 
 @pytest.mark.django_db
 class TestTestEmailView:
@@ -65,7 +148,7 @@ class TestTestEmailView:
     ):
         domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
         with (
-            patch("services.email.msa.views.deliver_message") as delivery_task,
+            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
             django_capture_on_commit_callbacks(execute=True),
         ):
             response = admin_client.post(
@@ -73,11 +156,37 @@ class TestTestEmailView:
                 {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
             )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Test")
-        assert msg.sender == user
+        msg = OutgoingMessage.objects.get(org=org, subject="Test")
         assert msg.subject == "Test"
         assert msg.domain == domain
-        delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(msg.id), client_ip="127.0.0.1"
+        )
+
+    def test_post__signs_message_and_mints_feedback_id(self, admin_client, org, user):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+        )
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        stored = message_from_bytes(msg.raw_body.read())
+        assert any(name == "Feedback-ID" for name, _ in msg.headers)
+        assert any(name == "DKIM-Signature" for name, _ in msg.headers)
+        assert msg.feedback_id
+        assert msg.feedback_id == stored["Feedback-ID"]
+
+    def test_post__records_submission(self, admin_client, org, user):
+        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+        )
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.SUBMITTED
 
     def test_post__with_real_domain(self, admin_client, org, user):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -86,7 +195,7 @@ class TestTestEmailView:
             {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
         )
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, sender=user, subject="Hi")
+        msg = OutgoingMessage.objects.get(org=org, subject="Hi")
         assert msg.domain == domain
 
     def test_post__does_not_use_domain_from_other_org(
@@ -107,7 +216,6 @@ class TestTestEmailView:
         assert response.status_code == 404
         assert not OutgoingMessage.objects.filter(
             org=org,
-            sender=user,
             subject="Cross-org",
         ).exists()
 
@@ -137,7 +245,8 @@ class TestCredentialListView:
     def test_get__context_has_smtp_info(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
-        assert "smtp_ports" in response.context
+        assert "smtp_starttls_ports" in response.context
+        assert "smtp_implicit_tls_ports" in response.context
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
@@ -197,8 +306,6 @@ class TestSuppressionListView:
 
     @pytest.mark.django_db
     def test_get__filters_by_org(self, admin_client, org, write_org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
@@ -224,8 +331,6 @@ class TestSuppressionListView:
 class TestSuppressionCreateView:
     @pytest.mark.django_db
     def test_post__creates_entry(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         response = admin_client.post(
             f"/org/{org.slug}/email/suppression/add",
             {"email": "bob@example.com"},
@@ -236,8 +341,6 @@ class TestSuppressionCreateView:
 
     @pytest.mark.django_db
     def test_post__updates_existing_entry(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
@@ -260,8 +363,6 @@ class TestSuppressionCreateView:
 class TestSuppressionRemoveView:
     @pytest.mark.django_db
     def test_post__removes_entry(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )
@@ -286,8 +387,6 @@ class TestSuppressionRemoveView:
 class TestSuppressionCheckView:
     @pytest.mark.django_db
     def test_post__suppressed_returns_warning(self, admin_client, org):
-        from services.email.msa.models import SuppressionEntry
-
         SuppressionEntry.objects.create_or_update(
             org=org, email="bob@example.com", reason=SuppressionEntry.Reason.MANUAL
         )

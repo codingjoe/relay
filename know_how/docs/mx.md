@@ -12,7 +12,7 @@ author: Johannes Maron
 
 MX (Mail Exchange) is a DNS record type that specifies the mail server responsible for receiving email for a domain. Each MX record has a priority value and a mail server hostname. When someone sends an email to a domain, the sending mail server looks up the MX records to find where to deliver the message.
 
-MX records are part of the DNS specification in [RFC 1035](https://datatracker.ietf.org/doc/html/rfc1035) and are used by SMTP as defined in [RFC 5321](https://datatracker.ietf.org/doc/html/rfc5321).
+MX records are part of the DNS specification in [RFC 1035][rfc-1035] and are used by SMTP as defined in [RFC 5321][rfc-5321].
 
 ## Why MX matters
 
@@ -47,7 +47,7 @@ When two MX records have the same priority, senders pick one at random.[^equal-p
 
 ### The fallback to A records
 
-If a domain has no MX records, some sending servers try to deliver to the A record of the domain itself. This behavior is defined in [RFC 5321 Section 5.1](https://datatracker.ietf.org/doc/html/rfc5321#section-5.1).[^a-record-fallback] However, this fallback is not universal. Many modern mail servers do not fall back to A records. You should always publish an explicit MX record.
+If a domain has no MX records, some sending servers try to deliver to the A record of the domain itself. This behavior is defined in [RFC 5321][rfc-5321] Section 5.1.[^a-record-fallback] However, this fallback is not universal. Many modern mail servers do not fall back to A records. You should always publish an explicit MX record.
 
 ## How to set up MX
 
@@ -60,13 +60,16 @@ The MX record routes incoming deliveries only. Outgoing submissions use a separa
 
 ## Further reading
 
-- [RFC 1035: Domain Names: Implementation and Specification](https://datatracker.ietf.org/doc/html/rfc1035)
-- [RFC 5321: Simple Mail Transfer Protocol (Section 5: MX lookup)](https://datatracker.ietf.org/doc/html/rfc5321#section-5)
+- [RFC 1035][rfc-1035]: Domain Names: Implementation and Specification
+- [RFC 5321][rfc-5321]: Simple Mail Transfer Protocol (Section 5: MX lookup)
 - <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a>: Simple Mail Transfer Protocol
 - <a href="{% url 'know_how:detail' slug='ptr' %}">PTR</a>: Pointer records (reverse DNS)
 
-[^retry-behavior]: The retry schedule is implementation-specific. RFC 5321 recommends at least 4 to 5 days of retries. The sending server typically waits longer between each retry attempt (for example, 15 minutes, 1 hour, 4 hours, 8 hours).
+[^retry-behavior]: The retry schedule is implementation-specific. [RFC 5321][rfc-5321] recommends at least 4 to 5 days of retries. The sending server typically waits longer between each retry attempt (for example, 15 minutes, 1 hour, 4 hours, 8 hours).
 
-[^equal-priority]: The random selection for equal-priority MX records is defined in [RFC 5321 Section 5.1](https://datatracker.ietf.org/doc/html/rfc5321#section-5.1). The term "equal preference" means the sender can try any of the servers at that priority level in any order.
+[^equal-priority]: The random selection for equal-priority MX records is defined in [RFC 5321][rfc-5321] Section 5.1. The term "equal preference" means the sender can try any of the servers at that priority level in any order.
 
 [^a-record-fallback]: The A record fallback is a legacy behavior from the original SMTP specification (RFC 821, 1982). Modern mail servers may still implement it, but it is unreliable. A domain without an MX record is often misconfigured or abandoned.
+
+[rfc-1035]: https://www.rfc-editor.org/info/rfc1035/
+[rfc-5321]: https://www.rfc-editor.org/info/rfc5321/

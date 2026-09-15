@@ -34,17 +34,17 @@ class TestDnsCommand:
                 "domains.management.commands.dns.time.sleep",
                 side_effect=send_termination_signal,
             ),
-            pytest.raises(SystemExit) as error,
         ):
             stdout = StringIO()
-            call_command(
-                "dns",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "5353",
-                stdout=stdout,
-            )
+            with pytest.raises(SystemExit) as error:
+                call_command(
+                    "dns",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    "5353",
+                    stdout=stdout,
+                )
 
         resolver = resolver_class.return_value
         logger = logger_class.return_value

@@ -11,12 +11,13 @@ https://docs.djangoproject.com/en/stable/ref/settings/
 """
 
 import base64
+import datetime
 import hashlib
-import os
 from pathlib import Path
 
 import environ
 from cryptography.fernet import Fernet
+from django.tasks import DEFAULT_TASK_QUEUE_NAME
 
 env = environ.Env(
     # set casting, default value
@@ -54,6 +55,28 @@ ALLOWED_HOSTS = [
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Show django-debug-toolbar for local development requests.
+INTERNAL_IPS = ["127.0.0.1"]
+
+
+def show_debug_toolbar(request):
+    # Headless browsers (e.g. Playwright MCP) get clean pages without the
+    # toolbar markup, so screenshots show the UI as users see it.
+    agent = request.META.get("HTTP_USER_AGENT", "").lower()
+    return (
+        DEBUG
+        and request.META.get("REMOTE_ADDR") in INTERNAL_IPS
+        and "headless" not in agent
+        and "playwright" not in agent
+        and "puppeteer" not in agent
+    )
+
+
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": show_debug_toolbar,
+    "SHOW_COLLAPSED": True,
+}
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
@@ -76,8 +99,8 @@ INSTALLED_APPS = [
     # Third-party apps
     "health_check",
     "storages",
-    "rest_framework",
     "threadmill",
+    *(["debug_toolbar"] if DEBUG else []),
     # First-party apps
     "accounts",
     "kms",
@@ -85,6 +108,7 @@ INSTALLED_APPS = [
     "legal",
     "know_how",
     "alternative_to",
+    "docs",
     "well_known",
     "root",
     "services.email.msa",
@@ -92,10 +116,19 @@ INSTALLED_APPS = [
     "services.email.dashboard",
     "services.email.mta",
     "services.email.dmarc",
+    "services.email.reputation",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    *(
+        [
+            "django_devbar.DevBarMiddleware",
+            "debug_toolbar.middleware.DebugToolbarMiddleware",
+        ]
+        if DEBUG
+        else []
+    ),
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "domains.middleware.MtaStsHostMiddleware",
@@ -126,6 +159,7 @@ TEMPLATES = [
             BASE_DIR / "legal" / "docs",
             BASE_DIR / "know_how" / "docs",
             BASE_DIR / "alternative_to" / "docs",
+            BASE_DIR / "docs" / "docs",
         ],
         "OPTIONS": {
             "context_processors": (
@@ -136,7 +170,8 @@ TEMPLATES = [
                 "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "accounts.context_processors.organizations",
+                "root.context_processors.settings_context",
+                "accounts.context_processors.email_verification",
             ],
             "debug": DEBUG,
             "loaders": (
@@ -162,6 +197,11 @@ WSGI_APPLICATION = "root.wsgi.application"
 DATABASES = {
     "default": env.db(default="sqlite:///:memory:" if TEST else "sqlite:///db.sqlite3")
 }
+if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+    DATABASES["default"].setdefault("OPTIONS", {}).setdefault("pool", True)
+
+# https://docs.djangoproject.com/en/stable/ref/settings/#conn-health-checks
+CONN_HEALTH_CHECKS = True
 
 # Caches
 # https://docs.djangoproject.com/en/stable/ref/settings/#caches
@@ -222,14 +262,17 @@ AWS_S3_ACCESS_KEY_ID = env("AWS_S3_ACCESS_KEY_ID", default="")
 AWS_S3_SECRET_ACCESS_KEY = env("AWS_S3_SECRET_ACCESS_KEY", default="")
 AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default="")
 AWS_S3_ADDRESSING_STYLE = env("AWS_S3_ADDRESSING_STYLE", default="auto")
-AWS_S3_MESSAGE_PREFIX = env("AWS_S3_MESSAGE_PREFIX", default="messages/")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
+# Files under `public/` are served from the domain root by WhiteNoise,
+# e.g. public/favicon.ico is served at /favicon.ico.
+WHITENOISE_ROOT = BASE_DIR / "public"
+WHITENOISE_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Relay config
 
@@ -243,25 +286,42 @@ RELAY_DNS_NS_NAMESERVERS = [
     f"ns1.{RELAY_PLATFORM_DOMAIN}",
     f"ns2.{RELAY_PLATFORM_DOMAIN}",
 ]
-RELAY_DNS_SMTP_IPS = [
-    ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
-]
+RELAY_DNS_MX_HOSTNAMES = env.list(
+    "RELAY_DNS_MX_HOSTNAMES",
+    default=[f"mx1.{RELAY_PLATFORM_DOMAIN}", f"mx2.{RELAY_PLATFORM_DOMAIN}"],
+)
+RELAY_DNS_SMTP_IPS = env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
+# Egress pool for the worker's outgoing SMTP; empty sends from the primary IP.
+RELAY_SMTP_SOURCE_IPS = env.list("RELAY_SMTP_SOURCE_IPS", default=[])
 RELAY_SMTP_PUBLIC_HOSTNAME = f"smtp.{RELAY_PLATFORM_DOMAIN}"
-RELAY_DNS_SPF_INCLUDE = f"spf.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")
 
 RELAY_MANAGED_SENDER_DOMAIN = f"open.{RELAY_PLATFORM_DOMAIN}"
 
 RELAY_SMTP_SUBMISSION_PORTS = (587, 465)
 RELAY_SMTP_IMPLICIT_TLS_PORTS = (465,)
+RELAY_SMTP_BALANCER_PORT = 2465
 RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
 RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
 
 RELAY_MX_PORTS = (25,)
-RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
-RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
+RELAY_MX_TLS_CERT_PATH = env.list("RELAY_MX_TLS_CERT_PATH", default=[])
+RELAY_MX_TLS_KEY_PATH = env.list("RELAY_MX_TLS_KEY_PATH", default=[])
 
-RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
+# Timeout in seconds for reading the PROXY protocol header. None disables
+# the expectation; a positive value is required where enabled.
+proxy_protocol_timeout_secs = env.float("RELAY_PROXY_PROTOCOL_TIMEOUT", default=None)
+RELAY_PROXY_PROTOCOL_TIMEOUT = (
+    datetime.timedelta(seconds=proxy_protocol_timeout_secs)
+    if proxy_protocol_timeout_secs
+    else None
+)
+
+rspamd_url = env.url("RELAY_RSPAMD_URL", default="http://rspamd:11334")
+RELAY_RSPAMD_PASSWORD = rspamd_url.password or ""
+RELAY_RSPAMD_URL = rspamd_url._replace(
+    netloc=rspamd_url.netloc.rpartition("@")[2]
+).geturl()
 RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)
 RELAY_RSPAMD_HOLD_SCORE = env.float("RELAY_RSPAMD_HOLD_SCORE", default=6.0)
 
@@ -270,8 +330,19 @@ RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
 RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dmarc")
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
+RELAY_FBL_ADDRESS = env("RELAY_FBL_ADDRESS", default=f"fbl@{RELAY_PLATFORM_DOMAIN}")
+RELAY_FBL_SENDERS = env.list("RELAY_FBL_SENDERS", default=[])
 RELAY_POSTMASTER_LOCAL_PART = "postmaster"
 RELAY_BOUNCE_LOCAL_PART = "bounce"
+
+RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD = env.float(
+    "RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD", default=0.05
+)
+RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
+    "RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD", default=0.001
+)
+RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7)
+RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
 
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
@@ -306,16 +377,23 @@ DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 # Django task framework
 # Production uses Threadmill with a Redis backend and a worker process.
 # Tests use ImmediateRetryBackend, which runs tasks synchronously.
+# Queues split the mail pipeline so each stage runs on its own worker:
+# ingress (received mail), egress (submissions), delivery (SMTP to remote
+# MX hosts, which needs its own outbound addresses), default (the rest).
+TASK_QUEUES = ["ingress", "egress", "delivery", DEFAULT_TASK_QUEUE_NAME]
+
 if TEST:
     TASKS = {
         "default": {
             "BACKEND": "root.backends.ImmediateRetryBackend",
+            "QUEUES": TASK_QUEUES,
         },
     }
 else:
     TASKS = {
         "default": {
             "BACKEND": "threadmill.backends.redis.RedisTaskBackend",
+            "QUEUES": TASK_QUEUES,
             "REDIS_URL": REDIS_URL,
         },
     }
@@ -334,22 +412,41 @@ AUTHENTICATION_BACKENDS = (
 # Logging
 # https://docs.djangoproject.com/en/stable/topics/logging/
 
+# Mirrors granian.log.config.json.
+JSON_LOG_FORMATTER = {
+    "()": "pythonjsonlogger.json.JsonFormatter",
+    "fmt": ["levelname", "name", "message"],
+    "rename_fields": {"levelname": "level", "name": "logger"},
+    "timestamp": True,
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "json": JSON_LOG_FORMATTER,
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+    },
+    "loggers": {
+        "mail.log": {
+            "level": "WARNING",
+        },
+        # threadmill logs through this logger.
+        "multiprocessing": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
     "root": {
         "handlers": ["console"],
         "level": "INFO",
     },
-}
-
-THREADMILL = {
-    "REDIS_URL": REDIS_URL,
 }
 
 

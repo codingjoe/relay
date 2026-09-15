@@ -1,9 +1,15 @@
 import datetime
+import decimal
 
 from django.contrib.humanize.templatetags import humanize
-from django.template import loader
+from django.template import defaultfilters, loader
 from django.template.defaulttags import register
 from django.utils import formats, timezone
+from django.utils.safestring import mark_safe
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import get_lexer_by_name
+from pygments.util import ClassNotFound
 
 from .. import utils
 
@@ -15,7 +21,8 @@ register.filter(is_safe=True)(humanize.apnumber)
 
 @register.filter(expects_localtime=True)
 def naturalday(value):
-    """Format a date as a human-readable day (for example, "today", "yesterday", "Sep 13").
+    """
+    Format a date as a human-readable day (for example, "today", "yesterday", "Sep 13").
 
     Uses `SHORT_DATE_FORMAT` for dates in the current year and
     `DATE_FORMAT` for dates in other years.
@@ -27,7 +34,8 @@ def naturalday(value):
 
 @register.filter(expects_localtime=True)
 def naturaltime(value: datetime.datetime):
-    """Format a datetime as a human-readable relative time.
+    """
+    Format a datetime as a human-readable relative time.
 
     Uses Django's `naturaltime` for recent values (within ±2 hours), then
     changes to longer date and time formats for older values.
@@ -38,6 +46,7 @@ def naturaltime(value: datetime.datetime):
     Returns:
         A human-readable time string, or the input unchanged if it is not
         a datetime.
+
     """
     if not isinstance(value, datetime.datetime):
         return value
@@ -56,19 +65,26 @@ def naturaltime(value: datetime.datetime):
 
 @register.simple_tag(takes_context=True)
 def param_replace(context, **kwargs):
-    """Replace query parameters in the current URL.
+    """
+    Replace query parameters in the current URL.
 
     Preserves existing GET parameters and overrides the ones passed as kwargs.
     Empty values are removed.
 
+    Reads the request from the context attribute, not from the context
+    dictionary. Inclusion tags render with an isolated context that drops
+    context processor values, such as `request`, but keeps the attribute.
+    This matches Django's built-in `{% querystring %}` tag.
+
     Args:
-        context: The template context (must contain `request`).
+        context: The template context (must carry a `request`).
         **kwargs: Query parameters to set or override.
 
     Returns:
         A URL-encoded query string with the updated parameters.
+
     """
-    d = context["request"].GET.copy()
+    d = context.request.GET.copy()
     for k, v in kwargs.items():
         d[k] = v
     for k in [k for k, v in d.items() if not v]:
@@ -88,12 +104,31 @@ def timestamp(value):
 
 @register.inclusion_tag("abstract/pagination.html", takes_context=True)
 def pagination(context, page_obj=None):
-    """Render a pagination nav for a Django Page object.
+    """
+    Render a pagination nav for a Django Page object.
 
     Falls back to `context['page_obj']` when `page_obj` is omitted,
     so most templates can call `{% pagination %}` without an argument.
     """
     return {"page_obj": page_obj or context.get("page_obj")}
+
+
+code_formatter = HtmlFormatter(cssclass="codehilite")
+
+
+@register.filter
+def highlight_code(value: str, language: str = "text") -> str:
+    """
+    Highlight a static code snippet with Pygments.
+
+    When the requested language is unknown, falls back to the plain-text lexer
+    and still returns a Pygments highlighted `<pre>` block.
+    """
+    try:
+        lexer = get_lexer_by_name(language)
+    except ClassNotFound:
+        lexer = get_lexer_by_name("text")
+    return mark_safe(highlight(value, lexer, code_formatter))
 
 
 @register.simple_tag
@@ -108,3 +143,14 @@ def include_md_toc(template_name, depth=None, **context):
     """Render a table of contents for a Markdown template, stripping frontmatter."""
     rendered = loader.get_template(template_name).render(context=context)
     return utils.md_toc(utils.strip_frontmatter(rendered), depth=depth)
+
+
+@register.filter(is_safe=True)
+def percent(text, arg=-1):
+    """Like floatformat, but shifted by two decimals and with a percent sign."""
+    if text is None:
+        return None
+    text = decimal.Decimal(str(text)) * decimal.Decimal("100.00")
+    return mark_safe(
+        f"{defaultfilters.floatformat(text, arg=arg)}&nbsp;&percnt;",
+    )

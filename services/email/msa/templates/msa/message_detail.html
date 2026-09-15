@@ -1,157 +1,106 @@
-{% extends "base.html" %}
-{% load i18n message abstract %}
-{% block title %}{{ message.subject|truncatechars:50 }} | relay{% endblock %}
-{% block content %}
-  {% if transmissions %}
-    <details open class="mb-4">
-      <summary class="cursor-pointer font-semibold">{% translate "transmissions"|capfirst context "noun" %}</summary>
-      <div class="table-container mt-3">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{% translate "status"|capfirst context "noun" %}</th>
-              <th>{% translate "code"|capfirst context "noun" %}</th>
-              <th>{% translate "sent"|capfirst %}</th>
-              <th>{% translate "SSL"|capfirst %}</th>
-              <th>{% translate "log ID"|capfirst %}</th>
-              <th>{% translate "output"|capfirst context "noun" %}</th>
-              <th>{% translate "details"|capfirst context "noun" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for transmission in transmissions %}
-              <tr>
-                <td>
-                  <span
-                    class="badge"
-                    data-size="sm"
-                    data-variant="{{ transmission.status_badge_variant }}"
-                  >
-                    {{ transmission.get_status_display }}
-                  </span>
-                </td>
-                <td>{{ transmission.code|default:"-" }}</td>
-                <td>
-                  {% timestamp transmission.created_at %}
-                </td>
-                <td>{{ transmission.sent_with_ssl|yesno }}</td>
-                <td><code>{{ transmission.log_id|default:"-" }}</code></td>
-                <td>{{ transmission.output|truncatechars:120 }}</td>
-                <td>{{ transmission.details|truncatechars:120 }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </details>
-  {% endif %}
-
-  <details open class="mb-4">
-    <summary class="cursor-pointer font-semibold">{% translate "headers"|capfirst context "noun" %}</summary>
-    <div class="table-container mt-3">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>{% translate "header"|capfirst context "noun" %}</th>
-            <th>{% translate "value"|capfirst context "noun" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for key, value in headers %}
-            <tr>
-              <td>{{ key }}</td>
-              <td><code>{{ value }}</code></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </details>
-
-  <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 mb-6">
-    {% if message.credential %}
-      <dt class="font-semibold">{% translate "credential"|capfirst context "noun" %}</dt>
-      <dd><code>{{ message.credential.key_prefix }}…</code> ({{ message.credential.get_type_display }})</dd>
+{% extends "message/message_detail.html" %}
+{% load i18n abstract message %}
+{% block timeline_dialogs %}
+  {% for transmission in transmissions %}
+    {% if transmission.output or transmission.details or transmission.log_id %}
+      <dialog
+        id="transcript-{{ transmission.pk }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "SMTP transcript"|capfirst %}</h2>
+            <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+          </header>
+          <section class="flex flex-col gap-4">
+            <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ transmission.status_badge_variant }}"
+              >
+                {{ transmission.get_status_display }}
+              </span>
+              {% if transmission.tls_certificate %}
+                <a
+                  class="link"
+                  href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
+                  data-tooltip="{{ transmission.tls_version }} {{ transmission.tls_cipher }} · {{ transmission.tls_certificate.subject }}"
+                >{{ transmission.get_tls_mode_display }}</a>
+              {% else %}
+                {{ transmission.get_tls_mode_display }}
+              {% endif %}
+              {% if transmission.tls_version %}
+                <span>{{ transmission.tls_version }}</span>
+              {% endif %}
+              {% if transmission.tls_cipher %}
+                <span><code>{{ transmission.tls_cipher }}</code></span>
+              {% endif %}
+            </p>
+            {% if transmission.local_ip_address or transmission.remote_ip_address %}
+              <p class="m-0 text-sm text-muted-foreground">
+                {{ transmission.local_ip_address|default:"-" }} →
+                {{ transmission.remote_ip_address|default:"-" }}
+              </p>
+            {% endif %}
+            {% if transmission.output %}
+              <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ transmission.output }}</pre>
+            {% endif %}
+            {% if transmission.details %}
+              <p class="m-0 text-sm">{{ transmission.details }}</p>
+            {% endif %}
+          </section>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+              {% translate "close"|capfirst %}
+            </button>
+          </footer>
+        </article>
+      </dialog>
     {% endif %}
-  </dl>
-
-  {% if is_encrypted %}
-    <div id="encrypted-body" class="mb-4">
-      <div class="alert" data-variant="default">
-        <i data-lucide="lock" class="size-4" aria-hidden="true"></i>
-        <p>{% translate "this message body is encrypted. click decrypt to view it."|capfirst %}</p>
-      </div>
-      <button id="decrypt-body-btn" class="btn mt-3" onclick="relayDecryptBody()">
-        <i data-lucide="unlock" class="size-4" aria-hidden="true"></i>
-        {% translate "decrypt"|capfirst %}
-      </button>
-      <div id="decrypted-body-content" class="mt-3 hidden"></div>
-      <p id="decrypt-error" class="text-destructive text-sm mt-2 hidden"></p>
-    </div>
-    <script defer>
-      (function () {
-        "use strict";
-        const orgSlug = "{{ org.slug }}";
-        const messagePk = "{{ message.pk }}";
-        const bodyUrl = "{{ body_url }}";
-        const enc = window.relayEncryption;
-
-        async function relayDecryptBody() {
-          const btn = document.getElementById("decrypt-body-btn");
-          const errorEl = document.getElementById("decrypt-error");
-          const contentEl = document.getElementById("decrypted-body-content");
-          errorEl.classList.add("hidden");
-          btn.disabled = true;
-          btn.innerHTML =
-            '<i data-lucide="loader-circle" class="size-4 animate-spin" aria-hidden="true"></i> {% translate "decrypting…"|capfirst %}';
-          if (window.lucide) window.lucide.createIcons();
-
-          try {
-            const keys = await enc.promptPassphrase(orgSlug);
-            await enc.init();
-
-            // Fetch sealed file key from API.
-            const keyResp = await fetch(
-              `/org/${orgSlug}/email/messages/${messagePk}/sealed-key`,
-              { headers: { Accept: "application/json" } },
-            );
-            if (!keyResp.ok) throw new Error("No sealed file key for this message.");
-            const keyData = await keyResp.json();
-
-            // Unseal file key with org private key.
-            const sealedFileKey = enc.fromBase64(keyData.sealed_file_key);
-            const fileKey = enc.unseal(sealedFileKey, keys.orgPrivateKey);
-
-            // Fetch encrypted body from S3.
-            const bodyResp = await fetch(bodyUrl);
-            const encryptedBody = new Uint8Array(await bodyResp.arrayBuffer());
-
-            // Decrypt body: nonce (24 bytes) + ciphertext.
-            const plaintext = enc.decryptBody(encryptedBody, fileKey);
-            const decoded = new TextDecoder().decode(plaintext);
-
-            contentEl.innerHTML = decoded;
-            contentEl.classList.remove("hidden");
-            btn.classList.add("hidden");
-          } catch (err) {
-            errorEl.textContent = err.message;
-            errorEl.classList.remove("hidden");
-            btn.disabled = false;
-            btn.innerHTML =
-              '<i data-lucide="unlock" class="size-4" aria-hidden="true"></i> {% translate "decrypt"|capfirst %}';
-            if (window.lucide) window.lucide.createIcons();
-          }
-        }
-
-        window.relayDecryptBody = relayDecryptBody;
-      })();
-    </script>
-  {% elif message.raw_body %}
-    <details open class="mb-4">
-      <summary class="cursor-pointer font-semibold">{% translate "body"|capfirst context "noun" %}</summary>
-      <div class="mt-3">
-        {{ body|highlight_email }}
-      </div>
-    </details>
-  {% endif %}
+  {% endfor %}
 {% endblock %}
+
+{% block extra_sections %}
+  {% if received %}
+    <div>
+      <h4 class="font-semibold m-0 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
+      {% for hop in received %}
+        <button
+          type="button"
+          class="btn {% if not forloop.first %}mt-2{% endif %}"
+          data-variant="outline"
+          data-size="xs"
+          onclick="document.getElementById('hop-{{ forloop.counter }}').showModal()"
+          aria-haspopup="dialog"
+        >
+          {% translate "hop"|capfirst %} {{ forloop.counter }}
+        </button>
+      {% endfor %}
+    </div>
+    {% for hop in received %}
+      <dialog
+        id="hop-{{ forloop.counter }}"
+        class="drawer"
+        data-side="bottom"
+        onclick="if (event.target === this) this.close()"
+      >
+        <article>
+          <header>
+            <h2>{% translate "received" context "email hop"|capfirst %} {{ forloop.counter }}</h2>
+          </header>
+          <section>
+            {{ hop|highlight_header }}
+          </section>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+              {% translate "close"|capfirst %}
+            </button>
+          </footer>
+        </article>
+      </dialog>
+    {% endfor %}
+  {% endif %}
+{% endblock extra_sections %}

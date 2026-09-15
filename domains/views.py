@@ -1,15 +1,15 @@
 from django.conf import settings
 from django.contrib import messages
-from django.db import models
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 
-from .models import Domain
+from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
 
 
@@ -19,7 +19,7 @@ class DomainListView(OrganizationScopedView, generic.ListView):
     parent = "email-dashboard:dashboard"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org).fetch_mode(models.FETCH_PEERS)
+        return Domain.objects.filter(org=self.org)
 
 
 class DomainCreateView(OrganizationScopedView, generic.CreateView):
@@ -27,6 +27,9 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
     fields = ["name"]
     title = _("New domain")
     parent = "domains:domain-list"
+
+    def get(self, request, *args, **kwargs):
+        return redirect("domains:domain-list", org_slug=self.org.slug)
 
     def get_form_kwargs(self):
         return super().get_form_kwargs() | {"instance": Domain(org=self.org)}
@@ -53,15 +56,24 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org, is_managed=False).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return Domain.objects.filter(org=self.org, is_managed=False)
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
+            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
+            "sending_passing": sum(
+                getattr(self.object, f"{field}_status") == Domain.Status.OK
+                for field in Domain.SENDING_CHECK_FIELDS
+            ),
+            "sending_total": len(Domain.SENDING_CHECK_FIELDS),
+            "receiving_passing": sum(
+                getattr(self.object, f"{field}_status") == Domain.Status.OK
+                for field in Domain.RECEIVING_CHECK_FIELDS
+            ),
+            "receiving_total": len(Domain.RECEIVING_CHECK_FIELDS),
         }
 
 
@@ -74,13 +86,31 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
             pk=pk,
         )
         verify_domain_dns(domain)
-        if all_ok := all(  # noqa: F841
-            getattr(domain, f"{field}_status") == Domain.Status.OK
-            for field in ("nameserver", "spf", "dkim", "dmarc", "mta_sts", "tls_rpt")
+
+        for label, fields in (
+            (_("sending"), Domain.SENDING_CHECK_FIELDS),
+            (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
         ):
-            messages.success(request, _("DNS verification passed."))
-        else:
-            messages.error(request, _("DNS verification failed."))
+            passing = sum(
+                getattr(domain, f"{field}_status") == Domain.Status.OK
+                for field in fields
+            )
+            total = len(fields)
+            if passing == total:
+                messages.success(
+                    request,
+                    _("%(label)s verification passed: all %(total)d checks pass.")
+                    % {"label": label, "total": total},
+                )
+            else:
+                messages.error(
+                    request,
+                    _(
+                        "%(label)s verification failed: %(failing)d of %(total)d "
+                        "checks are still failing."
+                    )
+                    % {"label": label, "failing": total - passing, "total": total},
+                )
         return redirect(domain.get_absolute_url())
 
 
@@ -90,9 +120,7 @@ class DomainDeleteView(OrganizationScopedView, generic.DeleteView):
     parent = "domains:domain-list"
 
     def get_queryset(self):
-        return Domain.objects.filter(org=self.org, is_managed=False).fetch_mode(
-            models.FETCH_PEERS
-        )
+        return Domain.objects.filter(org=self.org, is_managed=False)
 
     def get_success_url(self):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
@@ -124,6 +152,7 @@ class MtaStsPolicyView(generic.DetailView):
         return super().get_context_data(**kwargs) | {
             "mta_sts_mode": settings.RELAY_MTA_STS_MODE,
             "mta_sts_max_age": settings.RELAY_MTA_STS_MAX_AGE,
+            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
         }
 
     def get(self, request, *args, **kwargs):
@@ -131,3 +160,28 @@ class MtaStsPolicyView(generic.DetailView):
         response["Cache-Control"] = f"public, max-age={settings.RELAY_MTA_STS_MAX_AGE}"
         response["Vary"] = "Host"
         return response
+
+
+class MtaStsAuthorizeView(NoStoreCacheMixin, generic.View):
+    """Approve on-demand TLS issuance for the MTA-STS host of a registered domain."""
+
+    def get(self, request, *args, **kwargs):
+        host = request.GET.get("domain", "")
+        name = host.removeprefix("mta-sts.")
+        match name:
+            case "":
+                domain = None
+            case _:
+                try:
+                    domain = Domain.objects.get(name=name)
+                except Domain.DoesNotExist:
+                    domain = None
+        # Every organization can register a name below the platform domain, so
+        # only relay's own managed domains are valid hosts there.
+        platform = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+        authorized = (
+            domain is not None
+            and host == f"mta-sts.{domain.name}"
+            and (domain.is_managed or not name.endswith(f".{platform}"))
+        )
+        return HttpResponse(status=200 if authorized else 403)

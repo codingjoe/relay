@@ -104,7 +104,7 @@ class TestDomainDetailView:
     def test_get__warns_about_apex_ns_delegation(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
-        assert b"Apex delegation replaces the current DNS service" in response.content
+        assert b"apex delegation replaces the current DNS service" in response.content
         assert (
             b"Websites and other services on this domain will stop" in response.content
         )
@@ -115,7 +115,7 @@ class TestDomainDetailView:
 
         assert b"Sending records" in response.content
         assert b"Receiving records" in response.content
-        assert f"10 {domain.sender_domain}.".encode() in response.content
+        assert f"10 {settings.RELAY_DNS_MX_HOSTNAMES[0]}.".encode() in response.content
 
     def test_get__not_found_for_managed_domain(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -210,7 +210,7 @@ class TestMtaStsPolicyView:
         body = response.content.decode()
         assert "version: STSv1" in body
         assert "mode:" in body
-        assert "mx: mail.relay.example.com" in body
+        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in body
         assert "max_age:" in body
 
     def test_get__returns_421_for_unknown_domain(self, client):
@@ -240,7 +240,7 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.app.example.com"
         )
         assert response.status_code == 200
-        assert "mx: mail.relay.example.com" in response.content.decode()
+        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in response.content.decode()
 
     def test_get__selects_most_specific_domain(self, client, org):
         Domain.objects.create(name="example.com", org=org)
@@ -249,7 +249,7 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.app.example.com"
         )
         assert response.status_code == 200
-        assert "mx: mail.relay.app.example.com" in response.content.decode()
+        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in response.content.decode()
 
     def test_get__handles_uppercase_mta_sts_prefix(self, client, org):
         Domain.objects.create(name="example.com", org=org)
@@ -265,3 +265,69 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.example.com"
         )
         assert response["Vary"] == "Host"
+
+
+class TestMtaStsAuthorizeView:
+    @pytest.mark.django_db
+    def test_get__ok_for_mta_sts_host(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.example.com"}
+        )
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
+    def test_get__ok_for_managed_domain(self, client, org):
+        managed_name = f"{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": f"mta-sts.{managed_name}"}
+        )
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_non_managed_platform_subdomain(self, client, org):
+        Domain.objects.create(name="foo.localhost", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.foo.localhost"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_plain_subdomain(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "app.example.com"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_mta_sts_subdomain(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.app.example.com"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_apex(self, client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get("/internal/mta-sts/authorize/", {"domain": "example.com"})
+        assert response.status_code == 403
+
+    def test_get__forbidden_without_domain_parameter(self, client):
+        response = client.get("/internal/mta-sts/authorize/")
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    def test_get__forbidden_for_unknown_name(self, client):
+        response = client.get(
+            "/internal/mta-sts/authorize/", {"domain": "mta-sts.unknown.com"}
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("name", ["mta-sts.example.com", "mta-sts.unknown.com"])
+    def test_get__no_store_cache_control_header(self, client, org, name):
+        Domain.objects.create(name="example.com", org=org)
+        response = client.get("/internal/mta-sts/authorize/", {"domain": name})
+        assert response.headers["Cache-Control"] == "private, no-store"

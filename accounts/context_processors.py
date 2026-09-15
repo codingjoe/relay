@@ -1,26 +1,27 @@
 """Template context processors."""
 
-from django.conf import settings
+from django.utils.functional import SimpleLazyObject
 
 from .models import EmailVerification
 
 
-def organizations(request):
-    """Expose the user's organizations and the current org to every template.
-
-    `OrganizationScopedView` sets `current_org` on the request. On non-org
-    pages, `current_org` is absent. `email_verification_pending` drives the
-    banner that reminds users to open their verification link.
+def email_verification(request):
     """
-    if not request.COOKIES.get(settings.SESSION_COOKIE_NAME):
-        return {}
-    if not getattr(request, "user", None) or not request.user.is_authenticated:
-        return {}
-    return {
-        "user_orgs": request.user.organizations.all(),
-        "current_org": getattr(request, "current_org", None),
-        "email_verification_pending": EmailVerification.objects.filter(
-            user=request.user,
+    Expose whether the logged-in user's email address is unverified.
+
+    `email_verification_pending` drives the banner that reminds users to
+    open their verification link. Unverified users receive no
+    security-sensitive mail. The flag is lazy: public pages that never
+    render the banner stay free of session and database access.
+    """
+
+    def fetch_pending():
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return False
+        return EmailVerification.objects.filter(
+            user=user,
             verified_at__isnull=True,
-        ).exists(),
-    }
+        ).exists()
+
+    return {"email_verification_pending": SimpleLazyObject(fetch_pending)}

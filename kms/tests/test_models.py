@@ -1,11 +1,14 @@
-from datetime import timedelta
+import datetime
 
 import pytest
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from django.db import IntegrityError
 
 from kms import envelope
-from kms.models import OrgEncryptionKey, RecoveryEvent, SigningKey
+from kms.models import Certificate, OrgEncryptionKey, RecoveryEvent, SigningKey
 
 
 @pytest.mark.django_db
@@ -22,10 +25,6 @@ class TestSigningKeyGenerate:
     def test_generate__rsa_2048(self):
         key = SigningKey.generate("rsa-2048")
         assert key.algorithm == SigningKey.Algorithm.RSA_2048
-
-    def test_generate__rsa_1024(self):
-        key = SigningKey.generate("rsa-1024")
-        assert key.algorithm == SigningKey.Algorithm.RSA_1024
 
     def test_generate__produces_unique_keys(self):
         k1 = SigningKey.generate("ed25519")
@@ -68,8 +67,6 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_raw__matches_public_pem(self):
         """Raw bytes must correspond to the public PEM."""
-        from cryptography.hazmat.primitives import serialization
-
         key = SigningKey.generate("ed25519")
         raw = key.public_bytes_raw()
         from_pem = serialization.load_pem_public_key(
@@ -82,13 +79,10 @@ class TestSigningKeyPublicBytes:
 
     def test_public_bytes_der__for_rsa(self):
         """RSA public keys must encode to SPKI DER (used for the DKIM p= tag)."""
-        from cryptography.hazmat.primitives import serialization
-
         key = SigningKey.generate("rsa-2048")
         der = key.public_bytes_der()
         # Should decode back to the same RSA public key.
         loaded = serialization.load_der_public_key(der)
-        from cryptography.hazmat.primitives.asymmetric import rsa
 
         assert isinstance(loaded, rsa.RSAPublicKey)
         assert loaded.key_size == 2048
@@ -116,7 +110,7 @@ class TestSigningKeyConstraints:
             )
 
 
-def _make_org_encryption_key(org, is_active=True):
+def make_org_encryption_key(org, is_active=True):
     """Create an OrgEncryptionKey with a fresh X25519 keypair."""
     pair = envelope.generate_x25519_keypair()
     return OrgEncryptionKey.objects.create(
@@ -124,6 +118,27 @@ def _make_org_encryption_key(org, is_active=True):
         public_key=envelope.encode_key(pair.public_key),
         key_id=envelope.key_fingerprint(pair.public_key),
         is_active=is_active,
+    )
+
+
+def make_certificate(common_name):
+    """Return a self-signed TLS certificate for the given DNS name."""
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, common_name)])
+    now = datetime.datetime.now(datetime.UTC)
+    return (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=90))
+        .add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(common_name)]),
+            critical=False,
+        )
+        .sign(key, hashes.SHA256())
     )
 
 
@@ -149,31 +164,31 @@ class TestOrgEncryptionKeyCreate:
 @pytest.mark.django_db
 class TestOrgEncryptionKeyStr:
     def test_str__active(self, org):
-        key = _make_org_encryption_key(org, is_active=True)
+        key = make_org_encryption_key(org, is_active=True)
         assert str(key) == f"{org} / {key.key_id} (active)"
 
     def test_str__inactive(self, org):
-        key = _make_org_encryption_key(org, is_active=False)
+        key = make_org_encryption_key(org, is_active=False)
         assert str(key) == f"{org} / {key.key_id}"
 
 
 @pytest.mark.django_db
 class TestOrgEncryptionKeyConstraints:
     def test_unique_active__only_one_per_org(self, org):
-        _make_org_encryption_key(org, is_active=True)
+        make_org_encryption_key(org, is_active=True)
         with pytest.raises(IntegrityError):
-            _make_org_encryption_key(org, is_active=True)
+            make_org_encryption_key(org, is_active=True)
 
     def test_multiple_inactive__allowed_for_same_org(self, org):
-        _make_org_encryption_key(org, is_active=False)
-        _make_org_encryption_key(org, is_active=False)
+        make_org_encryption_key(org, is_active=False)
+        make_org_encryption_key(org, is_active=False)
         assert OrgEncryptionKey.objects.filter(org=org).count() == 2
 
 
 @pytest.mark.django_db
 class TestRecoveryEvent:
     def test_recovery_event__creates_with_correct_fields(self, org, user):
-        org_key = _make_org_encryption_key(org)
+        org_key = make_org_encryption_key(org)
         event = RecoveryEvent.objects.create(
             org_encryption_key=org_key,
             triggered_by=user,
@@ -185,7 +200,7 @@ class TestRecoveryEvent:
         assert event.modified_at is not None
 
     def test_recovery_event__str_shows_org_user_and_date(self, org, user):
-        org_key = _make_org_encryption_key(org)
+        org_key = make_org_encryption_key(org)
         event = RecoveryEvent.objects.create(
             org_encryption_key=org_key,
             triggered_by=user,
@@ -193,7 +208,7 @@ class TestRecoveryEvent:
         assert str(event) == f"{org} / {user} / {event.created_at}"
 
     def test_recovery_event__ordered_by_created_at_desc(self, org, user):
-        org_key = _make_org_encryption_key(org)
+        org_key = make_org_encryption_key(org)
         first = RecoveryEvent.objects.create(
             org_encryption_key=org_key,
             triggered_by=user,
@@ -204,7 +219,7 @@ class TestRecoveryEvent:
         )
         # Force distinct timestamps (auto_now_add sets both at creation).
         RecoveryEvent.objects.filter(pk=first.pk).update(
-            created_at=second.created_at - timedelta(seconds=10)
+            created_at=second.created_at - datetime.timedelta(seconds=10)
         )
         events = list(RecoveryEvent.objects.all())
         assert events[0].pk == second.pk
@@ -216,7 +231,7 @@ class TestOrgEncryptionKeyRecoveryField:
     def test_org_encryption_key__recovery_sealed_org_private_key_blank_by_default(
         self, org
     ):
-        key = _make_org_encryption_key(org)
+        key = make_org_encryption_key(org)
         key.refresh_from_db()
         assert key.recovery_sealed_org_private_key == ""
 
@@ -229,3 +244,33 @@ class TestOrgEncryptionKeyRecoveryField:
         )
         key.refresh_from_db()
         assert key.recovery_sealed_org_private_key == "sealed-recovery-key"
+
+
+@pytest.mark.django_db
+class TestStorePresentedChain:
+    def test_store_presented_chain__links_issuers_in_one_pass(self):
+        """A presented chain is stored leaf-first with each issuer linked."""
+        leaf = make_certificate("mx.example.com")
+        intermediate = make_certificate("intermediate.example.com")
+        root = make_certificate("root.example.com")
+        stored_leaf = Certificate.store_presented_chain([leaf, intermediate, root])
+        stored_intermediate = Certificate.objects.get(
+            subject="CN=intermediate.example.com"
+        )
+        stored_root = Certificate.objects.get(subject="CN=root.example.com")
+        assert stored_leaf.issuer_certificate == stored_intermediate
+        assert stored_intermediate.issuer_certificate == stored_root
+        assert stored_root.issuer_certificate is None
+        assert list(stored_leaf.chain()) == [
+            stored_leaf,
+            stored_intermediate,
+            stored_root,
+        ]
+
+    def test_store_presented_chain__reuses_existing_rows(self):
+        """Storing the same chain twice does not duplicate certificates."""
+        leaf = make_certificate("mx.example.com")
+        Certificate.store_presented_chain([leaf])
+        assert Certificate.objects.count() == 1
+        Certificate.store_presented_chain([leaf])
+        assert Certificate.objects.count() == 1

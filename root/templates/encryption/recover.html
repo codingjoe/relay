@@ -7,19 +7,19 @@
       <header>
         <h2>{% translate "encryption recovery"|capfirst %}</h2>
         <p>
-          {% translate "enter the 12-word recovery seed to decrypt the org private key. all org members will be notified immediately." %}
+          {% translate "Enter the 12-word recovery seed to decrypt the org private key. All org members will be notified immediately." %}
         </p>
       </header>
       <section>
         <div class="alert" data-variant="warning" data-size="sm">
           <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
           <p>
-            {% translate "using the recovery seed triggers a permanent audit log entry and notifies all org members by email." %}
+            {% translate "Using the recovery seed triggers a permanent audit log entry and notifies all org members by email." %}
           </p>
         </div>
         <form id="recovery-form" class="fieldset mt-4">
           <div role="group" class="field">
-            <label for="id-recovery-seed">{% translate "recovery seed (12 words)" %}</label>
+            <label for="id-recovery-seed">{% translate "Recovery seed (12 words)" %}</label>
             <textarea
               id="id-recovery-seed"
               class="textarea w-full"

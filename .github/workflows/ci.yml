@@ -10,45 +10,47 @@ concurrency:
   cancel-in-progress: true
 jobs:
   container:
-    name: Build containers
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        container-file:
-          - Dockerfile
+    name: Build and publish image
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read # Allow the job to check out the repository
+      packages: write # Allow the job to push the image to the GitHub Container Registry
     steps:
       - uses: actions/checkout@v7
+      - uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: type=sha,format=long # Tag the image with the immutable git SHA
       - uses: docker/setup-buildx-action@v4
       - uses: docker/build-push-action@v7
         with:
           context: .
-          file: ${{ matrix.container-file }}
-          push: false
+          file: ./Dockerfile
+          target: production # Mirror the compose build section
+          build-args: |
+            UV_NO_DEV=0
+          push: ${{ github.ref == 'refs/heads/main' }} # Only publish images from the main branch
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
   pytest:
     if: contains(github.head_ref, 'dependabot/npm_and_yarn') != true
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: relay
-          POSTGRES_PASSWORD: relay
-          POSTGRES_DB: relay
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     permissions:
-      contents: write
-    env:
-      TESTING: true
-      DJANGO_DATABASE_URL: postgresql://relay:relay@localhost/relay
+      contents: read
+      code-quality: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7.0.0
-      - run: sudo apt install -y postgresql-client
       - uses: astral-sh/setup-uv@v8.2.0
       - uses: actions/setup-node@v7
         with:

@@ -32,13 +32,15 @@ def validate_domain_name(value):
 
 class DomainQuerySet(models.QuerySet):
     def root_for(self, name, *, include_managed):
-        """Return the closest registered parent domain for *name*.
+        """
+        Return the closest registered parent domain for *name*.
 
         If more than one ancestor domain exists, the most specific
         name has priority.
 
         Raises:
             DoesNotExist: If no matching domain is found.
+
         """
         try:
             parts = idna.uts46_remap(
@@ -63,20 +65,23 @@ class DomainQuerySet(models.QuerySet):
         )
         if not include_managed:
             qs = qs.filter(is_managed=False)
-        if (
-            not (
-                domains := list(
-                    qs.select_related("org").order_by(Length("name").desc())
-                )
-            )
-            or len({domain.org_id for domain in domains}) > 1
-        ):
+        domains = list(qs.select_related("org").order_by(Length("name").desc()))
+        # The platform domain is the ancestor of every managed sender
+        # domain by design, so it may share an ancestor chain with
+        # domains of other organizations without making the match ambiguous.
+        if len({domain.org_id for domain in domains}) > 1:
+            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+            domains = [domain for domain in domains if domain.name != platform_name]
+        if not domains or len({domain.org_id for domain in domains}) > 1:
             raise self.model.DoesNotExist
         return domains[0]
 
 
 class Domain(TimeStamped):
     """Root domain. Verified once with NS delegation, DMARC, SPF, and DKIM."""
+
+    SENDING_CHECK_FIELDS = ("nameserver", "spf", "dkim", "dmarc")
+    RECEIVING_CHECK_FIELDS = ("mx", "mta_sts", "tls_rpt")
 
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
@@ -151,6 +156,17 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if the DMARC record is incorrect."),
     )
+    mx_status = models.TextField(
+        _("MX status"),
+        choices=Status,
+        default=Status.UNCHECKED,
+        help_text=_("MX record check result on the root domain."),
+    )
+    mx_error = models.TextField(
+        _("MX error"),
+        blank=True,
+        help_text=_("Failure detail if the MX record is incorrect."),
+    )
     mta_sts_status = models.TextField(
         _("MTA-STS status"),
         choices=Status,
@@ -188,16 +204,6 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("RSA-2048 DKIM signing key."),
     )
-    dkim_key_rsa1024 = models.ForeignKey(
-        "kms.SigningKey",
-        on_delete=models.PROTECT,
-        related_name="+",
-        null=True,
-        blank=True,
-        help_text=_(
-            "RSA-1024 DKIM signing key. For compatibility with older verifiers."
-        ),
-    )
     dkim_key_ed25519 = models.ForeignKey(
         "kms.SigningKey",
         on_delete=models.PROTECT,
@@ -230,12 +236,10 @@ class Domain(TimeStamped):
         super().save(*args, **kwargs)
         if is_new and self.dkim_key_rsa2048_id is None:
             self.dkim_key_rsa2048 = SigningKey.generate(SigningKey.Algorithm.RSA_2048)
-            self.dkim_key_rsa1024 = SigningKey.generate(SigningKey.Algorithm.RSA_1024)
             self.dkim_key_ed25519 = SigningKey.generate(SigningKey.Algorithm.ED25519)
             super().save(
                 update_fields=[
                     "dkim_key_rsa2048",
-                    "dkim_key_rsa1024",
                     "dkim_key_ed25519",
                 ]
             )
@@ -243,6 +247,34 @@ class Domain(TimeStamped):
     @property
     def is_verified(self):
         return self.verified_at is not None
+
+    @property
+    def is_sending_verified(self):
+        return all(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.SENDING_CHECK_FIELDS
+        )
+
+    @property
+    def is_receiving_verified(self):
+        return all(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.RECEIVING_CHECK_FIELDS
+        )
+
+    @property
+    def sending_checks_passing(self):
+        return sum(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.SENDING_CHECK_FIELDS
+        )
+
+    @property
+    def receiving_checks_passing(self):
+        return sum(
+            getattr(self, f"{field}_status") == self.Status.OK
+            for field in self.RECEIVING_CHECK_FIELDS
+        )
 
     is_managed = models.BooleanField(
         _("managed"),
@@ -270,6 +302,16 @@ class Domain(TimeStamped):
                 reduce(or_, (models.Q(name__iexact=value) for value in ancestors))
                 | models.Q(name__iendswith=f".{name}")
             )
+            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+            # The platform domain is the ancestor of every managed sender
+            # domain by design, so a conflict is skipped exactly when one
+            # of the two rows' canonical name is the platform domain.
+            if name == platform_name:
+                overlapping_domains = Domain.objects.none()
+            else:
+                overlapping_domains = overlapping_domains.exclude(
+                    name__iexact=platform_name
+                )
             if self.pk:
                 overlapping_domains = overlapping_domains.exclude(pk=self.pk)
             if overlapping_domains.exists():
@@ -286,7 +328,6 @@ class Domain(TimeStamped):
         prefix = settings.RELAY_DNS_DKIM_IDENTIFIER
         return [
             (f"{prefix}-rsa2048", self.dkim_key_rsa2048),
-            (f"{prefix}-rsa1024", self.dkim_key_rsa1024),
             (f"{prefix}-ed25519", self.dkim_key_ed25519),
         ]
 
@@ -313,7 +354,9 @@ class Domain(TimeStamped):
 
     @property
     def spf_record(self):
-        return "v=spf1 a mx ~all"
+        """Return the SPF record with one ip4 term per relay sending address."""
+        terms = [f"ip4:{address}" for address in settings.RELAY_DNS_SMTP_IPS]
+        return " ".join(["v=spf1", *terms, "-all"])
 
     @property
     def root_spf_record(self):
