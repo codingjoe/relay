@@ -245,7 +245,6 @@ services:
     labels:
       - "caddy=${RELAY_STORAGE_DOMAIN:-storage.${HOSTNAME:-localhost}}"
       - "caddy.reverse_proxy={{upstreams 8080}}"
-      # The image answers /healthz without authentication.
       - "caddy.reverse_proxy.health_uri=/healthz"
       - "caddy.reverse_proxy.health_interval=10s"
       - "caddy.reverse_proxy.health_timeout=5s"
