@@ -184,9 +184,6 @@ services:
   redis-tasks:
     volumes: !override
       - redis-tasks:/data
-    networks: !override
-      - app
-      - ingress
     # acquire.lua drops a queued task whose hash is gone, without a result and
     # without an error, and every task hash carries a TTL, so a volatile-* policy
     # evicts queued work just the same.
