@@ -271,6 +271,21 @@ services:
       - "caddy_2.respond=OK"
     extends:
       service: web
+  redis-tasks:
+    volumes: !override
+      - redis-tasks:/data
+    command: !override [ "redis-server", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory", "384mb", "--maxmemory-policy", "noeviction" ]
+    labels: !override
+      - "caddy=redis-tasks.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+      - "dev.dozzle.url=rediss://:${REDIS_PASSWORD}@redis-tasks.${HOSTNAME:-localhost}:443/"
+      - 'caddy_1.servers.listener_wrappers.0_layer4.@tls-redis-tasks=tls'
+      - 'caddy_1.servers.listener_wrappers.0_layer4.@tls-redis-tasks.sni=redis-tasks.${HOSTNAME:-localhost}'
+      - 'caddy_1.servers.listener_wrappers.0_layer4.route_2=@tls-redis-tasks'
+      - 'caddy_1.servers.listener_wrappers.0_layer4.route_2.0_tls='
+      - 'caddy_1.servers.listener_wrappers.0_layer4.route_2.1_proxy={{upstreams 6379}}'
+    extends:
+      service: redis
   rspamd:
     image: rspamd/rspamd:4.1
     depends_on:
@@ -311,6 +326,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@pg.${HOSTNAME:-localhost}:443/postgres?sslmode=require
       REDIS_URL: rediss://:${REDIS_PASSWORD}@redis.${HOSTNAME:-localhost}:443/
+      TASK_REDIS_URL: rediss://:${REDIS_PASSWORD}@redis-tasks.${HOSTNAME:-localhost}:443/
     networks: !reset []
     network_mode: host
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
@@ -327,6 +343,8 @@ services:
     depends_on:
       migration:
         condition: service_completed_successfully
+      redis-tasks:
+        condition: service_healthy
     environment:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
@@ -350,6 +368,7 @@ services:
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
       RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
       RELAY_RSPAMD_URL: http://:${RELAY_RSPAMD_PASSWORD}@caddy:11334
+      TASK_REDIS_URL: redis://:${REDIS_PASSWORD}@redis-tasks/
     command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https" ]
@@ -415,6 +434,7 @@ volumes:
   caddy_redis:
     name: the-box_caddy_redis
   clamav:
+  redis-tasks:
 configs:
   rspamd_redis:
     content: |
