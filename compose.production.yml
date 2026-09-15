@@ -6,7 +6,7 @@ services:
     image: clamav/clamav:1.5.4_base-debian13-slim
     depends_on:
       clamav-updater:
-        condition: service_healthy
+        condition: service_completed_successfully
     volumes:
       - clamav:/var/lib/clamav
     # CLAMD_CONF_* overrides, see
@@ -28,32 +28,24 @@ services:
       resources:
         limits:
           memory: 4g # clamd needs 3-4 GiB
-  # The base image ships no signatures, so one container keeps the shared
-  # database volume current for every clamd replica.
+  # The base image ships no signatures, so a one-shot container loads them for
+  # every clamd replica, then exits. Each `docker compose up` re-runs it. A
+  # failed update still succeeds when signatures are already on the volume, so
+  # a mirror outage cannot hold back clamd; only a cold volume fails the deploy.
+  # The image healthcheck pings clamd, which this container does not run.
   clamav-updater:
-    image: clamav/clamav:1.5.4_base-debian13-slim
-    volumes:
-      - clamav:/var/lib/clamav
-    environment:
-      CLAMAV_NO_CLAMD: "true"
+    depends_on: !reset [] # cancels the depends_on that extends would inherit
+    environment: !override
       FRESHCLAM_CONF_TestDatabases: "no"
-    networks:
+    networks: !override
       - app-wan # freshclam needs egress for signature updates
-    restart: unless-stopped
-    # Same test as the image entrypoint, which downloads the full database set
-    # itself when main.cvd is missing. Holding clamd back until the file exists
-    # keeps a cold volume from starting three downloads at once.
+    command: [ "sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd" ]
+    restart: no
     healthcheck:
-      test: [ "CMD", "test", "-e", "/var/lib/clamav/main.cvd" ]
-      interval: 30s
-      retries: 60
-      start_period: 30s
-    labels:
-      - dev.dozzle.icon=clam-av
-    deploy:
-      resources:
-        limits:
-          memory: 256m # freshclam peaks under 10 MiB without database load-testing
+      disable: true
+    deploy: !reset {} # one-shot: no second replica racing over the volume
+    extends:
+      service: clamav
   dns:
     networks: !override
       app: ~
