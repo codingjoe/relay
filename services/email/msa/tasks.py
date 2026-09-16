@@ -195,6 +195,11 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 details = f"{type(error).__name__}: {error}"
                 transmission.details = details
                 reasons.append((mx_host, details))
+            except Exception as error:
+                # The attempt row has to explain what the pipeline reports,
+                # because the fallback row repeats this exception.
+                transmission.details = f"{type(error).__name__}: {error}"
+                raise
             else:
                 transmission.status = Transmission.Status.SENT
                 transmission.output = str(response)
