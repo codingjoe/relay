@@ -2,6 +2,7 @@ import datetime
 import itertools
 import json
 import time
+from email import message_from_bytes, policy
 from email.message import EmailMessage
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -10,7 +11,6 @@ import httpx
 import pytest
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core import mail
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
@@ -18,6 +18,7 @@ from accounts.models import Membership, Organization
 from domains.models import Domain
 from kms.models import SigningKey
 from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.mta.emails import PostmasterForwardEmail
 from services.email.mta.models import (
     IncomingMessage,
@@ -175,9 +176,25 @@ def make_postmaster_message(
     return message
 
 
+def forwarded_copy(message):
+    return message_from_bytes(
+        OutgoingMessage.objects.get(
+            org=message.org, rcpt_to="alice@example.com"
+        ).raw_body.read(),
+        policy=policy.default,
+    )
+
+
 @pytest.mark.django_db(transaction=True)
 class TestForwardPostmasterMessage:
-    def test_forward_postmaster_message__sends_to_every_member_with_email(
+    @pytest.fixture(autouse=True)
+    def spam_check(self, monkeypatch):
+        """Keep the queued spam scans off rspamd."""
+        check = Mock()
+        monkeypatch.setattr("services.email.msa.handlers.check_outgoing_spam", check)
+        return check
+
+    def test_forward_postmaster_message__submits_a_copy_per_member_with_email(
         self, org, other_user
     ):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
@@ -185,9 +202,10 @@ class TestForwardPostmasterMessage:
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert sorted(m.to for m in mail.outbox) == [
-            ["alice@example.com"],
-            ["bob@example.com"],
+        copies = OutgoingMessage.objects.filter(org=org)
+        assert sorted(copy.rcpt_to for copy in copies) == [
+            "alice@example.com",
+            "bob@example.com",
         ]
 
     def test_forward_postmaster_message__skips_members_without_email(self, org):
@@ -197,30 +215,45 @@ class TestForwardPostmasterMessage:
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert [m.to for m in mail.outbox] == [["alice@example.com"]]
+        assert [copy.rcpt_to for copy in OutgoingMessage.objects.filter(org=org)] == [
+            "alice@example.com"
+        ]
+
+    def test_forward_postmaster_message__sends_from_the_receiving_domain(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert forwarded_copy(message)["From"] == "postmaster@example.com"
+
+    def test_forward_postmaster_message__attributes_the_copy_to_the_org_domain(
+        self, org
+    ):
+        """The organization's own domain is what bills the copy."""
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        copy = OutgoingMessage.objects.get(org=org)
+        assert copy.domain_id == message.domain_id
+        assert copy.status == OutgoingMessage.Status.PENDING
 
     def test_forward_postmaster_message__prefixes_original_subject(self, org):
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert mail.outbox[0].subject == f"Fwd: {message.subject}"
-
-    def test_forward_postmaster_message__sends_from_default_from_email(self, org):
-        message = make_postmaster_message(org)
-
-        forward_postmaster_message.func(message_pk=str(message.pk))
-
-        assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
+        assert forwarded_copy(message)["Subject"] == f"Fwd: {message.subject}"
 
     def test_forward_postmaster_message__body_names_recipient(self, org):
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
+        body = forwarded_copy(message).get_body(preferencelist=("plain",)).get_content()
         assert (
             "A message sent to postmaster@example.com was forwarded to your organization."
-            in mail.outbox[0].body
+            in body
         )
 
     def test_forward_postmaster_message__body_links_to_stored_message(self, org):
@@ -228,37 +261,24 @@ class TestForwardPostmasterMessage:
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert (
-            f"{settings.RELAY_PLATFORM_BASE_URL}{message.get_absolute_url()}"
-            in mail.outbox[0].body
-        )
+        body = forwarded_copy(message).get_body(preferencelist=("plain",)).get_content()
+        assert f"{settings.RELAY_PLATFORM_BASE_URL}{message.get_absolute_url()}" in body
 
-    def test_forward_postmaster_message__body_links_over_https_in_production(
-        self, org, settings
-    ):
-        settings.RELAY_PLATFORM_BASE_URL = f"https://{settings.RELAY_PLATFORM_DOMAIN}"
+    def test_forward_postmaster_message__stores_html_and_plain_parts(self, org):
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert (
-            f"https://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
-            in mail.outbox[0].body
-        )
-
-    def test_forward_postmaster_message__sends_no_attachment(self, org):
-        message = make_postmaster_message(org)
-
-        forward_postmaster_message.func(message_pk=str(message.pk))
-
-        assert mail.outbox[0].attachments == []
+        copy = forwarded_copy(message)
+        parts = {part.get_content_type() for part in copy.iter_parts()}
+        assert parts == {"text/html", "text/plain"}
 
     def test_forward_postmaster_message__replies_to_original_author(self, org):
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert mail.outbox[0].reply_to == ["author@example.org"]
+        assert forwarded_copy(message)["Reply-To"] == "author@example.org"
 
     def test_forward_postmaster_message__replies_to_envelope_sender_without_from_header(
         self, org
@@ -267,7 +287,7 @@ class TestForwardPostmasterMessage:
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert mail.outbox[0].reply_to == ["bounce@example.org"]
+        assert forwarded_copy(message)["Reply-To"] == "bounce@example.org"
 
     def test_forward_postmaster_message__omits_reply_to_without_sender(self, org):
         message = make_postmaster_message(
@@ -276,31 +296,41 @@ class TestForwardPostmasterMessage:
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert mail.outbox[0].reply_to == []
-        assert "Reply-To" not in mail.outbox[0].extra_headers
+        assert forwarded_copy(message)["Reply-To"] is None
 
-    def test_forward_postmaster_message__sends_one_batch(self, org, other_user):
-        Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
-        message = make_postmaster_message(org)
-
-        with patch("services.email.mta.tasks.mailers") as mock_mailers:
-            forward_postmaster_message.func(message_pk=str(message.pk))
-
-        send_messages = mock_mailers["default"].send_messages
-        send_messages.assert_called_once()
-        assert sorted(m.to for m in send_messages.call_args.args[0]) == [
-            ["alice@example.com"],
-            ["bob@example.com"],
-        ]
-
-    def test_forward_postmaster_message__sends_html_alternative(self, org):
+    def test_forward_postmaster_message__signs_and_stamps_the_copy(self, org):
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
-        assert [mimetype for _, mimetype in mail.outbox[0].alternatives] == [
-            "text/html"
-        ]
+        copy = OutgoingMessage.objects.get(org=org)
+        assert any(name == "DKIM-Signature" for name, _ in copy.headers)
+        assert copy.feedback_id.startswith(f"{org.pk}::")
+
+    def test_forward_postmaster_message__records_the_submission(self, org):
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        transmission = Transmission.objects.get(message__org=org)
+        assert transmission.status == Transmission.Status.SUBMITTED
+
+    def test_forward_postmaster_message__queues_every_copy_for_delivery(
+        self, org, other_user, spam_check
+    ):
+        Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
+        message = make_postmaster_message(org)
+
+        forward_postmaster_message.func(message_pk=str(message.pk))
+
+        assert sorted(
+            call.kwargs["message_pk"] for call in spam_check.enqueue.call_args_list
+        ) == sorted(
+            str(pk)
+            for pk in OutgoingMessage.objects.filter(org=org).values_list(
+                "pk", flat=True
+            )
+        )
 
 
 @pytest.mark.django_db

@@ -162,6 +162,15 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Never hand-roll a multipart HTML email. A rendered template is what gives
   every message the matching plain-text alternative and a preview page.
 
+- Submit mail relay generates from an organization's own domain (the test
+  email, the postmaster forward) through
+  `services/email/msa/handlers.py::submit_relay_message`, never through the
+  mail backend. It stamps the Feedback-ID, signs for the domain and stores
+  the message, which is what puts the copy in the dashboard and on the bill.
+  That makes `services.email.msa` a dependency of `services.email.mta`, the
+  one sanctioned direction between the two mail pipeline siblings: the
+  forward of an inbound message is an outgoing one.
+
 ## Naming
 
 - Use names that cover both ingress and egress when a model tracks

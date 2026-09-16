@@ -9,12 +9,12 @@ from dataclasses import dataclass, field
 import httpx
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.core.mail import mailers
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
 from django.utils import timezone
 
 from services.email.message.models import Transmission
+from services.email.msa.handlers import submit_relay_message
 from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
 
@@ -236,22 +236,33 @@ def parse_tls_report(report_pk):
     TlsFailure.objects.bulk_create(failures)
 
 
-@task(queue_name="ingress")
+@task(queue_name="egress")
 def forward_postmaster_message(message_pk):
     """
-    Send every member of the receiving organization a replyable copy.
+    Submit every member of the receiving organization a replyable copy.
 
+    Each copy leaves relay from the domain the message arrived at, so it
+    lands in the organization's dashboard and counts toward their usage.
     The copy names the recipient, links to the stored message in the relay
     dashboard, and replies reach the original author.
     """
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.exclude(user__email="").select_related("user")
-    mailers["default"].send_messages(
-        [
-            PostmasterForwardEmail(message, to=[membership.user.email])
-            for membership in memberships
-        ]
-    )
+    mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{message.domain_name}"
+    started_at = timezone.now()
+    for membership in memberships:
+        submit_relay_message(
+            org=message.org,
+            domain=message.domain,
+            email=PostmasterForwardEmail(
+                message,
+                from_email=mail_from,
+                to=[membership.user.email],
+            ),
+            mail_from=mail_from,
+            rcpt_to=membership.user.email,
+            started_at=started_at,
+        )
 
 
 @task(queue_name="ingress", retry=SPAM_SCAN_RETRY)

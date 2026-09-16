@@ -9,14 +9,13 @@ from django.views import generic
 
 from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.dkim import sign_message
 from domains.models import Domain
 from services.email.message.views import MessageDetailView
 
 from .charts import build_suppression_chart
 from .emails import TestEmail
 from .forms import SuppressionEntryForm
-from .handlers import add_feedback_id, store_outgoing_message
+from .handlers import submit_relay_message
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 
 
@@ -44,28 +43,21 @@ class TestEmailView(OrganizationScopedView, generic.View):
             return redirect("message:message-list", org_slug=org_slug)
 
         mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{domain.name}"
-        email = TestEmail(
-            domain=domain,
-            recipient=request.user.email,
-            from_email=mail_from,
-            to=[request.user.email],
-            language=translation.get_language(),
-        )
-        raw_bytes, feedback_id = add_feedback_id(email.message().as_bytes(), self.org)
-        raw_bytes = sign_message(raw_bytes, domain)
-
-        store_outgoing_message(
+        submit_relay_message(
             org=self.org,
-            rcpt_to=request.user.email,
-            mail_from=mail_from,
             domain=domain,
-            credential=None,
-            status=OutgoingMessage.Status.PENDING,
-            feedback_id=feedback_id,
+            email=TestEmail(
+                domain=domain,
+                recipient=request.user.email,
+                from_email=mail_from,
+                to=[request.user.email],
+                language=translation.get_language(),
+            ),
+            mail_from=mail_from,
+            rcpt_to=request.user.email,
+            started_at=started_at,
             ssl=request.is_secure(),
             client_ip=request.META.get("REMOTE_ADDR", ""),
-            raw_bytes=raw_bytes,
-            started_at=started_at,
         )
         messages.success(request, _("Queued test message for delivery."))
         return redirect("message:message-list", org_slug=org_slug)
