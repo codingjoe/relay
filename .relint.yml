@@ -98,6 +98,13 @@
     instead of constructing the instance, assigning the file, and saving
     it in multiple steps.
   filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: Derive file storage paths from the primary key
+  pattern: 'upload_to\s*=\s*["'']'
+  hint: |
+    Do not pass a directory to `upload_to`. Pass a callable that builds the
+    path from the instance primary key, so two records never share a name
+    and no stored file replaces another.
+  filePattern: '(?!.*/migrations/).*\.py$'
 - name: No indented imports
   pattern: '\n[ \t]+(?:from[ \t]+\S+[ \t]+import[ \t]|import[ \t]+[\w.]+)'
   hint: |
