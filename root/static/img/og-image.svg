@@ -12,6 +12,6 @@
   <path fill="url(#a)" d="M0 0h1200v630H0z"/>
   <g fill="#fff" text-anchor="middle">
     <text x="600" y="345" font-family="'Space Mono', monospace" font-size="170" font-style="italic" font-weight="bold">relay</text>
-    <text x="600" y="455" font-family="'Fira Sans SemiBold', 'Fira Sans', ui-sans-serif, system-ui, sans-serif" font-size="52" font-weight="600">communication as a service</text>
+    <text x="600" y="455" font-family="'Fira Sans SemiBold', 'Fira Sans', ui-sans-serif, system-ui, sans-serif" font-size="52" font-weight="600">Communication as a Service</text>
   </g>
 </svg>

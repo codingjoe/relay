@@ -78,4 +78,5 @@ if settings.DEBUG:
     urlpatterns = [
         *urlpatterns,
         path("__debug__/", include("debug_toolbar.urls")),
+        path("emails/", include("django_letter.urls")),
     ]

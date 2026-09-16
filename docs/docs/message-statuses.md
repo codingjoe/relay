@@ -113,9 +113,10 @@ hosts MTA-STS rejected and the lookup that found no host at all.
 The message detail page also draws these records on a timeline. Each bar
 spans the time relay measured for that attempt: a reception bar covers the
 inbound SMTP transaction, a submission bar covers the outbound SMTP
-transaction, and a delivery bar covers the connection to the MX host. The
-gaps between bars show how long the message waited in the queue or between
-retries. Green bars mark successful attempts, red bars mark failures, and
+transaction, and a delivery bar covers one attempt at an MX host, including
+the MTA-STS check and the SMTP session with that host. The attempt that
+found no host to try covers the MX lookup instead. The gaps between bars
+show how long the message waited in the queue or between retries. Green bars mark successful attempts, red bars mark failures, and
 yellow bars mark retries. Blue bars mark the reception and submission legs.
 The spam check bar takes the color of its verdict: green when the message
 is clean, yellow when the scan holds or rewrites it, red when it rejects it,

@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "django.contrib.humanize",
     # Third-party apps
+    "django_letter",
     "health_check",
     "social_django",
     "storages",
@@ -353,12 +354,10 @@ RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 
-_email = env.email_url(
-    "EMAIL_URL",
-    default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
-)
-MAILERS = {
-    "default": {
+# compose passes an unset EMAIL_URL through as an empty string
+if email_url := env("EMAIL_URL", default=""):
+    _email = env.email_url_config(email_url)
+    _mailer = {
         "BACKEND": _email["EMAIL_BACKEND"],
         "OPTIONS": {
             key: value
@@ -373,8 +372,15 @@ MAILERS = {
             }.items()
             if value
         },
-    },
-}
+    }
+else:
+    # Prints the plain-text body alone, see
+    # https://github.com/codingjoe/django-letter#readme
+    _mailer = {
+        "BACKEND": "django_letter.backends.ConsoleEmailBackend",
+        "OPTIONS": {},
+    }
+MAILERS = {"default": _mailer}
 DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 
 
