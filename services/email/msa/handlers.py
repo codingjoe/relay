@@ -1,4 +1,4 @@
-"""SMTP handlers for outgoing mail submissions."""
+"""Store and submit outgoing mail."""
 
 import base64
 import logging
@@ -204,6 +204,40 @@ def store_outgoing_message(
             )
         )
     return message
+
+
+def submit_relay_message(
+    *,
+    org,
+    domain,
+    email,
+    mail_from,
+    rcpt_to,
+    started_at,
+    ssl=None,
+    client_ip=None,
+):
+    """
+    Stamp, sign and queue one message relay generated for an organization.
+
+    The message leaves relay from the organization's own domain, which is
+    what puts it in their dashboard and on their bill.
+    """
+    raw_bytes, feedback_id = add_feedback_id(email.message().as_bytes(), org)
+    raw_bytes = sign_message(raw_bytes, domain)
+    return store_outgoing_message(
+        org=org,
+        rcpt_to=rcpt_to,
+        mail_from=mail_from,
+        domain=domain,
+        credential=None,
+        status=OutgoingMessage.Status.PENDING,
+        feedback_id=feedback_id,
+        ssl=ssl,
+        client_ip=client_ip,
+        raw_bytes=raw_bytes,
+        started_at=started_at,
+    )
 
 
 @sync_to_async

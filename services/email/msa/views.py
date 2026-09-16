@@ -1,23 +1,22 @@
-from email.message import EmailMessage
-
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import BadRequest
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
+from django_letter.exceptions import InvalidUserError
 
 from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.dkim import sign_message
 from domains.models import Domain
 from services.email.message.views import MessageDetailView
 
 from .charts import build_suppression_chart
+from .emails import TestEmail
 from .forms import SuppressionEntryForm
-from .handlers import add_feedback_id, store_outgoing_message
+from .handlers import submit_relay_message
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 
 
@@ -33,34 +32,38 @@ class OutgoingMessageDetailView(MessageDetailView):
 
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
-        domain = get_object_or_404(Domain, pk=request.POST["domain"], org=self.org)
         started_at = timezone.now()
-        mail_from = f"postmaster@{domain.name}"
+        try:
+            domain = Domain.objects.get(org=self.org, is_managed=True)
+        except Domain.DoesNotExist:
+            messages.error(request, _("Add a sending domain first."))
+            return redirect("message:message-list", org_slug=org_slug)
+
+        mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{domain.name}"
+        try:
+            email = TestEmail.to_user(
+                request.user,
+                domain=domain,
+                from_email=mail_from,
+                language=translation.get_language(),
+            )
+        except InvalidUserError:
+            messages.error(request, _("Your account cannot receive email."))
+            return redirect("message:message-list", org_slug=org_slug)
 
         if SuppressionEntry.objects.is_suppressed(self.org, request.user.email):
             messages.error(request, _("Recipient is on the suppression list."))
             return redirect("message:message-list", org_slug=org_slug)
 
-        msg = EmailMessage()
-        msg["From"] = mail_from
-        msg["To"] = request.user.email
-        msg["Subject"] = request.POST.get("subject", "")
-        msg.set_content(request.POST.get("body", ""))
-        raw_bytes, feedback_id = add_feedback_id(msg.as_bytes(), self.org)
-        raw_bytes = sign_message(raw_bytes, domain)
-
-        store_outgoing_message(
+        submit_relay_message(
             org=self.org,
-            rcpt_to=request.user.email,
-            mail_from=mail_from,
             domain=domain,
-            credential=None,
-            status=OutgoingMessage.Status.PENDING,
-            feedback_id=feedback_id,
+            email=email,
+            mail_from=mail_from,
+            rcpt_to=request.user.email,
+            started_at=started_at,
             ssl=request.is_secure(),
             client_ip=request.META.get("REMOTE_ADDR", ""),
-            raw_bytes=raw_bytes,
-            started_at=started_at,
         )
         messages.success(request, _("Queued test message for delivery."))
         return redirect("message:message-list", org_slug=org_slug)
