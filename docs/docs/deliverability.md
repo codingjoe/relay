@@ -22,7 +22,7 @@ one:
 | Check         | Where relay looks                  | What it wants to see                                 |
 | ------------- | ---------------------------------- | ---------------------------------------------------- |
 | NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
-| SPF           | root and sender subdomain TEXT     | a record that authorizes the relay sender host       |
+| SPF           | root and sender subdomain TXT      | a record that authorizes each relay sending IP       |
 | DKIM          | two CNAME records                  | `{selector}._domainkey` pointing into the relay zone |
 | DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
 | MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
@@ -58,7 +58,7 @@ sequenceDiagram
     participant App as Your application
     participant MSA as relay SMTP (587/465)
     participant Worker as relay worker
-    participant Scan as rspamd
+    participant Scan as Scanner
     participant Sign as DKIM signer
     participant Remote as Recipient MX
 
@@ -66,7 +66,7 @@ sequenceDiagram
     MSA->>MSA: sender-domain, suppression, billing checks
     MSA-->>App: 250 OK enqueued
     MSA->>Worker: enqueue spam scan for the stored message
-    Worker->>Scan: scan through the load balancer
+    Worker->>Scan: scan the stored message
     Scan-->>Worker: score and action
     alt score reaches the hold threshold
         Worker->>Worker: status held, stop
@@ -98,7 +98,7 @@ privacy</a> for what that means.
 
 ## Content quality: the outbound spam gate
 
-Before delivery, rspamd scores each outgoing message and scans it for
+Before delivery, relay scores each outgoing message and scans it for
 malware. A message whose score reaches the hold threshold, or that the scan
 rejects, stays HELD and does not reach the recipient. If the scanner cannot
 run, the message stays pending instead of being held. You see the score,

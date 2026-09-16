@@ -95,7 +95,7 @@ flowchart TD
     D -- reject --> C
     D -- quarantine --> E[Store as quarantined]
     D -- none --> F[Store as received]
-    E --> G[rspamd scan]
+    E --> G[Spam and malware scan]
     F --> G
     G -- score 15 or higher, or malware found --> H[Quarantine, no webhook]
     G -- clean and not already quarantined --> I[Dispatch webhooks]

@@ -31,7 +31,7 @@ sequenceDiagram
     participant MX as relay MX (25)
     participant Store as Storage
     participant Worker as relay worker
-    participant Scan as rspamd
+    participant Scan as Scanner
     participant Hook as Your webhook
 
     Sender->>MX: STARTTLS on 25, RCPT TO
@@ -43,7 +43,7 @@ sequenceDiagram
     MX-->>Sender: 250 accepted (or 550 per policy)
     MX->>Store: store message and metadata
     MX->>Worker: enqueue spam scan for the stored message
-    Worker->>Scan: scan through the load balancer
+    Worker->>Scan: scan the stored message
     Scan-->>Worker: score and action
     Worker->>Hook: signed webhook per configured endpoint
 ```
@@ -63,7 +63,7 @@ and it protects your inbox from spoofing attempts. relay signs outgoing mail
 with RSA-2048 and Ed25519 keys, but inbound DKIM verification still accepts
 signatures from older senders that use RSA-1024 keys.
 
-**Spam scan.** rspamd scores every accepted message, and you can see the
+**Spam scan.** relay scores every accepted message, and you can see the
 score in the dashboard. A message whose score reaches the reject
 threshold, or whose action is reject, lands as quarantined and never
 reaches your webhook. The same scan checks for malware, so an infected

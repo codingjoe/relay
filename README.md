@@ -26,9 +26,14 @@ The platform operator must set up the following records on the
    `ns1.{platform_domain}`, `ns2.{platform_domain}`).
 1. **A/AAAA record for the web server**. The platform domain itself needs
    an A/AAAA record for the web UI.
+1. **A/AAAA record for the storage host**. Caddy serves signed message body
+   URLs on `storage.{platform_domain}`, and the certificate for that name
+   needs a record that resolves. Point it at the web server, or set
+   `RELAY_STORAGE_DOMAIN` to serve bodies from a different name.
 1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
    public hostname (`smtp.{platform_domain}`) and sender subdomains resolve
-   to the SMTP server IPs.
+   to the SMTP server IPs, and the SPF record of each sender subdomain
+   authorizes every one of them.
 1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
    record with the hosting provider. Outbound SMTP must use the corresponding
    hostname for EHLO.
@@ -83,6 +88,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | clamav  | 3310         | Malware scanning (internal only)                               |
 | Worker  | N/A          | Threadmill task worker for ingress, egress, and default queues |
 | Sender  | N/A          | Threadmill task worker for delivery to remote MX hosts         |
+| Storage | 8080         | Message body proxy with signed, expiring URLs                  |
 
 ```mermaid
 flowchart TD
@@ -105,12 +111,16 @@ flowchart TD
         mail_sender[Sender Threadmill]
         rspamd[rspamd :11334, 2 replicas]
         clamav[clamav :3310]
-        minio[MinIO S3 :9000]
+        s3proxy[Storage s3proxy :8080]
     end
 
     subgraph data[data services]
         pg[PostgreSQL 18+]
         redis[Redis]
+    end
+
+    subgraph storage[object storage]
+        s3[S3-compatible bucket]
     end
 
     subgraph dns[dnsdist network]
@@ -120,6 +130,7 @@ flowchart TD
 
     browser --> caddy_proxy
     caddy_proxy --> web
+    caddy_proxy -->|signed body URL| s3proxy
     client -->|STARTTLS :587 / TLS :465| caddy_l4
     sender -->|STARTTLS :25| caddy_l4
     caddy_l4 --> msa
@@ -134,11 +145,12 @@ flowchart TD
     rspamd --> clamav
     web --> pg
     web --> redis
-    web --> minio
+    web --> s3proxy
     msa --> pg
-    msa --> minio
+    msa --> s3proxy
     mta --> pg
-    mta --> minio
+    mta --> s3proxy
+    s3proxy --> s3
     dnsdist --> dns_ns
     sender -->|DNS :53| dnsdist
 ```
@@ -152,9 +164,9 @@ each delivery includes `webhook-id`, `webhook-timestamp`, and
 `webhook-signature` headers with an Ed25519 (`v1a`) signature. Each webhook
 has its own keypair, so clients verify with the webhook's public key
 (`whpk_` format) using any Standard Webhooks SDK. The payload is flat event
-data with a storage URL for the raw message body. The payload never includes
-the raw body inline. You can filter webhooks by receiving domain and recipient
-address glob pattern.
+data with a signed storage URL for the raw message body, which expires after
+an hour. The payload never includes the raw body inline. You can filter
+webhooks by receiving domain and recipient address glob pattern.
 
 ### Task queues
 
@@ -230,7 +242,8 @@ allowlist their report sender.
 - **Django** with the task framework for async message delivery
 - **PostgreSQL**. Primary database
 - **Redis**. Caching and rate limiting
-- **S3**. Raw message body storage via django-storages
+- **S3**. Raw message body storage via django-storages, published through
+  the storage proxy with signed, expiring URLs
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
 

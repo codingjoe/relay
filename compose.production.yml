@@ -1,21 +1,27 @@
 include:
+  - oci://ghcr.io/codingjoe/the-box:main
   - oci://ghcr.io/codingjoe/the-box-postgres:main
   - oci://ghcr.io/codingjoe/the-box-redis:main
 services:
+  caddy:
+    pull_policy: always # the Box publishes only a rolling `main` tag
   clamav:
-    image: clamav/clamav:1.5.4-debian13-slim
+    image: clamav/clamav:1.5.4_base-debian13-slim
+    depends_on:
+      clamav-updater:
+        condition: service_completed_successfully
     volumes:
       - clamav:/var/lib/clamav
     # CLAMD_CONF_* overrides, see
     # https://github.com/Cisco-Talos/clamav-docker/blob/main/clamav/README-debian.md
     environment:
+      # clamav-updater owns the shared database volume
+      CLAMAV_NO_FRESHCLAMD: "true"
       CLAMD_CONF_ConcurrentDatabaseReload: "no"
       CLAMD_CONF_AlertExceedsMax: "yes"
       CLAMD_CONF_StreamMaxLength: "40M" # above the 2**25 SMTP DATA limit
-      FRESHCLAM_CONF_TestDatabases: "no"
     networks:
       - app
-      - app-wan # freshclam needs egress for signature updates
     restart: unless-stopped
     labels:
       - dev.dozzle.icon=clam-av
@@ -24,6 +30,21 @@ services:
       resources:
         limits:
           memory: 4g # clamd needs 3-4 GiB
+  # One-shot signature updater, see
+  # https://docs.clamav.net/manual/Installing/Docker.html
+  clamav-updater:
+    depends_on: !reset []
+    environment: !override
+      FRESHCLAM_CONF_TestDatabases: "no"
+    networks: !override
+      - app-wan
+    command: [ "sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd" ]
+    restart: no
+    healthcheck:
+      disable: true
+    deploy: !reset {}
+    extends:
+      service: clamav
   dns:
     networks: !override
       app: ~
@@ -97,41 +118,6 @@ services:
     extends:
       service: web
     memswap_limit: !reset ""
-  minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    volumes:
-      - s3:/data
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    networks:
-      - app
-      - app-wan
-    command: [ "server", "/data", "--console-address", ":9001" ]
-    healthcheck:
-      test: [ "CMD", "mc", "ready", "local" ]
-      interval: 10s
-      retries: 5
-      start_period: 10s
-      timeout: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512m
-  minio-init:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
-    depends_on:
-      minio:
-        condition: service_healthy
-        required: true
-        restart: true
-    networks:
-      - app
-    command:
-      - mc alias set root http://minio:9000 minioadmin ${MINIO_ROOT_PASSWORD} && mc mb root/relay --ignore-existing
-    entrypoint: [ "/bin/sh", "-c" ]
-    restart: "no"
   msa:
     volumes:
       - caddy_data:/data:ro
@@ -165,6 +151,9 @@ services:
       - "caddy_1.layer4.:465.route.1_proxy.lb_try_duration=3s"
       - "caddy_1.layer4.:465.route.1_proxy.fail_duration=10s"
       - "caddy_1.layer4.:465.route.1_proxy.proxy_protocol=v2"
+    # Caddy writes certs root-only; run as root with no capabilities.
+    user: "0:0"
+    cap_drop: [ ALL ]
     extends:
       service: web
   mta:
@@ -196,8 +185,26 @@ services:
       - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
       - "caddy_2=mx2.${HOSTNAME:-localhost}"
       - "caddy_2.respond=OK"
+    # Caddy writes certs root-only; run as root with no capabilities.
+    user: "0:0"
+    cap_drop: [ ALL ]
     extends:
       service: web
+  redis-tasks:
+    volumes: !override
+      - redis-tasks:/data
+    command: !override [ "redis-server", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory", "384mb", "--maxmemory-policy", "noeviction" ]
+    labels: !override
+      - "caddy=redis-tasks.${HOSTNAME:-localhost}"
+      - "caddy.respond=OK"
+      - "dev.dozzle.url=rediss://:${REDIS_PASSWORD}@redis-tasks.${HOSTNAME:-localhost}:443/"
+      - 'caddy_1.servers.listener_wrappers.0_layer4.@tls-redis-tasks=tls'
+      - 'caddy_1.servers.listener_wrappers.0_layer4.@tls-redis-tasks.sni=redis-tasks.${HOSTNAME:-localhost}'
+      - 'caddy_1.servers.listener_wrappers.0_layer4.route_2=@tls-redis-tasks'
+      - 'caddy_1.servers.listener_wrappers.0_layer4.route_2.0_tls='
+      - 'caddy_1.servers.listener_wrappers.0_layer4.route_2.1_proxy={{upstreams 6379}}'
+    extends:
+      service: redis
   rspamd:
     image: rspamd/rspamd:4.1
     depends_on:
@@ -238,11 +245,40 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@pg.${HOSTNAME:-localhost}:443/postgres?sslmode=require
       REDIS_URL: rediss://:${REDIS_PASSWORD}@redis.${HOSTNAME:-localhost}:443/
+      TASK_REDIS_URL: rediss://:${REDIS_PASSWORD}@redis-tasks.${HOSTNAME:-localhost}:443/
     networks: !reset []
     network_mode: host
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery", "--workers", "2", "--threads", "4", "--max-tasks", "10000", "--max-tasks-jitter", "100" ]
     extends:
       service: worker
+  storage:
+    image: andrewgaul/s3proxy:4.1.1
+    environment:
+      S3PROXY_ENDPOINT: http://0.0.0.0:8080
+      S3PROXY_AUTHORIZATION: aws-v4
+      S3PROXY_IDENTITY: ${AWS_S3_ACCESS_KEY_ID:?AWS_S3_ACCESS_KEY_ID must be set}
+      S3PROXY_CREDENTIAL: ${AWS_S3_SECRET_ACCESS_KEY:?AWS_S3_SECRET_ACCESS_KEY must be set}
+      JCLOUDS_PROVIDER: aws-s3
+      JCLOUDS_IDENTITY: ${AWS_S3_ACCESS_KEY_ID}
+      JCLOUDS_CREDENTIAL: ${AWS_S3_SECRET_ACCESS_KEY}
+      JCLOUDS_ENDPOINT: ${AWS_S3_ENDPOINT_URL:?AWS_S3_ENDPOINT_URL must be set}
+      JCLOUDS_REGION: ${AWS_S3_REGION_NAME:-fsn1}
+    networks:
+      - app-wan
+      - ingress
+    restart: unless-stopped
+    labels:
+      - "caddy=${RELAY_STORAGE_DOMAIN:-storage.${HOSTNAME:-localhost}}"
+      - "caddy.reverse_proxy={{upstreams 8080}}"
+      - "caddy.reverse_proxy.health_uri=/healthz"
+      - "caddy.reverse_proxy.health_interval=10s"
+      - "caddy.reverse_proxy.health_timeout=5s"
+      - "caddy.reverse_proxy.fail_duration=10s"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
   web:
     image: ghcr.io/codingjoe/relay:${IMAGE_TAG:-local}
     build:
@@ -254,10 +290,10 @@ services:
     depends_on:
       migration:
         condition: service_completed_successfully
-      minio-init:
-        condition: service_completed_successfully
-        required: true
-        restart: true
+      redis-tasks:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
     environment:
       HOSTNAME: ${HOSTNAME:-localhost}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-${HOSTNAME:-localhost}}
@@ -273,14 +309,16 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-}
-      AWS_S3_ENDPOINT_URL: http://minio:9000
-      AWS_S3_ACCESS_KEY_ID: minioadmin
-      AWS_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      AWS_STORAGE_BUCKET_NAME: relay
-      AWS_S3_ADDRESSING_STYLE: path
+      AWS_S3_ENDPOINT_URL: https://${RELAY_STORAGE_DOMAIN:-storage.${HOSTNAME:-localhost}}
+      AWS_S3_ACCESS_KEY_ID: ${AWS_S3_ACCESS_KEY_ID}
+      AWS_S3_SECRET_ACCESS_KEY: ${AWS_S3_SECRET_ACCESS_KEY}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-relay}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-fsn1}
+      AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-path}
       RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
       RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
       RELAY_RSPAMD_URL: http://:${RELAY_RSPAMD_PASSWORD}@caddy:11334
+      TASK_REDIS_URL: redis://:${REDIS_PASSWORD}@redis-tasks/
     command: [ "-m", "granian", "--port", "${PORT:-8000}", "--host", "0.0.0.0", "root.asgi:application" ]
     healthcheck:
       test: [ "CMD", "python", "-m", "manage", "health_check", "health", "localhost:${PORT:-8000}", "--forwarded-host", "${HOSTNAME:-localhost}", "--forwarded-proto", "https" ]
@@ -326,11 +364,12 @@ networks:
     internal: true
   dnsdist-wan:
 volumes:
-  s3:
-  clamav:
+  # Caddy's ACME certificates predate the move into relay. Keeping the volume
+  # name adopts the certificates the host already issued.
   caddy_data:
     name: the-box_caddy_data
-    external: true
+  clamav:
+  redis-tasks:
 configs:
   rspamd_redis:
     content: |

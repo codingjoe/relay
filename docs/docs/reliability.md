@@ -1,6 +1,6 @@
 ---
 name: Reliability
-description: Queued delivery, transmission records, retry schedules, and health monitoring
+description: Queued delivery, transmission records, and retry schedules
 author: Johannes Maron
 ---
 
@@ -17,7 +17,7 @@ relay stores your submission before any processing:
 
 ```mermaid
 flowchart TD
-    A[250 OK: message stored as pending] --> B[rspamd outbound scan]
+    A[250 OK: message stored as pending] --> B[Outbound spam scan]
     B -- held --> C[Status held]
     B -- clean --> D[DKIM sign all keys]
     D --> E[MX lookup, MTA-STS filter]
@@ -90,19 +90,6 @@ Webhook retries stop early on success. Every delivery attempt carries its
 URL, response code, and a response excerpt of 2,000 characters, so an
 endpoint misbehavior shows as data.
 
-## Health endpoints
-
-The web process exposes two health endpoints for load balancers and uptime
-monitors:
-
-| Endpoint          | Checks                               | Use                    |
-| ----------------- | ------------------------------------ | ---------------------- |
-| `/health/`        | Disk, memory                         | Lightweight outer loop |
-| `/health/django/` | Cache, database, Redis, disk, memory | Full stack probe       |
-
-Both answer with a status and an HTTP 200 when healthy. Monitor them with
-whatever you use elsewhere. You need no special headers.
-
 ## Observability of failures
 
 - **Errors go to Sentry**, all processes share one project, off by default.
@@ -111,12 +98,6 @@ whatever you use elsewhere. You need no special headers.
   conversation.
 - **Webhook delivery rows** show inbound webhook status.
 - **Inbound quarantine** contents stay readable, with the spam score visible.
-- **The nameserver chain is health-checked end to end.** A probe queries the
-  DNS proxy on port 53, the same port the internet queries, with a fresh
-  query name that bypasses the cache. A valid answer, rather than a SERVFAIL,
-  proves the proxy and at least one authoritative backend answer queries, so
-  a broken chain shows up as an unhealthy container within about a minute
-  instead of surfacing as missing DNS records.
 
 ## Operational notes for high-volume senders
 
