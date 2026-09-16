@@ -6,9 +6,7 @@ import dns.resolver
 from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.tasks import task
-from django.utils import timezone
 
-from abstract.timing import measure
 from services.email.mta_sts import MtaStsPolicy
 from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
@@ -51,33 +49,25 @@ def deliver_message(message_id):
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
     if message.org.suspended_at:
-        message.status = OutgoingMessage.Status.DROPPED
-        message.save(update_fields=["status", "modified_at"])
-        dropped_at = timezone.now()
-        Transmission.objects.create(
+        with Transmission(
             message=message,
             status=Transmission.Status.FAILED,
             code=550,
             output="550 Account suspended due to sender reputation",
-            started_at=dropped_at,
-            finished_at=dropped_at,
-        )
+        ):
+            message.status = OutgoingMessage.Status.DROPPED
+            message.save(update_fields=["status", "modified_at"])
         return
 
-    try:
-        with measure() as interval:
-            send_outgoing_message(message)
-    except Exception as e:  # storage backend raises varied exceptions
-        logger.exception("Transmission error for message %r", message_id)
-        Transmission.objects.create(
-            message=message,
-            status=Transmission.Status.FAILED,
-            details=str(e),
-            started_at=interval.started_at,
-            finished_at=interval.finished_at,
-        )
-        message.status = OutgoingMessage.Status.FAILED
-        message.save(update_fields=["status"])
+    with Transmission(message=message) as transmission:
+        try:
+            send_outgoing_message(message, transmission)
+        except Exception as e:  # storage backend raises varied exceptions
+            logger.exception("Transmission error for message %r", message_id)
+            transmission.status = Transmission.Status.FAILED
+            transmission.details = str(e)
+            message.status = OutgoingMessage.Status.FAILED
+            message.save(update_fields=["status"])
 
 
 def resolve_sender_domain(message):
@@ -97,7 +87,7 @@ def resolve_sender_domain(message):
         raise SenderDomainMismatchError
 
 
-def send_outgoing_message(message):
+def send_outgoing_message(message, transmission):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
     from services.email.message.models import Transmission
 
@@ -110,17 +100,11 @@ def send_outgoing_message(message):
         f"@{message.domain.sender_domain}"
     )
     rcpt_domain = message.rcpt_to.split("@")[-1]
-    with measure() as interval:
-        mx_hosts = fetch_mx_hosts(rcpt_domain)
+    mx_hosts = fetch_mx_hosts(rcpt_domain)
 
     if not mx_hosts:
-        Transmission.objects.create(
-            message=message,
-            status=Transmission.Status.FAILED,
-            details=f"No MX records found for {rcpt_domain}",
-            started_at=interval.started_at,
-            finished_at=interval.finished_at,
-        )
+        transmission.status = Transmission.Status.FAILED
+        transmission.details = f"No MX records found for {rcpt_domain}"
         message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
         return
@@ -136,7 +120,6 @@ def send_outgoing_message(message):
             )
             continue
         try:
-            started_at = timezone.now()
             response, tls_details = async_to_sync(send_via_mx)(
                 raw_bytes,
                 mx_host,
@@ -147,18 +130,20 @@ def send_outgoing_message(message):
             code = getattr(e, "code", getattr(e, "smtp_code", 0))
             if 400 <= code < 500:
                 raise
-            record_bounce(message, code, str(e), mx_host, started_at)
+            record_bounce(message, transmission, code, str(e), mx_host)
             return
         except aiosmtplib.SMTPException, OSError:
             pass
         else:
-            Transmission.objects.create(
-                message=message,
-                status=Transmission.Status.SENT,
-                output=str(response),
-                remote_host=mx_host,
-                **tls_details,
-            )
+            transmission.status = Transmission.Status.SENT
+            transmission.remote_host = mx_host
+            transmission.output = str(response)
+            transmission.tls_mode = tls_details["tls_mode"]
+            transmission.tls_version = tls_details["tls_version"]
+            transmission.tls_cipher = tls_details["tls_cipher"]
+            transmission.tls_certificate = tls_details["tls_certificate"]
+            transmission.local_ip_address = tls_details["local_ip_address"]
+            transmission.remote_ip_address = tls_details["remote_ip_address"]
             message.status = OutgoingMessage.Status.SENT
             message.save(update_fields=["status"])
             return
@@ -166,21 +151,16 @@ def send_outgoing_message(message):
     raise MxHostsExhaustedError(rcpt_domain)
 
 
-def record_bounce(message, code, output, remote_host, started_at):
+def record_bounce(message, transmission, code, output, remote_host):
     """Record a permanent bounce and suppress the recipient address."""
     from services.email.message.models import Transmission
 
     from .models import OutgoingMessage, SuppressionEntry
 
-    Transmission.objects.create(
-        message=message,
-        status=Transmission.Status.BOUNCED,
-        code=code,
-        output=output,
-        remote_host=remote_host,
-        started_at=started_at,
-        finished_at=timezone.now(),
-    )
+    transmission.status = Transmission.Status.BOUNCED
+    transmission.code = code
+    transmission.output = output
+    transmission.remote_host = remote_host
     message.status = OutgoingMessage.Status.BOUNCED
     message.save(update_fields=["status"])
     SuppressionEntry.objects.create_or_update(
@@ -213,45 +193,44 @@ async def send_via_mx(
     from kms.models import Certificate
     from services.email.message.models import Transmission
 
-    with measure() as interval:
-        async with aiosmtplib.SMTP(
-            hostname=mx_host,
-            port=25,
-            use_tls=False,
-            start_tls=True,
-            local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
-            source_address=(
-                (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)
-                if settings.RELAY_SMTP_SOURCE_IPS
-                else None
-            ),
-        ) as smtp_client:
-            response = await smtp_client.sendmail(sender, recipients, raw_bytes)
-            # The server may drop the connection right after accepting, so the
-            # transport reads must not fail a delivery that already succeeded.
-            try:
-                cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
-                ssl_object = smtp_client.get_transport_info("ssl_object")
-                sockname = smtp_client.get_transport_info("sockname")
-                peername = smtp_client.get_transport_info("peername")
-            except aiosmtplib.SMTPServerDisconnected:
-                cipher = (None, None, None)
-                ssl_object = None
-                sockname = None
-                peername = None
+    async with aiosmtplib.SMTP(
+        hostname=mx_host,
+        port=25,
+        use_tls=False,
+        start_tls=True,
+        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+        source_address=(
+            (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)
+            if settings.RELAY_SMTP_SOURCE_IPS
+            else None
+        ),
+    ) as smtp_client:
+        response = await smtp_client.sendmail(sender, recipients, raw_bytes)
+        # The server may drop the connection right after accepting, so the
+        # transport reads must not fail a delivery that already succeeded.
+        try:
+            cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
+            ssl_object = smtp_client.get_transport_info("ssl_object")
+            sockname = smtp_client.get_transport_info("sockname")
+            peername = smtp_client.get_transport_info("peername")
+        except aiosmtplib.SMTPServerDisconnected:
+            cipher = (None, None, None)
+            ssl_object = None
+            sockname = None
+            peername = None
+    tls_certificate = None
+    if ssl_object is not None:
+        tls_certificate = await sync_to_async(Certificate.store_presented_chain)(
+            parse_peer_certificates(ssl_object)
+        )
     tls_details = {
         "tls_mode": Transmission.TlsMode.STARTTLS,
         "tls_cipher": cipher[0] or "",
         "tls_version": cipher[1] or "",
+        "tls_certificate": tls_certificate,
         "local_ip_address": sockname[0] if sockname else None,
         "remote_ip_address": peername[0] if peername else None,
-        "started_at": interval.started_at,
-        "finished_at": interval.finished_at,
     }
-    if ssl_object is not None:
-        tls_details["tls_certificate"] = await sync_to_async(
-            Certificate.store_presented_chain
-        )(parse_peer_certificates(ssl_object))
     return response, tls_details
 
 
@@ -264,25 +243,20 @@ def check_outgoing_spam(message_pk, client_ip):
     messages are enqueued for delivery.
 
     """
-    from services.email.message.models import SpamCheck
+    from services.email.message.models import SpamCheck, Transmission
 
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
     if message.org.suspended_at:
-        from services.email.message.models import Transmission
-
-        message.status = OutgoingMessage.Status.DROPPED
-        message.save(update_fields=["status", "modified_at"])
-        dropped_at = timezone.now()
-        Transmission.objects.create(
+        with Transmission(
             message=message,
             status=Transmission.Status.FAILED,
             code=550,
             output="550 Account suspended due to sender reputation",
-            started_at=dropped_at,
-            finished_at=dropped_at,
-        )
+        ):
+            message.status = OutgoingMessage.Status.DROPPED
+            message.save(update_fields=["status", "modified_at"])
         return
 
     raw_bytes = message.raw_body.read()

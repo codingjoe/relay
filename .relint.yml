@@ -98,6 +98,13 @@
     instead of constructing the instance, assigning the file, and saving
     it in multiple steps.
   filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: Log timings with their context manager
+  pattern: '(?:Transmission|SpamCheck|WebhookDelivery)\.objects\.create'
+  hint: |
+    Log a timing with `with Transmission(...) as transmission:` and set the
+    outcome inside the block. The context manager stamps `started_at` and
+    `finished_at` from the block, so the row spans the work it records.
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
 - name: No indented imports
   pattern: '\n[ \t]+(?:from[ \t]+\S+[ \t]+import[ \t]|import[ \t]+[\w.]+)'
   hint: |

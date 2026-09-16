@@ -109,8 +109,9 @@ The transmission list per message shows each attempt with its own outcome:
 The message detail page also draws these records on a timeline. Each bar
 spans the time relay measured for that attempt: a reception bar covers the
 inbound SMTP transaction, a submission bar covers the outbound SMTP
-transaction, and a delivery bar covers the connection to the MX host. The
-gaps between bars show how long the message waited in the queue or between
+transaction, and a delivery bar covers the whole delivery attempt,
+including the MX lookup and the SMTP session with the MX host. The gaps
+between bars show how long the message waited in the queue or between
 retries. Green bars mark successful attempts, red bars mark failures, and
 yellow bars mark retries. Blue bars mark the reception and submission legs.
 The spam check bar takes the color of its verdict: green when the message
