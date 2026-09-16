@@ -105,6 +105,14 @@
     outcome inside the block. The context manager stamps `started_at` and
     `finished_at` from the block, so the row spans the work it records.
   filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: Resolve the language when sending, not in the email class
+  pattern: 'settings\.LANGUAGE_CODE'
+  hint: |
+    Pass the language from the caller that sends the mail. An email class must
+    not default to `settings.LANGUAGE_CODE`: mail triggered by a request takes
+    that request's language, and a worker-side mail passes the setting when it
+    submits.
+  filePattern: '.*/emails\.py$'
 - name: No indented imports
   pattern: '\n[ \t]+(?:from[ \t]+\S+[ \t]+import[ \t]|import[ \t]+[\w.]+)'
   hint: |
