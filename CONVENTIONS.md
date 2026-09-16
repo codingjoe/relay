@@ -81,10 +81,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
       transmission.output = response
   ```
 
-  The block stamps `started_at` on entry and `finished_at` before the insert,
-  so a row spans the work it records. Never pass either timestamp, and never
-  log a timing with `objects.create()`: the row would then span its own write,
-  not the work.
+  The block stamps `finished_at` before the insert and keeps a `started_at`
+  that was stamped before entry, so a row spans the work it records. Never
+  pass `finished_at`, and never log a timing with `objects.create()`: the row
+  would then span its own write, not the work.
 
 ## Functions
 
