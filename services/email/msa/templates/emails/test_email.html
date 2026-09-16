@@ -1,15 +1,5 @@
-{% extends "django_letter/base.html" %}
-{% load django_letter i18n static %}
-
-{% block logo %}
-  {% table class="align-center" %}
-  <tr>
-    <td align="center">
-      <img src="{% static 'img/word-brand-512x.jpg' %}" alt="relay" width="120">
-    </td>
-  </tr>
-  {% endtable %}
-{% endblock logo %}
+{% extends "emails/base.html" %}
+{% load django_letter i18n %}
 
 {% block content %}
   <h1 class="first">{% translate "Your email setup works" %}</h1>
