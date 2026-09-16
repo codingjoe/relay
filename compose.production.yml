@@ -151,6 +151,9 @@ services:
       - "caddy_1.layer4.:465.route.1_proxy.lb_try_duration=3s"
       - "caddy_1.layer4.:465.route.1_proxy.fail_duration=10s"
       - "caddy_1.layer4.:465.route.1_proxy.proxy_protocol=v2"
+    # Caddy writes certs root-only; run as root with no capabilities.
+    user: "0:0"
+    cap_drop: [ ALL ]
     extends:
       service: web
   mta:
@@ -182,6 +185,9 @@ services:
       - "caddy_1.layer4.:25.route.proxy.proxy_protocol=v2"
       - "caddy_2=mx2.${HOSTNAME:-localhost}"
       - "caddy_2.respond=OK"
+    # Caddy writes certs root-only; run as root with no capabilities.
+    user: "0:0"
+    cap_drop: [ ALL ]
     extends:
       service: web
   redis-tasks:
