@@ -14,13 +14,9 @@ from services.email.tls import parse_peer_certificates
 
 
 def create_raw_body_path(instance, filename: str) -> str:
-    """
-    Return the storage path of a message body, keyed by its UUIDv7 ID.
-
-    Reads `Message.id`, not the primary key: multi-table inheritance children
-    use their parent link as primary key, which is unset while the body is
-    written. Sender controlled names would otherwise replace stored bodies.
-    """
+    """Return the storage path of a message body."""
+    # The primary key is the parent link on multi-table inheritance children
+    # and is unset while the body is written, so read the message ID instead.
     return f"messages/{instance.id}.eml"
 
 

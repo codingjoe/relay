@@ -6,13 +6,7 @@ import services.email.message.models
 
 
 def truncate_messages(apps, schema_editor):
-    """
-    Delete every stored message along with the rows that reference it.
-
-    Bodies written before paths were keyed by the message ID share a single
-    storage object, so those bytes belong to no particular message and would
-    block the unique constraint on `raw_body`. They are not recoverable.
-    """
+    """Delete every stored message and the rows that reference it."""
     apps.get_model("message", "Message").objects.all().delete()
 
 
@@ -27,6 +21,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Bodies written before this migration share one storage object, so
+        # they belong to no particular row and cannot be kept.
         migrations.RunPython(truncate_messages, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="message",
