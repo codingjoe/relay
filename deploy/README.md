@@ -144,13 +144,17 @@ boot:
 hcloud server ssh relays.to "sudo ip addr add <new_ip>/32 dev eth0"
 ```
 
-The same applies to the sshd drop-in that raises `MaxStartups`, which a server
-created before that change does not have. A deploy reaches Docker over SSH and
-compose opens dozens of sessions at once, so without it sshd drops the tenth
-and the run fails with connection errors:
+The same applies to the two settings `user_data` writes at first boot, which a
+box created before them does not have. A deploy opens a session per service,
+and sshd drops the tenth without the first; the DNS container cannot bind `:53`
+while the resolved stub listener holds it:
 
 ```bash
+# sshd drops the tenth session a deploy opens
 hcloud server ssh relays.to "printf '%s\n' 'MaxStartups 100:30:200' | sudo tee /etc/ssh/sshd_config.d/10-maxstartups.conf && sudo systemctl reload ssh"
+
+# the resolved stub listener holds :53, which the DNS container needs
+hcloud server ssh relays.to "sudo systemctl disable --now systemd-resolved && sudo rm -f /etc/resolv.conf && printf 'nameserver 1.1.1.1\nnameserver 9.9.9.9\n' | sudo tee /etc/resolv.conf"
 ```
 
 ## Architecture

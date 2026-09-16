@@ -33,3 +33,11 @@ write_files:
       done
 runcmd:
   - for ip in ${SMTP_IPS}; do ip addr add "$ip/32" dev eth0 2>/dev/null || true; done
+  # The DNS container publishes 0.0.0.0:53. The resolved stub listener holds
+  # 127.0.0.53 and 127.0.0.54 on that port, and Linux refuses a wildcard bind
+  # while any specific address holds it, so the listener goes and resolv.conf
+  # names the upstreams directly. Containers cannot reach 127.0.0.53 anyway, so
+  # this is also what makes name resolution work inside them.
+  - systemctl disable --now systemd-resolved
+  - rm -f /etc/resolv.conf
+  - printf 'nameserver 1.1.1.1\nnameserver 9.9.9.9\n' > /etc/resolv.conf
