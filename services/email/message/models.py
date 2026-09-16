@@ -152,8 +152,6 @@ class Message(TimeStamped):
             models.Index(fields=["domain", "status"]),
         ]
         constraints = [
-            # A missing file is an empty string, not NULL, so the unique index
-            # skips those rows.
             models.UniqueConstraint(
                 fields=["raw_body"],
                 condition=~models.Q(raw_body=""),
