@@ -43,11 +43,11 @@ class TestEmail(TemplateEmail):
             request, context=context, language=language, **kwargs
         )
 
-    def get_context_data(self) -> dict[str, str]:
+    def get_context_data(self) -> dict[str, typing.Any]:
         message_list_url = reverse(
             "message:message-list", kwargs={"org_slug": self.domain.org.slug}
         )
-        return {
+        return super().get_context_data() | {
             "domain": self.domain.name,
             "sender": f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{self.domain.name}",
             "recipient": self.recipient,

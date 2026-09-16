@@ -55,8 +55,8 @@ class PostmasterForwardEmail(TemplateEmail):
             request, context=context, language=language, **kwargs
         )
 
-    def get_context_data(self) -> dict[str, str]:
-        return {
+    def get_context_data(self) -> dict[str, typing.Any]:
+        return super().get_context_data() | {
             "original_subject": self.incoming_message.subject,
             "sender": self.sender,
             "recipient": self.incoming_message.rcpt_to,
