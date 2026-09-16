@@ -101,7 +101,7 @@ def check_mx(domain):
 
 def check_mta_sts(domain):
     try:
-        txt_records = dns.resolver.resolve(f"_mta-sts.{domain.name}", "TXT")
+        txt_records = dns.resolver.resolve(domain.mta_sts_record_name, "TXT")
         candidate_records = []
         for txt_record in txt_records:
             value = "".join(
@@ -118,8 +118,8 @@ def check_mta_sts(domain):
         ):
             return False
 
-        cname_records = dns.resolver.resolve(f"mta-sts.{domain.name}", "CNAME")
-        expected_target = f"mta-sts.{domain.sender_domain}."
+        cname_records = dns.resolver.resolve(domain.mta_sts_hostname, "CNAME")
+        expected_target = f"{domain.mta_sts_cname_target}."
         return any(
             str(record.target).lower() == expected_target.lower()
             for record in cname_records
@@ -130,7 +130,7 @@ def check_mta_sts(domain):
 
 def check_tls_rpt(domain):
     try:
-        txt_records = dns.resolver.resolve(f"_smtp._tls.{domain.name}", "TXT")
+        txt_records = dns.resolver.resolve(domain.tls_rpt_record_name, "TXT")
     except dns.exception.DNSException:
         return False
     expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()

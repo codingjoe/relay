@@ -9,6 +9,7 @@ from django.views import generic
 from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 
+from . import resolver
 from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
 
@@ -64,6 +65,7 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
             "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
+            "mx_priority": resolver.DNSResolver.MX_PRIORITY,
             "sending_passing": sum(
                 getattr(self.object, f"{field}_status") == Domain.Status.OK
                 for field in Domain.SENDING_CHECK_FIELDS
