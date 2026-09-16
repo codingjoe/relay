@@ -110,6 +110,10 @@ repos:
         require_serial: true
         pass_filenames: true
         types: [svg]
+        # The BIMI logo must keep `version="1.2"`, which svgo strips as a
+        # deprecated attribute. Brand logos are validated externally against
+        # the SVG P/S schema, so they stay untouched by svgo.
+        exclude: ^root/static/img/bimi\.svg$
 ci:
   skip:
     - no-commit-to-branch
