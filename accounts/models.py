@@ -1,7 +1,9 @@
 import secrets
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
+from django.core import signing
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -9,6 +11,9 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
+from kms import envelope
+
+VERIFICATION_TOKEN_MAX_AGE = timedelta(days=7)
 
 organization_slug_validator = RegexValidator(
     regex=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
@@ -52,6 +57,12 @@ class Organization(TimeStamped):
         return reverse("accounts:org-home", kwargs={"org_slug": self.slug})
 
 
+class MembershipQuerySet(models.QuerySet):
+    def email_verified(self):
+        """Only memberships whose user has a verified email address."""
+        return self.filter(user__email_verification__verified_at__isnull=False)
+
+
 class Membership(TimeStamped):
     class Role(models.TextChoices):
         WRITE = "write", _("write")
@@ -75,6 +86,8 @@ class Membership(TimeStamped):
             "Write members can use services. Admin members can also manage users."
         ),
     )
+
+    objects = MembershipQuerySet.as_manager()
 
     class Meta:
         constraints = [
@@ -197,3 +210,145 @@ class Credential(OrganizationOwned):
             self.save(update_fields=["last_used_at", "modified_at"])
             return True
         return False
+
+
+class UserEncryptionKey(TimeStamped):
+    """
+    Store a user's X25519 public key and encrypted private key material.
+
+    The private key is encrypted with the user's Master Key, which is in turn
+    encrypted with a KEK derived from the user's encryption passphrase. The
+    server never sees the passphrase, KEK, or Master Key. All derivation and
+    decryption happen client-side in the browser.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="encryption_keys",
+    )
+    public_key = models.TextField(
+        _("public key"),
+        help_text=_("Base64-encoded X25519 public key."),
+    )
+    encrypted_master_key = models.TextField(
+        _("encrypted master key"),
+        help_text=_(
+            "Master Key encrypted with the KEK derived from the user's "
+            "encryption passphrase. Decrypted client-side only."
+        ),
+    )
+    encrypted_private_key = models.TextField(
+        _("encrypted private key"),
+        help_text=_(
+            "X25519 private key encrypted with the Master Key. "
+            "Decrypted client-side only."
+        ),
+    )
+    key_id = models.CharField(
+        _("key ID"),
+        max_length=16,
+        editable=False,
+        help_text=_("Short SHA256 fingerprint of the public key."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "key_id"],
+                name="unique_user_encryption_key_id_per_user",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} / {self.key_id}"
+
+    def save(self, *args, **kwargs):
+        if not self.key_id:
+            self.key_id = envelope.key_fingerprint(envelope.decode_key(self.public_key))
+        super().save(*args, **kwargs)
+
+
+class MembershipEncryptionKey(TimeStamped):
+    """
+    Distribute an org's private key to a member via sealed encryption.
+
+    The org private key is sealed (encrypted) with the member's X25519 public
+    key using crypto_box_seal. Only the member's private key can unseal it.
+    Deleting this row revokes the member's ability to decrypt org files.
+    """
+
+    membership = models.OneToOneField(
+        Membership,
+        on_delete=models.CASCADE,
+        related_name="encryption_key",
+    )
+    org_encryption_key = models.ForeignKey(
+        "kms.OrgEncryptionKey",
+        on_delete=models.CASCADE,
+        related_name="membership_keys",
+    )
+    sealed_org_private_key = models.TextField(
+        _("sealed org private key"),
+        help_text=_(
+            "Org X25519 private key sealed with the member's public key "
+            "via crypto_box_seal. Unsealed client-side only."
+        ),
+    )
+
+    def __str__(self):
+        return f"{self.membership} / {self.org_encryption_key.key_id}"
+
+
+class EmailVerification(TimeStamped):
+    """
+    Track whether a user has proven control of their email address.
+
+    Security-sensitive mail (password reset, recovery, and postmaster
+    notifications) is only sent to verified addresses. Without this gate,
+    anyone could sign up with someone else's address and have relay send
+    branded security mail to that address. The server never sees more
+    than a signed link click; no secrets are involved.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_verification",
+    )
+    email = models.EmailField(
+        _("email address"),
+        help_text=_("The address being verified. Snapshot taken at signup."),
+    )
+    verified_at = models.DateTimeField(
+        _("verified"),
+        null=True,
+        blank=True,
+        help_text=_("Set when the user opened their verification link."),
+    )
+
+    def __str__(self):
+        return f"{self.user} / {self.email}"
+
+    def generate_token(self):
+        """Return a signed token that verifies this address for seven days."""
+        return signing.dumps({"id": self.pk}, salt="accounts.EmailVerification")
+
+    @classmethod
+    def fetch_by_token(cls, token):
+        """Return the verification for a valid, unexpired token, or None."""
+        try:
+            data = signing.loads(
+                token,
+                salt="accounts.EmailVerification",
+                max_age=VERIFICATION_TOKEN_MAX_AGE,
+            )
+            return cls.objects.select_related("user").get(pk=data["id"])
+        except signing.BadSignature, KeyError, cls.DoesNotExist:
+            return None
+
+    def mark_verified(self):
+        """Record that the user has proven control of the address."""
+        if self.verified_at is None:
+            self.verified_at = timezone.now()
+            self.save(update_fields=["verified_at", "modified_at"])

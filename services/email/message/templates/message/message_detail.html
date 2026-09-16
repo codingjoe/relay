@@ -46,7 +46,7 @@
         {% if message.virus_action %}
           {{ message.virus_display }}
         {% else %}
-          {% translate "not scanned" %}
+          {% translate "Not scanned" %}
         {% endif %}
       </a>
     </div>
@@ -115,7 +115,76 @@
         {% block extra_sections %}{% endblock %}
         <div>
           {% block body %}
-            {% if body %}
+            {% if is_encrypted %}
+              <div id="encrypted-body">
+                <div class="alert" data-variant="default">
+                  <i data-lucide="lock" class="size-4" aria-hidden="true"></i>
+                  <p>
+                    {% translate "this message body is encrypted. Click decrypt to view it."|capfirst %}
+                  </p>
+                </div>
+                <button id="decrypt-body-btn" class="btn mt-3" onclick="relayDecryptBody()">
+                  <i data-lucide="unlock" class="size-4" aria-hidden="true"></i>
+                  {% translate "decrypt"|capfirst %}
+                </button>
+                <div id="decrypted-body-content" class="mt-3 hidden"></div>
+                <p id="decrypt-error" class="text-destructive text-sm mt-2 hidden"></p>
+              </div>
+              <script defer>
+                (function () {
+                  "use strict";
+                  const orgSlug = "{{ org.slug }}";
+                  const messagePk = "{{ message.pk }}";
+                  const bodyUrl = "{{ body_url }}";
+                  const enc = window.relayEncryption;
+
+                  async function relayDecryptBody() {
+                    const btn = document.getElementById("decrypt-body-btn");
+                    const errorEl = document.getElementById("decrypt-error");
+                    const contentEl = document.getElementById("decrypted-body-content");
+                    errorEl.classList.add("hidden");
+                    btn.disabled = true;
+                    btn.innerHTML =
+                      '<i data-lucide="loader-circle" class="size-4 animate-spin" aria-hidden="true"></i> {% translate "decrypting…"|capfirst %}';
+                    if (window.lucide) window.lucide.createIcons();
+
+                    try {
+                      const keys = await enc.promptPassphrase(orgSlug);
+                      await enc.init();
+
+                      const keyResp = await fetch(
+                        `/org/${orgSlug}/email/messages/${messagePk}/sealed-key`,
+                        { headers: { Accept: "application/json" } },
+                      );
+                      if (!keyResp.ok) throw new Error("No sealed file key for this message.");
+                      const keyData = await keyResp.json();
+
+                      const sealedFileKey = enc.fromBase64(keyData.sealed_file_key);
+                      const fileKey = enc.unseal(sealedFileKey, keys.orgPrivateKey);
+
+                      const bodyResp = await fetch(bodyUrl);
+                      const encryptedBody = new Uint8Array(await bodyResp.arrayBuffer());
+
+                      const plaintext = enc.decryptBody(encryptedBody, fileKey);
+                      const decoded = new TextDecoder().decode(plaintext);
+
+                      contentEl.innerHTML = decoded;
+                      contentEl.classList.remove("hidden");
+                      btn.classList.add("hidden");
+                    } catch (err) {
+                      errorEl.textContent = err.message;
+                      errorEl.classList.remove("hidden");
+                      btn.disabled = false;
+                      btn.innerHTML =
+                        '<i data-lucide="unlock" class="size-4" aria-hidden="true"></i> {% translate "decrypt"|capfirst %}';
+                      if (window.lucide) window.lucide.createIcons();
+                    }
+                  }
+
+                  window.relayDecryptBody = relayDecryptBody;
+                })();
+              </script>
+            {% elif body %}
               {{ body|highlight_email }}
             {% else %}
               <section class="empty">

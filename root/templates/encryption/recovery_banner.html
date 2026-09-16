@@ -1,0 +1,29 @@
+<div id="recovery-banner" class="hidden">
+  <div class="alert" data-variant="destructive" data-size="sm">
+    <i data-lucide="shield-alert" class="size-4" aria-hidden="true"></i>
+    <p id="recovery-banner-text"></p>
+  </div>
+</div>
+<script>
+  async function checkRecoveryBanner() {
+    const orgSlug = document.body.dataset.orgSlug;
+    if (!orgSlug) return;
+    try {
+      const response = await fetch(`/org/${orgSlug}/encryption/`, {
+        headers: { "Accept": "application/json" },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!data.recovery_triggered_at) return;
+      const banner = document.getElementById("recovery-banner");
+      const text = document.getElementById("recovery-banner-text");
+      const date = new Date(data.recovery_triggered_at).toLocaleString();
+      text.textContent = `Encryption recovery was triggered by ${data.recovery_triggered_by} on ${date}. If you did not expect this, contact your administrator immediately.`;
+      banner.classList.remove("hidden");
+      if (window.lucide) window.lucide.createIcons();
+    } catch (e) {
+      // Silently ignore. Banner is non-critical.
+    }
+  }
+  document.addEventListener("DOMContentLoaded", checkRecoveryBanner);
+</script>

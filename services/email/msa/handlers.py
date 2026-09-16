@@ -7,6 +7,7 @@ from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
 from django.utils import timezone
@@ -16,6 +17,8 @@ from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
+from kms import envelope
+from kms.models import OrgEncryptionKey
 from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
@@ -23,6 +26,36 @@ from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam
 
 logger = logging.getLogger(__name__)
+
+
+def encrypt_stored_body(message, plaintext):
+    """
+    Encrypt the message body and update the stored copy on S3.
+
+    If the org has an active encryption key, the plaintext is encrypted and
+    the encrypted ciphertext replaces the raw body on S3. The file key is
+    sealed with the org's public key and stored on the message. If no
+    encryption key is configured, the plaintext is kept as-is.
+    """
+    try:
+        org_key = OrgEncryptionKey.objects.get(org_id=message.org_id, is_active=True)
+    except OrgEncryptionKey.DoesNotExist:
+        pass
+    else:
+        result = envelope.seal_and_encrypt(
+            plaintext, envelope.decode_key(org_key.public_key), org_key.key_id
+        )
+        stored_body = message.raw_body
+        stored_body.save(
+            stored_body.name.split("/")[-1],
+            ContentFile(result.ciphertext),
+            save=False,
+        )
+        message.sealed_file_key = result.sealed_file_key
+        message.org_encryption_key_id = result.org_encryption_key_id
+        message.save(
+            update_fields=["raw_body", "sealed_file_key", "org_encryption_key_id"]
+        )
 
 
 def add_feedback_id(raw_bytes: bytes, org: Organization) -> tuple[bytes, str]:
@@ -177,7 +210,9 @@ def store_outgoing_message(
     """
     Store an outgoing message with its submission record.
 
-    Enqueues spam processing for deliverable messages.
+    Enqueues spam processing for deliverable messages. Suppressed
+    messages never reach delivery, so their stored body is encrypted
+    immediately.
     """
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
@@ -203,6 +238,8 @@ def store_outgoing_message(
                 client_ip=client_ip,
             )
         )
+    else:
+        encrypt_stored_body(message, raw_bytes)
     return message
 
 

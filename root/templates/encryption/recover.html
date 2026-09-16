@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% translate "encryption recovery"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <div class="max-w-lg mx-auto py-8">
+    <div class="card">
+      <header>
+        <h2>{% translate "encryption recovery"|capfirst %}</h2>
+        <p>
+          {% translate "Enter the 12-word recovery seed to decrypt the org private key. All org members will be notified immediately." %}
+        </p>
+      </header>
+      <section>
+        <div class="alert" data-variant="warning" data-size="sm">
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          <p>
+            {% translate "Using the recovery seed triggers a permanent audit log entry and notifies all org members by email." %}
+          </p>
+        </div>
+        <form id="recovery-form" class="fieldset mt-4">
+          <div role="group" class="field">
+            <label for="id-recovery-seed">{% translate "Recovery seed (12 words)" %}</label>
+            <textarea
+              id="id-recovery-seed"
+              class="textarea w-full"
+              rows="3"
+              placeholder="word1 word2 word3 ... word12"
+              required
+            ></textarea>
+          </div>
+          <button type="submit" class="btn w-full">
+            <i data-lucide="key-round" class="size-4" aria-hidden="true"></i>
+            {% translate "recover org key"|capfirst %}
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <div id="recovery-result" class="card hidden mt-4">
+      <header>
+        <h2>{% translate "recovery successful"|capfirst %}</h2>
+      </header>
+      <section>
+        <p id="recovery-result-text"></p>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (async () => {
+      await sodium.ready;
+      const form = document.getElementById("recovery-form");
+      const result = document.getElementById("recovery-result");
+      const resultText = document.getElementById("recovery-result-text");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const seedText = document.getElementById("id-recovery-seed").value.trim();
+        const words = seedText.toLowerCase().split(/\s+/);
+        if (words.length !== 12) {
+          alert("Please enter exactly 12 words.");
+          return;
+        }
+
+        // Fetch recovery sealed org private key from the encryption status API.
+        const orgSlug = document.body.dataset.orgSlug;
+        const statusResp = await fetch(`/org/${orgSlug}/encryption/`, {
+          headers: { "Accept": "application/json" },
+        });
+        const statusData = await statusResp.json();
+        if (!statusData.recovery_sealed_org_private_key) {
+          alert("This organization has no recovery key configured.");
+          return;
+        }
+
+        // Decode BIP39 mnemonic to entropy.
+        const entropy = await relayEntropy.mnemonicToEntropy(words);
+        if (!entropy) {
+          alert("Invalid recovery seed. Check your words and try again.");
+          return;
+        }
+
+        // Derive recovery KEK from entropy.
+        const packed = relayEntropy.fromBase64(statusData.recovery_sealed_org_private_key);
+        const salt = packed.slice(0, 16);
+        const nonce = packed.slice(16, 16 + sodium.crypto_secretbox_NONCEBYTES);
+        const ciphertext = packed.slice(16 + sodium.crypto_secretbox_NONCEBYTES);
+        const recoveryKEK = sodium.crypto_pwhash(
+          32, relayEntropy.toBase64(entropy), salt,
+          sodium.crypto_pwhash.OPSLIMIT_INTERACTIVE,
+          sodium.crypto_pwhash.MEMLIMIT_INTERACTIVE,
+          sodium.crypto_pwhash.ALG_ARGON2ID13
+        );
+
+        // Decrypt the org private key.
+        try {
+          const orgPrivateKey = sodium.crypto_secretbox_open(ciphertext, nonce, recoveryKEK);
+          // Log the recovery event server-side.
+          const recoverResp = await fetch(`/org/${orgSlug}/encryption/recover`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": relayEncryption.getCSRFToken(),
+            },
+          });
+          const recoverData = await recoverResp.json();
+          resultText.textContent = "Recovery successful. All org members have been notified. You can now re-seal membership keys for users who need new keys.";
+          result.classList.remove("hidden");
+          // Cache org private key in memory for re-sealing (via relayEncryption).
+          window.relayEncryption.cacheOrgPrivateKey(orgPrivateKey);
+        } catch (e) {
+          alert("Failed to decrypt. The recovery seed does not match.");
+        }
+      });
+    })();
+  </script>
+{% endblock %}

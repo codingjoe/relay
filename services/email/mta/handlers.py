@@ -5,6 +5,7 @@ from email.utils import formatdate
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.utils import timezone
@@ -13,13 +14,17 @@ from abstract.email_utils import decode_header_value
 from abstract.mailauth import Disposition, DmarcEvaluation
 from abstract.signals import request_scoped
 from domains.models import Domain
+from kms import envelope
+from kms.models import OrgEncryptionKey
 from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
 from .arc import seal_message
 from .models import (
     IncomingMessage,
+    SealedFileKey,
     TlsReport,
+    Webhook,
 )
 from .signals import fbl_report_received, report_received
 from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
@@ -91,6 +96,55 @@ class MXHandler(ProxyProtocolMixin):
         )
         logger.info("Incoming message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
+
+
+def save_encrypted_body(message, raw_bytes, org) -> bytes | None:
+    """
+    Encrypt the stored raw body on S3. Return the file key if encrypted, else None.
+
+    If the org has an active encryption key, the stored body is replaced
+    with ciphertext and the file key is sealed with the org's public key.
+    Otherwise the stored plaintext body stays as-is.
+    """
+    try:
+        org_key = OrgEncryptionKey.objects.get(org=org, is_active=True)
+    except OrgEncryptionKey.DoesNotExist:
+        return None
+
+    result = envelope.seal_and_encrypt(
+        raw_bytes, envelope.decode_key(org_key.public_key), org_key.key_id
+    )
+    stored_body = message.raw_body
+    stored_body.save(f"{message.id}.eml", ContentFile(result.ciphertext), save=False)
+    message.sealed_file_key = result.sealed_file_key
+    message.org_encryption_key_id = result.org_encryption_key_id
+    return result.file_key
+
+
+def seal_file_keys_for_webhooks(message, file_key, rcpt_to):
+    """Seal the file key for each matching webhook with an encryption key."""
+    webhooks = Webhook.objects.filter(
+        org=message.org,
+        is_active=True,
+        encryption_key__isnull=False,
+    ).select_related("encryption_key")
+    sealed_keys = [
+        SealedFileKey(
+            message=message,
+            webhook=webhook,
+            sealed_key=envelope.encode_key(
+                envelope.seal_file_key(
+                    file_key,
+                    envelope.decode_key(webhook.encryption_key.public_key),
+                )
+            ),
+            webhook_key_id=webhook.encryption_key.key_id,
+        )
+        for webhook in webhooks
+        if webhook.matches(rcpt_to)
+    ]
+    if sealed_keys:
+        SealedFileKey.objects.bulk_create(sealed_keys)
 
 
 @sync_to_async

@@ -1,0 +1,9 @@
+{% load i18n %}
+{% if email_verification_pending %}
+  <div class="alert" data-variant="warning" data-size="sm">
+    <i data-lucide="mail-check" class="size-4" aria-hidden="true"></i>
+    <p>
+      {% translate "Your email address is not verified yet. Password reset and account notifications stay disabled until you open the verification link we emailed you." %}
+    </p>
+  </div>
+{% endif %}

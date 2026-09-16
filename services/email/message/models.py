@@ -67,7 +67,20 @@ class Message(TimeStamped):
         _("raw body"),
         upload_to="messages/",
         blank=True,
-        help_text=_("Raw RFC 822 message bytes."),
+        help_text=_("Encrypted raw RFC 822 message bytes."),
+    )
+    sealed_file_key = models.TextField(
+        _("sealed file key"),
+        blank=True,
+        help_text=_(
+            "File key sealed with the org's active X25519 public key. "
+            "Unsealed client-side with the org private key."
+        ),
+    )
+    org_encryption_key_id = models.TextField(
+        _("org encryption key ID"),
+        blank=True,
+        help_text=_("Fingerprint of the org encryption key used to seal the file key."),
     )
     headers = models.JSONField(
         _("headers"),
@@ -264,7 +277,14 @@ class Message(TimeStamped):
         return sorted(choices.items(), key=lambda choice: str(choice[1]))
 
     def parsed_email(self):
-        """Parse the raw body into an `email.message.Message` object."""
+        """
+        Parse the raw body into an `email.message.Message` object.
+
+        Returns `None` for encrypted messages (the body can only be
+        decrypted client-side).
+        """
+        if self.sealed_file_key:
+            return None
         try:
             self.raw_body.seek(0)
             return message_from_bytes(self.raw_body.read())
@@ -287,8 +307,12 @@ class Message(TimeStamped):
         Return the decoded text payload of the stored body.
 
         Multipart messages yield their first text part. Messages whose
-        raw body is pruned or unreadable have no text payload.
+        raw body is pruned or unreadable have no text payload. Sealed
+        messages can only be decrypted client-side, so they have no
+        server-side text payload.
         """
+        if self.sealed_file_key:
+            return b""
         if not self.raw_bytes():
             return b""
         return next(
@@ -340,7 +364,14 @@ class Message(TimeStamped):
 
     @property
     def parsed_headers(self):
-        """Return the message headers as [name, value] pairs, from storage or the raw body."""
+        """
+        Return the message headers as [name, value] pairs, from storage or the raw body.
+
+        Sealed messages keep the headers stored at submission or
+        reception time; their raw body is ciphertext and never parsed.
+        """
+        if self.sealed_file_key:
+            return self.headers
         if self.headers:
             return self.headers
         try:

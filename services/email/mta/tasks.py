@@ -19,7 +19,14 @@ from services.email.message.models import Transmission
 from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
 
-from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
+from .models import (
+    IncomingMessage,
+    SealedFileKey,
+    TlsFailure,
+    TlsReport,
+    Webhook,
+    WebhookDelivery,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +131,7 @@ class WebhookEvent:
     received_with_tls: bool
     receiving_domain: str
     body_url: str | None
+    sealed_file_key: str | None = None
     spam_score: float | None = None
     spam_action: str = ""
     received_at: str = field(
@@ -131,7 +139,7 @@ class WebhookEvent:
     )
 
     @classmethod
-    def from_message(cls, message, *, is_test=False):
+    def from_message(cls, message, *, is_test=False, sealed_file_key=None):
         """Build a webhook event payload from a stored message (or a test ping)."""
         if is_test and message is None:
             return cls(
@@ -144,6 +152,7 @@ class WebhookEvent:
                 received_with_tls=False,
                 receiving_domain="",
                 body_url=None,
+                sealed_file_key=None,
             )
         try:
             reception = message.transmissions.get(status=Transmission.Status.RECEIVED)
@@ -162,6 +171,7 @@ class WebhookEvent:
             ),
             receiving_domain=message.receiving_domain,
             body_url=message.raw_body.url if message.raw_body else None,
+            sealed_file_key=sealed_file_key,
             spam_score=message.spam_score,
             spam_action=message.spam_action,
         )
@@ -177,7 +187,16 @@ class WebhookJSONEncoder(DjangoJSONEncoder):
 def deliver_to_webhook(message, webhook, is_test=False):
     msg_id = f"msg_{uuid.uuid7()}"
     timestamp = int(time.time())
-    payload = WebhookEvent.from_message(message, is_test=is_test)
+    sealed_file_key = None
+    if not is_test:
+        try:
+            sealed = SealedFileKey.objects.get(message=message, webhook=webhook)
+            sealed_file_key = sealed.sealed_key
+        except SealedFileKey.DoesNotExist:
+            pass
+    payload = WebhookEvent.from_message(
+        message, is_test=is_test, sealed_file_key=sealed_file_key
+    )
     payload_bytes = json.dumps(payload, sort_keys=True, cls=WebhookJSONEncoder).encode()
     signature = webhook.sign(msg_id, timestamp, payload_bytes)
 
@@ -240,7 +259,7 @@ def parse_tls_report(report_pk):
 def notify_postmaster_recipients(message_pk):
     """Email all org members with a link to the received message."""
     message = IncomingMessage.objects.get(pk=message_pk)
-    memberships = message.org.memberships.exclude(user__email="").select_related("user")
+    memberships = message.org.memberships.email_verified().select_related("user")
 
     scheme = "http" if settings.DEBUG or settings.TEST else "https"
     detail_url = (
@@ -275,6 +294,8 @@ def check_incoming_spam(message_pk, client_ip):
     """Check an incoming message for spam and dispatch webhook if clean."""
     from services.email.message.models import SpamCheck
 
+    from .handlers import save_encrypted_body, seal_file_keys_for_webhooks
+
     message = IncomingMessage.objects.get(pk=message_pk)
     raw_bytes = message.raw_body.read()
     with SpamCheck(message=message) as check:
@@ -303,5 +324,11 @@ def check_incoming_spam(message_pk, client_ip):
         message.status = IncomingMessage.Status.QUARANTINED
         update_fields.append("status")
     message.save(update_fields=update_fields)
+    # Scanning needs the plaintext body, so encryption at rest happens
+    # only now, after the verdict and before the webhook dispatch.
+    file_key = save_encrypted_body(message, raw_bytes, message.org)
+    if file_key:
+        message.save(update_fields=["sealed_file_key", "org_encryption_key_id"])
+        seal_file_keys_for_webhooks(message, file_key, message.rcpt_to)
     if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
         dispatch_webhook.enqueue(message_id=str(message.pk))

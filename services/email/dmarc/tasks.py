@@ -74,6 +74,9 @@ def evaluate_incoming_message(message_pk):
     from services.email.mta.models import IncomingMessage
 
     message = IncomingMessage.objects.get(pk=message_pk)
+    if message.sealed_file_key:
+        logger.info("Skipping DMARC evaluation for encrypted message %r", message_pk)
+        return
     evaluation = DmarcEvaluation.from_message(message)
 
     if evaluation.disposition != Disposition.NONE:
@@ -106,6 +109,7 @@ def generate_daily_rua_reports():
                 receiving_domain__iexact=domain.name,
                 created_at__gte=begin_at,
                 created_at__lte=end_at,
+                sealed_file_key="",
             )
             evaluations = [DmarcEvaluation.from_message(msg) for msg in messages]
             if evaluations:

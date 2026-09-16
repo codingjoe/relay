@@ -16,6 +16,8 @@
     {% endif %}
   </header>
 
+  {% include "encryption/status.html" with org_slug=organization.slug %}
+
   <section class="flex flex-col gap-3">
     <header class="flex items-center justify-between">
       <h3 class="m-0">{% translate "members"|capfirst context "noun" %}</h3>

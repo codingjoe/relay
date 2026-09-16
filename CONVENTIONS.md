@@ -122,9 +122,13 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 ## Authentication
 
-- Use `social-auth-app-django` (python-social-auth) for OAuth providers
-  instead of custom OAuth code.
-- Custom pipeline steps live in `accounts/pipelines.py`.
+- Use Django's default username/password authentication. No OAuth
+  dependencies.
+- The one login password is also the client-side key-encryption-key
+  source (Argon2id via libsodium). The server never sees any plaintext
+  encryption key, so the operator cannot decrypt org message bodies.
+- Client-side key generation happens at signup in `signup.html` (see
+  `root/static/js/encryption.js`).
 
 ## Tasks
 

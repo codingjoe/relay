@@ -7,8 +7,9 @@ Django 6.0 / Python 3.14. Its differentiator is simplicity: relay handles
 the DNS and email plumbing, so sending and receiving work with near-zero
 configuration. A built-in authoritative nameserver delivers this: users
 only set NS delegation and DMARC, and relay serves MX, SPF, DKIM,
-Return-Path, MTA-STS, and TLS-RPT automatically. GitHub OAuth handles
-authentication.
+Return-Path, MTA-STS, and TLS-RPT automatically. Django's
+username/password signup handles authentication, and the login password
+derives the client-side encryption keys.
 
 ## Architecture & tech stack
 
@@ -23,8 +24,8 @@ Three services from one codebase, each a separate Docker container:
   mail is handled by the `mta` app.
 
 Apps: `root` (settings, root URLs, base templates. No cross-app model
-imports), `accounts` (Organization, Membership, abstract Credential, OAuth,
-org CRUD), `domains` (Domain, DNS resolver/server/services, domain
+imports), `accounts` (Organization, Membership, authentication, abstract
+Credential, org CRUD), `domains` (Domain, DNS resolver/server/services, domain
 views), `kms` (SigningKey, Fernet ciphertext, public/private keypair
 generation, signing. No app-specific knowledge), `msa` (OutgoingMessage, Transmission, MsaCredential, delivery
 task, handler/server, message + credential views), `mta` (IncomingMessage, Webhook,
@@ -40,7 +41,7 @@ contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
 the contracts.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
-S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS
+S3 via django-storages, basecoat CSS (via PostCSS
 with wireit).
 
 ## Core commands & workflows
@@ -64,7 +65,7 @@ with wireit).
 ## Rules, constraints & safety
 
 - **Never read or expose `.env`, `.env.production`, or secrets.** These files
-  contain real OAuth secrets, DB passwords, and Redis passwords.
+  contain real database and Redis passwords.
 - **Use `uv` exclusively** for dependency management. Never `pip install`.
 - **PostgreSQL 18+ required**: `db_default` uses the `uuidv7()` function.
 - **Do not write tests**. The test suite is planned but not yet started.

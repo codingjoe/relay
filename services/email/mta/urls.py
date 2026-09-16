@@ -1,6 +1,7 @@
 from django.urls import include, path
 
 from . import views
+from .encryption_views import SealedFileKeyView, WebhookEncryptionKeyView
 
 app_name = "mta"
 
@@ -18,6 +19,11 @@ urlpatterns = [
         ),
     ),
     path(
+        "messages/<uuid:pk>/sealed-key",
+        SealedFileKeyView.as_view(),
+        name="sealed-file-key",
+    ),
+    path(
         "webhooks/",
         include(
             [
@@ -32,6 +38,11 @@ urlpatterns = [
                     "<int:pk>/test",
                     views.WebhookTestView.as_view(),
                     name="webhook-test",
+                ),
+                path(
+                    "<int:webhook_pk>/encryption-key/",
+                    WebhookEncryptionKeyView.as_view(),
+                    name="webhook-encryption-key",
                 ),
             ]
         ),

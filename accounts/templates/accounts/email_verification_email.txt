@@ -1,0 +1,18 @@
+{% load i18n %}
+{% blocktranslate trimmed %}
+  Hello {{ username }},
+{% endblocktranslate %}
+
+{% blocktranslate trimmed %}
+  Welcome to relay! Please confirm that this is your email address by opening the link below within seven days:
+{% endblocktranslate %}
+
+{{ verify_url }}
+
+{% blocktranslate trimmed %}
+  Password reset and account notifications are only sent to verified addresses.
+{% endblocktranslate %}
+
+{% blocktranslate trimmed %}
+  If you did not create a relay account, you can ignore this email.
+{% endblocktranslate %}

@@ -1,3 +1,5 @@
+import datetime
+
 import dns.message
 import dns.name
 import dns.rdata
@@ -9,7 +11,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.db import connections
 
-from accounts.models import Membership, Organization
+from accounts.models import EmailVerification, Membership, Organization
 
 
 @pytest.fixture(name="db")
@@ -52,21 +54,35 @@ def assert_django_db_used(request, _django_db_marker):
         )
 
 
+def verify_email(user):
+    """Mark a user's email address as verified."""
+    EmailVerification.objects.create(
+        user=user,
+        email=user.email,
+        verified_at=datetime.datetime.now(tz=datetime.UTC),
+    )
+    return user
+
+
 @pytest.fixture
 def user(db):
-    return User.objects.create_user(
-        username="alice",
-        email="alice@example.com",
-        password="secret",
+    return verify_email(
+        User.objects.create_user(
+            username="alice",
+            email="alice@example.com",
+            password="secret",
+        )
     )
 
 
 @pytest.fixture
 def other_user(db):
-    return User.objects.create_user(
-        username="bob",
-        email="bob@example.com",
-        password="secret",
+    return verify_email(
+        User.objects.create_user(
+            username="bob",
+            email="bob@example.com",
+            password="secret",
+        )
     )
 
 
