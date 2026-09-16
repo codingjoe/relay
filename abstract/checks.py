@@ -49,14 +49,6 @@ def check_charfield_with_choices(app_configs, **kwargs):
     return errors
 
 
-def is_file_field_unique(model, field) -> bool:
-    """Return whether the database refuses two rows with the same file."""
-    return field.unique or any(
-        isinstance(constraint, UniqueConstraint) and field.name in constraint.fields
-        for constraint in model._meta.constraints
-    )
-
-
 @register()
 def check_file_field_is_unique(app_configs, **kwargs):
     """Warn when a file field is not kept unique by the database."""
@@ -74,6 +66,17 @@ def check_file_field_is_unique(app_configs, **kwargs):
                 id="abstract.W003",
             )
             for field in model._meta.local_fields
-            if isinstance(field, FileField) and not is_file_field_unique(model, field)
+            if (
+                isinstance(field, FileField)
+                and not field.unique
+                and not any(
+                    field.name in constraint.fields
+                    for constraint in model._meta.constraints
+                    if isinstance(constraint, UniqueConstraint)
+                )
+                and not any(
+                    field.name in fields for fields in model._meta.unique_together
+                )
+            )
         )
     return errors
