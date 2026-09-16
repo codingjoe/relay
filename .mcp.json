@@ -1,12 +1,5 @@
 {
   "mcpServers": {
-    "cloudfleet": {
-      "args": [
-        "mcp"
-      ],
-      "command": "cloudfleet",
-      "type": "local"
-    },
     "dozzle": {
       "tools": [
         "*"
