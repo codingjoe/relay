@@ -2,9 +2,13 @@
 {% load django_letter i18n static %}
 
 {% block logo %}
-  <div class="align-center" style="padding-bottom: 24px">
-    <img src="{% static 'img/word-brand-512x.jpg' %}" alt="relay" width="160">
-  </div>
+  {% table class="align-center" %}
+  <tr>
+    <td align="center">
+      <img src="{% static 'img/word-brand-512x.jpg' %}" alt="relay" width="120">
+    </td>
+  </tr>
+  {% endtable %}
 {% endblock logo %}
 
 {% block content %}
