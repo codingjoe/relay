@@ -1,6 +1,6 @@
 from django.apps import apps
 from django.core.checks import Warning, register
-from django.db.models import CharField, UUIDField
+from django.db.models import CharField, FileField, UniqueConstraint, UUIDField
 
 
 @register()
@@ -45,5 +45,38 @@ def check_charfield_with_choices(app_configs, **kwargs):
             )
             for field in model._meta.get_fields()
             if type(field) is CharField and field.choices
+        )
+    return errors
+
+
+@register()
+def check_file_field_is_unique(app_configs, **kwargs):
+    """Warn when a file field is not kept unique by the database."""
+    errors = []
+    for model in apps.get_models():
+        errors.extend(
+            Warning(
+                f"{field.name} is not unique.",
+                hint=(
+                    "Pass unique=True or add a UniqueConstraint covering the "
+                    "field. A field that may be empty needs a condition that "
+                    "skips empty values."
+                ),
+                obj=model,
+                id="abstract.W003",
+            )
+            for field in model._meta.local_fields
+            if (
+                isinstance(field, FileField)
+                and not field.unique
+                and not any(
+                    field.name in constraint.fields
+                    for constraint in model._meta.constraints
+                    if isinstance(constraint, UniqueConstraint)
+                )
+                and not any(
+                    field.name in fields for fields in model._meta.unique_together
+                )
+            )
         )
     return errors

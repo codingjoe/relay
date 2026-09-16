@@ -39,9 +39,7 @@ def create_report(
                 message_id=message_id,
                 report_id="",
                 headers=DmarcReport.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
+                raw_body=SimpleUploadedFile("message.eml", raw_bytes),
             )
         parse_task = parse_dmarc_report
     else:
@@ -55,9 +53,7 @@ def create_report(
                 subject=subject,
                 message_id=message_id,
                 headers=DmarcFailureReport.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
+                raw_body=SimpleUploadedFile("message.eml", raw_bytes),
             )
         parse_task = parse_dmarc_failure_report
     transaction.on_commit(lambda: parse_task.enqueue(report_pk=str(report.pk)))

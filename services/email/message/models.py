@@ -13,6 +13,13 @@ from kms.models import Certificate
 from services.email.tls import parse_peer_certificates
 
 
+def create_raw_body_path(instance, filename: str) -> str:
+    """Return the storage path of a message body."""
+    # The primary key is the parent link on multi-table inheritance children
+    # and is unset while the body is written, so read the message ID instead.
+    return f"messages/{instance.id}.eml"
+
+
 class Message(TimeStamped):
     """Base class for inbound and outbound email messages."""
 
@@ -65,7 +72,7 @@ class Message(TimeStamped):
     )
     raw_body = models.FileField(
         _("raw body"),
-        upload_to="messages/",
+        upload_to=create_raw_body_path,
         blank=True,
         help_text=_("Raw RFC 822 message bytes."),
     )
@@ -143,6 +150,13 @@ class Message(TimeStamped):
         indexes = [
             models.Index(fields=["status"]),
             models.Index(fields=["domain", "status"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["raw_body"],
+                condition=~models.Q(raw_body=""),
+                name="unique_message_body",
+            ),
         ]
 
     def save(self, *args, **kwargs):

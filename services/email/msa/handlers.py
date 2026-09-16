@@ -194,7 +194,7 @@ def store_outgoing_message(
             feedback_id=feedback_id,
             status=status,
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
-            raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+            raw_body=SimpleUploadedFile("message.eml", raw_bytes),
         )
     if status == OutgoingMessage.Status.PENDING:
         transaction.on_commit(
