@@ -17,11 +17,11 @@ from services.email.tls import parse_peer_certificates
 logger = logging.getLogger(__name__)
 
 
-class MxHostsExhaustedError(Exception):
-    """All MX hosts for a recipient domain failed to accept the message."""
+class MxLookupError(Exception):
+    """The MX lookup for a recipient domain failed."""
 
-    def __init__(self, domain):
-        super().__init__(f"All MX hosts failed for {domain}")
+    def __init__(self, domain, reason):
+        super().__init__(f"MX lookup for {domain} failed: {reason}")
 
 
 class AmbiguousSenderDomainError(ValueError):
@@ -99,8 +99,6 @@ def resolve_sender_domain(message):
 
 def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
-    from services.email.message.models import Transmission
-
     from .models import OutgoingMessage
 
     resolve_sender_domain(message)
@@ -111,46 +109,107 @@ def send_outgoing_message(message):
     )
     rcpt_domain = message.rcpt_to.split("@")[-1]
     with measure() as interval:
-        mx_hosts = fetch_mx_hosts(rcpt_domain)
+        try:
+            mx_hosts = fetch_mx_hosts(rcpt_domain)
+        except MxLookupError as error:
+            mx_hosts = []
+            no_hosts_reason = str(error)
+        else:
+            no_hosts_reason = (
+                "" if mx_hosts else f"No MX records found for {rcpt_domain}"
+            )
 
-    if not mx_hosts:
-        Transmission.objects.create(
-            message=message,
-            status=Transmission.Status.FAILED,
-            details=f"No MX records found for {rcpt_domain}",
-            started_at=interval.started_at,
-            finished_at=interval.finished_at,
+    if no_hosts_reason:
+        record_failed_attempt(message, interval, details=no_hosts_reason)
+        status, failure = OutgoingMessage.Status.FAILED, no_hosts_reason
+    else:
+        status, failure = deliver_via_mx_hosts(
+            message, mx_hosts, raw_bytes, return_path
         )
-        message.status = OutgoingMessage.Status.FAILED
-        message.save(update_fields=["status"])
-        return
+    if failure:
+        logger.error(
+            "Message %s to %s could not be delivered: %s",
+            message.id,
+            message.rcpt_to,
+            failure,
+        )
+    message.status = status
+    message.save(update_fields=["status"])
 
+
+def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
+    """
+    Try every MX host in preference order and record one transmission per attempt.
+
+    Return the status the message ends in and, when no host accepted it, the
+    reasons every host refused.
+    """
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage
+
+    rcpt_domain = message.rcpt_to.split("@")[-1]
+    reasons = []
     for mx_host in mx_hosts:
-        allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
+        with measure() as interval:
+            allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
         if not allowed:
             logger.warning(
-                "MTA-STS blocked delivery to %s via %s: %s",
+                "MTA-STS blocked message %s to %s via %r: %s",
+                message.id,
                 message.rcpt_to,
                 mx_host,
                 reason,
             )
+            reasons.append((mx_host, reason))
+            record_failed_attempt(
+                message, interval, details=reason, remote_host=mx_host
+            )
             continue
         try:
-            started_at = timezone.now()
-            response, tls_details = async_to_sync(send_via_mx)(
-                raw_bytes,
-                mx_host,
-                return_path,
-                [message.rcpt_to],
+            with measure() as interval:
+                response, tls_details = async_to_sync(send_via_mx)(
+                    raw_bytes,
+                    mx_host,
+                    return_path,
+                    [message.rcpt_to],
+                )
+        except (
+            aiosmtplib.SMTPResponseException,
+            aiosmtplib.SMTPRecipientsRefused,
+        ) as error:
+            code, output = format_smtp_refusal(error)
+            match code // 100:
+                case 5:
+                    # A permanent rejection suppresses the recipient address.
+                    record_bounce(message, interval, code, output, mx_host)
+                    logger.warning(
+                        "Message %s to %s bounced at %r: %r",
+                        message.id,
+                        message.rcpt_to,
+                        mx_host,
+                        output,
+                    )
+                    return OutgoingMessage.Status.BOUNCED, ""
+                case _:
+                    reasons.append((mx_host, output))
+                    record_failed_attempt(
+                        message,
+                        interval,
+                        details=refusal_details(code),
+                        remote_host=mx_host,
+                        code=code,
+                        output=output,
+                    )
+        except (aiosmtplib.SMTPException, OSError) as error:
+            details = f"{type(error).__name__}: {error}"
+            reasons.append((mx_host, details))
+            record_failed_attempt(
+                message,
+                interval,
+                details=details,
+                remote_host=mx_host,
             )
-        except aiosmtplib.SMTPResponseException as e:
-            code = getattr(e, "code", getattr(e, "smtp_code", 0))
-            if 400 <= code < 500:
-                raise
-            record_bounce(message, code, str(e), mx_host, started_at)
-            return
-        except aiosmtplib.SMTPException, OSError:
-            pass
         else:
             Transmission.objects.create(
                 message=message,
@@ -159,30 +218,82 @@ def send_outgoing_message(message):
                 remote_host=mx_host,
                 **tls_details,
             )
-            message.status = OutgoingMessage.Status.SENT
-            message.save(update_fields=["status"])
-            return
+            logger.info(
+                "Message %s to %s delivered via %r: %r",
+                message.id,
+                message.rcpt_to,
+                mx_host,
+                response,
+            )
+            return OutgoingMessage.Status.SENT, ""
+    return (
+        OutgoingMessage.Status.FAILED,
+        "; ".join(f"{host}: {reason}" for host, reason in reasons),
+    )
 
-    raise MxHostsExhaustedError(rcpt_domain)
+
+def refusal_details(code):
+    """Describe a refusal that did not accept the message."""
+    match code // 100:
+        case 4:
+            return "Temporary failure, the remote server asked relay to try again later"
+        case _:
+            return "The remote server did not accept the message"
 
 
-def record_bounce(message, code, output, remote_host, started_at):
+def format_smtp_refusal(error):
+    """
+    Return the status code and the answer line of a refused SMTP command.
+
+    A refused recipient arrives as `SMTPRecipientsRefused`, which carries
+    the code and the answer per recipient instead of on the exception.
+    """
+    match error:
+        case aiosmtplib.SMTPRecipientsRefused(recipients=[refusal, *_]):
+            code, answer = refusal.code, refusal.message
+        case aiosmtplib.SMTPResponseException():
+            code, answer = error.code, error.message
+        case _:
+            code, answer = 0, str(error)
+    if isinstance(answer, bytes):
+        answer = answer.decode(errors="replace")
+    return code, f"{code} {answer}"
+
+
+def record_failed_attempt(
+    message, interval, details, remote_host="", code=None, output=""
+):
+    """Record one failed delivery attempt over its measured interval."""
+    from services.email.message.models import Transmission
+
+    Transmission.objects.create(
+        message=message,
+        status=Transmission.Status.FAILED,
+        details=details,
+        remote_host=remote_host,
+        code=code,
+        output=output,
+        started_at=interval.started_at,
+        finished_at=interval.finished_at,
+    )
+
+
+def record_bounce(message, interval, code, output, remote_host):
     """Record a permanent bounce and suppress the recipient address."""
     from services.email.message.models import Transmission
 
-    from .models import OutgoingMessage, SuppressionEntry
+    from .models import SuppressionEntry
 
     Transmission.objects.create(
         message=message,
         status=Transmission.Status.BOUNCED,
+        details="Permanent rejection, relay suppressed the recipient address",
         code=code,
         output=output,
         remote_host=remote_host,
-        started_at=started_at,
-        finished_at=timezone.now(),
+        started_at=interval.started_at,
+        finished_at=interval.finished_at,
     )
-    message.status = OutgoingMessage.Status.BOUNCED
-    message.save(update_fields=["status"])
     SuppressionEntry.objects.create_or_update(
         org=message.org,
         email=message.rcpt_to,
@@ -191,15 +302,22 @@ def record_bounce(message, code, output, remote_host, started_at):
 
 
 def fetch_mx_hosts(domain):
-    """Return the recipient domain's MX hosts, ordered by preference."""
+    """
+    Return the recipient domain's MX hosts, ordered by preference.
+
+    Raise `MxLookupError` when the lookup itself fails, so a resolver
+    problem is never reported as a missing MX record.
+    """
     try:
         records = dns.resolver.resolve(domain, "MX")
-        return [
-            str(r.exchange).rstrip(".")
-            for r in sorted(records, key=lambda r: r.preference)
-        ]
-    except dns.exception.DNSException:
+    except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
         return []
+    except dns.exception.DNSException as error:
+        raise MxLookupError(domain, error) from error
+    return [
+        str(record.exchange).rstrip(".")
+        for record in sorted(records, key=lambda record: record.preference)
+    ]
 
 
 async def send_via_mx(

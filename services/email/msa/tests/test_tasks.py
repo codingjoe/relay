@@ -56,7 +56,7 @@ class TestFetchMxHosts:
         hosts = fetch_mx_hosts("example.com")
         assert hosts == ["mx.example.com"]
 
-    def test_fetch_mx_hosts__empty_on_error(self):
+    def test_fetch_mx_hosts__empty_when_domain_is_unknown(self):
         assert fetch_mx_hosts("nonexistent.invalid") == []
 
 
@@ -293,11 +293,10 @@ class TestDeliverMessage:
         mock_smtp.assert_not_called()
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
-        assert Transmission.objects.filter(
-            message=msg,
-            status=Transmission.Status.FAILED,
-            details__contains="All MX hosts failed",
-        ).exists()
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.remote_host == "mx.example.com"
+        assert transmission.details == "STS policy blocked"
 
     def test_deliver_message__temporary_smtp_error_fails_message(
         self, user, org, dns_resolver
@@ -316,9 +315,12 @@ class TestDeliverMessage:
 
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
-        assert Transmission.objects.filter(
-            message=msg, status=Transmission.Status.FAILED
-        ).exists()
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.remote_host == "mx.example.com"
+        assert transmission.code == 450
+        assert transmission.output == "450 Try again later"
+        assert "Temporary failure" in transmission.details
 
     def test_deliver_message__exhausts_all_mx_hosts_on_smtp_exception(
         self, user, org, dns_resolver
@@ -339,11 +341,14 @@ class TestDeliverMessage:
         assert mock_smtp.call_count == 2
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
-        assert Transmission.objects.filter(
-            message=msg,
-            status=Transmission.Status.FAILED,
-            details__contains="All MX hosts failed for example.com",
-        ).exists()
+        assert set(
+            Transmission.objects.filter(message=msg).values_list(
+                "remote_host", "status", "details"
+            )
+        ) == {
+            ("mx1.example.com", Transmission.Status.FAILED, "SMTPException: nope"),
+            ("mx2.example.com", Transmission.Status.FAILED, "SMTPException: nope"),
+        }
 
 
 @pytest.mark.django_db(transaction=True)

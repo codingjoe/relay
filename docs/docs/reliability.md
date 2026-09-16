@@ -52,10 +52,14 @@ transmission row with:
 
 - the SMTP status code and the complete answer text,
 
-- a log reference for later inspection.
+- a failed attempt records the MX host and the reason relay saw: the SMTP
+  answer, the MTA-STS policy that rejected the host, the transport error, or
+  the lookup that found no host to try at all.
 
-Failures become visible with their reasons instead of disappearing. Support
-starts from those facts, not from memories.
+Failures become visible with their reasons instead of disappearing. relay
+also logs every delivery outcome with the message ID, the recipient, the
+host it reached, and the reason, so a support thread is traceable in the
+log. Support starts from those facts, not from memories.
 
 ## How failure path work
 
@@ -70,12 +74,18 @@ flowchart TD
 
 - **Multiple MX hosts.** relay walks the MX list by preference and skips
   hosts that MTA-STS rejects, so a single broken host does not block
-  delivery.
+  delivery. Every host it tried or skipped keeps its own row with the reason,
+  so a failed message never hides which host said what.
 - **No MX records found** results in a clear failure, not in a silent drop.
+  A lookup that fails instead of answering, for example a resolver timeout,
+  is recorded as a lookup failure and never as a missing record.
 - **Permanent (5xx) answers bounce immediately** and feed the automatic
-  suppression list. No retry storm at an unwilling receiver.
-- **Transient failures** surface in the transcript list, and the message
-  ending in failed keeps the last answer for diagnosis.
+  suppression list, including a rejected recipient on the envelope. No retry
+  storm at an unwilling receiver.
+- **Temporary (4xx) answers** are recorded against the host that gave them,
+  and relay tries the next MX host. The message ends failed only when every
+  host answered with a temporary failure, and it keeps every answer for
+  diagnosis.
 
 ## Automatic retry schedules
 
