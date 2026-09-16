@@ -27,14 +27,13 @@ if bucket_exists; then
     confirm_step storage "bucket $S3_BUCKET exists"
 fi
 
-
+# Only create-bucket. Hetzner Object Storage implements no ACL or ownership
+# API, and relay never sets object ACLs: one credential pair writes and reads
+# every object, so there is no second owner to reconcile.
 note "Creating bucket $S3_BUCKET at $S3_ENDPOINT_URL"
 aws --endpoint-url "$S3_ENDPOINT_URL" s3api create-bucket \
     --bucket "$S3_BUCKET" \
     --create-bucket-configuration "LocationConstraint=${S3_REGION}" >/dev/null
-aws --endpoint-url "$S3_ENDPOINT_URL" s3api put-bucket-ownership-controls \
-    --bucket "$S3_BUCKET" \
-    --ownership-controls 'Rules=[{ObjectOwnership=BucketOwnerPreferred}]' >/dev/null
 
 save_state "S3_BUCKET=$S3_BUCKET"
 record_step storage "created bucket $S3_BUCKET at $S3_ENDPOINT_URL"
