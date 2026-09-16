@@ -138,21 +138,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   pipeline queues ahead of `default`. A task whose queue is missing from the
   settings raises at import time.
 
-## Delivery reporting
-
-- Record one `Transmission` per remote attempt, with `remote_host` and the
-  reason the attempt failed: the SMTP code and answer, the MTA-STS pattern
-  that rejected the host, the transport error, or the lookup that found no
-  host at all.
-- Never collapse several attempts into one summary row, and never report a
-  reason that only names the recipient domain. A reader starts from the row
-  and sees which host said what.
-- Keep a lookup failure apart from a missing record. A resolver problem is
-  reported as a failed lookup, not as "no MX records".
-- Log one line per delivery outcome with the message ID, the recipient, the
-  host it reached, and the reason. Use `info` for a delivery, `warning` for a
-  bounce or a skipped host, and `error` for a message that no host accepted.
-
 ## Naming
 
 - Use names that cover both ingress and egress when a model tracks
