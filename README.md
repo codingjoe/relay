@@ -1,3 +1,5 @@
+![relay - Communication as a Serivce](https://github.com/codingjoe/relay/raw/main/root/static/img/og-image.png)
+
 # relay: Developer-First IT Infrastructure
 
 A developer-first IT infrastructure provider. We build superior products and
