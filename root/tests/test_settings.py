@@ -3,7 +3,7 @@ from pathlib import Path
 
 SETTINGS_PATH = Path(__file__).resolve().parents[1] / "settings.py"
 SMTP_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-CONSOLE_BACKEND = "django.core.mail.backends.console.EmailBackend"
+CONSOLE_BACKEND = "django_letter.backends.ConsoleEmailBackend"
 
 
 def load_settings(monkeypatch, **environment):
