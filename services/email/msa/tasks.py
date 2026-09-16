@@ -6,6 +6,7 @@ import dns.resolver
 from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.tasks import task
+from django.utils import timezone
 
 from services.email.mta_sts import MtaStsPolicy
 from services.email.spam.client import SpamAction, check_message
@@ -15,11 +16,11 @@ from services.email.tls import parse_peer_certificates
 logger = logging.getLogger(__name__)
 
 
-class MxHostsExhaustedError(Exception):
-    """All MX hosts for a recipient domain failed to accept the message."""
+class MxLookupError(Exception):
+    """The MX lookup for a recipient domain failed."""
 
-    def __init__(self, domain):
-        super().__init__(f"All MX hosts failed for {domain}")
+    def __init__(self, domain, reason):
+        super().__init__(f"MX lookup for {domain} failed: {reason}")
 
 
 class AmbiguousSenderDomainError(ValueError):
@@ -59,15 +60,16 @@ def deliver_message(message_id):
             message.save(update_fields=["status", "modified_at"])
         return
 
-    with Transmission(message=message) as transmission:
-        try:
-            send_outgoing_message(message, transmission)
-        except Exception as e:  # storage backend raises varied exceptions
-            logger.exception("Transmission error for message %r", message_id)
+    started_at = timezone.now()  # a start stamped before the block is kept
+    try:
+        send_outgoing_message(message)
+    except Exception as e:  # storage backend raises varied exceptions
+        logger.exception("Transmission error for message %r", message_id)
+        with Transmission(message=message, started_at=started_at) as transmission:
             transmission.status = Transmission.Status.FAILED
             transmission.details = str(e)
-            message.status = OutgoingMessage.Status.FAILED
-            message.save(update_fields=["status"])
+        message.status = OutgoingMessage.Status.FAILED
+        message.save(update_fields=["status"])
 
 
 def resolve_sender_domain(message):
@@ -87,7 +89,7 @@ def resolve_sender_domain(message):
         raise SenderDomainMismatchError
 
 
-def send_outgoing_message(message, transmission):
+def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
     from services.email.message.models import Transmission
 
@@ -100,69 +102,166 @@ def send_outgoing_message(message, transmission):
         f"@{message.domain.sender_domain}"
     )
     rcpt_domain = message.rcpt_to.split("@")[-1]
-    mx_hosts = fetch_mx_hosts(rcpt_domain)
+    started_at = timezone.now()  # a start stamped before the block is kept
+    try:
+        mx_hosts = fetch_mx_hosts(rcpt_domain)
+    except MxLookupError as error:
+        mx_hosts = []
+        no_hosts_reason = str(error)
+    else:
+        no_hosts_reason = "" if mx_hosts else f"No MX records found for {rcpt_domain}"
 
-    if not mx_hosts:
-        transmission.status = Transmission.Status.FAILED
-        transmission.details = f"No MX records found for {rcpt_domain}"
-        message.status = OutgoingMessage.Status.FAILED
-        message.save(update_fields=["status"])
-        return
+    if no_hosts_reason:
+        with Transmission(message=message, started_at=started_at) as transmission:
+            transmission.status = Transmission.Status.FAILED
+            transmission.details = no_hosts_reason
+        status, failure = OutgoingMessage.Status.FAILED, no_hosts_reason
+    else:
+        status, failure = deliver_via_mx_hosts(
+            message, mx_hosts, raw_bytes, return_path
+        )
+    if failure:
+        logger.error(
+            "Message %s to %s could not be delivered: %s",
+            message.id,
+            message.rcpt_to,
+            failure,
+        )
+    message.status = status
+    message.save(update_fields=["status"])
 
+
+def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
+    """
+    Try every MX host in preference order and record one transmission per attempt.
+
+    Return the status the message ends in and, when no host accepted it, the
+    reasons every host refused.
+    """
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage
+
+    rcpt_domain = message.rcpt_to.split("@")[-1]
+    reasons = []
     for mx_host in mx_hosts:
-        allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
-        if not allowed:
-            logger.warning(
-                "MTA-STS blocked delivery to %s via %s: %s",
-                message.rcpt_to,
-                mx_host,
-                reason,
-            )
-            continue
-        try:
-            response, tls_details = async_to_sync(send_via_mx)(
-                raw_bytes,
-                mx_host,
-                return_path,
-                [message.rcpt_to],
-            )
-        except aiosmtplib.SMTPResponseException as e:
-            code = getattr(e, "code", getattr(e, "smtp_code", 0))
-            if 400 <= code < 500:
-                raise
-            record_bounce(message, transmission, code, str(e), mx_host)
-            return
-        except aiosmtplib.SMTPException, OSError:
-            pass
-        else:
-            transmission.status = Transmission.Status.SENT
+        with Transmission(message=message) as transmission:
+            # An attempt is a failure until a host accepts it, so an
+            # unexpected error never leaves the row without an outcome.
+            transmission.status = Transmission.Status.FAILED
             transmission.remote_host = mx_host
-            transmission.output = str(response)
-            transmission.tls_mode = tls_details["tls_mode"]
-            transmission.tls_version = tls_details["tls_version"]
-            transmission.tls_cipher = tls_details["tls_cipher"]
-            transmission.tls_certificate = tls_details["tls_certificate"]
-            transmission.local_ip_address = tls_details["local_ip_address"]
-            transmission.remote_ip_address = tls_details["remote_ip_address"]
-            message.status = OutgoingMessage.Status.SENT
-            message.save(update_fields=["status"])
-            return
+            allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
+            if not allowed:
+                logger.warning(
+                    "MTA-STS blocked message %s to %s via %r: %s",
+                    message.id,
+                    message.rcpt_to,
+                    mx_host,
+                    reason,
+                )
+                transmission.details = reason
+                reasons.append((mx_host, reason))
+                continue
+            try:
+                response, tls_details = async_to_sync(send_via_mx)(
+                    raw_bytes,
+                    mx_host,
+                    return_path,
+                    [message.rcpt_to],
+                )
+            except (
+                aiosmtplib.SMTPResponseException,
+                aiosmtplib.SMTPRecipientsRefused,
+            ) as error:
+                code, output = format_smtp_refusal(error)
+                match code // 100:
+                    case 5:
+                        # A permanent rejection suppresses the recipient address.
+                        record_bounce(message, transmission, code, output, mx_host)
+                        logger.warning(
+                            "Message %s to %s bounced at %r: %r",
+                            message.id,
+                            message.rcpt_to,
+                            mx_host,
+                            output,
+                        )
+                        return OutgoingMessage.Status.BOUNCED, ""
+                    case _:
+                        transmission.details = refusal_details(code)
+                        transmission.code = code
+                        transmission.output = output
+                        reasons.append((mx_host, output))
+            except (aiosmtplib.SMTPException, OSError) as error:
+                details = f"{type(error).__name__}: {error}"
+                transmission.details = details
+                reasons.append((mx_host, details))
+            except Exception as error:
+                # The attempt row has to explain what the pipeline reports,
+                # because the fallback row repeats this exception.
+                transmission.details = f"{type(error).__name__}: {error}"
+                raise
+            else:
+                transmission.status = Transmission.Status.SENT
+                transmission.output = str(response)
+                transmission.tls_mode = tls_details["tls_mode"]
+                transmission.tls_version = tls_details["tls_version"]
+                transmission.tls_cipher = tls_details["tls_cipher"]
+                transmission.tls_certificate = tls_details["tls_certificate"]
+                transmission.local_ip_address = tls_details["local_ip_address"]
+                transmission.remote_ip_address = tls_details["remote_ip_address"]
+                logger.info(
+                    "Message %s to %s delivered via %r: %r",
+                    message.id,
+                    message.rcpt_to,
+                    mx_host,
+                    response,
+                )
+                return OutgoingMessage.Status.SENT, ""
+    return (
+        OutgoingMessage.Status.FAILED,
+        "; ".join(f"{host}: {reason}" for host, reason in reasons),
+    )
 
-    raise MxHostsExhaustedError(rcpt_domain)
+
+def refusal_details(code):
+    """Describe a refusal that did not accept the message."""
+    match code // 100:
+        case 4:
+            return "Temporary failure, the remote server asked relay to try again later"
+        case _:
+            return "The remote server did not accept the message"
+
+
+def format_smtp_refusal(error):
+    """
+    Return the status code and the answer line of a refused SMTP command.
+
+    A refused recipient arrives as `SMTPRecipientsRefused`, which carries
+    the code and the answer per recipient instead of on the exception.
+    """
+    match error:
+        case aiosmtplib.SMTPRecipientsRefused(recipients=[refusal, *_]):
+            code, answer = refusal.code, refusal.message
+        case aiosmtplib.SMTPResponseException():
+            code, answer = error.code, error.message
+        case _:
+            code, answer = 0, str(error)
+    if isinstance(answer, bytes):
+        answer = answer.decode(errors="replace")
+    return code, f"{code} {answer}"
 
 
 def record_bounce(message, transmission, code, output, remote_host):
     """Record a permanent bounce and suppress the recipient address."""
     from services.email.message.models import Transmission
 
-    from .models import OutgoingMessage, SuppressionEntry
+    from .models import SuppressionEntry
 
     transmission.status = Transmission.Status.BOUNCED
     transmission.code = code
     transmission.output = output
     transmission.remote_host = remote_host
-    message.status = OutgoingMessage.Status.BOUNCED
-    message.save(update_fields=["status"])
+    transmission.details = "Permanent rejection, relay suppressed the recipient address"
     SuppressionEntry.objects.create_or_update(
         org=message.org,
         email=message.rcpt_to,
@@ -171,15 +270,22 @@ def record_bounce(message, transmission, code, output, remote_host):
 
 
 def fetch_mx_hosts(domain):
-    """Return the recipient domain's MX hosts, ordered by preference."""
+    """
+    Return the recipient domain's MX hosts, ordered by preference.
+
+    Raise `MxLookupError` when the lookup itself fails, so a resolver
+    problem is never reported as a missing MX record.
+    """
     try:
         records = dns.resolver.resolve(domain, "MX")
-        return [
-            str(r.exchange).rstrip(".")
-            for r in sorted(records, key=lambda r: r.preference)
-        ]
-    except dns.exception.DNSException:
+    except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
         return []
+    except dns.exception.DNSException as error:
+        raise MxLookupError(domain, error) from error
+    return [
+        str(record.exchange).rstrip(".")
+        for record in sorted(records, key=lambda record: record.preference)
+    ]
 
 
 async def send_via_mx(

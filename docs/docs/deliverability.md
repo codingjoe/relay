@@ -110,15 +110,23 @@ they hurt your domain.
 ## When delivery fails
 
 relay tries every MX host of the recipient domain in preference order and
-records one transmission per attempt with the remote answer. The outcomes:
+records one transmission per attempt, with the host and the reason on each
+row. The outcomes:
 
-- **5xx answer**. The remote server rejects the message permanently.
-  relay marks the message as bounced and suppresses the address. The
-  dashboard shows the exact SMTP answer.
-- **No reachable MX or all hosts fail and no MTA-STS fallback**. relay
-  fails the message, and the transcript shows why.
-- **Transport or storage problems**. relay fails the message, and the
-  transcript shows where it stopped.
+- **5xx answer**. The remote server rejects the message or the recipient
+  permanently. relay marks the message as bounced and suppresses the
+  address. The dashboard shows the exact SMTP answer.
+- **4xx answer**. The remote server is not accepting the message right now.
+  relay records the answer for that host and tries the next one. When every
+  host answers with a temporary failure, the message ends failed, and each
+  host keeps its own answer.
+- **No MX records or a failed lookup**. relay records why there was nothing
+  to try, and separates a domain without MX records from a lookup that
+  failed, for example a resolver timeout.
+- **MTA-STS rejection**. relay skips the host and records which policy
+  pattern rejected it.
+- **Transport problems**. relay records the failing host and the error, for
+  example a connection timeout or a dropped connection.
 
 A 250 acceptance from your submission is not a delivery confirmation. The
 dashboard's transmissions are the confirmation path.

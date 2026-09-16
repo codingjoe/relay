@@ -36,14 +36,14 @@ stateDiagram-v2
     suppressed --> [*]
 ```
 
-| Status     | Trigger                                                                                   | What happens next                                              |
-| ---------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| pending    | Stored after a `250` acceptance, before the spam scan finishes                            | The worker scans, signs, and delivers                          |
-| suppressed | The recipient address is on the suppression list at submission                            | Terminal state, no delivery attempt, visible in the dashboard  |
-| sent       | At least one recipient MX host accepted the message after STARTTLS                        | Final state, the transmission records keep the SMTP transcript |
-| bounced    | A recipient server answered with a permanent 5xx rejection                                | Final state, relay suppresses the address automatically        |
-| failed     | No MX records, every MX host failed, or a transport or storage error stopped the pipeline | Final state, the last transcript explains why                  |
-| held       | The scan rejects the action, the score reaches the hold threshold, or malware is found    | Final state until a human sees the dashboard                   |
+| Status     | Trigger                                                                                                    | What happens next                                              |
+| ---------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| pending    | Stored after a `250` acceptance, before the spam scan finishes                                             | The worker scans, signs, and delivers                          |
+| suppressed | The recipient address is on the suppression list at submission                                             | Terminal state, no delivery attempt, visible in the dashboard  |
+| sent       | At least one recipient MX host accepted the message after STARTTLS                                         | Final state, the transmission records keep the SMTP transcript |
+| bounced    | A recipient server answered with a permanent 5xx rejection                                                 | Final state, relay suppresses the address automatically        |
+| failed     | No MX records, a failed lookup, every MX host failed, or a transport or storage error stopped the pipeline | Final state, the attempts keep every reason                    |
+| held       | The scan rejects the action, the score reaches the hold threshold, or malware is found                     | Final state until a human sees the dashboard                   |
 
 Notes on reading the diagram:
 
@@ -97,22 +97,26 @@ Two details worth knowing:
 
 The transmission list per message shows each attempt with its own outcome:
 
-| Transmission status | Meaning                                                        |
-| ------------------- | -------------------------------------------------------------- |
-| received            | relay accepted the message over inbound SMTP                   |
-| submitted           | relay accepted the message for delivery                        |
-| sent                | This attempt reached a recipient MX host that answered success |
-| bounced             | This attempt revealed a permanent rejection                    |
-| failed              | This attempt failed, and the transcript shows why              |
-| retry               | Reserved for future automatic retry tracking                   |
+| Transmission status | Meaning                                                           |
+| ------------------- | ----------------------------------------------------------------- |
+| received            | relay accepted the message over inbound SMTP                      |
+| submitted           | relay accepted the message for delivery                           |
+| sent                | This attempt reached a recipient MX host that answered success    |
+| bounced             | This attempt revealed a permanent rejection                       |
+| failed              | This attempt failed, and the row names the MX host and the reason |
+| retry               | Reserved for future automatic retry tracking                      |
+
+One delivery walk produces one row per MX host it reached. A failed
+delivery therefore keeps the answer of every host it tried, including the
+hosts MTA-STS rejected and the lookup that found no host at all.
 
 The message detail page also draws these records on a timeline. Each bar
 spans the time relay measured for that attempt: a reception bar covers the
 inbound SMTP transaction, a submission bar covers the outbound SMTP
-transaction, and a delivery bar covers the whole delivery attempt,
-including the MX lookup and the SMTP session with the MX host. The gaps
-between bars show how long the message waited in the queue or between
-retries. Green bars mark successful attempts, red bars mark failures, and
+transaction, and a delivery bar covers one attempt at an MX host, including
+the MTA-STS check and the SMTP session with that host. The attempt that
+found no host to try covers the MX lookup instead. The gaps between bars
+show how long the message waited in the queue or between retries. Green bars mark successful attempts, red bars mark failures, and
 yellow bars mark retries. Blue bars mark the reception and submission legs.
 The spam check bar takes the color of its verdict: green when the message
 is clean, yellow when the scan holds or rewrites it, red when it rejects it,
