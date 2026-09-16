@@ -1,0 +1,27 @@
+#cloud-config
+#
+# Rendered by deploy/steps/05-server.sh with envsubst, which replaces the deploy
+# public key and the space separated SMTP pool only. Other shell variables,
+# such as the loop variable below, are left untouched.
+users:
+  - default
+  - name: github
+    groups: sudo, docker
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${DEPLOY_PUBLIC_KEY}
+  - name: collaborator
+    groups: docker
+    shell: /bin/rbash
+    home: /home/collaborator
+write_files:
+  - path: /etc/networkd-dispatcher/routable.d/10-floating-ips.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      for ip in ${SMTP_IPS}; do
+        ip addr add "$ip/32" dev eth0 2>/dev/null || true
+      done
+runcmd:
+  - for ip in ${SMTP_IPS}; do ip addr add "$ip/32" dev eth0 2>/dev/null || true; done

@@ -83,6 +83,8 @@ repos:
     rev: v0.11.0
     hooks:
       - id: shellcheck
+        # Follow the modules the deploy steps source, which sit next to them.
+        args: [--external-sources, --source-path=SCRIPTDIR]
   - repo: https://github.com/lovesegfault/beautysh
     rev: v6.4.3
     hooks:
