@@ -7,7 +7,12 @@ import services.email.message.models
 
 def truncate_messages(apps, schema_editor):
     """Delete every stored message and the rows that reference it."""
-    apps.get_model("message", "Message").objects.all().delete()
+    message = apps.get_model("message", "Message")
+    if schema_editor.connection.vendor == "postgresql":
+        table = schema_editor.connection.ops.quote_name(message._meta.db_table)
+        schema_editor.execute(f"TRUNCATE {table} CASCADE")
+    else:
+        message.objects.all().delete()
 
 
 class Migration(migrations.Migration):
