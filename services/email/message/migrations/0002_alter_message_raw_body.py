@@ -5,12 +5,29 @@ from django.db import migrations, models
 import services.email.message.models
 
 
+def truncate_messages(apps, schema_editor):
+    """
+    Delete every stored message along with the rows that reference it.
+
+    Bodies written before paths were keyed by the message ID share a single
+    storage object, so those bytes belong to no particular message and would
+    block the unique constraint on `raw_body`. They are not recoverable.
+    """
+    apps.get_model("message", "Message").objects.all().delete()
+
+
 class Migration(migrations.Migration):
     dependencies = [
+        # The delete cascades into the models that reference a message.
+        ("dmarc", "0001_initial"),
         ("message", "0001_initial"),
+        ("msa", "0001_initial"),
+        ("mta", "0001_initial"),
+        ("reputation", "0001_initial"),
     ]
 
     operations = [
+        migrations.RunPython(truncate_messages, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="message",
             name="raw_body",
@@ -19,6 +36,14 @@ class Migration(migrations.Migration):
                 help_text="Raw RFC 822 message bytes.",
                 upload_to=services.email.message.models.create_raw_body_path,
                 verbose_name="raw body",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="message",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("raw_body", ""), _negated=True),
+                fields=("raw_body",),
+                name="unique_message_body",
             ),
         ),
     ]

@@ -56,6 +56,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Index fields used for ordering. A field listed in `Meta.ordering` needs an
   index (for example, `SpamCheck.started_at`).
 - Drop `class Meta` entirely if it only inherits without overriding anything.
+- Keep every `FileField` unique: pass `unique=True`, or add a
+  `UniqueConstraint` that covers the field. Django stores an absent file as
+  an empty string, not `NULL`, so a field that may be empty needs a
+  constraint `condition` that skips empty values. A system check
+  (`abstract.W003`) warns otherwise.
 - Use `TextField` instead of `CharField` for all fields unless you
   specifically want Django's `max_length` validation. In PostgreSQL there
   is no performance advantage to `varchar` over `text`. Both use the same
