@@ -1,0 +1,25 @@
+{% load i18n %}
+<dialog class="dialog" id="dlg-test-email">
+  <div>
+    <header>
+      <h2>{% translate "send test email"|title %}</h2>
+      <p>{% translate "send a test message to your own address and watch it arrive."|capfirst %}</p>
+    </header>
+    <footer>
+      <button
+        type="button"
+        class="btn"
+        data-variant="secondary"
+        onclick="document.getElementById('dlg-test-email').close()"
+      >
+        {% translate "cancel"|capfirst context "verb" %}
+      </button>
+      <form method="post" action="{% url 'msa:message-test' org.slug %}">
+        {% csrf_token %}
+        <button type="submit" class="btn">
+          {% translate "send"|capfirst context "verb" %}
+        </button>
+      </form>
+    </footer>
+  </div>
+</dialog>

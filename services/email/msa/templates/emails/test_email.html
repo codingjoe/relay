@@ -1,0 +1,14 @@
+{% extends "emails/base.html" %}
+{% load django_letter i18n %}
+
+{% block content %}
+  <h1 class="first">{% translate "Your email setup works" %}</h1>
+  <p>
+    {% blocktranslate trimmed with sender=sender recipient=recipient %}
+      This test message went from {{ sender }} to {{ recipient }}. The signature is valid and your domain is ready to
+      send.
+    {% endblocktranslate %}
+  </p>
+  {% translate "View it in the dashboard" as button_label %}
+  {% button href=dashboard_url value=button_label primary=True %}
+{% endblock content %}

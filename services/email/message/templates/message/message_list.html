@@ -4,12 +4,23 @@
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "email messages"|capfirst %}</h2>
-    <p class="text-sm text-muted-foreground m-0" role="status">
-      {% blocktranslate count counter=paginator.count trimmed %}
-        {{ counter }} message{% plural %}{{ counter }} messages
-      {% endblocktranslate %}
-    </p>
+    <div class="flex items-center gap-2">
+      <p class="text-sm text-muted-foreground m-0" role="status">
+        {% blocktranslate count counter=paginator.count trimmed %}
+          {{ counter }} message{% plural %}{{ counter }} messages
+        {% endblocktranslate %}
+      </p>
+      <button
+        type="button"
+        class="btn"
+        onclick="document.getElementById('dlg-test-email').showModal()"
+      >
+        {% translate "send test email"|title %}
+      </button>
+    </div>
   </header>
+
+  {% include "partials/test_email_dialog.html" %}
 
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <form method="get" role="search" class="flex-1 min-w-56">
@@ -190,9 +201,14 @@
             </p>
           </header>
           <footer>
-            <a class="btn" data-variant="secondary" href="{% url 'email-dashboard:dashboard' org.slug %}">
+            <button
+              type="button"
+              class="btn"
+              data-variant="secondary"
+              onclick="document.getElementById('dlg-test-email').showModal()"
+            >
               {% translate "send test email"|title %}
-            </a>
+            </button>
           </footer>
         </section>
       {% else %}
