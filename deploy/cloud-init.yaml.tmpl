@@ -16,6 +16,14 @@ users:
     shell: /bin/rbash
     home: /home/collaborator
 write_files:
+  - path: /etc/ssh/sshd_config.d/10-maxstartups.conf
+    permissions: "0644"
+    content: |
+      # The deploy reaches Docker over SSH, and compose starts a couple of
+      # dozen sessions at once, one per service. The default 10:30:100 begins
+      # throttling at the tenth unauthenticated connection, drops the rest,
+      # and every network and volume that inherited the failure reports it.
+      MaxStartups 100:30:200
   - path: /etc/networkd-dispatcher/routable.d/10-floating-ips.sh
     permissions: "0755"
     content: |
@@ -25,3 +33,11 @@ write_files:
       done
 runcmd:
   - for ip in ${SMTP_IPS}; do ip addr add "$ip/32" dev eth0 2>/dev/null || true; done
+  # The DNS container publishes 0.0.0.0:53. The resolved stub listener holds
+  # 127.0.0.53 and 127.0.0.54 on that port, and Linux refuses a wildcard bind
+  # while any specific address holds it, so the listener goes and resolv.conf
+  # names the upstreams directly. Containers cannot reach 127.0.0.53 anyway, so
+  # this is also what makes name resolution work inside them.
+  - systemctl disable --now systemd-resolved
+  - rm -f /etc/resolv.conf
+  - printf 'nameserver 1.1.1.1\nnameserver 9.9.9.9\n' > /etc/resolv.conf

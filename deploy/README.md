@@ -144,6 +144,24 @@ boot:
 hcloud server ssh relays.to "sudo ip addr add <new_ip>/32 dev eth0"
 ```
 
+The same applies to the two settings `user_data` writes at first boot, which a
+box created before them does not have. A deploy opens a session per service,
+and sshd drops the tenth without the first; the DNS container cannot bind `:53`
+while the resolved stub listener holds it:
+
+```bash
+# sshd drops the tenth session a deploy opens
+hcloud server ssh relays.to "printf '%s\n' 'MaxStartups 100:30:200' | sudo tee /etc/ssh/sshd_config.d/10-maxstartups.conf && sudo systemctl reload ssh"
+
+# the resolved stub listener holds :53, which the DNS container needs
+hcloud server ssh relays.to "sudo systemctl disable --now systemd-resolved && sudo rm -f /etc/resolv.conf && printf 'nameserver 1.1.1.1\nnameserver 9.9.9.9\n' | sudo tee /etc/resolv.conf"
+
+# containers created before that still name 127.0.0.53 as their upstream, which
+# no longer answers, so restart them to pick up the new resolvers. Without this
+# they resolve nothing, and Caddy cannot even reach the ACME directory.
+hcloud server ssh relays.to 'docker restart $(docker ps -q)'
+```
+
 ## Architecture
 
 The services, the ports and the message path are in the
