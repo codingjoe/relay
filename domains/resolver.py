@@ -132,14 +132,14 @@ class DNSResolver(BaseResolver):
                 yield RR(
                     qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
                 )
-            case name if name == f"_dmarc.{domain.name}":
+            case name if name == domain.dmarc_record_name:
                 yield RR(
                     qname,
                     QTYPE.TXT,
                     rdata=txt(domain.dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
-            case name if name == f"_mta-sts.{domain.name}":
+            case name if name == domain.mta_sts_record_name:
                 yield RR(
                     qname,
                     QTYPE.TXT,
@@ -200,7 +200,7 @@ class DNSResolver(BaseResolver):
                     rdata=txt(domain.sender_dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
-            case name if name == f"_smtp._tls.{domain.name}":
+            case name if name == domain.tls_rpt_record_name:
                 yield RR(
                     qname,
                     QTYPE.TXT,
@@ -216,10 +216,10 @@ class DNSResolver(BaseResolver):
     ) -> Iterator[RR]:
         """Build CNAME records for MTA-STS."""
         match query_name:
-            case name if name == f"mta-sts.{domain.name}":
+            case name if name == domain.mta_sts_hostname:
                 yield RR(
                     qname,
                     QTYPE.CNAME,
-                    rdata=CNAME(DNSLabel(f"mta-sts.{domain.sender_domain}")),
+                    rdata=CNAME(DNSLabel(domain.mta_sts_cname_target)),
                     ttl=self.RECORD_TTL,
                 )

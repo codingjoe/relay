@@ -115,7 +115,8 @@ class TestDomainDetailView:
 
         assert b"Sending records" in response.content
         assert b"Receiving records" in response.content
-        assert f"10 {settings.RELAY_DNS_MX_HOSTNAMES[0]}.".encode() in response.content
+        for mx_hostname in settings.RELAY_DNS_MX_HOSTNAMES:
+            assert f'value="{mx_hostname}."'.encode() in response.content
 
     def test_get__not_found_for_managed_domain(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
