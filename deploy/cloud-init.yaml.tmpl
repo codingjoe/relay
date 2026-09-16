@@ -16,6 +16,14 @@ users:
     shell: /bin/rbash
     home: /home/collaborator
 write_files:
+  - path: /etc/ssh/sshd_config.d/10-maxstartups.conf
+    permissions: "0644"
+    content: |
+      # The deploy reaches Docker over SSH, and compose starts a couple of
+      # dozen sessions at once, one per service. The default 10:30:100 begins
+      # throttling at the tenth unauthenticated connection, drops the rest,
+      # and every network and volume that inherited the failure reports it.
+      MaxStartups 100:30:200
   - path: /etc/networkd-dispatcher/routable.d/10-floating-ips.sh
     permissions: "0755"
     content: |

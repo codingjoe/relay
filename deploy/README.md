@@ -144,6 +144,15 @@ boot:
 hcloud server ssh relays.to "sudo ip addr add <new_ip>/32 dev eth0"
 ```
 
+The same applies to the sshd drop-in that raises `MaxStartups`, which a server
+created before that change does not have. A deploy reaches Docker over SSH and
+compose opens dozens of sessions at once, so without it sshd drops the tenth
+and the run fails with connection errors:
+
+```bash
+hcloud server ssh relays.to "printf '%s\n' 'MaxStartups 100:30:200' | sudo tee /etc/ssh/sshd_config.d/10-maxstartups.conf && sudo systemctl reload ssh"
+```
+
 ## Architecture
 
 The services, the ports and the message path are in the
