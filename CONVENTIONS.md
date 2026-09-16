@@ -138,6 +138,30 @@ A rule lives either in this document or in `.relint.yml`, never both.
   pipeline queues ahead of `default`. A task whose queue is missing from the
   settings raises at import time.
 
+## Emails
+
+- Send HTML email through
+  [django-letter](https://github.com/codingjoe/django-letter) as a
+  `TemplateEmail` subclass in the sending app's `emails.py`, with the markup
+  under that app's `templates/emails/`, extending `django_letter/base.html`.
+  The package imports the `emails` module of every installed app to find the
+  subclasses, so that module name is not arbitrary.
+
+- Pass `language` and `base_url` explicitly. A worker sends outside a request,
+  and a request is where both would otherwise come from. An email triggered
+  from a request renders in that request's language; a worker-side email has
+  no request and uses `settings.LANGUAGE_CODE`. Default `base_url` to
+  `settings.RELAY_PLATFORM_BASE_URL`, the single source of the platform URL
+  for `services/email/msa/emails.py` and `services/email/mta/emails.py`.
+
+- The preview pages are mounted at `/emails/` inside the `DEBUG` block of
+  `root/urls.py`. Use them to review a template before sending it. A class
+  whose context needs a model instance overrides `render_preview` to inject
+  sample values, as `services/email/msa/emails.py::TestEmail` does.
+
+- Never hand-roll a multipart HTML email. A rendered template is what gives
+  every message the matching plain-text alternative and a preview page.
+
 ## Naming
 
 - Use names that cover both ingress and egress when a model tracks
