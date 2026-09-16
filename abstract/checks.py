@@ -64,10 +64,12 @@ def check_file_field_is_unique(app_configs, **kwargs):
     for model in apps.get_models():
         errors.extend(
             Warning(
-                f"{model._meta.label}.{field.name} is not unique. Store one "
-                "file per row with unique=True or a UniqueConstraint. A file "
-                "field that may be empty needs a constraint condition that "
-                "skips empty values.",
+                f"{field.name} is not unique.",
+                hint=(
+                    "Pass unique=True or add a UniqueConstraint covering the "
+                    "field. A field that may be empty needs a condition that "
+                    "skips empty values."
+                ),
                 obj=model,
                 id="abstract.W003",
             )
