@@ -70,22 +70,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Always include explicit `update_fields=` to avoid race conditions and be explicit.
 - Use `force_insert=True` when creating a new instance.
 
-## Timing
-
-- Log a timing (`Transmission`, `SpamCheck`, `WebhookDelivery`) with its
-  context manager, and set the outcome inside the block:
-
-  ```python
-  with Transmission(message=message) as transmission:
-      transmission.status = Transmission.Status.SENT
-      transmission.output = response
-  ```
-
-  The block stamps `finished_at` before the insert and keeps a `started_at`
-  that was stamped before entry, so a row spans the work it records. Never
-  pass `finished_at`, and never log a timing with `objects.create()`: the row
-  would then span its own write, not the work.
-
 ## Functions
 
 - Function names must be descriptive, not ambiguous.
