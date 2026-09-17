@@ -133,6 +133,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Pick the queue by pipeline stage: `ingress` for received mail, `egress`
   for outgoing submissions, `delivery` for SMTP delivery to remote MX hosts,
   and `default` for everything else.
+- Return `None` from tasks: backends serialize the return value, so a model
+  instance or a `UUID` records a failed run for work that succeeded.
 - Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
   commands in `compose.yml` and `compose.production.yml`, with the mail
   pipeline queues ahead of `default`. A task whose queue is missing from the
