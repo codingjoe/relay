@@ -160,7 +160,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                     reason,
                 )
                 transmission.details = reason
-                reasons.append((mx_host, reason))
+                reasons.append((mx_host, transmission.local_ip_address, reason))
                 continue
             try:
                 response, tls_details = async_to_sync(send_via_mx)(
@@ -168,6 +168,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                     mx_host,
                     return_path,
                     [message.rcpt_to],
+                    transmission,
                 )
             except (
                 aiosmtplib.SMTPResponseException,
@@ -179,10 +180,11 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                         # A permanent rejection suppresses the recipient address.
                         record_bounce(message, transmission, code, output, mx_host)
                         logger.warning(
-                            "Message %s to %s bounced at %r: %r",
+                            "Message %s to %s bounced at %r from %s: %r",
                             message.id,
                             message.rcpt_to,
                             mx_host,
+                            transmission.local_ip_address or "-",
                             output,
                         )
                         return OutgoingMessage.Status.BOUNCED, ""
@@ -190,11 +192,11 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                         transmission.details = refusal_details(code)
                         transmission.code = code
                         transmission.output = output
-                        reasons.append((mx_host, output))
+                        reasons.append((mx_host, transmission.local_ip_address, output))
             except (aiosmtplib.SMTPException, OSError) as error:
                 details = f"{type(error).__name__}: {error}"
                 transmission.details = details
-                reasons.append((mx_host, details))
+                reasons.append((mx_host, transmission.local_ip_address, details))
             except Exception as error:
                 # The attempt row has to explain what the pipeline reports,
                 # because the fallback row repeats this exception.
@@ -207,19 +209,23 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 transmission.tls_version = tls_details["tls_version"]
                 transmission.tls_cipher = tls_details["tls_cipher"]
                 transmission.tls_certificate = tls_details["tls_certificate"]
-                transmission.local_ip_address = tls_details["local_ip_address"]
-                transmission.remote_ip_address = tls_details["remote_ip_address"]
                 logger.info(
-                    "Message %s to %s delivered via %r: %r",
+                    "Message %s to %s delivered via %r from %s: %r",
                     message.id,
                     message.rcpt_to,
                     mx_host,
+                    transmission.local_ip_address or "-",
                     response,
                 )
                 return OutgoingMessage.Status.SENT, ""
     return (
         OutgoingMessage.Status.FAILED,
-        "; ".join(f"{host}: {reason}" for host, reason in reasons),
+        "; ".join(
+            f"{host} from {local_ip_address}: {reason}"
+            if local_ip_address
+            else f"{host}: {reason}"
+            for host, local_ip_address, reason in reasons
+        ),
     )
 
 
@@ -289,41 +295,56 @@ def fetch_mx_hosts(domain):
 
 
 async def send_via_mx(
-    raw_bytes: bytes, mx_host: str, sender: str, recipients: list[str]
+    raw_bytes: bytes,
+    mx_host: str,
+    sender: str,
+    recipients: list[str],
+    transmission,
 ) -> tuple[str, dict]:
     """
     Deliver a message to an MX host over STARTTLS on port 25.
 
-    Returns the SMTP response with the negotiated TLS details.
+    Record the addresses of the leg on the transmission, so an attempt that
+    fails still names them.
+
+    Return the SMTP response with the negotiated TLS details.
     """
     from kms.models import Certificate
     from services.email.message.models import Transmission
 
+    source_address = (
+        (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)
+        if settings.RELAY_SMTP_SOURCE_IPS
+        else None
+    )
+    transmission.local_ip_address = source_address[0] if source_address else None
     async with aiosmtplib.SMTP(
         hostname=mx_host,
         port=25,
         use_tls=False,
         start_tls=True,
         local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
-        source_address=(
-            (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)
-            if settings.RELAY_SMTP_SOURCE_IPS
-            else None
-        ),
+        source_address=source_address,
     ) as smtp_client:
+        # Read the socket before the mail transaction; a refusal drops it.
+        try:
+            sockname = smtp_client.get_transport_info("sockname")
+            peername = smtp_client.get_transport_info("peername")
+        except aiosmtplib.SMTPServerDisconnected:
+            sockname = peername = None
+        if sockname:
+            transmission.local_ip_address = sockname[0]
+        if peername:
+            transmission.remote_ip_address = peername[0]
         response = await smtp_client.sendmail(sender, recipients, raw_bytes)
         # The server may drop the connection right after accepting, so the
         # transport reads must not fail a delivery that already succeeded.
         try:
             cipher = smtp_client.get_transport_info("cipher") or (None, None, None)
             ssl_object = smtp_client.get_transport_info("ssl_object")
-            sockname = smtp_client.get_transport_info("sockname")
-            peername = smtp_client.get_transport_info("peername")
         except aiosmtplib.SMTPServerDisconnected:
             cipher = (None, None, None)
             ssl_object = None
-            sockname = None
-            peername = None
     tls_certificate = None
     if ssl_object is not None:
         tls_certificate = await sync_to_async(Certificate.store_presented_chain)(
@@ -334,8 +355,6 @@ async def send_via_mx(
         "tls_cipher": cipher[0] or "",
         "tls_version": cipher[1] or "",
         "tls_certificate": tls_certificate,
-        "local_ip_address": sockname[0] if sockname else None,
-        "remote_ip_address": peername[0] if peername else None,
     }
     return response, tls_details
 

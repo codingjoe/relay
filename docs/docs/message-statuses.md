@@ -108,7 +108,9 @@ The transmission list per message shows each attempt with its own outcome:
 
 One delivery walk produces one row per MX host it reached. A failed
 delivery therefore keeps the answer of every host it tried, including the
-hosts MTA-STS rejected and the lookup that found no host at all.
+hosts MTA-STS rejected and the lookup that found no host at all. An attempt
+that dials a host also keeps the sending IP it used, so a receiver that
+blocked one address of the pool is visible on the attempt.
 
 The message detail page also draws these records on a timeline. Each bar
 spans the time relay measured for that attempt: a reception bar covers the
