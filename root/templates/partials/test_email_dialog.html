@@ -21,7 +21,7 @@
               <select name="domain" id="id_test_email_domain" class="select w-full" required>
                 {% for domain in sending_domains %}
                   <option value="{{ domain.pk }}" {% if domain.is_managed %}selected{% endif %}>
-                    {{ domain.name }}
+                    {{ domain }}
                   </option>
                 {% endfor %}
               </select>
