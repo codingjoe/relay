@@ -58,9 +58,11 @@ else
     CLOUD_INIT="$(mktemp)"
     trap 'rm -f "$CLOUD_INIT"' EXIT
     DEPLOY_PUBLIC_KEY="$(cat "${DEPLOY_KEY}.pub")"
-    SMTP_IPS="${smtp_addresses[*]}"
-    export DEPLOY_PUBLIC_KEY SMTP_IPS
-    envsubst "\${DEPLOY_PUBLIC_KEY} \${SMTP_IPS}" \
+    # netplan takes the pool as a YAML flow sequence, which fits on the one
+    # template line that envsubst splices it into.
+    NETPLAN_ADDRESSES="$(comma_list "${smtp_addresses[@]/%//32}")"
+    export DEPLOY_PUBLIC_KEY NETPLAN_ADDRESSES
+    envsubst "\${DEPLOY_PUBLIC_KEY} \${NETPLAN_ADDRESSES}" \
         <"$DEPLOY_DIR/cloud-init.yaml.tmpl" >"$CLOUD_INIT"
 
     note "Creating $SERVER_TYPE server $RELAY_HOSTNAME in $SERVER_LOCATION"

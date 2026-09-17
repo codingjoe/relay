@@ -1,8 +1,8 @@
 #cloud-config
 #
 # Rendered by deploy/steps/05-server.sh with envsubst, which replaces the deploy
-# public key and the space separated SMTP pool only. Other shell variables,
-# such as the loop variable below, are left untouched.
+# public key and the comma separated netplan address entries only. Other shell
+# variables are left untouched.
 users:
   - default
   - name: github
@@ -24,15 +24,24 @@ write_files:
       # throttling at the tenth unauthenticated connection, drops the rest,
       # and every network and volume that inherited the failure reports it.
       MaxStartups 100:30:200
-  - path: /etc/networkd-dispatcher/routable.d/10-floating-ips.sh
-    permissions: "0755"
+  # netplan hands the egress pool to systemd-networkd, which re-applies it
+  # whenever it reconfigures eth0 and after every reboot. An address bound by
+  # hand belongs to no configuration: networkd drops it on the next
+  # reconfiguration, which is how unattended-upgrades restarting networkd
+  # emptied the pool.
+  - path: /etc/netplan/60-floating-ip.yaml
+    permissions: "0600"
     content: |
-      #!/bin/bash
-      for ip in ${SMTP_IPS}; do
-        ip addr add "$ip/32" dev eth0 2>/dev/null || true
-      done
+      network:
+        version: 2
+        renderer: networkd
+        ethernets:
+          eth0:
+            addresses: [${NETPLAN_ADDRESSES}]
 runcmd:
-  - for ip in ${SMTP_IPS}; do ip addr add "$ip/32" dev eth0 2>/dev/null || true; done
+  # write_files runs after cloud-init brought the network up, so the drop-in
+  # needs its own apply to take effect on the first boot.
+  - netplan apply
   # The DNS container publishes 0.0.0.0:53. The resolved stub listener holds
   # 127.0.0.53 and 127.0.0.54 on that port, and Linux refuses a wildcard bind
   # while any specific address holds it, so the listener goes and resolv.conf
