@@ -546,19 +546,22 @@ def make_outgoing_message(org, status=OutgoingMessage.Status.PENDING):
     )
 
 
-def make_delivery_retry_context(attempt, message_id=None, error=TemporaryDeliveryError):
-    kwargs = {"message_id": message_id} if message_id else {}
+def make_delivery_retry_context(attempt, message_id, error=TemporaryDeliveryError):
     exception = SimpleNamespace(exception_class=error)
     return SimpleNamespace(
         attempt=attempt,
-        task_result=SimpleNamespace(kwargs=kwargs, errors=[exception]),
+        task_result=SimpleNamespace(
+            kwargs={"message_id": message_id}, errors=[exception]
+        ),
     )
 
 
 class TestDeliveryRetry:
     def test_delivery_retry__doubles_the_delay_up_to_the_last_attempt(self):
+        # No attempt here is the last one, so the callback never reads the message.
+        no_such_message = "00000000-0000-0000-0000-000000000000"
         delays = [
-            delivery_retry(make_delivery_retry_context(attempt))
+            delivery_retry(make_delivery_retry_context(attempt, no_such_message))
             for attempt in range(1, DELIVERY_RETRY.max_retries)
         ]
         assert delays == [
@@ -566,8 +569,13 @@ class TestDeliveryRetry:
             for wait_minutes in (2, 4, 8, 16, 32)
         ]
 
-    def test_delivery_retry__stops_retrying_an_unexpected_error(self):
-        context = make_delivery_retry_context(attempt=1, error=ValueError)
+    @pytest.mark.django_db(transaction=True)
+    def test_delivery_retry__stops_retrying_an_unexpected_error(self, org):
+        message = make_outgoing_message(org)
+        context = make_delivery_retry_context(
+            attempt=1, message_id=str(message.pk), error=ValueError
+        )
+
         assert delivery_retry(context) is None
 
     @pytest.mark.django_db(transaction=True)

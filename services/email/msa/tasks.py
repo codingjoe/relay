@@ -40,13 +40,11 @@ class SenderDomainMismatchError(ValueError):
 
 
 class TemporaryDeliveryError(Exception):
-    """A delivery attempt failed for a reason that may pass, so relay retries."""
+    """Signal a failure that another attempt may still clear."""
 
 
 DELIVERY_RETRY = ExponentialBackoff(
     base_delay=datetime.timedelta(minutes=1),
-    max_delay=datetime.timedelta(minutes=32),
-    factor=2.0,
     # The base delay doubles before the first retry, so the five retries wait
     # 2, 4, 8, 16 and 32 minutes and the six attempts span about an hour.
     max_retries=6,
@@ -56,20 +54,18 @@ DELIVERY_RETRY = ExponentialBackoff(
 
 def delivery_retry(context):
     """
-    Return the delay until the next attempt, and `None` when the budget is spent.
+    Return the wait before the next attempt, or `None` to stop.
 
-    The message fails with the last retry, because no attempt follows to do it.
+    The last attempt never returns, so this callback ends the message as failed.
     """
     delay = DELIVERY_RETRY(context)
     if delay is None:
-        message_id = context.task_result.kwargs.get("message_id")
-        if message_id:
-            mark_failed_if_pending(message_id)
+        mark_failed_if_pending(context.task_result.kwargs.get("message_id"))
     return delay
 
 
 def mark_failed_if_pending(message_id):
-    """Set `FAILED` only when the message is still pending."""
+    """Move a message that is still waiting to its final status."""
     from .models import OutgoingMessage
 
     OutgoingMessage.objects.filter(
@@ -83,7 +79,7 @@ def deliver_message(message_id):
     Deliver a queued outgoing message to its recipients.
 
     Drop the message instead when the org is suspended. A temporary failure
-    keeps the message pending until the retry schedule ends.
+    keeps the status pending, and the last attempt ends it failed.
     """
     from services.email.message.models import Transmission
 
@@ -113,7 +109,7 @@ def deliver_message(message_id):
         )
         raise
     except (AmbiguousSenderDomainError, SenderDomainMismatchError) as error:
-        # A sender domain that does not match its root domain is a
+        # A sender domain that does not resolve to the org's root domain is a
         # configuration problem, so no retry can fix it.
         logger.exception("Message %s has a sender domain relay cannot use", message.id)
         record_failed_attempt(message, started_at, error)
@@ -126,7 +122,7 @@ def deliver_message(message_id):
 
 
 def record_failed_attempt(message, started_at, error):
-    """Record the attempt that failed on the message."""
+    """Store one unsuccessful try and its reason in the transmission records."""
     from services.email.message.models import Transmission
 
     with Transmission(message=message, started_at=started_at) as transmission:
@@ -153,8 +149,6 @@ def resolve_sender_domain(message):
 
 def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
-    from services.email.message.models import Transmission
-
     resolve_sender_domain(message)
     raw_bytes = message.raw_body.read()
     return_path = (
@@ -172,11 +166,8 @@ def send_outgoing_message(message):
         no_hosts_reason = "" if mx_hosts else f"No MX records found for {rcpt_domain}"
 
     if no_hosts_reason:
-        with Transmission(message=message, started_at=started_at) as transmission:
-            transmission.status = Transmission.Status.FAILED
-            transmission.details = no_hosts_reason
-        # A record that is not delegated yet, or a resolver that timed out,
-        # may answer on a later attempt.
+        record_failed_attempt(message, started_at, no_hosts_reason)
+        # A missing record or a timed-out resolver may answer on a later attempt.
         raise TemporaryDeliveryError(no_hosts_reason)
     status, failure = deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path)
     if failure:
@@ -196,7 +187,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
 
     Return the status the message ends in and, when no host accepted it, the
     reasons every host refused. Raise `TemporaryDeliveryError` instead when a
-    host answered temporarily, so the retry schedule runs.
+    host failed for a reason that may pass, so another attempt can run.
     """
     from services.email.message.models import Transmission
 

@@ -108,9 +108,9 @@ relay defines explicit retry behavior for external systems:
 | Spam and malware scan | Retried for about a day                                      | Delays mail instead of losing it                   |
 | Webhook delivery      | 10 attempts, immediate up to 24 h gaps, about 75 h total     | 0 to 29 s jitter on every retry                    |
 
-Delivery retries keep the message pending and add one transmission row per
-host of every attempt. The schedule ends early the moment a host accepts the
-message, and the message ends failed when the sixth attempt does not.
+Delivery retries keep the message pending and record every attempt. The
+schedule stops early the moment a host accepts the message, and the message
+ends failed after the sixth unsuccessful attempt.
 
 Webhook retries stop early on success. Every delivery attempt carries its
 URL, response code, and a response excerpt of 2,000 characters, so an

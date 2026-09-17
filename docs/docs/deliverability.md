@@ -131,7 +131,8 @@ row. The outcomes:
   cannot talk its way past a published policy.
 - **Transport problems**. relay records the failing host and the error, for
   example a connection timeout or a dropped connection, and retries the
-  message.
+  message. A fault inside relay, for example a storage error, is recorded and
+  retried the same way.
 
 A 250 acceptance from your submission is not a delivery confirmation. The
 dashboard's transmissions are the confirmation path.
