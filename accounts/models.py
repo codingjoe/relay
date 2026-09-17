@@ -39,7 +39,11 @@ class Organization(TimeStamped):
         help_text=_("Suspended organizations cannot send outgoing messages."),
     )
 
-    billing_is_active = True
+    billing_is_active = models.BooleanField(
+        _("billing is active"),
+        default=False,
+        help_text=_("Indicates whether billing is active for the organization."),
+    )
 
     def __str__(self):
         return self.slug
