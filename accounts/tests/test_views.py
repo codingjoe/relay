@@ -11,10 +11,10 @@ class TestOrganizationListView:
         assert response.status_code == 302
         assert "/account/login" in response.url
 
-    def test_get__redirects_single_org_user(self, admin_client, org):
+    def test_get__shows_single_org_user(self, admin_client, org):
         response = admin_client.get("/organizations/")
-        assert response.status_code == 302
-        assert response.url == f"/org/{org.slug}/"
+        assert response.status_code == 200
+        assert list(response.context["organizations"]) == [org]
 
     def test_get__shows_user_orgs(self, admin_client, user, org):
         second_org = Organization.objects.create(slug="second-org")
@@ -54,6 +54,30 @@ class TestOrganizationListView:
         response = admin_client.post("/organizations/", {"slug": "a" * 64})
         assert response.status_code == 200
         assert "slug" in response.context["form"].errors
+
+
+@pytest.mark.django_db
+class TestOrganizationStartView:
+    def test_get__requires_login(self, client, org):
+        response = client.get("/organizations/start")
+        assert response.status_code == 302
+        assert "/account/login" in response.url
+
+    def test_get__redirects_single_org_user(self, admin_client, org):
+        response = admin_client.get("/organizations/start")
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/"
+
+    def test_get__redirects_multiple_org_user(self, admin_client, user, org):
+        second_org = Organization.objects.create(slug="second-org")
+        Membership.objects.create(
+            org=second_org,
+            user=user,
+            role=Membership.Role.ADMIN,
+        )
+        response = admin_client.get("/organizations/start")
+        assert response.status_code == 302
+        assert response.url == "/organizations/"
 
 
 @pytest.mark.django_db

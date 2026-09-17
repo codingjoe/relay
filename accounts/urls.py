@@ -20,6 +20,11 @@ urlpatterns = [
         include(
             [
                 path("", views.OrganizationListView.as_view(), name="org-list"),
+                path(
+                    "start",
+                    views.OrganizationStartView.as_view(),
+                    name="org-start",
+                ),
             ]
         ),
     ),

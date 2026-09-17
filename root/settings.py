@@ -410,7 +410,7 @@ else:
 
 # Authentication
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "accounts:org-list"
+LOGIN_REDIRECT_URL = "accounts:org-start"
 LOGOUT_REDIRECT_URL = "home"
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
