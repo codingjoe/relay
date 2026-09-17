@@ -50,7 +50,7 @@ urlpatterns = [
                                 "health_check.DNS",
                                 {
                                     "hostname": "smtp.relays.to",
-                                    "nameservers": settings.RELAY_DNS_SMTP_IPS,
+                                    "nameservers": ["188.245.198.157"],
                                 },
                             ),
                             "health_check.contrib.rss.Hetzner",
