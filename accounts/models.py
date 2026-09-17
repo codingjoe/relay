@@ -128,7 +128,7 @@ class Credential(OrganizationOwned):
     Abstract base for per-service credentials.
 
     The plaintext key is never stored. Only a hash (like Django passwords).
-    The key_prefix (the first 8 characters) makes an O(1) lookup possible
+    The key_prefix (the first 4 characters) makes an O(1) lookup possible
     before hash verification. Concrete models live in service apps (for
     example, msa.MsaCredential).
     """
@@ -141,9 +141,9 @@ class Credential(OrganizationOwned):
     )
     key_prefix = models.CharField(
         _("key prefix"),
-        max_length=8,
+        max_length=4,
         editable=False,
-        help_text=_("First 8 characters, for display and O(1) lookup."),
+        help_text=_("First 4 characters, for display and O(1) lookup."),
     )
     name = models.CharField(
         _("name"),
@@ -183,7 +183,7 @@ class Credential(OrganizationOwned):
         The caller sees the plaintext once. The plaintext is never stored.
         """
         self.key_hash = make_password(raw_key, self.salt)
-        self.key_prefix = raw_key[:8]
+        self.key_prefix = raw_key[:4]
 
     def verify_key(self, raw_key):
         """

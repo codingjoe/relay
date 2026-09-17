@@ -149,7 +149,7 @@ def authenticate(username: str, key: str):
     Return the credential, or `None` if authentication fails.
     """
     api_keys = MsaCredential.objects.select_related("org").filter(
-        key_prefix=key[:8],
+        key_prefix=key[:4],
         org__slug=username,
         type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
         hold=False,
