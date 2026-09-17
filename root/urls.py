@@ -1,5 +1,3 @@
-import socket
-
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
@@ -52,10 +50,7 @@ urlpatterns = [
                                 "health_check.DNS",
                                 {
                                     "hostname": "smtp.relays.to",
-                                    "nameservers": [
-                                        socket.gethostbyname(ns)
-                                        for ns in settings.RELAY_DNS_NS_NAMESERVERS
-                                    ],
+                                    "nameservers": settings.RELAY_DNS_SMTP_IPS,
                                 },
                             ),
                             "health_check.contrib.rss.Hetzner",
