@@ -86,12 +86,6 @@ class OrganizationListView(LoginRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {"form": OrganizationForm()}
 
-    def get(self, request, *args, **kwargs):
-        organizations = self.get_queryset()
-        if len(organizations) == 1:
-            return redirect("accounts:org-home", org_slug=organizations[0].slug)
-        return super().get(request, *args, **kwargs)
-
     def post(self, request, *args, **kwargs):
         form = OrganizationForm(request.POST)
         if not form.is_valid():
@@ -124,6 +118,17 @@ class OrganizationForm(ModelForm):
     class Meta:
         model = Organization
         fields = ["slug"]
+
+
+class OrganizationStartView(LoginRequiredMixin, generic.View):
+    """Send the user to their only organization, or to the organization list."""
+
+    def get(self, request, *args, **kwargs):
+        match list(request.user.organizations.all()):
+            case [organization]:
+                return redirect("accounts:org-home", org_slug=organization.slug)
+            case _:
+                return redirect("accounts:org-list")
 
 
 class OrganizationHomeView(OrganizationScopedView, generic.View):

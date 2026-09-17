@@ -96,7 +96,7 @@ class TestPublicChrome:
             assert "gravatar.com" not in body
         response = client.get("/docs/security/")
         body = response.content.decode()
-        assert reverse("accounts:org-list") in body
+        assert reverse("accounts:org-start") in body
 
     @pytest.mark.django_db
     def test_get__renders_static_chrome_when_authenticated(self, admin_client):
@@ -106,7 +106,7 @@ class TestPublicChrome:
             assert "gravatar.com" not in body
         response = admin_client.get("/docs/security/")
         body = response.content.decode()
-        assert reverse("accounts:org-list") in body
+        assert reverse("accounts:org-start") in body
 
 
 class TestNoIO:

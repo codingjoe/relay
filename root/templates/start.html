@@ -59,7 +59,7 @@
         {% endblocktranslate %}
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-        <a href="{% url 'accounts:org-list' %}" class="btn" data-size="lg">
+        <a href="{% url 'accounts:org-start' %}" class="btn" data-size="lg">
           <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
           {% translate "get early access"|capfirst %}
         </a>
@@ -602,7 +602,7 @@ export async function POST(req: Request) {
           </ul>
         </section>
         <footer class="m-0 mt-6">
-          <a href="{% url 'accounts:org-list' %}" class="btn w-full" data-size="lg">
+          <a href="{% url 'accounts:org-start' %}" class="btn w-full" data-size="lg">
             <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
             {% translate "get early access"|capfirst %}
           </a>
