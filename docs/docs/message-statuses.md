@@ -27,7 +27,7 @@ stateDiagram-v2
     pending --> held : the spam score reaches the hold threshold or malware is found
     pending --> sent : delivery completed
     pending --> bounced : permanent rejection (5xx)
-    pending --> failed : no MX relayed or transport error
+    pending --> failed : the retry schedule ended without an accepted attempt
 
     held --> [*]
     sent --> [*]
@@ -36,14 +36,14 @@ stateDiagram-v2
     suppressed --> [*]
 ```
 
-| Status     | Trigger                                                                                                    | What happens next                                              |
-| ---------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| pending    | Stored after a `250` acceptance, before the spam scan finishes                                             | The worker scans, signs, and delivers                          |
-| suppressed | The recipient address is on the suppression list at submission                                             | Terminal state, no delivery attempt, visible in the dashboard  |
-| sent       | At least one recipient MX host accepted the message after STARTTLS                                         | Final state, the transmission records keep the SMTP transcript |
-| bounced    | A recipient server answered with a permanent 5xx rejection                                                 | Final state, relay suppresses the address automatically        |
-| failed     | No MX records, a failed lookup, every MX host failed, or a transport or storage error stopped the pipeline | Final state, the attempts keep every reason                    |
-| held       | The scan rejects the action, the score reaches the hold threshold, or malware is found                     | Final state until a human sees the dashboard                   |
+| Status     | Trigger                                                                                                                                                  | What happens next                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| pending    | Stored after a `250` acceptance, before the spam scan finishes                                                                                           | The worker scans, signs, and delivers, and stays pending through a delivery retry |
+| suppressed | The recipient address is on the suppression list at submission                                                                                           | Terminal state, no delivery attempt, visible in the dashboard                     |
+| sent       | At least one recipient MX host accepted the message after STARTTLS                                                                                       | Final state, the transmission records keep the SMTP transcript                    |
+| bounced    | A recipient server answered with a permanent 5xx rejection                                                                                               | Final state, relay suppresses the address automatically                           |
+| failed     | The retry schedule ended without an accepted attempt, every MX host is blocked by an MTA-STS policy, or the sender domain does not match its root domain | Final state, the attempts of every retry keep every reason                        |
+| held       | The scan rejects the action, the score reaches the hold threshold, or malware is found                                                                   | Final state until a human sees the dashboard                                      |
 
 Notes on reading the diagram:
 
@@ -52,6 +52,10 @@ Notes on reading the diagram:
   message is a successful SMTP conversation with no delivery, on purpose.
 - `pending` is the only state with an open movement, so every other state
   comes from the pipeline after acceptance.
+- A temporary delivery failure does not leave `pending` on its own: relay
+  waits 2, 4, 8, 16 and 32 minutes between attempts, and only the sixth
+  failed attempt ends the message. A message that sits pending for a while
+  is usually waiting on that schedule, not on a first attempt.
 - `bounced` and `failed` differ by who is responsible: a remote rejection
   ends as `bounced`, and relay-side transport problems end as `failed`.
 - `sent` is the strongest final state relay can know: the recipient MX
@@ -108,7 +112,9 @@ The transmission list per message shows each attempt with its own outcome:
 
 One delivery walk produces one row per MX host it reached. A failed
 delivery therefore keeps the answer of every host it tried, including the
-hosts MTA-STS rejected and the lookup that found no host at all.
+hosts MTA-STS rejected and the lookup that found no host at all. Every
+retry walks the list again and files its own rows, so the timeline shows
+each attempt with the wait that came before it.
 
 The message detail page also draws these records on a timeline. Each bar
 spans the time relay measured for that attempt: a reception bar covers the

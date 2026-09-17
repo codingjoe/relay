@@ -137,7 +137,7 @@ The message carries one status. Every attempt carries its own:
 | sent           | At least one attempt ended with success                             |
 | bounced        | A recipient server rejected the message permanently                 |
 | suppressed     | The recipient is on the suppression list                            |
-| failed         | relay cannot deliver, the transcript shows why                      |
+| failed         | relay cannot deliver after its retries, the transcript shows why    |
 
 The Transmission list per message starts with the submission and shows
 every delivery attempt: the MX host context, the SMTP status code, the

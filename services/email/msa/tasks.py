@@ -1,3 +1,4 @@
+import datetime
 import logging
 import random
 
@@ -7,6 +8,7 @@ from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.tasks import task
 from django.utils import timezone
+from threadmill.retry import ExponentialBackoff
 
 from services.email.mta_sts import MtaStsPolicy
 from services.email.spam.client import SpamAction, check_message
@@ -37,12 +39,51 @@ class SenderDomainMismatchError(ValueError):
         super().__init__("Outgoing message sender domain does not match")
 
 
-@task(queue_name="delivery")
+class TemporaryDeliveryError(Exception):
+    """A delivery attempt failed for a reason that may pass, so relay retries."""
+
+
+DELIVERY_RETRY = ExponentialBackoff(
+    base_delay=datetime.timedelta(minutes=1),
+    max_delay=datetime.timedelta(minutes=32),
+    factor=2.0,
+    # The base delay doubles before the first retry, so the five retries wait
+    # 2, 4, 8, 16 and 32 minutes and the six attempts span about an hour.
+    max_retries=6,
+    expected_exceptions=(TemporaryDeliveryError,),
+)
+
+
+def delivery_retry(context):
+    """
+    Return the delay until the next attempt, and `None` when the budget is spent.
+
+    The message fails with the last retry, because no attempt follows to do it.
+    """
+    delay = DELIVERY_RETRY(context)
+    if delay is None:
+        message_id = context.task_result.kwargs.get("message_id")
+        if message_id:
+            mark_failed_if_pending(message_id)
+    return delay
+
+
+def mark_failed_if_pending(message_id):
+    """Set `FAILED` only when the message is still pending."""
+    from .models import OutgoingMessage
+
+    OutgoingMessage.objects.filter(
+        pk=message_id, status=OutgoingMessage.Status.PENDING
+    ).update(status=OutgoingMessage.Status.FAILED)
+
+
+@task(queue_name="delivery", retry=delivery_retry)
 def deliver_message(message_id):
     """
     Deliver a queued outgoing message to its recipients.
 
-    Drop the message instead when the org is suspended.
+    Drop the message instead when the org is suspended. A temporary failure
+    keeps the message pending until the retry schedule ends.
     """
     from services.email.message.models import Transmission
 
@@ -63,13 +104,34 @@ def deliver_message(message_id):
     started_at = timezone.now()  # a start stamped before the block is kept
     try:
         send_outgoing_message(message)
-    except Exception as e:  # storage backend raises varied exceptions
-        logger.exception("Transmission error for message %r", message_id)
-        with Transmission(message=message, started_at=started_at) as transmission:
-            transmission.status = Transmission.Status.FAILED
-            transmission.details = str(e)
+    except TemporaryDeliveryError as error:
+        logger.warning(
+            "Message %s to %s failed, relay retries: %s",
+            message.id,
+            message.rcpt_to,
+            error,
+        )
+        raise
+    except (AmbiguousSenderDomainError, SenderDomainMismatchError) as error:
+        # A sender domain that does not match its root domain is a
+        # configuration problem, so no retry can fix it.
+        logger.exception("Message %s has a sender domain relay cannot use", message.id)
+        record_failed_attempt(message, started_at, error)
         message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
+    except Exception as error:  # storage backends raise varied exceptions
+        logger.exception("Transmission error for message %r", message_id)
+        record_failed_attempt(message, started_at, error)
+        raise TemporaryDeliveryError(str(error)) from error
+
+
+def record_failed_attempt(message, started_at, error):
+    """Record the attempt that failed on the message."""
+    from services.email.message.models import Transmission
+
+    with Transmission(message=message, started_at=started_at) as transmission:
+        transmission.status = Transmission.Status.FAILED
+        transmission.details = str(error)
 
 
 def resolve_sender_domain(message):
@@ -93,8 +155,6 @@ def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
     from services.email.message.models import Transmission
 
-    from .models import OutgoingMessage
-
     resolve_sender_domain(message)
     raw_bytes = message.raw_body.read()
     return_path = (
@@ -115,11 +175,10 @@ def send_outgoing_message(message):
         with Transmission(message=message, started_at=started_at) as transmission:
             transmission.status = Transmission.Status.FAILED
             transmission.details = no_hosts_reason
-        status, failure = OutgoingMessage.Status.FAILED, no_hosts_reason
-    else:
-        status, failure = deliver_via_mx_hosts(
-            message, mx_hosts, raw_bytes, return_path
-        )
+        # A record that is not delegated yet, or a resolver that timed out,
+        # may answer on a later attempt.
+        raise TemporaryDeliveryError(no_hosts_reason)
+    status, failure = deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path)
     if failure:
         logger.error(
             "Message %s to %s could not be delivered: %s",
@@ -136,7 +195,8 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
     Try every MX host in preference order and record one transmission per attempt.
 
     Return the status the message ends in and, when no host accepted it, the
-    reasons every host refused.
+    reasons every host refused. Raise `TemporaryDeliveryError` instead when a
+    host answered temporarily, so the retry schedule runs.
     """
     from services.email.message.models import Transmission
 
@@ -144,6 +204,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
 
     rcpt_domain = message.rcpt_to.split("@")[-1]
     reasons = []
+    has_temporary_failure = False
     for mx_host in mx_hosts:
         with Transmission(message=message) as transmission:
             # An attempt is a failure until a host accepts it, so an
@@ -191,10 +252,12 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                         transmission.code = code
                         transmission.output = output
                         reasons.append((mx_host, output))
+                        has_temporary_failure = True
             except (aiosmtplib.SMTPException, OSError) as error:
                 details = f"{type(error).__name__}: {error}"
                 transmission.details = details
                 reasons.append((mx_host, details))
+                has_temporary_failure = True
             except Exception as error:
                 # The attempt row has to explain what the pipeline reports,
                 # because the fallback row repeats this exception.
@@ -217,10 +280,10 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                     response,
                 )
                 return OutgoingMessage.Status.SENT, ""
-    return (
-        OutgoingMessage.Status.FAILED,
-        "; ".join(f"{host}: {reason}" for host, reason in reasons),
-    )
+    failure = "; ".join(f"{host}: {reason}" for host, reason in reasons)
+    if has_temporary_failure:
+        raise TemporaryDeliveryError(failure)
+    return OutgoingMessage.Status.FAILED, failure
 
 
 def refusal_details(code):

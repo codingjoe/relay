@@ -117,16 +117,21 @@ row. The outcomes:
   permanently. relay marks the message as bounced and suppresses the
   address. The dashboard shows the exact SMTP answer.
 - **4xx answer**. The remote server is not accepting the message right now.
-  relay records the answer for that host and tries the next one. When every
-  host answers with a temporary failure, the message ends failed, and each
-  host keeps its own answer.
+  relay records the answer for that host and tries the next one. When no
+  host accepted the message, relay keeps it pending and retries the whole
+  list on a backoff schedule: 2, 4, 8, 16 and 32 minutes between attempts,
+  about an hour in total. The sixth failed attempt ends the message failed,
+  and every host keeps its own answer from every attempt.
 - **No MX records or a failed lookup**. relay records why there was nothing
   to try, and separates a domain without MX records from a lookup that
-  failed, for example a resolver timeout.
+  failed, for example a resolver timeout. Both are retried like a temporary
+  answer, because a delegation or a resolver may recover.
 - **MTA-STS rejection**. relay skips the host and records which policy
-  pattern rejected it.
+  pattern rejected it. A policy that blocks every host is final: relay
+  cannot talk its way past a published policy.
 - **Transport problems**. relay records the failing host and the error, for
-  example a connection timeout or a dropped connection.
+  example a connection timeout or a dropped connection, and retries the
+  message.
 
 A 250 acceptance from your submission is not a delivery confirmation. The
 dashboard's transmissions are the confirmation path.

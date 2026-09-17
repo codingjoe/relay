@@ -21,10 +21,13 @@ flowchart TD
     B -- held --> C[Status held]
     B -- clean --> D[DKIM sign all keys]
     D --> E[MX lookup, MTA-STS filter]
-    E --> F[Attempt 1]
-    F --> G[Status sent, transcript stored]
-    E -- all hosts fail --> H[Status failed, transcript stored]
-    E -- permanent 5xx --> I[Status bounced + suppression]
+    E --> F[Attempt at every MX host]
+    F -- accepted --> G[Status sent, transcript stored]
+    F -- 5xx permanent --> H[Status bounced + suppression]
+    F -- temporary failure, or no host to try --> I[Status stays pending through the backoff]
+    I --> F
+    I -- sixth attempt failed --> J[Status failed, transcript stored]
+    F -- every host blocked by MTA-STS --> K[Status failed, transcript stored]
 ```
 
 Message storage comes before any delivery logic. If a process dies between
@@ -67,34 +70,47 @@ log. Support starts from those facts, not from memories.
 flowchart TD
     A[Attempt to MX host 1, preference order] -- fail --> B[Attempt host 2]
     B -- fail --> C[Attempt host n]
-    C -- fail --> D[Mark failed]
-    A -- 5xx permanent --> E[Mark bounced, suppress the address]
-    A -- 2xx-ish success --> F[Mark sent]
+    A -- 5xx permanent --> D[Mark bounced, suppress the address]
+    A -- accepted --> E[Mark sent]
+    C -- temporary failure --> F[Stay pending, wait for the backoff]
+    F --> A
+    F -- budget spent --> G[Mark failed]
+    C -- every host blocked by MTA-STS --> G
 ```
 
 - **Multiple MX hosts.** relay walks the MX list by preference and skips
   hosts that MTA-STS rejects, so a single broken host does not block
   delivery. Every host it tried or skipped keeps its own row with the reason,
   so a failed message never hides which host said what.
-- **No MX records found** results in a clear failure, not in a silent drop.
-  A lookup that fails instead of answering, for example a resolver timeout,
-  is recorded as a lookup failure and never as a missing record.
+- **No MX records found** never drops the message silently: the lookup is
+  recorded and retried with the schedule, because a delegation that has not
+  propagated yet may resolve on a later attempt. A lookup that fails instead
+  of answering, for example a resolver timeout, is recorded as a lookup
+  failure and never as a missing record, and is retried the same way.
 - **Permanent (5xx) answers bounce immediately** and feed the automatic
   suppression list, including a rejected recipient on the envelope. No retry
   storm at an unwilling receiver.
-- **Temporary (4xx) answers** are recorded against the host that gave them,
-  and relay tries the next MX host. The message ends failed only when every
-  host answered with a temporary failure, and it keeps every answer for
-  diagnosis.
+- **Temporary answers and transport errors** are recorded against the host
+  that gave them, and relay tries the next MX host. When no host accepted the
+  message, relay keeps the message pending and retries the whole list on the
+  backoff schedule. Every attempt files its own rows, so the message ends
+  failed only when the schedule is spent, with the answer of every host on
+  every attempt kept for diagnosis. An MTA-STS policy that blocks every host
+  is final instead: relay cannot talk its way past a policy.
 
 ## Automatic retry schedules
 
 relay defines explicit retry behavior for external systems:
 
-| Action                | Schedule                                                 | Notes                            |
-| --------------------- | -------------------------------------------------------- | -------------------------------- |
-| Spam and malware scan | Retried for about a day                                  | Delays mail instead of losing it |
-| Webhook delivery      | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry  |
+| Action                | Schedule                                                     | Notes                                              |
+| --------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
+| Delivery to MX hosts  | 6 attempts, waits of 2, 4, 8, 16 and 32 min, about 1 h total | 5xx bounces immediately, an MTA-STS block is final |
+| Spam and malware scan | Retried for about a day                                      | Delays mail instead of losing it                   |
+| Webhook delivery      | 10 attempts, immediate up to 24 h gaps, about 75 h total     | 0 to 29 s jitter on every retry                    |
+
+Delivery retries keep the message pending and add one transmission row per
+host of every attempt. The schedule ends early the moment a host accepts the
+message, and the message ends failed when the sixth attempt does not.
 
 Webhook retries stop early on success. Every delivery attempt carries its
 URL, response code, and a response excerpt of 2,000 characters, so an
