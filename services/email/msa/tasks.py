@@ -305,7 +305,7 @@ async def send_via_mx(
     Deliver a message to an MX host over STARTTLS on port 25.
 
     Record the addresses of the leg on the transmission, so an attempt that
-    fails still names the address relay dialed from.
+    fails still names them.
 
     Return the SMTP response with the negotiated TLS details.
     """
@@ -317,8 +317,6 @@ async def send_via_mx(
         if settings.RELAY_SMTP_SOURCE_IPS
         else None
     )
-    # The pool address is known before the connection opens, so a dial that
-    # times out or is refused still names it.
     transmission.local_ip_address = source_address[0] if source_address else None
     async with aiosmtplib.SMTP(
         hostname=mx_host,
@@ -328,8 +326,7 @@ async def send_via_mx(
         local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
         source_address=source_address,
     ) as smtp_client:
-        # Read the socket right after the handshake, so a leg the server
-        # refuses later still names the addresses it reached.
+        # Read the socket before the mail transaction; a refusal drops it.
         try:
             sockname = smtp_client.get_transport_info("sockname")
             peername = smtp_client.get_transport_info("peername")
