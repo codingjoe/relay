@@ -72,6 +72,7 @@ gh workflow run deploy.yml
 
 ```bash
 curl https://relays.to/health/
+curl https://relays.to/health/soa/
 openssl s_client -connect smtp.relays.to:587 -starttls smtp
 dig +short pg.relays.to storage.relays.to
 ```
