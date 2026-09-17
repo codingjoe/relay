@@ -68,16 +68,15 @@ def create_held_outgoing_fbl_report(message_pk, org_id):
     report is stored.
     """
     message = OutgoingMessage.objects.get(pk=message_pk)
-    report = FblReport.create_for_spam(message)
+    FblReport.create_for_spam(message)
     check_org_reputation.enqueue(org_id=org_id)
-    return report.pk
 
 
 @task
 def create_quarantined_incoming_fbl_report(message_pk):
     """Store a visibility-only relay FBL report for a quarantined message."""
     message = IncomingMessage.objects.get(pk=message_pk)
-    return FblReport.create_for_spam(message)
+    FblReport.create_for_spam(message)
 
 
 @task
@@ -86,7 +85,6 @@ def create_provider_fbl_report(message_pk):
     message = IncomingMessage.objects.get(pk=message_pk)
     report = FblReport.create_for_incoming(message)
     parse_fbl_report.enqueue(report_pk=str(report.pk))
-    return report
 
 
 @task
