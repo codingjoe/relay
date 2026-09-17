@@ -5,6 +5,35 @@
       <h2>{% translate "send test email"|title %}</h2>
       <p>{% translate "send a test message to your own address and watch it arrive."|capfirst %}</p>
     </header>
+    <section>
+      <form
+        method="post"
+        action="{% url 'msa:message-test' org.slug %}"
+        id="form-test-email"
+      >
+        {% csrf_token %}
+        <fieldset class="fieldset">
+          <div role="group" class="field">
+            <label for="id_test_email_domain">
+              {% translate "sending domain"|capfirst %}
+            </label>
+            {% if sending_domains %}
+              <select name="domain" id="id_test_email_domain" class="select w-full" required>
+                {% for domain in sending_domains %}
+                  <option value="{{ domain.pk }}" {% if domain.is_managed %}selected{% endif %}>
+                    {{ domain.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <p class="text-sm text-muted-foreground">
+                {% translate "Add a domain and complete the sending DNS checks before you send a test." %}
+              </p>
+            {% endif %}
+          </div>
+        </fieldset>
+      </form>
+    </section>
     <footer>
       <button
         type="button"
@@ -14,12 +43,9 @@
       >
         {% translate "cancel"|capfirst context "verb" %}
       </button>
-      <form method="post" action="{% url 'msa:message-test' org.slug %}">
-        {% csrf_token %}
-        <button type="submit" class="btn">
-          {% translate "send"|capfirst context "verb" %}
-        </button>
-      </form>
+      <button type="submit" form="form-test-email" class="btn">
+        {% translate "send"|capfirst context "verb" %}
+      </button>
     </footer>
   </div>
 </dialog>

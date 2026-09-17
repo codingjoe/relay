@@ -236,6 +236,26 @@ class TestTestEmailView:
         msg = OutgoingMessage.objects.get(org=org)
         assert msg.domain == Domain.objects.get(org=org, is_managed=True)
 
+    def test_post__uses_selected_domain(self, admin_client, org):
+        domain = Domain.objects.create(
+            name="example.com",
+            org=org,
+            nameserver_status=Domain.Status.OK,
+            spf_status=Domain.Status.OK,
+            dkim_status=Domain.Status.OK,
+            dmarc_status=Domain.Status.OK,
+        )
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(domain.pk)},
+        )
+
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.domain == domain
+        assert msg.mail_from == f"postmaster@{domain.name}"
+
     def test_post__does_not_use_domain_from_other_org(
         self,
         admin_client,
@@ -244,7 +264,10 @@ class TestTestEmailView:
     ):
         other_domain = Domain.objects.get(org=write_org, is_managed=True)
 
-        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+        response = admin_client.post(
+            f"/org/{org.slug}/email/messages/test",
+            {"domain": str(other_domain.pk)},
+        )
 
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org)
