@@ -728,7 +728,7 @@ class TestAuthenticate:
         # so mint the key here and create the stale credential before it.
         raw_key = secrets.token_urlsafe(15)
         stale = MsaCredential(org=org, name="stale")
-        stale.set_key(raw_key[:8] + "stale-tail")
+        stale.set_key(raw_key[:4] + "stale-tail")
         stale.save()
         credential = MsaCredential(org=org, name="test")
         credential.set_key(raw_key)
