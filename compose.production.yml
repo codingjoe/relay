@@ -1,3 +1,4 @@
+name: relay
 include:
   - oci://ghcr.io/codingjoe/the-box:main
   - oci://ghcr.io/codingjoe/the-box-postgres:main
@@ -74,9 +75,6 @@ services:
       service: web
   dnsdist:
     image: powerdns/dnsdist-21:2.1.2
-    depends_on:
-      dns:
-        condition: service_started
     configs:
       - source: dnsdist
         target: /etc/dnsdist/dnsdist.conf
@@ -86,6 +84,7 @@ services:
     networks:
       - dnsdist
       - dnsdist-wan
+    restart: unless-stopped
     # Proves the dnsdist-to-dns chain; a timestamped qname bypasses the cache.
     healthcheck:
       test: [ "CMD", "python3", "-c", "import socket, time; label = str(int(time.time())).encode(); query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\\x06health\\x00' + b'\\x00\\x01\\x00\\x01'; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(5); s.sendto(query, ('127.0.0.1', 53)); response = s.recv(512); assert response[:2] == query[:2]; assert response[3] & 0xF == 0" ]
@@ -224,6 +223,7 @@ services:
     networks:
       - app
       - ingress
+    restart: unless-stopped
     labels:
       - "caddy_1=http://caddy:11334"
       - "caddy_1.reverse_proxy={{upstreams 11334}}"
