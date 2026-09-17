@@ -8,6 +8,7 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
+from domains.models import Domain
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
 from .models import Message
@@ -63,6 +64,11 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             "status_choices": Message.status_choices(),
             "filter_count": filter_count,
             "direction_label": direction_label,
+            "sending_domains": [
+                domain
+                for domain in Domain.objects.filter(org=self.org)
+                if domain.is_sending_verified
+            ],
         }
 
 

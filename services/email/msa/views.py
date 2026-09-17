@@ -33,9 +33,24 @@ class OutgoingMessageDetailView(MessageDetailView):
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         started_at = timezone.now()
-        try:
-            domain = Domain.objects.get(org=self.org, is_managed=True)
-        except Domain.DoesNotExist:
+        sending_domains = [
+            domain
+            for domain in Domain.objects.filter(org=self.org)
+            if domain.is_sending_verified
+        ]
+        managed_domain = next(
+            (domain for domain in sending_domains if domain.is_managed), None
+        )
+        if (
+            domain := next(
+                (
+                    domain
+                    for domain in sending_domains
+                    if str(domain.pk) == request.POST.get("domain")
+                ),
+                managed_domain,
+            )
+        ) is None:
             messages.error(request, _("Add a sending domain first."))
             return redirect("message:message-list", org_slug=org_slug)
 
