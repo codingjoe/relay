@@ -269,7 +269,7 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "MTA depends only on message, spam, domains, accounts, kms and abstract"
+name = "MTA depends only on message, msa, spam, domains, accounts, kms and abstract"
 type = "forbidden"
 source_modules = [ "services.email.mta" ]
 forbidden_modules = [
@@ -280,7 +280,6 @@ forbidden_modules = [
   "root",
   "services.email.dashboard",
   "services.email.dmarc",
-  "services.email.msa",
   "services.email.reputation",
   "well_known",
 ]
@@ -303,7 +302,7 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "DMARC depends only on mta, message, domains, accounts, kms and abstract"
+name = "DMARC depends only on mta, msa, message, domains, accounts, kms and abstract"
 type = "forbidden"
 source_modules = [ "services.email.dmarc" ]
 forbidden_modules = [
@@ -313,7 +312,6 @@ forbidden_modules = [
   "legal",
   "root",
   "services.email.dashboard",
-  "services.email.msa",
   "services.email.reputation",
   "well_known",
 ]

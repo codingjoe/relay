@@ -11,14 +11,15 @@ from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
-from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from django_letter.exceptions import InvalidUserError
 
 from services.email.message.models import Transmission
+from services.email.msa.handlers import submit_relay_message
 from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
 
+from .emails import PostmasterForwardEmail
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
 logger = logging.getLogger(__name__)
@@ -236,43 +237,50 @@ def parse_tls_report(report_pk):
     TlsFailure.objects.bulk_create(failures)
 
 
-@task(queue_name="ingress")
-def notify_postmaster_recipients(message_pk):
-    """Email all org members with a link to the received message."""
-    message = IncomingMessage.objects.get(pk=message_pk)
-    memberships = message.org.memberships.exclude(user__email="").select_related("user")
+@task(queue_name="egress")
+def forward_postmaster_message(message_pk):
+    """
+    Submit every member of the receiving organization a replyable copy.
 
-    scheme = "http" if settings.DEBUG or settings.TEST else "https"
-    detail_url = (
-        f"{scheme}://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
-    )
-    context = {
-        "subject": message.subject or _("(no subject)"),
-        "mail_from": message.mail_from,
-        "rcpt_to": message.rcpt_to,
-        "detail_url": detail_url,
-    }
-    body = render_to_string("mta/postmaster_notification.txt", context)
-    subject = _("Postmaster message received: %(subject)s") % {
-        "subject": message.subject
-    }
+    Each copy leaves relay from the domain the message arrived at, so it
+    lands in the organization's dashboard and counts toward their usage.
+    The copy names the recipient, links to the stored message in the relay
+    dashboard, and replies reach the original author. A member who cannot
+    receive mail is skipped, so one bad account never fails the forward.
+    """
+    message = IncomingMessage.objects.get(pk=message_pk)
+    memberships = message.org.memberships.select_related("user")
+    mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{message.domain_name}"
+    started_at = timezone.now()
     for membership in memberships:
         try:
-            membership.user.email_user(
-                subject=subject,
-                message=body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            email = PostmasterForwardEmail.to_user(
+                membership.user,
+                message=message,
+                from_email=mail_from,
+                language=settings.LANGUAGE_CODE,
             )
-        except OSError:
-            logger.exception(
-                "Postmaster notification to %s failed",
-                membership.user.email,
+        except InvalidUserError:
+            email = None
+        if email is not None:
+            submit_relay_message(
+                org=message.org,
+                domain=message.domain,
+                email=email,
+                mail_from=mail_from,
+                rcpt_to=membership.user.email,
+                started_at=started_at,
             )
 
 
 @task(queue_name="ingress", retry=SPAM_SCAN_RETRY)
 def check_incoming_spam(message_pk, client_ip):
-    """Check an incoming message for spam and dispatch webhook if clean."""
+    """
+    Evaluate the stored mail and dispatch what the scan clears.
+
+    Clean mail reaches the matching webhooks, and mail addressed to postmaster
+    reaches every organization member.
+    """
     from services.email.message.models import SpamCheck
 
     message = IncomingMessage.objects.get(pk=message_pk)
@@ -305,3 +313,8 @@ def check_incoming_spam(message_pk, client_ip):
     message.save(update_fields=update_fields)
     if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
         dispatch_webhook.enqueue(message_id=str(message.pk))
+        if (
+            message.rcpt_to.partition("@")[0].partition("+")[0].lower()
+            == settings.RELAY_POSTMASTER_LOCAL_PART
+        ):
+            forward_postmaster_message.enqueue(message_pk=str(message.pk))

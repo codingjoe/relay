@@ -99,13 +99,19 @@ flowchart TD
     F --> G
     G -- score 15 or higher, or malware found --> H[Quarantine, no webhook]
     G -- clean and not already quarantined --> I[Dispatch webhooks]
+    I --> J{Recipient is postmaster?}
+    J -- Yes --> K[Submit a copy from the receiving domain]
 ```
 
 A reject disposition returns an SMTP failure to the sending server inside the
 SMTP transaction. The message never enters the platform. A high spam score
 quarantines the message instead of delivering it, and no webhook fires. The
-same applies to malware and to any other message the scan rejects. The
-dashboard shows every quarantined message with its score.
+same applies to malware and to any other message the scan rejects, and a
+quarantined message is never forwarded. relay also forwards mail addressed to
+postmaster, with or without a `+` extension, to every member of the
+organization. Those copies are outgoing messages relay signs for the receiving
+domain, so they are billed and listed like any other message the organization
+sends. The dashboard shows every quarantined message with its score.
 
 ## Error monitoring and secrets
 

@@ -1,0 +1,26 @@
+{% extends "emails/base.html" %}
+{% load django_letter i18n %}
+
+{% block content %}
+  <p class="first">
+    {% blocktranslate trimmed with recipient=recipient %}
+      A message sent to {{ recipient }} was forwarded to your organization.
+    {% endblocktranslate %}
+  </p>
+  {% table %}
+  <tr>
+    <td>{% translate "From" %}</td>
+    <td>{{ sender }}</td>
+  </tr>
+  <tr>
+    <td>{% translate "Subject" %}</td>
+    <td>{{ original_subject }}</td>
+  </tr>
+  <tr>
+    <td>{% translate "To" %}</td>
+    <td>{{ recipient }}</td>
+  </tr>
+  {% endtable %}
+  {% translate "View the full message" as button_label %}
+  {% button href=detail_url value=button_label primary=True %}
+{% endblock content %}

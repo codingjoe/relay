@@ -58,9 +58,9 @@ class TestProcessIncomingMessagePostmaster:
         )
 
     @pytest.mark.django_db(transaction=True)
-    async def test_postmaster__enqueues_notification(self, org):
+    async def test_postmaster__enqueues_only_spam_check(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        with patch("services.email.mta.handlers.check_incoming_spam"):
+        with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
             await process_incoming_message(
                 "external@example.org",
                 "postmaster@example.com",
@@ -70,10 +70,14 @@ class TestProcessIncomingMessagePostmaster:
                 IncomingMessage.Status.RECEIVED,
                 "",
             )
-        assert any("postmaster" in m.subject.lower() for m in mail.outbox)
+        message = await IncomingMessage.objects.aget(domain=domain)
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(message.id), client_ip=""
+        )
+        assert len(mail.outbox) == 0
 
     @pytest.mark.django_db(transaction=True)
-    async def test_non_postmaster__does_not_notify(self, org):
+    async def test_non_postmaster__does_not_send_mail(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
         org.billing_is_active = True
         with patch("services.email.mta.handlers.check_incoming_spam"):

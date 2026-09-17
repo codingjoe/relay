@@ -176,9 +176,9 @@ Async work is split across four queues, so each pipeline stage can run on its
 own worker and scale on its own:
 
 - `ingress`: tasks that process received mail, so the inbound spam scan,
-  webhook delivery, TLS-RPT parsing, and postmaster notices.
-- `egress`: tasks that process outgoing submissions, currently the outbound
-  spam scan.
+  webhook delivery, and TLS-RPT parsing.
+- `egress`: tasks that process outgoing submissions, so the outbound spam
+  scan and the postmaster forward.
 - `delivery`: SMTP delivery to remote MX hosts. The sender worker is the only
   consumer, so it can be given dedicated outbound addresses.
 - `default`: everything else, so DMARC and reputation reporting.
@@ -315,6 +315,7 @@ graph BT
  msa --> domains
  msa --> kms
  mta --> message
+ mta --> msa
  mta --> accounts
  mta --> domains
  mta --> kms
