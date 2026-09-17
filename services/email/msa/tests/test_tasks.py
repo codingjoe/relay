@@ -165,8 +165,8 @@ class TestDeliverMessage:
         assert stored_certificate.issuer_certificate is None
         assert list(stored_certificate.chain()) == [stored_certificate]
         assert (
-            f"Message {msg.id} to {msg.rcpt_to} delivered via 'mx.example.com': '250 OK'"
-            in caplog.messages
+            f"Message {msg.id} to {msg.rcpt_to} delivered via 'mx.example.com' "
+            "from 198.51.100.25: '250 OK'" in caplog.messages
         )
 
     def test_deliver_message__permanent_failure_marks_bounced(
@@ -196,6 +196,119 @@ class TestDeliverMessage:
         assert Transmission.objects.filter(
             message=msg, status=Transmission.Status.BOUNCED
         ).exists()
+
+    def test_deliver_message__failed_dial_records_pool_address(
+        self, user, org, dns_resolver, settings, caplog
+    ):
+        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=OSError("Network is unreachable"),
+            ),
+            caplog.at_level(logging.ERROR),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.local_ip_address == "198.51.100.7"
+        assert transmission.remote_ip_address is None
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} could not be delivered: "
+            "mx.example.com from 198.51.100.7: OSError: Network is unreachable"
+            in caplog.messages
+        )
+
+    def test_deliver_message__bounce_records_pool_address(
+        self, user, org, dns_resolver, settings, caplog
+    ):
+        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="reject@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        refusal = aiosmtplib.SMTPRecipientRefused(
+            550, b"5.1.1 User unknown", msg.rcpt_to
+        )
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=aiosmtplib.SMTPRecipientsRefused([refusal]),
+            ),
+            caplog.at_level(logging.WARNING),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert transmission.local_ip_address == "198.51.100.7"
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} bounced at 'mx.example.com' "
+            "from 198.51.100.7: '550 5.1.1 User unknown'" in caplog.messages
+        )
+
+    def test_deliver_message__dials_from_the_pool_address(
+        self, user, org, dns_resolver, settings, caplog
+    ):
+        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        smtp_client = MagicMock()
+        smtp_client.sendmail = AsyncMock(return_value="250 OK")
+        smtp_client.__aenter__.return_value = smtp_client
+        smtp_client.get_transport_info.side_effect = {
+            "sockname": ("198.51.100.7", 40000),
+            "peername": ("203.0.113.10", 25),
+        }.get
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                return_value=smtp_client,
+            ) as mock_smtp,
+            caplog.at_level(logging.INFO),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        assert mock_smtp.call_args.kwargs["source_address"] == ("198.51.100.7", 0)
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.SENT
+        assert transmission.local_ip_address == "198.51.100.7"
+        assert transmission.remote_ip_address == "203.0.113.10"
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} delivered via 'mx.example.com' "
+            "from 198.51.100.7: '250 OK'" in caplog.messages
+        )
 
     def test_deliver_message__fails_closed_for_ambiguous_cross_org_domain(
         self,

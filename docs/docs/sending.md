@@ -116,7 +116,8 @@ Important details of the pipeline:
 - **Sending spreads across an IP pool.** Each outgoing connection leaves
   through a randomly picked relay sending IP. Every pool IP has matching
   forward and reverse DNS, and a blacklisted IP can rotate out without an
-  outage.
+  outage. Every delivery attempt records the sending IP it used, so a
+  refusal names the address the receiver blocked.
 - **EHLO identifies the relay sending host**, whose name matches its
   reverse DNS record. Receivers grade that consistency.
 - **Enforced MTA-STS.** For recipient domains with a policy, relay skips
