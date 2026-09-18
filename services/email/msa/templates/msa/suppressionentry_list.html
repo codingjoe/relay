@@ -32,48 +32,57 @@
         {% endblocktranslate %}
       </p>
     </header>
+    <section>
+      <form
+        method="post"
+        action="{% url 'msa:suppression-add' org.slug %}"
+        id="form-suppression"
+        class="flex flex-wrap items-start gap-2"
+      >
+        {% csrf_token %}
+        <div class="input-group flex-1 min-w-64">
+          <input
+            id="suppression-address"
+            name="email"
+            type="email"
+            required
+            autocomplete="off"
+            placeholder="user@example.com"
+            aria-label='{% translate "email address"|capfirst %}'
+          >
+          <span data-align="start" aria-hidden="true">
+            <i data-lucide="at-sign" class="size-4"></i>
+          </span>
+        </div>
+        <div role="group" class="button-group">
+          <button
+            type="submit"
+            class="btn"
+            aria-label='{% translate "add address"|title %}'
+          >
+            {% translate "add"|capfirst context "verb" %}
+          </button>
+          <button
+            type="submit"
+            class="btn"
+            data-variant="secondary"
+            formaction="{% url 'msa:suppression-check' org.slug %}"
+            aria-label='{% translate "check address"|title %}'
+          >
+            {% translate "check"|capfirst context "verb" %}
+          </button>
+          <button
+            type="submit"
+            class="btn"
+            data-variant="destructive"
+            formaction="{% url 'msa:suppression-remove' org.slug %}"
+            aria-label='{% translate "remove address"|title %}'
+            onclick="return confirm('{% translate "remove this address from the suppression list?"|capfirst %}')"
+          >
+            {% translate "remove"|capfirst context "verb" %}
+          </button>
+        </div>
+      </form>
+    </section>
   </section>
-
-  <form
-    method="post"
-    action="{% url 'msa:suppression-add' org.slug %}"
-    id="form-suppression"
-    class="flex flex-wrap items-start gap-2"
-  >
-    {% csrf_token %}
-    <div class="input-group flex-1 min-w-64">
-      <input
-        id="suppression-address"
-        name="email"
-        type="email"
-        required
-        autocomplete="off"
-        placeholder="user@example.com"
-        aria-label='{% translate "email address"|capfirst %}'
-      >
-      <span data-align="start" aria-hidden="true">
-        <i data-lucide="at-sign" class="size-4"></i>
-      </span>
-    </div>
-    <div role="group" class="button-group">
-      <button type="submit" class="btn">{% translate "add address"|title %}</button>
-      <button
-        type="submit"
-        class="btn"
-        data-variant="secondary"
-        formaction="{% url 'msa:suppression-check' org.slug %}"
-      >
-        {% translate "check address"|title %}
-      </button>
-      <button
-        type="submit"
-        class="btn"
-        data-variant="destructive"
-        formaction="{% url 'msa:suppression-remove' org.slug %}"
-        onclick="return confirm('{% translate "remove this address from the suppression list?"|capfirst %}')"
-      >
-        {% translate "remove address"|title %}
-      </button>
-    </div>
-  </form>
 {% endblock %}
