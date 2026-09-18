@@ -1204,7 +1204,7 @@ requires-dist = [
     { name = "redis", specifier = ">=8.1" },
     { name = "sentry-sdk", specifier = ">=2.69.1" },
     { name = "social-auth-app-django", specifier = ">=6.0.1" },
-    { name = "threadmill", extras = ["redis"], specifier = ">=0.7.1" },
+    { name = "threadmill", extras = ["redis"], specifier = ">=0.7.3" },
     { name = "validators", specifier = ">=0.35" },
     { name = "whitenoise", specifier = ">=6.12" },
 ]
@@ -1221,7 +1221,7 @@ dev = [
     { name = "pytest-pretty", specifier = ">=1.3" },
     { name = "pytest-randomly", specifier = ">=5" },
     { name = "pytest-xdist", specifier = ">=3.8" },
-    { name = "threadmill", extras = ["inspector"], specifier = ">=0.7.1" },
+    { name = "threadmill", extras = ["inspector"], specifier = ">=0.7.3" },
 ]
 test = [
     { name = "pytest", specifier = ">=9.1.1" },
@@ -1368,14 +1368,14 @@ wheels = [
 
 [[package]]
 name = "threadmill"
-version = "0.7.1"
+version = "0.7.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3c/eb/c5e66a0f7f5ad3dc8efe93cb8d30997abbe0533079581028f7f6dd246a44/threadmill-0.7.1.tar.gz", hash = "sha256:6797d2c4cca4d27f1709b95e924a82e4097d4ee472d26ed2faeb21d9557d9ee4", size = 31102, upload-time = "2026-09-08T07:59:02.1Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/b1/7a52f2b7affd2519949e96313d2700abc1d34f5bcf1dae3155de83a2794c/threadmill-0.7.3.tar.gz", hash = "sha256:56ad3515b69d453ddb78f761e58d4ccafad7000cecd9864350853839a4a70d3f", size = 31451, upload-time = "2026-09-17T12:10:12.242Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/3e/a509358dbb092783e6dba245fd09698e31ced29e2e620a1189df561d618d/threadmill-0.7.1-py3-none-any.whl", hash = "sha256:a2722c95b0bf66badbe41c9500dff5347ed8213e87ab7629ec18e52985e6a1b8", size = 34748, upload-time = "2026-09-08T07:59:00.733Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/3b/d56c3fd00381ab114e55eb9747c8b5a063305b414220081af9ba8f4a1ba2/threadmill-0.7.3-py3-none-any.whl", hash = "sha256:697c1142cb9b0214c485c8da2f5eebb9ebb7f508b00a4e2191d87fa5fef333a8", size = 35132, upload-time = "2026-09-17T12:10:10.867Z" },
 ]
 
 [package.optional-dependencies]
