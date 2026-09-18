@@ -1,3 +1,4 @@
+from urllib.parse import quote
 from uuid import uuid4
 
 import pytest
@@ -131,6 +132,25 @@ class TestMessageListDirectionChart:
 
         assert response.status_code == 200
         assert response.context["chart"]["rows"][-1]["incoming_received"] == -1
+
+
+@pytest.mark.django_db
+class TestMessageDetailAddressLinks:
+    def test_get__links_the_sender_to_the_filtered_list(self, admin_client, org):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert (
+            f'href="/org/{org.slug}/email/messages/?email={quote(message.mail_from)}"'
+            in content
+        )
+        assert (
+            f'href="/org/{org.slug}/email/messages/?email={quote(message.rcpt_to)}"'
+            in content
+        )
 
 
 @pytest.mark.django_db

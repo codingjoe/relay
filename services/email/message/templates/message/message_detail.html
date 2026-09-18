@@ -6,9 +6,22 @@
     <div class="min-w-0">
       <h2 class="m-0 break-words">{{ message.subject|default:_("(no subject)") }}</h2>
       <p class="m-0 mt-1 text-sm text-muted-foreground">
-        <span class="break-all">{{ message.mail_from }}</span>
+        {% translate "Show the messages with this address" as address_tooltip %}
+        {% if message.mail_from %}
+          <a
+            class="link break-all"
+            data-tooltip="{{ address_tooltip }}"
+            href="{% url 'message:message-list' org.slug %}?email={{ message.mail_from|urlencode }}"
+          >{{ message.mail_from }}</a>
+        {% endif %}
         <i data-lucide="arrow-right" class="size-3.5 inline-block" aria-hidden="true"></i>
-        <span class="break-all">{{ message.rcpt_to }}</span>
+        {% if message.rcpt_to %}
+          <a
+            class="link break-all"
+            data-tooltip="{{ address_tooltip }}"
+            href="{% url 'message:message-list' org.slug %}?email={{ message.rcpt_to|urlencode }}"
+          >{{ message.rcpt_to }}</a>
+        {% endif %}
       </p>
     </div>
     <div class="flex items-center gap-2 shrink-0">
