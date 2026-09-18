@@ -453,6 +453,36 @@ class TestSuppressionListView:
         )
 
     @pytest.mark.django_db
+    def test_get__leads_with_the_chart(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert content.index('id="chart-suppression"') < content.index(
+            'id="form-suppression"'
+        )
+
+    @pytest.mark.django_db
+    def test_get__renders_one_address_form_for_all_actions(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="form-suppression"' in content
+        assert (
+            f'formaction="{reverse("msa:suppression-check", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert (
+            f'formaction="{reverse("msa:suppression-remove", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert 'id="suppression-address"' in content
+
+    @pytest.mark.django_db
     def test_get__context_has_chart(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/suppression/")
         assert "suppression_chart" in response.context

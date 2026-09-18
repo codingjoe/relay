@@ -2,176 +2,78 @@
 {% load i18n abstract %}
 {% block title %}{% translate "suppression list"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center justify-between mb-6">
-    <div class="flex items-center gap-3">
-      <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
-      <span class="badge" data-size="sm" data-variant="outline">
-        {% blocktranslate count counter=object_list|length trimmed %}
-          {{ counter }} address{% plural %}{{ counter }} addresses
-        {% endblocktranslate %}
-      </span>
-    </div>
-    <div role="group" class="button-group">
-      <button
-        type="button"
-        class="btn"
-        onclick="document.getElementById('dlg-add').showModal()"
-      >
-        {% translate "add address"|title %}
-      </button>
-      <button
-        type="button"
-        class="btn"
-        data-variant="secondary"
-        onclick="document.getElementById('dlg-check').showModal()"
-      >
-        {% translate "check address"|title %}
-      </button>
-      <button
-        type="button"
-        class="btn"
-        data-variant="destructive"
-        onclick="document.getElementById('dlg-remove').showModal()"
-      >
-        {% translate "remove address"|title %}
-      </button>
-    </div>
+  <header class="flex items-center gap-3 mb-6">
+    <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
+    <span class="badge" data-size="sm" data-variant="outline">
+      {% blocktranslate count counter=object_list|length trimmed %}
+        {{ counter }} address{% plural %}{{ counter }} addresses
+      {% endblocktranslate %}
+    </span>
   </header>
 
-  <p class="text-muted-foreground mb-6">
-    {% blocktranslate trimmed %}
-      Addresses on this list will not receive email. Bounces are added automatically. Only a salted hash is stored. The
-      plain address is never kept.
-    {% endblocktranslate %}
-  </p>
-
   {% if object_list|length %}
-    {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="" %}
+    {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="mb-6" %}
   {% else %}
-    <p class="text-muted-foreground">
+    <p class="text-muted-foreground mb-6">
       {% blocktranslate trimmed %}
         No suppressed addresses yet.
       {% endblocktranslate %}
     </p>
   {% endif %}
 
-  <dialog class="dialog" id="dlg-add">
-    <div>
-      <header>
-        <h2>{% translate "add address"|title %}</h2>
-        <p>{% translate "add an email address to the suppression list."|capfirst %}</p>
-      </header>
-      <section>
-        <form method="post" action="{% url 'msa:suppression-add' org.slug %}" id="form-add">
-          {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_add_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_add_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
-        </form>
-      </section>
-      <footer>
-        <button
-          type="button"
-          class="btn"
-          data-variant="secondary"
-          onclick="document.getElementById('dlg-add').close()"
-        >
-          {% translate "cancel"|capfirst context "verb" %}
-        </button>
-        <button type="submit" form="form-add" class="btn">
-          {% translate "add"|capfirst context "verb" %}
-        </button>
-      </footer>
-    </div>
-  </dialog>
+  <section class="card mb-6">
+    <header>
+      <h3 class="m-0">{% translate "stored as hashes"|capfirst %}</h3>
+      <p class="m-0">
+        {% blocktranslate trimmed %}
+          Addresses on this list will not receive email, and bounces land on it automatically. The list holds the salted
+          SHA-256 hash of an address, never the address itself, so relay can compare an address against it without
+          reading one back. That is what the GDPR data-minimisation rule asks for.
+        {% endblocktranslate %}
+      </p>
+    </header>
+  </section>
 
-  <dialog class="dialog" id="dlg-remove">
-    <div>
-      <header>
-        <h2>{% translate "remove address"|title %}</h2>
-        <p>{% translate "enter an email address to remove from the list."|capfirst %}</p>
-      </header>
-      <section>
-        <form method="post" action="{% url 'msa:suppression-remove' org.slug %}" id="form-remove">
-          {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_remove_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
-        </form>
-      </section>
-      <footer>
-        <button
-          type="button"
-          class="btn"
-          data-variant="secondary"
-          onclick="document.getElementById('dlg-remove').close()"
-        >
-          {% translate "cancel"|capfirst context "verb" %}
-        </button>
-        <button type="submit" form="form-remove" class="btn" data-variant="destructive">
-          {% translate "remove"|capfirst context "verb" %}
-        </button>
-      </footer>
+  <form
+    method="post"
+    action="{% url 'msa:suppression-add' org.slug %}"
+    id="form-suppression"
+    class="flex flex-wrap items-start gap-2"
+  >
+    {% csrf_token %}
+    <div class="input-group flex-1 min-w-64">
+      <input
+        id="suppression-address"
+        name="email"
+        type="email"
+        required
+        autocomplete="off"
+        placeholder="user@example.com"
+        aria-label='{% translate "email address"|capfirst %}'
+      >
+      <span data-align="start" aria-hidden="true">
+        <i data-lucide="at-sign" class="size-4"></i>
+      </span>
     </div>
-  </dialog>
-
-  <dialog class="dialog" id="dlg-check">
-    <div>
-      <header>
-        <h2>{% translate "check address"|title %}</h2>
-        <p>{% translate "enter an email address to check if it is on the list."|capfirst %}</p>
-      </header>
-      <section>
-        <form method="post" action="{% url 'msa:suppression-check' org.slug %}" id="form-check">
-          {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_check_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_check_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
-        </form>
-      </section>
-      <footer>
-        <button
-          type="button"
-          class="btn"
-          data-variant="secondary"
-          onclick="document.getElementById('dlg-check').close()"
-        >
-          {% translate "cancel"|capfirst context "verb" %}
-        </button>
-        <button type="submit" form="form-check" class="btn">
-          {% translate "check"|capfirst context "verb" %}
-        </button>
-      </footer>
+    <div role="group" class="button-group">
+      <button type="submit" class="btn">{% translate "add address"|title %}</button>
+      <button
+        type="submit"
+        class="btn"
+        data-variant="secondary"
+        formaction="{% url 'msa:suppression-check' org.slug %}"
+      >
+        {% translate "check address"|title %}
+      </button>
+      <button
+        type="submit"
+        class="btn"
+        data-variant="destructive"
+        formaction="{% url 'msa:suppression-remove' org.slug %}"
+        onclick="return confirm('{% translate "remove this address from the suppression list?"|capfirst %}')"
+      >
+        {% translate "remove address"|title %}
+      </button>
     </div>
-  </dialog>
+  </form>
 {% endblock %}
