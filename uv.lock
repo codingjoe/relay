@@ -402,15 +402,15 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.5.1"
+version = "4.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/ef/860ae4fc7d5cf02ad7a823fb78e65c043af07a5b39251e8668f8f2294d75/django_health_check-4.5.1.tar.gz", hash = "sha256:759c0bdad4c135d5e4cb43b0b98612e8d1cbd81c3ed1ce6698298ff0740bac44", size = 22037, upload-time = "2026-08-21T21:03:00.257Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/26/2f3e1b5dc7d4f3b54812c08e9b02ef8e67a01b92756f47dd405b6c42eba0/django_health_check-4.6.0.tar.gz", hash = "sha256:398950204ab386d35d7ec45488da0d8f3906a897f281fedfbefe8e7893828648", size = 22113, upload-time = "2026-09-18T11:21:35.002Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/03/1e677c3bba390a0a940d2e96fd741d8b4f8c2acd1715cca813bfa42d94c3/django_health_check-4.5.1-py3-none-any.whl", hash = "sha256:82a6329c0f1589143bd0767e16b7ceae6cadd0889c42f25d4ea63b5289cb1390", size = 27139, upload-time = "2026-08-21T21:02:59.172Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/35/42148b21cff705db1aa88b47c5a8e2c7adf76699d740d67845f05c8e9c0d/django_health_check-4.6.0-py3-none-any.whl", hash = "sha256:d41d508f346c791c154de33e8f9b18484491656d259c2ba073887f0710133546", size = 27217, upload-time = "2026-09-18T11:21:33.545Z" },
 ]
 
 [package.optional-dependencies]
@@ -1186,7 +1186,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50.0.1" },
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-environ", specifier = ">=0.14" },
-    { name = "django-health-check", extras = ["psutil", "redis", "rss"], specifier = ">=4.5.1" },
+    { name = "django-health-check", extras = ["psutil", "redis", "rss"], specifier = ">=4.6.0" },
     { name = "django-letter", specifier = ">=0.3" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
