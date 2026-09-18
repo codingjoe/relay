@@ -359,6 +359,24 @@ class TestCredentialListView:
         assert "smtp_hostname" in response.context
         assert "smtp_starttls_ports" in response.context
         assert "smtp_implicit_tls_ports" in response.context
+        assert response.context["smtp_uri"] == "smtps://test-org@smtp.testserver:465"
+
+    def test_get__renders_connection_uri(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.status_code == 200
+        assert "smtps://test-org@smtp.testserver:465" in response.content.decode()
+
+    def test_get__opens_the_key_dialog_after_creation(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' in content
+        assert raw_key in content
+        assert f"smtps://{org.slug}:{raw_key}@smtp.testserver:465" in content
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):

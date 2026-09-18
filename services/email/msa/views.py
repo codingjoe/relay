@@ -95,21 +95,36 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
     def get_queryset(self):
         return MsaCredential.objects.filter(org=self.org)
 
+    def get_smtp_hostname(self):
+        """Return the submission host of the platform serving this request."""
+        return f"smtp.{self.request.get_host().split(':')[0]}"
+
+    def get_smtp_uri(self, hostname, key=""):
+        """Return the SMTPS submission URI, carrying the key when it is known."""
+        if not (ports := settings.RELAY_SMTP_IMPLICIT_TLS_PORTS):
+            return ""
+        credentials = f"{self.org.slug}:{key}" if key else self.org.slug
+        return f"smtps://{credentials}@{hostname}:{ports[0]}"
+
     def get_context_data(self, **kwargs):
-        platform = self.request.get_host().split(":")[0]
+        hostname = self.get_smtp_hostname()
         implicit_tls_ports = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS
         starttls_ports = tuple(
-            p
-            for p in settings.RELAY_SMTP_SUBMISSION_PORTS
-            if p not in implicit_tls_ports
+            port
+            for port in settings.RELAY_SMTP_SUBMISSION_PORTS
+            if port not in implicit_tls_ports
         )
         context = super().get_context_data(**kwargs) | {
-            "smtp_hostname": f"smtp.{platform}",
+            "smtp_hostname": hostname,
             "smtp_starttls_ports": starttls_ports,
             "smtp_implicit_tls_ports": implicit_tls_ports,
+            "smtp_uri": self.get_smtp_uri(hostname),
         }
         if raw_key := self.request.session.pop("raw_key", None):
-            context["raw_key"] = raw_key
+            context |= {
+                "raw_key": raw_key,
+                "smtp_uri_with_key": self.get_smtp_uri(hostname, key=raw_key),
+            }
         return context
 
 

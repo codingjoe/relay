@@ -29,6 +29,10 @@ relay speaks SMTP AUTH PLAIN. The username is the organization slug, and the
 password is an SMTP credential key. No session and no TLS means no AUTH: the
 server refuses AUTH over plaintext on port 587.
 
+The credentials page shows the same values as a `smtps://` URI, with the
+organization slug as the user. Clients that accept a URI take it directly;
+add the credential key to use one.
+
 The submission exchange:
 
 ```text
