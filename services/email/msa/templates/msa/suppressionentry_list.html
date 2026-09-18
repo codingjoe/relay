@@ -2,14 +2,7 @@
 {% load i18n abstract %}
 {% block title %}{% translate "suppression list"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center gap-3 mb-6">
-    <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
-    <span class="badge" data-size="sm" data-variant="outline">
-      {% blocktranslate count counter=object_list|length trimmed %}
-        {{ counter }} address{% plural %}{{ counter }} addresses
-      {% endblocktranslate %}
-    </span>
-  </header>
+  <h2 class="mb-6">{% translate "suppression list"|capfirst %}</h2>
 
   {% if object_list|length %}
     {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="mb-6" %}
@@ -23,7 +16,14 @@
 
   <section class="card mb-6">
     <header>
-      <h3 class="m-0">{% translate "protect your sender reputation"|capfirst %}</h3>
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="m-0">{% translate "protect your sender reputation"|capfirst %}</h3>
+        <span class="badge" data-size="sm" data-variant="outline">
+          {% blocktranslate count counter=object_list|length trimmed %}
+            {{ counter }} address{% plural %}{{ counter }} addresses
+          {% endblocktranslate %}
+        </span>
+      </div>
       <p class="m-0">
         {% blocktranslate trimmed %}
           Every send to a dead mailbox counts against your domain, and a high enough bounce rate can suspend your

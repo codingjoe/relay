@@ -466,6 +466,21 @@ class TestSuppressionListView:
         )
 
     @pytest.mark.django_db
+    def test_get__shows_the_count_beside_the_actions(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert (
+            content.index('id="chart-suppression"')
+            < content.index("1 address")
+            < content.index('id="form-suppression"')
+        )
+
+    @pytest.mark.django_db
     def test_get__renders_one_address_form_for_all_actions(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/suppression/")
 
