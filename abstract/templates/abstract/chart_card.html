@@ -27,6 +27,11 @@
       const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
+      const diverging = {% if chart.y_scale.diverging %}true{% else %}false{% endif %};
+      const formatValue = (value) => {
+        if (value === null || value === undefined) return "-";
+        return String(diverging ? Math.abs(value) : value);
+      };
       const palette = [
         "--color-chart-blue",
         "--color-chart-green",
@@ -65,7 +70,7 @@
               escapeHtml(fullDate.format(new Date(items[0].axisValue))),
               ...items.map(
                 (item) =>
-                  `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(String(item.value ?? "-"))}`
+                  `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(formatValue(item.value))}`
               ),
             ].join("<br/>"),
         },
@@ -78,7 +83,12 @@
           },
         },
         yAxis: {
+          {% if chart.y_scale.diverging %}
+          axisLabel: { formatter: (value) => Math.abs(value) },
+          axisLine: { show: true, lineStyle: { color: border } },
+          {% else %}
           min: 0,
+          {% endif %}
         },
         series: [
           {% for series in chart.series %}

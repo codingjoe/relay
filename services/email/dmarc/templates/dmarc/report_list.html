@@ -6,7 +6,7 @@
     <h2 class="m-0">{% translate "DMARC reports"|capfirst %}</h2>
   </header>
 
-  {% include "abstract/chart_card.html" with id="chart-dmarc" data_id="chart-dmarc-data" title=_("messages by disposition")|capfirst chart=chart class="mb-6" %}
+  {% include "abstract/chart_card.html" with id="chart-dmarc" data_id="chart-dmarc-data" title=_("messages by DMARC verdict")|capfirst chart=chart class="mb-6" %}
 
   <form method="get" class="fieldset mb-6">
     <div class="grid gap-4">

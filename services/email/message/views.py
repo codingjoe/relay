@@ -11,7 +11,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
-from .charts import build_message_chart
+from .charts import build_direction_chart, build_message_chart
 from .models import Message
 
 
@@ -47,22 +47,15 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             )
         return qs
 
-    def get_charts(self, direction):
-        """Return the charts of the message kinds the direction shows."""
+    def get_chart(self, direction):
+        """Return the chart of the message kinds the direction shows."""
         match direction:
             case self.Direction.SENT:
-                charts = {"outgoing_chart": "outgoingmessage"}
+                return build_message_chart(self.org, "outgoingmessage")
             case self.Direction.RECEIVED:
-                charts = {"incoming_chart": "incomingmessage"}
+                return build_message_chart(self.org, "incomingmessage")
             case _:
-                charts = {
-                    "outgoing_chart": "outgoingmessage",
-                    "incoming_chart": "incomingmessage",
-                }
-        return {
-            key: build_message_chart(self.org, model_name)
-            for key, model_name in charts.items()
-        }
+                return build_direction_chart(self.org)
 
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")
@@ -90,7 +83,7 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
                     if domain.is_sending_verified
                 ],
             }
-            | self.get_charts(direction)
+            | {"chart": self.get_chart(direction)}
         )
 
 

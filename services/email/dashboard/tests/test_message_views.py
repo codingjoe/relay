@@ -108,6 +108,32 @@ class TestCertificateDetailView:
 
 
 @pytest.mark.django_db
+class TestMessageListDirectionChart:
+    def test_get__keeps_outgoing_counts_above_the_axis(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="alice@example.com",
+            rcpt_to="bob@example.com",
+            status=OutgoingMessage.Status.SENT,
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        assert response.context["chart"]["rows"][-1]["outgoing_sent"] == 1
+
+    def test_get__mirrors_incoming_counts_below_the_axis(self, admin_client, org):
+        make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        assert response.context["chart"]["rows"][-1]["incoming_received"] == -1
+
+
+@pytest.mark.django_db
 class TestMessageDetailOrgScoping:
     def test_get__incoming_not_found_for_other_org(self, admin_client, org, write_org):
         msg = make_incoming(write_org)

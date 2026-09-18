@@ -347,6 +347,12 @@ A rule lives either in this document or in `.relint.yml`, never both.
   Derive the series colors from the status badge variants, so one status
   reads the same in the list badge and in the chart.
 
+- Mirror two directions in one chart instead of stacking two cards. Negate
+  the counts of the direction that hangs below the axis and set
+  `y_scale.diverging` on the chart data; the card draws absolute axis labels
+  and tooltip values for it. Namespace the series keys and labels by
+  direction, because sibling kinds can define the same status name.
+
 - Give the organization's landing page its own view, and let that view
   redirect once its work is done. The organization home redirects by URL
   name only, so the `accounts` app learns nothing about other apps.

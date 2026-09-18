@@ -13,7 +13,7 @@
         {% if org.suspended_at %}
           <span class="text-destructive">{% translate "suspended"|capfirst %}</span>
         {% else %}
-          <span class="text-primary">{% translate "ok"|capfirst %}</span>
+          <span class="text-success">{% translate "ok"|capfirst %}</span>
         {% endif %}
       </p>
     </section>
@@ -46,15 +46,4 @@
   {% include "abstract/chart_card.html" with id="chart-reputation-rates" data_id="chart-reputation-rates-data" title=_("rates and limits")|capfirst chart=chart_rates class="" %}
 
   {% include "abstract/chart_card.html" with id="chart-reputation" data_id="chart-reputation-data" title=_("reputation: sent, bounces, and complaints")|capfirst chart=chart class="mt-6" %}
-
-  <p class="text-sm text-muted-foreground mt-6">
-    {% blocktranslate count days=window_days trimmed %}
-      Counts accumulate over the last day.
-    {% plural %}Counts accumulate over the last {{ days }} days.
-    {% endblocktranslate %}
-    {% blocktranslate count volume=min_volume trimmed %}
-      Status changes apply from one sent message.
-    {% plural %}Status changes apply from {{ volume }} sent messages.
-    {% endblocktranslate %}
-  </p>
 {% endblock %}

@@ -105,7 +105,7 @@ Four report types arrive:
   sends it when a recipient marks one of your messages as spam.
 
 The reports page surfaces each report type, per domain, and records whether
-a report arrived over TLS. The DMARC view graphs messages by disposition,
+a report arrived over TLS. The DMARC view graphs messages by DMARC verdict,
 and the TLS view graphs failures by type, each over the last 30 days.
 
 FBL complaints need a proof before they count against your organization.

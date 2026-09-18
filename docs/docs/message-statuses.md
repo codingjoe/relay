@@ -143,7 +143,8 @@ with the URL, response code, and a response excerpt.
   everything still open or neutral.
 - The message list graphs the last 30 days of messages by status. The sent
   view graphs outgoing messages, the received view graphs incoming
-  messages, and the unfiltered view shows both.
+  messages, and the unfiltered view graphs both in one chart: outgoing bars
+  above the axis and incoming bars below it.
 - The message detail page shows the status next to the transcripts and
   delivery records.
 - Filters let you watch only failed or quarantined traffic.

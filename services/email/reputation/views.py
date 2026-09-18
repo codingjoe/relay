@@ -95,6 +95,4 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "chart_rates": chart_rates,
             "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
             "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
-            "min_volume": settings.RELAY_REPUTATION_MIN_VOLUME,
-            "window_days": settings.RELAY_REPUTATION_WINDOW_DAYS,
         }
