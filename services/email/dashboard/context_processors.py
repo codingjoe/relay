@@ -1,8 +1,8 @@
-from .onboarding import is_onboarding_complete
+from .onboarding import get_email_context
 
 
 def onboarding_context(request):
-    """Expose the first-steps state to the shared layout."""
+    """Expose the first-steps state and the sending domains to the layout."""
     if org := getattr(request, "current_org", None):
-        return {"onboarding_complete": is_onboarding_complete(org)}
+        return get_email_context(org, request)
     return {}

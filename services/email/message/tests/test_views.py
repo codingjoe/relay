@@ -1,4 +1,6 @@
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 
@@ -48,6 +50,14 @@ class TestMessageListView:
             .split("</button>", 1)[0]
         )
         assert "Failed" in trigger
+
+    def test_get__runs_no_repeated_queries(self, admin_client, org):
+        """The layout, the chart, and the list must share what they fetch."""
+        with CaptureQueriesContext(connection) as queries:
+            admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        sql = [query["sql"] for query in queries.captured_queries]
+        assert len(sql) == len(set(sql))
 
     def test_get__renders_dialog_with_header_trigger(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/messages/")

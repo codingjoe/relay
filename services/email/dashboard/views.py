@@ -11,11 +11,7 @@ from services.email.mta.charts import build_tls_chart
 from services.email.mta.models import TlsReport
 from services.email.reputation.models import FblReport
 
-from .onboarding import (
-    get_onboarding_state,
-    get_sending_domains,
-    is_onboarding_complete,
-)
+from .onboarding import get_email_context
 
 
 class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.TemplateView):
@@ -26,15 +22,13 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
     parent = "accounts:org-home"
 
     def get(self, request, *args, **kwargs):
-        if is_onboarding_complete(self.org):
+        if get_email_context(self.org, request)["onboarding_complete"]:
             return redirect("reputation:overview", org_slug=self.org.slug)
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        return (
-            super().get_context_data(**kwargs)
-            | get_onboarding_state(self.org)
-            | {"sending_domains": get_sending_domains(self.org)}
+        return super().get_context_data(**kwargs) | get_email_context(
+            self.org, self.request
         )
 
 

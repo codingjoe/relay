@@ -2,33 +2,32 @@ from domains.models import Domain
 from services.email.msa.models import OutgoingMessage
 
 
-def get_onboarding_state(org) -> dict:
-    """Return each first-steps item and whether the organization finished it."""
+def get_email_context(org, request=None) -> dict:
+    """
+    Return the first-steps state and the sending domains of one organization.
+
+    The shared layout, the first-steps view, and the test email dialog all
+    ask for this on the same page, so the result is memoized on the request:
+    one domain query and one existence check per page.
+    """
+    if request is not None and hasattr(request, "email_context"):
+        return request.email_context
     domains = list(Domain.objects.filter(org=org))
-    return {
-        "managed_domain": next(
-            (domain for domain in domains if domain.is_managed and domain.verified_at),
-            None,
-        ),
-        "has_custom_domain": any(not domain.is_managed for domain in domains),
-        "has_outgoing_message": OutgoingMessage.objects.filter(org=org).exists(),
-    }
-
-
-def is_onboarding_complete(org) -> bool:
-    """Return whether every first-steps item is done."""
-    state = get_onboarding_state(org)
-    return bool(
-        state["managed_domain"]
-        and state["has_custom_domain"]
-        and state["has_outgoing_message"]
+    managed_domain = next(
+        (domain for domain in domains if domain.is_managed and domain.verified_at),
+        None,
     )
-
-
-def get_sending_domains(org) -> list[Domain]:
-    """Return the domains an organization can send from."""
-    return [
-        domain
-        for domain in Domain.objects.filter(org=org)
-        if domain.is_sending_verified
-    ]
+    has_custom_domain = any(not domain.is_managed for domain in domains)
+    has_outgoing_message = OutgoingMessage.objects.filter(org=org).exists()
+    context = {
+        "managed_domain": managed_domain,
+        "has_custom_domain": has_custom_domain,
+        "has_outgoing_message": has_outgoing_message,
+        "onboarding_complete": bool(
+            managed_domain and has_custom_domain and has_outgoing_message
+        ),
+        "sending_domains": [domain for domain in domains if domain.is_sending_verified],
+    }
+    if request is not None:
+        request.email_context = context
+    return context

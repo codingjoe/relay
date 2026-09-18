@@ -8,7 +8,6 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.models import Domain
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
 from .charts import build_direction_chart, build_message_chart
@@ -76,11 +75,6 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
                 "status_choices": status_choices,
                 "status_label": dict(status_choices).get(status, ""),
                 "direction_label": direction_label,
-                "sending_domains": [
-                    domain
-                    for domain in Domain.objects.filter(org=self.org)
-                    if domain.is_sending_verified
-                ],
             }
             | {"chart": self.get_chart(direction)}
         )
