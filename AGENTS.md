@@ -122,9 +122,11 @@ HTML that still contains the debug toolbar.
 
 ## Test data
 
-Bundle: one user (`test`, password `test`), one org (`acme`), one
-domain (`acme.com`), one SMTP credential, three outgoing messages,
-three transmissions, two SigningKeys. Load with
+Bundle: one user (`test`, password `test`), two orgs (`acme` with the full
+data set, and `globex` empty apart from its managed sender domain, so the
+first-steps flow is always testable), six domains, one SMTP credential,
+three outgoing messages, incoming messages with their transmissions, and two
+SigningKeys. Load with
 `manage.py loaddata fixtures/initial_data.yaml`. Refresh with:
 
 1. Wipe the database and re-apply migrations:
