@@ -104,9 +104,10 @@ Four report types arrive:
 - **Feedback loop (FBL).** An abuse report in the ARF format. A provider
   sends it when a recipient marks one of your messages as spam.
 
-The reports page surfaces each report type, per domain, and records whether
-a report arrived over TLS. The DMARC view graphs messages by DMARC verdict,
-and the TLS view graphs failures by type, each over the last 30 days.
+The recipient reports page surfaces each report type, per domain, and records
+whether a report arrived over TLS. The DMARC view graphs messages by DMARC
+verdict, and the TLS view graphs failures by type, each over the last 30
+days.
 
 FBL complaints need a proof before they count against your organization.
 The report carries the per-message Return-Path, or the per-message

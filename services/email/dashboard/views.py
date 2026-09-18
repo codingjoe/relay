@@ -46,7 +46,7 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
 
     context_object_name = "reports"
     paginate_by = 50
-    title = _("Reports")
+    title = _("Recipient reports")
     parent = "accounts:org-home"
 
     class ReportType(models.TextChoices):
