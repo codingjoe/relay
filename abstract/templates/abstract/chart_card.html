@@ -85,7 +85,6 @@
         yAxis: {
           {% if chart.y_scale.diverging %}
           axisLabel: { formatter: (value) => Math.abs(value) },
-          axisLine: { show: true, lineStyle: { color: border } },
           {% else %}
           min: 0,
           {% endif %}
@@ -101,11 +100,77 @@
             itemStyle: { color: toRgba("{{ series.color }}") },
             data: rows.map((row) => row["{{ series.key }}"]),
             {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
+            {% if forloop.first and chart.y_scale.diverging %}
+            markLine: {
+              silent: true,
+              symbol: "none",
+              label: { show: false },
+              lineStyle: {
+                color: toRgba("var(--color-muted-foreground)"),
+                width: 2,
+                type: "solid",
+              },
+              data: [{ yAxis: 0 }],
+            },
+            {% endif %}
           }{% if not forloop.last %},{% endif %}
           {% endfor %}
         ],
       });
-      window.addEventListener("resize", () => chart.resize());
+      {% if chart.y_scale.stacked != "false" %}
+      const statusStyles = [
+        {% for series in chart.series %}
+          { key: "{{ series.key }}", color: toRgba("{{ series.color }}") },
+        {% endfor %}
+      ];
+      /*
+       * Link each stacked segment to the same segment on the next day, after
+       * the ECharts "bar stack normalization and variation" example. The
+       * polygons are graphic elements, so they stay out of the tooltip, and
+       * they are redrawn on resize because the bar layout moves with the grid.
+       */
+      const drawVariation = () => {
+        const barData = chart.getModel().getSeriesByIndex(0)?.getData();
+        if (!barData) return;
+        const pixelY = (day, value) =>
+          chart.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [day, value])[1];
+        const elements = [];
+        for (let day = 1; day < rows.length; day += 1) {
+          const left = barData.getItemLayout(day - 1);
+          const right = barData.getItemLayout(day);
+          if (!left || !right) return;
+          let leftBase = 0;
+          let rightBase = 0;
+          for (const { key, color } of statusStyles) {
+            const leftValue = rows[day - 1][key];
+            const rightValue = rows[day][key];
+            if (leftValue || rightValue) {
+              elements.push({
+                type: "polygon",
+                silent: true,
+                shape: {
+                  points: [
+                    [left.x + left.width, pixelY(day - 1, leftBase)],
+                    [left.x + left.width, pixelY(day - 1, leftBase + leftValue)],
+                    [right.x, pixelY(day, rightBase + rightValue)],
+                    [right.x, pixelY(day, rightBase)],
+                  ],
+                },
+                style: { fill: color, opacity: 0.25 },
+              });
+            }
+            leftBase += leftValue;
+            rightBase += rightValue;
+          }
+        }
+        chart.setOption({ graphic: { elements } }, { replaceMerge: ["graphic"] });
+      };
+      drawVariation();
+      {% endif %}
+      window.addEventListener("resize", () => {
+        chart.resize();
+        {% if chart.y_scale.stacked != "false" %}drawVariation();{% endif %}
+      });
     }
   </script>
 </section>
