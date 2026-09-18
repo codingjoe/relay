@@ -1,71 +1,41 @@
 from django.db import models
-from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
 from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.models import Domain
 from services.email.dmarc.charts import build_dmarc_chart
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
-from services.email.message.models import Message
-from services.email.msa.charts import build_outgoing_chart
-from services.email.msa.models import OutgoingMessage
-from services.email.mta.charts import build_incoming_chart, build_tls_chart
+from services.email.mta.charts import build_tls_chart
 from services.email.mta.models import TlsReport
-from services.email.reputation.charts import build_reputation_chart
 from services.email.reputation.models import FblReport
 
+from .onboarding import (
+    get_onboarding_state,
+    get_sending_domains,
+    is_onboarding_complete,
+)
 
-class DashboardView(OrganizationScopedView, generic.TemplateView):
-    """Display the unified transactional email dashboard for an organization."""
 
-    template_name = "dashboard/dashboard.html"
-    title = _("Email")
+class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.TemplateView):
+    """Walk a new organization through the first sending steps."""
+
+    template_name = "dashboard/get_started.html"
+    title = _("Get started")
     parent = "accounts:org-home"
 
-    def get_context_data(self, **kwargs):
-        domains = list(Domain.objects.filter(org=self.org))
-        return super().get_context_data(**kwargs) | {
-            "total_domains": len(domains),
-            "sending_domains": [
-                domain for domain in domains if domain.is_sending_verified
-            ],
-            "total_messages": Message.objects.filter(org=self.org).count(),
-            "managed_domain": next(
-                (
-                    domain
-                    for domain in domains
-                    if domain.is_managed and domain.verified_at
-                ),
-                None,
-            ),
-            "has_custom_domain": any(not domain.is_managed for domain in domains),
-            "has_outgoing_message": OutgoingMessage.objects.filter(
-                org=self.org
-            ).exists(),
-            "outgoing_chart": build_outgoing_chart(self.org),
-            "incoming_chart": build_incoming_chart(self.org),
-            "dmarc_chart": build_dmarc_chart(self.org),
-            "tls_chart": build_tls_chart(self.org),
-            "reputation_chart": build_reputation_chart(self.org),
-        }
-
-
-class ChartDataView(OrganizationScopedView, generic.View):
-    """Return chart data as JSON for interactive charts."""
-
-    CHART_BUILDERS = {
-        "outgoing": build_outgoing_chart,
-        "incoming": build_incoming_chart,
-        "dmarc": build_dmarc_chart,
-        "tls": build_tls_chart,
-        "reputation": build_reputation_chart,
-    }
-
     def get(self, request, *args, **kwargs):
-        builder = self.CHART_BUILDERS[kwargs["chart_type"]]
-        return JsonResponse(builder(self.org))
+        if is_onboarding_complete(self.org):
+            return redirect("reputation:overview", org_slug=self.org.slug)
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        return (
+            super().get_context_data(**kwargs)
+            | get_onboarding_state(self.org)
+            | {"sending_domains": get_sending_domains(self.org)}
+        )
 
 
 class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
@@ -114,6 +84,16 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
                 qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
         return qs
 
+    def get_chart(self, report_type):
+        """Return the chart of the open report type, or None when it has none."""
+        match report_type:
+            case self.ReportType.DMARC:
+                return build_dmarc_chart(self.org)
+            case self.ReportType.TLS:
+                return build_tls_chart(self.org)
+            case _:
+                return None
+
     def get_context_data(self, **kwargs):
         report_type = self.request.GET.get("type", self.ReportType.DMARC)
         domain = self.request.GET.get("domain", "")
@@ -131,4 +111,5 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
             "ip": ip,
             "filter_count": filter_count,
             "type_label": type_label,
+            "chart": self.get_chart(report_type),
         }

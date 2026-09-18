@@ -341,6 +341,16 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Place merged views in the parent app that depends on all siblings.
   Siblings must not import from each other.
 
+- Build a merged-list chart in the shared app from the shared parent model.
+  Resolve the concrete kind through the content type, and take series labels
+  from the subclass status choices, so the shared app imports no sibling.
+  Derive the series colors from the status badge variants, so one status
+  reads the same in the list badge and in the chart.
+
+- Give the organization's landing page its own view, and let that view
+  redirect once its work is done. The organization home redirects by URL
+  name only, so the `accounts` app learns nothing about other apps.
+
 ## App structure
 
 - A concrete model shared between sibling apps belongs in a dedicated

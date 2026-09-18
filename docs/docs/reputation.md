@@ -104,14 +104,28 @@ Four report types arrive:
 - **Feedback loop (FBL).** An abuse report in the ARF format. A provider
   sends it when a recipient marks one of your messages as spam.
 
-The dashboard surfaces each report type, per domain, and records whether a
-report arrived over TLS.
+The reports page surfaces each report type, per domain, and records whether
+a report arrived over TLS. The DMARC view graphs messages by disposition,
+and the TLS view graphs failures by type, each over the last 30 days.
 
 FBL complaints need a proof before they count against your organization.
 The report carries the per-message Return-Path, or the per-message
 `Feedback-ID` header of the reported message. relay matches that id, so a
 complaint maps to one message, one domain, and one organization. A complaint
 without this proof stays on record, and it does not count into the rates.
+
+## The reputation page
+
+The reputation page is your organization's home page. It opens when you sign
+in and pick an organization, and it holds the first position in the sidebar.
+It shows your hard-bounce and complaint rates next to their limits, and two
+graphs: the rates with their limits, and the sent, bounced, and complained
+counts per day. Both cover the window relay evaluates.
+
+A new organization opens a get started page instead. That page tracks three
+steps: the managed sender domain going live, your first sent email, and your
+own domain. The organization moves to the reputation page once all three are
+done.
 
 ## Reputation limits
 

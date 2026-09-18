@@ -90,7 +90,7 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
 
     context_object_name = "credentials"
     title = _("SMTP credentials")
-    parent = "email-dashboard:dashboard"
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         return MsaCredential.objects.filter(org=self.org)

@@ -172,6 +172,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "root.context_processors.settings_context",
+                "services.email.dashboard.context_processors.onboarding_context",
             ],
             "debug": DEBUG,
             "loaders": (

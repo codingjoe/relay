@@ -11,6 +11,7 @@ from accounts.views import OrganizationScopedView
 from domains.models import Domain
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
+from .charts import build_message_chart
 from .models import Message
 
 
@@ -46,6 +47,23 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             )
         return qs
 
+    def get_charts(self, direction):
+        """Return the charts of the message kinds the direction shows."""
+        match direction:
+            case self.Direction.SENT:
+                charts = {"outgoing_chart": "outgoingmessage"}
+            case self.Direction.RECEIVED:
+                charts = {"incoming_chart": "incomingmessage"}
+            case _:
+                charts = {
+                    "outgoing_chart": "outgoingmessage",
+                    "incoming_chart": "incomingmessage",
+                }
+        return {
+            key: build_message_chart(self.org, model_name)
+            for key, model_name in charts.items()
+        }
+
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")
         status = self.request.GET.get("status", "")
@@ -57,19 +75,23 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             direction_label = self.Direction(direction).label
         except ValueError:
             direction_label = self.Direction.ALL.label
-        return super().get_context_data(**kwargs) | {
-            "direction": direction,
-            "email": email,
-            "status": status,
-            "status_choices": Message.status_choices(),
-            "filter_count": filter_count,
-            "direction_label": direction_label,
-            "sending_domains": [
-                domain
-                for domain in Domain.objects.filter(org=self.org)
-                if domain.is_sending_verified
-            ],
-        }
+        return (
+            super().get_context_data(**kwargs)
+            | {
+                "direction": direction,
+                "email": email,
+                "status": status,
+                "status_choices": Message.status_choices(),
+                "filter_count": filter_count,
+                "direction_label": direction_label,
+                "sending_domains": [
+                    domain
+                    for domain in Domain.objects.filter(org=self.org)
+                    if domain.is_sending_verified
+                ],
+            }
+            | self.get_charts(direction)
+        )
 
 
 class MessageBreadcrumbMixin:

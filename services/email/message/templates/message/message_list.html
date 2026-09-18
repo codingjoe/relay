@@ -22,6 +22,13 @@
 
   {% include "partials/test_email_dialog.html" %}
 
+  {% if outgoing_chart %}
+    {% include "abstract/chart_card.html" with id="chart-outgoing" data_id="chart-outgoing-data" title=_("outgoing messages by status")|capfirst chart=outgoing_chart class="mb-6" %}
+  {% endif %}
+  {% if incoming_chart %}
+    {% include "abstract/chart_card.html" with id="chart-incoming" data_id="chart-incoming-data" title=_("incoming messages by status")|capfirst chart=incoming_chart class="mb-6" %}
+  {% endif %}
+
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <form method="get" role="search" class="flex-1 min-w-56">
       <input type="hidden" name="direction" value="{{ direction }}">

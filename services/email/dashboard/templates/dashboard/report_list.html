@@ -11,6 +11,12 @@
     </p>
   </header>
 
+  {% if type == 'dmarc' %}
+    {% include "abstract/chart_card.html" with id="chart-dmarc" data_id="chart-dmarc-data" title=_("messages by disposition")|capfirst chart=chart class="mb-6" %}
+  {% elif type == 'tls' %}
+    {% include "abstract/chart_card.html" with id="chart-tls" data_id="chart-tls-data" title=_("failures by type")|capfirst chart=chart class="mb-6" %}
+  {% endif %}
+
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <form method="get" role="search" class="flex-1 min-w-56">
       <input type="hidden" name="type" value="{{ type }}">
