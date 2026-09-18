@@ -302,6 +302,21 @@ class TestReportListView:
         assert response.status_code == 200
         assert response.context["chart"] is None
 
+    def test_get__names_the_filter_values_in_the_trigger(
+        self, admin_client, org, tls_report
+    ):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/reports/?type=tls&domain=acme.com"
+        )
+
+        assert response.status_code == 200
+        trigger = (
+            response.content.decode()
+            .split('id="report-filters-trigger"', 1)[1]
+            .split("</button>", 1)[0]
+        )
+        assert "acme.com" in trigger
+
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/email/reports/")
         assert response.status_code == 302

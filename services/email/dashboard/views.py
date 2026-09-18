@@ -98,9 +98,6 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
         report_type = self.request.GET.get("type", self.ReportType.DMARC)
         domain = self.request.GET.get("domain", "")
         ip = self.request.GET.get("ip", "")
-        filter_count = (
-            int(report_type != self.ReportType.DMARC) + bool(domain) + bool(ip)
-        )
         try:
             type_label = self.ReportType(report_type).label
         except ValueError:
@@ -109,7 +106,7 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
             "type": report_type,
             "domain": domain,
             "ip": ip,
-            "filter_count": filter_count,
             "type_label": type_label,
+            "filter_values": [value for value in (domain, ip) if value],
             "chart": self.get_chart(report_type),
         }

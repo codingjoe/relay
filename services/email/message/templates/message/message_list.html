@@ -70,8 +70,8 @@
       >
         <i data-lucide="list-filter" class="size-4" aria-hidden="true"></i>
         {{ direction_label|capfirst }}
-        {% if filter_count %}
-          <span class="badge" data-size="sm">{{ filter_count }}</span>
+        {% if status_label %}
+          <span class="badge" data-size="sm">{{ status_label|capfirst }}</span>
         {% endif %}
         <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
       </button>

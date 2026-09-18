@@ -61,9 +61,7 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         email = self.request.GET.get("email", "")
         status = self.request.GET.get("status", "")
         direction = self.request.GET.get("direction", self.Direction.ALL)
-        filter_count = sum(
-            bool(value) for value in (email, status, direction != self.Direction.ALL)
-        )
+        status_choices = Message.status_choices()
         try:
             direction_label = self.Direction(direction).label
         except ValueError:
@@ -74,8 +72,8 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
                 "direction": direction,
                 "email": email,
                 "status": status,
-                "status_choices": Message.status_choices(),
-                "filter_count": filter_count,
+                "status_choices": status_choices,
+                "status_label": dict(status_choices).get(status, ""),
                 "direction_label": direction_label,
                 "sending_domains": [
                     domain

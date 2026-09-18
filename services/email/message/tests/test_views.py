@@ -36,6 +36,19 @@ class TestMessageListView:
         keys = [series["key"] for series in response.context["chart"]["series"]]
         assert not any(key.startswith("outgoing_") for key in keys)
 
+    def test_get__names_the_status_filter_in_the_trigger(self, admin_client, org):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/messages/?direction=sent&status=failed"
+        )
+
+        assert response.status_code == 200
+        trigger = (
+            response.content.decode()
+            .split('id="filter-options-trigger"', 1)[1]
+            .split("</button>", 1)[0]
+        )
+        assert "Failed" in trigger
+
     def test_get__renders_dialog_with_header_trigger(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/messages/")
 

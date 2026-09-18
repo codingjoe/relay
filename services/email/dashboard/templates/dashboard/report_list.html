@@ -67,9 +67,9 @@
       >
         <i data-lucide="list-filter" aria-hidden="true"></i>
         {{ type_label }}
-        {% if filter_count %}
-          <span class="badge" data-size="sm">{{ filter_count }}</span>
-        {% endif %}
+        {% for value in filter_values %}
+          <span class="badge" data-size="sm">{{ value }}</span>
+        {% endfor %}
         <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
       </button>
       <div
