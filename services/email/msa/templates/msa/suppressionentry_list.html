@@ -23,12 +23,13 @@
 
   <section class="card mb-6">
     <header>
-      <h3 class="m-0">{% translate "stored as hashes"|capfirst %}</h3>
+      <h3 class="m-0">{% translate "protect your sender reputation"|capfirst %}</h3>
       <p class="m-0">
         {% blocktranslate trimmed %}
-          Addresses on this list will not receive email, and bounces land on it automatically. The list holds the salted
-          SHA-256 hash of an address, never the address itself, so relay can compare an address against it without
-          reading one back. That is what the GDPR data-minimisation rule asks for.
+          Every send to a dead mailbox counts against your domain, and a high enough bounce rate can suspend your
+          organization. Bounces land here automatically, so a dead address stops receiving mail on its own. Add an
+          address to block it by hand, check one before a large send, and remove it when the mailbox works again. Only a
+          salted hash of each address is kept, never the address itself.
         {% endblocktranslate %}
       </p>
     </header>
