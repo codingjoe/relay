@@ -49,8 +49,8 @@ urlpatterns = [
                             (
                                 "health_check.DNS",
                                 {
-                                    "hostname": "smtp.relays.to",
-                                    "nameservers": ["188.245.198.157"],
+                                    "hostname": "mail.relay.open.relays.to",
+                                    "record_type": "MX",
                                 },
                             ),
                             "health_check.contrib.rss.Hetzner",
