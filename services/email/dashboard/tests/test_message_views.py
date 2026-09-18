@@ -133,6 +133,16 @@ class TestMessageListDirectionChart:
         assert response.status_code == 200
         assert response.context["chart"]["rows"][-1]["incoming_received"] == -1
 
+    def test_get__chart_counts_only_the_filtered_messages(self, admin_client, org):
+        make_incoming(org)
+
+        response = admin_client.get(
+            f"/org/{org.slug}/email/messages/?email=nobody@example.com"
+        )
+
+        assert response.status_code == 200
+        assert response.context["chart"]["rows"][-1]["incoming_received"] == 0
+
 
 @pytest.mark.django_db
 class TestMessageDetailAddressLinks:

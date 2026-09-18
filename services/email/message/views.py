@@ -48,14 +48,15 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         return qs
 
     def get_chart(self, direction):
-        """Return the chart of the message kinds the direction shows."""
+        """Return the chart of the messages the filters select."""
+        messages = self.get_queryset()
         match direction:
             case self.Direction.SENT:
-                return build_message_chart(self.org, "outgoingmessage")
+                return build_message_chart(messages, "outgoingmessage")
             case self.Direction.RECEIVED:
-                return build_message_chart(self.org, "incomingmessage")
+                return build_message_chart(messages, "incomingmessage")
             case _:
-                return build_direction_chart(self.org)
+                return build_direction_chart(messages)
 
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")

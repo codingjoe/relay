@@ -8,8 +8,6 @@ from django.utils.translation import gettext_lazy as _
 
 from abstract.charts import CHART_DAYS, build_chart_data
 
-from .models import Message
-
 STATUS_CHART_COLORS = {
     "success": "var(--color-chart-green)",
     "warning": "var(--color-chart-yellow)",
@@ -18,20 +16,20 @@ STATUS_CHART_COLORS = {
 }
 
 
-def build_message_chart(org, model_name: str) -> dict:
+def build_message_chart(messages, model_name: str) -> dict:
     """
-    Return chart data for one message kind, grouped by status.
+    Return chart data for one message kind of `messages`, grouped by status.
 
     The kind is a concrete `Message` subclass. The shared app resolves it
     through the content type, so it never imports a sibling app. Series
     colors follow the status badge variants, so a status reads the same in
-    the list and in the chart.
+    the list and in the chart. Callers pass the queryset the list shows, so
+    the chart counts what the filters select.
     """
     status_class = ContentType.objects.get(model=model_name).model_class().Status
     start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     rows = (
-        Message.objects.filter(
-            org=org,
+        messages.filter(
             content_type__model=model_name,
             created_at__date__gte=start,
         )
@@ -48,17 +46,17 @@ def build_message_chart(org, model_name: str) -> dict:
     return build_chart_data(rows, list(status_class), colors, start, "status")
 
 
-def build_direction_chart(org) -> dict:
+def build_direction_chart(messages) -> dict:
     """
-    Return one chart of outgoing and incoming messages for one org.
+    Return one chart of outgoing and incoming messages of `messages`.
 
     Outgoing counts stay positive and incoming counts negate, so the
     outgoing bars rise above the axis and the incoming bars hang below it.
     Series keys and labels carry the direction, because both kinds define a
     status named `dropped`.
     """
-    outgoing = build_message_chart(org, "outgoingmessage")
-    incoming = build_message_chart(org, "incomingmessage")
+    outgoing = build_message_chart(messages, "outgoingmessage")
+    incoming = build_message_chart(messages, "incomingmessage")
     return {
         "y_scale": {"diverging": True},
         "series": [
