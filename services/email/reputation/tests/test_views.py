@@ -1,4 +1,7 @@
+from datetime import datetime, time, timedelta
+
 import pytest
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
@@ -33,6 +36,22 @@ def make_report(org, **kwargs):
 
 def overview_url(org):
     return reverse("reputation:overview", kwargs={"org_slug": org.slug})
+
+
+def card_containing(content, label):
+    """Return the markup of the card whose heading reads `label`."""
+    heading = content.index(f">{label}<")
+    return content[
+        content.rindex("<section", 0, heading) : content.index("</section>", heading)
+    ]
+
+
+def last_month():
+    """Return midday on the first day of the previous month."""
+    first_of_this_month = timezone.localdate().replace(day=1)
+    return timezone.make_aware(
+        datetime.combine(first_of_this_month - timedelta(days=1), time(hour=12))
+    )
 
 
 @pytest.mark.django_db
@@ -143,7 +162,7 @@ class TestReputationOverviewView:
         )
         assert "text-success" in bounce_card
 
-    def test_get__tints_the_status_card_when_suspended(self, admin_client, org):
+    def test_get__tints_the_plan_card_when_suspended(self, admin_client, org):
         org.suspended_at = timezone.now()
         org.save(update_fields=["suspended_at"])
 
@@ -151,6 +170,38 @@ class TestReputationOverviewView:
 
         assert response.status_code == 200
         assert "bg-destructive/10" in response.content.decode()
+
+    def test_get__shows_the_free_plan(self, admin_client, org):
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert (
+            f"Up to {settings.RELAY_FREE_MONTHLY_MESSAGES:,} messages a month."
+            in response.content.decode()
+        )
+
+    def test_get__charts_this_month_and_last_month_volume(self, admin_client, org):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for name, created_at in [("now.eml", None), ("then.eml", last_month())]:
+            message = OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(name, b"body"),
+            )
+            if created_at:
+                OutgoingMessage.objects.filter(pk=message.pk).update(
+                    created_at=created_at
+                )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        chart = response.context["chart_volume"]
+        assert [row["sent"] for row in chart["rows"]] == [1, 1]
+        assert chart["threshold"]["value"] == settings.RELAY_FREE_MONTHLY_MESSAGES
+        assert "chart-volume" in response.content.decode()
 
     def test_get__tints_the_bounce_card_over_the_limit(self, admin_client, org, user):
         message = OutgoingMessage.objects.create(
@@ -173,9 +224,7 @@ class TestReputationOverviewView:
         assert response.status_code == 200
         content = response.content.decode()
         assert content.count("bg-destructive/10") == 1
-        bounce_card = content.split("Hard bounce rate", 1)[1].split(
-            "Complaint rate", 1
-        )[0]
+        bounce_card = card_containing(content, "Hard bounce rate")
         assert "text-destructive" in bounce_card
 
     def test_get__tints_the_complaint_card_over_the_limit(
@@ -193,7 +242,7 @@ class TestReputationOverviewView:
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
-        complaint_card = response.content.decode().split("Complaint rate", 1)[1]
+        complaint_card = card_containing(response.content.decode(), "Complaint rate")
         assert "bg-destructive/10" in complaint_card
         assert "text-destructive" in complaint_card
 

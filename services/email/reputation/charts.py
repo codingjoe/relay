@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.utils.translation import gettext
 
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
@@ -174,4 +175,46 @@ def build_reputation_chart(org):
             }
             for index, day in enumerate(days_list)
         ],
+    }
+
+
+def build_volume_chart(org):
+    """
+    Return the sending volume of this month and the last one.
+
+    Sending is what the plan meters, so the bars count the outgoing
+    messages recorded in each month. The current month runs to today,
+    and the free plan limit is charted as a threshold line.
+    """
+    this_month = timezone.localdate().replace(day=1)
+    months = [(this_month - timedelta(days=1)).replace(day=1), this_month]
+    rows = []
+    for month in months:
+        next_month = (month + timedelta(days=32)).replace(day=1)
+        rows.append(
+            {
+                "day": month.isoformat(),
+                "sent": OutgoingMessage.objects.filter(
+                    org=org,
+                    created_at__date__gte=month,
+                    created_at__date__lt=next_month,
+                ).count(),
+            }
+        )
+    return {
+        "series": [
+            {
+                "key": "sent",
+                "label": gettext("Messages"),
+                "color": REPUTATION_CHART_COLORS["sent"],
+            }
+        ],
+        "rows": rows,
+        "x_monthly": True,
+        "subtitle": gettext("This month and last month"),
+        "threshold": {
+            "value": settings.RELAY_FREE_MONTHLY_MESSAGES,
+            "label": gettext("Free plan limit"),
+        },
+        "y_scale": {"stacked": "false"},
     }

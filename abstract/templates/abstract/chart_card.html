@@ -3,9 +3,13 @@
   <header>
     <h3 class="m-0">{{ title }}</h3>
     <p class="m-0 text-muted-foreground">
-      {% blocktranslate count days=chart.rows|length trimmed %}
-        {{ days }} day{% plural %}{{ days }} days
-      {% endblocktranslate %}
+      {% if chart.subtitle %}
+        {{ chart.subtitle }}
+      {% else %}
+        {% blocktranslate count days=chart.rows|length trimmed %}
+          {{ days }} day{% plural %}{{ days }} days
+        {% endblocktranslate %}
+      {% endif %}
     </p>
   </header>
   <div id="{{ id }}" class="h-72" role="img" aria-label="{{ title }}"></div>
@@ -25,6 +29,9 @@
         timeZone: "UTC",
       });
       const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
+      const monthly = {% if chart.x_monthly %}true{% else %}false{% endif %};
+      const monthDate = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" });
+      const shortMonth = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
       const diverging = {% if chart.y_scale.diverging %}true{% else %}false{% endif %};
@@ -67,7 +74,7 @@
           confine: true,
           formatter: (items) =>
             [
-              escapeHtml(fullDate.format(new Date(items[0].axisValue))),
+              escapeHtml((monthly ? monthDate : fullDate).format(new Date(items[0].axisValue))),
               ...items.map(
                 (item) =>
                   `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(formatValue(item.value))}`
@@ -78,8 +85,9 @@
           type: "category",
           data: rows.map((row) => row.day),
           axisLabel: {
-            interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
-            formatter: (value) => shortDate.format(new Date(value)),
+            interval: monthly ? 0 : Math.max(Math.ceil(rows.length / 6) - 1, 0),
+            formatter: (value) =>
+              (monthly ? shortMonth : shortDate).format(new Date(value)),
           },
         },
         yAxis: {
@@ -87,6 +95,11 @@
           axisLabel: { formatter: (value) => Math.abs(value) },
           {% else %}
           min: 0,
+          {% endif %}
+          {% if chart.threshold %}
+          /* Keep the threshold line inside the plot, whatever the volume is. */
+          max: (value) =>
+            Math.ceil(Math.max(value.max, {{ chart.threshold.value }}) * 1.05),
           {% endif %}
         },
         series: [
@@ -100,18 +113,37 @@
             itemStyle: { color: toRgba("{{ series.color }}") },
             data: rows.map((row) => row["{{ series.key }}"]),
             {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
-            {% if forloop.first and chart.y_scale.diverging %}
-            markLine: {
-              silent: true,
-              symbol: "none",
-              label: { show: false },
-              lineStyle: {
-                color: toRgba("var(--color-muted-foreground)"),
-                width: 2,
-                type: "solid",
+            {% if forloop.first %}
+              {% if chart.threshold %}
+              markLine: {
+                silent: true,
+                symbol: "none",
+                label: {
+                  show: true,
+                  position: "insideEndTop",
+                  formatter: "{{ chart.threshold.label|escapejs }}",
+                  color: toRgba("var(--color-muted-foreground)"),
+                },
+                lineStyle: {
+                  color: toRgba("var(--color-chart-gray)"),
+                  width: 2,
+                  type: "dashed",
+                },
+                data: [{ yAxis: {{ chart.threshold.value }} }],
               },
-              data: [{ yAxis: 0 }],
-            },
+              {% elif chart.y_scale.diverging %}
+              markLine: {
+                silent: true,
+                symbol: "none",
+                label: { show: false },
+                lineStyle: {
+                  color: toRgba("var(--color-muted-foreground)"),
+                  width: 2,
+                  type: "solid",
+                },
+                data: [{ yAxis: 0 }],
+              },
+              {% endif %}
             {% endif %}
           }{% if not forloop.last %},{% endif %}
           {% endfor %}

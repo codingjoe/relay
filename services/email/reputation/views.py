@@ -6,7 +6,7 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .charts import build_reputation_chart
+from .charts import build_reputation_chart, build_volume_chart
 from .models import FblReport
 
 
@@ -99,6 +99,8 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "stats": stats,
             "chart": chart,
             "chart_rates": chart_rates,
+            "chart_volume": build_volume_chart(self.org),
+            "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
             "bounce_threshold": bounce_threshold,
             "complaint_threshold": complaint_threshold,
         }

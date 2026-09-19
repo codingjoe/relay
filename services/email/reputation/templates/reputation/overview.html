@@ -1,20 +1,27 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load i18n humanize abstract %}
 {% block title %}{% translate "reputation"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "reputation"|capfirst %}</h2>
   </header>
 
+  {% include "abstract/chart_card.html" with id="chart-volume" data_id="chart-volume-data" title=_("email volume")|capfirst chart=chart_volume class="mb-6" %}
+
   <div class="grid gap-4 sm:grid-cols-3 mb-6">
-    <section class="card p-6 {% if org.suspended_at %}bg-destructive/10{% else %}bg-success/10{% endif %}">
-      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "status"|capfirst %}</h3>
-      <p class="m-0 mt-1 text-2xl font-semibold">
+    <section class="card p-6 {% if org.suspended_at %}bg-destructive/10{% endif %}">
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "plan"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold {% if org.suspended_at %}text-destructive{% else %}text-success{% endif %}">
         {% if org.suspended_at %}
-          <span class="text-destructive">{% translate "suspended"|capfirst %}</span>
+          {% translate "suspended"|capfirst %}
         {% else %}
-          <span class="text-success">{% translate "ok"|capfirst %}</span>
+          {% translate "free"|capfirst %}
         {% endif %}
+      </p>
+      <p class="m-0 text-sm text-muted-foreground">
+        {% blocktranslate with limit=free_monthly_messages|intcomma trimmed %}
+          Up to {{ limit }} messages a month.
+        {% endblocktranslate %}
       </p>
     </section>
     <section class="card p-6 {% if stats.hard_bounce_over_limit %}bg-destructive/10{% else %}bg-success/10{% endif %}">

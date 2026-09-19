@@ -119,9 +119,15 @@ without this proof stays on record, and it does not count into the rates.
 
 The reputation page is your organization's home page. It opens when you sign
 in and pick an organization, and it holds the first position in the sidebar.
-It shows your hard-bounce and complaint rates next to their limits, and two
-graphs: the rates with their limits, and the sent, bounced, and complained
-counts per day. Both cover the window relay evaluates.
+It leads with the sending volume of this month and the last one, charted
+against the free plan limit. Below that sit the plan, the hard-bounce rate,
+and the complaint rate next to their limits, then two graphs: the rates with
+their limits, and the sent, bounced, and complained counts per day. Both
+cover the window relay evaluates.
+
+The plan card names the plan and the messages it allows per month. A
+suspended organization reads as suspended in that card, since a suspension
+stops sending until an operator lifts it.
 
 A new organization opens a get started page instead. That page tracks three
 steps: the managed sender domain going live, your first sent email, and your
