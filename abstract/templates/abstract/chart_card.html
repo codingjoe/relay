@@ -92,18 +92,20 @@
           },
         },
         yAxis: {
+          {% if not chart.y_scale.diverging %}
+          min: 0,
+          {% endif %}
           {% if chart.y_scale.diverging %}
           axisLabel: { formatter: (value) => Math.abs(value) },
           {% elif chart.y_scale.percent %}
-          max: 100,
           axisLabel: { formatter: (value) => `${value}%` },
-          {% else %}
-          min: 0,
           {% endif %}
           {% if chart.threshold %}
           /* Keep the threshold line inside the plot, whatever the volume is. */
           max: (value) =>
             Math.ceil(Math.max(value.max, {{ chart.threshold.value }}) * 1.05),
+          {% elif chart.y_scale.percent %}
+          max: 100,
           {% endif %}
         },
         series: [
@@ -122,7 +124,7 @@
             label: {
               show: true,
               position: "top",
-              formatter: (item) => rows[item.dataIndex].total,
+              formatter: (item) => rows[item.dataIndex].total ?? "",
               color: muted,
             },
             {% endif %}

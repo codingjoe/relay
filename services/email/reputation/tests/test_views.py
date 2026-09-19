@@ -180,6 +180,36 @@ class TestReputationOverviewView:
             in response.content.decode()
         )
 
+    def test_get__charts_the_rates_as_shares_of_their_limits(
+        self, admin_client, org, user
+    ):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(2):
+            message = OutgoingMessage.objects.create(
+                org=org,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                domain=domain,
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        rates = response.context["chart_rates"]
+        last = rates["rows"][-1]
+        assert last["hard_bounce_rate"] == 50.0
+        assert last["hard_bounce_share"] == 1000.0
+        assert last["complaint_share"] == 0.0
+        assert rates["threshold"]["value"] == 100
+
     def test_get__charts_this_month_and_last_month_volume(self, admin_client, org):
         domain = Domain.objects.create(name="acme.com", org=org)
         for name, created_at in [("now.eml", None), ("then.eml", last_month())]:

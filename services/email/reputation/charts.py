@@ -88,6 +88,11 @@ def complaints_per_day(org, start):
     return complaints
 
 
+def share_of_limit(rate, limit):
+    """Return `rate` as a percentage of `limit`, or None without a rate."""
+    return round(rate / limit * 100, 1) if rate is not None else None
+
+
 def build_reputation_chart(org):
     """
     Return per-day message counts, rates, and rate limits for one org.
@@ -95,9 +100,9 @@ def build_reputation_chart(org):
     Counts provider FBL reports and outgoing messages held as spam as
     complaints. Values accumulate from the start of the evaluation
     window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
-    equals the rates the reputation check evaluates. Rates and limits
-    are per cent, so they share one axis and can be plotted next to
-    each other.
+    equals the rates the reputation check evaluates. Each rate also
+    comes back as its share of the matching limit, which puts both
+    limits on the 100 per cent line of one axis.
     """
     window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
     start = timezone.localdate() - timedelta(days=window_days - 1)
@@ -153,31 +158,33 @@ def build_reputation_chart(org):
     complaint_rates = rate(complaint_cumulative)
     rate_series = [
         {
-            "key": "hard_bounce_rate",
+            "key": "hard_bounce_share",
             "label": "Hard bounce rate",
             "color": REPUTATION_CHART_COLORS["hard_bounce_rate"],
-        },
-        {
-            "key": "complaint_rate",
-            "label": "Complaint rate",
-            "color": REPUTATION_CHART_COLORS["complaint_rate"],
-        },
-        {
-            "key": "hard_bounce_limit",
-            "label": "Hard bounce limit",
-            "color": REPUTATION_CHART_COLORS["hard_bounce_limit"],
             "dataset": "type: 'line'",
         },
         {
-            "key": "complaint_limit",
-            "label": "Complaint limit",
-            "color": REPUTATION_CHART_COLORS["complaint_limit"],
+            "key": "complaint_share",
+            "label": "Complaint rate",
+            "color": REPUTATION_CHART_COLORS["complaint_rate"],
             "dataset": "type: 'line'",
         },
     ]
     return {
         "series": series,
         "rate_series": rate_series,
+        "rate_subtitle": gettext(
+            "%(hard)s hard bounces and %(complaints)s complaints of %(sent)s "
+            "sent, against limits of %(bounce_limit)s and %(complaint_limit)s"
+        )
+        % {
+            "hard": intcomma(hard_bounce_cumulative[-1]),
+            "complaints": intcomma(complaint_cumulative[-1]),
+            "sent": intcomma(sent_cumulative[-1]),
+            "bounce_limit": f"{bounce_limit:.2f}%",
+            "complaint_limit": f"{complaint_limit:.2f}%",
+        },
+        "rate_threshold": {"value": 100, "label": gettext("Limit")},
         "rows": [
             {
                 "day": day.isoformat(),
@@ -187,8 +194,12 @@ def build_reputation_chart(org):
                 "complained": complaint_cumulative[index],
                 "hard_bounce_rate": hard_bounce_rates[index],
                 "complaint_rate": complaint_rates[index],
-                "hard_bounce_limit": bounce_limit,
-                "complaint_limit": complaint_limit,
+                "hard_bounce_share": share_of_limit(
+                    hard_bounce_rates[index], bounce_limit
+                ),
+                "complaint_share": share_of_limit(
+                    complaint_rates[index], complaint_limit
+                ),
             }
             for index, day in enumerate(days_list)
         ],

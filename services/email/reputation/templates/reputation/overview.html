@@ -6,8 +6,6 @@
     <h2 class="m-0">{% translate "reputation"|capfirst %}</h2>
   </header>
 
-  {% include "abstract/chart_card.html" with id="chart-volume" data_id="chart-volume-data" title=_("email volume")|capfirst chart=chart_volume class="mb-6" %}
-
   <div class="grid gap-4 sm:grid-cols-3 mb-6">
     <section class="card p-6 {% if org.suspended_at %}bg-destructive/10{% endif %}">
       <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "plan"|capfirst %}</h3>
@@ -50,7 +48,9 @@
     </section>
   </div>
 
-  {% include "abstract/chart_card.html" with id="chart-reputation-rates" data_id="chart-reputation-rates-data" title=_("rates and limits")|capfirst chart=chart_rates class="" %}
+  {% include "abstract/chart_card.html" with id="chart-volume" data_id="chart-volume-data" title=_("email volume")|capfirst chart=chart_volume class="mb-6" %}
+
+  {% include "abstract/chart_card.html" with id="chart-reputation-rates" data_id="chart-reputation-rates-data" title=_("rates against their limits")|capfirst chart=chart_rates class="mb-6" %}
 
   {% include "abstract/chart_card.html" with id="chart-outcomes" data_id="chart-outcomes-data" title=_("delivery outcomes")|capfirst chart=chart_outcomes class="mt-6" %}
 {% endblock %}

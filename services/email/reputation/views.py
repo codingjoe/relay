@@ -93,7 +93,9 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
         chart_rates = {
             "series": chart["rate_series"],
             "rows": chart["rows"],
-            "y_scale": {"stacked": "false"},
+            "subtitle": chart["rate_subtitle"],
+            "threshold": chart["rate_threshold"],
+            "y_scale": {"stacked": "false", "percent": True},
         }
         return super().get_context_data(**kwargs) | {
             "stats": stats,
