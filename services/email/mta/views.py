@@ -60,7 +60,7 @@ class IncomingMessageDetailView(MessageDetailView):
 
 class WebhookListView(OrganizationScopedView, generic.ListView):
     context_object_name = "webhooks"
-    title = _("Webhooks")
+    title = _("Inbound email")
     parent = "accounts:org-home"
 
     def get_queryset(self):
@@ -77,7 +77,7 @@ class WebhookCreateView(OrganizationScopedView, generic.CreateView):
     http_method_names = ["post"]
     model = Webhook
     form_class = WebhookForm
-    title = _("New webhook")
+    title = _("New endpoint")
     parent = "mta:webhook-list"
 
     def get_form_kwargs(self):

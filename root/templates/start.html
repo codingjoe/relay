@@ -114,7 +114,8 @@
           <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
-              Receive incoming mail via webhooks, API, or MCP.
+              Inbound email lands in your app: relay POSTs each message to an HTTPS endpoint you own, or hands it over
+              the API and MCP.
             {% endblocktranslate %}
           </p>
         </article>
@@ -171,7 +172,8 @@
       </h2>
       <p class="text-center text-lg text-muted-foreground leading-relaxed m-0 mt-4 mb-12 max-w-2xl mx-auto">
         {% blocktranslate trimmed %}
-          Every message in and out, every transmission and webhook delivery. In your browser, not in a support ticket.
+          Every message in and out, every transmission and every delivery to your app. In your browser, not in a support
+          ticket.
         {% endblocktranslate %}
       </p>
       <div class="grid gap-8 sm:grid-cols-2 items-start">

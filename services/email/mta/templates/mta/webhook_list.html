@@ -1,23 +1,30 @@
 {% extends "base.html" %}
 {% load i18n abstract %}
-{% block title %}{% translate "webhooks"|capfirst %} | relay{% endblock %}
+{% block title %}{% translate "inbound email"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "webhooks"|capfirst %}</h2>
+    <div>
+      <h2 class="m-0">{% translate "inbound email"|capfirst %}</h2>
+      <p class="m-0 mt-1 text-sm text-muted-foreground">
+        {% blocktranslate trimmed %}
+          Where your inbound email is delivered: HTTPS endpoints in your app.
+        {% endblocktranslate %}
+      </p>
+    </div>
     <button
       type="button"
       class="btn"
       data-dialog="dlg-new-webhook"
     >
-      {% translate "new webhook"|title %}
+      {% translate "new endpoint"|title %}
     </button>
   </header>
 
   <dialog class="dialog" id="dlg-new-webhook">
     <div>
       <header>
-        <h2>{% translate "new webhook"|title %}</h2>
-        <p>{% translate "configure a webhook endpoint for incoming email."|capfirst %}</p>
+        <h2>{% translate "new endpoint"|title %}</h2>
+        <p>{% translate "relay POSTs every inbound email to this HTTPS endpoint in your app."|capfirst %}</p>
       </header>
       <section>
         <form method="post" action="{% url 'mta:webhook-create' org.slug %}" id="dlg-new-webhook-form">
@@ -41,7 +48,7 @@
                 type="text"
                 name="name"
                 id="id_name"
-                placeholder='{% translate "for example, production webhook"|title %}'
+                placeholder='{% translate "for example, production app"|title %}'
                 class="input"
               >
             </div>
@@ -150,7 +157,7 @@
                 class="btn"
                 data-variant="destructive"
                 data-size="sm"
-                data-confirm='{% translate "delete this webhook?"|capfirst context "verb" %}'
+                data-confirm='{% translate "delete this endpoint?"|capfirst context "verb" %}'
               >
                 {% translate "delete"|capfirst context "verb" %}
               </button>
@@ -165,10 +172,10 @@
         <figure>
           <i data-lucide="webhook" aria-hidden="true"></i>
         </figure>
-        <h3>{% translate "No webhooks yet." %}</h3>
+        <h3>{% translate "No endpoints yet." %}</h3>
         <p>
           {% blocktranslate trimmed %}
-            Create one to receive incoming email deliveries.
+            Create one to start receiving inbound email in your app.
           {% endblocktranslate %}
         </p>
       </header>
@@ -178,7 +185,7 @@
           class="btn"
           data-dialog="dlg-new-webhook"
         >
-          {% translate "create your first webhook"|title %}
+          {% translate "create your first endpoint"|title %}
         </button>
       </footer>
     </section>
@@ -186,14 +193,14 @@
 
   <section class="card mt-6 p-6">
     <header>
-      <h3 class="m-0">{% translate "webhook format"|capfirst %}</h3>
+      <h3 class="m-0">{% translate "delivery format"|capfirst %}</h3>
     </header>
     <p>
       {% blocktranslate with docs_url="https://docs.standardwebhooks.com" sdk_url="https://github.com/standard-webhooks/standard-webhooks" trimmed %}
-        Webhooks follow the
+        Deliveries follow the
         <a href="https://standardwebhooks.com">Standard Webhooks</a> specification. Each delivery includes <code
         >webhook-id</code>, <code>webhook-timestamp</code>, and <code>webhook-signature</code> headers. Use the
-        per-webhook public key (shown above) with any <a href="{{ sdk_url }}">Standard Webhooks SDK</a> to verify
+        endpoint's public key (shown above) with any <a href="{{ sdk_url }}">Standard Webhooks SDK</a> to verify
         signatures. No custom code needed. See the
         <a href="{{ docs_url }}">documentation</a> for details.
       {% endblocktranslate %}
