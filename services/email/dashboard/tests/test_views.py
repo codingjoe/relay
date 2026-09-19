@@ -302,6 +302,12 @@ class TestReportListView:
         assert response.status_code == 200
         assert response.context["chart"] is None
 
+    def test_get__fbl_type_renders_no_chart_card(self, admin_client, org, fbl_report):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=fbl")
+
+        assert response.status_code == 200
+        assert "chart-reports" not in response.content.decode()
+
     def test_get__names_the_filter_values_in_the_trigger(
         self, admin_client, org, tls_report
     ):

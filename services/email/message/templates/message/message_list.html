@@ -22,13 +22,6 @@
 
   {% include "partials/test_email_dialog.html" %}
 
-  {% if direction == 'received' %}
-    {% translate "incoming messages by status" as chart_title %}
-  {% elif direction == 'sent' %}
-    {% translate "outgoing messages by status" as chart_title %}
-  {% else %}
-    {% translate "outgoing and incoming messages by status" as chart_title %}
-  {% endif %}
   {% include "abstract/chart_card.html" with id="chart-messages" data_id="chart-messages-data" title=chart_title|capfirst chart=chart class="mb-6" %}
 
   <div class="mb-6 flex flex-wrap items-center gap-2">

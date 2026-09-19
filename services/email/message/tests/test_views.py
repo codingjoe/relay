@@ -38,6 +38,26 @@ class TestMessageListView:
         keys = [series["key"] for series in response.context["chart"]["series"]]
         assert not any(key.startswith("outgoing_") for key in keys)
 
+    def test_get__sent_direction_titles_the_chart(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/messages/?direction=sent")
+
+        assert response.status_code == 200
+        assert "Outgoing messages by status" in response.content.decode()
+
+    def test_get__received_direction_titles_the_chart(self, admin_client, org):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/messages/?direction=received"
+        )
+
+        assert response.status_code == 200
+        assert "Incoming messages by status" in response.content.decode()
+
+    def test_get__all_directions_title_the_chart(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        assert "Outgoing and incoming messages by status" in response.content.decode()
+
     def test_get__names_the_status_filter_in_the_trigger(self, admin_client, org):
         response = admin_client.get(
             f"/org/{org.slug}/email/messages/?direction=sent&status=failed"

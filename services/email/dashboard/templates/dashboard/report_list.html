@@ -11,10 +11,8 @@
     </p>
   </header>
 
-  {% if type == 'dmarc' %}
-    {% include "abstract/chart_card.html" with id="chart-dmarc" data_id="chart-dmarc-data" title=_("messages by DMARC verdict")|capfirst chart=chart class="mb-6" %}
-  {% elif type == 'tls' %}
-    {% include "abstract/chart_card.html" with id="chart-tls" data_id="chart-tls-data" title=_("failures by type")|capfirst chart=chart class="mb-6" %}
+  {% if chart %}
+    {% include "abstract/chart_card.html" with id="chart-reports" data_id="chart-reports-data" title=chart_title|capfirst chart=chart class="mb-6" %}
   {% endif %}
 
   <div class="mb-6 flex flex-wrap items-center gap-2">

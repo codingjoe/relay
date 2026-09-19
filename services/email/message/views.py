@@ -10,7 +10,7 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
-from .charts import build_direction_chart, build_message_chart
+from .charts import MESSAGE_KINDS, build_direction_chart, build_kind_charts
 from .models import Message
 
 
@@ -47,15 +47,21 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         return qs
 
     def get_chart(self, direction):
-        """Return the chart of the messages the filters select."""
+        """Return the title and chart of the messages the filters select."""
         messages = self.get_queryset()
         match direction:
             case self.Direction.SENT:
-                return build_message_chart(messages, "outgoingmessage")
+                model_names = [MESSAGE_KINDS["outgoing"]]
+                title = _("outgoing messages by status")
             case self.Direction.RECEIVED:
-                return build_message_chart(messages, "incomingmessage")
+                model_names = [MESSAGE_KINDS["incoming"]]
+                title = _("incoming messages by status")
             case _:
-                return build_direction_chart(messages)
+                return (
+                    _("outgoing and incoming messages by status"),
+                    build_direction_chart(messages),
+                )
+        return title, build_kind_charts(messages, model_names)[0]
 
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")
@@ -66,18 +72,17 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             direction_label = self.Direction(direction).label
         except ValueError:
             direction_label = self.Direction.ALL.label
-        return (
-            super().get_context_data(**kwargs)
-            | {
-                "direction": direction,
-                "email": email,
-                "status": status,
-                "status_choices": status_choices,
-                "status_label": dict(status_choices).get(status, ""),
-                "direction_label": direction_label,
-            }
-            | {"chart": self.get_chart(direction)}
-        )
+        chart_title, chart = self.get_chart(direction)
+        return super().get_context_data(**kwargs) | {
+            "direction": direction,
+            "email": email,
+            "status": status,
+            "status_choices": status_choices,
+            "status_label": dict(status_choices).get(status, ""),
+            "direction_label": direction_label,
+            "chart_title": chart_title,
+            "chart": chart,
+        }
 
 
 class MessageBreadcrumbMixin:

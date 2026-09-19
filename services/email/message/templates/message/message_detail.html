@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message %}
+{% load i18n message abstract %}
 {% block title %}{{ message.subject|default:_("(no subject)")|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
   <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -11,7 +11,7 @@
           <a
             class="link break-all"
             data-tooltip="{{ address_tooltip }}"
-            href="{% url 'message:message-list' org.slug %}?email={{ message.mail_from|urlencode }}"
+            href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
           >{{ message.mail_from }}</a>
         {% endif %}
         <i data-lucide="arrow-right" class="size-3.5 inline-block" aria-hidden="true"></i>
@@ -19,7 +19,7 @@
           <a
             class="link break-all"
             data-tooltip="{{ address_tooltip }}"
-            href="{% url 'message:message-list' org.slug %}?email={{ message.rcpt_to|urlencode }}"
+            href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
           >{{ message.rcpt_to }}</a>
         {% endif %}
       </p>

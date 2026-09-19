@@ -79,14 +79,14 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
         return qs
 
     def get_chart(self, report_type):
-        """Return the chart of the open report type, or None when it has none."""
+        """Return the title and chart of the open report type, or none."""
         match report_type:
             case self.ReportType.DMARC:
-                return build_dmarc_chart(self.org)
+                return _("messages by DMARC verdict"), build_dmarc_chart(self.org)
             case self.ReportType.TLS:
-                return build_tls_chart(self.org)
+                return _("failures by type"), build_tls_chart(self.org)
             case _:
-                return None
+                return None, None
 
     def get_context_data(self, **kwargs):
         report_type = self.request.GET.get("type", self.ReportType.DMARC)
@@ -96,11 +96,13 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
             type_label = self.ReportType(report_type).label
         except ValueError:
             type_label = self.ReportType.DMARC.label
+        chart_title, chart = self.get_chart(report_type)
         return super().get_context_data(**kwargs) | {
             "type": report_type,
             "domain": domain,
             "ip": ip,
             "type_label": type_label,
             "filter_values": [value for value in (domain, ip) if value],
-            "chart": self.get_chart(report_type),
+            "chart_title": chart_title,
+            "chart": chart,
         }
