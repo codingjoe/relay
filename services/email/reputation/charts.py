@@ -109,11 +109,11 @@ def build_reputation_chart(org):
     Counts provider FBL reports and outgoing messages held as spam as
     complaints. Values accumulate from the start of the evaluation
     window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
-    equals the rates the reputation check evaluates. Rates stay in per
-    cent, and each rate gets a chart of its own with the matching limit
-    as its threshold line.
+    equals the rates the reputation check evaluates. A window below one
+    day counts as one day. Rates stay in per cent, and each rate gets a
+    chart of its own with the matching limit as its threshold line.
     """
-    window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
+    window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     start = timezone.localdate() - timedelta(days=window_days - 1)
 
     sent_counts = sent_per_day(org, start)

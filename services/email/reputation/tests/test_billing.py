@@ -24,6 +24,19 @@ class TestMonthCost:
 
         assert month_cost(5000) == Decimal("0.00")
 
+    def test_with_a_negative_allowance__bills_from_zero(self, settings):
+        settings.RELAY_FREE_MONTHLY_MESSAGES = -100
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 10.0
+
+        assert month_cost(0) == Decimal("0.00")
+        assert month_cost(50) == Decimal("0.50")
+
+    def test_with_a_negative_price__is_free(self, settings):
+        settings.RELAY_FREE_MONTHLY_MESSAGES = 0
+        settings.RELAY_PRICE_PER_1000_MESSAGES = -5.0
+
+        assert month_cost(5000) == Decimal("0.00")
+
 
 class TestMoney:
     def test_formats_with_the_currency_symbol(self, settings):
