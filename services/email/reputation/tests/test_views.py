@@ -182,6 +182,21 @@ class TestReputationOverviewView:
         )
         assert "Free" in response.content.decode()
 
+    def test_get__shows_only_the_free_plan_when_the_price_is_zero(
+        self, admin_client, org, settings
+    ):
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 0.0
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        card = card_containing(response.content.decode(), "Cost")
+        assert (
+            f"Up to {settings.RELAY_FREE_MONTHLY_MESSAGES:,} messages a month." in card
+        )
+        assert "Free" in card
+        assert "per 1,000 messages" not in card
+
     def test_get__shows_the_cost_of_a_month_past_the_allowance(
         self, admin_client, org, settings
     ):
