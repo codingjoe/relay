@@ -200,8 +200,7 @@ def build_volume_chart(org):
             }
         )
 
-    # A last month with more days than this one keeps its tail in the final
-    # point, so both lines end at a real month total.
+    # A last month with more days keeps its tail in the final point.
     tail = last_month + timedelta(days=days_in_month)
     while tail < this_month:
         last_total += per_day.get(tail, 0)

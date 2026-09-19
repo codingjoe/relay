@@ -33,7 +33,6 @@
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
       const diverging = {% if chart.y_scale.diverging %}true{% else %}false{% endif %};
-      /* Grow the axis past the threshold, so the limit line stays inside the plot. */
       const axisMax = (threshold) => (value) => {
         const highest = Math.max(
           Number.isFinite(value.max) ? value.max : 0,
@@ -163,10 +162,7 @@
           { key: "{{ series.key }}", color: toRgba("{{ series.color }}") },
         {% endfor %}
       ];
-      /*
-       * Link each segment to the next day, after the ECharts variation example.
-       * Redrawn on resize, since the bar layout moves with the grid.
-       */
+      /* Link each segment to the next day, after the ECharts variation example. */
       const drawVariation = () => {
         const barData = chart.getModel().getSeriesByIndex(0)?.getData();
         if (!barData) return;

@@ -18,7 +18,6 @@ def freeze_today(monkeypatch, day):
 
 
 def make_message(org, day):
-    """Create an outgoing message accepted at midday on `day`."""
     domain = Domain.objects.get_or_create(name="acme.com", org=org)[0]
     message = OutgoingMessage.objects.create(
         org=org,
@@ -35,8 +34,6 @@ def make_message(org, day):
 
 @pytest.mark.django_db
 class TestBuildReputationChart:
-    """The reputation chart runs over the evaluation window."""
-
     def test_with_a_zero_window__counts_as_one_day(self, org, settings, monkeypatch):
         freeze_today(monkeypatch, date(2026, 9, 19))
         settings.RELAY_REPUTATION_WINDOW_DAYS = 0
@@ -83,8 +80,6 @@ class TestBuildReputationChart:
 
 @pytest.mark.django_db
 class TestBuildVolumeChart:
-    """The volume chart runs over the current month, and the one before it."""
-
     def test_covers_the_whole_month(self, org, monkeypatch):
         freeze_today(monkeypatch, date(2026, 9, 19))
 

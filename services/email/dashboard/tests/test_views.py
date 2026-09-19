@@ -9,7 +9,6 @@ from services.email.reputation.models import FblReport
 
 
 def complete_onboarding(org):
-    """Add the custom domain and the first sent email to the managed domain."""
     Domain.objects.create(name="acme.com", org=org)
     OutgoingMessage.objects.create(
         org=org,

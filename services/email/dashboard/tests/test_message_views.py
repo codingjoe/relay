@@ -21,12 +21,10 @@ MULTIPART_BODY = (
 
 
 def tab_order(content):
-    """Return the tab ids in the order they render."""
     return re.findall(r'id="(message-tab-[a-z]+)"', content)
 
 
 def panel_visibility(content):
-    """Return whether each tabpanel renders hidden, keyed by panel id."""
     return {
         panel_id: "hidden" in attributes
         for panel_id, attributes in re.findall(

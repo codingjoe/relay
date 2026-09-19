@@ -40,7 +40,6 @@ def overview_url(org):
 
 
 def card_containing(content, label):
-    """Return the markup of the card whose heading reads `label`."""
     heading = content.index(f">{label}<")
     return content[
         content.rindex("<section", 0, heading) : content.index("</section>", heading)
@@ -48,7 +47,6 @@ def card_containing(content, label):
 
 
 def last_month():
-    """Return midday on the first day of the previous month."""
     first_of_this_month = timezone.localdate().replace(day=1)
     return timezone.make_aware(
         datetime.combine(first_of_this_month - timedelta(days=1), time(hour=12))
