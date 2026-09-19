@@ -150,11 +150,28 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="text-muted-foreground">
-      {% blocktranslate trimmed %}
-        No webhooks configured. Create one to receive incoming email deliveries.
-      {% endblocktranslate %}
-    </p>
+    <section class="empty">
+      <header>
+        <figure>
+          <i data-lucide="webhook" aria-hidden="true"></i>
+        </figure>
+        <h3>{% translate "No webhooks yet." %}</h3>
+        <p>
+          {% blocktranslate trimmed %}
+            Create one to receive incoming email deliveries.
+          {% endblocktranslate %}
+        </p>
+      </header>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          onclick="document.getElementById('dlg-new-webhook').showModal()"
+        >
+          {% translate "create your first webhook"|title %}
+        </button>
+      </footer>
+    </section>
   {% endif %}
 
   <section class="card mt-6 p-6">
