@@ -42,7 +42,7 @@
       {% endif %}
     </div>
     {% translate "Show the messages with this address" as address_tooltip %}
-    {% if message.mail_from or message.rcpt_to %}
+    {% if message.mail_from or message.rcpt_to or message.subject %}
       <dl class="m-0 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         {% if message.mail_from %}
           <dt>{% translate "from"|capfirst context "email hop" %}</dt>
@@ -50,6 +50,7 @@
             <a
               class="btn break-all"
               data-variant="link"
+              data-size="sm"
               data-tooltip="{{ address_tooltip }}"
               href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
             >
@@ -64,6 +65,7 @@
             <a
               class="btn break-all"
               data-variant="link"
+              data-size="sm"
               data-tooltip="{{ address_tooltip }}"
               href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
             >
@@ -72,6 +74,8 @@
             </a>
           </dd>
         {% endif %}
+        <dt>{% translate "subject"|capfirst %}</dt>
+        <dd class="m-0 ps-3 text-foreground">{{ message.subject|default:_("(no subject)") }}</dd>
       </dl>
     {% endif %}
     {% if message.spam_action or message.spam_score is not None or message.virus_action %}
