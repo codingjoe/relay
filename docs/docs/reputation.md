@@ -119,12 +119,12 @@ without this proof stays on record, and it does not count into the rates.
 
 The reputation page is your organization's home page. It opens when you sign
 in and pick an organization, and it holds the first position in the sidebar.
-Below the plan card and the two rate cards sit three graphs. The first charts
+Below the cost card and the two rate cards sit three graphs. The first charts
 the sending volume of this month and the last one, cumulative day by day
-against the free tier limit. The other two chart one rate each, the hard
-bounce rate and the complaint rate, drawn as a share of their own limit so
-that the limit sits on the 100 per cent line and a breach shows above it.
-Every card header carries the totals it charts.
+against the free tier. The other two chart one rate each, the hard bounce
+rate and the complaint rate, on a per-cent axis with that rate's own limit
+drawn as a line, so a rate over the limit grows above it. Every card header
+carries the totals it charts.
 
 The cost card names what the month costs. It reads Free while the month sits
 inside the free tier allowance and no price is configured, and the amount

@@ -36,8 +36,8 @@
       const diverging = {% if chart.y_scale.diverging %}true{% else %}false{% endif %};
       /*
        * A threshold line has to stay inside the plot, so the axis grows to
-       * cover it. A per-cent axis stops at the threshold itself, which puts
-       * the line on its top edge.
+       * cover it. Both branches leave headroom, so the line never sits on
+       * the top edge.
        */
       const axisMax = (threshold = 0) => (value) => {
         const highest = Math.max(
@@ -88,10 +88,10 @@
           formatter: (items) =>
             [
               escapeHtml(fullDate.format(new Date(items[0].axisValue))),
-              ...items.map(
-                (item) =>
-                  `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(formatValue(item.value))}${percent ? "%" : ""}`
-              ),
+              ...items.map((item) => {
+                const text = formatValue(item.value);
+                return `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(text)}${percent && text !== "-" ? "%" : ""}`;
+              }),
             ].join("<br/>"),
         },
         xAxis: {

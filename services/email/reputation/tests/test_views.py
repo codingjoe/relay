@@ -272,6 +272,58 @@ class TestReputationOverviewView:
         assert chart["threshold"]["value"] == settings.RELAY_FREE_MONTHLY_MESSAGES
         assert "chart-volume" in response.content.decode()
 
+    def test_get__shows_the_rate_in_per_cent(self, admin_client, org, user):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(2):
+            message = OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert response.context["stats"]["hard_bounce_rate"] == 0.5
+        bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
+        assert "50.00" in bounce_card
+
+    def test_get__keeps_a_rate_under_the_limit_untinted(self, admin_client, org, user):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(100):
+            message = OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert response.context["stats"]["hard_bounce_rate"] == 0.01
+        bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
+        assert "text-success" in bounce_card
+        assert "1.00" in bounce_card
+        assert "bg-destructive/10" not in bounce_card
+
     def test_get__tints_the_bounce_card_over_the_limit(self, admin_client, org, user):
         message = OutgoingMessage.objects.create(
             org=org,

@@ -209,7 +209,10 @@ def build_volume_chart(org):
     today = timezone.localdate()
     this_month = today.replace(day=1)
     last_month = (this_month - timedelta(days=1)).replace(day=1)
-    next_month = (today + timedelta(days=32)).replace(day=1)
+    # Anchor the next month on the first of this one. Anchoring on `today`
+    # skips a month whenever `today` sits close enough to the end of a short
+    # month, which would stretch the axis over two months.
+    next_month = (this_month + timedelta(days=32)).replace(day=1)
     days_in_month = (next_month - this_month).days
 
     counts = (

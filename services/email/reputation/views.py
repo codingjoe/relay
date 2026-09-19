@@ -81,17 +81,20 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
         last = chart["rows"][-1]
         bounce_threshold = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
         complaint_threshold = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
+        # The chart carries rates in per cent because that is what its axis
+        # shows. The cards format fractions and compare against the
+        # thresholds, which are fractions too.
+        hard_bounce_rate = (last["hard_bounce_rate"] or 0.0) / 100
+        complaint_rate = (last["complaint_rate"] or 0.0) / 100
         stats = {
             "total_sent": last["sent"],
             "hard_bounces": last["hard_bounced"],
             "soft_bounces": last["soft_bounced"],
             "complaints": last["complained"],
-            "hard_bounce_rate": last["hard_bounce_rate"] or 0.0,
-            "complaint_rate": last["complaint_rate"] or 0.0,
-            "hard_bounce_over_limit": (last["hard_bounce_rate"] or 0.0)
-            > bounce_threshold,
-            "complaint_over_limit": (last["complaint_rate"] or 0.0)
-            > complaint_threshold,
+            "hard_bounce_rate": hard_bounce_rate,
+            "complaint_rate": complaint_rate,
+            "hard_bounce_over_limit": hard_bounce_rate > bounce_threshold,
+            "complaint_over_limit": complaint_rate > complaint_threshold,
         }
         return super().get_context_data(**kwargs) | {
             "stats": stats,
