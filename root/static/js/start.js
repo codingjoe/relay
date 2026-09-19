@@ -30,8 +30,7 @@ if (slider && amount && volume) {
   update();
 }
 
-const tabs = document.querySelector(".tabs");
-if (tabs) {
+for (const tabs of document.querySelectorAll("#stack-examples .tabs")) {
   tabs.addEventListener("click", () => highlightAll());
 }
 

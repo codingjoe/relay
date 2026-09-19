@@ -256,54 +256,92 @@
           {% endblocktranslate %}
         </p>
       </div>
-      <div class="tabs min-w-0 max-w-5xl mx-auto mt-10" id="stack-examples">
-        <h3 class="m-0 font-mono text-sm font-medium text-muted-foreground">
-          {% translate "send and receive"|capfirst %}
-        </h3>
-        <nav role="tablist" aria-orientation="horizontal">
-          <button
-            type="button"
-            role="tab"
-            id="stack-ex-django"
-            aria-controls="stack-ex-django-panel"
-            aria-selected="true"
-            tabindex="0"
-          >
-            Django
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="stack-ex-next"
-            aria-controls="stack-ex-next-panel"
-            aria-selected="false"
+      <div class="max-w-5xl mx-auto mt-10 grid gap-10" id="stack-examples">
+        <div class="tabs" id="stack-ex-sending">
+          <h3 class="m-0 font-mono text-sm font-medium text-muted-foreground">{% translate "sending"|capfirst %}</h3>
+          <nav role="tablist" aria-orientation="horizontal">
+            <button
+              type="button"
+              role="tab"
+              id="stack-ex-sending-django"
+              aria-controls="stack-ex-sending-django-panel"
+              aria-selected="true"
+              tabindex="0"
+            >
+              Django
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="stack-ex-sending-next"
+              aria-controls="stack-ex-sending-next-panel"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              Next.js
+            </button>
+          </nav>
+          <div
+            role="tabpanel"
+            id="stack-ex-sending-django-panel"
+            aria-labelledby="stack-ex-sending-django"
             tabindex="-1"
+            class="min-w-0"
           >
-            Next.js
-          </button>
-        </nav>
-        <div
-          role="tabpanel"
-          id="stack-ex-django-panel"
-          aria-labelledby="stack-ex-django"
-          tabindex="-1"
-          class="min-w-0"
-        >
-          <div class="grid gap-4">
             <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django_sending.py" %}{% endfilter %}</code></pre>
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django_receiving.py" %}{% endfilter %}</code></pre>
+          </div>
+          <div
+            role="tabpanel"
+            id="stack-ex-sending-next-panel"
+            aria-labelledby="stack-ex-sending-next"
+            tabindex="-1"
+            hidden
+            class="min-w-0"
+          >
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next_sending.ts" %}{% endfilter %}</code></pre>
           </div>
         </div>
-        <div
-          role="tabpanel"
-          id="stack-ex-next-panel"
-          aria-labelledby="stack-ex-next"
-          tabindex="-1"
-          hidden
-          class="min-w-0"
-        >
-          <div class="grid gap-4">
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next_sending.ts" %}{% endfilter %}</code></pre>
+        <div class="tabs" id="stack-ex-receiving">
+          <h3 class="m-0 font-mono text-sm font-medium text-muted-foreground">{% translate "receiving"|capfirst %}</h3>
+          <nav role="tablist" aria-orientation="horizontal">
+            <button
+              type="button"
+              role="tab"
+              id="stack-ex-receiving-django"
+              aria-controls="stack-ex-receiving-django-panel"
+              aria-selected="true"
+              tabindex="0"
+            >
+              Django
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="stack-ex-receiving-next"
+              aria-controls="stack-ex-receiving-next-panel"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              Next.js
+            </button>
+          </nav>
+          <div
+            role="tabpanel"
+            id="stack-ex-receiving-django-panel"
+            aria-labelledby="stack-ex-receiving-django"
+            tabindex="-1"
+            class="min-w-0"
+          >
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django_receiving.py" %}{% endfilter %}</code></pre>
+          </div>
+          <div
+            role="tabpanel"
+            id="stack-ex-receiving-next-panel"
+            aria-labelledby="stack-ex-receiving-next"
+            tabindex="-1"
+            hidden
+            class="min-w-0"
+          >
             <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next_receiving.ts" %}{% endfilter %}</code></pre>
           </div>
         </div>
@@ -495,16 +533,17 @@
       color: var(--color-primary-foreground);
     }
 
-    /* One headline beside the tab switch, the code boxes below it. The
-       tablist stays a direct child of `.tabs` so basecoat styles it. */
-    #stack-examples {
+    /* Each code sample puts its headline beside its own tab switch, with the
+       block below. The tablist stays a direct child of `.tabs` so basecoat
+       keeps styling it. */
+    #stack-examples .tabs {
       display: grid;
       grid-template-columns: 1fr auto;
       align-items: center;
       gap: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
     }
 
-    #stack-examples > [role='tabpanel'] {
+    #stack-examples .tabs > [role='tabpanel'] {
       grid-column: 1 / -1;
     }
 
