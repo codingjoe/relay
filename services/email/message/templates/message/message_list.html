@@ -32,16 +32,11 @@
         <span data-align="start" aria-hidden="true">
           <i data-lucide="search" class="size-4"></i>
         </span>
-        <button
-          type="submit"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon-xs"
-          data-align="end"
-          aria-label='{% translate "search"|capfirst context "verb" %}'
-        >
-          <i data-lucide="arrow-right" aria-hidden="true"></i>
-        </button>
+        <span data-align="end" class="text-sm text-muted-foreground whitespace-nowrap" role="status">
+          {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
+            {{ count }} message{% plural %}{{ count }} messages
+          {% endblocktranslate %}
+        </span>
       </div>
     </form>
     <div id="filter-options" class="popover">
@@ -145,12 +140,6 @@
       </a>
     {% endif %}
   </div>
-
-  <p class="text-sm text-muted-foreground mb-4" role="status">
-    {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
-      {{ count }} message{% plural %}{{ count }} messages
-    {% endblocktranslate %}
-  </p>
 
   <div class="item-group mb-6">
     {% for message in messages %}

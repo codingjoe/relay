@@ -169,6 +169,21 @@ class TestMessageListDirectionChart:
 
 
 @pytest.mark.django_db
+class TestMessageListCount:
+    def test_get__shows_the_count_inside_the_search_input(self, admin_client, org):
+        make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        group = re.search(
+            r'<div class="input-group">.*?</div>', response.content.decode(), re.DOTALL
+        )
+        assert group is not None
+        assert "1 message" in group.group()
+
+
+@pytest.mark.django_db
 class TestMessageDetailAddressLinks:
     def test_get__links_the_sender_to_the_filtered_list(self, admin_client, org):
         message = make_incoming(org)
