@@ -19,7 +19,7 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
 
     context_object_name = "messages"
     paginate_by = 50
-    title = _("Email messages")
+    title = _("Message log")
     parent = "accounts:org-home"
 
     class Direction(models.TextChoices):

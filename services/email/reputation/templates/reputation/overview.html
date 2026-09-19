@@ -11,7 +11,7 @@
       <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "cost"|capfirst %}</h3>
       <p class="m-0 mt-1 text-2xl font-semibold text-success">
         {% if cost %}
-          <relay-amount amount="{{ cost|unlocalize }}" currency="EUR">€{{ cost|floatformat:2 }}</relay-amount>
+          <relay-amount amount="{{ cost|unlocalize }}" currency="EUR"></relay-amount>
         {% else %}
           {% translate "free"|capfirst %}
         {% endif %}
@@ -22,7 +22,7 @@
         {% endblocktranslate %}
         {% if overage_price %}
           {% blocktranslate with amount=overage_price|unlocalize trimmed %}
-            Then <relay-amount amount="{{ amount }}" currency="EUR">€{{ amount }}</relay-amount> per 1,000 messages.
+            Then <relay-amount amount="{{ amount }}" currency="EUR"></relay-amount> per 1,000 messages.
           {% endblocktranslate %}
         {% endif %}
         {% if cost %}
