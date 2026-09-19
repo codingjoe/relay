@@ -55,6 +55,11 @@
           }
         } catch (_) {}
       })();
+      window.sharePage = () => {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url);
+        if (navigator.share) navigator.share({ title: document.title, url }).catch(() => {});
+      };
     </script>
   </head>
   <body class="min-h-screen flex">

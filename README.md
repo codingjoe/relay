@@ -239,6 +239,18 @@ allowlist their report sender.
 | `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                    |
 | `RELAY_FBL_SENDERS` | _(empty: off)_                   | Exact provider envelope addresses, one per provider. Empty disables ingestion. |
 
+### Free tier and billing
+
+Every organization sends `RELAY_FREE_MONTHLY_MESSAGES` messages a month
+for free, and the reputation overview prices every 1,000 messages beyond
+that allowance at `RELAY_PRICE_PER_1000_MESSAGES`, rounded to cents. The
+landing page reads both for its pricing card, and amounts render in euro.
+
+| Variable                        | Default | Description                                               |
+| ------------------------------- | ------- | --------------------------------------------------------- |
+| `RELAY_FREE_MONTHLY_MESSAGES`   | `1000`  | Messages per organization per month inside the free tier. |
+| `RELAY_PRICE_PER_1000_MESSAGES` | `0.69`  | Price of 1,000 messages beyond the allowance, in euro.    |
+
 ### Tech Stack
 
 - **Django** with the task framework for async message delivery

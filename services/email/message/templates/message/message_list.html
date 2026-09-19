@@ -1,26 +1,21 @@
 {% extends "base.html" %}
-{% load i18n message abstract %}
+{% load i18n humanize message abstract %}
 {% block title %}{% translate "email messages"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "email messages"|capfirst %}</h2>
-    <div class="flex items-center gap-2">
-      <p class="text-sm text-muted-foreground m-0" role="status">
-        {% blocktranslate count counter=paginator.count trimmed %}
-          {{ counter }} message{% plural %}{{ counter }} messages
-        {% endblocktranslate %}
-      </p>
-      <button
-        type="button"
-        class="btn"
-        onclick="document.getElementById('dlg-test-email').showModal()"
-      >
-        {% translate "send test email"|title %}
-      </button>
-    </div>
+    <button
+      type="button"
+      class="btn"
+      onclick="document.getElementById('dlg-test-email').showModal()"
+    >
+      {% translate "send test email"|title %}
+    </button>
   </header>
 
   {% include "partials/test_email_dialog.html" %}
+
+  {% include "abstract/chart_card.html" with id="chart-messages" data_id="chart-messages-data" title=chart_title|capfirst chart=chart class="mb-6" %}
 
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <form method="get" role="search" class="flex-1 min-w-56">
@@ -37,16 +32,11 @@
         <span data-align="start" aria-hidden="true">
           <i data-lucide="search" class="size-4"></i>
         </span>
-        <button
-          type="submit"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon"
-          data-align="end"
-          aria-label='{% translate "search"|capfirst context "verb" %}'
-        >
-          <i data-lucide="arrow-right" aria-hidden="true"></i>
-        </button>
+        <span data-align="end" role="status">
+          {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
+            {{ count }} message{% plural %}{{ count }} messages
+          {% endblocktranslate %}
+        </span>
       </div>
     </form>
     <div id="filter-options" class="popover">
@@ -61,8 +51,8 @@
       >
         <i data-lucide="list-filter" class="size-4" aria-hidden="true"></i>
         {{ direction_label|capfirst }}
-        {% if filter_count %}
-          <span class="badge" data-size="sm">{{ filter_count }}</span>
+        {% if status_label %}
+          <span class="badge" data-size="sm">{{ status_label|capfirst }}</span>
         {% endif %}
         <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
       </button>

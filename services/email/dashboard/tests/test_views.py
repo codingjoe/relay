@@ -8,8 +8,19 @@ from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.reputation.models import FblReport
 
 
+def complete_onboarding(org):
+    """Add the custom domain and the first sent email to the managed domain."""
+    Domain.objects.create(name="acme.com", org=org)
+    OutgoingMessage.objects.create(
+        org=org,
+        rcpt_to="x@example.com",
+        mail_from="y@example.com",
+        domain=Domain.objects.get(org=org, is_managed=True),
+    )
+
+
 @pytest.mark.django_db
-class TestDashboardView:
+class TestGetStartedView:
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 302
@@ -23,20 +34,34 @@ class TestDashboardView:
         response = admin_client.get(f"/org/{write_org.slug}/email/")
         assert response.status_code == 404
 
-    def test_get__shows_counts(self, admin_client, org, user):
-        Domain.objects.create(name="a.com", org=org)
-        Domain.objects.create(name="b.com", org=org)
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    def test_get__shows_first_steps(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        assert response.context["managed_domain"].is_managed is True
+        assert response.context["has_custom_domain"] is False
+        assert response.context["has_outgoing_message"] is False
+
+    def test_get__shows_sent_first_email_step(self, admin_client, org, user):
         OutgoingMessage.objects.create(
             org=org,
             rcpt_to="x@example.com",
             mail_from="y@example.com",
-            domain=domain,
+            domain=Domain.objects.get(org=org, is_managed=True),
         )
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
-        assert response.context["total_domains"] == 3
-        assert response.context["total_messages"] == 1
+        assert response.context["has_outgoing_message"] is True
+        assert response.context["has_custom_domain"] is False
+
+    def test_get__redirects_to_reputation_when_onboarding_is_complete(
+        self, admin_client, org, user
+    ):
+        complete_onboarding(org)
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "reputation:overview", kwargs={"org_slug": org.slug}
+        )
 
     def test_get__renders_dialog_with_header_trigger(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/")
@@ -52,9 +77,9 @@ class TestDashboardView:
             in content.split('id="dlg-test-email"', 1)[0]
         )
 
-    def test_get__counts_scoped_to_org(self, admin_client, org, write_org, user):
+    def test_get__first_steps_scoped_to_org(self, admin_client, org, write_org, user):
+        domain = Domain.objects.get(org=write_org, is_managed=True)
         Domain.objects.create(name="other.com", org=write_org)
-        domain = Domain.objects.filter(org=write_org).first()  # noqa: multiple domains per org
         OutgoingMessage.objects.create(
             org=write_org,
             rcpt_to="x@example.com",
@@ -62,30 +87,30 @@ class TestDashboardView:
             domain=domain,
         )
         response = admin_client.get(f"/org/{org.slug}/email/")
-        assert response.context["total_domains"] == 1
-        assert response.context["total_messages"] == 0
+        assert response.status_code == 200
+        assert response.context["managed_domain"].org == org
+        assert response.context["has_custom_domain"] is False
+        assert response.context["has_outgoing_message"] is False
 
 
 @pytest.mark.django_db
-class TestChartDataView:
-    @pytest.mark.parametrize(
-        "chart_type",
-        ["outgoing", "incoming", "dmarc", "tls", "reputation"],
-    )
-    def test_get__returns_chart_data(self, admin_client, org, chart_type):
-        response = admin_client.get(f"/org/{org.slug}/email/api/charts/{chart_type}/")
+class TestOnboardingNavigation:
+    def test_get__sidebar_links_get_started_while_onboarding_is_incomplete(
+        self, admin_client, org
+    ):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
         assert response.status_code == 200
-        assert "series" in response.json()
-        assert "rows" in response.json()
+        assert f'href="/org/{org.slug}/email/"' in response.content.decode()
 
-    def test_get__requires_login(self, client, org):
-        response = client.get(f"/org/{org.slug}/email/api/charts/outgoing/")
-        assert response.status_code == 302
-        assert "/account/login" in response.url
-
-    def test_get__not_found_for_non_member(self, admin_client, write_org):
-        response = admin_client.get(f"/org/{write_org.slug}/email/api/charts/outgoing/")
-        assert response.status_code == 404
+    def test_get__sidebar_drops_get_started_when_onboarding_is_complete(
+        self, admin_client, org, user
+    ):
+        complete_onboarding(org)
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert ">Get started</span>" not in content
+        assert f'href="/org/{org.slug}/email/reputation/"' in content
 
 
 @pytest.mark.django_db
@@ -258,6 +283,45 @@ class TestReportListView:
 
         assert response.status_code == 200
         assert list(response.context["reports"]) == [dmarc_report]
+
+    def test_get__dmarc_type_shows_chart(self, admin_client, org, dmarc_report):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+
+        assert response.status_code == 200
+        assert "series" in response.context["chart"]
+
+    def test_get__tls_type_shows_chart(self, admin_client, org, tls_report):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")
+
+        assert response.status_code == 200
+        assert "series" in response.context["chart"]
+
+    def test_get__fbl_type_has_no_chart(self, admin_client, org, fbl_report):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=fbl")
+
+        assert response.status_code == 200
+        assert response.context["chart"] is None
+
+    def test_get__fbl_type_renders_no_chart_card(self, admin_client, org, fbl_report):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=fbl")
+
+        assert response.status_code == 200
+        assert "chart-reports" not in response.content.decode()
+
+    def test_get__names_the_filter_values_in_the_trigger(
+        self, admin_client, org, tls_report
+    ):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/reports/?type=tls&domain=acme.com"
+        )
+
+        assert response.status_code == 200
+        trigger = (
+            response.content.decode()
+            .split('id="report-filters-trigger"', 1)[1]
+            .split("</button>", 1)[0]
+        )
+        assert "acme.com" in trigger
 
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/email/reports/")

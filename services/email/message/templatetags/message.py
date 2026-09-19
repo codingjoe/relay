@@ -1,6 +1,9 @@
 """Email syntax highlighting template filter."""
 
+from datetime import timedelta
+
 from django import template
+from django.utils.formats import number_format
 from django.utils.safestring import mark_safe
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
@@ -12,12 +15,46 @@ register = template.Library()
 
 email_formatter = HtmlFormatter(cssclass="highlight-email")
 
+VARIANT_CLASSES = {
+    "success": "text-success",
+    "warning": "text-warning",
+    "destructive": "text-destructive",
+}
+
+SURFACE_CLASSES = {variant: f"bg-{variant}/10" for variant in VARIANT_CLASSES}
+
+
+@register.filter
+def text_class(variant: str) -> str:
+    """Return the traffic-light text color of a badge variant."""
+    return VARIANT_CLASSES.get(variant, "text-muted-foreground")
+
+
+@register.filter
+def surface_class(variant: str) -> str:
+    """Return the faint background tint of a badge variant."""
+    return SURFACE_CLASSES.get(variant, "")
+
 
 def render(value: str, lexer) -> str:
     """Convert a value to syntax-colored HTML with a Pygments lexer."""
     if not value:
         return ""
     return mark_safe(highlight(value, lexer, email_formatter))
+
+
+@register.filter
+def human_duration(value: timedelta) -> str:
+    """Render a duration as `0.3 s` or `40 ms`, so a card reads at a glance."""
+    seconds = value.total_seconds()
+    if seconds < 0.1:
+        return f"{number_format(seconds * 1000, 0)} ms"
+    if seconds < 60:
+        return f"{number_format(seconds, 1)} s"
+    minutes, remainder = divmod(round(seconds), 60)
+    if not remainder:
+        return f"{number_format(minutes, 0)} min"
+    return f"{number_format(minutes, 0)} min {number_format(remainder, 0)} s"
 
 
 @register.filter

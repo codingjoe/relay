@@ -145,6 +145,9 @@ class TestWebhookListView:
     def test_get__ok_for_member(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert response.status_code == 200
+        content = response.content.decode()
+        assert 'class="empty"' in content
+        assert "No webhooks yet." in content
 
     def test_get__context_has_webhook_payload(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")

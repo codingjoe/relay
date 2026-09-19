@@ -61,6 +61,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
                 domain=domain,
                 from_email=mail_from,
                 language=translation.get_language(),
+                base_url=request.build_absolute_uri("/"),
             )
         except InvalidUserError:
             messages.error(request, _("Your account cannot receive email."))
@@ -90,26 +91,40 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
 
     context_object_name = "credentials"
     title = _("SMTP credentials")
-    parent = "email-dashboard:dashboard"
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         return MsaCredential.objects.filter(org=self.org)
 
+    def get_smtp_uri(self, hostname, key=""):
+        """Return the SMTPS submission URI, carrying the key when it is known."""
+        credentials = (
+            f"{self.org.slug}:{key}"
+            if key
+            else f"{self.org.slug}:<{_('credential key')}>"
+        )
+        port = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS[0]
+        return f"smtps://{credentials}@{hostname}:{port}"
+
     def get_context_data(self, **kwargs):
-        platform = self.request.get_host().split(":")[0]
+        hostname = f"smtp.{self.request.get_host().split(':')[0]}"
         implicit_tls_ports = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS
         starttls_ports = tuple(
-            p
-            for p in settings.RELAY_SMTP_SUBMISSION_PORTS
-            if p not in implicit_tls_ports
+            port
+            for port in settings.RELAY_SMTP_SUBMISSION_PORTS
+            if port not in implicit_tls_ports
         )
         context = super().get_context_data(**kwargs) | {
-            "smtp_hostname": f"smtp.{platform}",
+            "smtp_hostname": hostname,
             "smtp_starttls_ports": starttls_ports,
             "smtp_implicit_tls_ports": implicit_tls_ports,
+            "smtp_uri": self.get_smtp_uri(hostname),
         }
         if raw_key := self.request.session.pop("raw_key", None):
-            context["raw_key"] = raw_key
+            context |= {
+                "raw_key": raw_key,
+                "smtp_uri_with_key": self.get_smtp_uri(hostname, key=raw_key),
+            }
         return context
 
 
@@ -222,3 +237,13 @@ class SuppressionCheckView(OrganizationScopedView, generic.FormView):
 
     def get_success_url(self):
         return reverse("msa:suppression-list", kwargs={"org_slug": self.org.slug})
+
+
+class SuppressionClearView(OrganizationScopedView, generic.View):
+    http_method_names = ["post"]
+    parent = "msa:suppression-list"
+
+    def post(self, request, org_slug, *args, **kwargs):
+        SuppressionEntry.objects.filter(org=self.org).delete()
+        messages.warning(request, _("Cleared the suppression list."))
+        return redirect("msa:suppression-list", org_slug=org_slug)

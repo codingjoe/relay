@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load i18n abstract %}
+{% block title %}{% translate "get started"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">{% translate "get started"|capfirst %}</h2>
+    <button
+      type="button"
+      class="btn"
+      onclick="document.getElementById('dlg-test-email').showModal()"
+    >
+      {% translate "send test email"|title %}
+    </button>
+  </header>
+
+  {% include "partials/test_email_dialog.html" %}
+
+  <section class="card">
+    <header>
+      <p class="m-0">
+        {% blocktranslate trimmed %}
+          Every organization gets a managed sender domain, pre-verified and DKIM-signed. No DNS setup required.
+        {% endblocktranslate %}
+      </p>
+    </header>
+    <section>
+      <ul class="m-0 flex list-none flex-col gap-3">
+        <li class="flex items-center gap-2 flex-wrap">
+          {% if managed_domain %}
+            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+            <span>{% translate "your sender domain is live"|capfirst %}</span>
+            <code>{{ managed_domain.sender_domain }}</code>
+            <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
+          {% else %}
+            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
+            <span>{% translate "setting up your sender domain"|capfirst %}</span>
+          {% endif %}
+        </li>
+        <li class="flex items-center gap-2 flex-wrap">
+          {% if has_outgoing_message %}
+            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+            <span>{% translate "sent your first email"|capfirst %}</span>
+          {% else %}
+            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
+            <span>
+              {% blocktranslate with recipient=request.user.email trimmed %}
+                Send a test email to {{ recipient }}.
+              {% endblocktranslate %}
+            </span>
+            <button
+              type="button"
+              class="btn"
+              data-variant="secondary"
+              data-size="sm"
+              onclick="document.getElementById('dlg-test-email').showModal()"
+            >
+              {% translate "send test email"|title %}
+            </button>
+          {% endif %}
+        </li>
+        <li class="flex items-center gap-2 flex-wrap">
+          {% if has_custom_domain %}
+            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+            <span>{% translate "added your own domain"|capfirst %}</span>
+          {% else %}
+            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
+            <span>{% translate "add a domain you own to send from it"|capfirst %}</span>
+            <a class="btn" data-variant="secondary" data-size="sm" href="{% url 'domains:domain-list' org.slug %}">
+              {% translate "add domain"|title context "noun" %}
+            </a>
+          {% endif %}
+        </li>
+      </ul>
+    </section>
+  </section>
+{% endblock %}

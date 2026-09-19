@@ -1,176 +1,130 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load i18n humanize abstract %}
 {% block title %}{% translate "suppression list"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center justify-between mb-6">
-    <div class="flex items-center gap-3">
-      <h2 class="m-0">{% translate "suppression list"|capfirst %}</h2>
-      <span class="badge" data-size="sm" data-variant="outline">
-        {% blocktranslate count counter=object_list|length trimmed %}
-          {{ counter }} address{% plural %}{{ counter }} addresses
-        {% endblocktranslate %}
-      </span>
-    </div>
-    <div role="group" class="button-group">
-      <button
-        type="button"
-        class="btn"
-        onclick="document.getElementById('dlg-add').showModal()"
-      >
-        {% translate "add address"|title %}
-      </button>
-      <button
-        type="button"
-        class="btn"
-        data-variant="secondary"
-        onclick="document.getElementById('dlg-check').showModal()"
-      >
-        {% translate "check address"|title %}
-      </button>
-      <button
-        type="button"
-        class="btn"
-        data-variant="destructive"
-        onclick="document.getElementById('dlg-remove').showModal()"
-      >
-        {% translate "remove address"|title %}
-      </button>
-    </div>
-  </header>
-
-  <p class="text-muted-foreground mb-6">
-    {% blocktranslate trimmed %}
-      Addresses on this list will not receive email. Bounces are added automatically. Only a salted hash is stored. The
-      plain address is never kept.
-    {% endblocktranslate %}
-  </p>
+  <h2 class="mb-6">{% translate "suppression list"|capfirst %}</h2>
 
   {% if object_list|length %}
-    {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="" %}
-  {% else %}
-    <p class="text-muted-foreground">
-      {% blocktranslate trimmed %}
-        No suppressed addresses yet.
-      {% endblocktranslate %}
-    </p>
+    {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="mb-6" %}
   {% endif %}
 
-  <dialog class="dialog" id="dlg-add">
-    <div>
+  <article class="card mb-6">
+    <section class="empty">
       <header>
-        <h2>{% translate "add address"|title %}</h2>
-        <p>{% translate "add an email address to the suppression list."|capfirst %}</p>
+        <figure>
+          <i data-lucide="ban" aria-hidden="true"></i>
+        </figure>
+        <h3>
+          {% blocktranslate count counter=object_list|length with count=object_list|length|apnumber trimmed %}
+            {{ count }} address on the suppression list{% plural %}{{ count }} addresses on the suppression list
+          {% endblocktranslate %}
+        </h3>
       </header>
-      <section>
-        <form method="post" action="{% url 'msa:suppression-add' org.slug %}" id="form-add">
-          {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_add_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_add_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
-        </form>
-      </section>
+    </section>
+
+    <header>
+      <h3 class="m-0">{% translate "protect your sender reputation"|capfirst %}</h3>
+      <p class="m-0">
+        {% blocktranslate trimmed %}
+          Every send to a dead mailbox counts against your domain, and a high enough bounce rate can suspend your
+          organization. Bounces land here automatically, so a dead address stops receiving mail on its own. Add an
+          address to block it by hand, check one before a large send, and remove it when the mailbox works again. Only a
+          salted hash of each address is kept, never the address itself.
+        {% endblocktranslate %}
+      </p>
+    </header>
+    <section>
+      <form
+        method="post"
+        action="{% url 'msa:suppression-add' org.slug %}"
+        id="form-suppression"
+        class="flex flex-wrap items-start gap-2"
+      >
+        {% csrf_token %}
+        <div class="input-group flex-1 min-w-64">
+          <input
+            id="suppression-address"
+            name="email"
+            type="email"
+            required
+            autocomplete="off"
+            placeholder="user@example.com"
+            aria-label='{% translate "email address"|capfirst %}'
+          >
+          <span data-align="start" aria-hidden="true">
+            <i data-lucide="at-sign" class="size-4"></i>
+          </span>
+        </div>
+        <div role="group" class="button-group">
+          <button
+            type="submit"
+            class="btn"
+            aria-label='{% translate "add address"|title %}'
+          >
+            {% translate "add"|capfirst context "verb" %}
+          </button>
+          <button
+            type="submit"
+            class="btn"
+            data-variant="secondary"
+            formaction="{% url 'msa:suppression-check' org.slug %}"
+            aria-label='{% translate "check address"|title %}'
+          >
+            {% translate "check"|capfirst context "verb" %}
+          </button>
+          <button
+            type="submit"
+            class="btn"
+            data-variant="destructive"
+            formaction="{% url 'msa:suppression-remove' org.slug %}"
+            aria-label='{% translate "remove address"|title %}'
+            onclick="return confirm('{% translate "remove this address from the suppression list?"|capfirst %}')"
+          >
+            {% translate "remove"|capfirst context "verb" %}
+          </button>
+        </div>
+      </form>
+    </section>
+    {% if object_list|length %}
       <footer>
         <button
           type="button"
           class="btn"
-          data-variant="secondary"
-          onclick="document.getElementById('dlg-add').close()"
+          data-variant="destructive"
+          onclick="document.getElementById('dlg-clear-suppression').showModal()"
         >
-          {% translate "cancel"|capfirst context "verb" %}
-        </button>
-        <button type="submit" form="form-add" class="btn">
-          {% translate "add"|capfirst context "verb" %}
+          {% translate "clear list"|title %}
         </button>
       </footer>
-    </div>
-  </dialog>
+    {% endif %}
+  </article>
 
-  <dialog class="dialog" id="dlg-remove">
+  <dialog class="alert-dialog" id="dlg-clear-suppression" onclick="if (event.target === this) this.close()">
     <div>
       <header>
-        <h2>{% translate "remove address"|title %}</h2>
-        <p>{% translate "enter an email address to remove from the list."|capfirst %}</p>
+        <h2>{% translate "clear the suppression list?"|capfirst context "verb" %}</h2>
+        <p>
+          {% blocktranslate trimmed %}
+            Addresses come off the list, so relay sends to them again. The bounces that follow count against your sender
+            reputation.
+          {% endblocktranslate %}
+        </p>
       </header>
-      <section>
-        <form method="post" action="{% url 'msa:suppression-remove' org.slug %}" id="form-remove">
-          {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_remove_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_remove_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
-        </form>
-      </section>
       <footer>
         <button
           type="button"
           class="btn"
-          data-variant="secondary"
-          onclick="document.getElementById('dlg-remove').close()"
+          data-variant="outline"
+          onclick="this.closest('dialog').close()"
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>
-        <button type="submit" form="form-remove" class="btn" data-variant="destructive">
-          {% translate "remove"|capfirst context "verb" %}
-        </button>
-      </footer>
-    </div>
-  </dialog>
-
-  <dialog class="dialog" id="dlg-check">
-    <div>
-      <header>
-        <h2>{% translate "check address"|title %}</h2>
-        <p>{% translate "enter an email address to check if it is on the list."|capfirst %}</p>
-      </header>
-      <section>
-        <form method="post" action="{% url 'msa:suppression-check' org.slug %}" id="form-check">
+        <form method="post" action="{% url 'msa:suppression-clear' org.slug %}">
           {% csrf_token %}
-          <fieldset class="fieldset">
-            <div role="group" class="field">
-              <label for="id_check_email">{% translate "email address"|capfirst %}</label>
-              <input
-                type="email"
-                name="email"
-                id="id_check_email"
-                placeholder="user@example.com"
-                class="input w-full"
-                required
-              >
-            </div>
-          </fieldset>
+          <button type="submit" class="btn" data-variant="destructive">
+            {% translate "clear list"|title %}
+          </button>
         </form>
-      </section>
-      <footer>
-        <button
-          type="button"
-          class="btn"
-          data-variant="secondary"
-          onclick="document.getElementById('dlg-check').close()"
-        >
-          {% translate "cancel"|capfirst context "verb" %}
-        </button>
-        <button type="submit" form="form-check" class="btn">
-          {% translate "check"|capfirst context "verb" %}
-        </button>
       </footer>
     </div>
   </dialog>

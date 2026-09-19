@@ -1,9 +1,14 @@
+from datetime import datetime, time, timedelta
+from decimal import Decimal
+
 import pytest
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
@@ -32,6 +37,22 @@ def make_report(org, **kwargs):
 
 def overview_url(org):
     return reverse("reputation:overview", kwargs={"org_slug": org.slug})
+
+
+def card_containing(content, label):
+    """Return the markup of the card whose heading reads `label`."""
+    heading = content.index(f">{label}<")
+    return content[
+        content.rindex("<section", 0, heading) : content.index("</section>", heading)
+    ]
+
+
+def last_month():
+    """Return midday on the first day of the previous month."""
+    first_of_this_month = timezone.localdate().replace(day=1)
+    return timezone.make_aware(
+        datetime.combine(first_of_this_month - timedelta(days=1), time(hour=12))
+    )
 
 
 @pytest.mark.django_db
@@ -134,7 +155,214 @@ class TestReputationOverviewView:
     def test_get__shows_overview(self, admin_client, org):
         response = admin_client.get(overview_url(org))
         assert response.status_code == 200
-        assert response.context["stats"]["total_sent"] == 0
+        assert response.context["stats"]["hard_bounce_rate"] == 0.0
+        assert response.context["stats"]["complaint_rate"] == 0.0
+        bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
+        assert "text-success" in bounce_card
+
+    def test_get__keeps_the_plan_card_green_when_suspended(self, admin_client, org):
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at"])
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "bg-success/10" in content
+        assert "Sending is suspended." in content
+        assert "bg-destructive/10" not in content
+
+    def test_get__shows_the_free_plan(self, admin_client, org):
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert (
+            f"Up to {settings.RELAY_FREE_MONTHLY_MESSAGES:,} messages a month."
+            in response.content.decode()
+        )
+        assert "Free" in response.content.decode()
+
+    def test_get__shows_the_cost_of_a_month_past_the_allowance(
+        self, admin_client, org, settings
+    ):
+        settings.RELAY_FREE_MONTHLY_MESSAGES = 1
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 10.0
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(3):
+            OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert response.context["cost"] == Decimal("0.02")
+        assert "€0.02" in content
+        assert "Then €10.00 per 1,000 messages." in content
+        assert "3 messages this month." in content
+
+    def test_get__charts_the_rates_in_per_cent_with_their_limits(
+        self, admin_client, org, user
+    ):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(2):
+            message = OutgoingMessage.objects.create(
+                org=org,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                domain=domain,
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        bounces = response.context["chart_bounces"]
+        complaints = response.context["chart_complaints"]
+        last = bounces["rows"][-1]
+        assert last["hard_bounce_rate"] == 50.0
+        assert last["complaint_rate"] == 0.0
+        assert bounces["threshold"]["value"] == 5.0
+        assert complaints["threshold"]["value"] == 0.1
+        assert bounces["series"][0]["key"] == "hard_bounce_rate"
+        assert complaints["series"][0]["key"] == "complaint_rate"
+
+    def test_get__charts_this_month_and_last_month_volume(self, admin_client, org):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for name, created_at in [("now.eml", None), ("then.eml", last_month())]:
+            message = OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(name, b"body"),
+            )
+            if created_at:
+                OutgoingMessage.objects.filter(pk=message.pk).update(
+                    created_at=created_at
+                )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        chart = response.context["chart_volume"]
+        this_month_cumulative = [
+            row["this_month"] for row in chart["rows"] if row["this_month"] is not None
+        ]
+        last_month_cumulative = [
+            row["last_month"] for row in chart["rows"] if row["last_month"] is not None
+        ]
+        assert this_month_cumulative[-1] == 1
+        assert last_month_cumulative[-1] == 1
+        assert chart["threshold"]["value"] == settings.RELAY_FREE_MONTHLY_MESSAGES
+        assert "chart-volume" in response.content.decode()
+
+    def test_get__shows_the_rate_in_per_cent(self, admin_client, org, user):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(2):
+            message = OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert response.context["stats"]["hard_bounce_rate"] == 0.5
+        bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
+        assert "50.00" in bounce_card
+
+    def test_get__keeps_a_rate_under_the_limit_untinted(self, admin_client, org, user):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(100):
+            message = OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert response.context["stats"]["hard_bounce_rate"] == 0.01
+        bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
+        assert "text-success" in bounce_card
+        assert "1.00" in bounce_card
+        assert "bg-destructive/10" not in bounce_card
+
+    def test_get__tints_the_bounce_card_over_the_limit(self, admin_client, org, user):
+        message = OutgoingMessage.objects.create(
+            org=org,
+            domain=Domain.objects.create(name="acme.com", org=org),
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            raw_body=SimpleUploadedFile("bounce.eml", b"body"),
+        )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert content.count("bg-destructive/10") == 1
+        bounce_card = card_containing(content, "Hard bounce rate")
+        assert "text-destructive" in bounce_card
+
+    def test_get__tints_the_complaint_card_over_the_limit(
+        self, admin_client, org, user
+    ):
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=Domain.objects.create(name="acme.com", org=org),
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            raw_body=SimpleUploadedFile("held.eml", b"body"),
+            status=OutgoingMessage.Status.HELD,
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        complaint_card = card_containing(response.content.decode(), "Complaint rate")
+        assert "bg-destructive/10" in complaint_card
+        assert "text-destructive" in complaint_card
 
     def test_get__counts_held_spam_as_complaints_in_chart(
         self, admin_client, org, user
@@ -152,4 +380,5 @@ class TestReputationOverviewView:
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
-        assert any(row["complained"] == 1 for row in response.context["chart"]["rows"])
+        rows = response.context["chart_complaints"]["rows"]
+        assert any(row["complaint_rate"] == 100.0 for row in rows)

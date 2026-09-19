@@ -35,6 +35,14 @@
   hint: |
     Use {% translate %} instead of the shorthand {% trans %}.
   filePattern: .*\.html$
+- name: Input group icon buttons use the icon-xs size
+  pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*<i data-lucide'
+  hint: 'Icon buttons inside an `.input-group` use the app''s `data-size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. Without it the button takes the default 36px and fills the whole field.'
+  filePattern: .*\.html$
+- name: Inputs inside an input group stay classless
+  pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<input\b[^>]*class="(?:[^"\s]+\s+)*input(?:\s+[^"\s]+)*"'
+  hint: 'Leave the `input` class off controls inside an `.input-group`. The group already strips the field chrome and sizes the control, and the class adds its own border, background, and larger text back.'
+  filePattern: .*\.html$
 - name: Use blocktranslate instead of blocktrans
   pattern: '\{%\s*(end)?blocktrans\b'
   hint: |
