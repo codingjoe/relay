@@ -18,8 +18,6 @@ def month_cost(messages):
 
 def money(cost):
     """Return `cost` with the billing currency in front of it."""
-    if not cost:
-        return ""
     return f"{settings.RELAY_CURRENCY}{cost:,.2f}"
 
 

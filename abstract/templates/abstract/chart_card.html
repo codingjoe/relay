@@ -29,7 +29,6 @@
         timeZone: "UTC",
       });
       const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
-      const dayAxis = {% if chart.x_day %}true{% else %}false{% endif %};
       const percent = {% if chart.y_scale.percent %}true{% else %}false{% endif %};
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
@@ -39,7 +38,7 @@
        * cover it. Both branches leave headroom, so the line never sits on
        * the top edge.
        */
-      const axisMax = (threshold = 0) => (value) => {
+      const axisMax = (threshold) => (value) => {
         const highest = Math.max(
           Number.isFinite(value.max) ? value.max : 0,
           threshold,
@@ -99,10 +98,7 @@
           data: rows.map((row) => row.day),
           axisLabel: {
             interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
-            formatter: (value) =>
-              dayAxis
-                ? String(new Date(value).getUTCDate())
-                : shortDate.format(new Date(value)),
+            formatter: (value) => shortDate.format(new Date(value)),
           },
         },
         yAxis: {
@@ -117,8 +113,6 @@
           {% endif %}
           {% if chart.threshold %}
           max: axisMax({{ chart.threshold.value }}),
-          {% elif chart.y_scale.percent %}
-          max: axisMax(),
           {% endif %}
         },
         series: [

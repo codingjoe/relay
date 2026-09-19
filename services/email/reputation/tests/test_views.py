@@ -155,12 +155,9 @@ class TestReputationOverviewView:
     def test_get__shows_overview(self, admin_client, org):
         response = admin_client.get(overview_url(org))
         assert response.status_code == 200
-        assert response.context["stats"]["total_sent"] == 0
-        bounce_card = (
-            response.content.decode()
-            .split("Hard bounce rate", 1)[1]
-            .split("Complaint rate", 1)[0]
-        )
+        assert response.context["stats"]["hard_bounce_rate"] == 0.0
+        assert response.context["stats"]["complaint_rate"] == 0.0
+        bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
         assert "text-success" in bounce_card
 
     def test_get__keeps_the_plan_card_green_when_suspended(self, admin_client, org):

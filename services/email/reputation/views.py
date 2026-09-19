@@ -87,10 +87,6 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
         hard_bounce_rate = (last["hard_bounce_rate"] or 0.0) / 100
         complaint_rate = (last["complaint_rate"] or 0.0) / 100
         stats = {
-            "total_sent": last["sent"],
-            "hard_bounces": last["hard_bounced"],
-            "soft_bounces": last["soft_bounced"],
-            "complaints": last["complained"],
             "hard_bounce_rate": hard_bounce_rate,
             "complaint_rate": complaint_rate,
             "hard_bounce_over_limit": hard_bounce_rate > bounce_threshold,

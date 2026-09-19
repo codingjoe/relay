@@ -1,8 +1,10 @@
+from calendar import monthrange
 from datetime import timedelta
+from itertools import accumulate
 
 from django.conf import settings
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.utils.translation import gettext
@@ -13,14 +15,8 @@ from services.email.msa.models import OutgoingMessage
 from .models import FblReport
 
 REPUTATION_CHART_COLORS = {
-    "sent": "var(--color-chart-green)",
-    "hard_bounced": "var(--color-chart-red)",
-    "soft_bounced": "var(--color-chart-yellow)",
-    "complained": "var(--color-chart-red)",
     "hard_bounce_rate": "var(--color-chart-red)",
     "complaint_rate": "var(--color-chart-orange)",
-    "hard_bounce_limit": "var(--color-chart-gray)",
-    "complaint_limit": "var(--color-chart-gray)",
     "this_month": "var(--color-chart-green)",
     "last_month": "var(--color-chart-gray)",
 }
@@ -38,25 +34,19 @@ def sent_per_day(org, start):
 
 
 def bounced_per_day(org, start):
-    """Return the hard and soft bounce counts per day since `start`."""
+    """Return the hard bounce count per day since `start`."""
     rows = (
         Transmission.objects.filter(
             message__org=org,
             message__created_at__date__gte=start,
             status=Transmission.Status.BOUNCED,
+            code__gte=500,  # 5xx is a hard bounce, 4xx a soft one
         )
         .annotate(day=TruncDate("message__created_at"))
         .values("day")
-        .annotate(
-            hard=Count("id", filter=Q(code__gte=500)),
-            soft=Count("id", filter=Q(code__lt=500)),
-        )
+        .annotate(count=Count("id"))
     )
-    rows = list(rows)
-    return (
-        {row["day"]: row["hard"] for row in rows},
-        {row["day"]: row["soft"] for row in rows},
-    )
+    return {row["day"]: row["count"] for row in rows}
 
 
 def complaints_per_day(org, start):
@@ -127,28 +117,25 @@ def build_reputation_chart(org):
     start = timezone.localdate() - timedelta(days=window_days - 1)
 
     sent_counts = sent_per_day(org, start)
-    hard_bounce_counts, soft_bounce_counts = bounced_per_day(org, start)
+    hard_bounce_counts = bounced_per_day(org, start)
     complaint_counts = complaints_per_day(org, start)
 
     days_list = [start + timedelta(days=offset) for offset in range(window_days)]
     bounce_limit = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD * 100
     complaint_limit = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD * 100
 
-    def cumulative(counts):
-        counts = [counts.get(day, 0) for day in days_list]
-        return [sum(counts[: index + 1]) for index in range(len(days_list))]
-
-    sent_cumulative = cumulative(sent_counts)
-    hard_bounce_cumulative = cumulative(hard_bounce_counts)
-    soft_bounce_cumulative = cumulative(soft_bounce_counts)
-    complaint_cumulative = cumulative(complaint_counts)
+    sent_cumulative = list(accumulate(sent_counts.get(day, 0) for day in days_list))
+    hard_bounce_cumulative = list(
+        accumulate(hard_bounce_counts.get(day, 0) for day in days_list)
+    )
+    complaint_cumulative = list(
+        accumulate(complaint_counts.get(day, 0) for day in days_list)
+    )
 
     def rate(count_cumulative):
         return [
-            round(count / sent_total * 100, 4)
-            if (sent_total := sent_cumulative[index])
-            else None
-            for index, count in enumerate(count_cumulative)
+            round(count / sent_total * 100, 4) if sent_total else None
+            for count, sent_total in zip(count_cumulative, sent_cumulative)
         ]
 
     hard_bounce_rates = rate(hard_bounce_cumulative)
@@ -156,14 +143,12 @@ def build_reputation_chart(org):
     rows = [
         {
             "day": day.isoformat(),
-            "sent": sent_cumulative[index],
-            "hard_bounced": hard_bounce_cumulative[index],
-            "soft_bounced": soft_bounce_cumulative[index],
-            "complained": complaint_cumulative[index],
-            "hard_bounce_rate": hard_bounce_rates[index],
-            "complaint_rate": complaint_rates[index],
+            "hard_bounce_rate": hard_bounce_rate,
+            "complaint_rate": complaint_rate,
         }
-        for index, day in enumerate(days_list)
+        for day, hard_bounce_rate, complaint_rate in zip(
+            days_list, hard_bounce_rates, complaint_rates
+        )
     ]
     return {
         "rows": rows,
@@ -209,23 +194,8 @@ def build_volume_chart(org):
     today = timezone.localdate()
     this_month = today.replace(day=1)
     last_month = (this_month - timedelta(days=1)).replace(day=1)
-    # Anchor the next month on the first of this one. Anchoring on `today`
-    # skips a month whenever `today` sits close enough to the end of a short
-    # month, which would stretch the axis over two months.
-    next_month = (this_month + timedelta(days=32)).replace(day=1)
-    days_in_month = (next_month - this_month).days
-
-    counts = (
-        OutgoingMessage.objects.filter(
-            org=org,
-            created_at__date__gte=last_month,
-            created_at__date__lt=next_month,
-        )
-        .annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
-    )
-    per_day = {row["day"]: row["count"] for row in counts}
+    days_in_month = monthrange(today.year, today.month)[1]
+    per_day = sent_per_day(org, last_month)
 
     rows = []
     last_total = this_total = 0
@@ -269,7 +239,6 @@ def build_volume_chart(org):
             },
         ],
         "rows": rows,
-        "x_day": True,
         "this_month_total": this_total,
         "subtitle": gettext("Cumulative, against the free tier"),
         "threshold": {

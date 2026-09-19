@@ -1,11 +1,8 @@
 from decimal import Decimal
 
-import pytest
-
 from services.email.reputation.billing import money, month_cost, overage_price
 
 
-@pytest.mark.django_db
 class TestMonthCost:
     def test_inside_the_allowance__is_free(self, settings):
         settings.RELAY_FREE_MONTHLY_MESSAGES = 1000
@@ -28,19 +25,18 @@ class TestMonthCost:
         assert month_cost(5000) == Decimal("0.00")
 
 
-@pytest.mark.django_db
 class TestMoney:
     def test_formats_with_the_currency_symbol(self, settings):
         settings.RELAY_CURRENCY = "EUR "
 
         assert money(Decimal("1234.5")) == "EUR 1,234.50"
 
-    def test_nothing_is_empty(self, settings):
-        assert money(Decimal("0.00")) == ""
-        assert money(None) == ""
+    def test_zero__formats_with_the_currency(self, settings):
+        settings.RELAY_CURRENCY = "EUR "
+
+        assert money(Decimal("0.00")) == "EUR 0.00"
 
 
-@pytest.mark.django_db
 class TestOveragePrice:
     def test_without_a_price__has_none(self, settings):
         settings.RELAY_PRICE_PER_1000_MESSAGES = 0.0
