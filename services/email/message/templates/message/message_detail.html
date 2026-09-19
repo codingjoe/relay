@@ -11,29 +11,26 @@
       <span class="{{ message.status_badge_variant|text_class }}">
         {{ message.status_display|capfirst }}
       </span>
-      {% if delivery_duration %}
+      {% if delivery_finished_at %}
         <span class="text-base font-normal text-muted-foreground">
-          {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+          {% timestamp delivery_finished_at %}
         </span>
       {% endif %}
     </p>
-    <p class="m-0 text-sm text-muted-foreground">
-      {% if delivery_attempts %}
+    {% if delivery_attempts %}
+      <p class="m-0 text-sm text-muted-foreground">
         {% blocktranslate count counter=delivery_attempts with count=delivery_attempts|apnumber trimmed %}
           {{ count }} transmission{% plural %}{{ count }} transmissions
         {% endblocktranslate %}
-        <span aria-hidden="true">·</span>
-      {% endif %}
-      {% if delivery_finished_at %}
-        {% timestamp delivery_finished_at %}
-      {% else %}
-        {% translate "stored"|capfirst context "verb" %}
-        {% timestamp message.created_at %}
-      {% endif %}
-    </p>
-    <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-      {% translate "Show the messages with this address" as address_tooltip %}
-      {% if message.mail_from %}
+        {% if delivery_duration %}
+          <span aria-hidden="true">·</span>
+          {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+        {% endif %}
+      </p>
+    {% endif %}
+    {% translate "Show the messages with this address" as address_tooltip %}
+    {% if message.mail_from %}
+      <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         <span>{% translate "from" context "email hop" %}</span>
         <a
           class="btn break-all"
@@ -41,11 +38,13 @@
           data-tooltip="{{ address_tooltip }}"
           href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
         >
-          <i data-lucide="user-round" class="size-3.5" aria-hidden="true"></i>
+          <i data-lucide="user-round-pen" class="size-3.5" aria-hidden="true"></i>
           {{ message.mail_from }}
         </a>
-      {% endif %}
-      {% if message.rcpt_to %}
+      </p>
+    {% endif %}
+    {% if message.rcpt_to %}
+      <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         <span>{% translate "to" context "email hop" %}</span>
         <a
           class="btn break-all"
@@ -53,11 +52,11 @@
           data-tooltip="{{ address_tooltip }}"
           href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
         >
-          <i data-lucide="arrow-left" class="size-3.5" aria-hidden="true"></i>
+          <i data-lucide="user-round-arrow-left" class="size-3.5" aria-hidden="true"></i>
           {{ message.rcpt_to }}
         </a>
-      {% endif %}
-    </p>
+      </p>
+    {% endif %}
     {% if message.spam_action or message.spam_score is not None or message.virus_action %}
       <p class="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         {% translate "what the scan found" as scan_tooltip %}
