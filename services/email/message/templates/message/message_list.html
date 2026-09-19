@@ -32,7 +32,7 @@
         <span data-align="start" aria-hidden="true">
           <i data-lucide="search" class="size-4"></i>
         </span>
-        <span data-align="end" class="text-sm text-muted-foreground whitespace-nowrap" role="status">
+        <span data-align="end" role="status">
           {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
             {{ count }} message{% plural %}{{ count }} messages
           {% endblocktranslate %}
