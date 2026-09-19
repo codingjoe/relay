@@ -61,6 +61,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
                 domain=domain,
                 from_email=mail_from,
                 language=translation.get_language(),
+                base_url=request.build_absolute_uri("/"),
             )
         except InvalidUserError:
             messages.error(request, _("Your account cannot receive email."))

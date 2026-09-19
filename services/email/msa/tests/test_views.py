@@ -18,13 +18,6 @@ from services.email.msa.models import (
 )
 
 
-@pytest.fixture
-def base_url(settings):
-    """Return the host the package derives the base URL from."""
-    settings.ALLOWED_HOSTS = ["relay.example", "testserver"]
-    return "https://relay.example"
-
-
 def make_message(org, user, **kwargs):
     domain = kwargs.pop("domain", None) or Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
     msg = OutgoingMessage(
@@ -183,7 +176,7 @@ class TestTestEmailView:
         assert stored["To"] == user.email
         assert stored["Reply-To"] is None
 
-    def test_post__stores_html_and_plain_parts(self, admin_client, org, base_url):
+    def test_post__stores_html_and_plain_parts(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
         response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
@@ -197,7 +190,7 @@ class TestTestEmailView:
         assert set(parts) == {"text/html", "text/plain"}
         assert f"postmaster@{domain.name}" in parts["text/html"]
         assert f"postmaster@{domain.name}" in parts["text/plain"]
-        link = f"{base_url}/org/{org.slug}/email/messages/"
+        link = f"http://testserver/org/{org.slug}/email/messages/"
         assert f'href="{link}"' in parts["text/html"]
         assert f"<{link}>" in parts["text/plain"]
 
