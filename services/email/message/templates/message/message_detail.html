@@ -36,18 +36,26 @@
       {% if message.mail_from %}
         <span>{% translate "from" context "email hop" %}</span>
         <a
-          class="link break-all"
+          class="btn break-all"
+          data-variant="link"
           data-tooltip="{{ address_tooltip }}"
           href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
-        >{{ message.mail_from }}</a>
+        >
+          <i data-lucide="at-sign" class="size-3.5" aria-hidden="true"></i>
+          {{ message.mail_from }}
+        </a>
       {% endif %}
       {% if message.rcpt_to %}
         <span>{% translate "to" context "email hop" %}</span>
         <a
-          class="link break-all"
+          class="btn break-all"
+          data-variant="link"
           data-tooltip="{{ address_tooltip }}"
           href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
-        >{{ message.rcpt_to }}</a>
+        >
+          <i data-lucide="at-sign" class="size-3.5" aria-hidden="true"></i>
+          {{ message.rcpt_to }}
+        </a>
       {% endif %}
     </p>
     {% if message.spam_action or message.spam_score is not None or message.virus_action %}
