@@ -172,6 +172,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
     action in a group.
   - Cards: `<article class="card">`. Never nest a card inside another card.
     Group content within a card using headings, `<hr>`, or padded blocks.
+  - Inputs: `<input class="input">` for a field on its own. Inside an
+    `.input-group`, leave the class off: the group strips the field chrome
+    and sizes the control itself, and the class fights that.
+  - Icon buttons inside an `.input-group` use `data-size="icon-xs"`. The
+    larger sizes dwarf the field they sit in and push the group taller.
   - Tables inside cards sit flush with the card edges: use
     `<article class="card gap-0 p-0 overflow-hidden">`, put the preceding
     content (heading, metadata) in an inner `<div class="px-6 pt-6">` block,

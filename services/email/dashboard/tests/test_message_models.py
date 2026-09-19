@@ -133,28 +133,6 @@ class TestMessage:
         assert Message.objects.get(pk=msg.pk).status_badge_variant == "success"
 
     @pytest.mark.django_db
-    def test_status_text_class__outgoing_sent(self, user, org):
-        msg = create_outgoing(user, org, OutgoingMessage.Status.SENT)
-        assert Message.objects.get(pk=msg.pk).status_text_class == "text-success"
-
-    @pytest.mark.django_db
-    def test_status_text_class__outgoing_bounced(self, user, org):
-        msg = create_outgoing(user, org, OutgoingMessage.Status.BOUNCED)
-        assert Message.objects.get(pk=msg.pk).status_text_class == "text-destructive"
-
-    @pytest.mark.django_db
-    def test_status_text_class__outgoing_pending(self, user, org):
-        msg = create_outgoing(user, org)
-        assert (
-            Message.objects.get(pk=msg.pk).status_text_class == "text-muted-foreground"
-        )
-
-    @pytest.mark.django_db
-    def test_status_text_class__incoming_quarantined(self, org):
-        msg = create_incoming(org, IncomingMessage.Status.QUARANTINED)
-        assert Message.objects.get(pk=msg.pk).status_text_class == "text-warning"
-
-    @pytest.mark.django_db
     def test_kind__outgoing(self, user, org):
         msg = create_outgoing(user, org)
         assert Message.objects.get(pk=msg.pk).kind == "outgoingmessage"

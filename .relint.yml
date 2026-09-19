@@ -35,6 +35,14 @@
   hint: |
     Use {% translate %} instead of the shorthand {% trans %}.
   filePattern: .*\.html$
+- name: Input group buttons use the icon-xs size
+  pattern: 'class="input-group[^"]*"[\s\S]{0,400}?<button\b(?![^>]*data-size="icon-xs")[^>]*>'
+  hint: 'Use `data-size="icon-xs"` for the icon buttons inside an `.input-group`. The larger sizes dwarf the field they sit in and push the group taller.'
+  filePattern: .*\.html$
+- name: Inputs inside an input group stay classless
+  pattern: 'class="input-group[^"]*"[\s\S]{0,400}?<input\b[^>]*class="[^"]*\binput\b'
+  hint: 'Leave the `input` class off controls inside an `.input-group`. The group strips the field chrome and sizes the control itself, and the class fights that: the input then stands shorter or taller than the buttons beside it.'
+  filePattern: .*\.html$
 - name: Use blocktranslate instead of blocktrans
   pattern: '\{%\s*(end)?blocktrans\b'
   hint: |

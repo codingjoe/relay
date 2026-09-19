@@ -1,29 +1,29 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load i18n humanize abstract %}
 {% block title %}{% translate "suppression list"|capfirst %} | relay{% endblock %}
 {% block content %}
   <h2 class="mb-6">{% translate "suppression list"|capfirst %}</h2>
 
   {% if object_list|length %}
     {% include "abstract/chart_card.html" with id="chart-suppression" data_id="chart-suppression-data" title=_("suppressions by reason")|capfirst chart=suppression_chart class="mb-6" %}
-  {% else %}
-    <p class="text-muted-foreground mb-6">
-      {% blocktranslate trimmed %}
-        No suppressed addresses yet.
-      {% endblocktranslate %}
-    </p>
   {% endif %}
 
-  <section class="card mb-6">
-    <header>
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="m-0">{% translate "protect your sender reputation"|capfirst %}</h3>
-        <span class="badge" data-size="sm" data-variant="outline">
-          {% blocktranslate count counter=object_list|length trimmed %}
-            {{ counter }} address{% plural %}{{ counter }} addresses
+  <article class="card mb-6">
+    <section class="empty">
+      <header>
+        <figure>
+          <i data-lucide="ban" aria-hidden="true"></i>
+        </figure>
+        <h3>
+          {% blocktranslate count counter=object_list|length with count=object_list|length|apnumber trimmed %}
+            {{ count }} address on the suppression list{% plural %}{{ count }} addresses on the suppression list
           {% endblocktranslate %}
-        </span>
-      </div>
+        </h3>
+      </header>
+    </section>
+
+    <header>
+      <h3 class="m-0">{% translate "protect your sender reputation"|capfirst %}</h3>
       <p class="m-0">
         {% blocktranslate trimmed %}
           Every send to a dead mailbox counts against your domain, and a high enough bounce rate can suspend your
@@ -85,5 +85,47 @@
         </div>
       </form>
     </section>
-  </section>
+    {% if object_list|length %}
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="destructive"
+          onclick="document.getElementById('dlg-clear-suppression').showModal()"
+        >
+          {% translate "clear list"|title %}
+        </button>
+      </footer>
+    {% endif %}
+  </article>
+
+  <dialog class="alert-dialog" id="dlg-clear-suppression" onclick="if (event.target === this) this.close()">
+    <div>
+      <header>
+        <h2>{% translate "clear the suppression list?"|capfirst context "verb" %}</h2>
+        <p>
+          {% blocktranslate trimmed %}
+            Addresses come off the list, so relay sends to them again. The bounces that follow count against your sender
+            reputation.
+          {% endblocktranslate %}
+        </p>
+      </header>
+      <footer>
+        <button
+          type="button"
+          class="btn"
+          data-variant="outline"
+          onclick="this.closest('dialog').close()"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+        <form method="post" action="{% url 'msa:suppression-clear' org.slug %}">
+          {% csrf_token %}
+          <button type="submit" class="btn" data-variant="destructive">
+            {% translate "clear list"|title %}
+          </button>
+        </form>
+      </footer>
+    </div>
+  </dialog>
 {% endblock %}

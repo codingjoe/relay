@@ -146,10 +146,10 @@ with the URL, response code, and a response excerpt.
   messages, and the unfiltered view graphs both in one chart: outgoing bars
   above the axis and incoming bars below it. The graph counts the same
   messages the filters select.
-- The message detail page shows the status next to the transcripts and
-  delivery records, and leads with a status card: the same status in the
-  traffic-light colors of its badge, how long the delivery took, and when the
-  last attempt finished.
+- The message detail page leads with a delivery card: the status in the
+  traffic-light colors of its badge, how long the delivery took, when the
+  last transmission finished, the sender and recipient, and what the scan
+  found. The transcripts and delivery records follow it.
 - Filters let you watch only failed or quarantined traffic.
 
 ## The antivirus badge

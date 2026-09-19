@@ -97,7 +97,11 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
 
     def get_smtp_uri(self, hostname, key=""):
         """Return the SMTPS submission URI, carrying the key when it is known."""
-        credentials = f"{self.org.slug}:{key}" if key else self.org.slug
+        credentials = (
+            f"{self.org.slug}:{key}"
+            if key
+            else f"{self.org.slug}:<{_('credential key')}>"
+        )
         port = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS[0]
         return f"smtps://{credentials}@{hostname}:{port}"
 
@@ -232,3 +236,13 @@ class SuppressionCheckView(OrganizationScopedView, generic.FormView):
 
     def get_success_url(self):
         return reverse("msa:suppression-list", kwargs={"org_slug": self.org.slug})
+
+
+class SuppressionClearView(OrganizationScopedView, generic.View):
+    http_method_names = ["post"]
+    parent = "msa:suppression-list"
+
+    def post(self, request, org_slug, *args, **kwargs):
+        SuppressionEntry.objects.filter(org=self.org).delete()
+        messages.warning(request, _("Cleared the suppression list."))
+        return redirect("msa:suppression-list", org_slug=org_slug)

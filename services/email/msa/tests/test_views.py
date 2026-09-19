@@ -359,12 +359,14 @@ class TestCredentialListView:
         assert "smtp_hostname" in response.context
         assert "smtp_starttls_ports" in response.context
         assert "smtp_implicit_tls_ports" in response.context
-        assert response.context["smtp_uri"] == "smtps://test-org@smtp.testserver:465"
+        assert response.context["smtp_uri"] == (
+            "smtps://test-org:<credential key>@smtp.testserver:465"
+        )
 
     def test_get__renders_connection_uri(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
-        assert "smtps://test-org@smtp.testserver:465" in response.content.decode()
+        assert "@smtp.testserver:465" in response.content.decode()
 
     def test_get__opens_the_key_dialog_after_creation(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
@@ -464,6 +466,36 @@ class TestSuppressionListView:
         assert content.index('id="chart-suppression"') < content.index(
             'id="form-suppression"'
         )
+
+    @pytest.mark.django_db
+    def test_get__counts_the_addresses_atop_the_card(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="one@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="two@example.com", reason=SuppressionEntry.Reason.BOUNCE
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "two addresses on the suppression list" in content
+        assert content.index('class="empty"') < content.index('id="form-suppression"')
+        assert content.index('id="form-suppression"') < content.index(
+            'id="dlg-clear-suppression"'
+        )
+
+    @pytest.mark.django_db
+    def test_post__clears_the_list(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+
+        response = admin_client.post(f"/org/{org.slug}/email/suppression/clear")
+
+        assert response.status_code == 302
+        assert not SuppressionEntry.objects.filter(org=org).exists()
 
     @pytest.mark.django_db
     def test_get__shows_the_count_beside_the_actions(self, admin_client, org):

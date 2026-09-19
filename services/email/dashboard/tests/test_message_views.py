@@ -176,7 +176,30 @@ class TestMessageDetailStatusCard:
         assert response.context["delivery_finished_at"] is not None
         content = response.content.decode()
         assert "text-success" in content
+        assert "bg-success/10" in content
         assert human_duration(response.context["delivery_duration"]) in content
+
+    def test_get__shows_the_scan_verdicts(self, admin_client, org):
+        message = make_incoming(org)
+        message.spam_action = "reject"
+        message.spam_score = 10.0
+        message.virus_action = "infected"
+        message.virus_name = "Eicar-Test-Signature"
+        message.save(
+            update_fields=[
+                "spam_action",
+                "spam_score",
+                "virus_action",
+                "virus_name",
+            ]
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "spam reject" in content
+        assert "Eicar-Test-Signature" in content
 
     def test_get__omits_the_delivery_summary_without_attempts(self, admin_client, org):
         message = IncomingMessage.objects.create(

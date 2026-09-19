@@ -7,7 +7,7 @@
   </header>
 
   <div class="grid gap-4 sm:grid-cols-3 mb-6">
-    <section class="card p-6">
+    <section class="card p-6 {% if org.suspended_at %}bg-destructive/10{% else %}bg-success/10{% endif %}">
       <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "status"|capfirst %}</h3>
       <p class="m-0 mt-1 text-2xl font-semibold">
         {% if org.suspended_at %}
@@ -17,24 +17,24 @@
         {% endif %}
       </p>
     </section>
-    <section class="card p-6">
+    <section class="card p-6 {% if stats.hard_bounce_over_limit %}bg-destructive/10{% else %}bg-success/10{% endif %}">
       <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "hard bounce rate"|capfirst %}</h3>
-      <p class="m-0 mt-1 text-2xl font-semibold">
+      <p class="m-0 mt-1 text-2xl font-semibold {% if stats.hard_bounce_over_limit %}text-destructive{% else %}text-success{% endif %}">
         {{ stats.hard_bounce_rate|percent:"2" }}
-        {% if stats.hard_bounce_rate > bounce_threshold %}
-          <i data-lucide="triangle-alert" class="size-4 text-destructive" aria-hidden="true"></i>
+        {% if stats.hard_bounce_over_limit %}
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
         {% endif %}
       </p>
       <p class="m-0 text-sm text-muted-foreground">
         {% translate "limit"|capfirst %}: {{ bounce_threshold|percent:"2" }}
       </p>
     </section>
-    <section class="card p-6">
+    <section class="card p-6 {% if stats.complaint_over_limit %}bg-destructive/10{% else %}bg-success/10{% endif %}">
       <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "complaint rate"|capfirst %}</h3>
-      <p class="m-0 mt-1 text-2xl font-semibold">
+      <p class="m-0 mt-1 text-2xl font-semibold {% if stats.complaint_over_limit %}text-destructive{% else %}text-success{% endif %}">
         {{ stats.complaint_rate|percent:"2" }}
-        {% if stats.complaint_rate > complaint_threshold %}
-          <i data-lucide="triangle-alert" class="size-4 text-destructive" aria-hidden="true"></i>
+        {% if stats.complaint_over_limit %}
+          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
         {% endif %}
       </p>
       <p class="m-0 text-sm text-muted-foreground">

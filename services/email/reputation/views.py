@@ -76,6 +76,8 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
     def get_context_data(self, **kwargs):
         chart = build_reputation_chart(self.org)
         last = chart["rows"][-1]
+        bounce_threshold = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
+        complaint_threshold = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
         stats = {
             "total_sent": last["sent"],
             "hard_bounces": last["hard_bounced"],
@@ -83,6 +85,10 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "complaints": last["complained"],
             "hard_bounce_rate": last["hard_bounce_rate"] or 0.0,
             "complaint_rate": last["complaint_rate"] or 0.0,
+            "hard_bounce_over_limit": (last["hard_bounce_rate"] or 0.0)
+            > bounce_threshold,
+            "complaint_over_limit": (last["complaint_rate"] or 0.0)
+            > complaint_threshold,
         }
         chart_rates = {
             "series": chart["rate_series"],
@@ -93,6 +99,6 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "stats": stats,
             "chart": chart,
             "chart_rates": chart_rates,
-            "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
-            "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
+            "bounce_threshold": bounce_threshold,
+            "complaint_threshold": complaint_threshold,
         }

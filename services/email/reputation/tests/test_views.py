@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
@@ -135,6 +136,41 @@ class TestReputationOverviewView:
         response = admin_client.get(overview_url(org))
         assert response.status_code == 200
         assert response.context["stats"]["total_sent"] == 0
+        bounce_card = response.content.decode().split("Hard bounce rate", 1)[1]
+        assert "text-success" in bounce_card
+
+    def test_get__tints_the_status_card_when_suspended(self, admin_client, org):
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at"])
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert "bg-destructive/10" in response.content.decode()
+
+    def test_get__tints_the_bounce_card_over_the_limit(self, admin_client, org, user):
+        message = OutgoingMessage.objects.create(
+            org=org,
+            domain=Domain.objects.create(name="acme.com", org=org),
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            raw_body=SimpleUploadedFile("bounce.eml", b"body"),
+        )
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert content.count("bg-destructive/10") == 1
+        bounce_card = content.split("Hard bounce rate", 1)[1]
+        assert "text-destructive" in bounce_card
 
     def test_get__counts_held_spam_as_complaints_in_chart(
         self, admin_client, org, user
