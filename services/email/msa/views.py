@@ -97,10 +97,9 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
 
     def get_smtp_uri(self, hostname, key=""):
         """Return the SMTPS submission URI, carrying the key when it is known."""
-        if not (ports := settings.RELAY_SMTP_IMPLICIT_TLS_PORTS):
-            return ""
         credentials = f"{self.org.slug}:{key}" if key else self.org.slug
-        return f"smtps://{credentials}@{hostname}:{ports[0]}"
+        port = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS[0]
+        return f"smtps://{credentials}@{hostname}:{port}"
 
     def get_context_data(self, **kwargs):
         hostname = f"smtp.{self.request.get_host().split(':')[0]}"
