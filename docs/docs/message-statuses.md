@@ -149,8 +149,9 @@ with the URL, response code, and a response excerpt.
 - The message detail page leads with a delivery card: the status in the
   traffic-light colors of its badge, how long the delivery took, when the
   last transmission finished, the sender and recipient, and what the scan
-  found. Tabs below it hold the headers, the plain text body, and the HTML
-  body when the message carries one.
+  found. Tabs below it open on the HTML body when the message carries one,
+  then the plain text body, and the headers last. A message without an HTML
+  part opens on its plain text body.
 - Filters let you watch only failed or quarantined traffic.
 
 ## The antivirus badge

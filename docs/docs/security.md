@@ -111,7 +111,11 @@ quarantined message is never forwarded. relay also forwards mail addressed to
 postmaster, with or without a `+` extension, to every member of the
 organization. Those copies are outgoing messages relay signs for the receiving
 domain, so they are billed and listed like any other message the organization
-sends. The dashboard shows every quarantined message with its score.
+sends. The dashboard shows every quarantined message with its score. The message
+detail page renders an HTML body in a sandboxed frame that runs no scripts
+and sends no referrer, so a body from the outside cannot act inside your
+session. Remote images stay allowed, so the body looks as the sender wrote
+it.
 
 ## Error monitoring and secrets
 

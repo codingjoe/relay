@@ -1,3 +1,4 @@
+import re
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -17,6 +18,21 @@ MULTIPART_BODY = (
     b"--b\r\nContent-Type: text/plain\r\n\r\nplain body\r\n"
     b"--b\r\nContent-Type: text/html\r\n\r\n<p>html body</p>\r\n--b--\r\n"
 )
+
+
+def tab_order(content):
+    """Return the tab ids in the order they render."""
+    return re.findall(r'id="(message-tab-[a-z]+)"', content)
+
+
+def panel_visibility(content):
+    """Return whether each tabpanel renders hidden, keyed by panel id."""
+    return {
+        panel_id: "hidden" in attributes
+        for panel_id, attributes in re.findall(
+            r'id="(message-panel-[a-z]+)"([^>]*)>', content
+        )
+    }
 
 
 def make_certificate(issuer_certificate=None):
@@ -217,11 +233,31 @@ class TestMessageDetailStatusCard:
 
         assert response.status_code == 200
         content = response.content.decode()
-        assert 'id="message-tab-html"' in content
-        assert 'id="message-panel-headers"' in content
         assert "<iframe" in content
         assert "sandbox" in content
+        assert "allow-scripts" not in content
         assert response.context["html_body"] == "<p>html body</p>"
+
+    def test_get__leads_with_the_html_body_and_ends_with_the_headers(
+        self, admin_client, org
+    ):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        content = response.content.decode()
+        assert tab_order(content) == [
+            "message-tab-html",
+            "message-tab-text",
+            "message-tab-headers",
+        ]
+        assert panel_visibility(content) == {
+            "message-panel-html": False,
+            "message-panel-text": True,
+            "message-panel-headers": True,
+        }
 
     def test_get__omits_the_html_tab_without_an_html_part(self, admin_client, org):
         message = make_incoming(org)
@@ -231,8 +267,12 @@ class TestMessageDetailStatusCard:
         assert response.status_code == 200
         content = response.content.decode()
         assert 'id="message-tab-html"' not in content
-        assert 'id="message-tab-text"' in content
         assert response.context["html_body"] == ""
+        assert tab_order(content) == ["message-tab-text", "message-tab-headers"]
+        assert panel_visibility(content) == {
+            "message-panel-text": False,
+            "message-panel-headers": True,
+        }
 
     def test_get__omits_the_delivery_summary_without_attempts(self, admin_client, org):
         message = IncomingMessage.objects.create(

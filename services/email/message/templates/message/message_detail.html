@@ -6,56 +6,66 @@
     <h2 class="m-0 break-words">{{ message.subject|default:_("(no subject)") }}</h2>
   </header>
 
-  <article class="card p-6 mb-6 {{ message.status_badge_variant|surface_class }}">
-    <p class="m-0 text-2xl font-semibold">
-      <span class="{{ message.status_badge_variant|text_class }}">
-        {{ message.status_display|capfirst }}
-      </span>
-      {% if delivery_finished_at %}
-        <span class="text-base font-normal text-muted-foreground">
-          {% timestamp delivery_finished_at %}
+  <article class="card p-6 mb-6 gap-2 {{ message.status_badge_variant|surface_class }}">
+    <div>
+      <p class="m-0 text-2xl font-semibold">
+        <span class="{{ message.status_badge_variant|text_class }}">
+          {{ message.status_display|capfirst }}
         </span>
-      {% endif %}
-    </p>
-    {% if delivery_attempts %}
-      <p class="m-0 text-sm text-muted-foreground">
-        {% blocktranslate count counter=delivery_attempts with count=delivery_attempts|apnumber trimmed %}
-          {{ count }} transmission{% plural %}{{ count }} transmissions
-        {% endblocktranslate %}
-        {% if delivery_duration %}
-          <span aria-hidden="true">·</span>
-          {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+        {% if delivery_finished_at %}
+          <span class="text-base font-normal text-muted-foreground">
+            {% timestamp delivery_finished_at %}
+          </span>
         {% endif %}
       </p>
-    {% endif %}
+      {% if delivery_attempts %}
+        <p class="m-0 text-sm text-muted-foreground">
+          {% blocktranslate count counter=delivery_attempts with count=delivery_attempts|apnumber trimmed %}
+            {{ count }} transmission{% plural %}{{ count }} transmissions
+          {% endblocktranslate %}
+          {% if delivery_duration %}
+            <span aria-hidden="true">·</span>
+            {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
     {% translate "Show the messages with this address" as address_tooltip %}
-    {% if message.mail_from %}
-      <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        <span>{% translate "from" context "email hop" %}</span>
-        <a
-          class="btn break-all"
-          data-variant="link"
-          data-tooltip="{{ address_tooltip }}"
-          href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
-        >
-          <i data-lucide="user-round-pen" class="size-3.5" aria-hidden="true"></i>
-          {{ message.mail_from }}
-        </a>
-      </p>
-    {% endif %}
-    {% if message.rcpt_to %}
-      <p class="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        <span>{% translate "to" context "email hop" %}</span>
-        <a
-          class="btn break-all"
-          data-variant="link"
-          data-tooltip="{{ address_tooltip }}"
-          href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
-        >
-          <i data-lucide="user-round-arrow-left" class="size-3.5" aria-hidden="true"></i>
-          {{ message.rcpt_to }}
-        </a>
-      </p>
+    {% if message.mail_from or message.rcpt_to %}
+      <dl class="m-0 grid gap-1 text-sm text-muted-foreground">
+        {% if message.mail_from %}
+          <div class="flex flex-wrap items-center gap-x-2">
+            <dt>{% translate "from" context "email hop" %}</dt>
+            <dd class="m-0">
+              <a
+                class="btn break-all"
+                data-variant="link"
+                data-tooltip="{{ address_tooltip }}"
+                href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
+              >
+                <i data-lucide="user-round-pen" class="size-3.5" aria-hidden="true"></i>
+                {{ message.mail_from }}
+              </a>
+            </dd>
+          </div>
+        {% endif %}
+        {% if message.rcpt_to %}
+          <div class="flex flex-wrap items-center gap-x-2">
+            <dt>{% translate "to" context "email hop" %}</dt>
+            <dd class="m-0">
+              <a
+                class="btn break-all"
+                data-variant="link"
+                data-tooltip="{{ address_tooltip }}"
+                href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
+              >
+                <i data-lucide="user-round-arrow-left" class="size-3.5" aria-hidden="true"></i>
+                {{ message.rcpt_to }}
+              </a>
+            </dd>
+          </div>
+        {% endif %}
+      </dl>
     {% endif %}
     {% if message.spam_action or message.spam_score is not None or message.virus_action %}
       <p class="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -135,69 +145,64 @@
     </header>
     <div class="tabs" id="message-tabs">
       <nav role="tablist" aria-orientation="horizontal">
-        <button
-          type="button"
-          role="tab"
-          id="message-tab-headers"
-          aria-controls="message-panel-headers"
-          aria-selected="true"
-          tabindex="0"
-        >
-          {% translate "headers"|capfirst %}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="message-tab-text"
-          aria-controls="message-panel-text"
-          aria-selected="false"
-          tabindex="-1"
-        >
-          {% translate "text"|capfirst %}
-        </button>
         {% if html_body %}
           <button
             type="button"
             role="tab"
             id="message-tab-html"
             aria-controls="message-panel-html"
-            aria-selected="false"
-            tabindex="-1"
+            aria-selected="true"
+            tabindex="0"
           >
             HTML
           </button>
         {% endif %}
+        <button
+          type="button"
+          role="tab"
+          id="message-tab-text"
+          aria-controls="message-panel-text"
+          aria-selected="{% if html_body %}false{% else %}true{% endif %}"
+          tabindex="{% if html_body %}-1{% else %}0{% endif %}"
+        >
+          {% translate "text"|capfirst %}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="message-tab-headers"
+          aria-controls="message-panel-headers"
+          aria-selected="false"
+          tabindex="-1"
+        >
+          {% translate "headers"|capfirst %}
+        </button>
       </nav>
-      <div
-        role="tabpanel"
-        id="message-panel-headers"
-        aria-labelledby="message-tab-headers"
-        tabindex="-1"
-        aria-selected="true"
-      >
-        <article class="card gap-0 p-0 overflow-hidden">
-          <div class="table-container">
-            <table class="table">
-              <tbody>
-                {% for key, value in headers %}
-                  <tr>
-                    <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
-                    <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% block extra_sections %}{% endblock %}
-        </article>
-      </div>
+      {% if html_body %}
+        <div
+          role="tabpanel"
+          id="message-panel-html"
+          aria-labelledby="message-tab-html"
+          tabindex="-1"
+          aria-selected="true"
+        >
+          {# sandbox drops allow-scripts: the body is untrusted mail #}
+          <iframe
+            class="h-[36rem] w-full rounded-xl border bg-white"
+            sandbox
+            referrerpolicy="no-referrer"
+            srcdoc="{{ html_body }}"
+            title='{% translate "HTML body" %}'
+          ></iframe>
+        </div>
+      {% endif %}
       <div
         role="tabpanel"
         id="message-panel-text"
         aria-labelledby="message-tab-text"
         tabindex="-1"
-        aria-selected="false"
-        hidden
+        aria-selected="{% if html_body %}false{% else %}true{% endif %}"
+        {% if html_body %}hidden{% endif %}
       >
         <article class="card gap-0 p-0 overflow-hidden">
           <div class="px-6 py-6 flex flex-col gap-6">
@@ -219,24 +224,30 @@
           </div>
         </article>
       </div>
-      {% if html_body %}
-        <div
-          role="tabpanel"
-          id="message-panel-html"
-          aria-labelledby="message-tab-html"
-          tabindex="-1"
-          aria-selected="false"
-          hidden
-        >
-          <iframe
-            class="h-[36rem] w-full rounded-xl border bg-white"
-            sandbox
-            loading="lazy"
-            srcdoc="{{ html_body }}"
-            title='{% translate "HTML body" %}'
-          ></iframe>
-        </div>
-      {% endif %}
+      <div
+        role="tabpanel"
+        id="message-panel-headers"
+        aria-labelledby="message-tab-headers"
+        tabindex="-1"
+        aria-selected="false"
+        hidden
+      >
+        <article class="card gap-0 p-0 overflow-hidden">
+          <div class="table-container">
+            <table class="table">
+              <tbody>
+                {% for key, value in headers %}
+                  <tr>
+                    <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
+                    <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% block extra_sections %}{% endblock %}
+        </article>
+      </div>
     </div>
   </section>
 {% endblock %}
