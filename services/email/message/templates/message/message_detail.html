@@ -17,10 +17,10 @@
     </button>
   </header>
 
-  <article class="card p-6 mb-6 gap-2 {{ message.status_badge_variant|surface_class }}">
+  <article class="card p-6 mb-6 gap-2" data-variant="{{ message.status_badge_variant }}">
     <div>
       <p class="m-0 text-2xl font-semibold">
-        <span class="{{ message.status_badge_variant|text_class }}">
+        <span class="status" data-variant="{{ message.status_badge_variant }}">
           {{ message.status_display|capfirst }}
         </span>
         {% if delivery_finished_at %}
@@ -73,7 +73,8 @@
         {% translate "what the scan found" as scan_tooltip %}
         {% if message.spam_action or message.spam_score is not None %}
           <a
-            class="{{ message.spam_badge_variant|text_class }} inline-flex items-center gap-1.5 hover:underline"
+            class="status inline-flex items-center gap-1.5 hover:underline"
+            data-variant="{{ message.spam_badge_variant }}"
             data-tooltip="{{ scan_tooltip }}"
             href="{% url 'docs:detail' 'message-statuses' %}"
           >
@@ -86,7 +87,8 @@
         {% endif %}
         {% if message.virus_action %}
           <a
-            class="{{ message.virus_badge_variant|text_class }} inline-flex items-center gap-1.5 hover:underline"
+            class="status inline-flex items-center gap-1.5 hover:underline"
+            data-variant="{{ message.virus_badge_variant }}"
             data-tooltip="{{ scan_tooltip }}"
             href="{% url 'docs:detail' 'message-statuses' %}"
           >

@@ -111,6 +111,29 @@ svg.lucide {
   @apply bg-warning/10 [a]:hover:bg-warning/20 focus-visible:ring-warning/20 text-warning dark:bg-warning/20 dark:focus-visible:ring-warning/40;
 }
 
+/* Message status text and card tint. The models hand the badge variant over
+   as a data attribute, so the templates carry no class logic. */
+.status {
+  --status-color: var(--color-muted-foreground);
+  color: var(--status-color);
+}
+
+[data-variant="success"] {
+  --status-color: var(--color-success);
+}
+
+[data-variant="warning"] {
+  --status-color: var(--color-warning);
+}
+
+[data-variant="destructive"] {
+  --status-color: var(--color-destructive);
+}
+
+.card[data-variant] {
+  background-color: color-mix(in srgb, var(--status-color, transparent) 10%, transparent);
+}
+
 /* Extra-small button sizes for controls that sit inline with badges
    (data-size="sm" is 32px and dwarfs a 20px status badge). */
 .btn[data-size="xs"] {

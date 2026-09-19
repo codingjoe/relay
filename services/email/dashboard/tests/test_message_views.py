@@ -211,8 +211,7 @@ class TestMessageDetailStatusCard:
         assert response.context["delivery_attempts"] == 1
         assert response.context["delivery_finished_at"] is not None
         content = response.content.decode()
-        assert "text-success" in content
-        assert "bg-success/10" in content
+        assert 'data-variant="success"' in content
         assert human_duration(response.context["delivery_duration"]) in content
 
     def test_get__shows_the_scan_verdicts(self, admin_client, org):

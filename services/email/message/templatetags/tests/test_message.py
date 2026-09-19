@@ -21,29 +21,3 @@ def test_human_duration__minutes():
 
 def test_human_duration__whole_minutes():
     assert message.human_duration(datetime.timedelta(minutes=1)) == "1 min"
-
-
-def test_text_class__success():
-    assert message.text_class("success") == "text-success"
-
-
-def test_text_class__warning():
-    assert message.text_class("warning") == "text-warning"
-
-
-def test_text_class__destructive():
-    assert message.text_class("destructive") == "text-destructive"
-
-
-def test_text_class__other_variants_read_as_muted():
-    assert message.text_class("outline") == "text-muted-foreground"
-
-
-def test_surface_class__variants():
-    assert message.surface_class("success") == "bg-success/10"
-    assert message.surface_class("warning") == "bg-warning/10"
-    assert message.surface_class("destructive") == "bg-destructive/10"
-
-
-def test_surface_class__other_variants_stay_plain():
-    assert message.surface_class("outline") == ""
