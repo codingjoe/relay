@@ -48,34 +48,24 @@
           <dt>{% translate "from"|capfirst context "email hop" %}</dt>
           <dd class="m-0">
             <a
-              class="btn break-all"
-              data-variant="link"
-              data-size="sm"
+              class="link break-all"
               data-tooltip="{{ address_tooltip }}"
               href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
-            >
-              <i data-lucide="user-round-pen" class="size-3.5" aria-hidden="true"></i>
-              {{ message.mail_from }}
-            </a>
+            >{{ message.mail_from }}</a>
           </dd>
         {% endif %}
         {% if message.rcpt_to %}
           <dt>{% translate "to"|capfirst context "email hop" %}</dt>
           <dd class="m-0">
             <a
-              class="btn break-all"
-              data-variant="link"
-              data-size="sm"
+              class="link break-all"
               data-tooltip="{{ address_tooltip }}"
               href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
-            >
-              <i data-lucide="user-round-arrow-left" class="size-3.5" aria-hidden="true"></i>
-              {{ message.rcpt_to }}
-            </a>
+            >{{ message.rcpt_to }}</a>
           </dd>
         {% endif %}
         <dt>{% translate "subject"|capfirst %}</dt>
-        <dd class="m-0 ps-3 text-foreground">{{ message.subject|default:_("(no subject)") }}</dd>
+        <dd class="m-0 text-foreground">{{ message.subject|default:_("(no subject)") }}</dd>
       </dl>
     {% endif %}
     {% if message.spam_action or message.spam_score is not None or message.virus_action %}
