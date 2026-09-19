@@ -7,7 +7,7 @@
     <button
       type="button"
       class="btn"
-      onclick="document.getElementById('dlg-test-email').showModal()"
+      data-dialog="dlg-test-email"
     >
       {% translate "send test email"|title %}
     </button>
@@ -52,7 +52,7 @@
               class="btn"
               data-variant="secondary"
               data-size="sm"
-              onclick="document.getElementById('dlg-test-email').showModal()"
+              data-dialog="dlg-test-email"
             >
               {% translate "send test email"|title %}
             </button>

@@ -10,7 +10,7 @@
       data-variant="ghost"
       data-size="icon-xs"
       data-tooltip='{% translate "share this message"|capfirst %}'
-      onclick="sharePage()"
+      data-share
       aria-label='{% translate "share this message"|capfirst %}'
     >
       <i data-lucide="share-2" class="size-3.5" aria-hidden="true"></i>
@@ -123,7 +123,7 @@
             data-variant="ghost"
             data-size="icon-xs"
             data-tooltip='{% translate "copy headers"|capfirst %}'
-            onclick="navigator.clipboard.writeText('{{ message.headers_text|escapejs }}')"
+            data-copy="{{ message.headers_text }}"
             aria-label='{% translate "copy headers"|capfirst %}'
           >
             <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>

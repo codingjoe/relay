@@ -85,13 +85,13 @@ def rate_chart(rows, key, label, color, limit, subtitle):
                 "key": key,
                 "label": label,
                 "color": color,
-                "dataset": "type: 'line'",
+                "type": "line",
             }
         ],
         "rows": rows,
         "subtitle": subtitle,
         "threshold": {"value": limit, "label": gettext("Limit")},
-        "y_scale": {"stacked": "false", "percent": True},
+        "y_scale": {"stacked": False, "percent": True},
     }
 
 
@@ -214,13 +214,13 @@ def build_volume_chart(org):
                 "key": "last_month",
                 "label": gettext("Last month"),
                 "color": REPUTATION_CHART_COLORS["last_month"],
-                "dataset": "type: 'line'",
+                "type": "line",
             },
             {
                 "key": "this_month",
                 "label": gettext("This month"),
                 "color": REPUTATION_CHART_COLORS["this_month"],
-                "dataset": "type: 'line'",
+                "type": "line",
             },
         ],
         "rows": rows,
@@ -230,5 +230,5 @@ def build_volume_chart(org):
             "value": settings.RELAY_FREE_MONTHLY_MESSAGES,
             "label": gettext("Free tier"),
         },
-        "y_scale": {"stacked": "false"},
+        "y_scale": {"stacked": False},
     }

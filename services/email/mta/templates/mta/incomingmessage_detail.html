@@ -6,7 +6,7 @@
       id="transcript-{{ transmission.pk }}"
       class="drawer"
       data-side="bottom"
-      onclick="if (event.target === this) this.close()"
+      data-backdrop-close
     >
       <article>
         <header>
@@ -42,7 +42,7 @@
           {% endif %}
         </section>
         <footer>
-          <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+          <button type="button" class="btn" data-variant="outline" data-dialog-close>
             {% translate "close"|capfirst %}
           </button>
         </footer>
@@ -55,7 +55,7 @@
         id="delivery-{{ delivery.pk }}"
         class="drawer"
         data-side="bottom"
-        onclick="if (event.target === this) this.close()"
+        data-backdrop-close
       >
         <article>
           <header>
@@ -78,7 +78,7 @@
             {% endif %}
           </section>
           <footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>
               {% translate "close"|capfirst %}
             </button>
           </footer>

@@ -7,7 +7,7 @@
         id="transcript-{{ transmission.pk }}"
         class="drawer"
         data-side="bottom"
-        onclick="if (event.target === this) this.close()"
+        data-backdrop-close
       >
         <article>
           <header>
@@ -53,7 +53,7 @@
             {% endif %}
           </section>
           <footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>
               {% translate "close"|capfirst %}
             </button>
           </footer>
@@ -73,7 +73,7 @@
           class="btn {% if not forloop.first %}mt-2{% endif %}"
           data-variant="outline"
           data-size="xs"
-          onclick="document.getElementById('hop-{{ forloop.counter }}').showModal()"
+          data-dialog="hop-{{ forloop.counter }}"
           aria-haspopup="dialog"
         >
           {% translate "hop"|capfirst %} {{ forloop.counter }}
@@ -85,7 +85,7 @@
         id="hop-{{ forloop.counter }}"
         class="drawer"
         data-side="bottom"
-        onclick="if (event.target === this) this.close()"
+        data-backdrop-close
       >
         <article>
           <header>
@@ -95,7 +95,7 @@
             {{ hop|highlight_header }}
           </section>
           <footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>
               {% translate "close"|capfirst %}
             </button>
           </footer>

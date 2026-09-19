@@ -561,6 +561,8 @@ export async function POST(req: Request) {
             type="range"
             id="price-slider"
             class="input w-full"
+            data-free="{{ free_monthly_messages|unlocalize }}"
+            data-per-thousand="{{ price_per_1000_messages|unlocalize }}"
             min="{{ free_monthly_messages }}"
             max="100000"
             step="1000"
@@ -743,35 +745,6 @@ export async function POST(req: Request) {
       }
     }
   </style>
-  <script>
-    const slider = document.getElementById("price-slider");
-    const amount = document.getElementById("price-amount");
-    const volume = document.getElementById("price-volume");
-    if (slider && amount && volume) {
-      {% localize off %}
-        const free = {{ free_monthly_messages }};
-        const perThousand = {{ price_per_1000_messages }};
-      {% endlocalize %}
-      const formatVolume = (n) => n.toLocaleString("en-US");
-      const formatEur = (n) =>
-        new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(n);
-      const update = () => {
-        const v = Number(slider.value);
-        const billable = v - free;
-        const total = (billable / 1000) * perThousand;
-        volume.textContent = formatVolume(v);
-        amount.textContent = formatEur(total);
-      };
-      slider.addEventListener("input", update);
-      update();
-    }
-  </script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
-  <script>
-    if (typeof hljs !== "undefined") {
-      document.querySelectorAll("pre code[class*='language-']").forEach((block) => {
-        hljs.highlightElement(block);
-      });
-    }
-  </script>
+  <script type="module" src="{% static 'js/start.js' %}"></script>
 {% endblock %}

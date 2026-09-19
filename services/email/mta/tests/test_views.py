@@ -3,7 +3,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 from django.core.files.base import ContentFile
-from django.utils.html import escapejs
 
 from domains.models import Domain
 from kms.models import SigningKey
@@ -163,10 +162,7 @@ class TestWebhookListView:
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert response.status_code == 200
         content = response.content.decode()
-        assert (
-            f"navigator.clipboard.writeText('{escapejs(webhook.public_key_serialized)}')"
-            in content
-        )
+        assert f'data-copy="{webhook.public_key_serialized}"' in content
         assert 'aria-label="Copy public key"' in content
 
     def test_get__filters_by_org(self, admin_client, org, write_org, webhook_server):

@@ -43,24 +43,7 @@
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
-    <script defer>
-      document.addEventListener("DOMContentLoaded", () => {
-        if (window.lucide) window.lucide.createIcons();
-      });
-      (() => {
-        try {
-          const stored = localStorage.getItem("themeMode");
-          if (stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches) {
-            document.documentElement.classList.add("dark");
-          }
-        } catch (_) {}
-      })();
-      window.sharePage = () => {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url);
-        if (navigator.share) navigator.share({ title: document.title, url }).catch(() => {});
-      };
-    </script>
+    <script type="module" src="{% static 'js/app.js' %}"></script>
   </head>
   <body class="min-h-screen flex">
     {% if current_org and request.resolver_match.namespace != 'accounts' %}

@@ -480,7 +480,7 @@ class TestSuppressionListView:
         assert response.status_code == 200
         content = response.content.decode()
         assert "two addresses on the suppression list" in content
-        assert "dlg-clear-suppression').showModal()" in content
+        assert 'data-dialog="dlg-clear-suppression"' in content
         assert content.index('class="empty"') < content.index('id="form-suppression"')
         assert content.index('id="form-suppression"') < content.index(
             'id="dlg-clear-suppression"'
@@ -493,7 +493,7 @@ class TestSuppressionListView:
         assert response.status_code == 200
         content = response.content.decode()
         assert "0 addresses on the suppression list" in content
-        assert "dlg-clear-suppression').showModal()" not in content
+        assert 'data-dialog="dlg-clear-suppression"' not in content
 
     @pytest.mark.django_db
     def test_post__clears_the_list(self, admin_client, org):

@@ -91,12 +91,11 @@ class TestMessageListView:
         )
         assert 'name="subject"' not in content
         assert (
-            "getElementById('dlg-test-email').showModal()"
-            in content.split('id="dlg-test-email"', 1)[0]
+            'data-dialog="dlg-test-email"' in content.split('id="dlg-test-email"', 1)[0]
         )
 
     def test_get__empty_state_opens_dialog(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/messages/")
 
         assert response.status_code == 200
-        assert "getElementById('dlg-test-email').showModal()" in empty_state(response)
+        assert 'data-dialog="dlg-test-email"' in empty_state(response)

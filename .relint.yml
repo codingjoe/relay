@@ -148,3 +148,11 @@
   pattern: '\[[^\]\n]*RFC[ ]?\d{3,4}[^\]\n]*\]\(https?://[^)]+\)'
   hint: 'Put the RFC link definition at the bottom of the page and reference it inline, for example `[RFC 8617][rfc-8617]` defined by `[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/`.'
   filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'
+- name: No inline script blocks in templates
+  pattern: '<script(?![^>]*\bsrc=)'
+  hint: "Load a static ES module instead: <script type=\"module\" src=\"{% static 'app/page.js' %}\">, and pass per-page data with json_script or data-* attributes."
+  filePattern: '.*\.html$'
+- name: No inline event handlers in templates
+  pattern: '\s(?:onclick|onchange|oninput|onsubmit|onfocus|onblur|onkeydown|onkeyup|onload|onerror|onmouseover|onmouseout|ondblclick)\s*='
+  hint: "Drive behavior with a data hook instead (data-dialog, data-dialog-close, data-backdrop-close, data-auto-open, data-confirm, data-copy, data-share, data-href, data-toggle, data-select, data-mirror). root/static/js/app.js handles them all."
+  filePattern: '.*\.html$'

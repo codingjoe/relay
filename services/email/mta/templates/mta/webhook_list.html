@@ -7,7 +7,7 @@
     <button
       type="button"
       class="btn"
-      onclick="document.getElementById('dlg-new-webhook').showModal()"
+      data-dialog="dlg-new-webhook"
     >
       {% translate "new webhook"|title %}
     </button>
@@ -52,7 +52,8 @@
                 id="id_domain"
                 class="select w-full"
                 required
-                onchange="document.getElementById('id-pattern-suffix').textContent = '@' + this.options[this.selectedIndex].text"
+                data-mirror="id-pattern-suffix"
+                data-mirror-prefix="@"
               >
                 {% for domain in domain_choices %}
                   <option value="{{ domain.pk }}">{{ domain.name }}</option>
@@ -84,7 +85,7 @@
           type="button"
           class="btn"
           data-variant="secondary"
-          onclick="document.getElementById('dlg-new-webhook').close()"
+          data-dialog-close="dlg-new-webhook"
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>
@@ -120,14 +121,14 @@
                   type="text"
                   readonly
                   value="{{ webhook.public_key_serialized }}"
-                  onfocus="this.select()"
+                  data-select
                 >
                 <button
                   type="button"
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized|escapejs }}')"
+                  data-copy="{{ webhook.public_key_serialized }}"
                   aria-label="{% translate 'copy public key'|capfirst %}"
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -149,7 +150,7 @@
                 class="btn"
                 data-variant="destructive"
                 data-size="sm"
-                onclick="return confirm('{% translate "delete this webhook?"|capfirst context "verb" %}')"
+                data-confirm='{% translate "delete this webhook?"|capfirst context "verb" %}'
               >
                 {% translate "delete"|capfirst context "verb" %}
               </button>
@@ -175,7 +176,7 @@
         <button
           type="button"
           class="btn"
-          onclick="document.getElementById('dlg-new-webhook').showModal()"
+          data-dialog="dlg-new-webhook"
         >
           {% translate "create your first webhook"|title %}
         </button>

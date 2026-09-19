@@ -72,8 +72,7 @@ class TestGetStartedView:
             in content
         )
         assert (
-            "getElementById('dlg-test-email').showModal()"
-            in content.split('id="dlg-test-email"', 1)[0]
+            'data-dialog="dlg-test-email"' in content.split('id="dlg-test-email"', 1)[0]
         )
 
     def test_get__first_steps_scoped_to_org(self, admin_client, org, write_org, user):

@@ -78,7 +78,7 @@
             data-variant="destructive"
             formaction="{% url 'msa:suppression-remove' org.slug %}"
             aria-label='{% translate "remove address"|title %}'
-            onclick="return confirm('{% translate "remove this address from the suppression list?"|capfirst %}')"
+            data-confirm='{% translate "remove this address from the suppression list?"|capfirst %}'
           >
             {% translate "remove"|capfirst context "verb" %}
           </button>
@@ -91,7 +91,7 @@
           type="button"
           class="btn"
           data-variant="destructive"
-          onclick="document.getElementById('dlg-clear-suppression').showModal()"
+          data-dialog="dlg-clear-suppression"
         >
           {% translate "clear list"|title %}
         </button>
@@ -99,7 +99,7 @@
     {% endif %}
   </article>
 
-  <dialog class="alert-dialog" id="dlg-clear-suppression" onclick="if (event.target === this) this.close()">
+  <dialog class="alert-dialog" id="dlg-clear-suppression" data-backdrop-close>
     <div>
       <header>
         <h2>{% translate "clear the suppression list?"|capfirst context "verb" %}</h2>
@@ -115,7 +115,7 @@
           type="button"
           class="btn"
           data-variant="outline"
-          onclick="this.closest('dialog').close()"
+          data-dialog-close
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>
