@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message abstract %}
+{% load i18n humanize message abstract %}
 {% block title %}{% translate "email messages"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -147,8 +147,8 @@
   </div>
 
   <p class="text-sm text-muted-foreground mb-4" role="status">
-    {% blocktranslate count counter=paginator.count trimmed %}
-      {{ counter }} message{% plural %}{{ counter }} messages
+    {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
+      {{ count }} message{% plural %}{{ count }} messages
     {% endblocktranslate %}
   </p>
 
