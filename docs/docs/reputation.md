@@ -122,8 +122,10 @@ in and pick an organization, and it holds the first position in the sidebar.
 It leads with the sending volume of this month and the last one, cumulative
 day by day and charted against the free tier limit. Below that sit the plan,
 the hard-bounce rate, and the complaint rate next to their limits, then two
-graphs: the rates with their limits, and the sent, bounced, and complained
-counts per day. Both cover the window relay evaluates.
+graphs over the window relay evaluates: the rates with their limits, and the
+delivery outcomes per day. Every outcome bar is a share of that day, drawn
+with the day's own message count, and its card header carries the totals of
+the window.
 
 The plan card names the plan and the messages it allows per month. A
 suspended organization reads as suspended in that card, since a suspension

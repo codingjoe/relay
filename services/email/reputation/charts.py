@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.humanize.templatetags.humanize import intcomma
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -22,7 +23,69 @@ REPUTATION_CHART_COLORS = {
     "complaint_limit": "var(--color-chart-gray)",
     "this_month": "var(--color-chart-green)",
     "last_month": "var(--color-chart-gray)",
+    "delivered": "var(--color-chart-green)",
 }
+
+
+def sent_per_day(org, start):
+    """Return the outgoing message count per day since `start`."""
+    rows = (
+        OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+    )
+    return {row["day"]: row["count"] for row in rows}
+
+
+def bounced_per_day(org, start):
+    """Return the hard and soft bounce counts per day since `start`."""
+    rows = (
+        Transmission.objects.filter(
+            message__org=org,
+            message__created_at__date__gte=start,
+            status=Transmission.Status.BOUNCED,
+        )
+        .annotate(day=TruncDate("message__created_at"))
+        .values("day")
+        .annotate(
+            hard=Count("id", filter=Q(code__gte=500)),
+            soft=Count("id", filter=Q(code__lt=500)),
+        )
+    )
+    rows = list(rows)
+    return (
+        {row["day"]: row["hard"] for row in rows},
+        {row["day"]: row["soft"] for row in rows},
+    )
+
+
+def complaints_per_day(org, start):
+    """Return the complaint count per day since `start`."""
+    reports = (
+        FblReport.objects.filter(
+            org=org,
+            created_at__date__gte=start,
+            source=FblReport.Source.PROVIDER,
+        )
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+    )
+    complaints = {row["day"]: row["count"] for row in reports}
+    held = (
+        OutgoingMessage.objects.filter(
+            org=org,
+            created_at__date__gte=start,
+            status=OutgoingMessage.Status.HELD,
+        )
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+    )
+    for row in held:
+        complaints[row["day"]] = complaints.get(row["day"], 0) + row["count"]
+    return complaints
 
 
 def build_reputation_chart(org):
@@ -39,57 +102,9 @@ def build_reputation_chart(org):
     window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
     start = timezone.localdate() - timedelta(days=window_days - 1)
 
-    sent_rows = (
-        OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
-        .annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
-    )
-    sent_counts = {row["day"]: row["count"] for row in sent_rows}
-
-    bounce_rows = (
-        Transmission.objects.filter(
-            message__org=org,
-            message__created_at__date__gte=start,
-            status=Transmission.Status.BOUNCED,
-        )
-        .annotate(day=TruncDate("message__created_at"))
-        .values("day")
-        .annotate(
-            hard=Count("id", filter=Q(code__gte=500)),
-            soft=Count("id", filter=Q(code__lt=500)),
-        )
-    )
-    rows = list(bounce_rows)
-    hard_bounce_counts = {row["day"]: row["hard"] for row in rows}
-    soft_bounce_counts = {row["day"]: row["soft"] for row in rows}
-
-    complaint_rows = (
-        FblReport.objects.filter(
-            org=org,
-            created_at__date__gte=start,
-            source=FblReport.Source.PROVIDER,
-        )
-        .annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
-    )
-    complaint_counts = {row["day"]: row["count"] for row in complaint_rows}
-
-    held_spam_rows = (
-        OutgoingMessage.objects.filter(
-            org=org,
-            created_at__date__gte=start,
-            status=OutgoingMessage.Status.HELD,
-        )
-        .annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
-    )
-    for row in held_spam_rows:
-        complaint_counts[row["day"]] = (
-            complaint_counts.get(row["day"], 0) + row["count"]
-        )
+    sent_counts = sent_per_day(org, start)
+    hard_bounce_counts, soft_bounce_counts = bounced_per_day(org, start)
+    complaint_counts = complaints_per_day(org, start)
 
     days_list = [start + timedelta(days=offset) for offset in range(window_days)]
     series = [
@@ -256,4 +271,86 @@ def build_volume_chart(org):
             "label": gettext("Free tier"),
         },
         "y_scale": {"stacked": "false"},
+    }
+
+
+def build_outcome_chart(org):
+    """
+    Return the daily delivery outcomes of the evaluation window.
+
+    Each day's bar splits the messages relay accepted that day into what
+    happened to them: delivered, soft bounce, hard bounce, and complaint.
+    The counts clamp to the messages of the day, because one message can
+    bounce more than once. Bars carry shares of the day, so the day's own
+    total rides above them and the window totals go to the card header.
+    """
+    window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
+    start = timezone.localdate() - timedelta(days=window_days - 1)
+    days_list = [start + timedelta(days=offset) for offset in range(window_days)]
+
+    sent_counts = sent_per_day(org, start)
+    hard_counts, soft_counts = bounced_per_day(org, start)
+    complaint_counts = complaints_per_day(org, start)
+
+    rows = []
+    totals = {"sent": 0, "hard_bounced": 0, "soft_bounced": 0, "complained": 0}
+    for day in days_list:
+        sent = sent_counts.get(day, 0)
+        hard = min(hard_counts.get(day, 0), sent)
+        soft = min(soft_counts.get(day, 0), sent - hard)
+        complained = min(complaint_counts.get(day, 0), sent - hard - soft)
+        totals["sent"] += sent
+        totals["hard_bounced"] += hard
+        totals["soft_bounced"] += soft
+        totals["complained"] += complained
+        shares = {
+            "delivered": 0.0,
+            "soft_bounced": 0.0,
+            "hard_bounced": 0.0,
+            "complained": 0.0,
+        }
+        if sent:
+            share = 100 / sent
+            shares = {
+                "delivered": round(100 - (hard + soft + complained) * share, 1),
+                "soft_bounced": round(soft * share, 1),
+                "hard_bounced": round(hard * share, 1),
+                "complained": round(complained * share, 1),
+            }
+        rows.append({"day": day.isoformat(), "total": sent} | shares)
+    return {
+        "series": [
+            {
+                "key": "delivered",
+                "label": gettext("Delivered"),
+                "color": REPUTATION_CHART_COLORS["delivered"],
+            },
+            {
+                "key": "soft_bounced",
+                "label": gettext("Soft bounces"),
+                "color": REPUTATION_CHART_COLORS["soft_bounced"],
+            },
+            {
+                "key": "hard_bounced",
+                "label": gettext("Hard bounces"),
+                "color": REPUTATION_CHART_COLORS["hard_bounced"],
+            },
+            {
+                "key": "complained",
+                "label": gettext("Complaints"),
+                "color": REPUTATION_CHART_COLORS["complained"],
+            },
+        ],
+        "rows": rows,
+        "subtitle": gettext(
+            "%(sent)s sent, %(hard)s hard bounces, %(soft)s soft bounces, "
+            "%(complaints)s complaints"
+        )
+        % {
+            "sent": intcomma(totals["sent"]),
+            "hard": intcomma(totals["hard_bounced"]),
+            "soft": intcomma(totals["soft_bounced"]),
+            "complaints": intcomma(totals["complained"]),
+        },
+        "y_scale": {"percent": True},
     }
