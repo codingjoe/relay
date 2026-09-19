@@ -6,7 +6,7 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .billing import money, month_cost, overage_price
+from .billing import month_cost, overage_price
 from .charts import build_reputation_chart, build_volume_chart
 from .models import FblReport
 
@@ -71,7 +71,7 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
     def get_template_names(self):
         return ["reputation/overview.html"]
 
-    title = _("Reputation and usage")
+    title = _("Monitoring")
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
@@ -96,7 +96,6 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "chart_complaints": chart["complaint_chart"],
             "chart_volume": volume,
             "cost": cost,
-            "cost_display": money(cost),
             "month_messages": volume["this_month_total"],
             "overage_price": overage_price(),
             "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% load i18n humanize abstract %}
-{% block title %}{% translate "reputation and usage"|capfirst %} | relay{% endblock %}
+{% load i18n humanize l10n abstract %}
+{% block title %}{% translate "monitoring"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "reputation and usage"|capfirst %}</h2>
+    <h2 class="m-0">{% translate "monitoring"|capfirst %}</h2>
   </header>
 
   <div class="grid gap-4 sm:grid-cols-3 mb-6">
@@ -11,7 +11,7 @@
       <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "cost"|capfirst %}</h3>
       <p class="m-0 mt-1 text-2xl font-semibold text-success">
         {% if cost %}
-          {{ cost_display }}
+          <relay-amount amount="{{ cost|unlocalize }}" currency="EUR">€{{ cost|floatformat:2 }}</relay-amount>
         {% else %}
           {% translate "free"|capfirst %}
         {% endif %}
@@ -21,8 +21,8 @@
           Up to {{ limit }} messages a month.
         {% endblocktranslate %}
         {% if overage_price %}
-          {% blocktranslate with price=overage_price trimmed %}
-            Then {{ price }} per 1,000 messages.
+          {% blocktranslate with amount=overage_price|unlocalize trimmed %}
+            Then <relay-amount amount="{{ amount }}" currency="EUR">€{{ amount }}</relay-amount> per 1,000 messages.
           {% endblocktranslate %}
         {% endif %}
         {% if cost %}

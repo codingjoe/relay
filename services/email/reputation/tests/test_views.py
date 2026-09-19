@@ -36,7 +36,7 @@ def make_report(org, **kwargs):
 
 
 def overview_url(org):
-    return reverse("reputation:overview", kwargs={"org_slug": org.slug})
+    return reverse("monitoring:overview", kwargs={"org_slug": org.slug})
 
 
 def card_containing(content, label):
@@ -58,7 +58,7 @@ class TestFblReportListView:
     def test_get__lists_fbl_reports(self, admin_client, org):
         make_report(org)
         response = admin_client.get(
-            reverse("reputation:fbl-report-list", kwargs={"org_slug": org.slug})
+            reverse("monitoring:fbl-report-list", kwargs={"org_slug": org.slug})
         )
         assert response.status_code == 200
         assert b"sender@acme.com" in response.content
@@ -69,7 +69,7 @@ class TestFblReportListView:
         make_report(org, domain=acme, original_mail_from="one@acme.com")
         make_report(org, domain=globex, original_mail_from="two@globex.com")
         response = admin_client.get(
-            reverse("reputation:fbl-report-list", kwargs={"org_slug": org.slug}),
+            reverse("monitoring:fbl-report-list", kwargs={"org_slug": org.slug}),
             {"domain": "globex.com"},
         )
         assert response.status_code == 200
@@ -91,7 +91,7 @@ class TestFblReportListView:
             original_mail_from="fraud@acme.com",
         )
         response = admin_client.get(
-            reverse("reputation:fbl-report-list", kwargs={"org_slug": org.slug}),
+            reverse("monitoring:fbl-report-list", kwargs={"org_slug": org.slug}),
             {"feedback_type": "fraud"},
         )
         assert response.status_code == 200
@@ -128,7 +128,7 @@ class TestFblReportDetailView:
         )
         response = admin_client.get(
             reverse(
-                "reputation:fbl-report-detail",
+                "monitoring:fbl-report-detail",
                 kwargs={"org_slug": org.slug, "pk": report.pk},
             )
         )
@@ -140,7 +140,7 @@ class TestFblReportDetailView:
         report = self.make_report_with_body(org, b"")
         response = admin_client.get(
             reverse(
-                "reputation:fbl-report-detail",
+                "monitoring:fbl-report-detail",
                 kwargs={"org_slug": org.slug, "pk": report.pk},
             )
         )
@@ -215,8 +215,8 @@ class TestReputationOverviewView:
         assert response.status_code == 200
         content = response.content.decode()
         assert response.context["cost"] == Decimal("0.02")
-        assert "€0.02" in content
-        assert "Then €10.00 per 1,000 messages." in content
+        assert 'amount="0.02" currency="EUR"' in content
+        assert 'amount="10.0" currency="EUR"' in content
         assert "3 messages this month." in content
 
     def test_get__charts_the_rates_in_per_cent_with_their_limits(

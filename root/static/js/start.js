@@ -12,18 +12,11 @@ if (slider && amount && volume) {
     return count.toLocaleString("en-US");
   }
 
-  function formatEur(value) {
-    return new Intl.NumberFormat("en-IE", {
-      style: "currency",
-      currency: "EUR",
-    }).format(value);
-  }
-
   function update() {
     const messages = Number(slider.value);
     const total = ((messages - free) / 1000) * perThousand;
     volume.textContent = formatVolume(messages);
-    amount.textContent = formatEur(total);
+    amount.setAttribute("amount", String(total));
   }
 
   slider.addEventListener("input", update);

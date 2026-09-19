@@ -44,6 +44,7 @@
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
     <script type="module" src="{% static 'js/app.js' %}"></script>
+    <script type="module" src="{% static 'js/amount.js' %}"></script>
   </head>
   <body class="min-h-screen flex">
     {% if current_org and request.resolver_match.namespace != 'accounts' %}

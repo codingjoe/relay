@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from services.email.reputation.billing import money, month_cost, overage_price
+from services.email.reputation.billing import month_cost, overage_price
 
 
 class TestMonthCost:
@@ -38,24 +38,16 @@ class TestMonthCost:
         assert month_cost(5000) == Decimal("0.00")
 
 
-class TestMoney:
-    def test_formats_in_euro(self):
-        assert money(Decimal("1234.5")) == "€1,234.50"
-
-    def test_zero__formats_in_euro(self):
-        assert money(Decimal("0.00")) == "€0.00"
-
-
 class TestOveragePrice:
     def test_without_a_price__has_none(self, settings):
         settings.RELAY_PRICE_PER_1000_MESSAGES = 0.0
 
         assert overage_price() is None
 
-    def test_with_a_price__formats_it(self, settings):
+    def test_with_a_price__is_the_price(self, settings):
         settings.RELAY_PRICE_PER_1000_MESSAGES = 2.5
 
-        assert overage_price() == "€2.50"
+        assert overage_price() == Decimal("2.5")
 
     def test_with_a_negative_price__has_none(self, settings):
         settings.RELAY_PRICE_PER_1000_MESSAGES = -5.0
