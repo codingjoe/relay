@@ -30,8 +30,9 @@
   --color-chart-gray: light-dark(hsl(224, 4%, 45%), hsl(224, 10%, 65%));
 
   /* Muted text on the page background must stay above the 4.5:1 WCAG AA
-     floor (the basecoat default reaches only 4.3:1 in light mode). */
-  --muted-foreground: oklch(0.48 0 0);
+     floor: the basecoat light default reaches only 4.3:1, and its dark
+     default is the one to keep. */
+  --muted-foreground: light-dark(oklch(0.48 0 0), oklch(0.708 0 0));
 }
 
 /* Fira Sans (sans) and Fira Code (mono) for UI text, code, and numbers.
