@@ -8,12 +8,28 @@
 
   <div class="grid gap-4 sm:grid-cols-3 mb-6">
     <section class="card p-6 bg-success/10">
-      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "plan"|capfirst %}</h3>
-      <p class="m-0 mt-1 text-2xl font-semibold text-success">{% translate "free"|capfirst %}</p>
+      <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "cost"|capfirst %}</h3>
+      <p class="m-0 mt-1 text-2xl font-semibold text-success">
+        {% if cost %}
+          {{ cost_display }}
+        {% else %}
+          {% translate "free"|capfirst %}
+        {% endif %}
+      </p>
       <p class="m-0 text-sm text-muted-foreground">
         {% blocktranslate with limit=free_monthly_messages|intcomma trimmed %}
           Up to {{ limit }} messages a month.
         {% endblocktranslate %}
+        {% if overage_price %}
+          {% blocktranslate with price=overage_price trimmed %}
+            Then {{ price }} per 1,000 messages.
+          {% endblocktranslate %}
+        {% endif %}
+        {% if cost %}
+          {% blocktranslate with count=month_messages|intcomma trimmed %}
+            {{ count }} messages this month.
+          {% endblocktranslate %}
+        {% endif %}
       </p>
       {% if org.suspended_at %}
         <p class="m-0 text-sm text-destructive">{% translate "sending is suspended."|capfirst %}</p>

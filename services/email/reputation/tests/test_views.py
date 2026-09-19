@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 
 import pytest
 from django.conf import settings
@@ -182,6 +183,31 @@ class TestReputationOverviewView:
             f"Up to {settings.RELAY_FREE_MONTHLY_MESSAGES:,} messages a month."
             in response.content.decode()
         )
+        assert "Free" in response.content.decode()
+
+    def test_get__shows_the_cost_of_a_month_past_the_allowance(
+        self, admin_client, org, settings
+    ):
+        settings.RELAY_FREE_MONTHLY_MESSAGES = 1
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 10.0
+        domain = Domain.objects.create(name="acme.com", org=org)
+        for index in range(3):
+            OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
+            )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert response.context["cost"] == Decimal("0.02")
+        assert "USD 0.02" in content
+        assert "Then USD 10.00 per 1,000 messages." in content
+        assert "3 messages this month." in content
 
     def test_get__charts_the_rates_as_shares_of_their_limits(
         self, admin_client, org, user
@@ -210,11 +236,11 @@ class TestReputationOverviewView:
         complaints = response.context["chart_complaints"]
         last = bounces["rows"][-1]
         assert last["hard_bounce_rate"] == 50.0
-        assert last["hard_bounce_share"] == 1000.0
-        assert last["complaint_share"] == 0.0
-        assert bounces["threshold"]["value"] == 100
-        assert bounces["series"][0]["key"] == "hard_bounce_share"
-        assert complaints["series"][0]["key"] == "complaint_share"
+        assert last["complaint_rate"] == 0.0
+        assert bounces["threshold"]["value"] == 5.0
+        assert complaints["threshold"]["value"] == 0.1
+        assert bounces["series"][0]["key"] == "hard_bounce_rate"
+        assert complaints["series"][0]["key"] == "complaint_rate"
 
     def test_get__charts_this_month_and_last_month_volume(self, admin_client, org):
         domain = Domain.objects.create(name="acme.com", org=org)

@@ -87,18 +87,14 @@ def complaints_per_day(org, start):
     return complaints
 
 
-def share_of_limit(rate, limit):
-    """Return `rate` as a percentage of `limit`, or None without a rate."""
-    return round(rate / limit * 100, 1) if rate is not None else None
-
-
-def rate_chart(rows, key, label, color, subtitle):
+def rate_chart(rows, key, label, color, limit, subtitle):
     """
-    Return one rate chart, drawn as a share of its own limit.
+    Return one rate chart, with that rate's own limit as a threshold line.
 
-    The limit sits on the 100 per cent line, so a rate reads as how much of
-    the allowed rate the organization uses, and a rate over the limit shows
-    above that line.
+    The axis reads in per cent, so a 5 per cent bounce limit and a 0.1 per
+    cent complaint limit each stay legible on their own chart. The limit
+    line sits on the top edge, and a rate over the limit grows the axis so
+    it still shows above the line.
     """
     return {
         "series": [
@@ -111,7 +107,7 @@ def rate_chart(rows, key, label, color, subtitle):
         ],
         "rows": rows,
         "subtitle": subtitle,
-        "threshold": {"value": 100, "label": gettext("Limit")},
+        "threshold": {"value": limit, "label": gettext("Limit")},
         "y_scale": {"stacked": "false", "percent": True},
     }
 
@@ -123,9 +119,9 @@ def build_reputation_chart(org):
     Counts provider FBL reports and outgoing messages held as spam as
     complaints. Values accumulate from the start of the evaluation
     window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
-    equals the rates the reputation check evaluates. Each row carries its
-    rates as a share of the matching limit, which puts that limit on the
-    100 per cent line of the rate's own chart.
+    equals the rates the reputation check evaluates. Rates stay in per
+    cent, and each rate gets a chart of its own with the matching limit
+    as its threshold line.
     """
     window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
     start = timezone.localdate() - timedelta(days=window_days - 1)
@@ -166,8 +162,6 @@ def build_reputation_chart(org):
             "complained": complaint_cumulative[index],
             "hard_bounce_rate": hard_bounce_rates[index],
             "complaint_rate": complaint_rates[index],
-            "hard_bounce_share": share_of_limit(hard_bounce_rates[index], bounce_limit),
-            "complaint_share": share_of_limit(complaint_rates[index], complaint_limit),
         }
         for index, day in enumerate(days_list)
     ]
@@ -175,9 +169,10 @@ def build_reputation_chart(org):
         "rows": rows,
         "bounce_chart": rate_chart(
             rows,
-            key="hard_bounce_share",
+            key="hard_bounce_rate",
             label=gettext("Hard bounce rate"),
             color=REPUTATION_CHART_COLORS["hard_bounce_rate"],
+            limit=bounce_limit,
             subtitle=gettext("%(count)s hard bounces of %(sent)s sent, limit %(limit)s")
             % {
                 "count": intcomma(hard_bounce_cumulative[-1]),
@@ -187,9 +182,10 @@ def build_reputation_chart(org):
         ),
         "complaint_chart": rate_chart(
             rows,
-            key="complaint_share",
+            key="complaint_rate",
             label=gettext("Complaint rate"),
             color=REPUTATION_CHART_COLORS["complaint_rate"],
+            limit=complaint_limit,
             subtitle=gettext("%(count)s complaints of %(sent)s sent, limit %(limit)s")
             % {
                 "count": intcomma(complaint_cumulative[-1]),
@@ -208,6 +204,7 @@ def build_volume_chart(org):
     messages relay accepted up to that day, this month and the same day
     of the last month. The free plan limit rides along as a threshold
     line, so the chart shows how far the month has come against it.
+    `this_month_total` carries the month's total for the plan card.
     """
     today = timezone.localdate()
     this_month = today.replace(day=1)
@@ -270,6 +267,7 @@ def build_volume_chart(org):
         ],
         "rows": rows,
         "x_day": True,
+        "this_month_total": this_total,
         "subtitle": gettext("Cumulative, against the free tier"),
         "threshold": {
             "value": settings.RELAY_FREE_MONTHLY_MESSAGES,

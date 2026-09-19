@@ -34,6 +34,20 @@
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
       const diverging = {% if chart.y_scale.diverging %}true{% else %}false{% endif %};
+      /*
+       * A threshold line has to stay inside the plot, so the axis grows to
+       * cover it. A per-cent axis stops at the threshold itself, which puts
+       * the line on its top edge.
+       */
+      const axisMax = (threshold = 0) => (value) => {
+        const highest = Math.max(
+          Number.isFinite(value.max) ? value.max : 0,
+          threshold,
+        );
+        // Per-cent axes hold fractions, so they take headroom instead of a
+        // ceiling that would round a 0.1 per cent limit up to a whole one.
+        return percent ? highest * 1.1 : Math.ceil(highest * 1.05);
+      };
       const formatValue = (value) => {
         if (value === null || value === undefined) return "-";
         return String(diverging ? Math.abs(value) : value);
@@ -98,14 +112,13 @@
           {% if chart.y_scale.diverging %}
           axisLabel: { formatter: (value) => Math.abs(value) },
           {% elif chart.y_scale.percent %}
+          splitNumber: 4,
           axisLabel: { formatter: (value) => `${value}%` },
           {% endif %}
           {% if chart.threshold %}
-          /* Keep the threshold line inside the plot, whatever the volume is. */
-          max: (value) =>
-            Math.ceil(Math.max(value.max, {{ chart.threshold.value }}) * 1.05),
+          max: axisMax({{ chart.threshold.value }}),
           {% elif chart.y_scale.percent %}
-          max: 100,
+          max: axisMax(),
           {% endif %}
         },
         series: [

@@ -357,6 +357,14 @@ RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100
 # reputation overview charts the current and the previous month against it.
 RELAY_FREE_MONTHLY_MESSAGES = env.int("RELAY_FREE_MONTHLY_MESSAGES", default=1000)
 
+# Price of 1,000 messages beyond the free plan allowance, in the currency
+# below. Zero keeps every organization on the free plan.
+RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.0)
+# Label placed before every amount, a code ("USD ") or a symbol ("EUR ").
+# django-environ reads a leading "$" as a variable reference, so write a
+# literal dollar sign as "\$".
+RELAY_CURRENCY = env("RELAY_CURRENCY", default="USD ")
+
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")

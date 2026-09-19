@@ -126,10 +126,12 @@ bounce rate and the complaint rate, drawn as a share of their own limit so
 that the limit sits on the 100 per cent line and a breach shows above it.
 Every card header carries the totals it charts.
 
-The plan card stays green: a plan does not change because sending is
-suspended or because the volume runs past the free tier. A suspended
-organization carries a note about it in that card, since a suspension stops
-sending until an operator lifts it.
+The cost card names what the month costs. It reads Free while the month sits
+inside the free tier allowance and no price is configured, and the amount
+otherwise, with the allowance and the price per 1,000 messages under it. The
+card stays green either way: a cost is not a fault. A suspended organization
+carries a note about it in that card, since a suspension stops sending until
+an operator lifts it.
 
 A new organization opens a get started page instead. That page tracks three
 steps: the managed sender domain going live, your first sent email, and your
