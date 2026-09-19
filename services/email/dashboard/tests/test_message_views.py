@@ -198,7 +198,7 @@ class TestMessageDetailStatusCard:
 
         assert response.status_code == 200
         content = response.content.decode()
-        assert "spam reject" in content
+        assert "Spam reject" in content
         assert "Eicar-Test-Signature" in content
 
     def test_get__omits_the_delivery_summary_without_attempts(self, admin_client, org):

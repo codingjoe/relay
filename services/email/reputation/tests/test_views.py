@@ -136,7 +136,11 @@ class TestReputationOverviewView:
         response = admin_client.get(overview_url(org))
         assert response.status_code == 200
         assert response.context["stats"]["total_sent"] == 0
-        bounce_card = response.content.decode().split("Hard bounce rate", 1)[1]
+        bounce_card = (
+            response.content.decode()
+            .split("Hard bounce rate", 1)[1]
+            .split("Complaint rate", 1)[0]
+        )
         assert "text-success" in bounce_card
 
     def test_get__tints_the_status_card_when_suspended(self, admin_client, org):
@@ -169,8 +173,29 @@ class TestReputationOverviewView:
         assert response.status_code == 200
         content = response.content.decode()
         assert content.count("bg-destructive/10") == 1
-        bounce_card = content.split("Hard bounce rate", 1)[1]
+        bounce_card = content.split("Hard bounce rate", 1)[1].split(
+            "Complaint rate", 1
+        )[0]
         assert "text-destructive" in bounce_card
+
+    def test_get__tints_the_complaint_card_over_the_limit(
+        self, admin_client, org, user
+    ):
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=Domain.objects.create(name="acme.com", org=org),
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            raw_body=SimpleUploadedFile("held.eml", b"body"),
+            status=OutgoingMessage.Status.HELD,
+        )
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        complaint_card = response.content.decode().split("Complaint rate", 1)[1]
+        assert "bg-destructive/10" in complaint_card
+        assert "text-destructive" in complaint_card
 
     def test_get__counts_held_spam_as_complaints_in_chart(
         self, admin_client, org, user

@@ -343,6 +343,9 @@ class TestCredentialListView:
     def test_get__ok_for_member(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
+        content = response.content.decode()
+        assert 'class="empty"' in content
+        assert "No credentials yet." in content
 
     @pytest.mark.django_db
     def test_get__filters_by_org(self, admin_client, org, write_org):
@@ -366,7 +369,10 @@ class TestCredentialListView:
     def test_get__renders_connection_uri(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
-        assert "@smtp.testserver:465" in response.content.decode()
+        assert (
+            "smtps://test-org:&lt;credential key&gt;@smtp.testserver:465"
+            in response.content.decode()
+        )
 
     def test_get__opens_the_key_dialog_after_creation(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
@@ -481,10 +487,20 @@ class TestSuppressionListView:
         assert response.status_code == 200
         content = response.content.decode()
         assert "two addresses on the suppression list" in content
+        assert "dlg-clear-suppression').showModal()" in content
         assert content.index('class="empty"') < content.index('id="form-suppression"')
         assert content.index('id="form-suppression"') < content.index(
             'id="dlg-clear-suppression"'
         )
+
+    @pytest.mark.django_db
+    def test_get__counts_no_addresses(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "0 addresses on the suppression list" in content
+        assert "dlg-clear-suppression').showModal()" not in content
 
     @pytest.mark.django_db
     def test_post__clears_the_list(self, admin_client, org):
@@ -496,21 +512,6 @@ class TestSuppressionListView:
 
         assert response.status_code == 302
         assert not SuppressionEntry.objects.filter(org=org).exists()
-
-    @pytest.mark.django_db
-    def test_get__shows_the_count_beside_the_actions(self, admin_client, org):
-        SuppressionEntry.objects.create_or_update(
-            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
-        )
-        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
-
-        assert response.status_code == 200
-        content = response.content.decode()
-        assert (
-            content.index('id="chart-suppression"')
-            < content.index("1 address")
-            < content.index('id="form-suppression"')
-        )
 
     @pytest.mark.django_db
     def test_get__renders_one_address_form_for_all_actions(self, admin_client, org):

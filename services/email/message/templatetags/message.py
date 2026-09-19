@@ -16,22 +16,24 @@ register = template.Library()
 email_formatter = HtmlFormatter(cssclass="highlight-email")
 
 VARIANT_CLASSES = {
-    "success": ("text-success", "bg-success/10"),
-    "warning": ("text-warning", "bg-warning/10"),
-    "destructive": ("text-destructive", "bg-destructive/10"),
+    "success": "text-success",
+    "warning": "text-warning",
+    "destructive": "text-destructive",
 }
+
+SURFACE_CLASSES = {variant: f"bg-{variant}/10" for variant in VARIANT_CLASSES}
 
 
 @register.filter
 def text_class(variant: str) -> str:
     """Return the traffic-light text color of a badge variant."""
-    return VARIANT_CLASSES.get(variant, ("text-muted-foreground", ""))[0]
+    return VARIANT_CLASSES.get(variant, "text-muted-foreground")
 
 
 @register.filter
 def surface_class(variant: str) -> str:
     """Return the faint background tint of a badge variant."""
-    return VARIANT_CLASSES.get(variant, ("", ""))[1]
+    return SURFACE_CLASSES.get(variant, "")
 
 
 def render(value: str, lexer) -> str:

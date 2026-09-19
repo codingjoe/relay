@@ -23,6 +23,6 @@ def relative_record_name(record_name: str, domain: Domain) -> str:
 @register.filter
 def apex_suffix(record_name: str, domain: Domain) -> str:
     """Return the zone a relative record name sits in, empty at the apex."""
-    if record_name == domain.name or not record_name.endswith(f".{domain.name}"):
+    if not record_name.endswith(f".{domain.name}"):
         return ""
     return f".{domain.name}"

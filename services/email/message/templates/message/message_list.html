@@ -4,20 +4,13 @@
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "email messages"|capfirst %}</h2>
-    <div class="flex items-center gap-2">
-      <p class="text-sm text-muted-foreground m-0" role="status">
-        {% blocktranslate count counter=paginator.count trimmed %}
-          {{ counter }} message{% plural %}{{ counter }} messages
-        {% endblocktranslate %}
-      </p>
-      <button
-        type="button"
-        class="btn"
-        onclick="document.getElementById('dlg-test-email').showModal()"
-      >
-        {% translate "send test email"|title %}
-      </button>
-    </div>
+    <button
+      type="button"
+      class="btn"
+      onclick="document.getElementById('dlg-test-email').showModal()"
+    >
+      {% translate "send test email"|title %}
+    </button>
   </header>
 
   {% include "partials/test_email_dialog.html" %}
@@ -152,6 +145,12 @@
       </a>
     {% endif %}
   </div>
+
+  <p class="text-sm text-muted-foreground mb-4" role="status">
+    {% blocktranslate count counter=paginator.count trimmed %}
+      {{ counter }} message{% plural %}{{ counter }} messages
+    {% endblocktranslate %}
+  </p>
 
   <div class="item-group mb-6">
     {% for message in messages %}

@@ -89,7 +89,7 @@
                   onfocus="this.select()"
                 >
                 <span
-                  class="select-none ps-1 text-sm text-muted-foreground"
+                  class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
                 >{{ domain.sender_domain|apex_suffix:domain }}</span>
                 <button
                   type="button"
@@ -147,7 +147,9 @@
                 value="{{ domain.name|relative_record_name:domain }}"
                 onfocus="this.select()"
               >
-              <span class="select-none ps-1 text-sm text-muted-foreground">{{ domain.name|apex_suffix:domain }}</span>
+              <span
+                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
+              >{{ domain.name|apex_suffix:domain }}</span>
               <button
                 type="button"
                 class="btn"
@@ -202,7 +204,9 @@
                   value="{{ cname.0|relative_record_name:domain }}"
                   onfocus="this.select()"
                 >
-                <span class="select-none ps-1 text-sm text-muted-foreground">{{ cname.0|apex_suffix:domain }}</span>
+                <span
+                  class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
+                >{{ cname.0|apex_suffix:domain }}</span>
                 <button
                   type="button"
                   class="btn"
@@ -253,7 +257,7 @@
                 onfocus="this.select()"
               >
               <span
-                class="select-none ps-1 text-sm text-muted-foreground"
+                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
               >{{ domain.dmarc_record_name|apex_suffix:domain }}</span>
               <button
                 type="button"
@@ -312,7 +316,9 @@
                   value="{{ domain.name|relative_record_name:domain }}"
                   onfocus="this.select()"
                 >
-                <span class="select-none ps-1 text-sm text-muted-foreground">{{ domain.name|apex_suffix:domain }}</span>
+                <span
+                  class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
+                >{{ domain.name|apex_suffix:domain }}</span>
                 <button
                   type="button"
                   class="btn"
@@ -380,7 +386,7 @@
                 onfocus="this.select()"
               >
               <span
-                class="select-none ps-1 text-sm text-muted-foreground"
+                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
               >{{ domain.tls_rpt_record_name|apex_suffix:domain }}</span>
               <button
                 type="button"
@@ -436,7 +442,7 @@
                 onfocus="this.select()"
               >
               <span
-                class="select-none ps-1 text-sm text-muted-foreground"
+                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
               >{{ domain.mta_sts_record_name|apex_suffix:domain }}</span>
               <button
                 type="button"
@@ -475,7 +481,7 @@
                 onfocus="this.select()"
               >
               <span
-                class="select-none ps-1 text-sm text-muted-foreground"
+                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
               >{{ domain.mta_sts_hostname|apex_suffix:domain }}</span>
               <button
                 type="button"
@@ -530,7 +536,9 @@
               value="{{ domain.name|relative_record_name:domain }}"
               onfocus="this.select()"
             >
-            <span class="select-none ps-1 text-sm text-muted-foreground">{{ domain.name|apex_suffix:domain }}</span>
+            <span
+              class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
+            >{{ domain.name|apex_suffix:domain }}</span>
             <button
               type="button"
               class="btn"
