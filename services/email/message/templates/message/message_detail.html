@@ -7,8 +7,7 @@
   </header>
 
   <article class="card p-6 mb-6 {{ message.status_badge_variant|surface_class }}">
-    <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "delivery"|capfirst %}</h3>
-    <p class="m-0 mt-1 text-2xl font-semibold">
+    <p class="m-0 text-2xl font-semibold">
       <span class="{{ message.status_badge_variant|text_class }}">
         {{ message.status_display|capfirst }}
       </span>
