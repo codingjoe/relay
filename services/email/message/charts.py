@@ -26,9 +26,8 @@ def get_message_model(model_name: str):
     """
     Return the concrete `Message` subclass with this model name.
 
-    The shared app reads its own subclasses, so it needs no sibling import
-    and no content type query. `Message.status_choices` reads them the same
-    way.
+    Reads the subclasses instead of importing a sibling app, like
+    `Message.status_choices` does.
     """
     return next(
         subclass
@@ -51,10 +50,8 @@ def build_kind_charts(messages, model_names) -> list:
     """
     Return one status chart per message kind, in the order of `model_names`.
 
-    One query counts every kind. Series colors follow the status badge
-    variants, so a status reads the same in the list and in the chart.
-    Callers pass the queryset the list shows, so the chart counts what the
-    filters select.
+    Counts the queryset the list shows, so the chart follows the filters, and
+    colors each status like its badge, so it reads the same in both places.
     """
     start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     rows = (
@@ -85,10 +82,9 @@ def build_direction_chart(messages) -> dict:
     """
     Return one chart of outgoing and incoming messages of `messages`.
 
-    Outgoing counts stay positive and incoming counts negate, so the
-    outgoing bars rise above the axis and the incoming bars hang below it.
-    Series keys and labels carry the direction, because both kinds define a
-    status named `dropped`.
+    Outgoing counts rise above the axis and incoming counts hang below it.
+    Keys carry the direction, because both kinds define a status named
+    `dropped`.
     """
     outgoing_direction, incoming_direction = MESSAGE_KINDS
     outgoing, incoming = build_kind_charts(messages, list(MESSAGE_KINDS.values()))

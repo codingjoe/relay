@@ -3,13 +3,7 @@ from services.email.msa.models import OutgoingMessage
 
 
 def get_email_context(org, request) -> dict:
-    """
-    Return the first-steps state and the sending domains of one organization.
-
-    The shared layout, the first-steps view, and the test email dialog all
-    ask for this on the same page, so the result is memoized on the request:
-    one domain query and one existence check per page.
-    """
+    """Return the first-steps state and the sending domains of one organization."""
     try:
         context = request.email_context
     except AttributeError:
