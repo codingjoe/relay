@@ -39,6 +39,46 @@ class TestHomeViewRender:
         assert response.status_code == 200
 
 
+class TestHomeViewPricing:
+    def test_get__shows_the_configured_free_tier(self, client, settings):
+        settings.RELAY_FREE_MONTHLY_MESSAGES = 2000
+
+        text = " ".join(client.get("/").content.decode().split())
+
+        assert "First 2,000 emails free every month" in text
+        assert 'min="2000"' in text
+        assert 'value="2000"' in text
+        assert '<span id="price-volume">2,000</span>' in text
+
+    def test_get__shows_a_changed_price(self, client, settings):
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 2.5
+
+        text = " ".join(client.get("/").content.decode().split())
+
+        assert "First 1,000 emails free, then €2.50 / 1,000 emails." in text
+        assert "const perThousand = 2.5;" in text
+
+    def test_get__without_a_price__shows_only_the_free_tier(self, client, settings):
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 0.0
+
+        text = " ".join(client.get("/").content.decode().split())
+
+        assert "First 1,000 emails free, every month." in text
+        assert "then €" not in text
+        assert "/ 1,000 emails." not in text
+
+    def test_get__with_a_negative_price__shows_only_the_free_tier(
+        self, client, settings
+    ):
+        settings.RELAY_PRICE_PER_1000_MESSAGES = -5.0
+
+        text = " ".join(client.get("/").content.decode().split())
+
+        assert "First 1,000 emails free, every month." in text
+        assert "const perThousand = 0;" in text
+        assert "€-" not in text
+
+
 class TestPublicChrome:
     """Public pages render the static chrome: no session access, no Vary: Cookie."""
 

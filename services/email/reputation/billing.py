@@ -18,12 +18,11 @@ def month_cost(messages):
 
 
 def money(cost):
-    """Return `cost` with the billing currency in front of it."""
-    return f"{settings.RELAY_CURRENCY}{cost:,.2f}"
+    """Return `cost` in euro, the currency relay bills in."""
+    return f"€{cost:,.2f}"
 
 
 def overage_price():
     """Return the price per 1,000 messages, or None when sending is free."""
-    if not settings.RELAY_PRICE_PER_1000_MESSAGES:
-        return None
-    return money(Decimal(str(settings.RELAY_PRICE_PER_1000_MESSAGES)))
+    price = max(Decimal(0), Decimal(str(settings.RELAY_PRICE_PER_1000_MESSAGES)))
+    return money(price) if price else None

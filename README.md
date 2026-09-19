@@ -244,17 +244,12 @@ allowlist their report sender.
 Every organization sends `RELAY_FREE_MONTHLY_MESSAGES` messages a month
 for free, and the reputation overview prices every 1,000 messages beyond
 that allowance at `RELAY_PRICE_PER_1000_MESSAGES`, rounded to cents. The
-default price of zero leaves every organization on the free tier.
-`RELAY_CURRENCY` labels each amount, a code (`USD `) or a symbol
-(`EUR `). django-environ reads a leading `$` as a reference to another
-variable, so a literal dollar sign needs `env.escape_proxy = True` and the
-escaped form `\$`; the default is therefore a code.
+landing page reads both for its pricing card, and amounts render in euro.
 
-| Variable                        | Default | Description                                                        |
-| ------------------------------- | ------- | ------------------------------------------------------------------ |
-| `RELAY_FREE_MONTHLY_MESSAGES`   | `1000`  | Messages per organization per month inside the free tier.          |
-| `RELAY_PRICE_PER_1000_MESSAGES` | `0.0`   | Price of 1,000 messages beyond the allowance, in `RELAY_CURRENCY`. |
-| `RELAY_CURRENCY`                | `USD `  | Label in front of every amount, a code or a symbol.                |
+| Variable                        | Default | Description                                               |
+| ------------------------------- | ------- | --------------------------------------------------------- |
+| `RELAY_FREE_MONTHLY_MESSAGES`   | `1000`  | Messages per organization per month inside the free tier. |
+| `RELAY_PRICE_PER_1000_MESSAGES` | `0.69`  | Price of 1,000 messages beyond the allowance, in euro.    |
 
 ### Tech Stack
 

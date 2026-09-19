@@ -39,15 +39,11 @@ class TestMonthCost:
 
 
 class TestMoney:
-    def test_formats_with_the_currency_symbol(self, settings):
-        settings.RELAY_CURRENCY = "EUR "
+    def test_formats_in_euro(self):
+        assert money(Decimal("1234.5")) == "€1,234.50"
 
-        assert money(Decimal("1234.5")) == "EUR 1,234.50"
-
-    def test_zero__formats_with_the_currency(self, settings):
-        settings.RELAY_CURRENCY = "EUR "
-
-        assert money(Decimal("0.00")) == "EUR 0.00"
+    def test_zero__formats_in_euro(self):
+        assert money(Decimal("0.00")) == "€0.00"
 
 
 class TestOveragePrice:
@@ -58,6 +54,10 @@ class TestOveragePrice:
 
     def test_with_a_price__formats_it(self, settings):
         settings.RELAY_PRICE_PER_1000_MESSAGES = 2.5
-        settings.RELAY_CURRENCY = "$"
 
-        assert overage_price() == "$2.50"
+        assert overage_price() == "€2.50"
+
+    def test_with_a_negative_price__has_none(self, settings):
+        settings.RELAY_PRICE_PER_1000_MESSAGES = -5.0
+
+        assert overage_price() is None

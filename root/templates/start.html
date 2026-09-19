@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n static %}
+{% load i18n humanize l10n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: communication as a service" %}{% endblock %}
@@ -77,7 +77,8 @@
         <span aria-hidden="true">·</span>
         <span class="inline-flex items-center gap-1.5">
           <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
-          {% translate "first 1,000 emails free every month"|capfirst %}
+          {% translate "first"|capfirst %} {{ free_monthly_messages|intcomma }}
+          {% translate "emails free every month" %}
         </span>
       </p>
     </section>
@@ -546,7 +547,7 @@ export async function POST(req: Request) {
           </p>
           <p class="m-0 mt-2 flex items-baseline gap-x-1.5">
             <output for="price-slider" class="text-4xl sm:text-6xl font-bold font-mono">
-              <span id="price-volume">1,000</span>
+              <span id="price-volume">{{ free_monthly_messages|intcomma }}</span>
             </output>
             <span class="text-lg font-medium text-muted-foreground font-mono">{% translate "emails" %}</span>
           </p>
@@ -560,16 +561,22 @@ export async function POST(req: Request) {
             type="range"
             id="price-slider"
             class="input w-full"
-            min="0"
+            min="{{ free_monthly_messages }}"
             max="100000"
             step="1000"
-            value="1000"
+            value="{{ free_monthly_messages }}"
             aria-label="emails you send per month"
           >
           <p class="text-xs text-muted-foreground m-0 font-mono">
-            {% blocktranslate trimmed %}
-              First 1,000 emails free, then €0.75 / 1,000 emails.
-            {% endblocktranslate %}
+            {% if price_per_1000_messages %}
+              {% blocktranslate with free=free_monthly_messages|intcomma price=price_per_1000_messages|floatformat:2 trimmed %}
+                First {{ free }} emails free, then €{{ price }} / 1,000 emails.
+              {% endblocktranslate %}
+            {% else %}
+              {% blocktranslate with free=free_monthly_messages|intcomma trimmed %}
+                First {{ free }} emails free, every month.
+              {% endblocktranslate %}
+            {% endif %}
           </p>
         </section>
         <hr class="my-6 border-border">
@@ -741,13 +748,17 @@ export async function POST(req: Request) {
     const amount = document.getElementById("price-amount");
     const volume = document.getElementById("price-volume");
     if (slider && amount && volume) {
+      {% localize off %}
+        const free = {{ free_monthly_messages }};
+        const perThousand = {{ price_per_1000_messages }};
+      {% endlocalize %}
       const formatVolume = (n) => n.toLocaleString("en-US");
       const formatEur = (n) =>
         new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(n);
       const update = () => {
         const v = Number(slider.value);
-        const billable = Math.max(0, v - 1000);
-        const total = billable * 0.00075;
+        const billable = v - free;
+        const total = (billable / 1000) * perThousand;
         volume.textContent = formatVolume(v);
         amount.textContent = formatEur(total);
       };

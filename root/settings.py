@@ -353,18 +353,8 @@ RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
 RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7)
 RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
 
-# Messages an organization can send per month on the free tier. The
-# reputation overview bills the messages above it and charts the current
-# and the previous month against it.
 RELAY_FREE_MONTHLY_MESSAGES = env.int("RELAY_FREE_MONTHLY_MESSAGES", default=1000)
-
-# Price of 1,000 messages beyond the free tier allowance, in the currency
-# below. Zero keeps every organization on the free tier.
-RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.0)
-# Label placed before every amount, a code ("USD ") or a symbol ("EUR ").
-# django-environ reads a leading "$" as a reference to another variable, so
-# a dollar sign needs `env.escape_proxy = True` and the escaped form "\$".
-RELAY_CURRENCY = env("RELAY_CURRENCY", default="USD ")
+RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.69)
 
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)

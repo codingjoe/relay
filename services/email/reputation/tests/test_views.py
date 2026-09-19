@@ -202,8 +202,8 @@ class TestReputationOverviewView:
         assert response.status_code == 200
         content = response.content.decode()
         assert response.context["cost"] == Decimal("0.02")
-        assert "USD 0.02" in content
-        assert "Then USD 10.00 per 1,000 messages." in content
+        assert "€0.02" in content
+        assert "Then €10.00 per 1,000 messages." in content
         assert "3 messages this month." in content
 
     def test_get__charts_the_rates_in_per_cent_with_their_limits(
