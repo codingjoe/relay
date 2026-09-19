@@ -56,16 +56,6 @@
             </a>
           </li>
           <li>
-            {% url 'msa:suppression-list' current_org.slug as suppression_list_url %}
-            <a
-              href="{{ suppression_list_url }}"
-              {% if request.path == suppression_list_url %}aria-current="page"{% endif %}
-            >
-              <i data-lucide="ban" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "suppression list"|capfirst %}</span>
-            </a>
-          </li>
-          <li>
             {% url 'mta:webhook-list' current_org.slug as webhook_list_url %}
             <a
               href="{{ webhook_list_url }}"
@@ -73,6 +63,16 @@
             >
               <i data-lucide="inbox" class="shrink-0" aria-hidden="true"></i>
               <span>{% translate "inbound email"|capfirst %}</span>
+            </a>
+          </li>
+          <li>
+            {% url 'msa:suppression-list' current_org.slug as suppression_list_url %}
+            <a
+              href="{{ suppression_list_url }}"
+              {% if request.path == suppression_list_url %}aria-current="page"{% endif %}
+            >
+              <i data-lucide="ban" class="shrink-0" aria-hidden="true"></i>
+              <span>{% translate "suppression list"|capfirst %}</span>
             </a>
           </li>
         </ul>
