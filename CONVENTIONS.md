@@ -234,9 +234,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Django form widgets are styled by overriding templates under
   `abstract/templates/django/forms/widgets/{input,checkbox,select,textarea}.html`.
-  Each override adds its basecoat class (`input`, `select`, `textarea`), and
-  the checkbox override adds `input` too, because basecoat styles checkboxes
-  with it, while preserving any custom
+  Each override adds the matching basecoat class
+  (`input`, `checkbox`, `select`, `textarea`) while preserving any custom
   `widget.attrs` the form supplies. Prefer rendering forms with
   `{{ form }}` / `{{ form.field }}` so the overrides apply automatically.
   Only fall back to hand-written inputs when a widget truly needs custom
@@ -341,22 +340,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Place merged views in the parent app that depends on all siblings.
   Siblings must not import from each other.
-
-- Build a merged-list chart in the shared app from the shared parent model.
-  Resolve the concrete kind through the content type, and take series labels
-  from the subclass status choices, so the shared app imports no sibling.
-  Derive the series colors from the status badge variants, so one status
-  reads the same in the list badge and in the chart.
-
-- Mirror two directions in one chart instead of stacking two cards. Negate
-  the counts of the direction that hangs below the axis and set
-  `y_scale.diverging` on the chart data; the card draws absolute axis labels
-  and tooltip values for it. Namespace the series keys and labels by
-  direction, because sibling kinds can define the same status name.
-
-- Give the organization's landing page its own view, and let that view
-  redirect once its work is done. The organization home redirects by URL
-  name only, so the `accounts` app learns nothing about other apps.
 
 ## App structure
 
