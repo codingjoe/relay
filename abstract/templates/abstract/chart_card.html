@@ -43,8 +43,8 @@
           Number.isFinite(value.max) ? value.max : 0,
           threshold,
         );
-        // Per-cent axes hold fractions, so they take headroom instead of a
-        // ceiling that would round a 0.1 per cent limit up to a whole one.
+        // Per-cent axes carry small decimals, so they take headroom instead
+        // of a ceiling that would round a 0.1 per cent limit up to a whole one.
         return percent ? highest * 1.1 : Math.ceil(highest * 1.05);
       };
       const formatValue = (value) => {

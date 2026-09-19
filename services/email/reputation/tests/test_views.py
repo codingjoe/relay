@@ -206,7 +206,7 @@ class TestReputationOverviewView:
         assert "Then USD 10.00 per 1,000 messages." in content
         assert "3 messages this month." in content
 
-    def test_get__charts_the_rates_as_shares_of_their_limits(
+    def test_get__charts_the_rates_in_per_cent_with_their_limits(
         self, admin_client, org, user
     ):
         domain = Domain.objects.create(name="acme.com", org=org)

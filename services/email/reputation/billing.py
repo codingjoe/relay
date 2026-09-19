@@ -5,7 +5,7 @@ from django.conf import settings
 
 def month_cost(messages):
     """
-    Return what `messages` cost this month, past the free plan allowance.
+    Return what `messages` cost this month, past the free tier allowance.
 
     The allowance is free, and every 1,000 messages above it cost
     `settings.RELAY_PRICE_PER_1000_MESSAGES`, rounded to cents. A price of

@@ -82,9 +82,9 @@ def rate_chart(rows, key, label, color, limit, subtitle):
     Return one rate chart, with that rate's own limit as a threshold line.
 
     The axis reads in per cent, so a 5 per cent bounce limit and a 0.1 per
-    cent complaint limit each stay legible on their own chart. The limit
-    line sits on the top edge, and a rate over the limit grows the axis so
-    it still shows above the line.
+    cent complaint limit each stay legible on their own chart. The axis
+    grows past the higher of the data and the limit, so a rate over the
+    limit stays visible above the line.
     """
     return {
         "series": [
@@ -187,9 +187,9 @@ def build_volume_chart(org):
 
     One point per day of the current month: the running total of the
     messages relay accepted up to that day, this month and the same day
-    of the last month. The free plan limit rides along as a threshold
+    of the last month. The free tier limit rides along as a threshold
     line, so the chart shows how far the month has come against it.
-    `this_month_total` carries the month's total for the plan card.
+    `this_month_total` carries the month's total for the cost card.
     """
     today = timezone.localdate()
     this_month = today.replace(day=1)

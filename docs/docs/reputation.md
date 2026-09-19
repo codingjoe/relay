@@ -123,15 +123,15 @@ Below the cost card and the two rate cards sit three graphs. The first charts
 the sending volume of this month and the last one, cumulative day by day
 against the free tier. The other two chart one rate each, the hard bounce
 rate and the complaint rate, on a per-cent axis with that rate's own limit
-drawn as a line, so a rate over the limit grows above it. Every card header
-carries the totals it charts.
+drawn as a line, so a rate over the limit grows above it. Each rate chart
+header carries the counts it charts.
 
 The cost card names what the month costs. It reads Free while the month sits
-inside the free tier allowance and no price is configured, and the amount
-otherwise, with the allowance and the price per 1,000 messages under it. The
-card stays green either way: a cost is not a fault. A suspended organization
-carries a note about it in that card, since a suspension stops sending until
-an operator lifts it.
+inside the free tier allowance, or while no price per 1,000 messages is
+configured, and the amount otherwise, with the allowance and the price
+under it. The card stays green either way: a cost is not a fault. A
+suspended organization carries a note about it in that card, since a
+suspension stops sending until an operator lifts it.
 
 A new organization opens a get started page instead. That page tracks three
 steps: the managed sender domain going live, your first sent email, and your
