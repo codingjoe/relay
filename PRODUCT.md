@@ -76,12 +76,12 @@ Developer workflow, confirmed from product code and copy:
   captured from the product, overview and detail
   (`root/static/img/email-overview-dark.png` and
   `root/static/img/email-overview-light.png`, plus the matching
-  `email-detail-*.png` pair); a code-example tabs section
-  (Django and Next, sending and receiving each, the Django send using
-  the `MAILERS` setting); and a "no black box" trust band (SPF, DKIM,
-  DMARC, MTA-STS, TLS-RPT, FBL, ARC, Standard Webhooks linked to the
-  spec) that carries the open-source pledge as one muted line instead
-  of a full-bleed panel; and a privacy section stating German hosting
+  `email-detail-*.png` pair); a code-example tabs section (Django and
+  Next.js, sending and receiving side by side, the Django send using
+  the `MAILERS` setting); and an "Audit every line" band on the primary
+  surface, carrying the open-source pledge with buttons to the pledge
+  page and the sponsoring page; and a privacy section stating German
+  hosting
   (Hetzner Falkenstein, documented in `docs/docs/data-privacy.md`),
   GDPR, and the ISO/IEC 27001 / BSI C5 attestations of those data
   centers, linked to the privacy policy and the data-privacy docs page.

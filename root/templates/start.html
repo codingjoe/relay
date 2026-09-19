@@ -256,8 +256,11 @@
           {% endblocktranslate %}
         </p>
       </div>
-      <div class="tabs min-w-0 max-w-3xl mx-auto mt-10" id="stack-examples">
-        <nav role="tablist" aria-orientation="horizontal" class="self-center">
+      <div class="tabs min-w-0 max-w-5xl mx-auto mt-10" id="stack-examples">
+        <h3 class="m-0 font-mono text-sm font-medium text-muted-foreground">
+          {% translate "send and receive"|capfirst %}
+        </h3>
+        <nav role="tablist" aria-orientation="horizontal">
           <button
             type="button"
             role="tab"
@@ -286,7 +289,10 @@
           tabindex="-1"
           class="min-w-0"
         >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django.py" %}{% endfilter %}</code></pre>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django_sending.py" %}{% endfilter %}</code></pre>
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django_receiving.py" %}{% endfilter %}</code></pre>
+          </div>
         </div>
         <div
           role="tabpanel"
@@ -296,7 +302,10 @@
           hidden
           class="min-w-0"
         >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next.ts" %}{% endfilter %}</code></pre>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next_sending.ts" %}{% endfilter %}</code></pre>
+            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next_receiving.ts" %}{% endfilter %}</code></pre>
+          </div>
         </div>
       </div>
     </section>
@@ -331,7 +340,7 @@
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
       <div class="card pledge relative overflow-hidden p-6 sm:p-8 flex flex-col items-center gap-4 text-center">
         <h2 class="text-xl sm:text-2xl font-bold m-0">
-          {% translate "no black box"|capfirst %}
+          {% translate "audit every line"|capfirst %}
         </h2>
         <p class="m-0 max-w-xl leading-relaxed text-primary-foreground/80">
           {% blocktranslate trimmed %}
@@ -484,6 +493,19 @@
       border-color: transparent;
       background-color: var(--color-primary);
       color: var(--color-primary-foreground);
+    }
+
+    /* One headline beside the tab switch, the code boxes below it. The
+       tablist stays a direct child of `.tabs` so basecoat styles it. */
+    #stack-examples {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
+    }
+
+    #stack-examples > [role='tabpanel'] {
+      grid-column: 1 / -1;
     }
 
     .landing-accent {
