@@ -78,14 +78,7 @@ def complaints_per_day(org, start):
 
 
 def rate_chart(rows, key, label, color, limit, subtitle):
-    """
-    Return one rate chart, with that rate's own limit as a threshold line.
-
-    The axis reads in per cent, so a 5 per cent bounce limit and a 0.1 per
-    cent complaint limit each stay legible on their own chart. The axis
-    grows past the higher of the data and the limit, so a rate over the
-    limit stays visible above the line.
-    """
+    """Return one rate chart, with that rate's own limit as a threshold line."""
     return {
         "series": [
             {
@@ -106,12 +99,8 @@ def build_reputation_chart(org):
     """
     Return the per-day rates of one org, ready for one chart per rate.
 
-    Counts provider FBL reports and outgoing messages held as spam as
-    complaints. Values accumulate from the start of the evaluation
-    window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
-    equals the rates the reputation check evaluates. A window below one
-    day counts as one day. Rates stay in per cent, and each rate gets a
-    chart of its own with the matching limit as its threshold line.
+    Counts provider FBL reports and spam-flagged mail as complaints, and
+    accumulates over the evaluation window, so the last point matches its check.
     """
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     start = timezone.localdate() - timedelta(days=window_days - 1)
@@ -185,11 +174,8 @@ def build_volume_chart(org):
     """
     Return the cumulative sending volume of this month and the last one.
 
-    One point per day of the current month: the running total of the
-    messages relay accepted up to that day, this month and the same day
-    of the last month. The free tier limit rides along as a threshold
-    line, so the chart shows how far the month has come against it.
-    `this_month_total` carries the month's total for the cost card.
+    One point per day, this month and the same day of the last month, with
+    the free tier as the threshold line.
     """
     today = timezone.localdate()
     this_month = today.replace(day=1)

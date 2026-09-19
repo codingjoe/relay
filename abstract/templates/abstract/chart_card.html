@@ -33,18 +33,13 @@
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
       const diverging = {% if chart.y_scale.diverging %}true{% else %}false{% endif %};
-      /*
-       * A threshold line has to stay inside the plot, so the axis grows to
-       * cover it. Both branches leave headroom, so the line never sits on
-       * the top edge.
-       */
+      /* Grow the axis past the threshold, so the limit line stays inside the plot. */
       const axisMax = (threshold) => (value) => {
         const highest = Math.max(
           Number.isFinite(value.max) ? value.max : 0,
           threshold,
         );
-        // Per-cent axes carry small decimals, so they take headroom instead
-        // of a ceiling that would round a 0.1 per cent limit up to a whole one.
+        // A ceiling would round a 0.1 per cent limit up to a whole one.
         return percent ? highest * 1.1 : Math.ceil(highest * 1.05);
       };
       const formatValue = (value) => {
@@ -169,10 +164,8 @@
         {% endfor %}
       ];
       /*
-       * Link each stacked segment to the same segment on the next day, after
-       * the ECharts "bar stack normalization and variation" example. The
-       * polygons are graphic elements, so they stay out of the tooltip, and
-       * they are redrawn on resize because the bar layout moves with the grid.
+       * Link each segment to the next day, after the ECharts variation example.
+       * Redrawn on resize, since the bar layout moves with the grid.
        */
       const drawVariation = () => {
         const barData = chart.getModel().getSeriesByIndex(0)?.getData();
