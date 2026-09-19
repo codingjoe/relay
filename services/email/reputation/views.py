@@ -71,7 +71,7 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
     def get_template_names(self):
         return ["reputation/overview.html"]
 
-    title = _("Reputation")
+    title = _("Reputation and usage")
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
