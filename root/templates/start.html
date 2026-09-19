@@ -286,7 +286,7 @@
           tabindex="-1"
           class="min-w-0"
         >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{{ python_snippet }}</code></pre>
+          {% include "partials/snippets/django.html" %}
         </div>
         <div
           role="tabpanel"
@@ -296,7 +296,7 @@
           hidden
           class="min-w-0"
         >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{{ typescript_snippet }}</code></pre>
+          {% include "partials/snippets/next.html" %}
         </div>
       </div>
     </section>

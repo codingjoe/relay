@@ -6,70 +6,6 @@ from abstract.views import BreadcrumbViewMixin, CacheControlMixin
 
 # Wordmarks of companies that back relay, with owner-attested endorsement.
 # Optional keys: "url" (endorser link) and "logo" (static image path).
-PYTHON_SNIPPET = """# settings.py
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
-        "OPTIONS": {
-            "host": "smtp.relay.example.com",
-            "port": 465,
-            "use_ssl": True,
-            "username": "acme",
-            "password": "<credential key>",
-        },
-    },
-}
-
-# send from anywhere
-from django.core.mail import send_mail
-
-send_mail("Invoice 42", "Attached.", "billing@acme.com", ["kim@example.net"])
-
-
-# views.py: receive inbound email via standard webhooks
-import json
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from standardwebhooks import Webhook
-
-@csrf_exempt
-def email_received(request):
-    Webhook("<whsec_...>").verify(request.body, request.headers)
-    event = json.loads(request.body)  # type == email.received
-    ...  # download event["body_url"]
-    return HttpResponse(status=204)
-"""
-
-
-TYPESCRIPT_SNIPPET = """import nodemailer from "nodemailer";
-
-const transport = nodemailer.createTransport({
-  host: "smtp.relay.example.com",
-  port: 465,
-  secure: true,
-  auth: { user: "acme", pass: "<credential key>" },
-});
-
-await transport.sendMail({
-  from: "billing@acme.com",
-  to: "kim@example.net",
-  subject: "Invoice 42",
-  text: "Attached.",
-});
-
-
-// app/api/email/route.ts: receive inbound email via standard webhooks
-import { Webhook } from "standardwebhooks";
-
-export async function POST(req: Request) {
-  const raw = await req.text();
-  new Webhook("<whsec_...>").verify(raw, Object.fromEntries(req.headers));
-  const event = JSON.parse(raw);  // type == email.received
-  ...  // download event.body_url
-  return new Response(null, { status: 204 });
-}
-"""
-
 
 BRANDS = [
     {"name": "Henkel"},
@@ -115,8 +51,6 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "brands": BRANDS,
             "testimonials": TESTIMONIALS,
-            "python_snippet": PYTHON_SNIPPET,
-            "typescript_snippet": TYPESCRIPT_SNIPPET,
             "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
             "price_per_1000_messages": settings.RELAY_PRICE_PER_1000_MESSAGES,
         }
