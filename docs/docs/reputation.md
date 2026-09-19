@@ -119,14 +119,12 @@ without this proof stays on record, and it does not count into the rates.
 
 The reputation page is your organization's home page. It opens when you sign
 in and pick an organization, and it holds the first position in the sidebar.
-Below the plan card and the two rate cards sit three graphs. The first one
-charts the sending volume of this month and the last one, cumulative day by
-day against the free tier limit. The second draws the bounce rate and the
-complaint rate as shares of their own limits, so both limits land on the 100
-per cent line of one axis. The third splits every day of the evaluation
-window into delivery outcomes: delivered, soft bounce, hard bounce, and
-complaint, each day a share of its own mail with the day's message count
-above it. Every card header carries the totals it charts.
+Below the plan card and the two rate cards sit three graphs. The first charts
+the sending volume of this month and the last one, cumulative day by day
+against the free tier limit. The other two chart one rate each, the hard
+bounce rate and the complaint rate, drawn as a share of their own limit so
+that the limit sits on the 100 per cent line and a breach shows above it.
+Every card header carries the totals it charts.
 
 The plan card names the plan and the messages it allows per month. A
 suspended organization reads as suspended in that card, since a suspension

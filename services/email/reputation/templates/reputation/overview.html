@@ -50,7 +50,7 @@
 
   {% include "abstract/chart_card.html" with id="chart-volume" data_id="chart-volume-data" title=_("email volume")|capfirst chart=chart_volume class="mb-6" %}
 
-  {% include "abstract/chart_card.html" with id="chart-reputation-rates" data_id="chart-reputation-rates-data" title=_("rates against their limits")|capfirst chart=chart_rates class="mb-6" %}
+  {% include "abstract/chart_card.html" with id="chart-bounces" data_id="chart-bounces-data" title=_("hard bounce rate")|capfirst chart=chart_bounces class="mb-6" %}
 
-  {% include "abstract/chart_card.html" with id="chart-outcomes" data_id="chart-outcomes-data" title=_("delivery outcomes")|capfirst chart=chart_outcomes class="mt-6" %}
+  {% include "abstract/chart_card.html" with id="chart-complaints" data_id="chart-complaints-data" title=_("complaint rate")|capfirst chart=chart_complaints class="" %}
 {% endblock %}

@@ -67,7 +67,7 @@
       });
       const chart = echarts.init(element, "relay");
       chart.setOption({
-        grid: { left: 8, right: 16, top: percent ? 22 : 8, bottom: 8, containLabel: true },
+        grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
         tooltip: {
           trigger: "axis",
           confine: true,
@@ -119,15 +119,6 @@
             itemStyle: { color: toRgba("{{ series.color }}") },
             data: rows.map((row) => row["{{ series.key }}"]),
             {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
-            {% if forloop.last and chart.y_scale.percent %}
-            /* The day's total sits above the stack, so a share stays readable. */
-            label: {
-              show: true,
-              position: "top",
-              formatter: (item) => rows[item.dataIndex].total ?? "",
-              color: muted,
-            },
-            {% endif %}
             {% if forloop.first %}
               {% if chart.threshold %}
               markLine: {

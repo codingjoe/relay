@@ -6,7 +6,7 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .charts import build_outcome_chart, build_reputation_chart, build_volume_chart
+from .charts import build_reputation_chart, build_volume_chart
 from .models import FblReport
 
 
@@ -90,17 +90,10 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "complaint_over_limit": (last["complaint_rate"] or 0.0)
             > complaint_threshold,
         }
-        chart_rates = {
-            "series": chart["rate_series"],
-            "rows": chart["rows"],
-            "subtitle": chart["rate_subtitle"],
-            "threshold": chart["rate_threshold"],
-            "y_scale": {"stacked": "false", "percent": True},
-        }
         return super().get_context_data(**kwargs) | {
             "stats": stats,
-            "chart_rates": chart_rates,
-            "chart_outcomes": build_outcome_chart(self.org),
+            "chart_bounces": chart["bounce_chart"],
+            "chart_complaints": chart["complaint_chart"],
             "chart_volume": build_volume_chart(self.org),
             "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
             "bounce_threshold": bounce_threshold,

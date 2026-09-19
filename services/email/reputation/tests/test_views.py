@@ -203,12 +203,15 @@ class TestReputationOverviewView:
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
-        rates = response.context["chart_rates"]
-        last = rates["rows"][-1]
+        bounces = response.context["chart_bounces"]
+        complaints = response.context["chart_complaints"]
+        last = bounces["rows"][-1]
         assert last["hard_bounce_rate"] == 50.0
         assert last["hard_bounce_share"] == 1000.0
         assert last["complaint_share"] == 0.0
-        assert rates["threshold"]["value"] == 100
+        assert bounces["threshold"]["value"] == 100
+        assert bounces["series"][0]["key"] == "hard_bounce_share"
+        assert complaints["series"][0]["key"] == "complaint_share"
 
     def test_get__charts_this_month_and_last_month_volume(self, admin_client, org):
         domain = Domain.objects.create(name="acme.com", org=org)
@@ -299,34 +302,5 @@ class TestReputationOverviewView:
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
-        rows = response.context["chart_outcomes"]["rows"]
-        assert any(row["complained"] == 100.0 for row in rows)
-
-    def test_get__charts_every_day_as_a_share(self, admin_client, org, user):
-        domain = Domain.objects.create(name="acme.com", org=org)
-        message = OutgoingMessage.objects.create(
-            org=org,
-            mail_from="sender@acme.com",
-            rcpt_to="rcpt@example.com",
-            domain=domain,
-            raw_body=SimpleUploadedFile("bounce.eml", b"body"),
-        )
-        Transmission.objects.create(
-            message=message,
-            status=Transmission.Status.BOUNCED,
-            code=550,
-            started_at=timezone.now(),
-            finished_at=timezone.now(),
-        )
-
-        response = admin_client.get(overview_url(org))
-
-        assert response.status_code == 200
-        rows = response.context["chart_outcomes"]["rows"]
-        day = [row for row in rows if row["total"]][-1]
-        shares = [
-            day[key]
-            for key in ("delivered", "soft_bounced", "hard_bounced", "complained")
-        ]
-        assert day["hard_bounced"] == 100.0
-        assert round(sum(shares), 1) == 100.0
+        rows = response.context["chart_complaints"]["rows"]
+        assert any(row["complaint_rate"] == 100.0 for row in rows)

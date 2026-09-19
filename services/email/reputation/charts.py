@@ -23,7 +23,6 @@ REPUTATION_CHART_COLORS = {
     "complaint_limit": "var(--color-chart-gray)",
     "this_month": "var(--color-chart-green)",
     "last_month": "var(--color-chart-gray)",
-    "delivered": "var(--color-chart-green)",
 }
 
 
@@ -93,16 +92,40 @@ def share_of_limit(rate, limit):
     return round(rate / limit * 100, 1) if rate is not None else None
 
 
+def rate_chart(rows, key, label, color, subtitle):
+    """
+    Return one rate chart, drawn as a share of its own limit.
+
+    The limit sits on the 100 per cent line, so a rate reads as how much of
+    the allowed rate the organization uses, and a rate over the limit shows
+    above that line.
+    """
+    return {
+        "series": [
+            {
+                "key": key,
+                "label": label,
+                "color": color,
+                "dataset": "type: 'line'",
+            }
+        ],
+        "rows": rows,
+        "subtitle": subtitle,
+        "threshold": {"value": 100, "label": gettext("Limit")},
+        "y_scale": {"stacked": "false", "percent": True},
+    }
+
+
 def build_reputation_chart(org):
     """
-    Return per-day message counts, rates, and rate limits for one org.
+    Return the per-day rates of one org, ready for one chart per rate.
 
     Counts provider FBL reports and outgoing messages held as spam as
     complaints. Values accumulate from the start of the evaluation
     window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
-    equals the rates the reputation check evaluates. Each rate also
-    comes back as its share of the matching limit, which puts both
-    limits on the 100 per cent line of one axis.
+    equals the rates the reputation check evaluates. Each row carries its
+    rates as a share of the matching limit, which puts that limit on the
+    100 per cent line of the rate's own chart.
     """
     window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
     start = timezone.localdate() - timedelta(days=window_days - 1)
@@ -112,28 +135,6 @@ def build_reputation_chart(org):
     complaint_counts = complaints_per_day(org, start)
 
     days_list = [start + timedelta(days=offset) for offset in range(window_days)]
-    series = [
-        {
-            "key": "sent",
-            "label": "Sent",
-            "color": REPUTATION_CHART_COLORS["sent"],
-        },
-        {
-            "key": "hard_bounced",
-            "label": "Hard bounces",
-            "color": REPUTATION_CHART_COLORS["hard_bounced"],
-        },
-        {
-            "key": "soft_bounced",
-            "label": "Soft bounces",
-            "color": REPUTATION_CHART_COLORS["soft_bounced"],
-        },
-        {
-            "key": "complained",
-            "label": "Complaints",
-            "color": REPUTATION_CHART_COLORS["complained"],
-        },
-    ]
     bounce_limit = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD * 100
     complaint_limit = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD * 100
 
@@ -156,53 +157,46 @@ def build_reputation_chart(org):
 
     hard_bounce_rates = rate(hard_bounce_cumulative)
     complaint_rates = rate(complaint_cumulative)
-    rate_series = [
+    rows = [
         {
-            "key": "hard_bounce_share",
-            "label": "Hard bounce rate",
-            "color": REPUTATION_CHART_COLORS["hard_bounce_rate"],
-            "dataset": "type: 'line'",
-        },
-        {
-            "key": "complaint_share",
-            "label": "Complaint rate",
-            "color": REPUTATION_CHART_COLORS["complaint_rate"],
-            "dataset": "type: 'line'",
-        },
+            "day": day.isoformat(),
+            "sent": sent_cumulative[index],
+            "hard_bounced": hard_bounce_cumulative[index],
+            "soft_bounced": soft_bounce_cumulative[index],
+            "complained": complaint_cumulative[index],
+            "hard_bounce_rate": hard_bounce_rates[index],
+            "complaint_rate": complaint_rates[index],
+            "hard_bounce_share": share_of_limit(hard_bounce_rates[index], bounce_limit),
+            "complaint_share": share_of_limit(complaint_rates[index], complaint_limit),
+        }
+        for index, day in enumerate(days_list)
     ]
     return {
-        "series": series,
-        "rate_series": rate_series,
-        "rate_subtitle": gettext(
-            "%(hard)s hard bounces and %(complaints)s complaints of %(sent)s "
-            "sent, against limits of %(bounce_limit)s and %(complaint_limit)s"
-        )
-        % {
-            "hard": intcomma(hard_bounce_cumulative[-1]),
-            "complaints": intcomma(complaint_cumulative[-1]),
-            "sent": intcomma(sent_cumulative[-1]),
-            "bounce_limit": f"{bounce_limit:.2f}%",
-            "complaint_limit": f"{complaint_limit:.2f}%",
-        },
-        "rate_threshold": {"value": 100, "label": gettext("Limit")},
-        "rows": [
-            {
-                "day": day.isoformat(),
-                "sent": sent_cumulative[index],
-                "hard_bounced": hard_bounce_cumulative[index],
-                "soft_bounced": soft_bounce_cumulative[index],
-                "complained": complaint_cumulative[index],
-                "hard_bounce_rate": hard_bounce_rates[index],
-                "complaint_rate": complaint_rates[index],
-                "hard_bounce_share": share_of_limit(
-                    hard_bounce_rates[index], bounce_limit
-                ),
-                "complaint_share": share_of_limit(
-                    complaint_rates[index], complaint_limit
-                ),
-            }
-            for index, day in enumerate(days_list)
-        ],
+        "rows": rows,
+        "bounce_chart": rate_chart(
+            rows,
+            key="hard_bounce_share",
+            label=gettext("Hard bounce rate"),
+            color=REPUTATION_CHART_COLORS["hard_bounce_rate"],
+            subtitle=gettext("%(count)s hard bounces of %(sent)s sent, limit %(limit)s")
+            % {
+                "count": intcomma(hard_bounce_cumulative[-1]),
+                "sent": intcomma(sent_cumulative[-1]),
+                "limit": f"{bounce_limit:.2f}%",
+            },
+        ),
+        "complaint_chart": rate_chart(
+            rows,
+            key="complaint_share",
+            label=gettext("Complaint rate"),
+            color=REPUTATION_CHART_COLORS["complaint_rate"],
+            subtitle=gettext("%(count)s complaints of %(sent)s sent, limit %(limit)s")
+            % {
+                "count": intcomma(complaint_cumulative[-1]),
+                "sent": intcomma(sent_cumulative[-1]),
+                "limit": f"{complaint_limit:.2f}%",
+            },
+        ),
     }
 
 
@@ -282,86 +276,4 @@ def build_volume_chart(org):
             "label": gettext("Free tier"),
         },
         "y_scale": {"stacked": "false"},
-    }
-
-
-def build_outcome_chart(org):
-    """
-    Return the daily delivery outcomes of the evaluation window.
-
-    Each day's bar splits the messages relay accepted that day into what
-    happened to them: delivered, soft bounce, hard bounce, and complaint.
-    The counts clamp to the messages of the day, because one message can
-    bounce more than once. Bars carry shares of the day, so the day's own
-    total rides above them and the window totals go to the card header.
-    """
-    window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
-    start = timezone.localdate() - timedelta(days=window_days - 1)
-    days_list = [start + timedelta(days=offset) for offset in range(window_days)]
-
-    sent_counts = sent_per_day(org, start)
-    hard_counts, soft_counts = bounced_per_day(org, start)
-    complaint_counts = complaints_per_day(org, start)
-
-    rows = []
-    totals = {"sent": 0, "hard_bounced": 0, "soft_bounced": 0, "complained": 0}
-    for day in days_list:
-        sent = sent_counts.get(day, 0)
-        hard = min(hard_counts.get(day, 0), sent)
-        soft = min(soft_counts.get(day, 0), sent - hard)
-        complained = min(complaint_counts.get(day, 0), sent - hard - soft)
-        totals["sent"] += sent
-        totals["hard_bounced"] += hard
-        totals["soft_bounced"] += soft
-        totals["complained"] += complained
-        shares = {
-            "delivered": 0.0,
-            "soft_bounced": 0.0,
-            "hard_bounced": 0.0,
-            "complained": 0.0,
-        }
-        if sent:
-            share = 100 / sent
-            shares = {
-                "delivered": round(100 - (hard + soft + complained) * share, 1),
-                "soft_bounced": round(soft * share, 1),
-                "hard_bounced": round(hard * share, 1),
-                "complained": round(complained * share, 1),
-            }
-        rows.append({"day": day.isoformat(), "total": sent} | shares)
-    return {
-        "series": [
-            {
-                "key": "delivered",
-                "label": gettext("Delivered"),
-                "color": REPUTATION_CHART_COLORS["delivered"],
-            },
-            {
-                "key": "soft_bounced",
-                "label": gettext("Soft bounces"),
-                "color": REPUTATION_CHART_COLORS["soft_bounced"],
-            },
-            {
-                "key": "hard_bounced",
-                "label": gettext("Hard bounces"),
-                "color": REPUTATION_CHART_COLORS["hard_bounced"],
-            },
-            {
-                "key": "complained",
-                "label": gettext("Complaints"),
-                "color": REPUTATION_CHART_COLORS["complained"],
-            },
-        ],
-        "rows": rows,
-        "subtitle": gettext(
-            "%(sent)s sent, %(hard)s hard bounces, %(soft)s soft bounces, "
-            "%(complaints)s complaints"
-        )
-        % {
-            "sent": intcomma(totals["sent"]),
-            "hard": intcomma(totals["hard_bounced"]),
-            "soft": intcomma(totals["soft_bounced"]),
-            "complaints": intcomma(totals["complained"]),
-        },
-        "y_scale": {"percent": True},
     }
