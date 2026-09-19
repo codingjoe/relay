@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize l10n snippets static %}
+{% load i18n humanize l10n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: communication as a service" %}{% endblock %}
@@ -286,7 +286,7 @@
           tabindex="-1"
           class="min-w-0"
         >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% snippet "django.py" %}</code></pre>
+          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django.py" %}{% endfilter %}</code></pre>
         </div>
         <div
           role="tabpanel"
@@ -296,7 +296,7 @@
           hidden
           class="min-w-0"
         >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% snippet "next.ts" %}</code></pre>
+          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next.ts" %}{% endfilter %}</code></pre>
         </div>
       </div>
     </section>

@@ -263,9 +263,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   underline from `src/css/app.css`.
 
 - Code samples shown on a page live as real source files under
-  `root/snippets/` (`.py`, `.js`, `.ts`), so ruff and esupgrade lint them. The
-  template pulls one in with `{% snippet "name.py" %}` from
-  `root.templatetags.snippets`.
+  `root/templates/snippets/` (`.py`, `.js`, `.ts`), so ruff and esupgrade lint
+  them. The template pulls one in with
+  `{% filter force_escape %}{% include "snippets/name.py" %}{% endfilter %}`.
 
 - Scripts live in static ES modules, never inline in a template. A page loads
   its module with `<script type="module" src="{% static '...' %}">` and passes
