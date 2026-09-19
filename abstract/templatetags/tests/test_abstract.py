@@ -1,5 +1,6 @@
 import datetime
 import zoneinfo
+from types import SimpleNamespace
 
 from django.core.paginator import Paginator
 from django.template import RequestContext, engines
@@ -157,3 +158,18 @@ def test_human_duration__whole_minutes():
 
 def test_human_duration__hours():
     assert abstract.human_duration(datetime.timedelta(hours=3)) == "3 hours"
+
+
+def test_apex_suffix__relative_name():
+    assert (
+        abstract.apex_suffix("mail.relay.acme.com", SimpleNamespace(name="acme.com"))
+        == ".acme.com"
+    )
+
+
+def test_apex_suffix__at_the_apex():
+    assert abstract.apex_suffix("acme.com", SimpleNamespace(name="acme.com")) == ""
+
+
+def test_apex_suffix__unrelated_name():
+    assert abstract.apex_suffix("example.net", SimpleNamespace(name="acme.com")) == ""

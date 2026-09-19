@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load domains i18n know_how %}
+{% load abstract i18n know_how %}
 {% block title %}{{ domain.name }} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between gap-4 mb-6">
@@ -46,7 +46,7 @@
           class="btn"
           data-variant="destructive"
           formaction="{% url 'domains:domain-delete' org.slug domain.pk %}"
-          onclick="return confirm('{% translate "delete this domain?"|capfirst context "verb" %}')"
+          data-confirm='{% translate "delete this domain?"|capfirst context "verb" %}'
         >
           {% translate "delete"|capfirst context "verb" %}
         </button>
@@ -86,7 +86,7 @@
                   type="text"
                   readonly
                   value="{{ domain.sender_domain|relative_record_name:domain }}"
-                  onfocus="this.select()"
+                  data-select
                 >
                 <span
                   class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -96,18 +96,18 @@
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ domain.sender_domain|relative_record_name:domain }}')"
+                  data-copy="{{ domain.sender_domain|relative_record_name:domain }}"
                   aria-label='{% translate "copy name"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
-                <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
+                <input type="text" readonly value="{{ ns }}." data-select>
                 <button
                   type="button"
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ ns }}.')"
+                  data-copy="{{ ns }}."
                   aria-label='{% translate "copy value"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -145,7 +145,7 @@
                 type="text"
                 readonly
                 value="{{ domain.name|relative_record_name:domain }}"
-                onfocus="this.select()"
+                data-select
               >
               <span
                 class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -155,7 +155,7 @@
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.name|relative_record_name:domain }}')"
+                data-copy="{{ domain.name|relative_record_name:domain }}"
                 aria-label='{% translate "copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -164,14 +164,14 @@
                 type="text"
                 readonly
                 value="&quot;{{ domain.root_spf_record }}&quot;"
-                onfocus="this.select()"
+                data-select
               >
               <button
                 type="button"
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.root_spf_record }}')"
+                data-copy="{{ domain.root_spf_record }}"
                 aria-label='{% translate "copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -202,7 +202,7 @@
                   type="text"
                   readonly
                   value="{{ cname.0|relative_record_name:domain }}"
-                  onfocus="this.select()"
+                  data-select
                 >
                 <span
                   class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -212,18 +212,18 @@
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ cname.0|relative_record_name:domain }}')"
+                  data-copy="{{ cname.0|relative_record_name:domain }}"
                   aria-label='{% translate "copy name"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
-                <input type="text" readonly value="{{ cname.1 }}." onfocus="this.select()">
+                <input type="text" readonly value="{{ cname.1 }}." data-select>
                 <button
                   type="button"
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ cname.1 }}.')"
+                  data-copy="{{ cname.1 }}."
                   aria-label='{% translate "copy value"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -254,7 +254,7 @@
                 type="text"
                 readonly
                 value="{{ domain.dmarc_record_name|relative_record_name:domain }}"
-                onfocus="this.select()"
+                data-select
               >
               <span
                 class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -264,7 +264,7 @@
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.dmarc_record_name|relative_record_name:domain }}')"
+                data-copy="{{ domain.dmarc_record_name|relative_record_name:domain }}"
                 aria-label='{% translate "copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -273,14 +273,14 @@
                 type="text"
                 readonly
                 value="&quot;{{ domain.dmarc_record }}&quot;"
-                onfocus="this.select()"
+                data-select
               >
               <button
                 type="button"
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.dmarc_record }}')"
+                data-copy="{{ domain.dmarc_record }}"
                 aria-label='{% translate "copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -314,7 +314,7 @@
                   type="text"
                   readonly
                   value="{{ domain.name|relative_record_name:domain }}"
-                  onfocus="this.select()"
+                  data-select
                 >
                 <span
                   class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -324,7 +324,7 @@
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ domain.name|relative_record_name:domain }}')"
+                  data-copy="{{ domain.name|relative_record_name:domain }}"
                   aria-label='{% translate "copy name"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -334,25 +334,25 @@
                   type="text"
                   readonly
                   value="{{ mx_priority }}"
-                  onfocus="this.select()"
+                  data-select
                 >
                 <button
                   type="button"
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ mx_priority }}')"
+                  data-copy="{{ mx_priority }}"
                   aria-label='{% translate "copy priority"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
-                <input type="text" readonly value="{{ mx_hostname }}." onfocus="this.select()">
+                <input type="text" readonly value="{{ mx_hostname }}." data-select>
                 <button
                   type="button"
                   class="btn"
                   data-variant="ghost"
                   data-size="icon-xs"
-                  onclick="navigator.clipboard.writeText('{{ mx_hostname }}.')"
+                  data-copy="{{ mx_hostname }}."
                   aria-label='{% translate "copy value"|capfirst %}'
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -383,7 +383,7 @@
                 type="text"
                 readonly
                 value="{{ domain.tls_rpt_record_name|relative_record_name:domain }}"
-                onfocus="this.select()"
+                data-select
               >
               <span
                 class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -393,7 +393,7 @@
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.tls_rpt_record_name|relative_record_name:domain }}')"
+                data-copy="{{ domain.tls_rpt_record_name|relative_record_name:domain }}"
                 aria-label='{% translate "copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -402,14 +402,14 @@
                 type="text"
                 readonly
                 value="&quot;{{ domain.tls_rpt_record }}&quot;"
-                onfocus="this.select()"
+                data-select
               >
               <button
                 type="button"
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.tls_rpt_record }}')"
+                data-copy="{{ domain.tls_rpt_record }}"
                 aria-label='{% translate "copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -439,7 +439,7 @@
                 type="text"
                 readonly
                 value="{{ domain.mta_sts_record_name|relative_record_name:domain }}"
-                onfocus="this.select()"
+                data-select
               >
               <span
                 class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -449,7 +449,7 @@
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.mta_sts_record_name|relative_record_name:domain }}')"
+                data-copy="{{ domain.mta_sts_record_name|relative_record_name:domain }}"
                 aria-label='{% translate "copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -458,14 +458,14 @@
                 type="text"
                 readonly
                 value="&quot;{{ domain.mta_sts_record }}&quot;"
-                onfocus="this.select()"
+                data-select
               >
               <button
                 type="button"
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.mta_sts_record }}')"
+                data-copy="{{ domain.mta_sts_record }}"
                 aria-label='{% translate "copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -478,7 +478,7 @@
                 type="text"
                 readonly
                 value="{{ domain.mta_sts_hostname|relative_record_name:domain }}"
-                onfocus="this.select()"
+                data-select
               >
               <span
                 class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -488,7 +488,7 @@
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.mta_sts_hostname|relative_record_name:domain }}')"
+                data-copy="{{ domain.mta_sts_hostname|relative_record_name:domain }}"
                 aria-label='{% translate "copy name"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -497,14 +497,14 @@
                 type="text"
                 readonly
                 value="{{ domain.mta_sts_cname_target }}."
-                onfocus="this.select()"
+                data-select
               >
               <button
                 type="button"
                 class="btn"
                 data-variant="ghost"
                 data-size="icon-xs"
-                onclick="navigator.clipboard.writeText('{{ domain.mta_sts_cname_target }}.')"
+                data-copy="{{ domain.mta_sts_cname_target }}."
                 aria-label='{% translate "copy value"|capfirst %}'
               >
                 <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -534,7 +534,7 @@
               type="text"
               readonly
               value="{{ domain.name|relative_record_name:domain }}"
-              onfocus="this.select()"
+              data-select
             >
             <span
               class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
@@ -544,18 +544,18 @@
               class="btn"
               data-variant="ghost"
               data-size="icon-xs"
-              onclick="navigator.clipboard.writeText('{{ domain.name|relative_record_name:domain }}')"
+              data-copy="{{ domain.name|relative_record_name:domain }}"
               aria-label='{% translate "copy name"|capfirst %}'
             >
               <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
             </button>
-            <input type="text" readonly value="{{ ns }}." onfocus="this.select()">
+            <input type="text" readonly value="{{ ns }}." data-select>
             <button
               type="button"
               class="btn"
               data-variant="ghost"
               data-size="icon-xs"
-              onclick="navigator.clipboard.writeText('{{ ns }}.')"
+              data-copy="{{ ns }}."
               aria-label='{% translate "copy value"|capfirst %}'
             >
               <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
