@@ -149,7 +149,8 @@ with the URL, response code, and a response excerpt.
 - The message detail page leads with a delivery card: the status in the
   traffic-light colors of its badge, how long the delivery took, when the
   last transmission finished, the sender and recipient, and what the scan
-  found. The transcripts and delivery records follow it.
+  found. Tabs below it hold the headers, the plain text body, and the HTML
+  body when the message carries one.
 - Filters let you watch only failed or quarantined traffic.
 
 ## The antivirus badge

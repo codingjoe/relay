@@ -65,7 +65,7 @@
 
 {% block extra_sections %}
   {% if received %}
-    <div>
+    <div class="px-6 py-6">
       <h4 class="font-semibold m-0 mb-2">{% translate "received" context "email hop"|capfirst %}</h4>
       {% for hop in received %}
         <button

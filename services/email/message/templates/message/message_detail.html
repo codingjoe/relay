@@ -41,7 +41,7 @@
           data-tooltip="{{ address_tooltip }}"
           href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
         >
-          <i data-lucide="at-sign" class="size-3.5" aria-hidden="true"></i>
+          <i data-lucide="user-round" class="size-3.5" aria-hidden="true"></i>
           {{ message.mail_from }}
         </a>
       {% endif %}
@@ -53,7 +53,7 @@
           data-tooltip="{{ address_tooltip }}"
           href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
         >
-          <i data-lucide="at-sign" class="size-3.5" aria-hidden="true"></i>
+          <i data-lucide="arrow-left" class="size-3.5" aria-hidden="true"></i>
           {{ message.rcpt_to }}
         </a>
       {% endif %}
@@ -134,37 +134,110 @@
         {% endif %}
       </div>
     </header>
-    <article class="card gap-0 p-0 overflow-hidden">
-      <div class="table-container">
-        <table class="table">
-          <tbody>
-            {% for key, value in headers %}
-              <tr>
-                <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
-                <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="tabs" id="message-tabs">
+      <nav role="tablist" aria-orientation="horizontal">
+        <button
+          type="button"
+          role="tab"
+          id="message-tab-headers"
+          aria-controls="message-panel-headers"
+          aria-selected="true"
+          tabindex="0"
+        >
+          {% translate "headers"|capfirst %}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="message-tab-text"
+          aria-controls="message-panel-text"
+          aria-selected="false"
+          tabindex="-1"
+        >
+          {% translate "text"|capfirst %}
+        </button>
+        {% if html_body %}
+          <button
+            type="button"
+            role="tab"
+            id="message-tab-html"
+            aria-controls="message-panel-html"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            HTML
+          </button>
+        {% endif %}
+      </nav>
+      <div
+        role="tabpanel"
+        id="message-panel-headers"
+        aria-labelledby="message-tab-headers"
+        tabindex="-1"
+        aria-selected="true"
+      >
+        <article class="card gap-0 p-0 overflow-hidden">
+          <div class="table-container">
+            <table class="table">
+              <tbody>
+                {% for key, value in headers %}
+                  <tr>
+                    <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
+                    <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% block extra_sections %}{% endblock %}
+        </article>
       </div>
-      <div class="px-6 py-6 flex flex-col gap-6">
-        {% block extra_sections %}{% endblock %}
-        <div>
-          {% block body %}
-            {% if body %}
-              {{ body|highlight_email }}
-            {% else %}
-              <section class="empty">
-                <header>
-                  <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
-                  <h3>{% translate "Body pruned." %}</h3>
-                  <p>{% translate "The raw message body is not available." %}</p>
-                </header>
-              </section>
-            {% endif %}
-          {% endblock body %}
+      <div
+        role="tabpanel"
+        id="message-panel-text"
+        aria-labelledby="message-tab-text"
+        tabindex="-1"
+        aria-selected="false"
+        hidden
+      >
+        <article class="card gap-0 p-0 overflow-hidden">
+          <div class="px-6 py-6 flex flex-col gap-6">
+            <div>
+              {% block body %}
+                {% if body %}
+                  {{ body|highlight_email }}
+                {% else %}
+                  <section class="empty">
+                    <header>
+                      <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
+                      <h3>{% translate "Body pruned." %}</h3>
+                      <p>{% translate "The raw message body is not available." %}</p>
+                    </header>
+                  </section>
+                {% endif %}
+              {% endblock body %}
+            </div>
+          </div>
+        </article>
+      </div>
+      {% if html_body %}
+        <div
+          role="tabpanel"
+          id="message-panel-html"
+          aria-labelledby="message-tab-html"
+          tabindex="-1"
+          aria-selected="false"
+          hidden
+        >
+          <iframe
+            class="h-[36rem] w-full rounded-xl border bg-white"
+            sandbox
+            loading="lazy"
+            srcdoc="{{ html_body }}"
+            title='{% translate "HTML body" %}'
+          ></iframe>
         </div>
-      </div>
-    </article>
+      {% endif %}
+    </div>
   </section>
 {% endblock %}

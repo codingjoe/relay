@@ -316,6 +316,28 @@ class Message(TimeStamped):
             b"",
         )
 
+    @property
+    def html_body(self) -> str:
+        """
+        Return the decoded HTML payload of the stored body.
+
+        Messages whose raw body is pruned or unreadable, and messages that
+        carry no HTML part, have no HTML payload. Callers render it in a
+        sandboxed frame, because a body from the outside is untrusted.
+        """
+        if not self.raw_bytes():
+            return ""
+        return next(
+            (
+                payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+                for part in self.parsed_email().walk()
+                if not part.is_multipart()
+                and part.get_content_type() == "text/html"
+                and (payload := part.get_payload(decode=True)) is not None
+            ),
+            "",
+        )
+
     @classmethod
     def headers_from_raw(cls, raw_bytes):
         """Return the message headers as JSON-serializable [name, value] pairs."""

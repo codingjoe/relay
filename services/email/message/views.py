@@ -144,6 +144,7 @@ class MessageDetailView(
                 "headers": headers,
                 "received": [v for k, v in headers if k.lower() == "received"],
                 "body": message.text_body,
+                "html_body": message.html_body,
                 "transmissions": transmissions,
                 "timeline": sorted(
                     (timing.event for timing in timings),

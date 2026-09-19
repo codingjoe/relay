@@ -2,6 +2,7 @@ from urllib.parse import quote
 from uuid import uuid4
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from domains.models import Domain
@@ -10,6 +11,12 @@ from services.email.message.models import Transmission
 from services.email.message.templatetags.message import human_duration
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
+
+MULTIPART_BODY = (
+    b'MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary="b"\r\n\r\n'
+    b"--b\r\nContent-Type: text/plain\r\n\r\nplain body\r\n"
+    b"--b\r\nContent-Type: text/html\r\n\r\n<p>html body</p>\r\n--b--\r\n"
+)
 
 
 def make_certificate(issuer_certificate=None):
@@ -200,6 +207,32 @@ class TestMessageDetailStatusCard:
         content = response.content.decode()
         assert "Spam reject" in content
         assert "Eicar-Test-Signature" in content
+
+    def test_get__renders_tabs_with_the_html_body(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="message-tab-html"' in content
+        assert 'id="message-panel-headers"' in content
+        assert "<iframe" in content
+        assert "sandbox" in content
+        assert response.context["html_body"] == "<p>html body</p>"
+
+    def test_get__omits_the_html_tab_without_an_html_part(self, admin_client, org):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="message-tab-html"' not in content
+        assert 'id="message-tab-text"' in content
+        assert response.context["html_body"] == ""
 
     def test_get__omits_the_delivery_summary_without_attempts(self, admin_client, org):
         message = IncomingMessage.objects.create(
