@@ -329,7 +329,11 @@
     </section>
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
-      <div class="card p-8 sm:p-10 flex flex-col items-center gap-5 text-center">
+      <div class="card relative overflow-hidden p-8 sm:p-10 flex flex-col items-center gap-5 text-center border-primary/20">
+        <div class="pledge-glow pointer-events-none absolute inset-x-0 -top-24 -z-10 h-56" aria-hidden="true"></div>
+        <div class="rounded-xl size-14 flex items-center justify-center bg-primary/15 text-primary">
+          <i data-lucide="braces" class="size-7" aria-hidden="true"></i>
+        </div>
         <h2 class="text-xl sm:text-2xl font-bold m-0">
           {% translate "no black box"|capfirst %}
         </h2>
@@ -339,7 +343,7 @@
             yours to read under the AGPL-3.0. No mystery bounces, no hidden reputation score.
           {% endblocktranslate %}
         </p>
-        <a href="{% url 'open-source' %}" class="btn" data-variant="secondary" data-size="lg">
+        <a href="{% url 'open-source' %}" class="btn" data-size="lg">
           {% translate "read the pledge"|capfirst %}
         </a>
         <p class="m-0 text-sm text-muted-foreground">
@@ -476,6 +480,14 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       background-color: color-mix(in srgb, var(--color-card) 75%, transparent);
+    }
+
+    .pledge-glow {
+      background-image: radial-gradient(
+        ellipse 60% 100% at 50% 0%,
+        color-mix(in srgb, var(--color-primary) 30%, transparent),
+        transparent 70%
+      );
     }
 
     .landing-accent {
