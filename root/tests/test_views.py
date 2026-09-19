@@ -58,26 +58,6 @@ class TestHomeViewPricing:
         assert "First 1,000 emails free, then €2.50 / 1,000 emails." in text
         assert 'data-per-thousand="2.5"' in text
 
-    def test_get__without_a_price__shows_only_the_free_tier(self, client, settings):
-        settings.RELAY_PRICE_PER_1000_MESSAGES = 0.0
-
-        text = " ".join(client.get("/").content.decode().split())
-
-        assert "First 1,000 emails free, every month." in text
-        assert "then €" not in text
-        assert "/ 1,000 emails." not in text
-
-    def test_get__with_a_negative_price__shows_only_the_free_tier(
-        self, client, settings
-    ):
-        settings.RELAY_PRICE_PER_1000_MESSAGES = -5.0
-
-        text = " ".join(client.get("/").content.decode().split())
-
-        assert "First 1,000 emails free, every month." in text
-        assert 'data-per-thousand="0"' in text
-        assert "€-" not in text
-
 
 class TestPublicChrome:
     """Public pages render the static chrome: no session access, no Vary: Cookie."""

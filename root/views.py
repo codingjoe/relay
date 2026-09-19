@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
@@ -48,13 +46,12 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
-        price = max(Decimal(0), Decimal(str(settings.RELAY_PRICE_PER_1000_MESSAGES)))
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "brands": BRANDS,
             "testimonials": TESTIMONIALS,
             "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
-            "price_per_1000_messages": price,
+            "price_per_1000_messages": settings.RELAY_PRICE_PER_1000_MESSAGES,
         }
 
 

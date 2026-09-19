@@ -570,15 +570,9 @@ export async function POST(req: Request) {
             aria-label="emails you send per month"
           >
           <p class="text-xs text-muted-foreground m-0 font-mono">
-            {% if price_per_1000_messages %}
-              {% blocktranslate with free=free_monthly_messages|intcomma price=price_per_1000_messages|floatformat:2 trimmed %}
-                First {{ free }} emails free, then €{{ price }} / 1,000 emails.
-              {% endblocktranslate %}
-            {% else %}
-              {% blocktranslate with free=free_monthly_messages|intcomma trimmed %}
-                First {{ free }} emails free, every month.
-              {% endblocktranslate %}
-            {% endif %}
+            {% blocktranslate with free=free_monthly_messages|intcomma price=price_per_1000_messages|floatformat:2 trimmed %}
+              First {{ free }} emails free, then €{{ price }} / 1,000 emails.
+            {% endblocktranslate %}
           </p>
         </section>
         <hr class="my-6 border-border">
