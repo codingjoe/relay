@@ -162,7 +162,6 @@
           { key: "{{ series.key }}", color: toRgba("{{ series.color }}") },
         {% endfor %}
       ];
-      /* Link each segment to the next day, after the ECharts variation example. */
       const drawVariation = () => {
         const barData = chart.getModel().getSeriesByIndex(0)?.getData();
         if (!barData) return;
