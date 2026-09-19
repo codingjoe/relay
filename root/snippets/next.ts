@@ -1,10 +1,10 @@
-<pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">import nodemailer from "nodemailer";
+import nodemailer from "nodemailer";
 
 const transport = nodemailer.createTransport({
   host: "smtp.relay.example.com",
   port: 465,
   secure: true,
-  auth: { user: "acme", pass: "&lt;credential key&gt;" },
+  auth: { user: "acme", pass: "<credential key>" },
 });
 
 await transport.sendMail({
@@ -20,8 +20,8 @@ import { Webhook } from "standardwebhooks";
 
 export async function POST(req: Request) {
   const raw = await req.text();
-  new Webhook("&lt;whsec_...&gt;").verify(raw, Object.fromEntries(req.headers));
-  const event = JSON.parse(raw);  // type == email.received
-  ...  // download event.body_url
+  new Webhook("<whsec_...>").verify(raw, Object.fromEntries(req.headers));
+  const event = JSON.parse(raw); // type == email.received
+  // download event.body_url
   return new Response(null, { status: 204 });
-}</code></pre>
+}

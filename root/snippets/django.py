@@ -1,4 +1,4 @@
-<pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
+# settings.py
 MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
@@ -7,7 +7,7 @@ MAILERS = {
             "port": 465,
             "use_ssl": True,
             "username": "acme",
-            "password": "&lt;credential key&gt;",
+            "password": "<credential key>",
         },
     },
 }
@@ -24,9 +24,10 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from standardwebhooks import Webhook
 
+
 @csrf_exempt
 def email_received(request):
-    Webhook("&lt;whsec_...&gt;").verify(request.body, request.headers)
+    Webhook("<whsec_...>").verify(request.body, request.headers)
     event = json.loads(request.body)  # type == email.received
     ...  # download event["body_url"]
-    return HttpResponse(status=204)</code></pre>
+    return HttpResponse(status=204)

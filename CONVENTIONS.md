@@ -262,9 +262,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `class="link"` to entity anchors so they get primary color and
   underline from `src/css/app.css`.
 
-- Code samples shown on a page are content, not view data: keep them in a
-  template partial (`root/templates/partials/snippets/`) and pull them in with
-  `{% include %}`, so they get template linting and stay out of the view.
+- Code samples shown on a page live as real source files under
+  `root/snippets/` (`.py`, `.js`, `.ts`), so ruff and esupgrade lint them. The
+  template pulls one in with `{% snippet "name.py" %}` from
+  `root.templatetags.snippets`.
 
 - Scripts live in static ES modules, never inline in a template. A page loads
   its module with `<script type="module" src="{% static '...' %}">` and passes
