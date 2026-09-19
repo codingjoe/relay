@@ -46,3 +46,17 @@
   width: calc(var(--spacing) * 7);
   height: calc(var(--spacing) * 7);
 }
+
+/* A code sample puts its headline beside its own tab switch, with the block
+   below it. The tablist stays a direct child of `.tabs` so basecoat keeps
+   styling it. */
+.snippet-tabs {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
+}
+
+.snippet-tabs > [role='tabpanel'] {
+  grid-column: 1 / -1;
+}

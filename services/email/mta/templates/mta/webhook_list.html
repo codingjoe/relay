@@ -191,6 +191,11 @@
     </section>
   {% endif %}
 
+  {% translate "usage" as usage_title %}
+  <div class="max-w-3xl mt-6">
+    {% include "partials/code_sample.html" with id="snippet-receiving" title=usage_title|capfirst django_snippet="snippets/django_receiving.py" next_snippet="snippets/next_receiving.ts" %}
+  </div>
+
   <section class="card mt-6 p-6">
     <header>
       <h3 class="m-0">{% translate "delivery format"|capfirst %}</h3>

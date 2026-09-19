@@ -259,94 +259,10 @@
         </p>
       </div>
       <div class="max-w-3xl mx-auto mt-10 grid gap-10" id="stack-examples">
-        <div class="tabs" id="stack-ex-sending">
-          <h3 class="m-0 font-mono text-lg font-medium text-muted-foreground">{% translate "sending"|capfirst %}</h3>
-          <nav role="tablist" aria-orientation="horizontal">
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-sending-django"
-              aria-controls="stack-ex-sending-django-panel"
-              aria-selected="true"
-              tabindex="0"
-            >
-              Django
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-sending-next"
-              aria-controls="stack-ex-sending-next-panel"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              Next.js
-            </button>
-          </nav>
-          <div
-            role="tabpanel"
-            id="stack-ex-sending-django-panel"
-            aria-labelledby="stack-ex-sending-django"
-            tabindex="-1"
-            class="min-w-0"
-          >
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django_sending.py" %}{% endfilter %}</code></pre>
-          </div>
-          <div
-            role="tabpanel"
-            id="stack-ex-sending-next-panel"
-            aria-labelledby="stack-ex-sending-next"
-            tabindex="-1"
-            hidden
-            class="min-w-0"
-          >
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next_sending.ts" %}{% endfilter %}</code></pre>
-          </div>
-        </div>
-        <div class="tabs" id="stack-ex-receiving">
-          <h3 class="m-0 font-mono text-lg font-medium text-muted-foreground">{% translate "receiving"|capfirst %}</h3>
-          <nav role="tablist" aria-orientation="horizontal">
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-receiving-django"
-              aria-controls="stack-ex-receiving-django-panel"
-              aria-selected="true"
-              tabindex="0"
-            >
-              Django
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="stack-ex-receiving-next"
-              aria-controls="stack-ex-receiving-next-panel"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              Next.js
-            </button>
-          </nav>
-          <div
-            role="tabpanel"
-            id="stack-ex-receiving-django-panel"
-            aria-labelledby="stack-ex-receiving-django"
-            tabindex="-1"
-            class="min-w-0"
-          >
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include "snippets/django_receiving.py" %}{% endfilter %}</code></pre>
-          </div>
-          <div
-            role="tabpanel"
-            id="stack-ex-receiving-next-panel"
-            aria-labelledby="stack-ex-receiving-next"
-            tabindex="-1"
-            hidden
-            class="min-w-0"
-          >
-            <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include "snippets/next_receiving.ts" %}{% endfilter %}</code></pre>
-          </div>
-        </div>
+        {% translate "sending" as sending_title %}
+        {% include "partials/code_sample.html" with id="snippet-sending" title=sending_title|capfirst django_snippet="snippets/django_sending.py" next_snippet="snippets/next_sending.ts" %}
+        {% translate "receiving" as receiving_title %}
+        {% include "partials/code_sample.html" with id="snippet-receiving" title=receiving_title|capfirst django_snippet="snippets/django_receiving.py" next_snippet="snippets/next_receiving.ts" %}
       </div>
     </section>
 
@@ -533,20 +449,6 @@
       border-color: transparent;
       background-color: var(--color-primary);
       color: var(--color-primary-foreground);
-    }
-
-    /* Each code sample puts its headline beside its own tab switch, with the
-       block below. The tablist stays a direct child of `.tabs` so basecoat
-       keeps styling it. */
-    #stack-examples .tabs {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
-    }
-
-    #stack-examples .tabs > [role='tabpanel'] {
-      grid-column: 1 / -1;
     }
 
     .landing-accent {
