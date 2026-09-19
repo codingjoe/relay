@@ -2,8 +2,19 @@
 {% load i18n humanize message abstract %}
 {% block title %}{{ message.subject|default:_("(no subject)")|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
-  <header class="mb-6">
+  <header class="mb-6 flex items-start justify-between gap-2">
     <h2 class="m-0 break-words">{{ message.subject|default:_("(no subject)") }}</h2>
+    <button
+      type="button"
+      class="btn shrink-0"
+      data-variant="ghost"
+      data-size="icon-xs"
+      data-tooltip='{% translate "share this message"|capfirst %}'
+      onclick="sharePage()"
+      aria-label='{% translate "share this message"|capfirst %}'
+    >
+      <i data-lucide="share-2" class="size-3.5" aria-hidden="true"></i>
+    </button>
   </header>
 
   <article class="card p-6 mb-6 gap-2 {{ message.status_badge_variant|surface_class }}">
@@ -34,7 +45,7 @@
     {% if message.mail_from or message.rcpt_to %}
       <dl class="m-0 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         {% if message.mail_from %}
-          <dt>{% translate "from" context "email hop" %}</dt>
+          <dt>{% translate "from"|capfirst context "email hop" %}</dt>
           <dd class="m-0">
             <a
               class="btn break-all"
@@ -48,7 +59,7 @@
           </dd>
         {% endif %}
         {% if message.rcpt_to %}
-          <dt>{% translate "to" context "email hop" %}</dt>
+          <dt>{% translate "to"|capfirst context "email hop" %}</dt>
           <dd class="m-0">
             <a
               class="btn break-all"
