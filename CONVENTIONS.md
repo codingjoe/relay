@@ -220,8 +220,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `circle-dashed` with `text-muted-foreground`).
 
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
-  The source entry is `src/css/app.css`. It imports Tailwind CSS v4 and
-  basecoat-css (maia style), plus any custom CSS variables and layout glue.
+  The source entry is `src/css/app.css`, which imports Tailwind CSS v4,
+  basecoat-css (maia style), and the partials next to it: `theme.css` (design
+  tokens), `base.css` (preflight fixes), `components.css` (basecoat
+  overrides), and `syntax.css` (the Pygments and MicroLighter palettes). Put a
+  new rule in the partial it belongs to rather than the entry.
   Run `pnpm run build` to compile `src/css/app.css` → `root/static/css/app.css`
   (a build artifact, gitignored. Do not edit it directly). Run `pnpm run dev`
   to watch for changes during development. The build output is served via
@@ -260,7 +263,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Tailwind v4's preflight resets `a { color: inherit }`. Add
   `class="link"` to entity anchors so they get primary color and
-  underline from `src/css/app.css`.
+  underline from `src/css/base.css`.
 
 - Code samples shown on a page live as real source files under
   `root/templates/snippets/` (`.py`, `.js`, `.ts`), so ruff and esupgrade lint
