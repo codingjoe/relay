@@ -156,3 +156,7 @@
   pattern: '\s(?:onclick|onchange|oninput|onsubmit|onfocus|onblur|onkeydown|onkeyup|onload|onerror|onmouseover|onmouseout|ondblclick)\s*='
   hint: "Drive behavior with a data hook instead (data-dialog, data-dialog-close, data-backdrop-close, data-auto-open, data-confirm, data-copy, data-share, data-href, data-toggle, data-select, data-mirror). root/static/js/app.js handles them all."
   filePattern: '.*\.html$'
+- name: Links that leave the app open in a new tab
+  pattern: '<a(?![^>]*\btarget=)(?=[^>]*\bhref="(?:https?://|\{%\s*url\s+[''"](?:docs|know_how|alternative_to):))[^>]*>'
+  hint: 'Reading the docs, the know-how, or an outside source must not cost the reader the page they are on. Add target="_blank" rel="noopener".'
+  filePattern: '^.*\.html$'

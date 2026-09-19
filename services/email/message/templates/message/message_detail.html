@@ -77,6 +77,8 @@
             data-variant="{{ message.spam_badge_variant }}"
             data-tooltip="{{ scan_tooltip }}"
             href="{% url 'docs:detail' 'message-statuses' %}"
+            target="_blank"
+            rel="noopener"
           >
             <i data-lucide="shield-alert" class="size-3.5" aria-hidden="true"></i>
             {% blocktranslate with action=message.get_spam_action_display trimmed %}
@@ -91,6 +93,8 @@
             data-variant="{{ message.virus_badge_variant }}"
             data-tooltip="{{ scan_tooltip }}"
             href="{% url 'docs:detail' 'message-statuses' %}"
+            target="_blank"
+            rel="noopener"
           >
             <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
             {{ message.virus_display }}

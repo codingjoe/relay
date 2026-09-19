@@ -47,6 +47,12 @@
   height: calc(var(--spacing) * 7);
 }
 
+/* Basecoat pads a card's header, section, and footer inline, so a card that
+   carries its own `p-6` indents those blocks twice. Keep the outer padding. */
+.card.p-6 > :is(header, section, footer) {
+  padding-inline: 0;
+}
+
 /* A code sample puts its headline beside its own tab switch, with the block
    below it. The tablist stays a direct child of `.tabs` so basecoat keeps
    styling it. */

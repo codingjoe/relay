@@ -203,11 +203,14 @@
     <p>
       {% blocktranslate with docs_url="https://docs.standardwebhooks.com" sdk_url="https://github.com/standard-webhooks/standard-webhooks" trimmed %}
         Deliveries follow the
-        <a href="https://standardwebhooks.com">Standard Webhooks</a> specification. Each delivery includes <code
-        >webhook-id</code>, <code>webhook-timestamp</code>, and <code>webhook-signature</code> headers. Use the
-        endpoint's public key (shown above) with any <a href="{{ sdk_url }}">Standard Webhooks SDK</a> to verify
-        signatures. No custom code needed. See the
-        <a href="{{ docs_url }}">documentation</a> for details.
+        <a href="https://standardwebhooks.com" target="_blank" rel="noopener">Standard Webhooks</a> specification. Each
+        delivery includes <code>webhook-id</code>, <code>webhook-timestamp</code>, and <code>webhook-signature</code>
+        headers. Use the endpoint's public key (shown above) with any <a
+          href="{{ sdk_url }}"
+          target="_blank"
+          rel="noopener"
+        >Standard Webhooks SDK</a> to verify signatures. No custom code needed. See the
+        <a href="{{ docs_url }}" target="_blank" rel="noopener">documentation</a> for details.
       {% endblocktranslate %}
     </p>
     {{ webhook_payload|highlight_code:"json" }}
