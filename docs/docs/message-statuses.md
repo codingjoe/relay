@@ -147,7 +147,9 @@ with the URL, response code, and a response excerpt.
   above the axis and incoming bars below it. The graph counts the same
   messages the filters select.
 - The message detail page shows the status next to the transcripts and
-  delivery records.
+  delivery records, and leads with a status card: the same status in the
+  traffic-light colors of its badge, how long the delivery took, and when the
+  last attempt finished.
 - Filters let you watch only failed or quarantined traffic.
 
 ## The antivirus badge

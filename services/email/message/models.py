@@ -211,6 +211,15 @@ class Message(TimeStamped):
         return status_class(self.status).badge_variant
 
     @property
+    def status_text_class(self) -> str:
+        """Return the traffic-light text color of the status."""
+        return {
+            "success": "text-success",
+            "warning": "text-warning",
+            "destructive": "text-destructive",
+        }.get(self.status_badge_variant, "text-muted-foreground")
+
+    @property
     def spam_badge_variant(self) -> str:
         """Map the rspamd verdict to a badge variant."""
         match self.spam_action:

@@ -7,6 +7,7 @@ from django.utils import timezone
 from domains.models import Domain
 from kms.models import Certificate
 from services.email.message.models import Transmission
+from services.email.message.templatetags.message import human_duration
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 
@@ -161,6 +162,36 @@ class TestMessageDetailAddressLinks:
             f'href="/org/{org.slug}/email/messages/?email={quote(message.rcpt_to)}"'
             in content
         )
+
+
+@pytest.mark.django_db
+class TestMessageDetailStatusCard:
+    def test_get__shows_the_status_and_the_delivery_summary(self, admin_client, org):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert response.context["delivery_attempts"] == 1
+        assert response.context["delivery_finished_at"] is not None
+        content = response.content.decode()
+        assert "text-success" in content
+        assert human_duration(response.context["delivery_duration"]) in content
+
+    def test_get__omits_the_delivery_summary_without_attempts(self, admin_client, org):
+        message = IncomingMessage.objects.create(
+            org=org,
+            domain=Domain.objects.get(org=org, is_managed=True),
+            mail_from="alice@example.com",
+            rcpt_to="bob@example.com",
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert "delivery_attempts" not in response.context
+        assert "delivery_finished_at" not in response.context
+        assert "delivery_duration" not in response.context
 
 
 @pytest.mark.django_db

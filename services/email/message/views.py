@@ -115,21 +115,43 @@ class MessageDetailView(
             message.spamcheck_set.select_related("message"),
         )
 
+    def get_delivery_summary(self, message, transmissions):
+        """
+        Return the attempts, the last finish, and the elapsed delivery time.
+
+        The elapsed time runs from the moment relay stored the message, so a
+        message that waited in the queue before its accepted attempt reads as
+        the user experienced it.
+        """
+        if not transmissions:
+            return {}
+        last_finished = max(item.finished_at for item in transmissions)
+        return {
+            "delivery_attempts": len(transmissions),
+            "delivery_finished_at": last_finished,
+            "delivery_duration": last_finished - message.created_at,
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = message.parsed_headers
         timings = self.get_timings(message)
-        return context | {
-            "headers": headers,
-            "received": [v for k, v in headers if k.lower() == "received"],
-            "body": message.text_body,
-            "transmissions": self.transmissions,
-            "timeline": sorted(
-                (timing.event for timing in timings),
-                key=lambda event: event["start"],
-            ),
-        }
+        transmissions = list(self.transmissions)
+        return (
+            context
+            | {
+                "headers": headers,
+                "received": [v for k, v in headers if k.lower() == "received"],
+                "body": message.text_body,
+                "transmissions": transmissions,
+                "timeline": sorted(
+                    (timing.event for timing in timings),
+                    key=lambda event: event["start"],
+                ),
+            }
+            | self.get_delivery_summary(message, transmissions)
+        )
 
 
 class CertificateDetailView(

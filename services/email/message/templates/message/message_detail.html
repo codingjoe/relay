@@ -65,6 +65,32 @@
     </div>
   </header>
 
+  <article class="card p-6 mb-6">
+    <h3 class="m-0 text-sm font-medium text-muted-foreground">{% translate "delivery"|capfirst %}</h3>
+    <p class="m-0 mt-1 text-2xl font-semibold">
+      <span class="{{ message.status_text_class }}">{{ message.status_display|capfirst }}</span>
+      {% if delivery_duration %}
+        <span class="text-base font-normal text-muted-foreground">
+          {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+        </span>
+      {% endif %}
+    </p>
+    <p class="m-0 text-sm text-muted-foreground">
+      {% if delivery_attempts %}
+        {% blocktranslate count counter=delivery_attempts trimmed %}
+          {{ counter }} transmission{% plural %}{{ counter }} transmissions
+        {% endblocktranslate %}
+        <span aria-hidden="true">·</span>
+      {% endif %}
+      {% if delivery_finished_at %}
+        {% timestamp delivery_finished_at %}
+      {% else %}
+        {% translate "stored"|capfirst context "verb" %}
+        {% timestamp message.created_at %}
+      {% endif %}
+    </p>
+  </article>
+
   {% block transmission_card %}
     {% if timeline %}
       <section class="mb-6 flex flex-col gap-4">
