@@ -111,20 +111,29 @@
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
             </p>
-            <p class="flex items-center gap-2 flex-wrap mt-2 text-sm text-muted-foreground">
-              {% translate "public key"|capfirst %}
-              <code class="text-foreground">{{ webhook.public_key_serialized }}</code>
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-sm"
-                onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized|escapejs }}')"
-                aria-label="{% translate 'copy public key'|capfirst %}"
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
-            </p>
+            <div role="group" class="field mt-2">
+              <label for="webhook-key-{{ webhook.pk }}">{% translate "public key"|capfirst %}</label>
+              <div class="input-group">
+                <input
+                  id="webhook-key-{{ webhook.pk }}"
+                  class="break-all"
+                  type="text"
+                  readonly
+                  value="{{ webhook.public_key_serialized }}"
+                  onfocus="this.select()"
+                >
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="ghost"
+                  data-size="icon-xs"
+                  onclick="navigator.clipboard.writeText('{{ webhook.public_key_serialized|escapejs }}')"
+                  aria-label="{% translate 'copy public key'|capfirst %}"
+                >
+                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
           </section>
           <aside class="flex items-center gap-2">
             <form method="post" action="{% url 'mta:webhook-test' org.slug webhook.pk %}" style="display: inline">
