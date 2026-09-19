@@ -1,3 +1,5 @@
+import hljs from "https://esm.sh/highlight.js@11.11.1/lib/common";
+
 const slider = document.getElementById("price-slider");
 const amount = document.getElementById("price-amount");
 const volume = document.getElementById("price-volume");
@@ -28,8 +30,6 @@ if (slider && amount && volume) {
   update();
 }
 
-if (globalThis.hljs) {
-  for (const block of document.querySelectorAll("pre code[class*='language-']")) {
-    globalThis.hljs.highlightElement(block);
-  }
+for (const block of document.querySelectorAll("pre code[class*='language-']")) {
+  hljs.highlightElement(block);
 }
