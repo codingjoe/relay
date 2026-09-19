@@ -3,8 +3,8 @@
 from datetime import timedelta
 
 from django import template
-from django.utils.formats import number_format
 from django.utils.safestring import mark_safe
+from humanize import naturaldelta
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers.email import EmailLexer
@@ -25,16 +25,8 @@ def render(value: str, lexer) -> str:
 
 @register.filter
 def human_duration(value: timedelta) -> str:
-    """Render a duration as `0.3 s` or `40 ms`, so a card reads at a glance."""
-    seconds = value.total_seconds()
-    if seconds < 0.1:
-        return f"{number_format(seconds * 1000, 0)} ms"
-    if seconds < 60:
-        return f"{number_format(seconds, 1)} s"
-    minutes, remainder = divmod(round(seconds), 60)
-    if not remainder:
-        return f"{number_format(minutes, 0)} min"
-    return f"{number_format(minutes, 0)} min {number_format(remainder, 0)} s"
+    """Render a duration in words, so a card reads at a glance."""
+    return naturaldelta(value, minimum_unit="milliseconds")
 
 
 @register.filter
