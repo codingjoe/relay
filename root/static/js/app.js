@@ -13,29 +13,62 @@ function sharePage() {
   if (navigator.share) navigator.share({ title: document.title, url }).catch(() => {});
 }
 
-function openDialog(name) {
-  return document.getElementById(name)?.showModal();
+class Action {
+  static names = ["dialog", "dialog-close", "copy", "share", "href", "toggle"];
+
+  static selector = Action.names
+    .map((name) => `[data-${name}]`)
+    .concat("[data-confirm]")
+    .join(", ");
+
+  constructor(trigger) {
+    this.trigger = trigger;
+    this.name = Action.names.find((name) => trigger.hasAttribute(`data-${name}`));
+  }
+
+  static within(target) {
+    const trigger = target.closest(Action.selector);
+    return trigger && new Action(trigger);
+  }
+
+  element(id) {
+    return document.getElementById(id);
+  }
+
+  confirmed() {
+    const message = this.trigger.dataset.confirm;
+    return !message || globalThis.confirm(message);
+  }
+
+  run() {
+    if (this.name) this[this.name]();
+  }
+
+  dialog() {
+    this.element(this.trigger.dataset.dialog)?.showModal();
+  }
+
+  "dialog-close"() {
+    const name = this.trigger.dataset.dialogClose;
+    (name ? this.element(name) : this.trigger.closest("dialog"))?.close();
+  }
+
+  copy() {
+    navigator.clipboard?.writeText(this.trigger.dataset.copy);
+  }
+
+  share() {
+    sharePage();
+  }
+
+  href() {
+    globalThis.location.href = this.trigger.dataset.href;
+  }
+
+  toggle() {
+    this.element(this.trigger.dataset.toggle)?.toggle();
+  }
 }
-
-function closeDialog(trigger, name) {
-  return (name ? document.getElementById(name) : trigger.closest("dialog"))?.close();
-}
-
-const actions = {
-  dialog: (trigger) => openDialog(trigger.dataset.dialog),
-  "dialog-close": (trigger) => closeDialog(trigger, trigger.dataset.dialogClose),
-  copy: (trigger) => navigator.clipboard?.writeText(trigger.dataset.copy),
-  share: () => sharePage(),
-  href: (trigger) => {
-    globalThis.location.href = trigger.dataset.href;
-  },
-  toggle: (trigger) => document.getElementById(trigger.dataset.toggle)?.toggle(),
-};
-
-const ACTION_SELECTOR = Object.keys(actions)
-  .map((name) => `[data-${name}]`)
-  .concat("[data-confirm]")
-  .join(", ");
 
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
@@ -45,16 +78,15 @@ document.addEventListener("click", (event) => {
     backdrop.close();
     return;
   }
-  const trigger = target.closest(ACTION_SELECTOR);
-  if (!trigger) return;
-  if (trigger.dataset.confirm && !globalThis.confirm(trigger.dataset.confirm)) {
+  const action = Action.within(target);
+  if (!action) return;
+  if (!action.confirmed()) {
     event.preventDefault();
     return;
   }
-  const action = Object.keys(actions).find((name) => trigger.hasAttribute(`data-${name}`));
-  if (action) {
+  if (action.name) {
     event.preventDefault();
-    actions[action](trigger);
+    action.run();
   }
 });
 
