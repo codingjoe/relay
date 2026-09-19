@@ -104,39 +104,14 @@ Four report types arrive:
 - **Feedback loop (FBL).** An abuse report in the ARF format. A provider
   sends it when a recipient marks one of your messages as spam.
 
-The recipient reports page surfaces each report type, per domain, and records
-whether a report arrived over TLS. The DMARC view graphs messages by DMARC
-verdict, and the TLS view graphs failures by type, each over the last 30
-days.
+The dashboard surfaces each report type, per domain, and records whether a
+report arrived over TLS.
 
 FBL complaints need a proof before they count against your organization.
 The report carries the per-message Return-Path, or the per-message
 `Feedback-ID` header of the reported message. relay matches that id, so a
 complaint maps to one message, one domain, and one organization. A complaint
 without this proof stays on record, and it does not count into the rates.
-
-## The reputation page
-
-The reputation page is your organization's home page. It opens when you sign
-in and pick an organization, and it holds the first position in the sidebar.
-Below the cost card and the two rate cards sit three graphs. The first charts
-the sending volume of this month and the last one, cumulative day by day
-against the free tier. The other two chart one rate each, the hard bounce
-rate and the complaint rate, on a per-cent axis with that rate's own limit
-drawn as a line, so a rate over the limit grows above it. Each rate chart
-header carries the counts it charts.
-
-The cost card names what the month costs. It reads Free while the month sits
-inside the free tier allowance, or while no price per 1,000 messages is
-configured, and the amount otherwise, with the allowance and the price
-under it. The card stays green either way: a cost is not a fault. A
-suspended organization carries a note about it in that card, since a
-suspension stops sending until an operator lifts it.
-
-A new organization opens a get started page instead. That page tracks three
-steps: the managed sender domain going live, your first sent email, and your
-own domain. The organization moves to the reputation page once all three are
-done.
 
 ## Reputation limits
 
