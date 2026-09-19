@@ -2,11 +2,11 @@ from django.urls import include, path
 
 from . import views
 
-app_name = "reputation"
+app_name = "monitoring"
 
 urlpatterns = [
     path(
-        "reputation/",
+        "monitoring/",
         include(
             [
                 path("", views.ReputationOverviewView.as_view(), name="overview"),

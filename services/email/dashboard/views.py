@@ -23,7 +23,7 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
 
     def get(self, request, *args, **kwargs):
         if get_email_context(self.org, request)["onboarding_complete"]:
-            return redirect("reputation:overview", org_slug=self.org.slug)
+            return redirect("monitoring:overview", org_slug=self.org.slug)
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):

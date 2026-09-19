@@ -59,7 +59,7 @@ class TestGetStartedView:
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 302
         assert response.url == reverse(
-            "reputation:overview", kwargs={"org_slug": org.slug}
+            "monitoring:overview", kwargs={"org_slug": org.slug}
         )
 
     def test_get__renders_dialog_with_header_trigger(self, admin_client, org):
@@ -108,7 +108,7 @@ class TestOnboardingNavigation:
         assert response.status_code == 200
         content = response.content.decode()
         assert ">Get started</span>" not in content
-        assert f'href="/org/{org.slug}/email/reputation/"' in content
+        assert f'href="/org/{org.slug}/email/monitoring/"' in content
 
 
 @pytest.mark.django_db

@@ -15,10 +15,10 @@
             </li>
           {% endif %}
           <li>
-            {% url 'reputation:overview' current_org.slug as reputation_url %}
-            <a href="{{ reputation_url }}" {% if request.path == reputation_url %}aria-current="page"{% endif %}>
+            {% url 'monitoring:overview' current_org.slug as monitoring_url %}
+            <a href="{{ monitoring_url }}" {% if request.path == monitoring_url %}aria-current="page"{% endif %}>
               <i data-lucide="gauge" class="shrink-0" aria-hidden="true"></i>
-              <span>{% translate "reputation"|capfirst %}</span>
+              <span>{% translate "monitoring"|capfirst %}</span>
             </a>
           </li>
           <li>
