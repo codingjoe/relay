@@ -286,7 +286,7 @@
           tabindex="-1"
           class="min-w-0"
         >
-          {{ python_snippet|highlight_code:"python" }}
+          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{{ python_snippet }}</code></pre>
         </div>
         <div
           role="tabpanel"
@@ -296,7 +296,7 @@
           hidden
           class="min-w-0"
         >
-          {{ typescript_snippet|highlight_code:"typescript" }}
+          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{{ typescript_snippet }}</code></pre>
         </div>
       </div>
     </section>

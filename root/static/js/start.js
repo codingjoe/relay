@@ -1,3 +1,5 @@
+import { highlightAll } from "https://cdn.jsdelivr.net/npm/microlighter@2/dist/index.js";
+
 const slider = document.getElementById("price-slider");
 const amount = document.getElementById("price-amount");
 const volume = document.getElementById("price-volume");
@@ -27,3 +29,10 @@ if (slider && amount && volume) {
   slider.addEventListener("input", update);
   update();
 }
+
+const tabs = document.querySelector(".tabs");
+if (tabs) {
+  tabs.addEventListener("click", () => highlightAll());
+}
+
+await highlightAll();

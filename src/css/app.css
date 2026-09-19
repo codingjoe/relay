@@ -306,6 +306,75 @@ svg.lucide {
   }
 }
 
+/* MicroLighter token colors. The Custom Highlight API paints only `color`,
+   `background-color`, `text-decoration`, and `text-shadow`, so these carry the
+   CodeHilite palette without its weight and slant. */
+::highlight(comment),
+::highlight(quote) {
+  color: var(--color-muted-foreground);
+}
+
+::highlight(keyword),
+::highlight(storage),
+::highlight(at-rule),
+::highlight(doctype),
+::highlight(important),
+::highlight(section) {
+  color: var(--color-primary-text);
+}
+
+::highlight(operator),
+::highlight(punctuation) {
+  color: var(--color-foreground);
+}
+
+::highlight(string),
+::highlight(regexp),
+::highlight(attribute-value),
+::highlight(link),
+::highlight(raw) {
+  color: light-dark(hsl(160, 80%, 30%), hsl(150, 60%, 55%));
+}
+
+::highlight(numeric),
+::highlight(boolean),
+::highlight(constant),
+::highlight(symbol),
+::highlight(character-entity),
+::highlight(anchor),
+::highlight(entity) {
+  color: light-dark(hsl(28, 90%, 45%), hsl(28, 80%, 60%));
+}
+
+::highlight(function),
+::highlight(decorator),
+::highlight(animation) {
+  color: light-dark(hsl(210, 70%, 45%), hsl(210, 70%, 65%));
+}
+
+::highlight(type),
+::highlight(support),
+::highlight(variable),
+::highlight(interpolation),
+::highlight(tag),
+::highlight(selector) {
+  color: light-dark(hsl(340, 60%, 50%), hsl(340, 70%, 70%));
+}
+
+::highlight(property),
+::highlight(key),
+::highlight(attribute-name) {
+  color: light-dark(hsl(199, 89%, 42%), hsl(199, 89%, 62%));
+}
+
+::highlight(inserted) {
+  color: var(--color-success);
+}
+
+::highlight(deleted) {
+  color: var(--destructive);
+}
+
 .prose .codehilite {
   background-color: transparent;
   color: inherit;
