@@ -162,14 +162,17 @@ class TestReputationOverviewView:
         )
         assert "text-success" in bounce_card
 
-    def test_get__tints_the_plan_card_when_suspended(self, admin_client, org):
+    def test_get__keeps_the_plan_card_green_when_suspended(self, admin_client, org):
         org.suspended_at = timezone.now()
         org.save(update_fields=["suspended_at"])
 
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
-        assert "bg-destructive/10" in response.content.decode()
+        content = response.content.decode()
+        assert "bg-success/10" in content
+        assert "Sending is suspended." in content
+        assert "bg-destructive/10" not in content
 
     def test_get__shows_the_free_plan(self, admin_client, org):
         response = admin_client.get(overview_url(org))
