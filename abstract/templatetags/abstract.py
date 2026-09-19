@@ -1,11 +1,13 @@
 import datetime
 import decimal
+from datetime import timedelta
 
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
 from django.template.defaulttags import register
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
+from humanize import naturaldelta
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
@@ -154,3 +156,9 @@ def percent(text, arg=-1):
     return mark_safe(
         f"{defaultfilters.floatformat(text, arg=arg)}&nbsp;&percnt;",
     )
+
+
+@register.filter
+def human_duration(value: timedelta) -> str:
+    """Render a duration in words, so a card reads at a glance."""
+    return naturaldelta(value, minimum_unit="milliseconds")

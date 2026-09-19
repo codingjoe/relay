@@ -6,10 +6,10 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
+from abstract.templatetags.abstract import human_duration
 from domains.models import Domain
 from kms.models import Certificate
 from services.email.message.models import Transmission
-from services.email.message.templatetags.message import human_duration
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 

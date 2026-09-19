@@ -1,10 +1,7 @@
 """Email syntax highlighting template filter."""
 
-from datetime import timedelta
-
 from django import template
 from django.utils.safestring import mark_safe
-from humanize import naturaldelta
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers.email import EmailLexer
@@ -21,12 +18,6 @@ def render(value: str, lexer) -> str:
     if not value:
         return ""
     return mark_safe(highlight(value, lexer, email_formatter))
-
-
-@register.filter
-def human_duration(value: timedelta) -> str:
-    """Render a duration in words, so a card reads at a glance."""
-    return naturaldelta(value, minimum_unit="milliseconds")
 
 
 @register.filter
