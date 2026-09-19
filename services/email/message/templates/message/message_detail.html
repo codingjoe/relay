@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message abstract %}
+{% load i18n humanize message abstract %}
 {% block title %}{{ message.subject|default:_("(no subject)")|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
   <header class="mb-6">
@@ -19,8 +19,8 @@
     </p>
     <p class="m-0 text-sm text-muted-foreground">
       {% if delivery_attempts %}
-        {% blocktranslate count counter=delivery_attempts trimmed %}
-          {{ counter }} transmission{% plural %}{{ counter }} transmissions
+        {% blocktranslate count counter=delivery_attempts with count=delivery_attempts|apnumber trimmed %}
+          {{ count }} transmission{% plural %}{{ count }} transmissions
         {% endblocktranslate %}
         <span aria-hidden="true">·</span>
       {% endif %}
