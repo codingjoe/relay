@@ -20,6 +20,8 @@ REPUTATION_CHART_COLORS = {
     "complaint_rate": "var(--color-chart-orange)",
     "hard_bounce_limit": "var(--color-chart-gray)",
     "complaint_limit": "var(--color-chart-gray)",
+    "this_month": "var(--color-chart-green)",
+    "last_month": "var(--color-chart-gray)",
 }
 
 
@@ -180,41 +182,78 @@ def build_reputation_chart(org):
 
 def build_volume_chart(org):
     """
-    Return the sending volume of this month and the last one.
+    Return the cumulative sending volume of this month and the last one.
 
-    Sending is what the plan meters, so the bars count the outgoing
-    messages recorded in each month. The current month runs to today,
-    and the free plan limit is charted as a threshold line.
+    One point per day of the current month: the running total of the
+    messages relay accepted up to that day, this month and the same day
+    of the last month. The free plan limit rides along as a threshold
+    line, so the chart shows how far the month has come against it.
     """
-    this_month = timezone.localdate().replace(day=1)
-    months = [(this_month - timedelta(days=1)).replace(day=1), this_month]
+    today = timezone.localdate()
+    this_month = today.replace(day=1)
+    last_month = (this_month - timedelta(days=1)).replace(day=1)
+    next_month = (today + timedelta(days=32)).replace(day=1)
+    days_in_month = (next_month - this_month).days
+
+    counts = (
+        OutgoingMessage.objects.filter(
+            org=org,
+            created_at__date__gte=last_month,
+            created_at__date__lt=next_month,
+        )
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+    )
+    per_day = {row["day"]: row["count"] for row in counts}
+
     rows = []
-    for month in months:
-        next_month = (month + timedelta(days=32)).replace(day=1)
+    last_total = this_total = 0
+    for offset in range(days_in_month):
+        day = this_month + timedelta(days=offset)
+        last_day = last_month + timedelta(days=offset)
+        has_last_day = last_day < this_month
+        if has_last_day:
+            last_total += per_day.get(last_day, 0)
+        this_total += per_day.get(day, 0)
         rows.append(
             {
-                "day": month.isoformat(),
-                "sent": OutgoingMessage.objects.filter(
-                    org=org,
-                    created_at__date__gte=month,
-                    created_at__date__lt=next_month,
-                ).count(),
+                "day": day.isoformat(),
+                "last_month": last_total if has_last_day else None,
+                "this_month": this_total if day <= today else None,
             }
         )
+
+    # A last month with more days than this one keeps its tail in the final
+    # point, so both lines end at a real month total.
+    tail = last_month + timedelta(days=days_in_month)
+    while tail < this_month:
+        last_total += per_day.get(tail, 0)
+        tail += timedelta(days=1)
+    if rows[-1]["last_month"] is not None:
+        rows[-1]["last_month"] = last_total
+
     return {
         "series": [
             {
-                "key": "sent",
-                "label": gettext("Messages"),
-                "color": REPUTATION_CHART_COLORS["sent"],
-            }
+                "key": "last_month",
+                "label": gettext("Last month"),
+                "color": REPUTATION_CHART_COLORS["last_month"],
+                "dataset": "type: 'line'",
+            },
+            {
+                "key": "this_month",
+                "label": gettext("This month"),
+                "color": REPUTATION_CHART_COLORS["this_month"],
+                "dataset": "type: 'line'",
+            },
         ],
         "rows": rows,
-        "x_monthly": True,
-        "subtitle": gettext("This month and last month"),
+        "x_day": True,
+        "subtitle": gettext("Cumulative, against the free tier"),
         "threshold": {
             "value": settings.RELAY_FREE_MONTHLY_MESSAGES,
-            "label": gettext("Free plan limit"),
+            "label": gettext("Free tier"),
         },
         "y_scale": {"stacked": "false"},
     }

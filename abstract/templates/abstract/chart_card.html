@@ -29,9 +29,7 @@
         timeZone: "UTC",
       });
       const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
-      const monthly = {% if chart.x_monthly %}true{% else %}false{% endif %};
-      const monthDate = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" });
-      const shortMonth = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+      const dayAxis = {% if chart.x_day %}true{% else %}false{% endif %};
       const muted = toRgba("var(--color-muted-foreground)");
       const border = toRgba("var(--color-border)");
       const diverging = {% if chart.y_scale.diverging %}true{% else %}false{% endif %};
@@ -74,7 +72,7 @@
           confine: true,
           formatter: (items) =>
             [
-              escapeHtml((monthly ? monthDate : fullDate).format(new Date(items[0].axisValue))),
+              escapeHtml(fullDate.format(new Date(items[0].axisValue))),
               ...items.map(
                 (item) =>
                   `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(formatValue(item.value))}`
@@ -85,9 +83,11 @@
           type: "category",
           data: rows.map((row) => row.day),
           axisLabel: {
-            interval: monthly ? 0 : Math.max(Math.ceil(rows.length / 6) - 1, 0),
+            interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
             formatter: (value) =>
-              (monthly ? shortMonth : shortDate).format(new Date(value)),
+              dayAxis
+                ? String(new Date(value).getUTCDate())
+                : shortDate.format(new Date(value)),
           },
         },
         yAxis: {

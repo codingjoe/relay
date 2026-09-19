@@ -199,7 +199,14 @@ class TestReputationOverviewView:
 
         assert response.status_code == 200
         chart = response.context["chart_volume"]
-        assert [row["sent"] for row in chart["rows"]] == [1, 1]
+        this_month_cumulative = [
+            row["this_month"] for row in chart["rows"] if row["this_month"] is not None
+        ]
+        last_month_cumulative = [
+            row["last_month"] for row in chart["rows"] if row["last_month"] is not None
+        ]
+        assert this_month_cumulative[-1] == 1
+        assert last_month_cumulative[-1] == 1
         assert chart["threshold"]["value"] == settings.RELAY_FREE_MONTHLY_MESSAGES
         assert "chart-volume" in response.content.decode()
 
