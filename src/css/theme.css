@@ -16,7 +16,6 @@
      holds the 3:1 WCAG non-text contrast floor against the card
      background. */
   --color-chart-green: light-dark(hsl(105, 42%, 45%), hsl(105, 55%, 64%));
-  --color-chart-green-deep: light-dark(hsl(155, 47%, 43%), hsl(155, 50%, 60%));
   --color-chart-yellow: light-dark(hsl(43, 89%, 39%), hsl(43, 90%, 62%));
   --color-chart-orange: light-dark(hsl(20, 97%, 52%), hsl(20, 95%, 66%));
   --color-chart-red: light-dark(hsl(0, 80%, 67%), hsl(0, 75%, 68%));

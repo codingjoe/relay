@@ -1,0 +1,11 @@
+{# Not for `.input-group`: buttons there stay inline, where relint's icon-xs rule can see them. #}
+<button
+  type="button"
+  class="btn"
+  data-variant="ghost"
+  data-size="icon"
+  data-copy="{{ value }}"
+  aria-label="{{ label }}"
+>
+  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+</button>

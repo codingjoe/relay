@@ -1,3 +1,4 @@
+import re
 from email import message_from_bytes, policy
 from email.message import EmailMessage
 from unittest.mock import patch
@@ -7,6 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
 from django.urls import reverse
+from django.utils.html import escape
 from django.utils.http import http_date
 
 from domains.models import Domain
@@ -16,6 +18,14 @@ from services.email.msa.models import (
     OutgoingMessage,
     SuppressionEntry,
 )
+
+
+def copy_button(content, value):
+    """Return the copy button tag that carries `value`, or None."""
+    return re.search(
+        rf'<button[^>]*data-copy="{re.escape(value)}"[^>]*>',
+        content,
+    )
 
 
 def make_message(org, user, **kwargs):
@@ -378,6 +388,53 @@ class TestCredentialListView:
         assert 'id="dlg-credential-key"' in content
         assert raw_key in content
         assert f"smtps://{org.slug}:{raw_key}@smtp.testserver:465" in content
+
+    def test_get__renders_copy_buttons_in_the_key_dialog(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        key_button = copy_button(content, raw_key)
+        uri_button = copy_button(content, escape(response.context["smtp_uri_with_key"]))
+        assert key_button is not None
+        assert 'data-size="icon-xs"' in key_button.group()
+        assert "aria-label='Copy key'" in key_button.group()
+        assert uri_button is not None
+        assert 'data-size="icon-xs"' in uri_button.group()
+        assert "aria-label='Copy connection URI'" in uri_button.group()
+
+    def test_get__renders_copy_buttons_in_the_connection_table(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        buttons = [
+            ("Copy server", response.context["smtp_hostname"]),
+            ("Copy port", ", ".join(map(str, response.context["smtp_starttls_ports"]))),
+            (
+                "Copy port",
+                ", ".join(map(str, response.context["smtp_implicit_tls_ports"])),
+            ),
+            ("Copy username", org.slug),
+            ("Copy connection URI", escape(response.context["smtp_uri"])),
+        ]
+        for label, value in buttons:
+            button = copy_button(content, value)
+            assert button is not None, value
+            assert 'data-size="icon"' in button.group(), value
+            label_pattern = rf"aria-label=(?P<q>[\"']){re.escape(label)}(?P=q)"
+            assert re.search(label_pattern, button.group()), value
+
+    def test_get__opens_the_sending_docs_in_a_new_tab(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+
+        assert (
+            '<a class="link" href="/docs/sending/" target="_blank" rel="noopener">'
+            "sending docs</a>"
+        ) in content
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):

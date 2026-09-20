@@ -3,16 +3,6 @@ import escapeHtml from "https://esm.sh/lodash.escape@4.0.1";
 
 import { toRgba } from "./chart.js";
 
-const PALETTE = [
-  "--color-chart-blue",
-  "--color-chart-green",
-  "--color-chart-yellow",
-  "--color-chart-red",
-  "--color-chart-green-deep",
-  "--color-chart-orange",
-  "--color-chart-gray",
-];
-
 function capitalize(text) {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
@@ -145,11 +135,17 @@ function drawVariation(chart, rows, styles) {
     const left = barData.getItemLayout(day - 1);
     const right = barData.getItemLayout(day);
     if (!left || !right) return;
-    let leftBase = 0;
-    let rightBase = 0;
+    // ECharts stacks the two directions away from zero, so a segment that
+    // hangs below the axis needs the running base of the negative side.
+    let leftUp = 0;
+    let leftDown = 0;
+    let rightUp = 0;
+    let rightDown = 0;
     for (const { key, color } of styles) {
       const leftValue = rows[day - 1][key];
       const rightValue = rows[day][key];
+      const leftBase = leftValue < 0 ? leftDown : leftUp;
+      const rightBase = rightValue < 0 ? rightDown : rightUp;
       if (leftValue || rightValue) {
         elements.push({
           type: "polygon",
@@ -165,8 +161,10 @@ function drawVariation(chart, rows, styles) {
           style: { fill: color, opacity: 0.25 },
         });
       }
-      leftBase += leftValue;
-      rightBase += rightValue;
+      if (leftValue < 0) leftDown += leftValue;
+      else leftUp += leftValue;
+      if (rightValue < 0) rightDown += rightValue;
+      else rightUp += rightValue;
     }
   }
   chart.setOption({ graphic: { elements } }, { replaceMerge: ["graphic"] });
@@ -195,7 +193,6 @@ function renderChart(element, payload) {
 }
 
 echarts.registerTheme("relay", {
-  color: PALETTE.map((name) => toRgba(`var(${name})`)),
   textStyle: {
     fontFamily: getComputedStyle(document.documentElement).fontFamily,
   },

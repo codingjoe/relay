@@ -8,6 +8,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.email_utils import decode_payload
 from abstract.models import FetchPeersManager, TimeStamped, Timing
 from kms.models import Certificate
 from services.email.tls import parse_peer_certificates
@@ -325,11 +326,9 @@ class Message(TimeStamped):
         carry no HTML part, have no HTML payload. Callers render it in a
         sandboxed frame, because a body from the outside is untrusted.
         """
-        if not self.raw_bytes():
-            return ""
         return next(
             (
-                payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+                decode_payload(payload, part.get_content_charset())
                 for part in self.parsed_email().walk()
                 if not part.is_multipart()
                 and part.get_content_type() == "text/html"
