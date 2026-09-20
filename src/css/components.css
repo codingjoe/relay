@@ -1,0 +1,68 @@
+/* Soft-tinted status badge variants. Basecoat only ships primary,
+   secondary, outline, destructive, ghost, and link variants; these two
+   follow the destructive pattern so status badges can share the chart
+   traffic-light tones. */
+.badge[data-variant="success"] {
+  @apply bg-success/10 [a]:hover:bg-success/20 focus-visible:ring-success/20 text-success dark:bg-success/20 dark:focus-visible:ring-success/40;
+}
+
+.badge[data-variant="warning"] {
+  @apply bg-warning/10 [a]:hover:bg-warning/20 focus-visible:ring-warning/20 text-warning dark:bg-warning/20 dark:focus-visible:ring-warning/40;
+}
+
+/* Message status text and card tint. The models hand the badge variant over
+   as a data attribute, so the templates carry no class logic. */
+.status {
+  --status-color: var(--color-muted-foreground);
+  color: var(--status-color);
+}
+
+[data-variant="success"] {
+  --status-color: var(--color-success);
+}
+
+[data-variant="warning"] {
+  --status-color: var(--color-warning);
+}
+
+[data-variant="destructive"] {
+  --status-color: var(--color-destructive);
+}
+
+.card[data-variant] {
+  background-color: color-mix(in srgb, var(--status-color, transparent) 10%, transparent);
+}
+
+/* Extra-small button sizes for controls that sit inline with badges
+   (data-size="sm" is 32px and dwarfs a 20px status badge). */
+.btn[data-size="xs"] {
+  height: calc(var(--spacing) * 7);
+  gap: calc(var(--spacing) * 1.5);
+  padding-inline: calc(var(--spacing) * 2.5);
+  font-size: 0.75rem;
+}
+
+.btn[data-size="icon-xs"] {
+  width: calc(var(--spacing) * 7);
+  height: calc(var(--spacing) * 7);
+}
+
+/* Basecoat pads a card's header, section, and footer inline, so a card that
+   carries its own `p-6` indents those blocks twice. Keep the outer padding. */
+.card.p-6 > :is(header, section, footer) {
+  padding-inline: 0;
+}
+
+/* A code sample puts its headline beside its own tab switch, with the block
+   below it. The tablist stays a direct child of `.tabs` so basecoat keeps
+   styling it. */
+.snippet-tabs {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
+}
+
+.snippet-tabs > [role='tabpanel'] {
+  grid-column: 1 / -1;
+}

@@ -8,9 +8,9 @@ from django.views import generic
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.models import Domain
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
+from .charts import MESSAGE_KINDS, build_direction_chart, build_kind_charts
 from .models import Message
 
 
@@ -19,7 +19,7 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
 
     context_object_name = "messages"
     paginate_by = 50
-    title = _("Email messages")
+    title = _("Message log")
     parent = "accounts:org-home"
 
     class Direction(models.TextChoices):
@@ -46,29 +46,42 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             )
         return qs
 
+    def get_chart(self, direction):
+        """Return the title and chart of the messages the filters select."""
+        messages = self.get_queryset()
+        match direction:
+            case self.Direction.SENT:
+                model_names = [MESSAGE_KINDS["outgoing"]]
+                title = _("outgoing messages by status")
+            case self.Direction.RECEIVED:
+                model_names = [MESSAGE_KINDS["incoming"]]
+                title = _("incoming messages by status")
+            case _:
+                return (
+                    _("outgoing and incoming messages by status"),
+                    build_direction_chart(messages),
+                )
+        return title, build_kind_charts(messages, model_names)[0]
+
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")
         status = self.request.GET.get("status", "")
         direction = self.request.GET.get("direction", self.Direction.ALL)
-        filter_count = sum(
-            bool(value) for value in (email, status, direction != self.Direction.ALL)
-        )
+        status_choices = Message.status_choices()
         try:
             direction_label = self.Direction(direction).label
         except ValueError:
             direction_label = self.Direction.ALL.label
+        chart_title, chart = self.get_chart(direction)
         return super().get_context_data(**kwargs) | {
             "direction": direction,
             "email": email,
             "status": status,
-            "status_choices": Message.status_choices(),
-            "filter_count": filter_count,
+            "status_choices": status_choices,
+            "status_label": dict(status_choices).get(status, ""),
             "direction_label": direction_label,
-            "sending_domains": [
-                domain
-                for domain in Domain.objects.filter(org=self.org)
-                if domain.is_sending_verified
-            ],
+            "chart_title": chart_title,
+            "chart": chart,
         }
 
 
@@ -102,21 +115,44 @@ class MessageDetailView(
             message.spamcheck_set.select_related("message"),
         )
 
+    def get_delivery_summary(self, message, transmissions):
+        """
+        Return the attempts, the last finish, and the elapsed delivery time.
+
+        The elapsed time runs from the moment relay stored the message, so a
+        message that waited in the queue before its accepted attempt reads as
+        the user experienced it.
+        """
+        if not transmissions:
+            return {}
+        last_finished = max(item.finished_at for item in transmissions)
+        return {
+            "delivery_attempts": len(transmissions),
+            "delivery_finished_at": last_finished,
+            "delivery_duration": last_finished - message.created_at,
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = message.parsed_headers
         timings = self.get_timings(message)
-        return context | {
-            "headers": headers,
-            "received": [v for k, v in headers if k.lower() == "received"],
-            "body": message.text_body,
-            "transmissions": self.transmissions,
-            "timeline": sorted(
-                (timing.event for timing in timings),
-                key=lambda event: event["start"],
-            ),
-        }
+        transmissions = list(self.transmissions)
+        return (
+            context
+            | {
+                "headers": headers,
+                "received": [v for k, v in headers if k.lower() == "received"],
+                "body": message.text_body,
+                "html_body": message.html_body,
+                "transmissions": transmissions,
+                "timeline": sorted(
+                    (timing.event for timing in timings),
+                    key=lambda event: event["start"],
+                ),
+            }
+            | self.get_delivery_summary(message, transmissions)
+        )
 
 
 class CertificateDetailView(

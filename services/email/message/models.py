@@ -8,6 +8,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.email_utils import decode_payload
 from abstract.models import FetchPeersManager, TimeStamped, Timing
 from kms.models import Certificate
 from services.email.tls import parse_peer_certificates
@@ -314,6 +315,26 @@ class Message(TimeStamped):
                 and (payload := part.get_payload(decode=True)) is not None
             ),
             b"",
+        )
+
+    @property
+    def html_body(self) -> str:
+        """
+        Return the decoded HTML payload of the stored body.
+
+        Messages whose raw body is pruned or unreadable, and messages that
+        carry no HTML part, have no HTML payload. Callers render it in a
+        sandboxed frame, because a body from the outside is untrusted.
+        """
+        return next(
+            (
+                decode_payload(payload, part.get_content_charset())
+                for part in self.parsed_email().walk()
+                if not part.is_multipart()
+                and part.get_content_type() == "text/html"
+                and (payload := part.get_payload(decode=True)) is not None
+            ),
+            "",
         )
 
     @classmethod

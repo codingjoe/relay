@@ -380,7 +380,7 @@ class TestBuildReputationChart:
             original_mail_from="sender@acme.com",
         )
 
-        rows = build_reputation_chart(org)["rows"]
+        chart = build_reputation_chart(org)
 
-        assert rows[-1]["complained"] == 2
+        assert "2 complaints of 1 sent" in chart["complaint_chart"]["subtitle"]
         assert compute_org_reputation(org)["complaints"] == 2

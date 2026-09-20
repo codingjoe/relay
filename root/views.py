@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -5,6 +6,7 @@ from abstract.views import BreadcrumbViewMixin, CacheControlMixin
 
 # Wordmarks of companies that back relay, with owner-attested endorsement.
 # Optional keys: "url" (endorser link) and "logo" (static image path).
+
 BRANDS = [
     {"name": "Henkel"},
     {"name": "Porsche"},
@@ -49,6 +51,8 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "brands": BRANDS,
             "testimonials": TESTIMONIALS,
+            "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
+            "price_per_1000_messages": settings.RELAY_PRICE_PER_1000_MESSAGES,
         }
 
 

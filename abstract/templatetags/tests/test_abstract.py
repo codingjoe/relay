@@ -1,5 +1,6 @@
 import datetime
 import zoneinfo
+from types import SimpleNamespace
 
 from django.core.paginator import Paginator
 from django.template import RequestContext, engines
@@ -135,3 +136,40 @@ def test_highlight_code__unknown_language():
     highlighted = abstract.highlight_code("plain text", "not-a-language")
     assert '<div class="codehilite">' in highlighted
     assert "<pre>" in highlighted
+
+
+def test_human_duration__milliseconds():
+    duration = datetime.timedelta(milliseconds=300)
+
+    assert abstract.human_duration(duration) == "300 milliseconds"
+
+
+def test_human_duration__seconds():
+    assert abstract.human_duration(datetime.timedelta(seconds=5)) == "5 seconds"
+
+
+def test_human_duration__minutes():
+    assert abstract.human_duration(datetime.timedelta(seconds=125)) == "2 minutes"
+
+
+def test_human_duration__whole_minutes():
+    assert abstract.human_duration(datetime.timedelta(minutes=1)) == "a minute"
+
+
+def test_human_duration__hours():
+    assert abstract.human_duration(datetime.timedelta(hours=3)) == "3 hours"
+
+
+def test_apex_suffix__relative_name():
+    assert (
+        abstract.apex_suffix("mail.relay.acme.com", SimpleNamespace(name="acme.com"))
+        == ".acme.com"
+    )
+
+
+def test_apex_suffix__at_the_apex():
+    assert abstract.apex_suffix("acme.com", SimpleNamespace(name="acme.com")) == ""
+
+
+def test_apex_suffix__unrelated_name():
+    assert abstract.apex_suffix("example.net", SimpleNamespace(name="acme.com")) == ""

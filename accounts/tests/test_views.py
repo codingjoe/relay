@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth.models import User
+from django.urls import reverse
 
 from accounts.models import Membership, Organization
 
@@ -78,6 +79,16 @@ class TestOrganizationStartView:
         response = admin_client.get("/organizations/start")
         assert response.status_code == 302
         assert response.url == "/organizations/"
+
+
+@pytest.mark.django_db
+class TestOrganizationHomeView:
+    def test_get__redirects_to_get_started(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/")
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "email-dashboard:get-started", kwargs={"org_slug": org.slug}
+        )
 
 
 @pytest.mark.django_db

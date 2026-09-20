@@ -60,8 +60,10 @@ Developer workflow, confirmed from product code and copy:
 - Pay-per-relay pricing shown on the landing page: no licenses, seats, or
   subscriptions; you pay when relay relays. The hero claims the product,
   not the price: "Email sending, receiving, monitoring, and sandboxes. So
-  good you'll check the dashboard for fun." First 1,000 emails/month
-  free, then €0.75 per 1,000; pricing is pre-launch and unvalidated.
+  good you'll check the dashboard for fun." The free tier and the price
+  per 1,000 emails come from `RELAY_FREE_MONTHLY_MESSAGES` (1,000) and
+  `RELAY_PRICE_PER_1000_MESSAGES` (€0.69), which the landing page and the
+  reputation cost card share; pricing is pre-launch and unvalidated.
 - Landing page stage framing: pre-launch/early access. The primary CTA is
   "get early access"; signup currently stays open via GitHub OAuth (the
   invite-only/waitlist framing is copy-only; a real gate and waitlist are
@@ -74,12 +76,12 @@ Developer workflow, confirmed from product code and copy:
   captured from the product, overview and detail
   (`root/static/img/email-overview-dark.png` and
   `root/static/img/email-overview-light.png`, plus the matching
-  `email-detail-*.png` pair); a code-example tabs section
-  (Django and Next, sending and receiving each, the Django send using
-  the `MAILERS` setting); and a "no black box" trust band (SPF, DKIM,
-  DMARC, MTA-STS, TLS-RPT, FBL, ARC, Standard Webhooks linked to the
-  spec) that carries the open-source pledge as one muted line instead
-  of a full-bleed panel; and a privacy section stating German hosting
+  `email-detail-*.png` pair); a code-examples section with a sending and
+  a receiving block, each carrying its own Django / Next.js switch (the
+  Django send using the `MAILERS` setting); and an "Audit every line" band on the primary
+  surface, carrying the open-source pledge with buttons to the pledge
+  page and the sponsoring page; and a privacy section stating German
+  hosting
   (Hetzner Falkenstein, documented in `docs/docs/data-privacy.md`),
   GDPR, and the ISO/IEC 27001 / BSI C5 attestations of those data
   centers, linked to the privacy policy and the data-privacy docs page.

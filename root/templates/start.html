@@ -1,21 +1,8 @@
 {% extends "base.html" %}
-{% load i18n static %}
+{% load i18n humanize l10n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: communication as a service" %}{% endblock %}
-{% block meta_tags %}
-  {{ block.super }}
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
-    media="(prefers-color-scheme: light)"
-  >
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github-dark.min.css"
-    media="(prefers-color-scheme: dark)"
-  >
-{% endblock %}
 {% block content %}
   <div class="start relative isolate -mx-6 sm:-mx-8">
     <div
@@ -77,7 +64,8 @@
         <span aria-hidden="true">·</span>
         <span class="inline-flex items-center gap-1.5">
           <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
-          {% translate "first 1,000 emails free every month"|capfirst %}
+          {% translate "first"|capfirst %} {{ free_monthly_messages|intcomma }}
+          {% translate "emails free every month" %}
         </span>
       </p>
     </section>
@@ -126,7 +114,8 @@
           <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
-              Receive incoming mail via webhooks, API, or MCP.
+              Inbound email lands in your app: relay POSTs each message to an HTTPS endpoint you own, or hands it over
+              the API and MCP.
             {% endblocktranslate %}
           </p>
         </article>
@@ -167,7 +156,7 @@
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
             <i data-lucide="cpu" class="size-6 text-primary" aria-hidden="true"></i>
           </div>
-          <h3 class="m-0 text-lg">{% translate "AI-first"|capfirst %}</h3>
+          <h3 class="m-0 text-lg">{% translate "AI native"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
             {% blocktranslate trimmed %}
               For AI agents to send and receive email, with a focus on privacy and security.
@@ -183,7 +172,8 @@
       </h2>
       <p class="text-center text-lg text-muted-foreground leading-relaxed m-0 mt-4 mb-12 max-w-2xl mx-auto">
         {% blocktranslate trimmed %}
-          Every message in and out, every transmission and webhook delivery. In your browser, not in a support ticket.
+          Every message in and out, every transmission and every delivery to your app. In your browser, not in a support
+          ticket.
         {% endblocktranslate %}
       </p>
       <div class="grid gap-8 sm:grid-cols-2 items-start">
@@ -268,105 +258,11 @@
           {% endblocktranslate %}
         </p>
       </div>
-      <div class="tabs min-w-0 max-w-3xl mx-auto mt-10" id="stack-examples">
-        <nav role="tablist" aria-orientation="horizontal" class="self-center">
-          <button
-            type="button"
-            role="tab"
-            id="stack-ex-django"
-            aria-controls="stack-ex-django-panel"
-            aria-selected="true"
-            tabindex="0"
-          >
-            Django
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="stack-ex-next"
-            aria-controls="stack-ex-next-panel"
-            aria-selected="false"
-            tabindex="-1"
-          >
-            Next
-          </button>
-        </nav>
-        <div
-          role="tabpanel"
-          id="stack-ex-django-panel"
-          aria-labelledby="stack-ex-django"
-          tabindex="-1"
-          class="min-w-0"
-        >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python"># settings.py
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
-        "OPTIONS": {
-            "host": "smtp.relay.example.com",
-            "port": 465,
-            "use_ssl": True,
-            "username": "acme",
-            "password": "&lt;credential key&gt;",
-        },
-    },
-}
-
-# send from anywhere
-from django.core.mail import send_mail
-
-send_mail("Invoice 42", "Attached.", "billing@acme.com", ["kim@example.net"])
-
-
-# views.py: receive inbound email via standard webhooks
-import json
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from standardwebhooks import Webhook
-
-@csrf_exempt
-def email_received(request):
-    Webhook("&lt;whsec_...&gt;").verify(request.body, request.headers)
-    event = json.loads(request.body)  # type == email.received
-    ...  # download event["body_url"]
-    return HttpResponse(status=204)</code></pre>
-        </div>
-        <div
-          role="tabpanel"
-          id="stack-ex-next-panel"
-          aria-labelledby="stack-ex-next"
-          tabindex="-1"
-          hidden
-          class="min-w-0"
-        >
-          <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">import nodemailer from "nodemailer";
-
-const transport = nodemailer.createTransport({
-  host: "smtp.relay.example.com",
-  port: 465,
-  secure: true,
-  auth: { user: "acme", pass: "&lt;credential key&gt;" },
-});
-
-await transport.sendMail({
-  from: "billing@acme.com",
-  to: "kim@example.net",
-  subject: "Invoice 42",
-  text: "Attached.",
-});
-
-
-// app/api/email/route.ts: receive inbound email via standard webhooks
-import { Webhook } from "standardwebhooks";
-
-export async function POST(req: Request) {
-  const raw = await req.text();
-  new Webhook("&lt;whsec_...&gt;").verify(raw, Object.fromEntries(req.headers));
-  const event = JSON.parse(raw);  // type == email.received
-  ...  // download event.body_url
-  return new Response(null, { status: 204 });
-}</code></pre>
-        </div>
+      <div class="max-w-3xl mx-auto mt-10 grid gap-10" id="stack-examples">
+        {% translate "sending" as sending_title %}
+        {% include "partials/code_sample.html" with id="snippet-sending" title=sending_title|capfirst django_snippet="snippets/django_sending.py" next_snippet="snippets/next_sending.ts" %}
+        {% translate "receiving" as receiving_title %}
+        {% include "partials/code_sample.html" with id="snippet-receiving" title=receiving_title|capfirst django_snippet="snippets/django_receiving.py" next_snippet="snippets/next_receiving.ts" %}
       </div>
     </section>
 
@@ -398,91 +294,27 @@ export async function POST(req: Request) {
     </section>
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
-      <div class="card p-8 sm:p-10 flex flex-col items-center gap-5 text-center">
+      <div class="card pledge relative overflow-hidden p-6 sm:p-8 flex flex-col items-center gap-4 text-center">
         <h2 class="text-xl sm:text-2xl font-bold m-0">
-          {% translate "no black box"|capfirst %}
+          {% translate "audit every line"|capfirst %}
         </h2>
-        <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none">
-          <li>
-            <a
-              href="{% url 'know_how:detail' 'spf' %}"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >SPF</a>
-          </li>
-          <li>
-            <a
-              href="{% url 'know_how:detail' 'dkim' %}"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >DKIM</a>
-          </li>
-          <li>
-            <a
-              href="{% url 'know_how:detail' 'dmarc' %}"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >DMARC</a>
-          </li>
-          <li>
-            <a
-              href="{% url 'know_how:detail' 'mta-sts' %}"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >MTA-STS</a>
-          </li>
-          <li>
-            <a
-              href="{% url 'know_how:detail' 'tls-rpt' %}"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >TLS-RPT</a>
-          </li>
-          <li><span class="badge" data-variant="outline" data-size="sm">FBL</span></li>
-          <li>
-            <a
-              href="{% url 'know_how:detail' 'arc' %}"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >ARC</a>
-          </li>
-          <li>
-            <a
-              href="https://standardwebhooks.com"
-              target="_blank"
-              rel="noopener"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >Standard Webhooks</a>
-          </li>
-        </ul>
-        <p class="m-0 text-muted-foreground leading-relaxed max-w-2xl">
+        <p class="m-0 max-w-xl leading-relaxed text-primary-foreground/80">
           {% blocktranslate trimmed %}
-            Open standards, verified and visible in the dashboard: dual DKIM signatures with RSA-2048 and Ed25519 keys,
-            ARC sealing, and DMARC, TLS, and feedback-loop report monitoring. No mystery bounces, no hidden reputation
-            score.
+            The code that signs, seals, and delivers your email is open under the AGPL-3.0.
           {% endblocktranslate %}
         </p>
-        <p class="m-0 text-muted-foreground">
-          {% blocktranslate trimmed %}
-            We stand on the work of the open-source community and give it back.
-          {% endblocktranslate %}
-          <a href="{% url 'open-source' %}" class="link">{% translate "read the pledge"|capfirst %}</a>
-          <span aria-hidden="true">·</span>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <a href="{% url 'open-source' %}" class="btn bg-background text-foreground hover:bg-background/90">
+            {% translate "read the pledge"|capfirst %}
+          </a>
           <a
             href="https://github.com/codingjoe?tab=sponsoring"
             target="_blank"
             rel="noopener"
-            class="link"
+            class="btn border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+            data-variant="ghost"
           >{% translate "see who we fund"|capfirst %}</a>
-        </p>
+        </div>
       </div>
     </section>
 
@@ -502,16 +334,6 @@ export async function POST(req: Request) {
           <li><span class="badge" data-variant="outline" data-size="sm">GDPR</span></li>
           <li><span class="badge" data-variant="outline" data-size="sm">ISO/IEC 27001</span></li>
           <li><span class="badge" data-variant="outline" data-size="sm">BSI C5</span></li>
-          <li>
-            <a
-              href="https://github.com/codingjoe/relay"
-              target="_blank"
-              rel="noopener"
-              class="badge transition-colors hover:text-foreground"
-              data-variant="outline"
-              data-size="sm"
-            >Open source</a>
-          </li>
         </ul>
         <p class="text-sm text-muted-foreground m-0">
           {% blocktranslate trimmed %}
@@ -524,6 +346,8 @@ export async function POST(req: Request) {
           <span aria-hidden="true">·</span>
           <a
             href="{% url 'docs:detail' 'data-privacy' %}"
+            target="_blank"
+            rel="noopener"
             class="link"
           >{% translate "how relay handles data"|capfirst %}</a>
         </p>
@@ -546,12 +370,12 @@ export async function POST(req: Request) {
           </p>
           <p class="m-0 mt-2 flex items-baseline gap-x-1.5">
             <output for="price-slider" class="text-4xl sm:text-6xl font-bold font-mono">
-              <span id="price-volume">1,000</span>
+              <span id="price-volume">{{ free_monthly_messages|intcomma }}</span>
             </output>
             <span class="text-lg font-medium text-muted-foreground font-mono">{% translate "emails" %}</span>
           </p>
           <p class="m-0 mt-3 flex items-baseline gap-x-1.5 text-2xl font-mono">
-            <span id="price-amount" class="font-semibold">€0</span>
+            <relay-amount id="price-amount" class="font-semibold" amount="0" currency="EUR"></relay-amount>
             <span class="text-muted-foreground">{% translate "/ month" %}</span>
           </p>
         </header>
@@ -560,21 +384,27 @@ export async function POST(req: Request) {
             type="range"
             id="price-slider"
             class="input w-full"
-            min="0"
+            data-free="{{ free_monthly_messages|unlocalize }}"
+            data-per-thousand="{{ price_per_1000_messages|unlocalize }}"
+            min="{{ free_monthly_messages }}"
             max="100000"
             step="1000"
-            value="1000"
+            value="{{ free_monthly_messages }}"
             aria-label="emails you send per month"
           >
           <p class="text-xs text-muted-foreground m-0 font-mono">
-            {% blocktranslate trimmed %}
-              First 1,000 emails free, then €0.75 / 1,000 emails.
+            {% blocktranslate with free=free_monthly_messages|intcomma price=price_per_1000_messages|floatformat:2 trimmed %}
+              First {{ free }} emails free, then €{{ price }} / 1,000 emails.
             {% endblocktranslate %}
           </p>
         </section>
         <hr class="my-6 border-border">
         <section class="m-0">
           <ul class="flex flex-col gap-3 m-0 p-0 list-none">
+            <li class="flex items-center gap-2.5">
+              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% translate "sender reputation monitoring"|capfirst %}
+            </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
               {% translate "30-day message retention"|capfirst %}
@@ -586,10 +416,6 @@ export async function POST(req: Request) {
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
               {% translate "DKIM, SPF, DMARC management"|capfirst %}
-            </li>
-            <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-              {% translate "sender reputation monitoring"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
               <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
@@ -619,9 +445,12 @@ export async function POST(req: Request) {
       background-color: color-mix(in srgb, var(--color-card) 75%, transparent);
     }
 
-    .start pre code.hljs {
-      padding: 0;
-      background: transparent;
+    /* The glass tint above would wash out a solid card, so the pledge keeps
+       its own primary surface. */
+    .start .pledge {
+      border-color: transparent;
+      background-color: var(--color-primary);
+      color: var(--color-primary-foreground);
     }
 
     .landing-accent {
@@ -736,31 +565,5 @@ export async function POST(req: Request) {
       }
     }
   </style>
-  <script>
-    const slider = document.getElementById("price-slider");
-    const amount = document.getElementById("price-amount");
-    const volume = document.getElementById("price-volume");
-    if (slider && amount && volume) {
-      const formatVolume = (n) => n.toLocaleString("en-US");
-      const formatEur = (n) =>
-        new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(n);
-      const update = () => {
-        const v = Number(slider.value);
-        const billable = Math.max(0, v - 1000);
-        const total = billable * 0.00075;
-        volume.textContent = formatVolume(v);
-        amount.textContent = formatEur(total);
-      };
-      slider.addEventListener("input", update);
-      update();
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
-  <script>
-    if (typeof hljs !== "undefined") {
-      document.querySelectorAll("pre code[class*='language-']").forEach((block) => {
-        hljs.highlightElement(block);
-      });
-    }
-  </script>
+  <script type="module" src="{% static 'js/start.js' %}"></script>
 {% endblock %}

@@ -43,19 +43,9 @@
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
-    <script defer>
-      document.addEventListener("DOMContentLoaded", () => {
-        if (window.lucide) window.lucide.createIcons();
-      });
-      (() => {
-        try {
-          const stored = localStorage.getItem("themeMode");
-          if (stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches) {
-            document.documentElement.classList.add("dark");
-          }
-        } catch (_) {}
-      })();
-    </script>
+    <script type="module" src="{% static 'js/app.js' %}"></script>
+    <script type="module" src="{% static 'js/snippets.js' %}"></script>
+    <script type="module" src="{% static 'js/amount.js' %}"></script>
   </head>
   <body class="min-h-screen flex">
     {% if current_org and request.resolver_match.namespace != 'accounts' %}
@@ -68,7 +58,7 @@
           {% include "partials/breadcrumbs.html" %}
         </div>
       {% endblock chrome %}
-      <div class="flex-1 px-6 max-w-7xl w-full mx-auto">
+      <div class="flex-1 px-6 pb-10 max-w-7xl w-full mx-auto">
         {% block content %}{% endblock %}
       </div>
       {% include "partials/footer.html" %}

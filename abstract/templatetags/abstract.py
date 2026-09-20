@@ -1,11 +1,13 @@
 import datetime
 import decimal
+from datetime import timedelta
 
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
 from django.template.defaulttags import register
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
+from humanize import naturaldelta
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
@@ -154,3 +156,30 @@ def percent(text, arg=-1):
     return mark_safe(
         f"{defaultfilters.floatformat(text, arg=arg)}&nbsp;&percnt;",
     )
+
+
+@register.filter
+def human_duration(value: timedelta) -> str:
+    """Render a duration in words, so a card reads at a glance."""
+    return naturaldelta(value, minimum_unit="milliseconds")
+
+
+@register.filter
+def relative_record_name(record_name: str, domain) -> str:
+    """Return the name as a DNS provider expects it, `@` at the apex."""
+    match record_name:
+        case name if name == domain.name:
+            relative_name = "@"
+        case name if name.endswith(f".{domain.name}"):
+            relative_name = name.removesuffix(f".{domain.name}")
+        case name:
+            relative_name = name
+    return relative_name
+
+
+@register.filter
+def apex_suffix(record_name: str, domain) -> str:
+    """Return the zone a relative record name sits in, empty at the apex."""
+    if not record_name.endswith(f".{domain.name}"):
+        return ""
+    return f".{domain.name}"

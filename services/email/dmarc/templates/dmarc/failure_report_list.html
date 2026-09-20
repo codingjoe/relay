@@ -52,7 +52,7 @@
         {% for report in reports %}
           <tr
             class="cursor-pointer"
-            onclick="window.location.href = '{% url 'dmarc:failure-report-detail' org.slug report.pk %}'"
+            data-href="{% url 'dmarc:failure-report-detail' org.slug report.pk %}"
           >
             <td>{{ report.arrival_at|naturalday|default:"-" }}</td>
             <td>{{ report.domain|default:"-" }}</td>

@@ -67,7 +67,7 @@ class TestFblReport:
             reporting_org="gmail",
         )
         assert report.get_absolute_url() == reverse(
-            "reputation:fbl-report-detail",
+            "monitoring:fbl-report-detail",
             kwargs={"org_slug": org.slug, "pk": report.pk},
         )
 

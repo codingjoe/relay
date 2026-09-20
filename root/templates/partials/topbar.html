@@ -6,7 +6,7 @@
       class="btn"
       data-size="icon"
       data-variant="ghost"
-      onclick="document.getElementById('app-sidebar')?.toggle()"
+      data-toggle="app-sidebar"
       aria-label='{% translate "toggle sidebar"|capfirst %}'
     >
       <i data-lucide="panel-left" aria-hidden="true"></i>
@@ -31,7 +31,11 @@
 
     <nav class="flex items-baseline gap-1" aria-label='{% translate "main"|capfirst %}'>
       {% if current_org %}
-        {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
+        {% if onboarding_complete %}
+          {% url 'monitoring:overview' current_org.slug as email_url %}
+        {% else %}
+          {% url 'email-dashboard:get-started' current_org.slug as email_url %}
+        {% endif %}
         <a
           href="{{ email_url }}"
           class="btn"
@@ -42,6 +46,8 @@
       {% endif %}
       <a
         href="{% url 'docs:list' %}"
+        target="_blank"
+        rel="noopener"
         class="btn"
         data-size="sm"
         data-variant="ghost"

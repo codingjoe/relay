@@ -357,6 +357,29 @@ class TestMessageTextBody:
         assert Message.objects.get(pk=msg.pk).text_body == b"hello"
 
 
+class TestMessageHtmlBody:
+    @pytest.mark.django_db
+    def test_html_body__pruned_raw_body_returns_empty(self, user, org):
+        msg = create_outgoing(user, org)
+        assert Message.objects.get(pk=msg.pk).html_body == ""
+
+    @pytest.mark.django_db
+    def test_html_body__unknown_charset_still_renders(self, user, org):
+        raw = (
+            b"From: alice@example.com\r\n"
+            b"To: bob@example.com\r\n"
+            b"Subject: hi\r\n"
+            b"MIME-Version: 1.0\r\n"
+            b"Content-Type: text/html; charset=x-bogus\r\n"
+            b"\r\n"
+            b"<p>h\xc3\xa9llo</p>"
+        )
+        msg = create_outgoing(user, org)
+        msg.raw_body.save(f"{msg.id}.eml", ContentFile(raw), save=False)
+        msg.save(update_fields=["raw_body"])
+        assert Message.objects.get(pk=msg.pk).html_body == "<p>héllo</p>"
+
+
 class TestMessageGetEmailUrl:
     @pytest.mark.django_db
     def test_get_email_url__incoming_message_falls_back_to_detail_view(self, org):

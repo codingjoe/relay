@@ -92,7 +92,10 @@ submission still succeeds, and relay stores the message as suppressed, so
 your application sees no error and no retry loop.
 
 You can add entries manually, for example before a large import.
-If the address returns, remove the entry. Addresses store as salted SHA-256 hashes
+If the address returns, remove the entry. Clearing the whole list is a
+separate action, and it warns first: every address that bounced starts
+receiving mail again, and those bounces count against your sender
+reputation. Addresses store as salted SHA-256 hashes
 only. See <a href="{% url 'docs:detail' slug='data-privacy' %}">Data
 privacy</a> for what that means.
 

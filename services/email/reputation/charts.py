@@ -1,9 +1,13 @@
+from calendar import monthrange
 from datetime import timedelta
+from itertools import accumulate
 
 from django.conf import settings
-from django.db.models import Count, Q
+from django.contrib.humanize.templatetags.humanize import intcomma
+from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.utils.translation import gettext
 
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
@@ -11,57 +15,43 @@ from services.email.msa.models import OutgoingMessage
 from .models import FblReport
 
 REPUTATION_CHART_COLORS = {
-    "sent": "var(--color-chart-green)",
-    "hard_bounced": "var(--color-chart-red)",
-    "soft_bounced": "var(--color-chart-yellow)",
-    "complained": "var(--color-chart-red)",
     "hard_bounce_rate": "var(--color-chart-red)",
     "complaint_rate": "var(--color-chart-orange)",
-    "hard_bounce_limit": "var(--color-chart-gray)",
-    "complaint_limit": "var(--color-chart-gray)",
+    "this_month": "var(--color-chart-green)",
+    "last_month": "var(--color-chart-gray)",
 }
 
 
-def build_reputation_chart(org):
-    """
-    Return per-day message counts, rates, and rate limits for one org.
-
-    Counts provider FBL reports and outgoing messages held as spam as
-    complaints. Values accumulate from the start of the evaluation
-    window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
-    equals the rates the reputation check evaluates. Rates and limits
-    are per cent, so they share one axis and can be plotted next to
-    each other.
-    """
-    window_days = settings.RELAY_REPUTATION_WINDOW_DAYS
-    start = timezone.localdate() - timedelta(days=window_days - 1)
-
-    sent_rows = (
+def sent_per_day(org, start):
+    """Return the outgoing message count per day since `start`."""
+    rows = (
         OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(count=Count("id"))
     )
-    sent_counts = {row["day"]: row["count"] for row in sent_rows}
+    return {row["day"]: row["count"] for row in rows}
 
-    bounce_rows = (
+
+def bounced_per_day(org, start):
+    """Return the hard bounce count per day since `start`."""
+    rows = (
         Transmission.objects.filter(
             message__org=org,
             message__created_at__date__gte=start,
             status=Transmission.Status.BOUNCED,
+            code__gte=500,  # 5xx is a hard bounce, 4xx a soft one
         )
         .annotate(day=TruncDate("message__created_at"))
         .values("day")
-        .annotate(
-            hard=Count("id", filter=Q(code__gte=500)),
-            soft=Count("id", filter=Q(code__lt=500)),
-        )
+        .annotate(count=Count("id"))
     )
-    rows = list(bounce_rows)
-    hard_bounce_counts = {row["day"]: row["hard"] for row in rows}
-    soft_bounce_counts = {row["day"]: row["soft"] for row in rows}
+    return {row["day"]: row["count"] for row in rows}
 
-    complaint_rows = (
+
+def complaints_per_day(org, start):
+    """Return the complaint count per day since `start`."""
+    reports = (
         FblReport.objects.filter(
             org=org,
             created_at__date__gte=start,
@@ -71,9 +61,8 @@ def build_reputation_chart(org):
         .values("day")
         .annotate(count=Count("id"))
     )
-    complaint_counts = {row["day"]: row["count"] for row in complaint_rows}
-
-    held_spam_rows = (
+    complaints = {row["day"]: row["count"] for row in reports}
+    held = (
         OutgoingMessage.objects.filter(
             org=org,
             created_at__date__gte=start,
@@ -83,95 +72,163 @@ def build_reputation_chart(org):
         .values("day")
         .annotate(count=Count("id"))
     )
-    for row in held_spam_rows:
-        complaint_counts[row["day"]] = (
-            complaint_counts.get(row["day"], 0) + row["count"]
-        )
+    for row in held:
+        complaints[row["day"]] = complaints.get(row["day"], 0) + row["count"]
+    return complaints
+
+
+def rate_chart(rows, key, label, color, limit, subtitle):
+    """Return one rate chart, with that rate's own limit as a threshold line."""
+    return {
+        "series": [
+            {
+                "key": key,
+                "label": label,
+                "color": color,
+                "type": "line",
+            }
+        ],
+        "rows": rows,
+        "subtitle": subtitle,
+        "threshold": {"value": limit, "label": gettext("Limit")},
+        "y_scale": {"stacked": False, "percent": True},
+    }
+
+
+def build_reputation_chart(org):
+    """
+    Return the per-day rates of one org, ready for one chart per rate.
+
+    Counts provider FBL reports and spam-flagged mail as complaints, and
+    accumulates over the evaluation window, so the last point matches its check.
+    """
+    window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
+    start = timezone.localdate() - timedelta(days=window_days - 1)
+
+    sent_counts = sent_per_day(org, start)
+    hard_bounce_counts = bounced_per_day(org, start)
+    complaint_counts = complaints_per_day(org, start)
 
     days_list = [start + timedelta(days=offset) for offset in range(window_days)]
-    series = [
-        {
-            "key": "sent",
-            "label": "Sent",
-            "color": REPUTATION_CHART_COLORS["sent"],
-        },
-        {
-            "key": "hard_bounced",
-            "label": "Hard bounces",
-            "color": REPUTATION_CHART_COLORS["hard_bounced"],
-        },
-        {
-            "key": "soft_bounced",
-            "label": "Soft bounces",
-            "color": REPUTATION_CHART_COLORS["soft_bounced"],
-        },
-        {
-            "key": "complained",
-            "label": "Complaints",
-            "color": REPUTATION_CHART_COLORS["complained"],
-        },
-    ]
     bounce_limit = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD * 100
     complaint_limit = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD * 100
 
-    def cumulative(counts):
-        counts = [counts.get(day, 0) for day in days_list]
-        return [sum(counts[: index + 1]) for index in range(len(days_list))]
-
-    sent_cumulative = cumulative(sent_counts)
-    hard_bounce_cumulative = cumulative(hard_bounce_counts)
-    soft_bounce_cumulative = cumulative(soft_bounce_counts)
-    complaint_cumulative = cumulative(complaint_counts)
+    sent_cumulative = list(accumulate(sent_counts.get(day, 0) for day in days_list))
+    hard_bounce_cumulative = list(
+        accumulate(hard_bounce_counts.get(day, 0) for day in days_list)
+    )
+    complaint_cumulative = list(
+        accumulate(complaint_counts.get(day, 0) for day in days_list)
+    )
 
     def rate(count_cumulative):
         return [
-            round(count / sent_total * 100, 4)
-            if (sent_total := sent_cumulative[index])
-            else None
-            for index, count in enumerate(count_cumulative)
+            round(count / sent_total * 100, 4) if sent_total else None
+            for count, sent_total in zip(count_cumulative, sent_cumulative)
         ]
 
     hard_bounce_rates = rate(hard_bounce_cumulative)
     complaint_rates = rate(complaint_cumulative)
-    rate_series = [
+    rows = [
         {
-            "key": "hard_bounce_rate",
-            "label": "Hard bounce rate",
-            "color": REPUTATION_CHART_COLORS["hard_bounce_rate"],
-        },
-        {
-            "key": "complaint_rate",
-            "label": "Complaint rate",
-            "color": REPUTATION_CHART_COLORS["complaint_rate"],
-        },
-        {
-            "key": "hard_bounce_limit",
-            "label": "Hard bounce limit",
-            "color": REPUTATION_CHART_COLORS["hard_bounce_limit"],
-            "dataset": "type: 'line'",
-        },
-        {
-            "key": "complaint_limit",
-            "label": "Complaint limit",
-            "color": REPUTATION_CHART_COLORS["complaint_limit"],
-            "dataset": "type: 'line'",
-        },
+            "day": day.isoformat(),
+            "hard_bounce_rate": hard_bounce_rate,
+            "complaint_rate": complaint_rate,
+        }
+        for day, hard_bounce_rate, complaint_rate in zip(
+            days_list, hard_bounce_rates, complaint_rates
+        )
     ]
     return {
-        "series": series,
-        "rate_series": rate_series,
-        "rows": [
+        "rows": rows,
+        "bounce_chart": rate_chart(
+            rows,
+            key="hard_bounce_rate",
+            label=gettext("Hard bounce rate"),
+            color=REPUTATION_CHART_COLORS["hard_bounce_rate"],
+            limit=bounce_limit,
+            subtitle=gettext("%(count)s hard bounces of %(sent)s sent, limit %(limit)s")
+            % {
+                "count": intcomma(hard_bounce_cumulative[-1]),
+                "sent": intcomma(sent_cumulative[-1]),
+                "limit": f"{bounce_limit:.2f}%",
+            },
+        ),
+        "complaint_chart": rate_chart(
+            rows,
+            key="complaint_rate",
+            label=gettext("Complaint rate"),
+            color=REPUTATION_CHART_COLORS["complaint_rate"],
+            limit=complaint_limit,
+            subtitle=gettext("%(count)s complaints of %(sent)s sent, limit %(limit)s")
+            % {
+                "count": intcomma(complaint_cumulative[-1]),
+                "sent": intcomma(sent_cumulative[-1]),
+                "limit": f"{complaint_limit:.2f}%",
+            },
+        ),
+    }
+
+
+def build_volume_chart(org):
+    """
+    Return the cumulative sending volume of this month and the last one.
+
+    One point per day, this month and the same day of the last month, with
+    the free tier as the threshold line.
+    """
+    today = timezone.localdate()
+    this_month = today.replace(day=1)
+    last_month = (this_month - timedelta(days=1)).replace(day=1)
+    days_in_month = monthrange(today.year, today.month)[1]
+    per_day = sent_per_day(org, last_month)
+
+    rows = []
+    last_total = this_total = 0
+    for offset in range(days_in_month):
+        day = this_month + timedelta(days=offset)
+        last_day = last_month + timedelta(days=offset)
+        has_last_day = last_day < this_month
+        if has_last_day:
+            last_total += per_day.get(last_day, 0)
+        this_total += per_day.get(day, 0)
+        rows.append(
             {
                 "day": day.isoformat(),
-                "sent": sent_cumulative[index],
-                "hard_bounced": hard_bounce_cumulative[index],
-                "soft_bounced": soft_bounce_cumulative[index],
-                "complained": complaint_cumulative[index],
-                "hard_bounce_rate": hard_bounce_rates[index],
-                "complaint_rate": complaint_rates[index],
-                "hard_bounce_limit": bounce_limit,
-                "complaint_limit": complaint_limit,
+                "last_month": last_total if has_last_day else None,
+                "this_month": this_total if day <= today else None,
             }
-            for index, day in enumerate(days_list)
+        )
+
+    # A last month with more days keeps its tail in the final point.
+    tail = last_month + timedelta(days=days_in_month)
+    while tail < this_month:
+        last_total += per_day.get(tail, 0)
+        tail += timedelta(days=1)
+    if rows[-1]["last_month"] is not None:
+        rows[-1]["last_month"] = last_total
+
+    return {
+        "series": [
+            {
+                "key": "last_month",
+                "label": gettext("Last month"),
+                "color": REPUTATION_CHART_COLORS["last_month"],
+                "type": "line",
+            },
+            {
+                "key": "this_month",
+                "label": gettext("This month"),
+                "color": REPUTATION_CHART_COLORS["this_month"],
+                "type": "line",
+            },
         ],
+        "rows": rows,
+        "this_month_total": this_total,
+        "subtitle": gettext("Cumulative, against the free tier"),
+        "threshold": {
+            "value": settings.RELAY_FREE_MONTHLY_MESSAGES,
+            "label": gettext("Free tier"),
+        },
+        "y_scale": {"stacked": False},
     }
