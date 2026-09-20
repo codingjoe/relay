@@ -174,7 +174,7 @@ TEMPLATES = [
                 "root.context_processors.settings_context",
                 "services.email.dashboard.context_processors.onboarding_context",
             ],
-            "debug": DEBUG,
+            "debug": DEBUG or TEST,
             "loaders": (
                 _TEMPLATES_LOADERS
                 if DEBUG

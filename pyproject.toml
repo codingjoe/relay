@@ -50,6 +50,7 @@ dev = [
   { include-group = "test" },
 ]
 test = [
+  "django-coverage-plugin>=3.2.2",
   "pytest>=9.1.1",
   "pytest-asyncio>=1.4",
   "pytest-cov>=7.1",
@@ -108,6 +109,9 @@ norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".workt
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
 
 [tool.coverage]
+[tool.coverage.run]
+plugins = [ "django_coverage_plugin" ]
+core = "ctrace"
 [tool.coverage.report]
 omit = [
   "*/baker_recipes.py",
@@ -121,6 +125,8 @@ omit = [
 skip_covered = true
 skip_empty = true
 show_missing = true
+[tool.coverage.django_coverage_plugin]
+template_extensions = "html,md,txt,xml"
 
 [tool.importlinter]
 root_packages = [
