@@ -40,6 +40,8 @@ FROM gcr.io/distroless/cc:${DISTROLESS_FLAVOR} AS development
 # Copy binary dependencies
 COPY --from=build /dpkg /
 
+COPY --from=dotenv/dotenvx:v2.29.0 /usr/local/bin/dotenvx /usr/local/bin/dotenvx
+
 # Copy Python dependencies
 COPY --from=build --chown=root:root /opt/python /opt/python
 COPY --from=build --chown=root:root /opt/venv /opt/venv
@@ -51,7 +53,7 @@ ENV PORT=8000
 
 WORKDIR /app
 
-ENTRYPOINT ["/opt/venv/bin/python"]
+ENTRYPOINT ["dotenvx", "run", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
 
 FROM build AS compile
 
@@ -75,5 +77,7 @@ COPY ./ /app
 COPY --from=compile /app/root/locale /app/root/locale
 COPY --from=compile /app/staticfiles /app/staticfiles
 
+COPY .env.production /app/.env.production
+
 WORKDIR /app
-ENTRYPOINT ["/opt/venv/bin/python"]
+ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env.production", "--", "/opt/venv/bin/python"]

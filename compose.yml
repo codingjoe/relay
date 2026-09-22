@@ -1,3 +1,11 @@
+x-application-environment: &application-environment
+  AWS_S3_ACCESS_KEY_ID: ${AWS_S3_ACCESS_KEY_ID}
+  AWS_S3_SECRET_ACCESS_KEY: ${AWS_S3_SECRET_ACCESS_KEY}
+  AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-relay}
+  AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-fsn1}
+  AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-path}
+  RELAY_DNS_SMTP_IPS: ${RELAY_DNS_SMTP_IPS}
+  RELAY_SMTP_SOURCE_IPS: ${RELAY_SMTP_SOURCE_IPS}
 # Local development builds on the debug distroless flavor, so shells work in `docker compose exec`.
 x-development-build: &development-build
   target: development
@@ -17,6 +25,7 @@ services:
     volumes:
       - .:/app:cached
     environment:
+      <<: *application-environment
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
     pull_policy: build
   dnsdist:
@@ -35,6 +44,7 @@ services:
     volumes:
       - .:/app:cached
     environment:
+      <<: *application-environment
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
       # The dev box's Caddy issues localhost certificates with its local CA.
       RELAY_SMTP_TLS_CERT_PATH: /data/caddy/certificates/local/smtp.${HOSTNAME:-localhost}/smtp.${HOSTNAME:-localhost}.crt
@@ -48,6 +58,7 @@ services:
     volumes:
       - .:/app:cached
     environment:
+      <<: *application-environment
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
       # The dev box's Caddy issues localhost certificates with its local CA.
       RELAY_MX_TLS_CERT_PATH: /data/caddy/certificates/local/mail.${HOSTNAME:-localhost}/mail.${HOSTNAME:-localhost}.crt
@@ -63,6 +74,7 @@ services:
     volumes:
       - .:/app:cached
     environment:
+      <<: *application-environment
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "delivery" ]
     pull_policy: build
@@ -70,6 +82,8 @@ services:
     build: *development-build
     volumes:
       - .:/app:cached
+    environment:
+      <<: *application-environment
     command: [ "-m", "manage", "runserver", "0.0.0.0:${PORT:-8000}" ]
     pull_policy: build
   worker:
@@ -82,6 +96,7 @@ services:
     volumes:
       - .:/app:cached
     environment:
+      <<: *application-environment
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
     command: [ "-m", "manage", "threadmill", "worker", "--queues", "ingress", "egress", "default" ]
     pull_policy: build
