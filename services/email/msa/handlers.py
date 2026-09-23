@@ -3,6 +3,7 @@
 import base64
 import logging
 import secrets
+import uuid
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
@@ -173,6 +174,7 @@ def store_outgoing_message(
     client_ip,
     raw_bytes,
     started_at,
+    message_pk=None,
 ):
     """
     Store an outgoing message with its submission record.
@@ -184,6 +186,7 @@ def store_outgoing_message(
     subject = decode_header_value(parsed.get("Subject", ""))
     with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
         transmission.message = message = OutgoingMessage.objects.create(
+            id=message_pk or uuid.uuid7(),
             org=org,
             rcpt_to=rcpt_to,
             mail_from=mail_from,
@@ -214,6 +217,7 @@ def submit_relay_message(
     mail_from,
     rcpt_to,
     started_at,
+    message_pk=None,
     ssl=None,
     client_ip=None,
 ):
@@ -221,7 +225,9 @@ def submit_relay_message(
     Stamp, sign and queue one message relay generated for an organization.
 
     The message leaves relay from the organization's own domain, which is
-    what puts it in their dashboard and on their bill.
+    what puts it in their dashboard and on their bill. A caller that passes
+    message_pk renders the body against the ID the message will carry, so a
+    message can link to its own transmission trace.
     """
     raw_bytes, feedback_id = add_feedback_id(email.message().as_bytes(), org)
     raw_bytes = sign_message(raw_bytes, domain)
@@ -237,6 +243,7 @@ def submit_relay_message(
         client_ip=client_ip,
         raw_bytes=raw_bytes,
         started_at=started_at,
+        message_pk=message_pk,
     )
 
 

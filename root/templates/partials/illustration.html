@@ -1,0 +1,14 @@
+{% load static %}
+{% with light='img/illustrations/'|add:name|add:'-light.svg' dark='img/illustrations/'|add:name|add:'-dark.svg' %}
+  <picture>
+    <source srcset="{% static dark %}" media="(prefers-color-scheme: dark)">
+    <img
+      src="{% static light %}"
+      alt=""
+      width="800"
+      height="600"
+      loading="lazy"
+      class="w-full h-auto"
+    >
+  </picture>
+{% endwith %}

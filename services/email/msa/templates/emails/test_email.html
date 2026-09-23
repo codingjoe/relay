@@ -2,13 +2,24 @@
 {% load django_letter i18n %}
 
 {% block content %}
-  <h1 class="first">{% translate "Your email setup works" %}</h1>
+  <h1 class="first">{% translate "Your test message is on its way" %}</h1>
   <p>
     {% blocktranslate trimmed with sender=sender recipient=recipient %}
-      This test message went from {{ sender }} to {{ recipient }}. The signature is valid and your domain is ready to
-      send.
+      Your message left relay from {{ sender }} for {{ recipient }}: accepted, DKIM-signed, and queued for delivery.
     {% endblocktranslate %}
   </p>
-  {% translate "View it in the dashboard" as button_label %}
-  {% button href=dashboard_url value=button_label primary=True %}
+  <p>
+    {% blocktranslate trimmed %}
+      The transmission trace has the details: the SMTP handshake, the TLS session, and the signature relay added. Open
+      it in relay to follow this message all the way to your inbox.
+    {% endblocktranslate %}
+  </p>
+  {% translate "View the transmission trace" as button_label %}
+  {% button href=trace_url value=button_label primary=True %}
+  <p>
+    {% blocktranslate trimmed %}
+      When it arrives, your mail client can tell you the rest. SPF, DKIM, and DMARC passing on your domain are what
+      mailbox providers check before they trust the next message you send to a real recipient.
+    {% endblocktranslate %}
+  </p>
 {% endblock content %}

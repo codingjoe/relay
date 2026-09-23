@@ -8,6 +8,8 @@ from accounts.models import Organization
 from domains.models import Domain
 from services.email.msa import emails
 
+MESSAGE_PK = "0195e0f2-8f6a-7c3d-9b1e-2f4a6c8e0d1f"
+
 
 @pytest.fixture
 def base_url(settings):
@@ -21,12 +23,13 @@ def make_test_email(*, domain=None, user=None, **kwargs):
     return emails.TestEmail.to_user(
         user or User(email="member@acme.example"),
         domain=domain or Domain(name="acme.example", org=Organization(slug="acme")),
+        message_pk=MESSAGE_PK,
         **kwargs,
     )
 
 
 class TestTestEmail:
-    def test_get_context_data__builds_sender_and_dashboard_url(self, base_url):
+    def test_get_context_data__builds_sender_and_trace_url(self, base_url):
         user = User(email="member@acme.example")
         email = make_test_email(user=user)
         assert email.get_context_data() == {
@@ -34,14 +37,14 @@ class TestTestEmail:
             "domain": "acme.example",
             "sender": f"{settings.RELAY_POSTMASTER_LOCAL_PART}@acme.example",
             "recipient": "member@acme.example",
-            "dashboard_url": f"{base_url}/org/acme/email/messages/",
+            "trace_url": f"{base_url}/org/acme/email/messages/{MESSAGE_PK}",
         }
 
     def test_get_context_data__strips_a_trailing_slash(self):
         email = make_test_email(base_url="https://acme.example/")
         assert (
-            email.get_context_data()["dashboard_url"]
-            == "https://acme.example/org/acme/email/messages/"
+            email.get_context_data()["trace_url"]
+            == f"https://acme.example/org/acme/email/messages/{MESSAGE_PK}"
         )
 
     def test_init__uses_the_active_language(self):
@@ -95,7 +98,7 @@ class TestTestEmail:
         assert f"{settings.RELAY_POSTMASTER_LOCAL_PART}@acme.example" in html
         assert f"{settings.RELAY_POSTMASTER_LOCAL_PART}@acme.example" in text
         assert "member@acme.example" in text
-        link = f"{base_url}/org/acme/email/messages/"
+        link = f"{base_url}/org/acme/email/messages/{MESSAGE_PK}"
         assert f'href="{link}"' in html
         assert f"<{link}>" in text
 

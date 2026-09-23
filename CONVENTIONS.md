@@ -219,6 +219,15 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `circle-check` with `text-primary`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
 
+- Illustrations are unDraw SVGs in `root/static/img/illustrations/`, one
+  `-light.svg` and one `-dark.svg` per artwork. Every file is fitted into the
+  same 800x600 box, so a template reserves the same space before the file
+  loads. Render one with `{% include "partials/illustration.html" with name="mail-sent" %}`;
+  the partial picks the variant for the color scheme. It takes `name` only:
+  the artwork is decorative, so the `alt` is empty and the copy beside it
+  carries the meaning. First-use empty states carry an illustration; no-results
+  states keep the Lucide `search` icon.
+
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`, which imports Tailwind CSS v4,
   basecoat-css (maia style), and the partials next to it: `theme.css` (design

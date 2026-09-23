@@ -180,8 +180,8 @@
       {% if not email and not status %}
         <section class="empty">
           <header>
-            <figure>
-              <i data-lucide="inbox" aria-hidden="true"></i>
+            <figure class="max-w-48 mx-auto">
+              {% include "partials/illustration.html" with name="empty-mailbox" %}
             </figure>
             <h3>{% translate "No messages yet." %}</h3>
             <p>

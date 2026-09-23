@@ -1,0 +1,59 @@
+{% load i18n %}
+<section class="flex flex-col gap-3">
+  {% if title %}<h3 class="m-0">{{ title }}</h3>{% endif %}
+  <div class="table-container">
+    <table class="table">
+      <tbody>
+        <tr>
+          <th>{% translate "server"|capfirst context "noun" %}</th>
+          <td>
+            <div class="flex items-center gap-2">
+              <code>{{ smtp_hostname }}</code>
+              {% include "abstract/copy_button.html" with value=smtp_hostname label=_("copy server")|capfirst %}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th>{% translate "port (STARTTLS)"|capfirst %}</th>
+          <td>
+            <div class="flex items-center gap-2">
+              <code>{{ smtp_starttls_ports|join:", " }}</code>
+              {% include "abstract/copy_button.html" with value=smtp_starttls_ports|join:', ' label=_("copy port")|capfirst %}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th>{% translate "port (TLS)"|capfirst %}</th>
+          <td>
+            <div class="flex items-center gap-2">
+              <code>{{ smtp_implicit_tls_ports|join:", " }}</code>
+              {% include "abstract/copy_button.html" with value=smtp_implicit_tls_ports|join:', ' label=_("copy port")|capfirst %}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th>{% translate "username"|capfirst context "noun" %}</th>
+          <td>
+            <div class="flex items-center gap-2">
+              <code>{{ org.slug }}</code>
+              {% include "abstract/copy_button.html" with value=org.slug label=_("copy username")|capfirst %}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th>{% translate "password"|capfirst context "noun" %}</th>
+          <td>{% translate "your credential key" %}</td>
+        </tr>
+        <tr>
+          <th>{% translate "connection URI"|capfirst %}</th>
+          <td>
+            <div class="flex items-center gap-2">
+              <code>{{ smtp_uri }}</code>
+              {% include "abstract/copy_button.html" with value=smtp_uri label=_("copy connection URI")|capfirst %}
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

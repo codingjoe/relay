@@ -1,52 +1,125 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load i18n %}
 {% block title %}{% translate "get started"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "get started"|capfirst %}</h2>
-    <button
-      type="button"
-      class="btn"
-      data-dialog="dlg-test-email"
-    >
-      {% translate "send test email"|title %}
-    </button>
-  </header>
+  <article class="card mb-6">
+    <section class="flex flex-col lg:flex-row lg:items-center gap-8">
+      <div class="flex flex-1 flex-col gap-5 min-w-0">
+        <div class="flex flex-col gap-2">
+          <h2 class="m-0">{% translate "get started"|capfirst %}</h2>
+          <p class="m-0 text-muted-foreground leading-relaxed">
+            {% if not managed_domain %}
+              {% blocktranslate trimmed %}
+                Your managed sender domain is being provisioned, with MX, SPF, DKIM, and DMARC published for you. This
+                takes a moment.
+              {% endblocktranslate %}
+            {% elif not has_outgoing_message %}
+              {% blocktranslate with recipient=request.user.email trimmed %}
+                Your sender domain is live. Send a test message to {{ recipient }} and open its trace to see the SMTP
+                handshake, the TLS session, and the DKIM signature relay added.
+              {% endblocktranslate %}
+            {% elif not has_custom_domain %}
+              {% blocktranslate trimmed %}
+                Your first message is on the wire. Add a domain you own to send from your own address, with relay
+                serving the records it needs.
+              {% endblocktranslate %}
+            {% else %}
+              {% blocktranslate trimmed %}
+                Your sending setup is complete, and relay keeps signing, delivering, and watching your reputation.
+              {% endblocktranslate %}
+            {% endif %}
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="button" class="btn" data-dialog="dlg-test-email">
+            <i data-lucide="send" class="size-4" aria-hidden="true"></i>
+            {% translate "send test email"|title %}
+          </button>
+          <a
+            class="btn"
+            data-variant="secondary"
+            href="{% url 'msa:credential-list' org.slug %}"
+          >
+            {% translate "connect your app"|title %}
+          </a>
+        </div>
+      </div>
+      <figure class="m-0 w-full max-w-64 mx-auto lg:mx-0 lg:shrink-0">
+        {% include "partials/illustration.html" with name=hero_illustration %}
+      </figure>
+    </section>
+  </article>
 
   {% include "partials/test_email_dialog.html" %}
 
-  <section class="card">
-    <header>
-      <p class="m-0">
+  <article class="card mb-6">
+    <header class="border-b">
+      <h3>{% translate "first steps"|title %}</h3>
+      <p>
         {% blocktranslate trimmed %}
-          Every organization gets a managed sender domain, pre-verified and DKIM-signed. No DNS setup required.
+          Every organization starts on a managed sender domain. No DNS work, no warm-up, no waiting for verification to
+          clear.
         {% endblocktranslate %}
       </p>
     </header>
     <section>
-      <ul class="m-0 flex list-none flex-col gap-3">
-        <li class="flex items-center gap-2 flex-wrap">
+      <ul class="m-0 p-0 list-none flex flex-col gap-5">
+        <li class="flex flex-wrap items-start gap-3">
           {% if managed_domain %}
-            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-            <span>{% translate "your sender domain is live"|capfirst %}</span>
-            <code>{{ managed_domain.sender_domain }}</code>
-            <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
+            <i data-lucide="circle-check" class="size-5 mt-0.5 shrink-0 text-primary" aria-hidden="true"></i>
+            <div class="flex flex-1 flex-col gap-1 min-w-0">
+              <p class="m-0 font-medium">{% translate "your sender domain is live"|capfirst %}</p>
+              <p class="m-0 flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+                <code>{{ managed_domain.sender_domain }}</code>
+                <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
+              </p>
+            </div>
           {% else %}
-            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-            <span>{% translate "setting up your sender domain"|capfirst %}</span>
+            <i data-lucide="circle-dashed" class="size-5 mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true"></i>
+            <div class="flex flex-1 flex-col gap-1 min-w-0">
+              <p class="m-0 font-medium">{% translate "setting up your sender domain"|capfirst %}</p>
+              <p class="m-0 text-sm text-muted-foreground">
+                {% blocktranslate trimmed %}
+                  Every message from it is signed, and relay answers the DNS questions mailbox providers ask.
+                {% endblocktranslate %}
+              </p>
+            </div>
           {% endif %}
         </li>
-        <li class="flex items-center gap-2 flex-wrap">
+        <li class="flex flex-wrap items-start gap-3">
           {% if has_outgoing_message %}
-            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-            <span>{% translate "sent your first email"|capfirst %}</span>
+            <i data-lucide="circle-check" class="size-5 mt-0.5 shrink-0 text-primary" aria-hidden="true"></i>
+            <div class="flex flex-1 flex-col gap-1 min-w-0">
+              <p class="m-0 font-medium">{% translate "you sent your first message"|capfirst %}</p>
+              <p class="m-0 text-sm text-muted-foreground">
+                {% blocktranslate trimmed %}
+                  Every message you send keeps its full transmission trace.
+                {% endblocktranslate %}
+              </p>
+            </div>
+            <a
+              class="btn"
+              data-variant="secondary"
+              data-size="sm"
+              href="{% url 'message:message-list' org.slug %}"
+            >
+              {% translate "message log"|capfirst context "noun" %}
+            </a>
           {% else %}
-            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-            <span>
-              {% blocktranslate with recipient=request.user.email trimmed %}
-                Send a test email to {{ recipient }}.
-              {% endblocktranslate %}
-            </span>
+            <i data-lucide="circle-dashed" class="size-5 mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true"></i>
+            <div class="flex flex-1 flex-col gap-1 min-w-0">
+              <p class="m-0 font-medium">
+                {% blocktranslate with recipient=request.user.email trimmed %}
+                  Send a test message to {{ recipient }}
+                {% endblocktranslate %}
+              </p>
+              <p class="m-0 text-sm text-muted-foreground">
+                {% blocktranslate trimmed %}
+                  The whole path stays visible: relay accepts the message, signs it, and delivers it, so you see it
+                  before your app sends anything.
+                {% endblocktranslate %}
+              </p>
+            </div>
             <button
               type="button"
               class="btn"
@@ -58,19 +131,74 @@
             </button>
           {% endif %}
         </li>
-        <li class="flex items-center gap-2 flex-wrap">
+        <li class="flex flex-wrap items-start gap-3">
           {% if has_custom_domain %}
-            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-            <span>{% translate "added your own domain"|capfirst %}</span>
+            <i data-lucide="circle-check" class="size-5 mt-0.5 shrink-0 text-primary" aria-hidden="true"></i>
+            <div class="flex flex-1 flex-col gap-1 min-w-0">
+              <p class="m-0 font-medium">{% translate "you added your own domain"|capfirst %}</p>
+              <p class="m-0 text-sm text-muted-foreground">
+                {% blocktranslate trimmed %}
+                  Your domains keep sending through relay, with NS delegation and DMARC as the only records you manage.
+                {% endblocktranslate %}
+              </p>
+            </div>
+            <a
+              class="btn"
+              data-variant="secondary"
+              data-size="sm"
+              href="{% url 'domains:domain-list' org.slug %}"
+            >
+              {% translate "domains"|capfirst context "noun" %}
+            </a>
           {% else %}
-            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-            <span>{% translate "add a domain you own to send from it"|capfirst %}</span>
-            <a class="btn" data-variant="secondary" data-size="sm" href="{% url 'domains:domain-list' org.slug %}">
+            <i data-lucide="circle-dashed" class="size-5 mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true"></i>
+            <div class="flex flex-1 flex-col gap-1 min-w-0">
+              <p class="m-0 font-medium">{% translate "add a domain you own"|capfirst %}</p>
+              <p class="m-0 text-sm text-muted-foreground">
+                {% blocktranslate trimmed %}
+                  Optional. Send from your own address instead of the managed one, and point the NS records at relay.
+                {% endblocktranslate %}
+              </p>
+            </div>
+            <a
+              class="btn"
+              data-variant="secondary"
+              data-size="sm"
+              href="{% url 'domains:domain-list' org.slug %}"
+            >
               {% translate "add domain"|title context "noun" %}
             </a>
           {% endif %}
         </li>
       </ul>
     </section>
-  </section>
+  </article>
+
+  <article class="card">
+    <header>
+      <h3>{% translate "connect your app"|title %}</h3>
+      <p>
+        {% blocktranslate trimmed %}
+          Create an SMTP credential and point your app at the submission host. The credential key is the password, your
+          organization slug is the username.
+        {% endblocktranslate %}
+      </p>
+    </header>
+    {% include "msa/_connection_info.html" %}
+    <footer class="flex flex-wrap items-center gap-3">
+      <a class="btn" href="{% url 'msa:credential-list' org.slug %}">
+        {% translate "create a credential"|title %}
+      </a>
+      {% url 'docs:detail' 'sending' as sending_docs_url %}
+      <a
+        class="btn"
+        data-variant="ghost"
+        href="{{ sending_docs_url }}"
+        target="_blank"
+        rel="noopener"
+      >
+        {% translate "sending docs"|title %}
+      </a>
+    </footer>
+  </article>
 {% endblock %}

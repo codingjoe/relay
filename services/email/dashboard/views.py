@@ -7,6 +7,7 @@ from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from services.email.dmarc.charts import build_dmarc_chart
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
+from services.email.msa.submission import get_submission_context, get_submission_uri
 from services.email.mta.charts import build_tls_chart
 from services.email.mta.models import TlsReport
 from services.email.reputation.models import FblReport
@@ -26,9 +27,38 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
             return redirect("monitoring:overview", org_slug=self.org.slug)
         return super().get(request, *args, **kwargs)
 
+    def get_step_states(self, context) -> tuple[bool, bool, bool]:
+        """Return whether the sender domain, first message, and own domain are done."""
+        return (
+            context["managed_domain"] is not None,
+            context["has_outgoing_message"],
+            context["has_custom_domain"],
+        )
+
+    def get_hero_illustration(self, steps) -> str:
+        """Return the illustration of the step the organization works on next."""
+        match steps:
+            case (False, _, _):
+                return "setup-wizard"
+            case (True, False, _):
+                return "mail-sent"
+            case (True, True, False):
+                return "domain-names"
+            case _:
+                return "protection-enabled"
+
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | get_email_context(
-            self.org, self.request
+        context = get_email_context(self.org, self.request)
+        return (
+            super().get_context_data(**kwargs)
+            | context
+            | {
+                "hero_illustration": self.get_hero_illustration(
+                    self.get_step_states(context)
+                ),
+                "smtp_uri": get_submission_uri(self.request, self.org.slug),
+            }
+            | get_submission_context(self.request)
         )
 
 

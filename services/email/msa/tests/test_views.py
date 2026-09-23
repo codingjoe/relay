@@ -190,17 +190,15 @@ class TestTestEmailView:
         domain = Domain.objects.get(org=org, is_managed=True)
         response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
-        stored = message_from_bytes(
-            OutgoingMessage.objects.get(org=org).raw_body.read(),
-            policy=policy.default,
-        )
+        message = OutgoingMessage.objects.get(org=org)
+        stored = message_from_bytes(message.raw_body.read(), policy=policy.default)
         parts = {
             part.get_content_type(): part.get_content() for part in stored.iter_parts()
         }
         assert set(parts) == {"text/html", "text/plain"}
         assert f"postmaster@{domain.name}" in parts["text/html"]
         assert f"postmaster@{domain.name}" in parts["text/plain"]
-        link = f"http://testserver/org/{org.slug}/email/messages/"
+        link = f"http://testserver/org/{org.slug}/email/messages/{message.pk}"
         assert f'href="{link}"' in parts["text/html"]
         assert f"<{link}>" in parts["text/plain"]
 

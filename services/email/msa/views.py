@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import BadRequest
@@ -18,6 +20,7 @@ from .emails import TestEmail
 from .forms import SuppressionEntryForm
 from .handlers import submit_relay_message
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
+from .submission import get_submission_context, get_submission_uri
 
 
 class OutgoingMessageDetailView(MessageDetailView):
@@ -55,10 +58,12 @@ class TestEmailView(OrganizationScopedView, generic.View):
             return redirect("message:message-list", org_slug=org_slug)
 
         mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{domain.name}"
+        message_pk = uuid.uuid7()
         try:
             email = TestEmail.to_user(
                 request.user,
                 domain=domain,
+                message_pk=message_pk,
                 from_email=mail_from,
                 language=translation.get_language(),
                 base_url=request.build_absolute_uri("/"),
@@ -78,6 +83,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
             mail_from=mail_from,
             rcpt_to=request.user.email,
             started_at=started_at,
+            message_pk=message_pk,
             ssl=request.is_secure(),
             client_ip=request.META.get("REMOTE_ADDR", ""),
         )
@@ -96,34 +102,17 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
     def get_queryset(self):
         return MsaCredential.objects.filter(org=self.org)
 
-    def get_smtp_uri(self, hostname, key=""):
-        """Return the SMTPS submission URI, carrying the key when it is known."""
-        credentials = (
-            f"{self.org.slug}:{key}"
-            if key
-            else f"{self.org.slug}:<{_('credential key')}>"
-        )
-        port = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS[0]
-        return f"smtps://{credentials}@{hostname}:{port}"
-
     def get_context_data(self, **kwargs):
-        hostname = f"smtp.{self.request.get_host().split(':')[0]}"
-        implicit_tls_ports = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS
-        starttls_ports = tuple(
-            port
-            for port in settings.RELAY_SMTP_SUBMISSION_PORTS
-            if port not in implicit_tls_ports
+        context = super().get_context_data(**kwargs) | get_submission_context(
+            self.request
         )
-        context = super().get_context_data(**kwargs) | {
-            "smtp_hostname": hostname,
-            "smtp_starttls_ports": starttls_ports,
-            "smtp_implicit_tls_ports": implicit_tls_ports,
-            "smtp_uri": self.get_smtp_uri(hostname),
-        }
+        context["smtp_uri"] = get_submission_uri(self.request, self.org.slug)
         if raw_key := self.request.session.pop("raw_key", None):
             context |= {
                 "raw_key": raw_key,
-                "smtp_uri_with_key": self.get_smtp_uri(hostname, key=raw_key),
+                "smtp_uri_with_key": get_submission_uri(
+                    self.request, self.org.slug, key=raw_key
+                ),
             }
         return context
 

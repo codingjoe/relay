@@ -160,3 +160,7 @@
   pattern: '<a(?![^>]*\btarget=)(?=[^>]*\bhref="(?:https?://|\{%\s*url\s+[''"](?:docs|know_how|alternative_to):))[^>]*>'
   hint: 'Reading the docs, the know-how, or an outside source must not cost the reader the page they are on. Add target="_blank" rel="noopener".'
   filePattern: '^.*\.html$'
+- name: Render illustrations through the partial
+  pattern: 'img/illustrations/[a-z-]+-(?:light|dark)\.svg'
+  hint: 'Include `partials/illustration.html` with the illustration name. The partial picks the light or dark variant, keeps the decorative alt text, and reserves the intrinsic size in one place.'
+  filePattern: '.*\.html$'

@@ -184,8 +184,8 @@
       {% if not ip and not domain %}
         <section class="empty">
           <header>
-            <figure>
-              <i data-lucide="shield-check" aria-hidden="true"></i>
+            <figure class="max-w-48 mx-auto">
+              {% include "partials/illustration.html" with name="no-data" %}
             </figure>
             <h3>{% translate "No reports yet." %}</h3>
             <p>

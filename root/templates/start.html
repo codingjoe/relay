@@ -237,28 +237,33 @@
     </section>
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
-      <div class="max-w-3xl mx-auto flex flex-col items-center text-center gap-4">
-        <h2 class="text-2xl sm:text-4xl font-bold m-0">
-          {% translate "works with your stack"|capfirst %}
-        </h2>
-        <p class="text-lg text-muted-foreground leading-relaxed m-0">
-          {% blocktranslate trimmed %}
-            SMTP is the interface every language already speaks. Point your app at relay and keep your code.
-          {% endblocktranslate %}
-        </p>
-        <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none">
-          <li><span class="badge" data-variant="outline" data-size="sm">SMTP</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">MCP</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">Standard Webhooks</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">API</span></li>
-        </ul>
-        <p class="text-sm text-muted-foreground m-0">
-          {% blocktranslate trimmed %}
-            Your first send needs no DNS work. The managed sender domain is verified from signup.
-          {% endblocktranslate %}
-        </p>
+      <div class="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:gap-16">
+        <div class="flex max-w-2xl flex-1 flex-col items-center gap-4 text-center lg:items-start lg:text-start">
+          <h2 class="text-2xl sm:text-4xl font-bold m-0">
+            {% translate "works with your stack"|capfirst %}
+          </h2>
+          <p class="text-lg text-muted-foreground leading-relaxed m-0">
+            {% blocktranslate trimmed %}
+              SMTP is the interface every language already speaks. Point your app at relay and keep your code.
+            {% endblocktranslate %}
+          </p>
+          <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none lg:justify-start">
+            <li><span class="badge" data-variant="outline" data-size="sm">SMTP</span></li>
+            <li><span class="badge" data-variant="outline" data-size="sm">MCP</span></li>
+            <li><span class="badge" data-variant="outline" data-size="sm">Standard Webhooks</span></li>
+            <li><span class="badge" data-variant="outline" data-size="sm">API</span></li>
+          </ul>
+          <p class="text-sm text-muted-foreground m-0">
+            {% blocktranslate trimmed %}
+              Your first send needs no DNS work. The managed sender domain is verified from signup.
+            {% endblocktranslate %}
+          </p>
+        </div>
+        <figure class="m-0 w-full max-w-72 shrink-0">
+          {% include "partials/illustration.html" with name="connected" %}
+        </figure>
       </div>
-      <div class="max-w-3xl mx-auto mt-10 grid gap-10" id="stack-examples">
+      <div class="max-w-3xl mx-auto mt-12 grid gap-10" id="stack-examples">
         {% translate "sending" as sending_title %}
         {% include "partials/code_sample.html" with id="snippet-sending" title=sending_title|capfirst django_snippet="snippets/django_sending.py" next_snippet="snippets/next_sending.ts" %}
         {% translate "receiving" as receiving_title %}
@@ -319,38 +324,43 @@
     </section>
 
     <section class="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-8">
-      <div class="max-w-3xl mx-auto flex flex-col items-center text-center gap-4">
-        <h2 class="text-2xl sm:text-4xl font-bold m-0">
-          {% translate "your data stays in Germany"|capfirst %}
-        </h2>
-        <p class="text-lg text-muted-foreground leading-relaxed m-0">
-          {% blocktranslate trimmed %}
-            Your messages are processed in Germany, in ISO/IEC 27001 certified and BSI C5 attested Hetzner data centers.
-            No third-country transfers, no profiling, no data mining, no resale.
-          {% endblocktranslate %}
-        </p>
-        <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none">
-          <li><span class="badge" data-variant="outline" data-size="sm">Hosted in Germany</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">GDPR</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">ISO/IEC 27001</span></li>
-          <li><span class="badge" data-variant="outline" data-size="sm">BSI C5</span></li>
-        </ul>
-        <p class="text-sm text-muted-foreground m-0">
-          {% blocktranslate trimmed %}
-            Message metadata is kept for 30 days, raw bodies are deleted after delivery. The code that processes your
-            email is public under the AGPL-3.0: audit it line by line.
-          {% endblocktranslate %}
-        </p>
-        <p class="m-0 text-muted-foreground">
-          <a href="{% url 'legal:privacy' %}" class="link">{% translate "privacy policy"|capfirst %}</a>
-          <span aria-hidden="true">·</span>
-          <a
-            href="{% url 'docs:detail' 'data-privacy' %}"
-            target="_blank"
-            rel="noopener"
-            class="link"
-          >{% translate "how relay handles data"|capfirst %}</a>
-        </p>
+      <div class="flex flex-col items-center gap-10 lg:flex-row-reverse lg:items-center lg:gap-16">
+        <div class="flex max-w-2xl flex-1 flex-col items-center gap-4 text-center lg:items-start lg:text-start">
+          <h2 class="text-2xl sm:text-4xl font-bold m-0">
+            {% translate "your data stays in Germany"|capfirst %}
+          </h2>
+          <p class="text-lg text-muted-foreground leading-relaxed m-0">
+            {% blocktranslate trimmed %}
+              Your messages are processed in Germany, in ISO/IEC 27001 certified and BSI C5 attested Hetzner data
+              centers. No third-country transfers, no profiling, no data mining, no resale.
+            {% endblocktranslate %}
+          </p>
+          <ul class="flex flex-wrap justify-center gap-2 m-0 p-0 list-none lg:justify-start">
+            <li><span class="badge" data-variant="outline" data-size="sm">Hosted in Germany</span></li>
+            <li><span class="badge" data-variant="outline" data-size="sm">GDPR</span></li>
+            <li><span class="badge" data-variant="outline" data-size="sm">ISO/IEC 27001</span></li>
+            <li><span class="badge" data-variant="outline" data-size="sm">BSI C5</span></li>
+          </ul>
+          <p class="text-sm text-muted-foreground m-0">
+            {% blocktranslate trimmed %}
+              Message metadata is kept for 30 days, raw bodies are deleted after delivery. The code that processes your
+              email is public under the AGPL-3.0: audit it line by line.
+            {% endblocktranslate %}
+          </p>
+          <p class="m-0 text-muted-foreground">
+            <a href="{% url 'legal:privacy' %}" class="link">{% translate "privacy policy"|capfirst %}</a>
+            <span aria-hidden="true">·</span>
+            <a
+              href="{% url 'docs:detail' 'data-privacy' %}"
+              target="_blank"
+              rel="noopener"
+              class="link"
+            >{% translate "how relay handles data"|capfirst %}</a>
+          </p>
+        </div>
+        <figure class="m-0 w-full max-w-72 shrink-0">
+          {% include "partials/illustration.html" with name="secure-server" %}
+        </figure>
       </div>
     </section>
 

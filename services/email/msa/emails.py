@@ -1,4 +1,5 @@
 import typing
+import uuid
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,8 +18,9 @@ class TestEmail(TemplateEmail):
     template_name = "emails/test_email.html"
     subject = _("Test email from %(domain)s")
 
-    def __init__(self, *, domain, **kwargs):
+    def __init__(self, *, domain, message_pk, **kwargs):
         self.domain = domain
+        self.message_pk = message_pk
         super().__init__(**kwargs)
 
     @classmethod
@@ -34,6 +36,7 @@ class TestEmail(TemplateEmail):
         kwargs.setdefault(
             "domain", Domain(name="acme.example", org=Organization(slug="acme"))
         )
+        kwargs.setdefault("message_pk", uuid.uuid7())
         extra_context = kwargs.setdefault("extra_context", {})
         extra_context.setdefault("user", get_user_model()(email="member@acme.example"))
         return super().render_preview(
@@ -42,12 +45,13 @@ class TestEmail(TemplateEmail):
 
     def get_context_data(self) -> dict[str, typing.Any]:
         context = super().get_context_data()
-        message_list_url = reverse(
-            "message:message-list", kwargs={"org_slug": self.domain.org.slug}
+        trace_url = reverse(
+            "msa:message-detail",
+            kwargs={"org_slug": self.domain.org.slug, "pk": self.message_pk},
         )
         return context | {
             "domain": self.domain.name,
             "sender": f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{self.domain.name}",
             "recipient": context["user"].email,
-            "dashboard_url": f"{self.get_base_url().rstrip('/')}{message_list_url}",
+            "trace_url": f"{self.get_base_url().rstrip('/')}{trace_url}",
         }
