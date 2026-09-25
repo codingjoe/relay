@@ -70,7 +70,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 128m
+          # 'manage dns' peaks around 125m, and its healthcheck adds a second
+          # interpreter (~24m) to the same cgroup. A 128m limit OOM-killed
+          # every replica a few seconds after start.
+          memory: 256m
     extends:
       service: web
   dnsdist:
