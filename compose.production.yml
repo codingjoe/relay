@@ -70,7 +70,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 128m
+          memory: 256m
     extends:
       service: web
   dnsdist:
