@@ -65,6 +65,16 @@ class TestGetStartedView:
         assert response.status_code == 200
         assert response.context["connected_credential"] is None
 
+    def test_get__submission_values_use_the_configured_host(
+        self, admin_client, org, settings
+    ):
+        """The configured host wins over the `testserver` host the client sends."""
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        assert response.context["smtp_hostname"] == "smtp.relay.example"
+        assert "smtp.relay.example" in response.content.decode()
+
     def test_get__shows_sent_first_email_step(self, admin_client, org, user):
         OutgoingMessage.objects.create(
             org=org,

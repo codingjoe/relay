@@ -358,24 +358,36 @@ class TestCredentialListView:
         assert len(creds) == 1
         assert creds[0].name == "mine"
 
-    def test_get__context_has_smtp_info(self, admin_client, org):
+    def test_get__context_has_smtp_info(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
         assert "smtp_starttls_ports" in response.context
         assert "smtp_implicit_tls_ports" in response.context
+        assert response.context["smtp_hostname"] == "smtp.relay.example"
         assert response.context["smtp_uri"] == (
-            "smtps://test-org:<credential key>@smtp.testserver:465"
+            "smtps://test-org:<credential key>@smtp.relay.example:465"
         )
 
-    def test_get__renders_connection_uri(self, admin_client, org):
+    def test_get__smtp_info_ignores_the_request_host(self, admin_client, org, settings):
+        """The configured host wins over the `testserver` host the client sends."""
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.context["smtp_hostname"] == "smtp.relay.example"
+
+    def test_get__renders_connection_uri(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
         assert (
-            "smtps://test-org:&lt;credential key&gt;@smtp.testserver:465"
+            "smtps://test-org:&lt;credential key&gt;@smtp.relay.example:465"
             in response.content.decode()
         )
 
-    def test_get__opens_the_key_dialog_after_creation(self, admin_client, org):
+    def test_get__opens_the_key_dialog_after_creation(
+        self, admin_client, org, settings
+    ):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
         raw_key = admin_client.session["raw_key"]
 
@@ -385,7 +397,7 @@ class TestCredentialListView:
         content = response.content.decode()
         assert 'id="dlg-credential-key"' in content
         assert raw_key in content
-        assert f"smtps://{org.slug}:{raw_key}@smtp.testserver:465" in content
+        assert f"smtps://{org.slug}:{raw_key}@smtp.relay.example:465" in content
 
     def test_get__renders_copy_buttons_in_the_key_dialog(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})

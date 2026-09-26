@@ -32,8 +32,8 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
         return (
             super().get_context_data(**kwargs)
             | context
-            | {"smtp_uri": get_submission_uri(self.request, self.org.slug)}
-            | get_submission_context(self.request)
+            | {"smtp_uri": get_submission_uri(self.org.slug)}
+            | get_submission_context()
         )
 
 

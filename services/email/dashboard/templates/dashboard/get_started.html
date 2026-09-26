@@ -106,18 +106,26 @@
           {% endif %}
         </a>
       </aside>
-      {% if not connected_credential %}
-        <footer class="flex-col items-stretch min-w-0">
-          {% include "msa/_connection_info.html" with title="" %}
-          {% url 'docs:detail' 'sending' as sending_docs_url %}
-          <p>
-            {% blocktranslate trimmed %}
-              The <a class="link" href="{{ sending_docs_url }}" target="_blank" rel="noopener">sending docs</a> cover
-              every client and every acceptance rule.
-            {% endblocktranslate %}
-          </p>
-        </footer>
-      {% endif %}
+      <footer class="flex-col items-stretch min-w-0">
+        <section class="accordion">
+          <details {% if not connected_credential %}open{% endif %}>
+            <summary>
+              {% translate "submission values"|capfirst %}
+              <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
+            </summary>
+            <section class="flex flex-col gap-3">
+              {% include "msa/_connection_info.html" with title="" %}
+              {% url 'docs:detail' 'sending' as sending_docs_url %}
+              <p class="m-0 text-sm text-muted-foreground">
+                {% blocktranslate trimmed %}
+                  The <a class="link" href="{{ sending_docs_url }}" target="_blank" rel="noopener">sending docs</a>
+                  cover every client and every acceptance rule.
+                {% endblocktranslate %}
+              </p>
+            </section>
+          </details>
+        </section>
+      </footer>
     </article>
 
     <article class="item" data-variant="outline">

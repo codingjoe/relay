@@ -103,16 +103,12 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
         return MsaCredential.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs) | get_submission_context(
-            self.request
-        )
-        context["smtp_uri"] = get_submission_uri(self.request, self.org.slug)
+        context = super().get_context_data(**kwargs) | get_submission_context()
+        context["smtp_uri"] = get_submission_uri(self.org.slug)
         if raw_key := self.request.session.pop("raw_key", None):
             context |= {
                 "raw_key": raw_key,
-                "smtp_uri_with_key": get_submission_uri(
-                    self.request, self.org.slug, key=raw_key
-                ),
+                "smtp_uri_with_key": get_submission_uri(self.org.slug, key=raw_key),
             }
         return context
 
