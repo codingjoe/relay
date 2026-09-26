@@ -205,6 +205,16 @@ A rule lives either in this document or in `.relint.yml`, never both.
     pages that show selectable entities (for example, organizations). Prefer items
     over tables when each row is a single clickable entity with a title and
     short metadata.
+  - Basecoat clamps an item's heading to one line and its paragraph to two.
+    That suits short metadata and truncates an instruction, so an item whose
+    copy the member has to read sets `line-clamp-none` on that heading and
+    paragraph.
+  - Give an item's `<section>` a `min-w-48` floor when its copy runs longer
+    than a few words. The floor makes the action wrap below the text instead
+    of squeezing it into a column a few characters wide.
+  - An item with more than a title, a line of description, and an action puts
+    the extra content in its `<header>` or `<footer>` child, which basecoat
+    gives a full row of its own.
   - Brand name. Write `relay` in lowercase everywhere. It is a brand name,
     not a translatable string. Do not wrap it in `{% translate %}` or
     apply `|capfirst`/`|title`.

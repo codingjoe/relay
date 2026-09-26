@@ -2,161 +2,166 @@
 {% load i18n humanize %}
 {% block title %}{% translate "get started"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <h2 class="mb-6">{% translate "get started"|capfirst %}</h2>
+  <h2 class="mb-2">{% translate "get started"|capfirst %}</h2>
+  <p class="text-muted-foreground mb-6">
+    {% blocktranslate trimmed %}
+      Every organization starts on a managed sender domain, so the first send needs no DNS work and no warm-up.
+    {% endblocktranslate %}
+  </p>
 
-  <article class="card">
-    <header class="border-b">
-      <h3>{% translate "first steps"|title %}</h3>
-      <p>
-        {% blocktranslate trimmed %}
-          Every organization starts on a managed sender domain, so the first send needs no DNS work and no warm-up.
-        {% endblocktranslate %}
-      </p>
-    </header>
-    <section>
-      <ul class="m-0 p-0 list-none flex flex-col gap-6">
-        <li class="flex flex-wrap items-start gap-3">
-          <i
-            data-lucide="{% if has_outgoing_message %}circle-check{% else %}circle-dashed{% endif %}"
-            class="size-5 mt-0.5 shrink-0 {% if has_outgoing_message %}text-primary{% else %}text-muted-foreground{% endif %}"
-            aria-hidden="true"
-          ></i>
-          <div class="flex flex-1 flex-col gap-1 min-w-48">
-            {% if has_outgoing_message %}
-              <p class="m-0 font-medium">{% translate "you sent your first message"|capfirst %}</p>
-              <p class="m-0 text-sm text-muted-foreground">
-                {% blocktranslate trimmed %}
-                  Every message you send keeps its full transmission trace.
-                {% endblocktranslate %}
-              </p>
-            {% else %}
-              <p class="m-0 font-medium">
-                {% blocktranslate with recipient=request.user.email trimmed %}
-                  Send a test message to {{ recipient }}
-                {% endblocktranslate %}
-              </p>
-              <p class="m-0 text-sm text-muted-foreground">
-                {% blocktranslate trimmed %}
-                  The whole path stays visible: relay accepts the message, signs it, and delivers it, so you see it
-                  before your app sends anything.
-                {% endblocktranslate %}
-              </p>
-            {% endif %}
-          </div>
-          {% if has_outgoing_message %}
-            <a
-              class="btn"
-              data-variant="secondary"
-              data-size="sm"
-              href="{% url 'message:message-list' org.slug %}"
-            >
-              {% translate "message log"|capfirst context "noun" %}
-            </a>
-          {% else %}
-            <button
-              type="button"
-              class="btn"
-              data-variant="secondary"
-              data-size="sm"
-              data-dialog="dlg-test-email"
-            >
-              {% translate "send test email"|title %}
-            </button>
-          {% endif %}
-        </li>
-
-        <li class="flex flex-col gap-4">
-          <div class="flex flex-wrap items-start gap-3">
-            <i
-              data-lucide="{% if connected_credential %}circle-check{% else %}circle-dashed{% endif %}"
-              class="size-5 mt-0.5 shrink-0 {% if connected_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
-              aria-hidden="true"
-            ></i>
-            <div class="flex flex-1 flex-col gap-1 min-w-48">
-              {% if connected_credential %}
-                <p class="m-0 font-medium">{% translate "your app is connected"|capfirst %}</p>
-                <p class="m-0 flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-                  <code>{{ connected_credential.name|default:connected_credential.key_prefix }}</code>
-                  <span aria-hidden="true">·</span>
-                  {% translate "last used"|capfirst %}:
-                  {% translate "never" as t_never %}
-                  {{ connected_credential.last_used_at|naturaltime|default:t_never }}
-                </p>
-              {% else %}
-                <p class="m-0 font-medium">{% translate "connect your app over SMTP"|capfirst %}</p>
-                <p class="m-0 text-sm text-muted-foreground">
-                  {% blocktranslate trimmed %}
-                    Create a credential and point your application at the submission host. This step completes as soon
-                    as your app authenticates once.
-                  {% endblocktranslate %}
-                </p>
-              {% endif %}
-            </div>
-            <a
-              class="btn"
-              data-variant="secondary"
-              data-size="sm"
-              href="{% url 'msa:credential-list' org.slug %}"
-            >
-              {% if connected_credential %}
-                {% translate "credentials"|capfirst context "noun" %}
-              {% else %}
-                {% translate "create a credential"|title %}
-              {% endif %}
-            </a>
-          </div>
-          {% if not connected_credential %}
-            {% include "msa/_connection_info.html" with title="" %}
-            {% url 'docs:detail' 'sending' as sending_docs_url %}
-            <p class="m-0 text-sm text-muted-foreground">
-              {% blocktranslate trimmed %}
-                The <a class="link" href="{{ sending_docs_url }}" target="_blank" rel="noopener">sending docs</a> cover
-                every client and every acceptance rule.
-              {% endblocktranslate %}
-            </p>
-          {% endif %}
-        </li>
-
-        <li class="flex flex-wrap items-start gap-3">
-          <i
-            data-lucide="{% if has_custom_domain %}circle-check{% else %}circle-dashed{% endif %}"
-            class="size-5 mt-0.5 shrink-0 {% if has_custom_domain %}text-primary{% else %}text-muted-foreground{% endif %}"
-            aria-hidden="true"
-          ></i>
-          <div class="flex flex-1 flex-col gap-1 min-w-48">
-            {% if has_custom_domain %}
-              <p class="m-0 font-medium">{% translate "you added your own domain"|capfirst %}</p>
-              <p class="m-0 text-sm text-muted-foreground">
-                {% blocktranslate trimmed %}
-                  Your domains keep sending through relay, with NS delegation and DMARC as the only records you manage.
-                {% endblocktranslate %}
-              </p>
-            {% else %}
-              <p class="m-0 font-medium">{% translate "add a domain you own"|capfirst %}</p>
-              <p class="m-0 text-sm text-muted-foreground">
-                {% blocktranslate trimmed %}
-                  Send from your own address instead of the managed one. You delegate the NS records and relay serves
-                  the rest.
-                {% endblocktranslate %}
-              </p>
-            {% endif %}
-          </div>
+  <div class="item-group">
+    <article class="item" data-variant="outline">
+      <figure>
+        <i
+          data-lucide="{% if has_outgoing_message %}circle-check{% else %}circle-dashed{% endif %}"
+          class="size-4 {% if has_outgoing_message %}text-primary{% else %}text-muted-foreground{% endif %}"
+          aria-hidden="true"
+        ></i>
+      </figure>
+      <section class="min-w-48">
+        {% if has_outgoing_message %}
+          <h3>{% translate "you sent your first message"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Every message you send keeps its full transmission trace.
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">
+            {% blocktranslate with recipient=request.user.email trimmed %}
+              Send a test message to {{ recipient }}
+            {% endblocktranslate %}
+          </h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              The whole path stays visible: relay accepts the message, signs it, and delivers it, so you see it before
+              your app sends anything.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        {% if has_outgoing_message %}
           <a
             class="btn"
             data-variant="secondary"
             data-size="sm"
-            href="{% url 'domains:domain-list' org.slug %}"
+            href="{% url 'message:message-list' org.slug %}"
           >
-            {% if has_custom_domain %}
-              {% translate "domains"|capfirst context "noun" %}
-            {% else %}
-              {% translate "add domain"|title context "noun" %}
-            {% endif %}
+            {% translate "message log"|capfirst context "noun" %}
           </a>
-        </li>
-      </ul>
-    </section>
-  </article>
+        {% else %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            data-dialog="dlg-test-email"
+          >
+            {% translate "send test email"|title %}
+          </button>
+        {% endif %}
+      </aside>
+    </article>
+
+    <article class="item" data-variant="outline">
+      <figure>
+        <i
+          data-lucide="{% if connected_credential %}circle-check{% else %}circle-dashed{% endif %}"
+          class="size-4 {% if connected_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
+          aria-hidden="true"
+        ></i>
+      </figure>
+      <section class="min-w-48">
+        {% if connected_credential %}
+          <h3>{% translate "your app is connected"|capfirst %}</h3>
+          <p>
+            <code>{{ connected_credential.name|default:connected_credential.key_prefix }}</code>
+            <span aria-hidden="true">·</span>
+            {% translate "last used"|capfirst %}:
+            {% translate "never" as t_never %}
+            {{ connected_credential.last_used_at|naturaltime|default:t_never }}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">{% translate "connect your app over SMTP"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Create a credential and point your application at the submission host. This step completes as soon as your
+              app authenticates once.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        <a
+          class="btn"
+          data-variant="secondary"
+          data-size="sm"
+          href="{% url 'msa:credential-list' org.slug %}"
+        >
+          {% if connected_credential %}
+            {% translate "credentials"|capfirst context "noun" %}
+          {% else %}
+            {% translate "create a credential"|title %}
+          {% endif %}
+        </a>
+      </aside>
+      {% if not connected_credential %}
+        <footer class="flex-col items-stretch min-w-0">
+          {% include "msa/_connection_info.html" with title="" %}
+          {% url 'docs:detail' 'sending' as sending_docs_url %}
+          <p>
+            {% blocktranslate trimmed %}
+              The <a class="link" href="{{ sending_docs_url }}" target="_blank" rel="noopener">sending docs</a> cover
+              every client and every acceptance rule.
+            {% endblocktranslate %}
+          </p>
+        </footer>
+      {% endif %}
+    </article>
+
+    <article class="item" data-variant="outline">
+      <figure>
+        <i
+          data-lucide="{% if has_custom_domain %}circle-check{% else %}circle-dashed{% endif %}"
+          class="size-4 {% if has_custom_domain %}text-primary{% else %}text-muted-foreground{% endif %}"
+          aria-hidden="true"
+        ></i>
+      </figure>
+      <section class="min-w-48">
+        {% if has_custom_domain %}
+          <h3>{% translate "you added your own domain"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Your domains keep sending through relay, with NS delegation and DMARC as the only records you manage.
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">{% translate "add a domain you own"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Send from your own address instead of the managed one. You delegate the NS records and relay serves the
+              rest.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        <a
+          class="btn"
+          data-variant="secondary"
+          data-size="sm"
+          href="{% url 'domains:domain-list' org.slug %}"
+        >
+          {% if has_custom_domain %}
+            {% translate "domains"|capfirst context "noun" %}
+          {% else %}
+            {% translate "add domain"|title context "noun" %}
+          {% endif %}
+        </a>
+      </aside>
+    </article>
+  </div>
 
   {% include "partials/test_email_dialog.html" %}
 {% endblock %}
