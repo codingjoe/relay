@@ -27,29 +27,12 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
             return redirect("monitoring:overview", org_slug=self.org.slug)
         return super().get(request, *args, **kwargs)
 
-    def get_hero_illustration(self, steps) -> str:
-        """
-        Return the illustration of the step the organization works on next.
-
-        The view redirects once every step is done, so no completed case exists.
-        """
-        match steps:
-            case (False, _, _):
-                return "mail-sent"
-            case (True, False, _):
-                return "connected"
-            case _:
-                return "domain-names"
-
     def get_context_data(self, **kwargs):
         context = get_email_context(self.org, self.request)
         return (
             super().get_context_data(**kwargs)
             | context
-            | {
-                "hero_illustration": self.get_hero_illustration(context["first_steps"]),
-                "smtp_uri": get_submission_uri(self.request, self.org.slug),
-            }
+            | {"smtp_uri": get_submission_uri(self.request, self.org.slug)}
             | get_submission_context(self.request)
         )
 
