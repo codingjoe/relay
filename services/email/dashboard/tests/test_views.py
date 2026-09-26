@@ -3,9 +3,18 @@ from django.urls import reverse
 
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcRecord, DmarcReport
-from services.email.msa.models import OutgoingMessage
+from services.email.msa.models import MsaCredential, OutgoingMessage
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.reputation.models import FblReport
+
+
+def connect_app(org):
+    """Create an SMTP credential and authenticate with it once."""
+    credential, raw_key = MsaCredential.objects.create_with_key(
+        org=org, name="test app"
+    )
+    credential.verify_key(raw_key)
+    return credential
 
 
 def complete_onboarding(org):
@@ -16,6 +25,7 @@ def complete_onboarding(org):
         mail_from="y@example.com",
         domain=Domain.objects.get(org=org, is_managed=True),
     )
+    connect_app(org)
 
 
 @pytest.mark.django_db
@@ -39,6 +49,21 @@ class TestGetStartedView:
         assert response.context["managed_domain"].is_managed is True
         assert response.context["has_custom_domain"] is False
         assert response.context["has_outgoing_message"] is False
+        assert response.context["connected_credential"] is None
+
+    def test_get__shows_connected_app_step(self, admin_client, org, user):
+        connect_app(org)
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        assert response.context["connected_credential"] is not None
+        assert response.context["has_outgoing_message"] is False
+        assert response.context["has_custom_domain"] is False
+
+    def test_get__unused_credential_is_not_a_connected_app(self, admin_client, org):
+        MsaCredential.objects.create_with_key(org=org, name="unused")
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        assert response.context["connected_credential"] is None
 
     def test_get__shows_sent_first_email_step(self, admin_client, org, user):
         OutgoingMessage.objects.create(

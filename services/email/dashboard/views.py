@@ -27,25 +27,19 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
             return redirect("monitoring:overview", org_slug=self.org.slug)
         return super().get(request, *args, **kwargs)
 
-    def get_step_states(self, context) -> tuple[bool, bool, bool]:
-        """Return whether the sender domain, first message, and own domain are done."""
-        return (
-            context["managed_domain"] is not None,
-            context["has_outgoing_message"],
-            context["has_custom_domain"],
-        )
-
     def get_hero_illustration(self, steps) -> str:
-        """Return the illustration of the step the organization works on next."""
+        """
+        Return the illustration of the step the organization works on next.
+
+        The view redirects once every step is done, so no completed case exists.
+        """
         match steps:
             case (False, _, _):
-                return "setup-wizard"
-            case (True, False, _):
                 return "mail-sent"
-            case (True, True, False):
-                return "domain-names"
+            case (True, False, _):
+                return "connected"
             case _:
-                return "protection-enabled"
+                return "domain-names"
 
     def get_context_data(self, **kwargs):
         context = get_email_context(self.org, self.request)
@@ -53,9 +47,7 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
             super().get_context_data(**kwargs)
             | context
             | {
-                "hero_illustration": self.get_hero_illustration(
-                    self.get_step_states(context)
-                ),
+                "hero_illustration": self.get_hero_illustration(context["first_steps"]),
                 "smtp_uri": get_submission_uri(self.request, self.org.slug),
             }
             | get_submission_context(self.request)
