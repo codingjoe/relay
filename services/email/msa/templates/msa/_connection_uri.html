@@ -1,0 +1,5 @@
+{% load i18n %}
+<div class="flex items-start gap-2">
+  <code class="break-all">{{ smtp_uri }}</code>
+  {% include "abstract/copy_button.html" with value=smtp_uri label=_("copy connection URI")|capfirst %}
+</div>

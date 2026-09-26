@@ -44,15 +44,6 @@
           <th>{% translate "password"|capfirst context "noun" %}</th>
           <td>{% translate "your credential key" %}</td>
         </tr>
-        <tr>
-          <th>{% translate "connection URI"|capfirst %}</th>
-          <td>
-            <div class="flex items-center gap-2">
-              <code>{{ smtp_uri }}</code>
-              {% include "abstract/copy_button.html" with value=smtp_uri label=_("copy connection URI")|capfirst %}
-            </div>
-          </td>
-        </tr>
       </tbody>
     </table>
   </div>
