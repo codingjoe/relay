@@ -99,10 +99,55 @@ class TestGetStartedView:
     ):
         """The configured host wins over the `testserver` host the client sends."""
         settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        session = admin_client.session
+        session["raw_key"] = "abcdefghijklmnop"
+        session.save()
+
         response = admin_client.get(f"/org/{org.slug}/email/")
+
         assert response.status_code == 200
         assert response.context["smtp_hostname"] == "smtp.relay.example"
         assert "smtp.relay.example" in response.content.decode()
+
+    def test_get__hides_the_values_until_a_key_is_pending(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' not in content
+        assert 'class="accordion"' not in content
+        assert "<table" not in content
+
+    def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
+        session = admin_client.session
+        session["raw_key"] = "abcdefghijklmnop"
+        session.save()
+
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        content = response.content.decode()
+        assert content.index('id="dlg-credential-key"') < content.index(
+            'class="accordion"'
+        )
+        assert content.index('class="accordion"') < content.index("<table")
+
+    def test_post__credential_dialog_opens_on_this_page(self, admin_client, org):
+        """Creating from the step keeps the member on the page, dialog open."""
+        create = admin_client.post(
+            reverse("msa:credential-create", kwargs={"org_slug": org.slug}),
+            {
+                "name": "Onboarding app",
+                "sandbox": "true",
+                "next": f"/org/{org.slug}/email/",
+            },
+        )
+        assert create.status_code == 302
+        assert create.url == f"/org/{org.slug}/email/"
+
+        response = admin_client.get(create.url)
+
+        assert response.status_code == 200
+        assert 'id="dlg-credential-key"' in response.content.decode()
+        assert MsaCredential.objects.get(org=org).type == MsaCredential.Type.SANDBOX
 
     def test_get__shows_sent_first_email_step(self, admin_client, org, user):
         OutgoingMessage.objects.create(

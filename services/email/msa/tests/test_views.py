@@ -417,10 +417,30 @@ class TestCredentialListView:
         uri_button = copy_button(content, escape(response.context["smtp_uri_with_key"]))
         assert key_button is not None
         assert 'data-size="icon-xs"' in key_button.group()
-        assert "aria-label='Copy key'" in key_button.group()
+        assert re.search(r"aria-label=[\"']Copy key[\"']", key_button.group())
         assert uri_button is not None
-        assert 'data-size="icon-xs"' in uri_button.group()
-        assert "aria-label='Copy connection URI'" in uri_button.group()
+        assert 'data-size="icon"' in uri_button.group()
+        assert re.search(
+            r"aria-label=[\"']Copy connection URI[\"']", uri_button.group()
+        )
+
+    def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert content.index('id="dlg-credential-key"') < content.index(
+            'class="accordion"'
+        )
+        assert content.index('class="accordion"') < content.index("<table")
+
+    def test_get__hides_the_values_until_a_key_is_pending(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' not in content
+        assert "<table" in content
 
     def test_get__renders_copy_buttons_in_the_connection_table(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
@@ -478,6 +498,24 @@ class TestCredentialCreateView:
         )
         cred = MsaCredential.objects.get(org=org)
         assert cred.type == MsaCredential.Type.SANDBOX
+
+    def test_post__returns_to_the_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": f"/org/{org.slug}/email/"},
+        )
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/"
+
+    def test_post__ignores_an_external_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": "https://evil.example/steal"},
+        )
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "msa:credential-list", kwargs={"org_slug": org.slug}
+        )
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})

@@ -7,7 +7,11 @@ from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from services.email.dmarc.charts import build_dmarc_chart
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
-from services.email.msa.submission import get_submission_context, get_submission_uri
+from services.email.msa.submission import (
+    get_credential_key_context,
+    get_submission_context,
+    get_submission_uri,
+)
 from services.email.mta.charts import build_tls_chart
 from services.email.mta.models import TlsReport
 from services.email.reputation.models import FblReport
@@ -34,6 +38,7 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
             | context
             | {"smtp_uri": get_submission_uri(self.org.slug)}
             | get_submission_context()
+            | get_credential_key_context(self.request, self.org.slug)
         )
 
 

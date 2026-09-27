@@ -30,3 +30,20 @@ def get_submission_uri(org_slug, key="") -> str:
     context = get_submission_context()
     port = context["smtp_implicit_tls_ports"][0]
     return f"smtps://{credentials}@{context['smtp_hostname']}:{port}"
+
+
+def get_credential_key_context(request, org_slug) -> dict:
+    """
+    Return the one-time credential key of the session, consuming it.
+
+    The key is only ever shown where it was minted, so a view that redirects
+    a member back to its own page reads it through here.
+    """
+    raw_key = request.session.pop("raw_key", None)
+    context = {}
+    if raw_key:
+        context = {
+            "raw_key": raw_key,
+            "smtp_uri_with_key": get_submission_uri(org_slug, key=raw_key),
+        }
+    return context

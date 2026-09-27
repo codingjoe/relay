@@ -115,31 +115,12 @@
         {% endif %}
       </aside>
       <footer class="flex-col items-stretch min-w-0">
-        <section class="accordion" data-multiple>
-          <details open>
-            <summary>
-              {% translate "connection URI"|capfirst %}
-              <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-            </summary>
-            <section>
-              {% include "msa/_connection_uri.html" %}
-            </section>
-          </details>
-          <details>
-            <summary>
-              {% translate "individual values"|capfirst %}
-              <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
-            </summary>
-            <section>
-              {% include "msa/_connection_info.html" with title="" %}
-            </section>
-          </details>
-        </section>
         {% url 'docs:detail' 'sending' as sending_docs_url %}
         <p class="m-0 text-sm text-muted-foreground">
           {% blocktranslate trimmed %}
-            The <a class="link" href="{{ sending_docs_url }}" target="_blank" rel="noopener">sending docs</a> cover
-            every client and every acceptance rule.
+            Creating a credential hands you its key once, with the values your application connects with. The
+            <a class="link" href="{{ sending_docs_url }}" target="_blank" rel="noopener">sending docs</a> cover every
+            client and every acceptance rule.
           {% endblocktranslate %}
         </p>
       </footer>
@@ -190,4 +171,5 @@
 
   {% include "partials/test_email_dialog.html" %}
   {% include "msa/_credential_dialog.html" with sandbox_forced="true" %}
+  {% if raw_key %}{% include "msa/_credential_key_dialog.html" %}{% endif %}
 {% endblock %}
