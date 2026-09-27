@@ -206,6 +206,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
+  - Alerts: `<div class="alert">` with an icon, an `<h2>`-`<h6>` title, and a
+    `<section>` description. `data-variant="destructive"` is basecoat's;
+    `data-variant="warning"` is this app's addition and follows the badge
+    tints, with the full status token as text so the 4.5:1 floor holds on the
+    tint.
   - Tooltips: use the basecoat `data-tooltip` attribute on any element.
     Do not use native `title` attributes for tooltips.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
