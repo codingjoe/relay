@@ -251,13 +251,14 @@ A rule lives either in this document or in `.relint.yml`, never both.
   carries the meaning. First-use empty states carry an illustration; no-results
   states keep the Lucide `search` icon.
 
-- Email templates extend `emails/base.html`, which is relay's own copy of the
-  `django_letter` base template (MIT, attribution kept in the file). The copy
-  exists because the package ships its own blue and its own button casing;
-  relay's palette (see `src/css/theme.css`) and the wordmark live in the shell
-  instead of in per-template overrides. Keep the pixel values of the shell as
-  they are: mail clients need the table layout and the inline styles premailer
-  produces from it.
+- Email templates extend `emails/base.html`, which extends the package's
+  `django_letter/base.html` and overrides three blocks: `extra_header` for
+  relay's palette (the package ships its own blue and capitalises button
+  labels, see `src/css/theme.css`), `logo` for the wordmark, and
+  `footer_content` for the legal footer. The override stylesheet lands after
+  the package's own, so a tie at equal specificity resolves in relay's favour;
+  add a rule there rather than copying the shell, whose table layout and
+  premailer behaviour should stay the package's.
 
 - The shell closes every message with the legal footer: the service provider,
   its address, the VAT number, and links to the imprint and the privacy policy,
