@@ -18,21 +18,10 @@ def get_email_context(org, request) -> dict:
     except AttributeError:
         domains = list(Domain.objects.filter(org=org))
         credentials = list(MsaCredential.objects.filter(org=org))
-        managed_domain = next(
-            (domain for domain in domains if domain.is_managed and domain.verified_at),
-            None,
-        )
-        has_custom_domain = any(not domain.is_managed for domain in domains)
         has_outgoing_message = OutgoingMessage.objects.filter(org=org).exists()
         connected_credential = get_connected_credential(credentials)
-        first_steps = (
-            has_outgoing_message,
-            connected_credential is not None,
-            has_custom_domain,
-        )
+        first_steps = (has_outgoing_message, connected_credential is not None)
         context = {
-            "managed_domain": managed_domain,
-            "has_custom_domain": has_custom_domain,
             "has_outgoing_message": has_outgoing_message,
             "connected_credential": connected_credential,
             "first_steps": first_steps,

@@ -115,48 +115,6 @@
         {% endif %}
       </aside>
     </article>
-
-    <article class="item" data-variant="outline">
-      <figure>
-        <i
-          data-lucide="{% if has_custom_domain %}circle-check{% else %}circle-dashed{% endif %}"
-          class="size-4 {% if has_custom_domain %}text-primary{% else %}text-muted-foreground{% endif %}"
-          aria-hidden="true"
-        ></i>
-      </figure>
-      <section class="min-w-48">
-        {% if has_custom_domain %}
-          <h3>{% translate "you added your own domain"|capfirst %}</h3>
-          <p class="line-clamp-none">
-            {% blocktranslate trimmed %}
-              Your domains keep sending through relay, with NS delegation and DMARC as the only records you manage.
-            {% endblocktranslate %}
-          </p>
-        {% else %}
-          <h3 class="line-clamp-none">{% translate "add a domain you own"|capfirst %}</h3>
-          <p class="line-clamp-none">
-            {% blocktranslate trimmed %}
-              Send from your own address instead of the managed one. You delegate the NS records and relay serves the
-              rest.
-            {% endblocktranslate %}
-          </p>
-        {% endif %}
-      </section>
-      <aside>
-        <a
-          class="btn"
-          data-variant="secondary"
-          data-size="sm"
-          href="{% url 'domains:domain-list' org.slug %}"
-        >
-          {% if has_custom_domain %}
-            {% translate "domains"|capfirst context "noun" %}
-          {% else %}
-            {% translate "add domain"|title context "noun" %}
-          {% endif %}
-        </a>
-      </aside>
-    </article>
   </div>
 
   {% include "partials/test_email_dialog.html" %}

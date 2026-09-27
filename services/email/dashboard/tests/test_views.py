@@ -18,7 +18,7 @@ def connect_app(org):
 
 
 def complete_onboarding(org):
-    Domain.objects.create(name="acme.com", org=org)
+    """Send a message and connect an app, which is all the checklist asks for."""
     OutgoingMessage.objects.create(
         org=org,
         rcpt_to="x@example.com",
@@ -46,8 +46,6 @@ class TestGetStartedView:
     def test_get__shows_first_steps(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
-        assert response.context["managed_domain"].is_managed is True
-        assert response.context["has_custom_domain"] is False
         assert response.context["has_outgoing_message"] is False
         assert response.context["connected_credential"] is None
 
@@ -57,7 +55,6 @@ class TestGetStartedView:
         assert response.status_code == 200
         assert response.context["connected_credential"] is not None
         assert response.context["has_outgoing_message"] is False
-        assert response.context["has_custom_domain"] is False
 
     def test_get__unused_credential_is_not_a_connected_app(self, admin_client, org):
         MsaCredential.objects.create_with_key(org=org, name="unused")
@@ -159,7 +156,19 @@ class TestGetStartedView:
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
         assert response.context["has_outgoing_message"] is True
-        assert response.context["has_custom_domain"] is False
+        assert response.context["connected_credential"] is None
+
+    def test_get__completes_without_a_custom_domain(self, admin_client, org):
+        """A domain you own is not part of the checklist, so it cannot hold it open."""
+        complete_onboarding(org)
+        assert not Domain.objects.filter(org=org, is_managed=False).exists()
+
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "monitoring:overview", kwargs={"org_slug": org.slug}
+        )
 
     def test_get__redirects_to_reputation_when_onboarding_is_complete(
         self, admin_client, org, user
@@ -195,9 +204,8 @@ class TestGetStartedView:
         )
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
-        assert response.context["managed_domain"].org == org
-        assert response.context["has_custom_domain"] is False
         assert response.context["has_outgoing_message"] is False
+        assert response.context["connected_credential"] is None
 
 
 @pytest.mark.django_db
