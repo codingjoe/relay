@@ -160,3 +160,7 @@
   pattern: '<a(?![^>]*\btarget=)(?=[^>]*\bhref="(?:https?://|\{%\s*url\s+[''"](?:docs|know_how|alternative_to):))[^>]*>'
   hint: 'Reading the docs, the know-how, or an outside source must not cost the reader the page they are on. Add target="_blank" rel="noopener".'
   filePattern: '^.*\.html$'
+- name: Links to the docs bound to a variable open in a new tab
+  pattern: '\{%\s*url\s+[''"](?:docs|know_how|alternative_to):[^%]*?\bas\s+(?P<var>\w+)\s*%\}[\s\S]{0,2000}?<a(?![^>]*\btarget=)[^>]*\bhref="\{\{\s*(?P=var)\s*\}\}"'
+  hint: 'A `{% url ... as name %}` binding hides the destination from the pattern above. A link to the docs written as href="{{ name }}" still has to open in a new tab: add target="_blank" rel="noopener". The docs, know-how, and comparison apps are exempt, they navigate in-app.'
+  filePattern: '^(?!.*(?:docs|know_how|alternative_to)/templates/).*\.html$'
