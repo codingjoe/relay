@@ -6,10 +6,10 @@
   <tr>
     <td align="center">
       <img
-        src="{% static 'img/game-day.svg' %}"
+        src="{% static 'img/home-run.svg' %}"
         alt=""
         width="442"
-        height="352"
+        height="383"
         style="width: 80%; height: auto"
       >
     </td>
@@ -68,25 +68,25 @@
       and DMARC records for you.
     {% endblocktranslate %}
   </p>
-  <p class="last">
+  <p>
     <a href="{{ domains_url }}">{% translate "Add a domain" %}</a>
+  </p>
+  <p>
+    {% blocktranslate trimmed %}
+      That is all the first message needs. Happy sending!
+    {% endblocktranslate %}
   </p>
   {% table class="align-center" %}
   <tr>
     <td align="center">
       <img
-        src="{% static 'img/home-run.svg' %}"
+        src="{% static 'img/game-day.svg' %}"
         alt=""
         width="442"
-        height="383"
+        height="352"
         style="width: 80%; height: auto"
       >
     </td>
   </tr>
   {% endtable %}
-  <p class="last">
-    {% blocktranslate trimmed %}
-      That is all the first message needs. Happy sending!
-    {% endblocktranslate %}
-  </p>
 {% endblock content %}
