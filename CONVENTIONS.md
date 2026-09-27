@@ -251,6 +251,14 @@ A rule lives either in this document or in `.relint.yml`, never both.
   carries the meaning. First-use empty states carry an illustration; no-results
   states keep the Lucide `search` icon.
 
+- Email templates extend `emails/base.html`, which is relay's own copy of the
+  `django_letter` base template (MIT, attribution kept in the file). The copy
+  exists because the package ships its own blue and its own button casing;
+  relay's palette (see `src/css/theme.css`) and the wordmark live in the shell
+  instead of in per-template overrides. Keep the pixel values of the shell as
+  they are: mail clients need the table layout and the inline styles premailer
+  produces from it.
+
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`, which imports Tailwind CSS v4,
   basecoat-css (maia style), and the partials next to it: `theme.css` (design
