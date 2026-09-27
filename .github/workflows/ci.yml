@@ -63,6 +63,6 @@ jobs:
       - run: uv run python manage.py collectstatic --no-input
       - run: uv run python manage.py makemigrations --check --dry-run
       - run: uv run py.test --cov --cov-report=xml --maxfail=5 -n auto "--randomly-seed=${{ github.run_id }}"
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           use_oidc: true
