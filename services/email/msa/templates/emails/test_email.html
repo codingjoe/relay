@@ -2,24 +2,11 @@
 {% load django_letter i18n static %}
 
 {% block content %}
-  {% table class="align-center" %}
-  <tr>
-    <td align="center">
-      <img
-        src="{% static 'img/game-day.svg' %}"
-        alt=""
-        width="442"
-        height="352"
-        style="width: 80%; height: auto"
-      >
-    </td>
-  </tr>
-  {% endtable %}
   <h1 class="first">{% translate "Your test message arrived" %}</h1>
   <p>
     {% blocktranslate trimmed %}
-      Every message relay sends stays in your dashboard with its delivery log, so you can follow this one whenever you
-      like.
+      Off it went. Every message relay sends stays in your dashboard with its delivery log, so you can follow this one
+      whenever you like.
     {% endblocktranslate %}
   </p>
   {% translate "View the transmission trace" as button_label %}
@@ -27,7 +14,7 @@
   <h2>{% translate "Send from your own application" %}</h2>
   <p>
     {% blocktranslate trimmed %}
-      Point your application at the submission host and authenticate with a credential.
+      Ready for the real thing? Point your application at the submission host and authenticate with a credential.
     {% endblocktranslate %}
   </p>
   {% table %}
@@ -70,5 +57,23 @@
   </p>
   <p class="last">
     <a href="{{ domains_url }}">{% translate "Add a domain" %}</a>
+  </p>
+  {% table class="align-center" %}
+  <tr>
+    <td align="center">
+      <img
+        src="{% static 'img/home-run.svg' %}"
+        alt=""
+        width="442"
+        height="383"
+        style="width: 80%; height: auto"
+      >
+    </td>
+  </tr>
+  {% endtable %}
+  <p class="last">
+    {% blocktranslate trimmed %}
+      That is all the first message needs. Happy sending!
+    {% endblocktranslate %}
   </p>
 {% endblock content %}
