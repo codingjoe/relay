@@ -413,16 +413,33 @@ class TestCredentialListView:
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
 
         content = response.content.decode()
-        key_button = copy_button(content, raw_key)
         uri_button = copy_button(content, escape(response.context["smtp_uri_with_key"]))
-        assert key_button is not None
-        assert 'data-size="icon-xs"' in key_button.group()
-        assert re.search(r"aria-label=[\"']Copy key[\"']", key_button.group())
+        key_button = copy_button(content, raw_key)
         assert uri_button is not None
-        assert 'data-size="icon"' in uri_button.group()
+        assert 'data-size="icon-xs"' in uri_button.group()
         assert re.search(
             r"aria-label=[\"']Copy connection URI[\"']", uri_button.group()
         )
+        assert key_button is not None
+        assert re.search(r"aria-label=[\"']Copy key[\"']", key_button.group())
+
+    def test_get__key_row_carries_the_key_only_while_it_is_pending(
+        self, admin_client, org
+    ):
+        """The static table points at the key; the dialog is where it is shown."""
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        dialog = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        dialog_content = dialog.content.decode()
+        dialog_table = dialog_content.split('id="dlg-credential-key"', 1)[1]
+        assert raw_key in dialog_table
+
+        admin_client.get(f"/org/{org.slug}/email/credentials/")
+        again = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        assert raw_key not in again.content.decode()
+        assert "your credential key" in again.content.decode()
 
     def test_get__key_dialog_accordion_opens_one_panel_at_a_time(
         self, admin_client, org
@@ -466,7 +483,6 @@ class TestCredentialListView:
                 ", ".join(map(str, response.context["smtp_implicit_tls_ports"])),
             ),
             ("Copy username", org.slug),
-            ("Copy connection URI", escape(response.context["smtp_uri"])),
         ]
         for label, value in buttons:
             button = copy_button(content, value)
@@ -474,6 +490,11 @@ class TestCredentialListView:
             assert 'data-size="icon"' in button.group(), value
             label_pattern = rf"aria-label=(?P<q>[\"']){re.escape(label)}(?P=q)"
             assert re.search(label_pattern, button.group()), value
+
+        uri = escape(response.context["smtp_uri"])
+        uri_button = copy_button(content, uri)
+        assert uri_button is not None
+        assert 'data-size="icon-xs"' in uri_button.group()
 
     def test_get__opens_the_sending_docs_in_a_new_tab(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
