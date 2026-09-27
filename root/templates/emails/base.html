@@ -264,6 +264,13 @@ wordmark ships with the chrome. Re-check it when the package updates.
         margin-bottom: 0;
       }
 
+      /* The package only zeroes spacing, so relay adds the one step it needs
+         for a block that sits above text: a paragraph gap in a table cell,
+         since cells ignore margins. */
+      .pb16 {
+        padding-bottom: 16px;
+      }
+
       .preheader {
         display: none;
         max-width: 0;
