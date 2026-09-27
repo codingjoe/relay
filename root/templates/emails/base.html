@@ -3,13 +3,11 @@
 
 {% block extra_header %}
   <style media="all" type="text/css">
-    /* The package ships its own blue and capitalises button labels, so the
-       stylesheet below restates what relay wants. It lands after the package's
-       own styles, which wins the tie at equal specificity. */
+    /* Overrides the package's blue and capitalised button labels; the later
+       block wins the tie at equal specificity. */
 
-    /* relay's link colour (see src/css/theme.css). */
     a {
-      color: #6200d1;
+      color: #6200d1; /* relay's link colour, see src/css/theme.css */
     }
 
     .text-link {
@@ -43,26 +41,21 @@
       }
     }
 
-    /* One step below the 16px body. The `smaller` keyword would compound
-       across these nested elements (16px, then 13px, then 11px, then 9px), so
-       the value it resolves to stands on its own. */
+    /* 13px, not `smaller`: nested elements compound it (16px, 13px, 11px, 9px). */
     .footer td,
     .footer p,
     .footer span,
     .footer a {
-      color: #5d5d5d;
+      color: #5d5d5d; /* holds the 4.5:1 WCAG AA floor on the white card */
       font-size: 13px;
     }
 
-    /* relay's link colour again, so the legal links stay recognisable next to
-       the muted footer text. Both hold at least 4.5:1 on the white card. */
+    /* Legal links keep their colour against the muted footer text. */
     .footer a {
       color: #6200d1;
     }
 
-    /* Settings, keys, and transcripts read as code, the way they do in the
-       dashboard. Mail clients have no access to Fira Code, so the stack falls
-       back to whatever the client has. */
+    /* Settings and keys read as code; mail clients cannot load Fira Code. */
     code,
     pre {
       font-size: 15px;
@@ -75,9 +68,7 @@
       margin: 0;
     }
 
-    /* The package only zeroes spacing, so relay adds the one step it needs for
-       a block that sits above text: a paragraph gap in a table cell, since
-       cells ignore margins. */
+    /* Table cells ignore margins, so the gap above a block is padding. */
     .pb16 {
       padding-bottom: 16px;
     }

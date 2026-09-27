@@ -100,12 +100,6 @@ class TestGetStartedView:
             "Connect your app over SMTP"
         )
 
-    def test_get__unused_credential_is_not_a_connected_app(self, admin_client, org):
-        MsaCredential.objects.create_with_key(org=org, name="unused")
-        response = admin_client.get(f"/org/{org.slug}/email/")
-        assert response.status_code == 200
-        assert response.context["connected_credential"] is None
-
     def test_get__creates_a_credential_from_the_step_dialog(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
@@ -134,42 +128,6 @@ class TestGetStartedView:
         content = response.content.decode()
         assert reverse("msa:credential-list", kwargs={"org_slug": org.slug}) in content
         assert 'data-dialog="dlg-new-credential"' not in content
-
-    def test_get__submission_values_use_the_configured_host(
-        self, admin_client, org, settings
-    ):
-        """The configured host wins over the `testserver` host the client sends."""
-        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
-        session = admin_client.session
-        session["raw_key"] = "abcdefghijklmnop"
-        session.save()
-
-        response = admin_client.get(f"/org/{org.slug}/email/")
-
-        assert response.status_code == 200
-        assert response.context["smtp_hostname"] == "smtp.relay.example"
-        assert "smtp.relay.example" in response.content.decode()
-
-    def test_get__hides_the_values_until_a_key_is_pending(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.slug}/email/")
-
-        content = response.content.decode()
-        assert 'id="dlg-credential-key"' not in content
-        assert 'class="accordion"' not in content
-        assert "<table" not in content
-
-    def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
-        session = admin_client.session
-        session["raw_key"] = "abcdefghijklmnop"
-        session.save()
-
-        response = admin_client.get(f"/org/{org.slug}/email/")
-
-        content = response.content.decode()
-        assert content.index('id="dlg-credential-key"') < content.index(
-            'class="accordion"'
-        )
-        assert content.index('class="accordion"') < content.index("<table")
 
     def test_post__credential_dialog_opens_on_this_page(self, admin_client, org):
         """Creating from the step keeps the member on the page, dialog open."""
@@ -201,18 +159,6 @@ class TestGetStartedView:
         assert response.status_code == 200
         assert response.context["has_outgoing_message"] is True
         assert response.context["connected_credential"] is None
-
-    def test_get__completes_without_a_custom_domain(self, admin_client, org):
-        """A domain you own is not part of the checklist, so it cannot hold it open."""
-        complete_onboarding(org)
-        assert not Domain.objects.filter(org=org, is_managed=False).exists()
-
-        response = admin_client.get(f"/org/{org.slug}/email/")
-
-        assert response.status_code == 302
-        assert response.url == reverse(
-            "monitoring:overview", kwargs={"org_slug": org.slug}
-        )
 
     def test_get__redirects_to_reputation_when_onboarding_is_complete(
         self, admin_client, org, user

@@ -1,59 +1,56 @@
 {% load i18n %}
-<section class="flex flex-col gap-3">
-  {% if title %}<h3 class="m-0">{{ title }}</h3>{% endif %}
-  <div class="table-container">
-    <table class="table">
-      <tbody>
-        <tr>
-          <th>{% translate "server"|capfirst context "noun" %}</th>
-          <td>
+<div class="table-container">
+  <table class="table">
+    <tbody>
+      <tr>
+        <th>{% translate "server"|capfirst context "noun" %}</th>
+        <td>
+          <div class="flex items-center gap-2">
+            <code>{{ smtp_hostname }}</code>
+            {% include "abstract/copy_button.html" with value=smtp_hostname label=_("copy server")|capfirst %}
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th>{% translate "port (STARTTLS)"|capfirst %}</th>
+        <td>
+          <div class="flex items-center gap-2">
+            <code>{{ smtp_starttls_ports|join:", " }}</code>
+            {% include "abstract/copy_button.html" with value=smtp_starttls_ports|join:', ' label=_("copy port")|capfirst %}
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th>{% translate "port (TLS)"|capfirst %}</th>
+        <td>
+          <div class="flex items-center gap-2">
+            <code>{{ smtp_implicit_tls_ports|join:", " }}</code>
+            {% include "abstract/copy_button.html" with value=smtp_implicit_tls_ports|join:', ' label=_("copy port")|capfirst %}
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th>{% translate "username"|capfirst context "noun" %}</th>
+        <td>
+          <div class="flex items-center gap-2">
+            <code>{{ org.slug }}</code>
+            {% include "abstract/copy_button.html" with value=org.slug label=_("copy username")|capfirst %}
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th>{% translate "password"|capfirst context "noun" %}</th>
+        <td>
+          {% if raw_key %}
             <div class="flex items-center gap-2">
-              <code>{{ smtp_hostname }}</code>
-              {% include "abstract/copy_button.html" with value=smtp_hostname label=_("copy server")|capfirst %}
+              <code class="break-all">{{ raw_key }}</code>
+              {% include "abstract/copy_button.html" with value=raw_key label=_("copy key")|capfirst %}
             </div>
-          </td>
-        </tr>
-        <tr>
-          <th>{% translate "port (STARTTLS)"|capfirst %}</th>
-          <td>
-            <div class="flex items-center gap-2">
-              <code>{{ smtp_starttls_ports|join:", " }}</code>
-              {% include "abstract/copy_button.html" with value=smtp_starttls_ports|join:', ' label=_("copy port")|capfirst %}
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <th>{% translate "port (TLS)"|capfirst %}</th>
-          <td>
-            <div class="flex items-center gap-2">
-              <code>{{ smtp_implicit_tls_ports|join:", " }}</code>
-              {% include "abstract/copy_button.html" with value=smtp_implicit_tls_ports|join:', ' label=_("copy port")|capfirst %}
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <th>{% translate "username"|capfirst context "noun" %}</th>
-          <td>
-            <div class="flex items-center gap-2">
-              <code>{{ org.slug }}</code>
-              {% include "abstract/copy_button.html" with value=org.slug label=_("copy username")|capfirst %}
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <th>{% translate "password"|capfirst context "noun" %}</th>
-          <td>
-            {% if raw_key %}
-              <div class="flex items-center gap-2">
-                <code class="break-all">{{ raw_key }}</code>
-                {% include "abstract/copy_button.html" with value=raw_key label=_("copy key")|capfirst %}
-              </div>
-            {% else %}
-              {% translate "your credential key" %}
-            {% endif %}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</section>
+          {% else %}
+            {% translate "your credential key" %}
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

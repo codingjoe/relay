@@ -5,13 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 def get_submission_context() -> dict:
-    """
-    Return the submission hostname and ports members connect to.
-
-    The hostname comes from the configured public host rather than the
-    request, so a member reading the page over an internal or preview host
-    still gets the address their mail client has to reach.
-    """
+    """Return the submission hostname and ports members connect to."""
     implicit_tls_ports = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS
     return {
         "smtp_hostname": settings.RELAY_SMTP_PUBLIC_HOSTNAME,
@@ -33,12 +27,7 @@ def get_submission_uri(org_slug, key="") -> str:
 
 
 def get_credential_key_context(request, org_slug) -> dict:
-    """
-    Return the one-time credential key of the session, consuming it.
-
-    The key is only ever shown where it was minted, so a view that redirects
-    a member back to its own page reads it through here.
-    """
+    """Return the one-time credential key of the session, consuming it."""
     raw_key = request.session.pop("raw_key", None)
     context = {}
     if raw_key:

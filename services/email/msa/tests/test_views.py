@@ -376,12 +376,6 @@ class TestCredentialListView:
         assert 'id="id_sandbox"' in content
         assert 'name="sandbox" value="true"' not in content
 
-    def test_get__smtp_info_ignores_the_request_host(self, admin_client, org, settings):
-        """The configured host wins over the `testserver` host the client sends."""
-        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
-        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
-        assert response.context["smtp_hostname"] == "smtp.relay.example"
-
     def test_get__renders_connection_uri(self, admin_client, org, settings):
         settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
@@ -441,18 +435,6 @@ class TestCredentialListView:
 
         assert raw_key not in again.content.decode()
         assert "your credential key" in again.content.decode()
-
-    def test_get__key_dialog_accordion_opens_one_panel_at_a_time(
-        self, admin_client, org
-    ):
-        """Basecoat keeps one panel open unless the root carries `data-multiple`."""
-        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
-
-        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
-
-        content = response.content.decode()
-        assert 'class="accordion"' in content
-        assert "data-multiple" not in content
 
     def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})

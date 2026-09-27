@@ -10,7 +10,6 @@ from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.msa.submission import (
     get_credential_key_context,
     get_submission_context,
-    get_submission_uri,
 )
 from services.email.mta.charts import build_tls_chart
 from services.email.mta.models import TlsReport
@@ -36,7 +35,6 @@ class GetStartedView(OrganizationScopedView, NoStoreCacheMixin, generic.Template
         return (
             super().get_context_data(**kwargs)
             | context
-            | {"smtp_uri": get_submission_uri(self.org.slug)}
             | get_submission_context()
             | get_credential_key_context(self.request, self.org.slug)
         )

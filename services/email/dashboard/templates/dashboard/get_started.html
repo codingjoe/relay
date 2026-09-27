@@ -146,6 +146,6 @@
   </div>
 
   {% include "partials/test_email_dialog.html" %}
-  {% include "msa/_credential_dialog.html" with sandbox_forced="true" %}
+  {% include "msa/_credential_dialog.html" with sandbox_forced=True %}
   {% if raw_key %}{% include "msa/_credential_key_dialog.html" %}{% endif %}
 {% endblock %}
