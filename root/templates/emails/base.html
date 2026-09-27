@@ -72,6 +72,42 @@
     .pb16 {
       padding-bottom: 16px;
     }
+
+    /* The package turns the card dark in a dark client, so relay's palette
+       follows, the way the web theme switches. These rules land after the
+       package's own dark block and win its `!important` ties. */
+    @media (prefers-color-scheme: dark) {
+      a,
+      .text-link {
+        color: #bb80ff !important; /* 5.3:1 on the package's #1f2937 card */
+      }
+
+      .btn a {
+        border-color: #bb80ff !important;
+        color: #bb80ff !important;
+      }
+
+      .btn-primary table td {
+        background-color: #6200d1 !important;
+      }
+
+      .btn-primary a {
+        border-color: #6200d1 !important;
+        background-color: #6200d1 !important;
+        color: #ffffff !important;
+      }
+
+      .footer td,
+      .footer p,
+      .footer span,
+      .footer a {
+        color: #b0b0b0 !important; /* 6.6:1 on the dark card */
+      }
+
+      .footer a {
+        color: #bb80ff !important;
+      }
+    }
   </style>
 {% endblock extra_header %}
 
@@ -79,7 +115,7 @@
   {% table class="align-center" %}
   <tr>
     <td align="center">
-      <img src="{% static 'img/word-brand-512x.jpg' %}" alt="relay" width="120">
+      <img src="{% static 'img/word-brand.svg' %}" alt="relay" width="120">
     </td>
   </tr>
   {% endtable %}
