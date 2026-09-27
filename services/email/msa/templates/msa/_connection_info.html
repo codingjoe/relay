@@ -44,25 +44,9 @@
           <th>{% translate "password"|capfirst context "noun" %}</th>
           <td>
             {% if raw_key %}
-              <div class="input-group">
-                <input
-                  class="break-all"
-                  type="text"
-                  readonly
-                  value="{{ raw_key }}"
-                  data-select
-                  aria-label='{% translate "credential key"|capfirst %}'
-                >
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ raw_key }}"
-                  aria-label='{% translate "copy key"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
+              <div class="flex items-center gap-2">
+                <code class="break-all">{{ raw_key }}</code>
+                {% include "abstract/copy_button.html" with value=raw_key label=_("copy key")|capfirst %}
               </div>
             {% else %}
               {% translate "your credential key" %}

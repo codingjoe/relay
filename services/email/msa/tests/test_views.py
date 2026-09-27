@@ -421,6 +421,7 @@ class TestCredentialListView:
             r"aria-label=[\"']Copy connection URI[\"']", uri_button.group()
         )
         assert key_button is not None
+        assert 'data-size="icon"' in key_button.group()
         assert re.search(r"aria-label=[\"']Copy key[\"']", key_button.group())
 
     def test_get__key_row_carries_the_key_only_while_it_is_pending(
