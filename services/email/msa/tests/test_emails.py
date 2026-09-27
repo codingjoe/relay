@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -123,7 +125,9 @@ class TestTestEmail:
         assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
         assert "acme.example" in email.body
         assert f"{base_url}/org/acme/email/messages/" in email.body
-        assert f'<img src="{base_url}/static/img/word-brand-512x' in email.html
+        assert re.search(
+            rf'<img src="{base_url}/static/img/word-brand\.[0-9a-f]+\.svg"', email.html
+        )
 
     def test_render_preview__uses_given_domain(self):
         email = emails.TestEmail.render_preview(
