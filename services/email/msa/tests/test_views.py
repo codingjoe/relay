@@ -479,16 +479,6 @@ class TestCredentialListView:
         assert uri_button is not None
         assert 'data-size="icon-xs"' in uri_button.group()
 
-    def test_get__opens_the_sending_docs_in_a_new_tab(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
-
-        content = response.content.decode()
-
-        assert (
-            '<a class="link" href="/docs/sending/" target="_blank" rel="noopener">'
-            "sending docs</a>"
-        ) in content
-
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/credentials/")

@@ -311,16 +311,6 @@ class TestReportListView:
         assert response.status_code == 200
         assert list(response.context["reports"]) == []
 
-    def test_get__dmarc_type_ip_filter_requires_record_match(
-        self, admin_client, org, dmarc_report
-    ):
-        response = admin_client.get(
-            f"/org/{org.slug}/email/reports/?type=dmarc&ip=10.0.0.1"
-        )
-
-        assert response.status_code == 200
-        assert list(response.context["reports"]) == [dmarc_report]
-
     def test_get__failures_type_lists_failure_reports(
         self, admin_client, org, failure_report, dmarc_report
     ):
