@@ -190,17 +190,15 @@ class TestTestEmailView:
         domain = Domain.objects.get(org=org, is_managed=True)
         response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
-        stored = message_from_bytes(
-            OutgoingMessage.objects.get(org=org).raw_body.read(),
-            policy=policy.default,
-        )
+        message = OutgoingMessage.objects.get(org=org)
+        stored = message_from_bytes(message.raw_body.read(), policy=policy.default)
         parts = {
             part.get_content_type(): part.get_content() for part in stored.iter_parts()
         }
         assert set(parts) == {"text/html", "text/plain"}
-        assert f"postmaster@{domain.name}" in parts["text/html"]
-        assert f"postmaster@{domain.name}" in parts["text/plain"]
-        link = f"http://testserver/org/{org.slug}/email/messages/"
+        for part in parts.values():
+            assert f"This test message left {domain.name}." in part
+        link = f"http://testserver/org/{org.slug}/email/messages/{message.pk}"
         assert f'href="{link}"' in parts["text/html"]
         assert f"<{link}>" in parts["text/plain"]
 
@@ -360,24 +358,37 @@ class TestCredentialListView:
         assert len(creds) == 1
         assert creds[0].name == "mine"
 
-    def test_get__context_has_smtp_info(self, admin_client, org):
+    def test_get__context_has_smtp_info(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
         assert "smtp_starttls_ports" in response.context
         assert "smtp_implicit_tls_ports" in response.context
+        assert response.context["smtp_hostname"] == "smtp.relay.example"
         assert response.context["smtp_uri"] == (
-            "smtps://test-org:<credential key>@smtp.testserver:465"
+            "smtps://test-org:<credential key>@smtp.relay.example:465"
         )
 
-    def test_get__renders_connection_uri(self, admin_client, org):
+    def test_get__offers_the_sandbox_choice(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="id_sandbox"' in content
+        assert 'name="sandbox" value="true"' not in content
+
+    def test_get__renders_connection_uri(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
         assert (
-            "smtps://test-org:&lt;credential key&gt;@smtp.testserver:465"
+            "smtps://test-org:&lt;credential key&gt;@smtp.relay.example:465"
             in response.content.decode()
         )
 
-    def test_get__opens_the_key_dialog_after_creation(self, admin_client, org):
+    def test_get__opens_the_key_dialog_after_creation(
+        self, admin_client, org, settings
+    ):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
         raw_key = admin_client.session["raw_key"]
 
@@ -387,7 +398,7 @@ class TestCredentialListView:
         content = response.content.decode()
         assert 'id="dlg-credential-key"' in content
         assert raw_key in content
-        assert f"smtps://{org.slug}:{raw_key}@smtp.testserver:465" in content
+        assert f"smtps://{org.slug}:{raw_key}@smtp.relay.example:465" in content
 
     def test_get__renders_copy_buttons_in_the_key_dialog(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
@@ -396,14 +407,52 @@ class TestCredentialListView:
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
 
         content = response.content.decode()
-        key_button = copy_button(content, raw_key)
         uri_button = copy_button(content, escape(response.context["smtp_uri_with_key"]))
-        assert key_button is not None
-        assert 'data-size="icon-xs"' in key_button.group()
-        assert "aria-label='Copy key'" in key_button.group()
+        key_button = copy_button(content, raw_key)
         assert uri_button is not None
         assert 'data-size="icon-xs"' in uri_button.group()
-        assert "aria-label='Copy connection URI'" in uri_button.group()
+        assert re.search(
+            r"aria-label=[\"']Copy connection URI[\"']", uri_button.group()
+        )
+        assert key_button is not None
+        assert 'data-size="icon"' in key_button.group()
+        assert re.search(r"aria-label=[\"']Copy key[\"']", key_button.group())
+
+    def test_get__key_row_carries_the_key_only_while_it_is_pending(
+        self, admin_client, org
+    ):
+        """The static table points at the key; the dialog is where it is shown."""
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        dialog = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        dialog_content = dialog.content.decode()
+        dialog_table = dialog_content.split('id="dlg-credential-key"', 1)[1]
+        assert raw_key in dialog_table
+
+        admin_client.get(f"/org/{org.slug}/email/credentials/")
+        again = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        assert raw_key not in again.content.decode()
+        assert "your credential key" in again.content.decode()
+
+    def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert content.index('id="dlg-credential-key"') < content.index(
+            'class="accordion"'
+        )
+        assert content.index('class="accordion"') < content.index("<table")
+
+    def test_get__hides_the_values_until_a_key_is_pending(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' not in content
+        assert "<table" in content
 
     def test_get__renders_copy_buttons_in_the_connection_table(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
@@ -417,7 +466,6 @@ class TestCredentialListView:
                 ", ".join(map(str, response.context["smtp_implicit_tls_ports"])),
             ),
             ("Copy username", org.slug),
-            ("Copy connection URI", escape(response.context["smtp_uri"])),
         ]
         for label, value in buttons:
             button = copy_button(content, value)
@@ -425,6 +473,11 @@ class TestCredentialListView:
             assert 'data-size="icon"' in button.group(), value
             label_pattern = rf"aria-label=(?P<q>[\"']){re.escape(label)}(?P=q)"
             assert re.search(label_pattern, button.group()), value
+
+        uri = escape(response.context["smtp_uri"])
+        uri_button = copy_button(content, uri)
+        assert uri_button is not None
+        assert 'data-size="icon-xs"' in uri_button.group()
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
@@ -451,6 +504,24 @@ class TestCredentialCreateView:
         )
         cred = MsaCredential.objects.get(org=org)
         assert cred.type == MsaCredential.Type.SANDBOX
+
+    def test_post__returns_to_the_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": f"/org/{org.slug}/email/"},
+        )
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/"
+
+    def test_post__ignores_an_external_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": "https://evil.example/steal"},
+        )
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "msa:credential-list", kwargs={"org_slug": org.slug}
+        )
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})

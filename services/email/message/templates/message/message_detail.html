@@ -18,90 +18,94 @@
   </header>
 
   <article class="card p-6 mb-6 gap-2" data-variant="{{ message.status_badge_variant }}">
-    <div>
-      <p class="m-0 text-2xl font-semibold">
-        <span class="status" data-variant="{{ message.status_badge_variant }}">
-          {{ message.status_display|capfirst }}
-        </span>
-        {% if delivery_finished_at %}
-          <span class="text-base font-normal text-muted-foreground">
-            {% timestamp delivery_finished_at %}
-          </span>
+    <div class="flex flex-col gap-2 lg:flex-row lg:justify-between lg:gap-8">
+      <div class="flex min-w-0 flex-col gap-2">
+        <div>
+          <p class="m-0 text-2xl font-semibold">
+            <span class="status" data-variant="{{ message.status_badge_variant }}">
+              {{ message.status_display|capfirst }}
+            </span>
+            {% if delivery_finished_at %}
+              <span class="text-base font-normal text-muted-foreground">
+                {% timestamp delivery_finished_at %}
+              </span>
+            {% endif %}
+          </p>
+          {% if delivery_attempts %}
+            <p class="m-0 text-sm text-muted-foreground">
+              {% blocktranslate count counter=delivery_attempts with count=delivery_attempts|apnumber trimmed %}
+                {{ count }} transmission{% plural %}{{ count }} transmissions
+              {% endblocktranslate %}
+              {% if delivery_duration %}
+                <span aria-hidden="true">·</span>
+                {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+              {% endif %}
+            </p>
+          {% endif %}
+        </div>
+        {% translate "Show the messages with this address" as address_tooltip %}
+        {% if message.mail_from or message.rcpt_to or message.subject %}
+          <dl class="m-0 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            {% if message.mail_from %}
+              <dt>{% translate "from"|capfirst context "email hop" %}</dt>
+              <dd class="m-0">
+                <a
+                  class="link break-all"
+                  data-tooltip="{{ address_tooltip }}"
+                  href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
+                >{{ message.mail_from }}</a>
+              </dd>
+            {% endif %}
+            {% if message.rcpt_to %}
+              <dt>{% translate "to"|capfirst context "email hop" %}</dt>
+              <dd class="m-0">
+                <a
+                  class="link break-all"
+                  data-tooltip="{{ address_tooltip }}"
+                  href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
+                >{{ message.rcpt_to }}</a>
+              </dd>
+            {% endif %}
+            <dt>{% translate "subject"|capfirst %}</dt>
+            <dd class="m-0 text-foreground">{{ message.subject|default:_("(no subject)") }}</dd>
+          </dl>
         {% endif %}
-      </p>
-      {% if delivery_attempts %}
-        <p class="m-0 text-sm text-muted-foreground">
-          {% blocktranslate count counter=delivery_attempts with count=delivery_attempts|apnumber trimmed %}
-            {{ count }} transmission{% plural %}{{ count }} transmissions
-          {% endblocktranslate %}
-          {% if delivery_duration %}
-            <span aria-hidden="true">·</span>
-            {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+      </div>
+      {% if message.spam_action or message.spam_score is not None or message.virus_action %}
+        <p class="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:flex-col lg:items-end lg:gap-y-2">
+          {% translate "what the scan found" as scan_tooltip %}
+          {% if message.spam_action or message.spam_score is not None %}
+            <a
+              class="status inline-flex items-center gap-1.5 hover:underline"
+              data-variant="{{ message.spam_badge_variant }}"
+              data-tooltip="{{ scan_tooltip }}"
+              href="{% url 'docs:detail' 'message-statuses' %}"
+              target="_blank"
+              rel="noopener"
+            >
+              <i data-lucide="shield-alert" class="size-3.5" aria-hidden="true"></i>
+              {% blocktranslate with action=message.get_spam_action_display trimmed %}
+                Spam {{ action }}
+              {% endblocktranslate %}
+              {% if message.spam_score is not None %}({{ message.spam_score }}){% endif %}
+            </a>
+          {% endif %}
+          {% if message.virus_action %}
+            <a
+              class="status inline-flex items-center gap-1.5 hover:underline"
+              data-variant="{{ message.virus_badge_variant }}"
+              data-tooltip="{{ scan_tooltip }}"
+              href="{% url 'docs:detail' 'message-statuses' %}"
+              target="_blank"
+              rel="noopener"
+            >
+              <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
+              {{ message.virus_display }}
+            </a>
           {% endif %}
         </p>
       {% endif %}
     </div>
-    {% translate "Show the messages with this address" as address_tooltip %}
-    {% if message.mail_from or message.rcpt_to or message.subject %}
-      <dl class="m-0 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        {% if message.mail_from %}
-          <dt>{% translate "from"|capfirst context "email hop" %}</dt>
-          <dd class="m-0">
-            <a
-              class="link break-all"
-              data-tooltip="{{ address_tooltip }}"
-              href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
-            >{{ message.mail_from }}</a>
-          </dd>
-        {% endif %}
-        {% if message.rcpt_to %}
-          <dt>{% translate "to"|capfirst context "email hop" %}</dt>
-          <dd class="m-0">
-            <a
-              class="link break-all"
-              data-tooltip="{{ address_tooltip }}"
-              href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
-            >{{ message.rcpt_to }}</a>
-          </dd>
-        {% endif %}
-        <dt>{% translate "subject"|capfirst %}</dt>
-        <dd class="m-0 text-foreground">{{ message.subject|default:_("(no subject)") }}</dd>
-      </dl>
-    {% endif %}
-    {% if message.spam_action or message.spam_score is not None or message.virus_action %}
-      <p class="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        {% translate "what the scan found" as scan_tooltip %}
-        {% if message.spam_action or message.spam_score is not None %}
-          <a
-            class="status inline-flex items-center gap-1.5 hover:underline"
-            data-variant="{{ message.spam_badge_variant }}"
-            data-tooltip="{{ scan_tooltip }}"
-            href="{% url 'docs:detail' 'message-statuses' %}"
-            target="_blank"
-            rel="noopener"
-          >
-            <i data-lucide="shield-alert" class="size-3.5" aria-hidden="true"></i>
-            {% blocktranslate with action=message.get_spam_action_display trimmed %}
-              Spam {{ action }}
-            {% endblocktranslate %}
-            {% if message.spam_score is not None %}({{ message.spam_score }}){% endif %}
-          </a>
-        {% endif %}
-        {% if message.virus_action %}
-          <a
-            class="status inline-flex items-center gap-1.5 hover:underline"
-            data-variant="{{ message.virus_badge_variant }}"
-            data-tooltip="{{ scan_tooltip }}"
-            href="{% url 'docs:detail' 'message-statuses' %}"
-            target="_blank"
-            rel="noopener"
-          >
-            <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
-            {{ message.virus_display }}
-          </a>
-        {% endif %}
-      </p>
-    {% endif %}
   </article>
 
   {% block transmission_card %}

@@ -1,76 +1,151 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load i18n humanize %}
 {% block title %}{% translate "get started"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "get started"|capfirst %}</h2>
-    <button
-      type="button"
-      class="btn"
-      data-dialog="dlg-test-email"
-    >
-      {% translate "send test email"|title %}
-    </button>
-  </header>
+  <h2 class="mb-2">{% translate "get started"|capfirst %}</h2>
+  <p class="text-muted-foreground mb-6">
+    {% blocktranslate trimmed %}
+      Every organization starts on a managed sender domain, so the first send needs no DNS work and no warm-up.
+    {% endblocktranslate %}
+  </p>
+
+  <div class="item-group">
+    <article class="item" data-variant="outline">
+      <figure>
+        <i
+          data-lucide="{% if has_outgoing_message %}circle-check{% else %}circle-dashed{% endif %}"
+          class="size-4 {% if has_outgoing_message %}text-primary{% else %}text-muted-foreground{% endif %}"
+          aria-hidden="true"
+        ></i>
+      </figure>
+      <section class="min-w-48">
+        {% if has_outgoing_message %}
+          <h3>{% translate "you sent your first message"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Every message you send keeps its full transmission trace.
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">
+            {% blocktranslate with recipient=request.user.email trimmed %}
+              Send a test message to {{ recipient }}
+            {% endblocktranslate %}
+          </h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              The whole path stays visible: relay accepts the message, signs it, and delivers it, so you see it before
+              your app sends anything.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        {% if has_outgoing_message %}
+          <a
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            href="{% url 'message:message-list' org.slug %}"
+          >
+            {% translate "message log"|capfirst context "noun" %}
+          </a>
+        {% else %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            data-dialog="dlg-test-email"
+          >
+            {% translate "send test email"|title %}
+          </button>
+        {% endif %}
+      </aside>
+    </article>
+
+    <article class="item" data-variant="outline">
+      <figure>
+        <i
+          data-lucide="{% if has_credential %}circle-check{% else %}circle-dashed{% endif %}"
+          class="size-4 {% if has_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
+          aria-hidden="true"
+        ></i>
+      </figure>
+      <section class="min-w-48">
+        {% if has_credential %}
+          <h3>{% translate "you created a credential"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Its key was shown once, when you created it.
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">{% translate "create a credential"|title %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Your application authenticates with a credential, and the key is shown once, at creation.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        {% if not has_credential %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            data-dialog="dlg-new-credential"
+          >
+            {% translate "create a credential"|title %}
+          </button>
+        {% endif %}
+      </aside>
+    </article>
+
+    <article class="item" data-variant="outline">
+      <figure>
+        <i
+          data-lucide="{% if connected_credential %}circle-check{% else %}circle-dashed{% endif %}"
+          class="size-4 {% if connected_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
+          aria-hidden="true"
+        ></i>
+      </figure>
+      <section class="min-w-48">
+        {% if connected_credential %}
+          <h3>{% translate "your app is connected"|capfirst %}</h3>
+          <p>
+            <code>{{ connected_credential.name|default:connected_credential.key_prefix }}</code>
+            <span aria-hidden="true">·</span>
+            {% translate "last used"|capfirst %}:
+            {% translate "never" as t_never %}
+            {{ connected_credential.last_used_at|naturaltime|default:t_never }}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">{% translate "connect your app over SMTP"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Point your application at the submission host and send once. This step completes on the first
+              authenticated submission.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        <a
+          class="btn"
+          data-variant="secondary"
+          data-size="sm"
+          href="{% url 'msa:credential-list' org.slug %}"
+        >
+          {% translate "credentials"|capfirst context "noun" %}
+        </a>
+      </aside>
+    </article>
+  </div>
 
   {% include "partials/test_email_dialog.html" %}
-
-  <section class="card">
-    <header>
-      <p class="m-0">
-        {% blocktranslate trimmed %}
-          Every organization gets a managed sender domain, pre-verified and DKIM-signed. No DNS setup required.
-        {% endblocktranslate %}
-      </p>
-    </header>
-    <section>
-      <ul class="m-0 flex list-none flex-col gap-3">
-        <li class="flex items-center gap-2 flex-wrap">
-          {% if managed_domain %}
-            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-            <span>{% translate "your sender domain is live"|capfirst %}</span>
-            <code>{{ managed_domain.sender_domain }}</code>
-            <span class="badge" data-size="sm" data-variant="outline">{% translate "managed"|capfirst %}</span>
-          {% else %}
-            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-            <span>{% translate "setting up your sender domain"|capfirst %}</span>
-          {% endif %}
-        </li>
-        <li class="flex items-center gap-2 flex-wrap">
-          {% if has_outgoing_message %}
-            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-            <span>{% translate "sent your first email"|capfirst %}</span>
-          {% else %}
-            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-            <span>
-              {% blocktranslate with recipient=request.user.email trimmed %}
-                Send a test email to {{ recipient }}.
-              {% endblocktranslate %}
-            </span>
-            <button
-              type="button"
-              class="btn"
-              data-variant="secondary"
-              data-size="sm"
-              data-dialog="dlg-test-email"
-            >
-              {% translate "send test email"|title %}
-            </button>
-          {% endif %}
-        </li>
-        <li class="flex items-center gap-2 flex-wrap">
-          {% if has_custom_domain %}
-            <i data-lucide="circle-check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
-            <span>{% translate "added your own domain"|capfirst %}</span>
-          {% else %}
-            <i data-lucide="circle-dashed" class="size-4 text-muted-foreground shrink-0" aria-hidden="true"></i>
-            <span>{% translate "add a domain you own to send from it"|capfirst %}</span>
-            <a class="btn" data-variant="secondary" data-size="sm" href="{% url 'domains:domain-list' org.slug %}">
-              {% translate "add domain"|title context "noun" %}
-            </a>
-          {% endif %}
-        </li>
-      </ul>
-    </section>
-  </section>
+  {% include "msa/_credential_dialog.html" with sandbox_forced=True %}
+  {% if raw_key %}{% include "msa/_credential_key_dialog.html" %}{% endif %}
 {% endblock %}

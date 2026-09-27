@@ -26,6 +26,7 @@
           name="email"
           type="search"
           value="{{ email }}"
+          autocomplete="off"
           aria-label='{% translate "search by address" %}'
           placeholder='{% translate "search by address" %}'
         >
@@ -180,8 +181,8 @@
       {% if not email and not status %}
         <section class="empty">
           <header>
-            <figure>
-              <i data-lucide="inbox" aria-hidden="true"></i>
+            <figure class="max-w-48 mx-auto">
+              {% include "partials/illustration.html" with name="empty-mailbox" %}
             </figure>
             <h3>{% translate "No messages yet." %}</h3>
             <p>

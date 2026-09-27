@@ -3,19 +3,29 @@ from django.urls import reverse
 
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcRecord, DmarcReport
-from services.email.msa.models import OutgoingMessage
+from services.email.msa.models import MsaCredential, OutgoingMessage
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.reputation.models import FblReport
 
 
+def connect_app(org):
+    """Create an SMTP credential and authenticate with it once."""
+    credential, raw_key = MsaCredential.objects.create_with_key(
+        org=org, name="test app"
+    )
+    credential.verify_key(raw_key)
+    return credential
+
+
 def complete_onboarding(org):
-    Domain.objects.create(name="acme.com", org=org)
+    """Send a message and connect an app, which is all the checklist asks for."""
     OutgoingMessage.objects.create(
         org=org,
         rcpt_to="x@example.com",
         mail_from="y@example.com",
         domain=Domain.objects.get(org=org, is_managed=True),
     )
+    connect_app(org)
 
 
 @pytest.mark.django_db
@@ -36,9 +46,107 @@ class TestGetStartedView:
     def test_get__shows_first_steps(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
-        assert response.context["managed_domain"].is_managed is True
-        assert response.context["has_custom_domain"] is False
         assert response.context["has_outgoing_message"] is False
+        assert response.context["connected_credential"] is None
+
+    def test_get__shows_connected_app_step(self, admin_client, org, user):
+        connect_app(org)
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        assert response.context["connected_credential"] is not None
+        assert response.context["has_outgoing_message"] is False
+
+    def test_get__checks_off_the_credential_step_before_it_is_used(
+        self, admin_client, org
+    ):
+        """Creating a credential checks off its own step; connecting is a later one."""
+        MsaCredential.objects.create_with_key(org=org, name="unused")
+
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        assert response.status_code == 200
+        assert response.context["has_credential"] is True
+        assert response.context["connected_credential"] is None
+        content = response.content.decode()
+        assert "You created a credential" in content
+        assert "Connect your app over SMTP" in content
+
+    def test_get__credential_step_waits_until_the_app_authenticates(
+        self, admin_client, org
+    ):
+        """A credential alone does not finish the checklist."""
+        MsaCredential.objects.create_with_key(org=org, name="unused")
+        OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="x@example.com",
+            mail_from="y@example.com",
+            domain=Domain.objects.get(org=org, is_managed=True),
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        assert response.status_code == 200
+        assert response.context["onboarding_complete"] is False
+
+    def test_get__renders_the_checklist_in_order(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        content = response.content.decode()
+        assert 'class="item-group"' in content
+        assert content.index("Send a test message to") < content.index(
+            "Create A Credential"
+        )
+        assert content.index("Create A Credential") < content.index(
+            "Connect your app over SMTP"
+        )
+
+    def test_get__creates_a_credential_from_the_step_dialog(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert (
+            f'action="{reverse("msa:credential-create", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert 'id="dlg-new-credential"' in content
+        assert (
+            'data-dialog="dlg-new-credential"'
+            in content.split('id="dlg-new-credential"', 1)[0]
+        )
+
+    def test_get__step_dialog_creates_a_sandbox_credential(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '<input type="hidden" name="sandbox" value="true">' in content
+        assert 'id="id_sandbox"' not in content
+
+    def test_get__connected_app_links_to_the_credentials_page(self, admin_client, org):
+        connect_app(org)
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert reverse("msa:credential-list", kwargs={"org_slug": org.slug}) in content
+        assert 'data-dialog="dlg-new-credential"' not in content
+
+    def test_post__credential_dialog_opens_on_this_page(self, admin_client, org):
+        """Creating from the step keeps the member on the page, dialog open."""
+        create = admin_client.post(
+            reverse("msa:credential-create", kwargs={"org_slug": org.slug}),
+            {
+                "name": "Onboarding app",
+                "sandbox": "true",
+                "next": f"/org/{org.slug}/email/",
+            },
+        )
+        assert create.status_code == 302
+        assert create.url == f"/org/{org.slug}/email/"
+
+        response = admin_client.get(create.url)
+
+        assert response.status_code == 200
+        assert 'id="dlg-credential-key"' in response.content.decode()
+        assert MsaCredential.objects.get(org=org).type == MsaCredential.Type.SANDBOX
 
     def test_get__shows_sent_first_email_step(self, admin_client, org, user):
         OutgoingMessage.objects.create(
@@ -50,7 +158,7 @@ class TestGetStartedView:
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
         assert response.context["has_outgoing_message"] is True
-        assert response.context["has_custom_domain"] is False
+        assert response.context["connected_credential"] is None
 
     def test_get__redirects_to_reputation_when_onboarding_is_complete(
         self, admin_client, org, user
@@ -86,9 +194,8 @@ class TestGetStartedView:
         )
         response = admin_client.get(f"/org/{org.slug}/email/")
         assert response.status_code == 200
-        assert response.context["managed_domain"].org == org
-        assert response.context["has_custom_domain"] is False
         assert response.context["has_outgoing_message"] is False
+        assert response.context["connected_credential"] is None
 
 
 @pytest.mark.django_db

@@ -1,9 +1,12 @@
+import uuid
+
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import BadRequest
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone, translation
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 from django_letter.exceptions import InvalidUserError
@@ -18,6 +21,11 @@ from .emails import TestEmail
 from .forms import SuppressionEntryForm
 from .handlers import submit_relay_message
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
+from .submission import (
+    get_credential_key_context,
+    get_submission_context,
+    get_submission_uri,
+)
 
 
 class OutgoingMessageDetailView(MessageDetailView):
@@ -55,10 +63,12 @@ class TestEmailView(OrganizationScopedView, generic.View):
             return redirect("message:message-list", org_slug=org_slug)
 
         mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{domain.name}"
+        message_pk = uuid.uuid7()
         try:
             email = TestEmail.to_user(
                 request.user,
                 domain=domain,
+                message_pk=message_pk,
                 from_email=mail_from,
                 language=translation.get_language(),
                 base_url=request.build_absolute_uri("/"),
@@ -78,6 +88,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
             mail_from=mail_from,
             rcpt_to=request.user.email,
             started_at=started_at,
+            message_pk=message_pk,
             ssl=request.is_secure(),
             client_ip=request.META.get("REMOTE_ADDR", ""),
         )
@@ -96,39 +107,27 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
     def get_queryset(self):
         return MsaCredential.objects.filter(org=self.org)
 
-    def get_smtp_uri(self, hostname, key=""):
-        """Return the SMTPS submission URI, carrying the key when it is known."""
-        credentials = (
-            f"{self.org.slug}:{key}"
-            if key
-            else f"{self.org.slug}:<{_('credential key')}>"
-        )
-        port = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS[0]
-        return f"smtps://{credentials}@{hostname}:{port}"
-
     def get_context_data(self, **kwargs):
-        hostname = f"smtp.{self.request.get_host().split(':')[0]}"
-        implicit_tls_ports = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS
-        starttls_ports = tuple(
-            port
-            for port in settings.RELAY_SMTP_SUBMISSION_PORTS
-            if port not in implicit_tls_ports
+        return (
+            super().get_context_data(**kwargs)
+            | get_submission_context()
+            | {"smtp_uri": get_submission_uri(self.org.slug)}
+            | get_credential_key_context(self.request, self.org.slug)
         )
-        context = super().get_context_data(**kwargs) | {
-            "smtp_hostname": hostname,
-            "smtp_starttls_ports": starttls_ports,
-            "smtp_implicit_tls_ports": implicit_tls_ports,
-            "smtp_uri": self.get_smtp_uri(hostname),
-        }
-        if raw_key := self.request.session.pop("raw_key", None):
-            context |= {
-                "raw_key": raw_key,
-                "smtp_uri_with_key": self.get_smtp_uri(hostname, key=raw_key),
-            }
-        return context
 
 
 class MsaCredentialCreateView(OrganizationScopedView, generic.View):
+    def get_redirect_url(self, request, org_slug) -> str:
+        """Return the page the member came from, the credential list otherwise."""
+        next_url = request.POST.get("next", "")
+        if not next_url or not url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            next_url = reverse("msa:credential-list", kwargs={"org_slug": org_slug})
+        return next_url
+
     def post(self, request, org_slug, *args, **kwargs):
         is_sandbox = request.POST.get("sandbox", "").lower() not in ("", "0", "false")
         credential, raw_key = MsaCredential.objects.create_with_key(
@@ -141,7 +140,7 @@ class MsaCredentialCreateView(OrganizationScopedView, generic.View):
             request,
             _("Created SMTP credential “%(name)s”.") % {"name": credential.name},
         )
-        return redirect("msa:credential-list", org_slug=org_slug)
+        return redirect(self.get_redirect_url(request, org_slug))
 
 
 class MsaCredentialDeleteView(OrganizationScopedView, generic.DeleteView):

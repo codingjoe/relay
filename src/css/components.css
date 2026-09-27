@@ -10,6 +10,17 @@
   @apply bg-warning/10 [a]:hover:bg-warning/20 focus-visible:ring-warning/20 text-warning dark:bg-warning/20 dark:focus-visible:ring-warning/40;
 }
 
+/* Warning alert. Basecoat ships the default and destructive variants only, so
+   this follows the badge tints above: the status tokens hold the 4.5:1 text
+   floor on a 10% tint in light mode and a 20% tint in dark mode. */
+.alert[data-variant="warning"] {
+  @apply bg-warning/10 text-warning dark:bg-warning/20;
+}
+
+.alert[data-variant="warning"] > section {
+  @apply text-warning;
+}
+
 /* Message status text and card tint. The models hand the badge variant over
    as a data attribute, so the templates carry no class logic. */
 .status {
