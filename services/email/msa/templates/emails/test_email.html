@@ -2,6 +2,19 @@
 {% load django_letter i18n static %}
 
 {% block content %}
+  {% table class="align-center" %}
+  <tr>
+    <td align="center">
+      <img
+        src="{% static 'img/game-day.svg' %}"
+        alt=""
+        width="442"
+        height="352"
+        style="width: 80%; height: auto"
+      >
+    </td>
+  </tr>
+  {% endtable %}
   <h1 class="first">{% translate "Your test message arrived" %}</h1>
   <p>
     {% blocktranslate trimmed %}
