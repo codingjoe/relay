@@ -114,16 +114,6 @@
           </button>
         {% endif %}
       </aside>
-      <footer class="flex-col items-stretch min-w-0">
-        {% url 'docs:detail' 'sending' as sending_docs_url %}
-        <p class="m-0 text-sm text-muted-foreground">
-          {% blocktranslate trimmed %}
-            Creating a credential hands you its key once, with the values your application connects with. The
-            <a class="link" href="{{ sending_docs_url }}" target="_blank" rel="noopener">sending docs</a> cover every
-            client and every acceptance rule.
-          {% endblocktranslate %}
-        </p>
-      </footer>
     </article>
 
     <article class="item" data-variant="outline">
