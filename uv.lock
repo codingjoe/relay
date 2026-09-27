@@ -35,14 +35,14 @@ wheels = [
 
 [[package]]
 name = "anyio"
-version = "4.13.0"
+version = "4.14.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "idna" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/14/2c5dd9f512b66549ae92767a9c7b330ae88e1932ca57876909410251fe13/anyio-4.13.0.tar.gz", hash = "sha256:334b70e641fd2221c1505b3890c69882fe4a2df910cba14d97019b90b24439dc", size = 231622, upload-time = "2026-03-24T12:59:09.671Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/cc/a381afa6efea9f496eff839d4a6a1aed3bfafc7b3ab4b0d1b243a12573dd/anyio-4.14.2.tar.gz", hash = "sha256:cfa139f3ed1a23ee8f88a145ddb5ac7605b8bbfd8592baacd7ce3d8bb4313c7f", size = 260176, upload-time = "2026-07-12T20:29:07.082Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/42/e921fccf5015463e32a3cf6ee7f980a6ed0f395ceeaa45060b61d86486c2/anyio-4.13.0-py3-none-any.whl", hash = "sha256:08b310f9e24a9594186fd75b4f73f4a4152069e3853f1ed8bfbf58369f4ad708", size = 114353, upload-time = "2026-03-24T12:59:08.246Z" },
+    { url = "https://files.pythonhosted.org/packages/da/35/f2287558c17e29fafc8ef3daf819bb9834061cfa43bff8014f7df7f63bdc/anyio-4.14.2-py3-none-any.whl", hash = "sha256:9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494", size = 125813, upload-time = "2026-07-12T20:29:05.763Z" },
 ]
 
 [[package]]
@@ -367,6 +367,19 @@ wheels = [
 ]
 
 [[package]]
+name = "django-coverage-plugin"
+version = "3.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "coverage" },
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/07/c3814563d63b8680f4d5bb8880bb151039e258e7d91a7867b0eaf45165bd/django_coverage_plugin-3.2.2.tar.gz", hash = "sha256:fcc507ee02f3a8f7c1d79b6eba1bafebb4a95b5055801987b715f4f88270c441", size = 30814, upload-time = "2026-04-04T20:43:22.409Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/ae/981522be2a8c46eebdd70debcbb2b0e55a8dbd44a3034c727e298b2ba129/django_coverage_plugin-3.2.2-py3-none-any.whl", hash = "sha256:66c9bdb2756762d6bef3510548bb228e1e8465ff1cd2b372775b82624e85e0b4", size = 14463, upload-time = "2026-04-04T20:43:20.849Z" },
+]
+
+[[package]]
 name = "django-debug-toolbar"
 version = "8.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -402,15 +415,15 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.5.1"
+version = "4.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/ef/860ae4fc7d5cf02ad7a823fb78e65c043af07a5b39251e8668f8f2294d75/django_health_check-4.5.1.tar.gz", hash = "sha256:759c0bdad4c135d5e4cb43b0b98612e8d1cbd81c3ed1ce6698298ff0740bac44", size = 22037, upload-time = "2026-08-21T21:03:00.257Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/66/fc/a5e623c60600b888914ea8b7bdaba1abbfc4b6e88b6382d746177fdc9ea6/django_health_check-4.6.1.tar.gz", hash = "sha256:53b17a142d52179561593493351f6b6c20343b23a669ac632e53bb7a4dcfca51", size = 22156, upload-time = "2026-09-18T11:35:26.777Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/03/1e677c3bba390a0a940d2e96fd741d8b4f8c2acd1715cca813bfa42d94c3/django_health_check-4.5.1-py3-none-any.whl", hash = "sha256:82a6329c0f1589143bd0767e16b7ceae6cadd0889c42f25d4ea63b5289cb1390", size = 27139, upload-time = "2026-08-21T21:02:59.172Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/0e/2401f90f841cc89f48eddcc0a316257f2550b0ef1ace37c60b02a868be1e/django_health_check-4.6.1-py3-none-any.whl", hash = "sha256:1e3641e7d09975052cc9c081d572660269d3becb4b690cdf1b5302aeda5e4302", size = 27253, upload-time = "2026-09-18T11:35:25.572Z" },
 ]
 
 [package.optional-dependencies]
@@ -419,6 +432,10 @@ psutil = [
 ]
 redis = [
     { name = "redis" },
+]
+rss = [
+    { name = "feedparser" },
+    { name = "httpx" },
 ]
 
 [[package]]
@@ -500,6 +517,27 @@ wheels = [
 ]
 
 [[package]]
+name = "feedparser"
+version = "6.0.14"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "feedparser-sgmllib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/8a/a53da4a77352045d277978a2df322d5379369f9deb1707178899ff7e1121/feedparser-6.0.14.tar.gz", hash = "sha256:088679b0c4b543ee211a820dd544698c76a402122eae7473c04a43425f283d06", size = 286108, upload-time = "2026-07-30T14:07:40.491Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/61/f04912e63702e73fb2a378f9c0a1ad9eb17a334a11a6b3fe1daa593903c2/feedparser-6.0.14-py3-none-any.whl", hash = "sha256:e35e3f760151b0c3b22cac9684155cae186a233e16c49bcbc6c49e91e3131137", size = 80668, upload-time = "2026-07-30T14:07:39.175Z" },
+]
+
+[[package]]
+name = "feedparser-sgmllib"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/df/38596299216e5c22d60ed7f97902bb2bc72cfb95f732400f4fa976fd2e62/feedparser_sgmllib-2.1.0.tar.gz", hash = "sha256:61facf2918c4389b5b00714f76c5e03431ffcd94cd1f51d657edd6cd7c396579", size = 26845, upload-time = "2026-08-02T21:27:53.891Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/85/a0/79a31f898092e145bd66e2b338fb0656979acb2bbbcae8220940fbfcd820/feedparser_sgmllib-2.1.0-py3-none-any.whl", hash = "sha256:2cab2d43b95a954f920f18aebce7a4dbbb3f539780b127e2aa114f579821e01d", size = 11652, upload-time = "2026-08-02T21:27:52.894Z" },
+]
+
+[[package]]
 name = "granian"
 version = "2.8.2"
 source = { registry = "https://pypi.org/simple" }
@@ -565,6 +603,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
+]
+
+[[package]]
+name = "humanize"
+version = "4.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/ea/13a1ef3c12d12662905801495283530251918b70d62d368f1d2e0272c70d/humanize-4.16.0.tar.gz", hash = "sha256:7dc2244a2f84a4bfb1d36c37bac80cd78e35cdc5c119206d87b018e1445f3a3f", size = 89515, upload-time = "2026-06-30T16:17:29.859Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/aa/0b7365d30fed43e7a3449aba1fe20a0a7174d9cf13e282af4e69ac825441/humanize-4.16.0-py3-none-any.whl", hash = "sha256:353eb2f34c09d098b2880eee8bef21832eae6d174f48c5762fff7e5fcb74d01d", size = 137209, upload-time = "2026-06-30T16:17:28.36Z" },
 ]
 
 [[package]]
@@ -1104,7 +1151,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "django" },
     { name = "django-environ" },
-    { name = "django-health-check", extra = ["psutil", "redis"] },
+    { name = "django-health-check", extra = ["psutil", "redis", "rss"] },
     { name = "django-letter" },
     { name = "django-storages", extra = ["s3"] },
     { name = "dkimpy" },
@@ -1112,6 +1159,7 @@ dependencies = [
     { name = "dnspython" },
     { name = "granian" },
     { name = "httpx" },
+    { name = "humanize" },
     { name = "idna" },
     { name = "markdown" },
     { name = "psycopg", extra = ["binary", "pool"] },
@@ -1129,6 +1177,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "django-coverage-plugin" },
     { name = "django-debug-toolbar" },
     { name = "django-devbar" },
     { name = "pytest" },
@@ -1142,6 +1191,7 @@ dev = [
     { name = "threadmill", extra = ["inspector"] },
 ]
 test = [
+    { name = "django-coverage-plugin" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -1161,7 +1211,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50.0.1" },
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-environ", specifier = ">=0.14" },
-    { name = "django-health-check", extras = ["psutil", "redis"], specifier = ">=4.5.1" },
+    { name = "django-health-check", extras = ["psutil", "redis", "rss"], specifier = ">=4.6.1" },
     { name = "django-letter", specifier = ">=0.3" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
@@ -1169,6 +1219,7 @@ requires-dist = [
     { name = "dnspython", specifier = ">=2.8" },
     { name = "granian", specifier = ">=2.8.2" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "humanize", specifier = ">=4.16.0" },
     { name = "idna", specifier = ">=3.19" },
     { name = "markdown", specifier = ">=3.10.3" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.5" },
@@ -1179,13 +1230,14 @@ requires-dist = [
     { name = "redis", specifier = ">=8.1" },
     { name = "sentry-sdk", specifier = ">=2.69.1" },
     { name = "social-auth-app-django", specifier = ">=6.0.1" },
-    { name = "threadmill", extras = ["redis"], specifier = ">=0.7.1" },
+    { name = "threadmill", extras = ["redis"], specifier = ">=0.7.3" },
     { name = "validators", specifier = ">=0.35" },
     { name = "whitenoise", specifier = ">=6.12" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "django-coverage-plugin", specifier = ">=3.2.2" },
     { name = "django-debug-toolbar", specifier = ">=8" },
     { name = "django-devbar", specifier = ">=0.7" },
     { name = "pytest", specifier = ">=9.1.1" },
@@ -1196,9 +1248,10 @@ dev = [
     { name = "pytest-pretty", specifier = ">=1.3" },
     { name = "pytest-randomly", specifier = ">=5" },
     { name = "pytest-xdist", specifier = ">=3.8" },
-    { name = "threadmill", extras = ["inspector"], specifier = ">=0.7.1" },
+    { name = "threadmill", extras = ["inspector"], specifier = ">=0.7.3" },
 ]
 test = [
+    { name = "django-coverage-plugin", specifier = ">=3.2.2" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4" },
     { name = "pytest-cov", specifier = ">=7.1" },
@@ -1343,14 +1396,14 @@ wheels = [
 
 [[package]]
 name = "threadmill"
-version = "0.7.1"
+version = "0.7.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3c/eb/c5e66a0f7f5ad3dc8efe93cb8d30997abbe0533079581028f7f6dd246a44/threadmill-0.7.1.tar.gz", hash = "sha256:6797d2c4cca4d27f1709b95e924a82e4097d4ee472d26ed2faeb21d9557d9ee4", size = 31102, upload-time = "2026-09-08T07:59:02.1Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/b1/7a52f2b7affd2519949e96313d2700abc1d34f5bcf1dae3155de83a2794c/threadmill-0.7.3.tar.gz", hash = "sha256:56ad3515b69d453ddb78f761e58d4ccafad7000cecd9864350853839a4a70d3f", size = 31451, upload-time = "2026-09-17T12:10:12.242Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/3e/a509358dbb092783e6dba245fd09698e31ced29e2e620a1189df561d618d/threadmill-0.7.1-py3-none-any.whl", hash = "sha256:a2722c95b0bf66badbe41c9500dff5347ed8213e87ab7629ec18e52985e6a1b8", size = 34748, upload-time = "2026-09-08T07:59:00.733Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/3b/d56c3fd00381ab114e55eb9747c8b5a063305b414220081af9ba8f4a1ba2/threadmill-0.7.3-py3-none-any.whl", hash = "sha256:697c1142cb9b0214c485c8da2f5eebb9ebb7f508b00a4e2191d87fa5fef333a8", size = 35132, upload-time = "2026-09-17T12:10:10.867Z" },
 ]
 
 [package.optional-dependencies]

@@ -12,26 +12,6 @@ urlpatterns = [
         include(
             [
                 path(
-                    "django/",
-                    HealthCheckView.as_view(
-                        checks=[
-                            "health_check.Cache",
-                            "health_check.Database",
-                            "health_check.contrib.psutil.Disk",
-                            "health_check.contrib.psutil.Memory",
-                            (
-                                "health_check.contrib.redis.Redis",
-                                {
-                                    "client_factory": lambda: Redis.from_url(
-                                        settings.REDIS_URL
-                                    )
-                                },
-                            ),
-                        ]
-                    ),
-                    name="home",
-                ),
-                path(
                     "",
                     HealthCheckView.as_view(
                         checks=[
@@ -40,6 +20,43 @@ urlpatterns = [
                         ]
                     ),
                     name="health",
+                ),
+                # Status page for every dependency.
+                path(
+                    "soa/",
+                    HealthCheckView.as_view(
+                        checks=[
+                            "health_check.Database",
+                            "health_check.Cache",
+                            (
+                                "health_check.contrib.redis.Redis",
+                                {
+                                    "client_factory": lambda: Redis.from_url(
+                                        settings.REDIS_URL
+                                    )
+                                },
+                            ),
+                            (
+                                "health_check.contrib.redis.Redis",
+                                {
+                                    "client_factory": lambda: Redis.from_url(
+                                        settings.TASK_REDIS_URL
+                                    )
+                                },
+                            ),
+                            "health_check.Storage",
+                            "health_check.Mail",
+                            (
+                                "health_check.DNS",
+                                {
+                                    "hostname": "mail.relay.open.relays.to",
+                                    "record_type": "MX",
+                                },
+                            ),
+                            "health_check.contrib.rss.Hetzner",
+                        ]
+                    ),
+                    name="soa",
                 ),
             ]
         ),

@@ -37,6 +37,13 @@ class TestTestEmail:
             "dashboard_url": f"{base_url}/org/acme/email/messages/",
         }
 
+    def test_get_context_data__strips_a_trailing_slash(self):
+        email = make_test_email(base_url="https://acme.example/")
+        assert (
+            email.get_context_data()["dashboard_url"]
+            == "https://acme.example/org/acme/email/messages/"
+        )
+
     def test_init__uses_the_active_language(self):
         email = make_test_email()
         assert email.language == translation.get_language()

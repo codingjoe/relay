@@ -144,7 +144,7 @@ class OrganizationHomeView(OrganizationScopedView, generic.View):
         return ""
 
     def get(self, request, *args, **kwargs):
-        return redirect("email-dashboard:dashboard", org_slug=self.org.slug)
+        return redirect("email-dashboard:get-started", org_slug=self.org.slug)
 
 
 class OrganizationDetailView(OrganizationScopedView, generic.DetailView):

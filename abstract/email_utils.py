@@ -55,6 +55,19 @@ def decode_header_value(value: str | Header) -> str:
     return re.sub(r"\r\n|\r|\n", "", text)
 
 
+def decode_payload(payload: bytes, charset: str | None) -> str:
+    """
+    Decode a MIME payload with its declared charset, falling back to UTF-8.
+
+    Incoming mail chooses the charset label, and an unknown one raises
+    `LookupError` rather than a `UnicodeError`.
+    """
+    try:
+        return payload.decode(charset or "utf-8", errors="replace")
+    except LookupError:
+        return payload.decode("utf-8", errors="replace")
+
+
 def extract_part_text(part):
     """Extract text content from a MIME part, including sub-messages and base64 data."""
     if part.is_multipart():

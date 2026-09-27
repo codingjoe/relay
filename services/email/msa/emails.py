@@ -49,5 +49,5 @@ class TestEmail(TemplateEmail):
             "domain": self.domain.name,
             "sender": f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{self.domain.name}",
             "recipient": context["user"].email,
-            "dashboard_url": f"{self.get_base_url()}{message_list_url}",
+            "dashboard_url": f"{self.get_base_url().rstrip('/')}{message_list_url}",
         }

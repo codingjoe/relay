@@ -4,7 +4,7 @@
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "domains"|capfirst context "noun" %}</h2>
-    <button type="button" class="btn" onclick="document.getElementById('dlg-new-domain').showModal()">
+    <button type="button" class="btn" data-dialog="dlg-new-domain">
       {% translate "add domain"|capfirst context "noun" %}
     </button>
   </header>
@@ -40,7 +40,7 @@
           type="button"
           class="btn"
           data-variant="secondary"
-          onclick="document.getElementById('dlg-new-domain').close()"
+          data-dialog-close="dlg-new-domain"
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>

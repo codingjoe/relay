@@ -1,15 +1,19 @@
 {% extends "base.html" %}
-{% load i18n message abstract %}
-{% block title %}{% translate "reports"|capfirst %} | relay{% endblock %}
+{% load i18n humanize message abstract %}
+{% block title %}{% translate "recipient reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "reports"|capfirst %}</h2>
+    <h2 class="m-0">{% translate "recipient reports"|capfirst %}</h2>
     <p class="text-sm text-muted-foreground m-0" role="status">
-      {% blocktranslate count counter=paginator.count trimmed %}
-        {{ counter }} report{% plural %}{{ counter }} reports
+      {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
+        {{ count }} report{% plural %}{{ count }} reports
       {% endblocktranslate %}
     </p>
   </header>
+
+  {% if chart %}
+    {% include "abstract/chart_card.html" with id="chart-reports" data_id="chart-reports-data" title=chart_title|capfirst chart=chart class="mb-6" %}
+  {% endif %}
 
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <form method="get" role="search" class="flex-1 min-w-56">
@@ -41,7 +45,7 @@
           type="submit"
           class="btn"
           data-variant="ghost"
-          data-size="icon"
+          data-size="icon-xs"
           data-align="end"
           aria-label='{% translate "search"|capfirst context "verb" %}'
         >
@@ -61,9 +65,9 @@
       >
         <i data-lucide="list-filter" aria-hidden="true"></i>
         {{ type_label }}
-        {% if filter_count %}
-          <span class="badge" data-size="sm">{{ filter_count }}</span>
-        {% endif %}
+        {% for value in filter_values %}
+          <span class="badge" data-size="sm">{{ value }}</span>
+        {% endfor %}
         <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
       </button>
       <div

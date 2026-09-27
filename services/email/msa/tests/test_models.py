@@ -69,7 +69,7 @@ class TestMsaCredential:
         org = Organization.objects.create(slug="o")
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="prod")
         assert cred.key_hash
-        assert cred.key_prefix == raw_key[:8]
+        assert cred.key_prefix == raw_key[:4]
         assert cred.salt == "services.email.msa.models.MsaCredential"
         assert cred.org == org
 
@@ -84,7 +84,7 @@ class TestMsaCredential:
         raw_key = secrets.token_urlsafe(15)
         cred.set_key(raw_key)
         assert cred.key_hash != raw_key
-        assert cred.key_prefix == raw_key[:8]
+        assert cred.key_prefix == raw_key[:4]
 
     def test_verify_key__correct_key(self):
         org = Organization.objects.create(slug="o")
@@ -111,7 +111,7 @@ class TestMsaCredential:
         cred.hold = True
         cred.save(update_fields=["hold"])
         qs = MsaCredential.objects.select_related("org").filter(
-            key_prefix=raw_key[:8],
+            key_prefix=raw_key[:4],
             org__memberships__user__username=user.username,
             type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
             hold=False,
@@ -121,7 +121,7 @@ class TestMsaCredential:
     def test_not_hold__included_in_query(self, user, org):
         _cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         qs = MsaCredential.objects.select_related("org").filter(
-            key_prefix=raw_key[:8],
+            key_prefix=raw_key[:4],
             org__memberships__user__username=user.username,
             type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
             hold=False,
@@ -132,7 +132,7 @@ class TestMsaCredential:
         org = Organization.objects.create(slug="o")
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="prod")
         assert cred.pk is not None
-        assert cred.key_prefix == raw_key[:8]
+        assert cred.key_prefix == raw_key[:4]
         assert cred.org == org
         assert cred.name == "prod"
 

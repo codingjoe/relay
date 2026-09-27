@@ -17,7 +17,7 @@ from .services import verify_domain_dns
 class DomainListView(OrganizationScopedView, generic.ListView):
     context_object_name = "domains"
     title = _("Domains")
-    parent = "email-dashboard:dashboard"
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         return Domain.objects.filter(org=self.org)

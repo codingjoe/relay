@@ -1,0 +1,44 @@
+<div class="tabs snippet-tabs" id="{{ id }}">
+  <h3 class="m-0 font-mono text-lg font-medium text-muted-foreground">{{ title }}</h3>
+  <nav role="tablist" aria-orientation="horizontal">
+    <button
+      type="button"
+      role="tab"
+      id="{{ id }}-django"
+      aria-controls="{{ id }}-django-panel"
+      aria-selected="true"
+      tabindex="0"
+    >
+      Django
+    </button>
+    <button
+      type="button"
+      role="tab"
+      id="{{ id }}-next"
+      aria-controls="{{ id }}-next-panel"
+      aria-selected="false"
+      tabindex="-1"
+    >
+      Next.js
+    </button>
+  </nav>
+  <div
+    role="tabpanel"
+    id="{{ id }}-django-panel"
+    aria-labelledby="{{ id }}-django"
+    tabindex="-1"
+    class="min-w-0"
+  >
+    <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-python">{% filter force_escape %}{% include django_snippet %}{% endfilter %}</code></pre>
+  </div>
+  <div
+    role="tabpanel"
+    id="{{ id }}-next-panel"
+    aria-labelledby="{{ id }}-next"
+    tabindex="-1"
+    hidden
+    class="min-w-0"
+  >
+    <pre class="m-0 overflow-x-auto rounded-xl border border-border bg-muted/50 p-5 font-mono text-sm leading-relaxed"><code class="language-typescript">{% filter force_escape %}{% include next_snippet %}{% endfilter %}</code></pre>
+  </div>
+</div>

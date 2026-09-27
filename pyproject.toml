@@ -13,29 +13,30 @@ dependencies = [
   "aiosmtpd>=1.4.6",
   "aiosmtplib>=5.1.3",
   "authres>=1.2",
-  "boto3>=1.43.93",
+  "boto3>=1.43.98",
   "cryptography>=50.0.1",
   "django>=6.1.1,<6.2",
   "django-environ>=0.14",
-  "django-health-check[psutil,redis]>=4.5.1",
+  "django-health-check[psutil,redis,rss]>=4.6.1",
   "django-letter>=0.3",
   "django-storages[s3]>=1.14.6",
   "dkimpy>=1.1.8",
   "dnslib>=0.9.26",
   "dnspython>=2.8",
-  "granian>=2.8.2",
+  "granian>=2.8.3",
   "httpx>=0.28.1",
-  "idna>=3.19",
+  "humanize>=4.16",
+  "idna>=3.20",
   "markdown>=3.10.3",
-  "psycopg[binary,pool]>=3.3.5",
+  "psycopg[binary,pool]>=3.3.6",
   "pygments>=2.21",
   "pynacl>=1.6.2",
   "python-frontmatter>=1.3",
   "python-json-logger>=4.2",
   "redis>=8.1",
-  "sentry-sdk>=2.69.1",
+  "sentry-sdk>=2.69.2",
   "social-auth-app-django>=6.0.1",
-  "threadmill[redis]>=0.7.1",
+  "threadmill[redis]>=0.7.3",
   "validators>=0.35",
   "whitenoise>=6.12",
 ]
@@ -45,10 +46,11 @@ dev = [
   "django-debug-toolbar>=8",
   "django-devbar>=0.7",
   "pytest-pretty>=1.3",
-  "threadmill[inspector]>=0.7.1",
+  "threadmill[inspector]>=0.7.3",
   { include-group = "test" },
 ]
 test = [
+  "django-coverage-plugin>=3.2.2",
   "pytest>=9.1.1",
   "pytest-asyncio>=1.4",
   "pytest-cov>=7.1",
@@ -60,6 +62,9 @@ test = [
 
 [tool.ruff]
 [tool.ruff.lint.per-file-ignores]
+# The landing-page samples montage several files, so the sending one imports
+# mid-file and the receiving one parses a body it only documents.
+"root/templates/snippets/*" = [ "E402", "F841" ]
 # aiosmtpd and python-markdown require these method names by protocol.
 "abstract/utils.py" = [ "N802" ]
 "services/email/msa/handlers.py" = [ "N802" ]
@@ -104,6 +109,9 @@ norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".workt
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]
 
 [tool.coverage]
+[tool.coverage.run]
+plugins = [ "django_coverage_plugin" ]
+core = "ctrace"
 [tool.coverage.report]
 omit = [
   "*/baker_recipes.py",
@@ -117,6 +125,8 @@ omit = [
 skip_covered = true
 skip_empty = true
 show_missing = true
+[tool.coverage.django_coverage_plugin]
+template_extensions = "html,md,txt,xml"
 
 [tool.importlinter]
 root_packages = [

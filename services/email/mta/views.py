@@ -60,8 +60,8 @@ class IncomingMessageDetailView(MessageDetailView):
 
 class WebhookListView(OrganizationScopedView, generic.ListView):
     context_object_name = "webhooks"
-    title = _("Webhooks")
-    parent = "email-dashboard:dashboard"
+    title = _("Inbound email")
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         return Webhook.objects.filter(org=self.org).select_related("signing_key")
@@ -77,7 +77,7 @@ class WebhookCreateView(OrganizationScopedView, generic.CreateView):
     http_method_names = ["post"]
     model = Webhook
     form_class = WebhookForm
-    title = _("New webhook")
+    title = _("New endpoint")
     parent = "mta:webhook-list"
 
     def get_form_kwargs(self):
@@ -137,7 +137,7 @@ class TlsReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListV
     context_object_name = "reports"
     paginate_by = 50
     title = _("TLS reports")
-    parent = "email-dashboard:dashboard"
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         qs = TlsReport.objects.filter(org=self.org).select_related("domain")

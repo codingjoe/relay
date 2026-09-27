@@ -16,7 +16,7 @@ class DmarcReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.Lis
     context_object_name = "reports"
     paginate_by = 50
     title = _("DMARC reports")
-    parent = "email-dashboard:dashboard"
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
@@ -68,7 +68,7 @@ class DmarcFailureReportListView(
     context_object_name = "reports"
     paginate_by = 50
     title = _("DMARC failure reports")
-    parent = "email-dashboard:dashboard"
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         qs = DmarcFailureReport.objects.filter(org=self.org).select_related("domain")

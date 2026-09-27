@@ -143,6 +143,7 @@ MIDDLEWARE = [
         else []
     ),
     "django.contrib.messages.middleware.MessageMiddleware",
+    "social_django.middleware.SocialAuthExceptionMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -172,8 +173,9 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "root.context_processors.settings_context",
+                "services.email.dashboard.context_processors.onboarding_context",
             ],
-            "debug": DEBUG,
+            "debug": DEBUG or TEST,
             "loaders": (
                 _TEMPLATES_LOADERS
                 if DEBUG
@@ -287,10 +289,13 @@ RELAY_SENDER_SUBDOMAIN_PREFIX = env(
     "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"
 )
 
-RELAY_DNS_NS_NAMESERVERS = [
-    f"ns1.{RELAY_PLATFORM_DOMAIN}",
-    f"ns2.{RELAY_PLATFORM_DOMAIN}",
-]
+RELAY_DNS_NS_NAMESERVERS = env.list(
+    "RELAY_DNS_NS_NAMESERVERS",
+    default=[
+        f"ns1.{RELAY_PLATFORM_DOMAIN}",
+        f"ns2.{RELAY_PLATFORM_DOMAIN}",
+    ],
+)
 RELAY_DNS_MX_HOSTNAMES = env.list(
     "RELAY_DNS_MX_HOSTNAMES",
     default=[f"mx1.{RELAY_PLATFORM_DOMAIN}", f"mx2.{RELAY_PLATFORM_DOMAIN}"],
@@ -348,6 +353,9 @@ RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
 )
 RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7)
 RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
+
+RELAY_FREE_MONTHLY_MESSAGES = env.int("RELAY_FREE_MONTHLY_MESSAGES", default=1000)
+RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.69)
 
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
@@ -426,12 +434,15 @@ AUTHENTICATION_BACKENDS = (
 
 SOCIAL_AUTH_GITHUB_KEY = GITHUB_CLIENT_ID
 SOCIAL_AUTH_GITHUB_SECRET = GITHUB_CLIENT_SECRET
+SOCIAL_AUTH_GITHUB_SCOPE = ["user:email"]
+SOCIAL_AUTH_LOGIN_ERROR_URL = "accounts:login"
 
 SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.social_details",
     "social_core.pipeline.social_auth.social_uid",
     "social_core.pipeline.social_auth.auth_allowed",
     "social_core.pipeline.social_auth.social_user",
+    "accounts.pipelines.attach_verified_email",
     "social_core.pipeline.user.get_username",
     "social_core.pipeline.user.create_user",
     "social_core.pipeline.social_auth.associate_user",

@@ -3,99 +3,23 @@
   <header>
     <h3 class="m-0">{{ title }}</h3>
     <p class="m-0 text-muted-foreground">
-      {% blocktranslate count days=chart.rows|length trimmed %}
-        {{ days }} day{% plural %}{{ days }} days
-      {% endblocktranslate %}
+      {% if chart.subtitle %}
+        {{ chart.subtitle }}
+      {% else %}
+        {% blocktranslate count days=chart.rows|length trimmed %}
+          {{ days }} day{% plural %}{{ days }} days
+        {% endblocktranslate %}
+      {% endif %}
     </p>
   </header>
-  <div id="{{ id }}" class="h-72" role="img" aria-label="{{ title }}"></div>
-  {{ chart.rows|json_script:data_id }}
-  <script type="module">
-    import * as echarts from "https://esm.sh/echarts@5.6.0";
-    import { toRgba } from "{% static 'abstract/chart.js' %}";
-    import escapeHtml from "https://esm.sh/lodash.escape@4.0.1";
-    const element = document.getElementById("{{ id }}");
-    if (element) {
-      const rows = JSON.parse(document.getElementById("{{ data_id }}").textContent);
-      const locale = document.documentElement.lang;
-      const fullDate = new Intl.DateTimeFormat(locale, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "UTC",
-      });
-      const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
-      const muted = toRgba("var(--color-muted-foreground)");
-      const border = toRgba("var(--color-border)");
-      const palette = [
-        "--color-chart-blue",
-        "--color-chart-green",
-        "--color-chart-yellow",
-        "--color-chart-red",
-        "--color-chart-green-deep",
-        "--color-chart-orange",
-        "--color-chart-gray",
-      ].map((name) => toRgba(`var(${name})`));
-      echarts.registerTheme("relay", {
-        color: palette,
-        textStyle: { fontFamily: getComputedStyle(document.documentElement).fontFamily },
-        categoryAxis: {
-          axisLine: { lineStyle: { color: border } },
-          axisTick: { show: false },
-          axisLabel: { color: muted },
-        },
-        valueAxis: {
-          axisLabel: { color: muted },
-          splitLine: { lineStyle: { color: border } },
-        },
-        tooltip: {
-          backgroundColor: toRgba("var(--color-popover)"),
-          borderColor: border,
-          textStyle: { color: toRgba("var(--color-popover-foreground)") },
-        },
-      });
-      const chart = echarts.init(element, "relay");
-      chart.setOption({
-        grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
-        tooltip: {
-          trigger: "axis",
-          confine: true,
-          formatter: (items) =>
-            [
-              escapeHtml(fullDate.format(new Date(items[0].axisValue))),
-              ...items.map(
-                (item) =>
-                  `${item.marker}${escapeHtml(item.seriesName)}: ${escapeHtml(String(item.value ?? "-"))}`
-              ),
-            ].join("<br/>"),
-        },
-        xAxis: {
-          type: "category",
-          data: rows.map((row) => row.day),
-          axisLabel: {
-            interval: Math.max(Math.ceil(rows.length / 6) - 1, 0),
-            formatter: (value) => shortDate.format(new Date(value)),
-          },
-        },
-        yAxis: {
-          min: 0,
-        },
-        series: [
-          {% for series in chart.series %}
-          {
-            name: "{{ series.label|capfirst }}",
-            type: "bar",
-            {% if chart.y_scale.stacked != "false" %}stack: "status",{% endif %}
-            showSymbol: false,
-            lineStyle: { color: toRgba("{{ series.color }}") },
-            itemStyle: { color: toRgba("{{ series.color }}") },
-            data: rows.map((row) => row["{{ series.key }}"]),
-            {% if series.dataset %}{{ series.dataset|safe }},{% endif %}
-          }{% if not forloop.last %},{% endif %}
-          {% endfor %}
-        ],
-      });
-      window.addEventListener("resize", () => chart.resize());
-    }
-  </script>
+  <div
+    id="{{ id }}"
+    class="h-72"
+    role="img"
+    aria-label="{{ title }}"
+    data-chart="{{ data_id }}"
+  >
+  </div>
+  {{ chart|json_script:data_id }}
+  <script type="module" src="{% static 'abstract/chart_card.js' %}"></script>
 </section>

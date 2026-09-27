@@ -1,61 +1,113 @@
 {% extends "base.html" %}
-{% load i18n message %}
+{% load i18n humanize message abstract %}
 {% block title %}{{ message.subject|default:_("(no subject)")|truncatechars:50 }} | relay{% endblock %}
 {% block content %}
-  <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
-    <div class="min-w-0">
-      <h2 class="m-0 break-words">{{ message.subject|default:_("(no subject)") }}</h2>
-      <p class="m-0 mt-1 text-sm text-muted-foreground">
-        <span class="break-all">{{ message.mail_from }}</span>
-        <i data-lucide="arrow-right" class="size-3.5 inline-block" aria-hidden="true"></i>
-        <span class="break-all">{{ message.rcpt_to }}</span>
-      </p>
-    </div>
-    <div class="flex items-center gap-2 shrink-0">
-      <a
-        class="badge"
-        data-size="sm"
-        data-variant="{{ message.status_badge_variant }}"
-        data-tooltip='{% translate "Where this message stands in its delivery." %}'
-        href="{% url 'docs:detail' 'message-statuses' %}"
-      >
-        <i data-lucide="mailbox" class="size-3.5" aria-hidden="true"></i>
-        {{ message.status_display }}
-      </a>
-      {% if message.spam_action or message.spam_score is not None %}
-        <a
-          class="badge"
-          data-size="sm"
-          data-variant="{{ message.spam_badge_variant }}"
-          data-tooltip='{% translate "The rspamd verdict and score assigned to this message." %}'
-          href="{% url 'docs:detail' 'message-statuses' %}"
-        >
-          <i data-lucide="shield-alert" class="size-3.5" aria-hidden="true"></i>
-          {{ message.get_spam_action_display }}{% if message.spam_score is not None %}
-            ({{ message.spam_score }}){% endif %}
-        </a>
-      {% endif %}
-      <a
-        class="badge"
-        data-size="sm"
-        data-variant="{{ message.virus_badge_variant }}"
-        data-tooltip='{% translate "Whether rspamd scanned this message for viruses." %}'
-        href="{% url 'docs:detail' 'message-statuses' %}"
-      >
-        <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
-        {% if message.virus_action %}
-          {{ message.virus_display }}
-        {% else %}
-          {% translate "not scanned" %}
-        {% endif %}
-      </a>
-    </div>
+  <header class="mb-6 flex items-start justify-between gap-2">
+    <h2 class="m-0 break-words">{{ message.subject|default:_("(no subject)") }}</h2>
+    <button
+      type="button"
+      class="btn shrink-0"
+      data-variant="ghost"
+      data-size="icon-xs"
+      data-tooltip='{% translate "share this message"|capfirst %}'
+      data-share
+      aria-label='{% translate "share this message"|capfirst %}'
+    >
+      <i data-lucide="share-2" class="size-3.5" aria-hidden="true"></i>
+    </button>
   </header>
+
+  <article class="card p-6 mb-6 gap-2" data-variant="{{ message.status_badge_variant }}">
+    <div>
+      <p class="m-0 text-2xl font-semibold">
+        <span class="status" data-variant="{{ message.status_badge_variant }}">
+          {{ message.status_display|capfirst }}
+        </span>
+        {% if delivery_finished_at %}
+          <span class="text-base font-normal text-muted-foreground">
+            {% timestamp delivery_finished_at %}
+          </span>
+        {% endif %}
+      </p>
+      {% if delivery_attempts %}
+        <p class="m-0 text-sm text-muted-foreground">
+          {% blocktranslate count counter=delivery_attempts with count=delivery_attempts|apnumber trimmed %}
+            {{ count }} transmission{% plural %}{{ count }} transmissions
+          {% endblocktranslate %}
+          {% if delivery_duration %}
+            <span aria-hidden="true">·</span>
+            {% translate "in" context "duration" %} {{ delivery_duration|human_duration }}
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+    {% translate "Show the messages with this address" as address_tooltip %}
+    {% if message.mail_from or message.rcpt_to or message.subject %}
+      <dl class="m-0 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        {% if message.mail_from %}
+          <dt>{% translate "from"|capfirst context "email hop" %}</dt>
+          <dd class="m-0">
+            <a
+              class="link break-all"
+              data-tooltip="{{ address_tooltip }}"
+              href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.mail_from %}"
+            >{{ message.mail_from }}</a>
+          </dd>
+        {% endif %}
+        {% if message.rcpt_to %}
+          <dt>{% translate "to"|capfirst context "email hop" %}</dt>
+          <dd class="m-0">
+            <a
+              class="link break-all"
+              data-tooltip="{{ address_tooltip }}"
+              href="{% url 'message:message-list' org.slug %}?{% param_replace email=message.rcpt_to %}"
+            >{{ message.rcpt_to }}</a>
+          </dd>
+        {% endif %}
+        <dt>{% translate "subject"|capfirst %}</dt>
+        <dd class="m-0 text-foreground">{{ message.subject|default:_("(no subject)") }}</dd>
+      </dl>
+    {% endif %}
+    {% if message.spam_action or message.spam_score is not None or message.virus_action %}
+      <p class="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        {% translate "what the scan found" as scan_tooltip %}
+        {% if message.spam_action or message.spam_score is not None %}
+          <a
+            class="status inline-flex items-center gap-1.5 hover:underline"
+            data-variant="{{ message.spam_badge_variant }}"
+            data-tooltip="{{ scan_tooltip }}"
+            href="{% url 'docs:detail' 'message-statuses' %}"
+            target="_blank"
+            rel="noopener"
+          >
+            <i data-lucide="shield-alert" class="size-3.5" aria-hidden="true"></i>
+            {% blocktranslate with action=message.get_spam_action_display trimmed %}
+              Spam {{ action }}
+            {% endblocktranslate %}
+            {% if message.spam_score is not None %}({{ message.spam_score }}){% endif %}
+          </a>
+        {% endif %}
+        {% if message.virus_action %}
+          <a
+            class="status inline-flex items-center gap-1.5 hover:underline"
+            data-variant="{{ message.virus_badge_variant }}"
+            data-tooltip="{{ scan_tooltip }}"
+            href="{% url 'docs:detail' 'message-statuses' %}"
+            target="_blank"
+            rel="noopener"
+          >
+            <i data-lucide="germ" class="size-3.5" aria-hidden="true"></i>
+            {{ message.virus_display }}
+          </a>
+        {% endif %}
+      </p>
+    {% endif %}
+  </article>
 
   {% block transmission_card %}
     {% if timeline %}
       <section class="mb-6 flex flex-col gap-4">
-        <h3 class="font-semibold m-0">{% translate "timeline"|capfirst %}</h3>
+        <h3 class="font-semibold m-0">{% translate "transmissions"|capfirst %}</h3>
         {% include "message/timeline.html" %}
         {% block timeline_dialogs %}{% endblock %}
       </section>
@@ -77,7 +129,7 @@
             data-variant="ghost"
             data-size="icon-xs"
             data-tooltip='{% translate "copy headers"|capfirst %}'
-            onclick="navigator.clipboard.writeText('{{ message.headers_text|escapejs }}')"
+            data-copy="{{ message.headers_text }}"
             aria-label='{% translate "copy headers"|capfirst %}'
           >
             <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
@@ -98,37 +150,111 @@
         {% endif %}
       </div>
     </header>
-    <article class="card gap-0 p-0 overflow-hidden">
-      <div class="table-container">
-        <table class="table">
-          <tbody>
-            {% for key, value in headers %}
-              <tr>
-                <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
-                <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="px-6 py-6 flex flex-col gap-6">
-        {% block extra_sections %}{% endblock %}
-        <div>
-          {% block body %}
-            {% if body %}
-              {{ body|highlight_email }}
-            {% else %}
-              <section class="empty">
-                <header>
-                  <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
-                  <h3>{% translate "Body pruned." %}</h3>
-                  <p>{% translate "The raw message body is not available." %}</p>
-                </header>
-              </section>
-            {% endif %}
-          {% endblock body %}
+    <div class="tabs" id="message-tabs">
+      <nav role="tablist" aria-orientation="horizontal">
+        {% if html_body %}
+          <button
+            type="button"
+            role="tab"
+            id="message-tab-html"
+            aria-controls="message-panel-html"
+            aria-selected="true"
+            tabindex="0"
+          >
+            HTML
+          </button>
+        {% endif %}
+        <button
+          type="button"
+          role="tab"
+          id="message-tab-text"
+          aria-controls="message-panel-text"
+          aria-selected="{% if html_body %}false{% else %}true{% endif %}"
+          tabindex="{% if html_body %}-1{% else %}0{% endif %}"
+        >
+          {% translate "text"|capfirst %}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="message-tab-headers"
+          aria-controls="message-panel-headers"
+          aria-selected="false"
+          tabindex="-1"
+        >
+          {% translate "headers"|capfirst %}
+        </button>
+      </nav>
+      {% if html_body %}
+        <div
+          role="tabpanel"
+          id="message-panel-html"
+          aria-labelledby="message-tab-html"
+          tabindex="-1"
+          aria-selected="true"
+        >
+          {# sandbox drops allow-scripts: the body is untrusted mail #}
+          <iframe
+            class="h-[36rem] w-full rounded-xl border bg-white"
+            sandbox
+            referrerpolicy="no-referrer"
+            srcdoc="{{ html_body }}"
+            title='{% translate "HTML body" %}'
+          ></iframe>
         </div>
+      {% endif %}
+      <div
+        role="tabpanel"
+        id="message-panel-text"
+        aria-labelledby="message-tab-text"
+        tabindex="-1"
+        aria-selected="{% if html_body %}false{% else %}true{% endif %}"
+        {% if html_body %}hidden{% endif %}
+      >
+        <article class="card gap-0 p-0 overflow-hidden">
+          <div class="px-6 py-6 flex flex-col gap-6">
+            <div>
+              {% block body %}
+                {% if body %}
+                  {{ body|highlight_email }}
+                {% else %}
+                  <section class="empty">
+                    <header>
+                      <figure><i data-lucide="file-off" aria-hidden="true"></i></figure>
+                      <h3>{% translate "Body pruned." %}</h3>
+                      <p>{% translate "The raw message body is not available." %}</p>
+                    </header>
+                  </section>
+                {% endif %}
+              {% endblock body %}
+            </div>
+          </div>
+        </article>
       </div>
-    </article>
+      <div
+        role="tabpanel"
+        id="message-panel-headers"
+        aria-labelledby="message-tab-headers"
+        tabindex="-1"
+        aria-selected="false"
+        hidden
+      >
+        <article class="card gap-0 p-0 overflow-hidden">
+          <div class="table-container">
+            <table class="table">
+              <tbody>
+                {% for key, value in headers %}
+                  <tr>
+                    <td class="whitespace-nowrap align-top font-medium">{{ key }}</td>
+                    <td class="whitespace-normal align-top">{{ value|highlight_header:key }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% block extra_sections %}{% endblock %}
+        </article>
+      </div>
+    </div>
   </section>
 {% endblock %}

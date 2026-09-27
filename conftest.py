@@ -72,7 +72,10 @@ def other_user(db):
 
 @pytest.fixture
 def org(db, user):
-    org = Organization.objects.create(slug="test-org")
+    org = Organization.objects.create(
+        slug="test-org",
+        billing_is_active=True,
+    )
     Membership.objects.create(
         org=org,
         user=user,
@@ -83,7 +86,10 @@ def org(db, user):
 
 @pytest.fixture
 def write_org(db, other_user):
-    org = Organization.objects.create(slug="other-org")
+    org = Organization.objects.create(
+        slug="other-org",
+        billing_is_active=True,
+    )
     Membership.objects.create(
         org=org,
         user=other_user,

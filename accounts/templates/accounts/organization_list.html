@@ -4,7 +4,7 @@
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "organizations"|capfirst context "noun" %}</h2>
-    <button type="button" class="btn" onclick="document.getElementById('dlg-new-org').showModal()">
+    <button type="button" class="btn" data-dialog="dlg-new-org">
       {% translate "new organization"|title %}
     </button>
   </header>
@@ -28,7 +28,7 @@
           type="button"
           class="btn"
           data-variant="secondary"
-          onclick="document.getElementById('dlg-new-org').close()"
+          data-dialog-close="dlg-new-org"
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>

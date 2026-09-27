@@ -6,7 +6,8 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .charts import build_reputation_chart
+from .billing import month_cost, overage_price
+from .charts import build_reputation_chart, build_volume_chart
 from .models import FblReport
 
 
@@ -70,31 +71,34 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
     def get_template_names(self):
         return ["reputation/overview.html"]
 
-    title = _("Reputation")
+    title = _("Monitoring")
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
         chart = build_reputation_chart(self.org)
+        volume = build_volume_chart(self.org)
+        cost = month_cost(volume["this_month_total"])
         last = chart["rows"][-1]
+        bounce_threshold = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
+        complaint_threshold = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
+        # The chart carries rates in per cent; the cards format fractions.
+        hard_bounce_rate = (last["hard_bounce_rate"] or 0.0) / 100
+        complaint_rate = (last["complaint_rate"] or 0.0) / 100
         stats = {
-            "total_sent": last["sent"],
-            "hard_bounces": last["hard_bounced"],
-            "soft_bounces": last["soft_bounced"],
-            "complaints": last["complained"],
-            "hard_bounce_rate": last["hard_bounce_rate"] or 0.0,
-            "complaint_rate": last["complaint_rate"] or 0.0,
-        }
-        chart_rates = {
-            "series": chart["rate_series"],
-            "rows": chart["rows"],
-            "y_scale": {"stacked": "false"},
+            "hard_bounce_rate": hard_bounce_rate,
+            "complaint_rate": complaint_rate,
+            "hard_bounce_over_limit": hard_bounce_rate > bounce_threshold,
+            "complaint_over_limit": complaint_rate > complaint_threshold,
         }
         return super().get_context_data(**kwargs) | {
             "stats": stats,
-            "chart": chart,
-            "chart_rates": chart_rates,
-            "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
-            "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
-            "min_volume": settings.RELAY_REPUTATION_MIN_VOLUME,
-            "window_days": settings.RELAY_REPUTATION_WINDOW_DAYS,
+            "chart_bounces": chart["bounce_chart"],
+            "chart_complaints": chart["complaint_chart"],
+            "chart_volume": volume,
+            "cost": cost,
+            "month_messages": volume["this_month_total"],
+            "overage_price": overage_price(),
+            "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
+            "bounce_threshold": bounce_threshold,
+            "complaint_threshold": complaint_threshold,
         }

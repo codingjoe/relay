@@ -24,14 +24,20 @@
       >{% translate "privacy policy"|title %}</a>
       <a
         href="{% url 'docs:list' %}"
+        target="_blank"
+        rel="noopener"
         class="text-muted-foreground hover:text-foreground transition-colors"
       >{% translate "docs"|capfirst %}</a>
       <a
         href="{% url 'know_how:list' %}"
+        target="_blank"
+        rel="noopener"
         class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
       >{% translate "know how"|capfirst %}</a>
       <a
         href="{% url 'alternative_to:list' %}"
+        target="_blank"
+        rel="noopener"
         class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
       >{% translate "alternative to"|capfirst %}</a>
     </nav>

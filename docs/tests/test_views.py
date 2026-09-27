@@ -1,4 +1,5 @@
 import pathlib
+import re
 
 from django.urls import reverse
 
@@ -55,6 +56,24 @@ class TestDocsDetailView:
         assert response.status_code == 200
         assert "markdown_template" in response.context
         assert response.context["markdown_template"] == "security.md"
+
+    def test_get__renders_the_sending_mermaid_diagram(self, client):
+        response = client.get(reverse("docs:detail", args=["sending"]))
+        content = response.content.decode()
+        assert '<pre class="mermaid">' in content
+        assert re.search(r'src="[^"]*abstract/mermaid\.[^"]+\.js"', content)
+
+    def test_get__renders_the_reputation_mermaid_diagram(self, client):
+        response = client.get(reverse("docs:detail", args=["reputation"]))
+        content = response.content.decode()
+        assert '<pre class="mermaid">' in content
+        assert re.search(r'src="[^"]*abstract/mermaid\.[^"]+\.js"', content)
+
+    def test_get__renders_the_deliverability_mermaid_diagram(self, client):
+        response = client.get(reverse("docs:detail", args=["deliverability"]))
+        content = response.content.decode()
+        assert '<pre class="mermaid">' in content
+        assert re.search(r'src="[^"]*abstract/mermaid\.[^"]+\.js"', content)
 
     def test_get__not_found(self, client):
         response = client.get(reverse("docs:detail", args=["nonexistent"]))
