@@ -1,6 +1,7 @@
-# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed
+# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed.
+# .env.production ships with the production image, which decrypts it at start.
 .*
-!.env.example
+!.env.production
 
 # Python
 venv/

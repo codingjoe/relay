@@ -77,7 +77,8 @@ decision, not a hidden default.
 ## Data flows
 
 - **GitHub OAuth** provides your identity at sign-in. relay stores your
-  GitHub identity and your email address.
+  GitHub identity and your email address, and requests the email addresses
+  scope only.
 - **Sending requires the platform** to talk to receiving mail servers and to
   DNS resolvers. Delivery is the product.
 - **Reports come in** from mailbox providers to the addresses your DMARC

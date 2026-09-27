@@ -456,11 +456,21 @@ class TestCredentialListView:
 class TestCredentialCreateView:
     def test_post__creates_credential(self, admin_client, org):
         response = admin_client.post(
-            f"/org/{org.slug}/email/credentials/new", {"name": "Production"}
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Production", "sandbox": "false"},
         )
         assert response.status_code == 302
         cred = MsaCredential.objects.get(org=org)
         assert cred.name == "Production"
+        assert cred.type == MsaCredential.Type.SMTP
+
+    def test_post__creates_sandbox_credential(self, admin_client, org):
+        admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Sandbox", "sandbox": "true"},
+        )
+        cred = MsaCredential.objects.get(org=org)
+        assert cred.type == MsaCredential.Type.SANDBOX
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})

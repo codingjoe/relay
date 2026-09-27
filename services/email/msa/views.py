@@ -115,9 +115,10 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
 
 class MsaCredentialCreateView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
+        is_sandbox = request.POST.get("sandbox", "").lower() not in ("", "0", "false")
         credential, raw_key = MsaCredential.objects.create_with_key(
             org=self.org,
-            type=MsaCredential.Type.SMTP,
+            type=MsaCredential.Type.SANDBOX if is_sandbox else MsaCredential.Type.SMTP,
             name=request.POST.get("name", ""),
         )
         request.session["raw_key"] = raw_key
