@@ -195,6 +195,14 @@ A rule lives either in this document or in `.relint.yml`, never both.
     linked to the control via `id="id_x"`. The `.field` container provides
     spacing and error styling. Native controls auto-style. Do not nest inputs
     inside `<label>` or use `<span class="label">` for the label text.
+  - Browser autocomplete: give a field that holds the member's own data the
+    matching token (`autocomplete="email"`, `name`, `url`, `tel`,
+    `new-password`, `one-time-code`) so the browser fills the right value
+    instead of guessing from the field name. Set `autocomplete="off"` where a
+    suggestion would be wrong: a search or filter box, which takes a query
+    rather than the member's data, or a value that belongs to someone else,
+    such as the third-party address on the suppression list. A free-text label
+    the member invents, such as a credential name, needs neither.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
