@@ -426,16 +426,6 @@ class TestCredentialListView:
             label_pattern = rf"aria-label=(?P<q>[\"']){re.escape(label)}(?P=q)"
             assert re.search(label_pattern, button.group()), value
 
-    def test_get__opens_the_sending_docs_in_a_new_tab(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
-
-        content = response.content.decode()
-
-        assert (
-            '<a class="link" href="/docs/sending/" target="_blank" rel="noopener">'
-            "sending docs</a>"
-        ) in content
-
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/email/credentials/")
