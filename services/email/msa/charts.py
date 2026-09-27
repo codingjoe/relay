@@ -16,6 +16,7 @@ CHART_COLORS = {
     "failed": "var(--color-chart-red)",
     "dropped": "var(--color-chart-red)",
     "suppressed": "var(--color-chart-gray)",
+    "sandboxed": "var(--color-chart-gray)",
 }
 
 SUPPRESSION_CHART_COLORS = {

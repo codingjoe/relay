@@ -23,6 +23,7 @@ class OutgoingMessage(Message):
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
         SUPPRESSED = "suppressed", _("suppressed")
+        SANDBOXED = "sandboxed", _("sandboxed")
         FAILED = "failed", _("failed")
         DEFAULT = nonmember("pending")
 
@@ -75,12 +76,16 @@ class MsaCredential(Credential):
     class Type(models.TextChoices):
         SMTP = "smtp", _("SMTP")
         SMTP_IP = "smtp-ip", _("SMTP-IP")
+        SANDBOX = "sandbox", _("Sandbox")
 
     type = models.TextField(
         _("type"),
         choices=Type,
         default=Type.SMTP,
-        help_text=_("SMTP authentication method."),
+        help_text=_(
+            "Purpose of the credential. Sandbox credentials accept "
+            "submissions without a delivery attempt."
+        ),
     )
 
 

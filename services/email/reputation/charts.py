@@ -27,8 +27,9 @@ def build_reputation_chart(org):
     Return per-day message counts, rates, and rate limits for one org.
 
     Counts provider FBL reports and outgoing messages held as spam as
-    complaints. Values accumulate from the start of the evaluation
-    window (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
+    complaints. Sandboxed messages count nowhere. Values accumulate from
+    the start of the evaluation window
+    (`settings.RELAY_REPUTATION_WINDOW_DAYS`), so the last point
     equals the rates the reputation check evaluates. Rates and limits
     are per cent, so they share one axis and can be plotted next to
     each other.
@@ -38,6 +39,7 @@ def build_reputation_chart(org):
 
     sent_rows = (
         OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
+        .exclude(status=OutgoingMessage.Status.SANDBOXED)
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(count=Count("id"))

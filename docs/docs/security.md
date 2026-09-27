@@ -41,6 +41,9 @@ key hash, and only the hash can answer an authentication attempt. The plain
 API-key value is visible once at creation and never again. Authentication
 looks up credentials by organization and prefix and verifies the key hash.
 
+A sandbox credential exists for testing, and relay never transmits its
+messages to the recipient's mail server.
+
 Any credential can carry a `hold` flag. A held credential fails
 authentication immediately without deletion. This buys you a pause button for
 suspicious activity.

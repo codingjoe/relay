@@ -15,6 +15,8 @@ from services.email.tls import parse_peer_certificates
 
 logger = logging.getLogger(__name__)
 
+SUSPENSION_OUTPUT = "550 Account suspended due to sender reputation"
+
 
 class MxLookupError(Exception):
     """The MX lookup for a recipient domain failed."""
@@ -37,6 +39,22 @@ class SenderDomainMismatchError(ValueError):
         super().__init__("Outgoing message sender domain does not match")
 
 
+def record_drop(message, output):
+    """Mark the message dropped with a transmission that explains why."""
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage
+
+    with Transmission(
+        message=message,
+        status=Transmission.Status.FAILED,
+        code=550,
+        output=output,
+    ):
+        message.status = OutgoingMessage.Status.DROPPED
+        message.save(update_fields=["status", "modified_at"])
+
+
 @task(queue_name="delivery")
 def deliver_message(message_id):
     """
@@ -50,14 +68,7 @@ def deliver_message(message_id):
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
     if message.org.suspended_at:
-        with Transmission(
-            message=message,
-            status=Transmission.Status.FAILED,
-            code=550,
-            output="550 Account suspended due to sender reputation",
-        ):
-            message.status = OutgoingMessage.Status.DROPPED
-            message.save(update_fields=["status", "modified_at"])
+        record_drop(message, SUSPENSION_OUTPUT)
         return
 
     started_at = timezone.now()  # a start stamped before the block is kept
@@ -364,24 +375,16 @@ def check_outgoing_spam(message_pk, client_ip):
     """
     Check an outgoing message for spam before delivery.
 
-    Messages for suspended orgs are dropped without a spam check. Clean
+    A message for a suspended org is dropped without a spam check. Clean
     messages are enqueued for delivery.
-
     """
-    from services.email.message.models import SpamCheck, Transmission
+    from services.email.message.models import SpamCheck
 
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("org").get(pk=message_pk)
     if message.org.suspended_at:
-        with Transmission(
-            message=message,
-            status=Transmission.Status.FAILED,
-            code=550,
-            output="550 Account suspended due to sender reputation",
-        ):
-            message.status = OutgoingMessage.Status.DROPPED
-            message.save(update_fields=["status", "modified_at"])
+        record_drop(message, SUSPENSION_OUTPUT)
         return
 
     raw_bytes = message.raw_body.read()
