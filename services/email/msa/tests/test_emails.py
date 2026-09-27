@@ -34,6 +34,7 @@ class TestTestEmail:
         email = make_test_email(user=user)
         assert email.get_context_data() == emails.get_submission_context() | {
             "user": user,
+            "base_url": base_url,
             "domain": "acme.example",
             "username": "acme",
             "trace_url": f"{base_url}/org/acme/email/messages/{MESSAGE_PK}",
@@ -117,6 +118,14 @@ class TestTestEmail:
         assert ">acme<" in html
         assert f'href="{base_url}/org/acme/email/credentials/"' in html
         assert f'href="{base_url}/org/acme/email/domains/"' in html
+
+    def test_message__carries_the_legal_footer(self, base_url):
+        html = (
+            make_test_email().message().get_body(preferencelist=("html",)).get_content()
+        )
+        assert "Lennéstr. 19" in html
+        for page in ("imprint", "privacy"):
+            assert f'href="{base_url}/legal/{page}/"' in html
 
     def test_render_preview__renders_without_arguments(self, base_url):
         email = emails.TestEmail.render_preview()

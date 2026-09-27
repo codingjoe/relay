@@ -259,6 +259,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   they are: mail clients need the table layout and the inline styles premailer
   produces from it.
 
+- The shell closes every message with the legal footer: the service provider,
+  its address, the VAT number, and links to the imprint and the privacy policy,
+  as `legal/docs/imprint.md` states them. Every message class therefore puts
+  `base_url` in its context: a mail client cannot resolve a relative link.
+
 - Email illustrations are SVGs in `root/static/img/`, recolored with the same
   palette as the web variants. A linked SVG renders in Apple Mail, Outlook 2019
   and later, and Gmail, which rasterizes it on the way in, so only clients older

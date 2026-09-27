@@ -373,6 +373,17 @@ class TestPostmasterForwardEmail:
         assert f'href="{detail_url}"' in email.alternatives[0][0]
         assert detail_url in email.body
 
+    def test_render__carries_the_legal_footer(self, org, base_url):
+        message = make_postmaster_message(org)
+        email = make_forward_email(message, to=["alice@example.com"])
+
+        email.render()
+
+        html = email.alternatives[0][0]
+        assert "Lennéstr. 19" in html
+        for page in ("imprint", "privacy"):
+            assert f'href="{base_url}/legal/{page}/"' in html
+
     def test_render_preview__uses_sample_values_without_message(self, base_url):
         email = PostmasterForwardEmail.render_preview()
 

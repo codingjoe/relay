@@ -56,6 +56,7 @@ class TestEmail(TemplateEmail):
             context
             | get_submission_context()
             | {
+                "base_url": self.get_base_url().rstrip("/"),
                 "domain": self.domain.name,
                 "username": org_slug,
                 "trace_url": self.get_url(

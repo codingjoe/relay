@@ -54,11 +54,11 @@ class PostmasterForwardEmail(TemplateEmail):
         )
 
     def get_context_data(self) -> dict[str, typing.Any]:
+        base_url = self.get_base_url().rstrip("/")
         return super().get_context_data() | {
+            "base_url": base_url,
             "original_subject": self.incoming_message.subject,
             "sender": self.sender,
             "recipient": self.incoming_message.rcpt_to,
-            "detail_url": (
-                f"{self.get_base_url()}{self.incoming_message.get_absolute_url()}"
-            ),
+            "detail_url": f"{base_url}{self.incoming_message.get_absolute_url()}",
         }

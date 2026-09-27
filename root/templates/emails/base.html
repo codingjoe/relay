@@ -116,13 +116,22 @@ wordmark ships with the chrome. Re-check it when the package updates.
         text-align: center;
       }
 
+      /* One step below the 16px body. The `smaller` keyword would compound
+         across these nested elements (16px, then 13px, then 11px, then 9px),
+         so the value it resolves to stands on its own. */
       .footer td,
       .footer p,
       .footer span,
       .footer a {
-        color: #9a9ea6;
-        font-size: 16px;
+        color: #5d5d5d;
+        font-size: 13px;
         text-align: center;
+      }
+
+      /* relay's link colour, so the legal links stay recognisable next to the
+         muted footer text. Both hold at least 4.5:1 on the white card. */
+      .footer a {
+        color: #6200d1;
       }
       /* -------------------------------------
           TYPOGRAPHY
@@ -376,6 +385,23 @@ wordmark ships with the chrome. Re-check it when the package updates.
                 {% table %}
                 <tr>
                   <td class="content-block">
+                    {% comment %}
+                      The service provider, its address, and the VAT number, as
+                      legal/docs/imprint.md states them. Keep both in step.
+                    {% endcomment %}
+                    {% url 'legal:imprint' as imprint_path %}
+                    {% url 'legal:privacy' as privacy_path %}
+                    <p>
+                      Johannes Maron, Lennéstr. 19, D-14469 Potsdam, Germany
+                    </p>
+                    <p>
+                      {% translate "VAT identification number: DE284754038" %}
+                    </p>
+                    <p>
+                      <a href="{{ base_url }}{{ imprint_path }}">{% translate "imprint"|capfirst %}</a>
+                      <span aria-hidden="true">·</span>
+                      <a href="{{ base_url }}{{ privacy_path }}">{% translate "privacy policy"|capfirst %}</a>
+                    </p>
                     {% block footer_content %}{% endblock footer_content %}
                   </td>
                 </tr>
