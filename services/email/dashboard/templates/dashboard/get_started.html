@@ -93,18 +93,26 @@
         {% endif %}
       </section>
       <aside>
-        <a
-          class="btn"
-          data-variant="secondary"
-          data-size="sm"
-          href="{% url 'msa:credential-list' org.slug %}"
-        >
-          {% if connected_credential %}
+        {% if connected_credential %}
+          <a
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            href="{% url 'msa:credential-list' org.slug %}"
+          >
             {% translate "credentials"|capfirst context "noun" %}
-          {% else %}
+          </a>
+        {% else %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            data-dialog="dlg-new-credential"
+          >
             {% translate "create a credential"|title %}
-          {% endif %}
-        </a>
+          </button>
+        {% endif %}
       </aside>
       <footer class="flex-col items-stretch min-w-0">
         <section class="accordion" data-multiple>
@@ -181,4 +189,5 @@
   </div>
 
   {% include "partials/test_email_dialog.html" %}
+  {% include "msa/_credential_dialog.html" with sandbox_forced="true" %}
 {% endblock %}

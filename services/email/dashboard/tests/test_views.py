@@ -65,6 +65,35 @@ class TestGetStartedView:
         assert response.status_code == 200
         assert response.context["connected_credential"] is None
 
+    def test_get__creates_a_credential_from_the_step_dialog(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert (
+            f'action="{reverse("msa:credential-create", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert 'id="dlg-new-credential"' in content
+        assert (
+            'data-dialog="dlg-new-credential"'
+            in content.split('id="dlg-new-credential"', 1)[0]
+        )
+
+    def test_get__step_dialog_creates_a_sandbox_credential(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '<input type="hidden" name="sandbox" value="true">' in content
+        assert 'id="id_sandbox"' not in content
+
+    def test_get__connected_app_links_to_the_credentials_page(self, admin_client, org):
+        connect_app(org)
+        response = admin_client.get(f"/org/{org.slug}/email/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert reverse("msa:credential-list", kwargs={"org_slug": org.slug}) in content
+        assert 'data-dialog="dlg-new-credential"' not in content
+
     def test_get__submission_values_use_the_configured_host(
         self, admin_client, org, settings
     ):

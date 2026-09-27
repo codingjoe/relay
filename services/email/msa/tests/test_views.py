@@ -369,6 +369,13 @@ class TestCredentialListView:
             "smtps://test-org:<credential key>@smtp.relay.example:465"
         )
 
+    def test_get__offers_the_sandbox_choice(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="id_sandbox"' in content
+        assert 'name="sandbox" value="true"' not in content
+
     def test_get__smtp_info_ignores_the_request_host(self, admin_client, org, settings):
         """The configured host wins over the `testserver` host the client sends."""
         settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
