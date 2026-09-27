@@ -206,11 +206,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Dropdown menus: `<div class="dropdown-menu" id="…">` with a trigger button.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
-  - Alerts: `<div class="alert">` with an icon, an `<h2>`-`<h6>` title, and a
-    `<section>` description. `data-variant="destructive"` is basecoat's;
-    `data-variant="warning"` is this app's addition and follows the badge
-    tints, with the full status token as text so the 4.5:1 floor holds on the
-    tint.
   - Tooltips: use the basecoat `data-tooltip` attribute on any element.
     Do not use native `title` attributes for tooltips.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
@@ -218,16 +213,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
     pages that show selectable entities (for example, organizations). Prefer items
     over tables when each row is a single clickable entity with a title and
     short metadata.
-  - Basecoat clamps an item's heading to one line and its paragraph to two.
-    That suits short metadata and truncates an instruction, so an item whose
-    copy the member has to read sets `line-clamp-none` on that heading and
-    paragraph.
-  - Give an item's `<section>` a `min-w-48` floor when its copy runs longer
-    than a few words. The floor makes the action wrap below the text instead
-    of squeezing it into a column a few characters wide.
-  - An item with more than a title, a line of description, and an action puts
-    the extra content in its `<header>` or `<footer>` child, which basecoat
-    gives a full row of its own.
   - Brand name. Write `relay` in lowercase everywhere. It is a brand name,
     not a translatable string. Do not wrap it in `{% translate %}` or
     apply `|capfirst`/`|title`.
@@ -241,39 +226,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   use Lucide icons with semantic color classes instead (for example,
   `circle-check` with `text-primary`, `circle-x` with `text-destructive`,
   `circle-dashed` with `text-muted-foreground`).
-
-- Illustrations are unDraw SVGs in `root/static/img/illustrations/`, one
-  `-light.svg` and one `-dark.svg` per artwork. Every file is fitted into the
-  same 800x600 box, so a template reserves the same space before the file
-  loads. Render one with `{% include "partials/illustration.html" with name="mail-sent" %}`;
-  the partial picks the variant for the color scheme. It takes `name` only:
-  the artwork is decorative, so the `alt` is empty and the copy beside it
-  carries the meaning. First-use empty states carry an illustration; no-results
-  states keep the Lucide `search` icon.
-
-- Email templates extend `emails/base.html`, which extends the package's
-  `django_letter/base.html` and overrides three blocks: `extra_header` for
-  relay's palette (the package ships its own blue and capitalises button
-  labels, see `src/css/theme.css`), `logo` for the wordmark, and
-  `footer_content` for the legal footer. The override stylesheet lands after
-  the package's own, so a tie at equal specificity resolves in relay's favour;
-  add a rule there rather than copying the shell, whose table layout and
-  premailer behaviour should stay the package's.
-
-- The shell closes every message with the legal footer: the service provider,
-  its address, the VAT number, and links to the imprint and the privacy policy,
-  as `legal/docs/imprint.md` states them. Every message class therefore puts
-  `base_url` in its context: a mail client cannot resolve a relative link.
-
-- Email illustrations are SVGs in `root/static/img/`, recolored with the same
-  palette as the web variants. A linked SVG renders in Apple Mail, Outlook 2019
-  and later, and Gmail, which rasterizes it on the way in, so only clients older
-  than those skip the artwork. Set `alt=""`, give the `img` the `width` and
-  `height` of its display size, and scale it with a percentage `width` plus
-  `height: auto`: the attributes hold the aspect ratio before the file loads,
-  the percentage follows the card on narrow screens. Preview a recolored artwork
-  in a browser rather than with `rsvg-convert`, which paints the content outside
-  the artwork's viewBox that a client would clip.
 
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`, which imports Tailwind CSS v4,
