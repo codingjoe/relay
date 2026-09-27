@@ -23,7 +23,8 @@
     {% endblocktranslate %}
   </p>
   {% translate "View the transmission trace" as button_label %}
-  {% button href=trace_url value=button_label primary=True %}
+  {% url 'msa:message-detail' org_slug=username pk=message_pk as trace_path %}
+  {% button href=trace_path value=button_label primary=True %}
   <h2>{% translate "Send from your own application" %}</h2>
   <p>
     {% blocktranslate trimmed %}
@@ -59,7 +60,7 @@
     {% endblocktranslate %}
   </p>
   <p>
-    <a href="{{ credentials_url }}">{% translate "Create a credential" %}</a>
+    <a href="{% url 'msa:credential-list' org_slug=username %}">{% translate "Create a credential" %}</a>
   </p>
   <h2>{% translate "Send from your own domain" %}</h2>
   <p>
@@ -69,7 +70,7 @@
     {% endblocktranslate %}
   </p>
   <p>
-    <a href="{{ domains_url }}">{% translate "Add a domain" %}</a>
+    <a href="{% url 'domains:domain-list' org_slug=username %}">{% translate "Add a domain" %}</a>
   </p>
   <p>
     {% blocktranslate trimmed %}

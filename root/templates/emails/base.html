@@ -90,13 +90,11 @@
     The service provider, its address, and the VAT number, as
     legal/docs/imprint.md states them. Keep both in step.
   {% endcomment %}
-  {% url 'legal:imprint' as imprint_path %}
-  {% url 'legal:privacy' as privacy_path %}
   <p>Johannes Maron, Lennéstr. 19, D-14469 Potsdam, Germany</p>
   <p>{% translate "VAT identification number: DE284754038" %}</p>
   <p>
-    <a href="{{ base_url }}{{ imprint_path }}">{% translate "imprint"|capfirst %}</a>
+    <a href="{% url 'legal:imprint' %}">{% translate "imprint"|capfirst %}</a>
     <span aria-hidden="true">·</span>
-    <a href="{{ base_url }}{{ privacy_path }}">{% translate "privacy policy"|capfirst %}</a>
+    <a href="{% url 'legal:privacy' %}">{% translate "privacy policy"|capfirst %}</a>
   </p>
 {% endblock footer_content %}

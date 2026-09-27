@@ -3,7 +3,6 @@
 import base64
 import logging
 import secrets
-import uuid
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
@@ -185,7 +184,7 @@ def store_outgoing_message(
     subject = decode_header_value(parsed.get("Subject", ""))
     with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
         transmission.message = message = OutgoingMessage.objects.create(
-            id=message_pk or uuid.uuid7(),
+            id=message_pk,
             org=org,
             rcpt_to=rcpt_to,
             mail_from=mail_from,

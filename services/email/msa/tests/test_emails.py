@@ -29,25 +29,15 @@ def make_test_email(*, domain=None, user=None, **kwargs):
 
 
 class TestTestEmail:
-    def test_get_context_data__builds_the_page_links(self, base_url):
+    def test_get_context_data__carries_the_template_values(self):
         user = User(email="member@acme.example")
         email = make_test_email(user=user)
         assert email.get_context_data() == emails.get_submission_context() | {
             "user": user,
-            "base_url": base_url,
             "domain": "acme.example",
             "username": "acme",
-            "trace_url": f"{base_url}/org/acme/email/messages/{MESSAGE_PK}",
-            "credentials_url": f"{base_url}/org/acme/email/credentials/",
-            "domains_url": f"{base_url}/org/acme/email/domains/",
+            "message_pk": MESSAGE_PK,
         }
-
-    def test_get_context_data__strips_a_trailing_slash(self):
-        email = make_test_email(base_url="https://acme.example/")
-        assert (
-            email.get_context_data()["trace_url"]
-            == f"https://acme.example/org/acme/email/messages/{MESSAGE_PK}"
-        )
 
     def test_init__uses_the_active_language(self):
         email = make_test_email()
