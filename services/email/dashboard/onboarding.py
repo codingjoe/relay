@@ -19,10 +19,16 @@ def get_email_context(org, request) -> dict:
         domains = list(Domain.objects.filter(org=org))
         credentials = list(MsaCredential.objects.filter(org=org))
         has_outgoing_message = OutgoingMessage.objects.filter(org=org).exists()
+        has_credential = bool(credentials)
         connected_credential = get_connected_credential(credentials)
-        first_steps = (has_outgoing_message, connected_credential is not None)
+        first_steps = (
+            has_outgoing_message,
+            has_credential,
+            connected_credential is not None,
+        )
         context = {
             "has_outgoing_message": has_outgoing_message,
+            "has_credential": has_credential,
             "connected_credential": connected_credential,
             "first_steps": first_steps,
             "onboarding_complete": all(first_steps),

@@ -56,6 +56,50 @@ class TestGetStartedView:
         assert response.context["connected_credential"] is not None
         assert response.context["has_outgoing_message"] is False
 
+    def test_get__checks_off_the_credential_step_before_it_is_used(
+        self, admin_client, org
+    ):
+        """Creating a credential checks off its own step; connecting is a later one."""
+        MsaCredential.objects.create_with_key(org=org, name="unused")
+
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        assert response.status_code == 200
+        assert response.context["has_credential"] is True
+        assert response.context["connected_credential"] is None
+        content = response.content.decode()
+        assert "You created a credential" in content
+        assert "Connect your app over SMTP" in content
+
+    def test_get__credential_step_waits_until_the_app_authenticates(
+        self, admin_client, org
+    ):
+        """A credential alone does not finish the checklist."""
+        MsaCredential.objects.create_with_key(org=org, name="unused")
+        OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="x@example.com",
+            mail_from="y@example.com",
+            domain=Domain.objects.get(org=org, is_managed=True),
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        assert response.status_code == 200
+        assert response.context["onboarding_complete"] is False
+
+    def test_get__renders_the_checklist_in_order(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/")
+
+        content = response.content.decode()
+        assert 'class="item-group"' in content
+        assert content.index("Send a test message to") < content.index(
+            "Create A Credential"
+        )
+        assert content.index("Create A Credential") < content.index(
+            "Connect your app over SMTP"
+        )
+
     def test_get__unused_credential_is_not_a_connected_app(self, admin_client, org):
         MsaCredential.objects.create_with_key(org=org, name="unused")
         response = admin_client.get(f"/org/{org.slug}/email/")

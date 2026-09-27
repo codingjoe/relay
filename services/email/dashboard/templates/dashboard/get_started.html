@@ -67,6 +67,46 @@
     <article class="item" data-variant="outline">
       <figure>
         <i
+          data-lucide="{% if has_credential %}circle-check{% else %}circle-dashed{% endif %}"
+          class="size-4 {% if has_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
+          aria-hidden="true"
+        ></i>
+      </figure>
+      <section class="min-w-48">
+        {% if has_credential %}
+          <h3>{% translate "you created a credential"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Its key was shown once, when you created it.
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">{% translate "create a credential"|title %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Your application authenticates with a credential, and the key is shown once, at creation.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        {% if not has_credential %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            data-dialog="dlg-new-credential"
+          >
+            {% translate "create a credential"|title %}
+          </button>
+        {% endif %}
+      </aside>
+    </article>
+
+    <article class="item" data-variant="outline">
+      <figure>
+        <i
           data-lucide="{% if connected_credential %}circle-check{% else %}circle-dashed{% endif %}"
           class="size-4 {% if connected_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
           aria-hidden="true"
@@ -86,33 +126,21 @@
           <h3 class="line-clamp-none">{% translate "connect your app over SMTP"|capfirst %}</h3>
           <p class="line-clamp-none">
             {% blocktranslate trimmed %}
-              Create a credential and point your application at the submission host. This step completes as soon as your
-              app authenticates once.
+              Point your application at the submission host and send once. This step completes on the first
+              authenticated submission.
             {% endblocktranslate %}
           </p>
         {% endif %}
       </section>
       <aside>
-        {% if connected_credential %}
-          <a
-            class="btn"
-            data-variant="secondary"
-            data-size="sm"
-            href="{% url 'msa:credential-list' org.slug %}"
-          >
-            {% translate "credentials"|capfirst context "noun" %}
-          </a>
-        {% else %}
-          <button
-            type="button"
-            class="btn"
-            data-variant="secondary"
-            data-size="sm"
-            data-dialog="dlg-new-credential"
-          >
-            {% translate "create a credential"|title %}
-          </button>
-        {% endif %}
+        <a
+          class="btn"
+          data-variant="secondary"
+          data-size="sm"
+          href="{% url 'msa:credential-list' org.slug %}"
+        >
+          {% translate "credentials"|capfirst context "noun" %}
+        </a>
       </aside>
     </article>
   </div>
