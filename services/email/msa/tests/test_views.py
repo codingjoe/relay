@@ -196,8 +196,8 @@ class TestTestEmailView:
             part.get_content_type(): part.get_content() for part in stored.iter_parts()
         }
         assert set(parts) == {"text/html", "text/plain"}
-        assert f"postmaster@{domain.name}" in parts["text/html"]
-        assert f"postmaster@{domain.name}" in parts["text/plain"]
+        for part in parts.values():
+            assert f"This test message left {domain.name}." in part
         link = f"http://testserver/org/{org.slug}/email/messages/{message.pk}"
         assert f'href="{link}"' in parts["text/html"]
         assert f"<{link}>" in parts["text/plain"]

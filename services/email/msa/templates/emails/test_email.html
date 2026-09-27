@@ -1,25 +1,74 @@
 {% extends "emails/base.html" %}
-{% load django_letter i18n %}
+{% load django_letter i18n static %}
 
 {% block content %}
-  <h1 class="first">{% translate "Your test message is on its way" %}</h1>
-  <p>
-    {% blocktranslate trimmed with sender=sender recipient=recipient %}
-      Your message left relay from {{ sender }} for {{ recipient }}: accepted, DKIM-signed, and queued for delivery.
-    {% endblocktranslate %}
-  </p>
+  {% table class="align-center" %}
+  <tr>
+    <td align="center">
+      <img
+        src="{% static 'img/game-day.svg' %}"
+        alt=""
+        width="442"
+        height="352"
+        style="width: 80%; height: auto"
+      >
+    </td>
+  </tr>
+  {% endtable %}
+  <h1 class="first">{% translate "Your test message arrived" %}</h1>
   <p>
     {% blocktranslate trimmed %}
-      The transmission trace has the details: the SMTP handshake, the TLS session, and the signature relay added. Open
-      it in relay to follow this message all the way to your inbox.
+      Every message relay sends stays in your dashboard with its delivery log, so you can follow this one whenever you
+      like.
     {% endblocktranslate %}
   </p>
   {% translate "View the transmission trace" as button_label %}
   {% button href=trace_url value=button_label primary=True %}
+  <h2>{% translate "Send from your own application" %}</h2>
   <p>
     {% blocktranslate trimmed %}
-      When it arrives, your mail client can tell you the rest. SPF, DKIM, and DMARC passing on your domain are what
-      mailbox providers check before they trust the next message you send to a real recipient.
+      Point your application at the submission host and authenticate with a credential.
     {% endblocktranslate %}
+  </p>
+  {% table %}
+  <tr>
+    <td>{% translate "Server" %}</td>
+    <td><code>{{ smtp_hostname }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Port (implicit TLS)" %}</td>
+    <td><code>{{ smtp_implicit_tls_ports|join:", " }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Port (STARTTLS)" %}</td>
+    <td><code>{{ smtp_starttls_ports|join:", " }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Username" %}</td>
+    <td><code>{{ username }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Password" %}</td>
+    <td>{% translate "the credential key" %}</td>
+  </tr>
+  {% endtable %}
+  <p>
+    {% blocktranslate trimmed %}
+      The credential key is shown once, when you create it, so copy it then. A sandbox credential stores your messages
+      without delivering them.
+    {% endblocktranslate %}
+  </p>
+  <p>
+    <a href="{{ credentials_url }}">{% translate "Create a credential" %}</a>
+  </p>
+  <h2>{% translate "Send from your own domain" %}</h2>
+  <p>
+    {% blocktranslate trimmed with domain=domain %}
+      This test message left {{ domain }}. Add a domain you own, delegate it to relay, and relay serves its SPF, DKIM,
+      and DMARC records for you.
+    {% endblocktranslate %}
+  </p>
+  <p class="last">
+    <a href="{{ domains_url }}">{% translate "Add a domain" %}</a>
   </p>
 {% endblock content %}

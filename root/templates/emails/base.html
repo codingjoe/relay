@@ -140,6 +140,21 @@ wordmark ships with the chrome. Re-check it when the package updates.
         color: #6200d1;
         text-decoration: underline;
       }
+
+      /* Settings, keys, and transcripts read as code, the way they do in the
+         dashboard. Mail clients have no access to Fira Code, so the stack
+         falls back to whatever the client has. */
+      code,
+      pre {
+        font-size: 15px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      pre {
+        margin: 0;
+      }
       /* -------------------------------------
           BUTTONS
       ------------------------------------- */

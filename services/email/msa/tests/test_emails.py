@@ -29,15 +29,16 @@ def make_test_email(*, domain=None, user=None, **kwargs):
 
 
 class TestTestEmail:
-    def test_get_context_data__builds_sender_and_trace_url(self, base_url):
+    def test_get_context_data__builds_the_page_links(self, base_url):
         user = User(email="member@acme.example")
         email = make_test_email(user=user)
-        assert email.get_context_data() == {
+        assert email.get_context_data() == emails.get_submission_context() | {
             "user": user,
             "domain": "acme.example",
-            "sender": f"{settings.RELAY_POSTMASTER_LOCAL_PART}@acme.example",
-            "recipient": "member@acme.example",
+            "username": "acme",
             "trace_url": f"{base_url}/org/acme/email/messages/{MESSAGE_PK}",
+            "credentials_url": f"{base_url}/org/acme/email/credentials/",
+            "domains_url": f"{base_url}/org/acme/email/domains/",
         }
 
     def test_get_context_data__strips_a_trailing_slash(self):
@@ -95,28 +96,46 @@ class TestTestEmail:
         message = make_test_email().message()
         html = message.get_body(preferencelist=("html",)).get_content()
         text = message.get_body(preferencelist=("plain",)).get_content()
-        assert f"{settings.RELAY_POSTMASTER_LOCAL_PART}@acme.example" in html
-        assert f"{settings.RELAY_POSTMASTER_LOCAL_PART}@acme.example" in text
-        assert "member@acme.example" in text
+        for part in (html, text):
+            assert "acme.example" in part
+            assert "delivery log" in part
         link = f"{base_url}/org/acme/email/messages/{MESSAGE_PK}"
         assert f'href="{link}"' in html
         assert f"<{link}>" in text
+
+    def test_message__carries_the_submission_settings(self, base_url):
+        submission = emails.get_submission_context()
+        html = (
+            make_test_email().message().get_body(preferencelist=("html",)).get_content()
+        )
+        assert submission["smtp_hostname"] in html
+        for port in (
+            *submission["smtp_implicit_tls_ports"],
+            *submission["smtp_starttls_ports"],
+        ):
+            assert f">{port}<" in html
+        assert ">acme<" in html
+        assert f'href="{base_url}/org/acme/email/credentials/"' in html
+        assert f'href="{base_url}/org/acme/email/domains/"' in html
 
     def test_render_preview__renders_without_arguments(self, base_url):
         email = emails.TestEmail.render_preview()
         assert email.subject == "Test email from acme.example"
         assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
-        assert "member@acme.example" in email.body
+        assert "acme.example" in email.body
         assert f"{base_url}/org/acme/email/messages/" in email.body
         assert f'<img src="{base_url}/static/img/word-brand-512x' in email.html
 
-    def test_render_preview__uses_given_domain_and_recipient(self):
+    def test_render_preview__uses_given_domain(self):
         email = emails.TestEmail.render_preview(
             domain=Domain(name="custom.example", org=Organization(slug="custom")),
-            extra_context={"user": User(email="member@custom.example")},
         )
         assert email.subject == "Test email from custom.example"
-        assert "member@custom.example" in email.html
+        assert "This test message left custom.example." in email.body
+        assert (
+            f"{email.get_base_url().rstrip('/')}/org/custom/email/domains/"
+            in email.body
+        )
 
     def test_render_preview__language_argument_wins(self):
         email = emails.TestEmail.render_preview(language="de")

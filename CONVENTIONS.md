@@ -259,6 +259,16 @@ A rule lives either in this document or in `.relint.yml`, never both.
   they are: mail clients need the table layout and the inline styles premailer
   produces from it.
 
+- Email illustrations are SVGs in `root/static/img/`, recolored with the same
+  palette as the web variants. A linked SVG renders in Apple Mail, Outlook 2019
+  and later, and Gmail, which rasterizes it on the way in, so only clients older
+  than those skip the artwork. Set `alt=""`, give the `img` the `width` and
+  `height` of its display size, and scale it with a percentage `width` plus
+  `height: auto`: the attributes hold the aspect ratio before the file loads,
+  the percentage follows the card on narrow screens. Preview a recolored artwork
+  in a browser rather than with `rsvg-convert`, which paints the content outside
+  the artwork's viewBox that a client would clip.
+
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`, which imports Tailwind CSS v4,
   basecoat-css (maia style), and the partials next to it: `theme.css` (design
