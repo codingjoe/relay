@@ -23,9 +23,10 @@ REPUTATION_CHART_COLORS = {
 
 
 def sent_per_day(org, start):
-    """Return the outgoing message count per day since `start`."""
+    """Return the deliverable outgoing message count per day since `start`."""
     rows = (
         OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
+        .exclude(status=OutgoingMessage.Status.SANDBOXED)
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(count=Count("id"))

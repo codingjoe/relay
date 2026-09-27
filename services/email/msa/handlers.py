@@ -151,7 +151,6 @@ def authenticate(username: str, key: str):
     api_keys = MsaCredential.objects.select_related("org").filter(
         key_prefix=key[:4],
         org__slug=username,
-        type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
         hold=False,
     )
     for api_key in api_keys:
@@ -248,7 +247,12 @@ def process_message(
     """
     Store a submitted outgoing message and enqueue its delivery.
 
-    Delivery is not enqueued when the org is suspended.
+    A suppressed recipient is stored without delivery, even if the
+    organization is suspended. Otherwise a suspended organization is refused
+    before relay stores anything.
+    A submission with a sandbox credential is stored with the sandboxed
+    status, without a signature or a relay-minted Feedback-ID, and relay makes
+    no delivery attempt for it.
     """
     if "@" not in mail_from:
         return "550 Sender domain not registered"
@@ -271,10 +275,8 @@ def process_message(
         return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
-        # Suppressed mail is never sent, so relay mints no Feedback-ID and
-        # FBL complaints can never be attributed to it. Strip customer
-        # Feedback-ID headers so only the Feedback-ID relay actually
-        # forwarded with ever persists.
+        # Suppressed mail never leaves relay, so relay mints no Feedback-ID
+        # and the stored copy carries none.
         raw_bytes = remove_feedback_id_headers(raw_bytes)
         store_outgoing_message(
             org=credential.org,
@@ -301,15 +303,20 @@ def process_message(
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
-    raw_bytes = sign_message(raw_bytes, domain)
+    if credential.type == MsaCredential.Type.SANDBOX:
+        # The sandboxed status is terminal, so no spam scan or delivery follows.
+        status, feedback_id = OutgoingMessage.Status.SANDBOXED, ""
+    else:
+        raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
+        raw_bytes = sign_message(raw_bytes, domain)
+        status = OutgoingMessage.Status.PENDING
     store_outgoing_message(
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
         domain=domain,
         credential=credential,
-        status=OutgoingMessage.Status.PENDING,
+        status=status,
         feedback_id=feedback_id,
         ssl=ssl,
         client_ip=client_ip,

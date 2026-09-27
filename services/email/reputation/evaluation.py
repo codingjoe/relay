@@ -28,15 +28,17 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
 
     Returns zero counts and rates when the organization has no outgoing
     messages in the window. Only SMTP 5xx bounces count toward the
-    bounce rate; soft bounces are for display only.
+    bounce rate; soft bounces are for display only. Sandboxed messages
+    count nowhere, because relay makes no delivery attempt for them.
     """
     window_start = timezone.now() - timedelta(
         days=settings.RELAY_REPUTATION_WINDOW_DAYS
     )
-    total_sent = OutgoingMessage.objects.filter(
-        org=org,
-        created_at__gte=window_start,
-    ).count()
+    total_sent = (
+        OutgoingMessage.objects.filter(org=org, created_at__gte=window_start)
+        .exclude(status=OutgoingMessage.Status.SANDBOXED)
+        .count()
+    )
 
     transmissions = Transmission.objects.filter(
         message__org=org,
