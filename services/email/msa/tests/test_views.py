@@ -424,6 +424,18 @@ class TestCredentialListView:
             r"aria-label=[\"']Copy connection URI[\"']", uri_button.group()
         )
 
+    def test_get__key_dialog_accordion_opens_one_panel_at_a_time(
+        self, admin_client, org
+    ):
+        """Basecoat keeps one panel open unless the root carries `data-multiple`."""
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert 'class="accordion"' in content
+        assert "data-multiple" not in content
+
     def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
 
