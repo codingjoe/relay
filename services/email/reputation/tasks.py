@@ -1,5 +1,4 @@
 import logging
-import smtplib
 
 from crontask import cron
 from django.conf import settings
@@ -215,7 +214,7 @@ def send_org_weekly_digest(org_id):
                         )
                     ]
                 )
-            except (smtplib.SMTPException, OSError) as error:
+            except OSError as error:
                 logger.exception("Weekly digest for user %r failed", membership.user_id)
                 failures.append((membership.user_id, error))
     if failures:
