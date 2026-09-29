@@ -64,20 +64,21 @@ def digest_illustration(stats: ReputationSummary) -> tuple[str, str]:
 def message_interval(daily_average: int) -> str:
     """Return how often a message left the building, in words."""
     # The minute arm starts at 90 seconds, so only the seconds arm has a singular.
-    match seconds := 86400 // daily_average if daily_average else 0:
+    interval = timedelta(days=1) / daily_average if daily_average else timedelta()
+    match seconds := int(interval.total_seconds()):
         case 0:
             return ""
-        case _ if seconds < 90:
+        case _ if interval < timedelta(seconds=90):
             return ngettext(
                 "one every second", "one every %(count)d seconds", seconds
             ) % {"count": seconds}
-        case _ if seconds < 5400:
+        case _ if interval < timedelta(minutes=90):
             return gettext("one every %(count)d minutes") % {
-                "count": round(seconds / 60)
+                "count": round(interval / timedelta(minutes=1))
             }
         case _:
             return gettext("one every %(count)d hours") % {
-                "count": round(seconds / 3600)
+                "count": round(interval / timedelta(hours=1))
             }
 
 
