@@ -133,6 +133,16 @@ A rate that sits above its limit turns the copy plain. The mail then names
 the rate, the limit, and what relay does next, and links to the dashboard for
 the per-day charts and the reports behind them.
 
+The digest reaches every member of the organization, and any member can leave
+it. A leave link sits in the footer of the mail, and the unsubscribe button of
+a mail client points at the same address. The link needs no sign-in: it opens
+a page that names the member and the organization, and the member leaves the
+list by confirming there. The link alone only shows that page, so a scanner
+that follows links in a mail never drops a member by itself. Leaving stops the
+digest for that member and that organization, and nothing else: the mail an
+account needs still arrives. A member whose address sits on the
+organization's suppression list receives no digest.
+
 ## Reputation limits
 
 relay computes hard-bounce and complaint rates for your organization over a

@@ -71,3 +71,13 @@
     {% endblocktranslate %}
   </p>
 {% endblock content %}
+
+{% block footer_content %}
+  <p>
+    {% blocktranslate trimmed with organization=organization %}
+      Every member of {{ organization }} gets this mail. <a href="{{ opt_out_path }}">Leave the weekly digest</a> if you
+      would rather not read it.
+    {% endblocktranslate %}
+  </p>
+  {{ block.super }}
+{% endblock footer_content %}

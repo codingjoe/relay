@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "leave the weekly digest"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <div class="max-w-md">
+    {% if opted_out %}
+      <h2 class="mb-4">{% translate "you are off the list"|capfirst %}</h2>
+      <p class="mb-6 text-muted-foreground">
+        {% blocktranslate trimmed with member=member.email organization=org.slug %}
+          {{ member }} no longer receives the weekly digest for {{ organization }}. Mail your account needs still
+          arrives.
+        {% endblocktranslate %}
+      </p>
+      <a href="{% url 'home' %}" class="btn">{% translate "back to relay"|capfirst %}</a>
+    {% else %}
+      <h2 class="mb-4">{% translate "leave the weekly digest"|capfirst %}</h2>
+      <p class="mb-6 text-muted-foreground">
+        {% blocktranslate trimmed with member=member.email organization=org.slug %}
+          {{ member }} receives the weekly digest for {{ organization }}, every Monday. Leaving stops that one mail, and
+          nothing else.
+        {% endblocktranslate %}
+      </p>
+      {# The signed token in the address is the credential; a mail client carries no session. #}
+      <form method="post" class="flex gap-2">
+        <button type="submit" class="btn">{% translate "leave the digest"|capfirst %}</button>
+        <a href="{% url 'home' %}" class="btn" data-variant="secondary">
+          {% translate "cancel"|capfirst context "verb" %}
+        </a>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}

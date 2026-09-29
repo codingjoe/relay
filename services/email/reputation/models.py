@@ -1,10 +1,12 @@
 import uuid
 
 from django.conf import settings
+from django.core import signing
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.models import TimeStamped
 from accounts.models import OrganizationOwned
 
 from .parser import parse_fbl
@@ -225,3 +227,41 @@ class FblReport(OrganizationOwned):
             original_rcpt_to=message.rcpt_to.split(",")[0],
             original_message_id=message.message_id,
         )
+
+
+class DigestOptOut(OrganizationOwned):
+    """
+    Record that one member asked to leave the weekly digest.
+
+    The record is per organization, so a member can leave one organization's
+    digest and keep another's. A member whose address is suppressed needs no
+    record: the digest skips the address either way.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="digest_opt_outs",
+        help_text=_("Member that asked to leave the weekly digest."),
+    )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org", "user"],
+                name="unique_digest_opt_out_per_member",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} @ {self.org}"
+
+    @classmethod
+    def salt(cls) -> str:
+        """Return a stable salt unique to this model class."""
+        return f"{cls.__module__}.{cls.__name__}"
+
+    @classmethod
+    def build_token(cls, org, user) -> str:
+        """Return the signed handle that an opt-out link carries."""
+        return signing.dumps([org.pk, user.pk], salt=cls.salt())

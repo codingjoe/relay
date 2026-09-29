@@ -65,6 +65,7 @@ urlpatterns = [
     path("open-source/", views.OpenSourceView.as_view(), name="open-source"),
     # Platform (not org-scoped)
     path("", include("accounts.urls")),
+    path("unsubscribe/", include("services.email.reputation.digest_urls")),
     path("legal/", include("legal.urls")),
     path("docs/", include("docs.urls")),
     path("know-how/", include("know_how.urls")),

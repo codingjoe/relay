@@ -1,10 +1,12 @@
+from collections.abc import Iterator
 from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
 from django.utils.translation import ngettext
 
-from accounts.models import Organization
+from accounts.models import Membership, Organization
+from services.email.msa.models import SuppressionEntry
 
 from .billing import month_cost, overage_price
 from .charts import build_volume_chart
@@ -69,3 +71,20 @@ def sample_org_digest() -> dict[str, Any]:
         ),
         month_messages=42100,
     )
+
+
+def iter_digest_members(org: Organization) -> Iterator[Membership]:
+    """
+    Yield the members of one organization that the digest reaches.
+
+    A member with a deactivated account, no address, an opt-out for this
+    organization, or a suppressed address is skipped.
+    """
+    for membership in (
+        Membership.objects.filter(org=org, user__is_active=True)
+        .exclude(user__email="")
+        .exclude(user__digest_opt_outs__org=org)
+        .select_related("user")
+    ):
+        if not SuppressionEntry.objects.is_suppressed(org, membership.user.email):
+            yield membership

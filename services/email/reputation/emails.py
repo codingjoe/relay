@@ -2,6 +2,7 @@ import typing
 
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.http import HttpRequest
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django_letter import TemplateEmail
 
@@ -15,9 +16,14 @@ class WeeklyDigestEmail(TemplateEmail):
     template_name = "emails/weekly_digest.html"
     subject = _("Your %(window_phrase)s in email at %(organization)s: %(sent)s sent")
 
-    def __init__(self, *, digest: dict[str, typing.Any], **kwargs):
+    def __init__(self, *, digest: dict[str, typing.Any], opt_out_token: str, **kwargs):
         self.digest = digest
+        self.opt_out_path = reverse("digest:opt-out", kwargs={"token": opt_out_token})
         super().__init__(**kwargs)
+        self.extra_headers |= {
+            "List-Unsubscribe": f"<{self.get_base_url()}{self.opt_out_path}>",
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }
 
     @classmethod
     def render_preview(
@@ -28,17 +34,23 @@ class WeeklyDigestEmail(TemplateEmail):
         language: str | None = None,
         **kwargs,
     ) -> TemplateEmail:
-        """Fill in a busy window when the caller passes no digest."""
+        """Fill in a busy window and a sample link when the caller passes neither."""
         kwargs.setdefault("digest", sample_org_digest())
+        kwargs.setdefault("opt_out_token", "sample")
         return super().render_preview(
             request, context=context, language=language, **kwargs
         )
 
     def get_context_data(self) -> dict[str, typing.Any]:
-        return super().get_context_data() | self.digest | {
-            "sent": intcomma(self.digest["stats"]["total_sent"]),
-            "verdict": self.get_verdict(self.digest["stats"]),
-        }
+        return (
+            super().get_context_data()
+            | self.digest
+            | {
+                "sent": intcomma(self.digest["stats"]["total_sent"]),
+                "verdict": self.get_verdict(self.digest["stats"]),
+                "opt_out_path": self.opt_out_path,
+            }
+        )
 
     def get_preheader(self, **context) -> str:
         return context["verdict"]

@@ -7,16 +7,16 @@ from django.db import transaction
 from django.tasks import task
 from django.utils import timezone
 
-from accounts.models import Membership, Organization
+from accounts.models import Organization
 from domains.models import Domain
 from services.email.message.models import Message
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 
 from . import evaluation
-from .digest import build_org_digest
+from .digest import build_org_digest, iter_digest_members
 from .emails import WeeklyDigestEmail
-from .models import FblReport
+from .models import DigestOptOut, FblReport
 
 logger = logging.getLogger(__name__)
 
@@ -187,10 +187,9 @@ class DigestDeliveryError(Exception):
 @task(queue_name="default")
 def send_org_weekly_digest(org_id):
     """
-    Mail the window's numbers to every active member of the organization.
+    Mail the window's numbers to the members the digest reaches.
 
-    An organization relay suspended after the fan-out is dropped here, and a
-    member with a deactivated account or no email address is skipped. A
+    An organization relay suspended after the fan-out is dropped here. A
     failed delivery leaves the rest of the organization mailed, and the run
     fails at the end with the members it could not reach.
     """
@@ -199,15 +198,12 @@ def send_org_weekly_digest(org_id):
         return None
     digest = build_org_digest(org)
     failures = []
-    for membership in (
-        Membership.objects.filter(org=org, user__is_active=True)
-        .exclude(user__email="")
-        .select_related("user")
-    ):
+    for membership in iter_digest_members(org):
         try:
             WeeklyDigestEmail.to_user(
                 membership.user,
                 digest=digest,
+                opt_out_token=DigestOptOut.build_token(org, membership.user),
                 language=settings.LANGUAGE_CODE,
             ).send()
         except Exception as error:
