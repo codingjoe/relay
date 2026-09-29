@@ -110,7 +110,7 @@ def chart_number(value: str) -> int:
     """Return the count a chart query string carries, or zero."""
     try:
         return max(int(value), 0)
-    except TypeError, ValueError:
+    except ValueError:
         return 0
 
 
