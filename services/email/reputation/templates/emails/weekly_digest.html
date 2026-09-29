@@ -19,6 +19,15 @@
       {% endblocktranslate %}
     {% endif %}
   </p>
+  {% if week_chart_url %}
+    <img
+      src="{{ week_chart_url }}"
+      alt="{% translate 'Each bar is one day of the window.' %}"
+      width="600"
+      height="44"
+      style="display:block;width:100%;height:auto;margin:0 0 8px"
+    >
+  {% endif %}
   {% if illustration %}
     {% table class="align-center" %}
     <tr>
@@ -43,9 +52,9 @@
   {% endif %}
   <h2>{% translate "the scoreboard"|capfirst %}</h2>
   {% translate "hard bounce rate" as bounce_label %}
-  {% include "emails/digest_gauge.html" with label=bounce_label|capfirst value=stats.hard_bounce_rate limit=bounce_threshold share=bounce_limit_share over=stats.hard_bounce_over_limit %}
+  {% include "emails/digest_gauge.html" with label=bounce_label|capfirst value=stats.hard_bounce_rate limit=bounce_threshold share=bounce_limit_share over=stats.hard_bounce_over_limit bar_url=bounce_bar_url %}
   {% translate "complaint rate" as complaint_label %}
-  {% include "emails/digest_gauge.html" with label=complaint_label|capfirst value=stats.complaint_rate limit=complaint_threshold share=complaint_limit_share over=stats.complaint_over_limit %}
+  {% include "emails/digest_gauge.html" with label=complaint_label|capfirst value=stats.complaint_rate limit=complaint_threshold share=complaint_limit_share over=stats.complaint_over_limit bar_url=complaint_bar_url %}
   <p>
     {% translate "A message the spam filter held counts as a complaint, exactly as the dashboard counts it." %}
   </p>
@@ -56,21 +65,39 @@
     <td class="align-right">{{ month_messages|intcomma }}</td>
   </tr>
   {% endtable %}
-  {% include "emails/digest_bar.html" with share=month_bar_share colour="#6200d1" height=12 %}
+  <img
+    src="{{ month_bar_url }}"
+    alt=""
+    width="600"
+    height="12"
+    style="display:block;width:100%;height:auto;margin:6px 0 10px"
+  >
   {% table %}
   <tr>
     <td>{% translate "last month"|capfirst %}</td>
     <td class="align-right">{{ month_last_messages|intcomma }}</td>
   </tr>
   {% endtable %}
-  {% include "emails/digest_bar.html" with share=last_month_bar_share colour="#9aa0a6" height=12 %}
+  <img
+    src="{{ last_month_bar_url }}"
+    alt=""
+    width="600"
+    height="12"
+    style="display:block;width:100%;height:auto;margin:6px 0 10px"
+  >
   {% table %}
   <tr>
     <td>{% translate "free tier"|capfirst %}</td>
     <td class="align-right">{{ free_monthly_messages|intcomma }}</td>
   </tr>
   {% endtable %}
-  {% include "emails/digest_bar.html" with share=free_tier_bar_share colour="#cbb6f2" height=8 %}
+  <img
+    src="{{ free_tier_bar_url }}"
+    alt=""
+    width="600"
+    height="8"
+    style="display:block;width:100%;height:auto;margin:6px 0 10px"
+  >
   <p>
     {% blocktranslate with limit=free_monthly_messages|intcomma trimmed %}
       The free tier covers {{ limit }} messages a month.

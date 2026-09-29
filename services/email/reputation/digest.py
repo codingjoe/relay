@@ -1,15 +1,18 @@
 from collections.abc import Iterator
+from datetime import timedelta
 from typing import Any
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import ngettext
 
 from accounts.models import Membership, Organization
 from services.email.msa.models import SuppressionEntry
 
 from .billing import month_cost, overage_price
-from .charts import build_volume_chart
+from .charts import build_volume_chart, sent_per_day
 from .evaluation import ReputationSummary, build_reputation_stats
 
 
@@ -22,12 +25,25 @@ def build_org_digest(org: Organization) -> dict[str, Any]:
     mail by up to a day of traffic.
     """
     volume = build_volume_chart(org)
+    window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
+    start = timezone.localdate() - timedelta(days=window_days - 1)
+    window_counts = sent_per_day(org, start)
     return build_digest_context(
         org,
         stats=build_reputation_stats(org),
         month_messages=volume["this_month_total"],
         month_last_messages=volume["rows"][-1]["last_month"] or 0,
+        daily_counts=[
+            window_counts.get(start + timedelta(days=offset), 0)
+            for offset in range(window_days)
+        ],
     )
+
+
+def chart_url(org: Organization, name: str, **query) -> str:
+    """Return the path of one digest chart, with its numbers in the query."""
+    path = reverse(f"monitoring:{name}", kwargs={"org_slug": org.slug})
+    return f"{path}?{urlencode(query)}"
 
 
 def share(value: float, total: float) -> float:
@@ -53,6 +69,7 @@ def build_digest_context(
     stats: ReputationSummary,
     month_messages: int,
     month_last_messages: int,
+    daily_counts: list[int],
 ) -> dict[str, Any]:
     """
     Return the window rates, their limits, the month so far, and its cost.
@@ -81,11 +98,46 @@ def build_digest_context(
             stats["complaint_rate"],
             settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
         ),
+        "bounce_bar_url": chart_url(
+            org,
+            "digest-bar",
+            value=f"{share(stats['hard_bounce_rate'], settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD):.1f}",
+            tone="bad" if stats["hard_bounce_over_limit"] else "good",
+            marker=1,
+        ),
+        "complaint_bar_url": chart_url(
+            org,
+            "digest-bar",
+            value=f"{share(stats['complaint_rate'], settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD):.1f}",
+            tone="bad" if stats["complaint_over_limit"] else "good",
+            marker=1,
+        ),
         "month_messages": month_messages,
         "month_last_messages": month_last_messages,
-        "month_bar_share": share(month_messages, volume_scale),
-        "last_month_bar_share": share(month_last_messages, volume_scale),
-        "free_tier_bar_share": share(free_monthly_messages, volume_scale),
+        "month_bar_url": chart_url(
+            org,
+            "digest-bar",
+            value=f"{share(month_messages, volume_scale):.1f}",
+            tone="primary",
+        ),
+        "last_month_bar_url": chart_url(
+            org,
+            "digest-bar",
+            value=f"{share(month_last_messages, volume_scale):.1f}",
+            tone="muted",
+        ),
+        "free_tier_bar_url": chart_url(
+            org,
+            "digest-bar",
+            value=f"{share(free_monthly_messages, volume_scale):.1f}",
+            tone="soft",
+            height=8,
+        ),
+        "week_chart_url": (
+            chart_url(org, "digest-week", counts=",".join(str(count) for count in daily_counts))
+            if any(daily_counts)
+            else ""
+        ),
         "cost": month_cost(month_messages),
         "free_monthly_messages": free_monthly_messages,
         "overage_price": overage_price(),
@@ -113,6 +165,7 @@ def sample_org_digest() -> dict[str, Any]:
         ),
         month_messages=42100,
         month_last_messages=38400,
+        daily_counts=[980, 1420, 2310, 1750, 2640, 1880, 1500],
     )
 
 

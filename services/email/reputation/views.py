@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -6,6 +7,7 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
+from . import svg
 from .billing import month_cost, overage_price
 from .charts import build_reputation_chart, build_volume_chart
 from .models import FblReport
@@ -102,3 +104,44 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "bounce_threshold": bounce_threshold,
             "complaint_threshold": complaint_threshold,
         }
+
+
+def chart_number(value: str, default: float = 0.0) -> float:
+    """Return the number a chart query string carries, or the default."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+class DigestChartView(generic.View):
+    """Draw one chart of the digest mail from the numbers in its query."""
+
+    kind = "bar"
+
+    def get(self, request, *args, **kwargs):
+        response = HttpResponse(
+            self.get_svg(request.GET),
+            content_type="image/svg+xml",
+        )
+        response["Cache-Control"] = "public, max-age=604800, immutable"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    def get_svg(self, query):
+        match self.kind:
+            case "week":
+                counts = [
+                    max(int(chart_number(part)), 0)
+                    for part in query.get("counts", "").split(",")
+                    if part
+                ]
+                return svg.week(counts[:31], tone=query.get("tone", "primary"))
+            case _:
+                height = int(chart_number(query.get("height"), 12))
+                return svg.bar(
+                    chart_number(query.get("value")),
+                    tone=query.get("tone", "good"),
+                    height=min(max(height, 6), 24),
+                    marker=query.get("marker") == "1",
+                )
