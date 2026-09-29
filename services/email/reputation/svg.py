@@ -8,7 +8,6 @@ was about, not the week the reader opens it.
 """
 
 COLUMN = "#8b5cf6"
-TRACK = "#6b6b76"
 WIDTH = 600
 CORNER_RADIUS = 4
 MAX_DAYS = 31
@@ -36,6 +35,5 @@ def week(counts: list[int], height: int = 44) -> str:
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {height}"'
         f' width="{WIDTH}" height="{height}" role="img">'
-        f'<rect y="{height - 2}" width="{WIDTH}" height="2" fill="{TRACK}" fill-opacity="0.25"/>'
         f"{bars}</svg>"
     )
