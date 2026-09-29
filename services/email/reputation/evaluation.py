@@ -80,9 +80,7 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
 
 
 def build_reputation_stats(org: Organization) -> ReputationSummary:
-    """
-    Return the window counts, both rates, and each rate against its limit.
-    """
+    """Return the window counts, both rates, and each rate against its limit."""
     stats = compute_org_reputation(org)
     return stats | {
         "hard_bounce_over_limit": (

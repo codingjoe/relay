@@ -195,7 +195,8 @@ def send_org_weekly_digest(org_id):
     """
     org = Organization.objects.get(pk=org_id)
     if org.suspended_at:
-        return None
+        logger.info("Dropped the weekly digest for suspended organization %r", org_id)
+        return
     digest = build_org_digest(org)
     failures = []
     for membership in iter_digest_members(org):
@@ -206,7 +207,8 @@ def send_org_weekly_digest(org_id):
                 opt_out_token=DigestOptOut.build_token(org, membership.user),
                 language=settings.LANGUAGE_CODE,
             ).send()
-        except Exception as error:
+        except Exception as error:  # the backend and the template raise varied errors
+            logger.exception("Weekly digest for user %r failed", membership.user_id)
             failures.append((membership.user_id, error))
     if failures:
         raise DigestDeliveryError(

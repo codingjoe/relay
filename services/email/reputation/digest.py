@@ -32,8 +32,10 @@ def build_digest_context(
     org: Organization, stats: ReputationSummary, month_messages: int
 ) -> dict[str, Any]:
     """
-    Return the window rates, their limits, the month so far, and the
-    organization and window phrase the mail names.
+    Return the window rates, their limits, the month so far, and its cost.
+
+    The organization the mail names and the window phrase it reports come
+    from the same context.
     """
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     return {
