@@ -128,6 +128,7 @@ class DigestOptOutView(NoStoreCacheMixin, generic.TemplateView):
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         try:
+            # No max_age: an opt-out link in an old mail must still work.
             org_pk, user_pk = signing.loads(kwargs["token"], salt=DigestOptOut.salt())
         except signing.BadSignature as error:
             raise Http404 from error

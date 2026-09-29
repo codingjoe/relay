@@ -1,13 +1,14 @@
 import uuid
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core import signing
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from abstract.models import TimeStamped
-from accounts.models import OrganizationOwned
+from accounts.models import Organization, OrganizationOwned
 
 from .parser import parse_fbl
 
@@ -262,6 +263,6 @@ class DigestOptOut(OrganizationOwned):
         return f"{cls.__module__}.{cls.__name__}"
 
     @classmethod
-    def build_token(cls, org, user) -> str:
+    def build_token(cls, org: Organization, user: User) -> str:
         """Return the signed handle that an opt-out link carries."""
         return signing.dumps([org.pk, user.pk], salt=cls.salt())
