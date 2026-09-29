@@ -13,7 +13,8 @@ class WeeklyDigestEmail(TemplateEmail):
     """Report one organization's sending volume and its sender reputation."""
 
     template_name = "emails/weekly_digest.html"
-    subject = _("Your %(window_phrase)s in email at %(organization)s: %(sent)s sent")
+    subject = _("%(organization)s sent %(sent)s messages out the door")
+    subject_one = _("%(organization)s sent one message out the door")
 
     def __init__(self, *, digest: dict[str, typing.Any], **kwargs):
         self.digest = digest
@@ -43,6 +44,14 @@ class WeeklyDigestEmail(TemplateEmail):
                 "verdict": self.get_verdict(self.digest["stats"]),
             }
         )
+
+    def get_subject(self, **context) -> str:
+        """Pick the subject that fits the count, then fill its placeholders."""
+        match context["stats"]["total_sent"]:
+            case 1:
+                return self.subject_one % context
+            case _:
+                return super().get_subject(**context)
 
     def get_preheader(self, **context) -> str:
         return context["verdict"]

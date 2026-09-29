@@ -67,10 +67,6 @@
       height: auto;
     }
 
-    .digest-art--dark {
-      display: none;
-    }
-
     @media only screen and (max-width: 640px) {
       .digest-card {
         display: block !important;
@@ -100,14 +96,6 @@
       .digest-card-value--bad {
         color: #fca5a5 !important;
       }
-
-      .digest-art--light {
-        display: none !important;
-      }
-
-      .digest-art--dark {
-        display: inline-block !important;
-      }
     }
   </style>
 {% endblock extra_header %}
@@ -115,9 +103,9 @@
 {% block content %}
   <h1 class="first">
     {% blocktranslate count counter=stats.total_sent trimmed %}
-      Your {{ window_phrase }} at {{ organization }}: {{ sent }} message sent.
+      {{ sent }} message out the door at {{ organization }}, in the {{ window_phrase }}.
     {% plural %}
-      Your {{ window_phrase }} at {{ organization }}: {{ sent }} messages sent.
+      {{ sent }} messages out the door at {{ organization }}, in the {{ window_phrase }}.
     {% endblocktranslate %}
   </h1>
   <p>{{ verdict }}</p>
@@ -138,15 +126,15 @@
     {% translate "free"|capfirst as cost_value %}
   {% endif %}
   {% blocktranslate with limit=free_monthly_messages|intcomma asvar cost_caption trimmed %}
-    The free tier covers {{ limit }} messages a month.
+    {{ limit }} a month are on the house.
   {% endblocktranslate %}
   {% translate "hard bounce rate" as bounce_label %}
   {% blocktranslate with limit=bounce_threshold|percent:"2" asvar bounce_caption trimmed %}
-    The limit is {{ limit }}.
+    We allow up to {{ limit }}.
   {% endblocktranslate %}
   {% translate "complaint rate" as complaint_label %}
   {% blocktranslate with limit=complaint_threshold|percent:"2" asvar complaint_caption trimmed %}
-    The limit is {{ limit }}.
+    We allow up to {{ limit }}.
   {% endblocktranslate %}
   <table role="presentation" class="digest-cards" cellpadding="0" cellspacing="0" border="0">
     <tr>
@@ -174,7 +162,7 @@
     </tr>
   </table>
   {% if week_chart_url %}
-    <h2>{% translate "the week, day by day"|capfirst %}</h2>
+    <h2>{% translate "the week, bar by bar"|capfirst %}</h2>
     <img
       class="digest-chart"
       src="{{ week_chart_url }}"
@@ -186,32 +174,26 @@
       {% blocktranslate with month=month_messages|intcomma last=month_last_messages|intcomma trimmed %}
         {{ month }} messages this month, against {{ last }} last month.
       {% endblocktranslate %}
-      {% if stats.total_sent %}
+      {% if message_interval %}
         {% blocktranslate count counter=daily_average trimmed %}
-          That is about {{ counter }} message a day.
+          That is about {{ counter }} message a day, {{ message_interval }}.
         {% plural %}
-          That is about {{ counter }} messages a day.
+          That is about {{ counter }} messages a day, {{ message_interval }}.
         {% endblocktranslate %}
       {% endif %}
     </p>
   {% endif %}
   {% translate "Open monitoring" as button_label %}
   {% button href=dashboard_path value=button_label primary=True %}
-  {% if illustration_light %}
+  {% if illustration %}
     {% table class="align-center" %}
     <tr>
       <td align="center" class="pb16">
         <img
-          class="digest-art digest-art--light"
-          src="{% static illustration_light %}"
+          class="digest-art"
+          src="{% static illustration %}"
           alt=""
-          width="320"
-        >
-        <img
-          class="digest-art digest-art--dark"
-          src="{% static illustration_dark %}"
-          alt=""
-          width="320"
+          width="360"
         >
       </td>
     </tr>
@@ -219,7 +201,7 @@
   {% endif %}
   <p class="last">
     {% blocktranslate trimmed %}
-      This is your {{ window_phrase }}, every Monday. The dashboard keeps the per-day detail.
+      Back next Monday with a fresh set. The dashboard keeps the fine print.
     {% endblocktranslate %}
   </p>
 {% endblock content %}
