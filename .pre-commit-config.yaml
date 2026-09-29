@@ -43,6 +43,7 @@ repos:
           - mdformat-ruff
           - mdformat-web
           - mdformat-frontmatter
+        args: ["--number"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.9
     hooks:
