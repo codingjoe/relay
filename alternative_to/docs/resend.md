@@ -38,15 +38,15 @@ author: Johannes Maron
 
 ## What Resend does well
 
-Resend is operated by Plus Five Five, Inc., a US company. As of 2026, it offers one of the most complete developer experiences in email: official SDKs for most stacks, the React Email template ecosystem, a CLI, an MCP server, and inbound receiving on every plan, including a managed `<id>.resend.app` address. The free tier covers 3,000 messages a month, and SOC 2 Type II is listed on every plan.
+Resend is operated by Plus Five Five, Inc., a US company. It ships official SDKs for most stacks, plus the React Email template ecosystem, a CLI, and an MCP server. Receiving is available from the free tier up, and that tier covers 3,000 messages a month. SOC 2 Type II is listed on every plan.
 
-The trade-off is the infrastructure side. DNS records are paste-it-yourself. DKIM is one RSA-1024 key per domain, and Resend states that it does not support 2048-bit keys. It publishes no MTA-STS policy and takes no TLS-RPT reports. DMARC analysis is an open-source tool that you paste reports into or host yourself.
+The trade-off is the infrastructure side. DNS records are paste-it-yourself. DKIM is a single RSA-1024 key per domain, and Resend says it does not support 2048-bit keys. It publishes no MTA-STS policy and accepts no TLS-RPT reports. DMARC reports go to an address you choose, and reading them means pasting them into their open-source analyzer, or hosting it yourself.
 
 ## Where relay is different
 
 ### All-in-one monitoring
 
-Resend inspects your message content and reports your own sending metrics. It does not ingest DMARC or TLS-RPT reports. relay parses RUA, RUF, and TLS-RPT reports and shows reputation and failure trends in a dashboard. You monitor abuse and deliverability without extra tooling.
+Resend checks your message content for deliverability problems and charts your own sending. It does not read DMARC or TLS-RPT reports. relay parses RUA, RUF, and TLS-RPT reports and shows reputation and failure trends in a dashboard. You monitor abuse and deliverability without extra tooling.
 
 ### Sending without DNS busywork
 
@@ -66,13 +66,13 @@ Resend lets you send from `onboarding@resend.dev`, but only to the address of yo
 
 ## When Resend makes sense
 
-- You want the most polished email API, with official SDKs and React Email.
-- You author templates as React components and want that ecosystem.
-- You do not need DNS automation, DMARC reporting, or EU data storage.
+- You want official SDKs in your language and templates in React.
+- Your team already builds with React Email and does not want to move.
+- You are happy to manage DNS yourself and do not need EU-only storage.
 
 ## The bottom line
 
-Resend is one of the best developer email APIs, and inbound receiving is included on every plan. relay is the better fit when you want automated DNS, reputation monitoring, and EU-only storage in one service.
+Resend is a strong developer email API, and inbound receiving is included on every plan. relay is the better fit when you want DNS, reputation monitoring, and EU hosting handled in one place.
 
 ## Migrating from Resend to relay
 
