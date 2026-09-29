@@ -15,8 +15,8 @@ def build_org_digest(org: Organization) -> dict[str, Any]:
     """
     Return the numbers the mail shows for one organization.
 
-    The mail shows the rolling window the suspension check uses. The dashboard
-    cards read the day-aligned chart instead, so a card can differ from the
+    The rolling window matches the one the suspension check uses, while the
+    dashboard cards read the day-aligned chart, so a card can differ from the
     mail by up to a day of traffic.
     """
     return build_digest_context(
@@ -29,7 +29,10 @@ def build_org_digest(org: Organization) -> dict[str, Any]:
 def build_digest_context(
     org: Organization, stats: ReputationSummary, month_messages: int
 ) -> dict[str, Any]:
-    """Return the window rates, their limits, and the month so far."""
+    """
+    Return the window rates, their limits, the month so far, and the
+    organization and window phrase the mail names.
+    """
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     return {
         "stats": stats,

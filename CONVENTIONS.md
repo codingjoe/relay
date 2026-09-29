@@ -144,8 +144,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   library rejects digits, and it counts Monday as 0 where crontab counts
   Sunday as 0.
 - A scheduled task fans out. Enqueue one task per organization, so one slow
-  organization cannot delay the rest, and a failure retries one organization
-  only.
+  organization cannot delay the rest, and a failure stays inside one
+  organization.
 
 ## Naming
 
