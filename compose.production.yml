@@ -46,6 +46,10 @@ services:
     deploy: !reset {}
     extends:
       service: clamav
+  crontask:
+    command: [ "-m", "manage", "crontask", "--no-heartbeat" ]
+    extends:
+      service: worker
   dns:
     networks: !override
       app: ~

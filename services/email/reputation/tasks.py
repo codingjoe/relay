@@ -1,18 +1,21 @@
 import logging
 
+from crontask import cron
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.tasks import task
 from django.utils import timezone
 
-from accounts.models import Organization
+from accounts.models import Membership, Organization
 from domains.models import Domain
 from services.email.message.models import Message
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 
 from . import evaluation
+from .digest import build_org_digest
+from .emails import WeeklyDigestEmail
 from .models import FblReport
 
 logger = logging.getLogger(__name__)
@@ -157,3 +160,36 @@ def parse_fbl_report(report_pk):
 def check_org_reputation(org_id):
     """Evaluate rates for an organization and suspend it on a threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))
+
+
+@cron("0 8 * * Mon")
+@task(queue_name="default")
+def send_weekly_digests():
+    """Queue one task per organization that is not suspended."""
+    for org_id in (
+        Organization.objects.filter(suspended_at__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
+    ):
+        send_org_weekly_digest.enqueue(org_id=org_id)
+
+
+@task(queue_name="default")
+def send_org_weekly_digest(org_id):
+    """
+    Mail the week's numbers to every active member of the organization.
+
+    A member with a deactivated account or no email address is skipped.
+    """
+    org = Organization.objects.get(pk=org_id)
+    digest = build_org_digest(org)
+    for membership in (
+        Membership.objects.filter(org=org, user__is_active=True)
+        .exclude(user__email="")
+        .select_related("user")
+    ):
+        WeeklyDigestEmail.to_user(
+            membership.user,
+            digest=digest,
+            language=settings.LANGUAGE_CODE,
+        ).send()

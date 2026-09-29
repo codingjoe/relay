@@ -17,6 +17,10 @@ include:
       - compose.production.yml
 
 services:
+  crontask:
+    command: [ "-m", "manage", "crontask", "--no-heartbeat" ]
+    extends:
+      service: worker
   dns:
     build: *development-build
     depends_on:

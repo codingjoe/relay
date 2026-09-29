@@ -113,6 +113,26 @@ The report carries the per-message Return-Path, or the per-message
 complaint maps to one message, one domain, and one organization. A complaint
 without this proof stays on record, and it does not count into the rates.
 
+## The weekly digest
+
+Every Monday, relay mails every member of your organization a short report on
+the week just gone:
+
+- how many messages left the building,
+- your hard-bounce rate and your complaint rate, each one next to the limit
+  relay applies,
+- the month so far: messages sent, the bill, and the free tier.
+
+The mail carries the same numbers as the monitoring dashboard, computed over
+the same rolling window, so the two cannot disagree. It arrives every week,
+including a week with no traffic at all: nothing sent is nothing to fix, and
+the report says so. An organization that relay has suspended receives no
+digest.
+
+A rate that sits above its limit turns the copy plain. The mail then names
+the rate, the limit, and what relay does next, and links to the dashboard for
+the per-day charts and the reports behind them.
+
 ## Reputation limits
 
 relay computes hard-bounce and complaint rates for your organization over a

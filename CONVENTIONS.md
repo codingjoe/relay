@@ -139,6 +139,13 @@ A rule lives either in this document or in `.relint.yml`, never both.
   commands in `compose.yml` and `compose.production.yml`, with the mail
   pipeline queues ahead of `default`. A task whose queue is missing from the
   settings raises at import time.
+- Recurring work carries `@cron("0 8 * * Mon")` from `django-crontask` above
+  `@task`. Spell the weekday as a three-letter literal, never a number: the
+  library rejects digits, and it counts Monday as 0 where crontab counts
+  Sunday as 0.
+- A scheduled task fans out. Enqueue one task per organization, so one slow
+  organization cannot delay the rest, and a failure retries one organization
+  only.
 
 ## Naming
 

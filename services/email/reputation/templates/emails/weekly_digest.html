@@ -1,0 +1,80 @@
+{% extends "emails/base.html" %}
+{% load django_letter i18n humanize abstract %}
+
+{% block content %}
+  <h1 class="first">
+    {% blocktranslate count counter=stats.total_sent with sent=sent trimmed %}
+      Your week: {{ sent }} message sent.
+    {% plural %}
+      Your week: {{ sent }} messages sent.
+    {% endblocktranslate %}
+  </h1>
+  <p>{{ verdict }}</p>
+  {% if stats.total_sent %}
+    <p>
+      {% blocktranslate trimmed with rate=messages_per_day|intcomma %}
+        That works out to {{ rate }} messages a day.
+      {% endblocktranslate %}
+    </p>
+  {% endif %}
+  {% if stats.hard_bounce_over_limit or stats.complaint_over_limit %}
+    <p>
+      {% blocktranslate trimmed %}
+        When a rate passes its limit and the window carries enough volume, relay suspends the organization. Fix the
+        source of the bounces or the complaints, and relay staff will review the account.
+      {% endblocktranslate %}
+    </p>
+  {% endif %}
+  <h2>{% translate "the scoreboard"|capfirst %}</h2>
+  {% table %}
+  <tr>
+    <td>{% translate "hard bounce rate"|capfirst %}</td>
+    <td class="align-right">{{ stats.hard_bounce_rate|percent:"2" }}</td>
+    <td>{% translate "limit"|capfirst %} {{ bounce_threshold|percent:"2" }}</td>
+  </tr>
+  <tr>
+    <td>{% translate "complaint rate"|capfirst %}</td>
+    <td class="align-right">{{ stats.complaint_rate|percent:"2" }}</td>
+    <td>{% translate "limit"|capfirst %} {{ complaint_threshold|percent:"2" }}</td>
+  </tr>
+  {% endtable %}
+  <p>
+    {% translate "A message the spam filter held counts as a complaint, exactly as the dashboard counts it." %}
+  </p>
+  <h2>{% translate "the month so far"|capfirst %}</h2>
+  {% table %}
+  <tr>
+    <td>{% translate "messages this month"|capfirst %}</td>
+    <td class="align-right">{{ month_messages|intcomma }}</td>
+  </tr>
+  <tr>
+    <td>{% translate "bill so far"|capfirst %}</td>
+    <td class="align-right">
+      {% if cost %}
+        {% blocktranslate trimmed with amount=cost %}
+          {{ amount }} EUR
+        {% endblocktranslate %}
+      {% else %}
+        {% translate "free"|capfirst %}
+      {% endif %}
+    </td>
+  </tr>
+  {% endtable %}
+  <p>
+    {% blocktranslate trimmed with limit=free_monthly_messages|intcomma %}
+      The free tier covers {{ limit }} messages a month.
+    {% endblocktranslate %}
+    {% if overage_price %}
+      {% blocktranslate trimmed with amount=overage_price %}
+        Beyond it, relay charges {{ amount }} EUR per 1,000 messages.
+      {% endblocktranslate %}
+    {% endif %}
+  </p>
+  {% translate "Open monitoring" as button_label %}
+  {% button href=dashboard_path value=button_label primary=True %}
+  <p class="last">
+    {% blocktranslate trimmed with days=window_days %}
+      This is your last {{ days }} days, every Monday. The dashboard keeps the per-day detail.
+    {% endblocktranslate %}
+  </p>
+{% endblock content %}

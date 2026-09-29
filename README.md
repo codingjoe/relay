@@ -90,6 +90,7 @@ inherit the UUIDv7 primary key and inbound email metadata.
 | clamav  | 3310         | Malware scanning (internal only)                               |
 | Worker  | N/A          | Threadmill task worker for ingress, egress, and default queues |
 | Sender  | N/A          | Threadmill task worker for delivery to remote MX hosts         |
+| Cron    | N/A          | django-crontask scheduler for recurring work                   |
 | Storage | 8080         | Message body proxy with signed, expiring URLs                  |
 
 ```mermaid
@@ -111,6 +112,7 @@ flowchart TD
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
         mail_sender[Sender Threadmill]
+        scheduler[Cron django-crontask]
         rspamd[rspamd :11334, 2 replicas]
         clamav[clamav :3310]
         s3proxy[Storage s3proxy :8080]
@@ -140,6 +142,7 @@ flowchart TD
     msa -->|enqueue| worker
     mta -->|enqueue| worker
     worker -->|enqueue delivery| mail_sender
+    scheduler -->|enqueue| worker
     mail_sender -->|STARTTLS :25| sender
     worker -->|scan| caddy_proxy
     caddy_proxy --> rspamd
@@ -181,7 +184,8 @@ own worker and scale on its own:
   scan and the postmaster forward.
 - `delivery`: SMTP delivery to remote MX hosts. The sender worker is the only
   consumer, so it can be given dedicated outbound addresses.
-- `default`: everything else, so DMARC and reputation reporting.
+- `default`: everything else, so DMARC and reputation reporting, and the
+  weekly digest.
 
 `TASKS["default"]["QUEUES"]` in `root/settings.py` holds the queue list. A task
 whose queue is missing there fails at import time.

@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -6,8 +5,9 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from .billing import month_cost, overage_price
 from .charts import build_reputation_chart, build_volume_chart
+from .digest import build_digest_context
+from .evaluation import build_reputation_stats
 from .models import FblReport
 
 
@@ -77,28 +77,13 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
     def get_context_data(self, **kwargs):
         chart = build_reputation_chart(self.org)
         volume = build_volume_chart(self.org)
-        cost = month_cost(volume["this_month_total"])
-        last = chart["rows"][-1]
-        bounce_threshold = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
-        complaint_threshold = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
-        # The chart carries rates in per cent; the cards format fractions.
-        hard_bounce_rate = (last["hard_bounce_rate"] or 0.0) / 100
-        complaint_rate = (last["complaint_rate"] or 0.0) / 100
-        stats = {
-            "hard_bounce_rate": hard_bounce_rate,
-            "complaint_rate": complaint_rate,
-            "hard_bounce_over_limit": hard_bounce_rate > bounce_threshold,
-            "complaint_over_limit": complaint_rate > complaint_threshold,
-        }
-        return super().get_context_data(**kwargs) | {
-            "stats": stats,
+        digest = build_digest_context(
+            self.org,
+            stats=build_reputation_stats(self.org),
+            month_messages=volume["this_month_total"],
+        )
+        return super().get_context_data(**kwargs) | digest | {
             "chart_bounces": chart["bounce_chart"],
             "chart_complaints": chart["complaint_chart"],
             "chart_volume": volume,
-            "cost": cost,
-            "month_messages": volume["this_month_total"],
-            "overage_price": overage_price(),
-            "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
-            "bounce_threshold": bounce_threshold,
-            "complaint_threshold": complaint_threshold,
         }
