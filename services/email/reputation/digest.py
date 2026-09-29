@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ngettext
+from django.utils.translation import gettext, ngettext
 
 from accounts.models import Membership, Organization
 from services.email.msa.models import SuppressionEntry
@@ -57,6 +57,7 @@ def digest_illustration(stats: ReputationSummary) -> str:
 
 def message_interval(daily_average: int) -> str:
     """Return how often a message left the building, in words."""
+    # The minute arm starts at 90 seconds, so only the seconds arm has a singular.
     match seconds := 86400 // daily_average if daily_average else 0:
         case 0:
             return ""
@@ -65,14 +66,12 @@ def message_interval(daily_average: int) -> str:
                 "one every second", "one every %(count)d seconds", seconds
             ) % {"count": seconds}
         case _ if seconds < 5400:
-            minutes = round(seconds / 60)
-            return ngettext(
-                "one every minute", "one every %(count)d minutes", minutes
-            ) % {"count": minutes}
+            return gettext("one every %(count)d minutes") % {
+                "count": round(seconds / 60)
+            }
         case _:
-            hours = round(seconds / 3600)
-            return ngettext("one every hour", "one every %(count)d hours", hours) % {
-                "count": hours
+            return gettext("one every %(count)d hours") % {
+                "count": round(seconds / 3600)
             }
 
 
