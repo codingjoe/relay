@@ -184,8 +184,7 @@ own worker and scale on its own:
   scan and the postmaster forward.
 - `delivery`: SMTP delivery to remote MX hosts. The sender worker is the only
   consumer, so it can be given dedicated outbound addresses.
-- `default`: everything else, so DMARC and reputation reporting, and the
-  weekly digest.
+- `default`: everything else, so DMARC and reputation reporting.
 
 `TASKS["default"]["QUEUES"]` in `root/settings.py` holds the queue list. A task
 whose queue is missing there fails at import time.
