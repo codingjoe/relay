@@ -14,8 +14,9 @@ def build_org_digest(org: Organization) -> dict[str, Any]:
     """
     Return the numbers the mail shows for one organization.
 
-    The monitoring dashboard shows the same numbers, so the mail and the
-    dashboard cannot disagree.
+    The mail shows the rolling window the suspension check uses. The dashboard
+    cards read the day-aligned chart instead, so a card can differ from the
+    mail by up to a day of traffic.
     """
     return build_digest_context(
         org,
@@ -32,7 +33,6 @@ def build_digest_context(
     return {
         "stats": stats,
         "window_days": window_days,
-        "messages_per_day": round(stats["total_sent"] / window_days, 1),
         "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
         "month_messages": month_messages,
@@ -45,7 +45,7 @@ def build_digest_context(
 
 def sample_org_digest() -> dict[str, Any]:
     """
-    Return a clean, busy week for the mail preview.
+    Return a clean, busy window for the mail preview.
 
     The preview renders for an organization that no database knows about.
     """

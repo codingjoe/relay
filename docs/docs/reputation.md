@@ -116,18 +116,18 @@ without this proof stays on record, and it does not count into the rates.
 ## The weekly digest
 
 Every Monday, relay mails every member of your organization a short report on
-the week just gone:
+the last few days:
 
 - how many messages left the building,
 - your hard-bounce rate and your complaint rate, each one next to the limit
   relay applies,
 - the month so far: messages sent, the bill, and the free tier.
 
-The mail carries the same numbers as the monitoring dashboard, computed over
-the same rolling window, so the two cannot disagree. It arrives every week,
-including a week with no traffic at all: nothing sent is nothing to fix, and
-the report says so. An organization that relay has suspended receives no
-digest.
+The mail reports a rolling window that ends the moment it goes out. The
+dashboard counts by calendar day, so a card can differ from the mail by up to
+a day of traffic. It arrives every week, including one with no traffic at
+all: nothing sent is nothing to fix, and the report says so. An organization
+that relay has suspended receives no digest.
 
 A rate that sits above its limit turns the copy plain. The mail then names
 the rate, the limit, and what relay does next, and links to the dashboard for

@@ -177,9 +177,10 @@ def send_weekly_digests():
 @task(queue_name="default")
 def send_org_weekly_digest(org_id):
     """
-    Mail the week's numbers to every active member of the organization.
+    Mail the window's numbers to every active member of the organization.
 
-    A member with a deactivated account or no email address is skipped.
+    A member with a deactivated account or no email address is skipped. One
+    member's failed delivery does not stop the rest, and the failure is logged.
     """
     org = Organization.objects.get(pk=org_id)
     digest = build_org_digest(org)
@@ -188,8 +189,15 @@ def send_org_weekly_digest(org_id):
         .exclude(user__email="")
         .select_related("user")
     ):
-        WeeklyDigestEmail.to_user(
-            membership.user,
-            digest=digest,
-            language=settings.LANGUAGE_CODE,
-        ).send()
+        try:
+            WeeklyDigestEmail.to_user(
+                membership.user,
+                digest=digest,
+                language=settings.LANGUAGE_CODE,
+            ).send()
+        except Exception:
+            logger.exception(
+                "Weekly digest delivery failed for organization %r and user %r",
+                org.pk,
+                membership.user_id,
+            )

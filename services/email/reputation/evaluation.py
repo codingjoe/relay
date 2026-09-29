@@ -82,9 +82,6 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
 def build_reputation_stats(org: Organization) -> ReputationSummary:
     """
     Return the window counts, both rates, and each rate against its limit.
-
-    The monitoring dashboard and the weekly digest show the same numbers, so
-    the two cannot disagree.
     """
     stats = compute_org_reputation(org)
     return stats | {

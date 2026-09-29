@@ -3,20 +3,13 @@
 
 {% block content %}
   <h1 class="first">
-    {% blocktranslate count counter=stats.total_sent with sent=sent trimmed %}
-      Your week: {{ sent }} message sent.
+    {% blocktranslate count counter=stats.total_sent with sent=sent days=window_days trimmed %}
+      Your last {{ days }} days: {{ sent }} message sent.
     {% plural %}
-      Your week: {{ sent }} messages sent.
+      Your last {{ days }} days: {{ sent }} messages sent.
     {% endblocktranslate %}
   </h1>
   <p>{{ verdict }}</p>
-  {% if stats.total_sent %}
-    <p>
-      {% blocktranslate trimmed with rate=messages_per_day|intcomma %}
-        That works out to {{ rate }} messages a day.
-      {% endblocktranslate %}
-    </p>
-  {% endif %}
   {% if stats.hard_bounce_over_limit or stats.complaint_over_limit %}
     <p>
       {% blocktranslate trimmed %}

@@ -10,10 +10,10 @@ from .evaluation import ReputationSummary
 
 
 class WeeklyDigestEmail(TemplateEmail):
-    """Report one organization's sending week and its sender reputation."""
+    """Report one organization's sending volume and its sender reputation."""
 
     template_name = "emails/weekly_digest.html"
-    subject = _("Your week in email: %(sent)s sent")
+    subject = _("Your last %(window_days)s days in email: %(sent)s sent")
 
     def __init__(self, *, digest: dict[str, typing.Any], **kwargs):
         self.digest = digest
@@ -28,7 +28,7 @@ class WeeklyDigestEmail(TemplateEmail):
         language: str | None = None,
         **kwargs,
     ) -> TemplateEmail:
-        """Fill in a busy week when the caller passes no digest."""
+        """Fill in a busy window when the caller passes no digest."""
         kwargs.setdefault("digest", sample_org_digest())
         return super().render_preview(
             request, context=context, language=language, **kwargs
@@ -44,13 +44,22 @@ class WeeklyDigestEmail(TemplateEmail):
         return context["verdict"]
 
     def get_verdict(self, stats: ReputationSummary) -> str:
-        """Return the one line that reads the week at a glance."""
+        """Return the one line that reads the numbers at a glance."""
         match stats:
-            case {"hard_bounce_over_limit": True} | {"complaint_over_limit": True}:
-                return _("A rate is over its limit. The numbers are below.")
+            case {"hard_bounce_over_limit": True, "complaint_over_limit": True}:
+                return _(
+                    "The hard bounce rate and the complaint rate are both over "
+                    "their limits. The numbers are below."
+                )
+            case {"hard_bounce_over_limit": True}:
+                return _(
+                    "The hard bounce rate is over its limit. The numbers are below."
+                )
+            case {"complaint_over_limit": True}:
+                return _("The complaint rate is over its limit. The numbers are below.")
             case {"total_sent": 0}:
                 return _(
-                    "Nothing left the building this week. A spotless record, "
+                    "Nothing left the building. A spotless record, "
                     "achieved by doing nothing at all."
                 )
             case {"hard_bounces": 0, "complaints": 0}:
