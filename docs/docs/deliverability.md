@@ -30,24 +30,20 @@ every check belongs to one group:
 | MTA-STS       | Production | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host           |
 | TLS-RPT       | Production | `_smtp._tls` TXT                   | reporting to the relay TLS collector             |
 
-Four public-key selectors, two per domain (RSA-2048 and Ed25519), sign with
-`h=sha256`. The RSA-2048 signature rides on every outgoing message, so a
-receiver that cannot read Ed25519 names still finds a signature it accepts.
-relay adds a domain's Ed25519 signature only once that domain is verified for
-sending and its Ed25519 CNAME check passes. The RSA-2048 CNAME belongs to the
+Four public-key selectors, two per domain (RSA-2048 and Ed25519),
+sign every message with `h=sha256`. Both algorithms ride on every
+outgoing message, so receivers that cannot read Ed25519 names yet still
+find an RSA signature they accept. The RSA-2048 CNAME belongs to the
 four sending records and is required to send; the Ed25519 CNAME is a
 production record.
 
 Your message carries one more identity besides your domain keys. relay
-cosigns customers' messages with the platform domain, which signs under the
-rule above: its RSA-2048 signature covers every message, and its Ed25519
-signature appears only while the platform domain is verified for sending and
-its Ed25519 CNAME check passes. The cosign carries the platform domain's
-name, so a receiver can tell the platform apart from your domain. Your domain
-signatures and the cosign cover the same headers: From, To, Subject, Date,
-Message-ID, and `Feedback-ID`. A mailbox provider copies `Feedback-ID` into
-spam complaints, so the complaint points back at one message. The complaint
-path is on the
+cosigns customers' messages with the keys of the platform domain. The cosign
+carries the platform domain's name, so a receiver can tell the platform
+apart from your domain. Your domain signatures and the cosign cover the same
+headers: From, To, Subject, Date, Message-ID, and `Feedback-ID`. A mailbox
+provider copies `Feedback-ID` into spam complaints, so the complaint points
+back at one message. The complaint path is on the
 <a href="{% url 'docs:detail' slug='reputation' %}">Sender
 reputation</a> page.
 
@@ -79,7 +75,7 @@ sequenceDiagram
     alt score reaches the hold threshold
         Worker->>Worker: status held, stop
     else clean
-        Worker->>Sign: sign RSA-2048, plus Ed25519 once checks pass
+        Worker->>Sign: sign with RSA-2048, Ed25519
         Sign-->>Worker: signed message
         Worker->>Remote: STARTTLS on 25, per-MX attempts
         Remote-->>Worker: SMTP response, recorded in the dashboard

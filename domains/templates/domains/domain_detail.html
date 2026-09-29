@@ -187,7 +187,7 @@
           <div role="group" class="field">
             {% include "domains/_check_status.html" with status=domain.dkim_ed25519_status error=domain.dkim_ed25519_error label="DKIM" badge="dkim" %}
             <p class="text-sm text-muted-foreground">
-              {% translate "adds an Ed25519 signature to outbound email once the domain is verified and this check passes."|capfirst %}
+              {% translate "adds an Ed25519 signature to outbound email. Relay signs with both keys."|capfirst %}
             </p>
             <div class="input-group flex-wrap max-sm:h-auto">
               {% include "domains/_record_name.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 %}

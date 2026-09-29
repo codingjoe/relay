@@ -65,13 +65,6 @@ def make_platform_keys():
     }
 
 
-def mark_checks_passing(domain, *fields):
-    """Record the given DNS checks as passing on the domain."""
-    for field in fields:
-        setattr(domain, f"{field}_status", Domain.Status.OK)
-    domain.save(update_fields=[f"{field}_status" for field in fields])
-
-
 class TestSignMessage:
     @pytest.mark.django_db
     def test_sign_message__returns_signed_bytes(self):
@@ -81,57 +74,35 @@ class TestSignMessage:
         assert b"DKIM-Signature:" in signed
 
     @pytest.mark.django_db
-    def test_sign_message__signs_only_required_cipher(self):
+    def test_sign_message__signs_with_all_ciphers(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         signed = sign_message(make_email().as_bytes(), domain)
-        assert signed.count(b"DKIM-Signature:") == 1
-        assert b"s=relay-rsa2048" in signed
-
-    @pytest.mark.django_db
-    def test_sign_message__includes_only_required_selector(self):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
-        signed = sign_message(make_email().as_bytes(), domain)
-        assert b"s=relay-rsa2048" in signed
-        assert b"s=relay-ed25519" not in signed
-
-    @pytest.mark.django_db
-    def test_sign_message__signs_optional_cipher_when_check_passed(self):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
-        mark_checks_passing(domain, *Domain.SENDING_CHECK_FIELDS, "dkim_ed25519")
-
-        signed = sign_message(make_email().as_bytes(), domain)
-
         assert signed.count(b"DKIM-Signature:") == 2
+
+    @pytest.mark.django_db
+    def test_sign_message__includes_all_selectors(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        signed = sign_message(make_email().as_bytes(), domain)
         assert b"s=relay-rsa2048" in signed
         assert b"s=relay-ed25519" in signed
+        assert b"a=rsa-sha256" in signed
         assert b"a=ed25519-sha256" in signed
 
     @pytest.mark.django_db
-    def test_sign_message__skips_optional_cipher_when_check_failed(self):
+    def test_sign_message__signs_required_cipher_on_top(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        domain.dkim_ed25519_status = Domain.Status.ERROR
-        domain.save(update_fields=["dkim_ed25519_status"])
 
-        signed = sign_message(make_email().as_bytes(), domain)
+        signatures = parse_signatures(sign_message(make_email().as_bytes(), domain))
 
-        assert signed.count(b"DKIM-Signature:") == 1
-        assert b"s=relay-ed25519" not in signed
-
-    @pytest.mark.django_db
-    def test_sign_message__skips_optional_cipher_when_sending_unverified(self):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
-        mark_checks_passing(domain, "dkim_ed25519")
-
-        signed = sign_message(make_email().as_bytes(), domain)
-
-        assert signed.count(b"DKIM-Signature:") == 1
-        assert b"s=relay-rsa2048" in signed
-        assert b"s=relay-ed25519" not in signed
+        # Relay's own inbound evaluation and naive verifiers read the topmost
+        # signature only, so the RSA-2048 one has to lead.
+        assert [signature["s"] for signature in signatures] == [
+            "relay-rsa2048",
+            "relay-ed25519",
+        ]
 
     @pytest.mark.django_db
     def test_sign_message__includes_domain(self):
@@ -145,25 +116,29 @@ class TestSignMessage:
         org = Organization.objects.create(slug="o")
         platform_org = Organization.objects.create(slug="platform-org")
         platform = make_platform_domain(platform_org, **make_platform_keys())
-        # Its Ed25519 CNAME check passed, so the platform row signs with both.
-        mark_checks_passing(platform, *Domain.SENDING_CHECK_FIELDS, "dkim_ed25519")
         domain = Domain.objects.create(name="example.com", org=org)
 
-        signed = sign_message(make_email().as_bytes(), domain)
+        signatures = parse_signatures(sign_message(make_email().as_bytes(), domain))
 
         # Signatures are prepended, so the platform cosign sits above the
         # body while the customer's own signatures stay on top, the way
         # SES dual-signs for FBL attribution. The queryset order decides
         # which family signs first, so assert the pairs as a set.
         assert sorted(
-            (signature["d"], signature["s"]) for signature in parse_signatures(signed)
+            (signature["d"], signature["s"]) for signature in signatures
         ) == sorted(
             [
+                ("example.com", "relay-ed25519"),
                 ("example.com", "relay-rsa2048"),
                 (platform.name, "relay-ed25519"),
                 (platform.name, "relay-rsa2048"),
             ]
         )
+        # Whichever family signs last, its RSA-2048 signature lands on top.
+        assert [signature["s"] for signature in signatures] == [
+            "relay-rsa2048",
+            "relay-ed25519",
+        ] * 2
 
     @pytest.mark.django_db
     def test_sign_message__no_cosign_without_platform_domain(self):
@@ -173,7 +148,7 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
 
         signatures = parse_signatures(signed)
-        assert len(signatures) == 1
+        assert len(signatures) == 2
         assert {signature["d"] for signature in signatures} == {"example.com"}
 
     @pytest.mark.django_db
@@ -184,7 +159,7 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
 
         signatures = parse_signatures(signed)
-        assert len(signatures) == 1
+        assert len(signatures) == 2
         assert {signature["d"] for signature in signatures} == {domain.name}
 
     @pytest.mark.django_db

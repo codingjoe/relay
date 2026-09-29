@@ -105,19 +105,15 @@ sequenceDiagram
 Important details of the pipeline:
 
 - **Signing covers the message as stored.** relay signs with the private
-  keys of the sender domain: RSA-2048 on every message, and Ed25519 once
-  the domain is verified for sending and that domain's Ed25519 CNAME check
-  passes.
+  keys of the sender domain for RSA-2048 and Ed25519 at once.
   All signatures cover the same headers: From, To, Subject, Date,
   Message-ID, and `Feedback-ID`. The message detail page lists every
   signature relay applied in its own card, next to the signing domain,
   selector, and algorithm. The raw tag list is one click away.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
-  platform domain, under the same rule: RSA-2048 on every message, and
-  Ed25519 only while that domain is verified for sending and its Ed25519
-  CNAME check passes. relay also sets a `Feedback-ID` header with its own
-  token. This token replaces a customer-supplied `Feedback-ID`, so complaint
-  reports echo relay's key and the complaint maps to one message.
+  keys of the platform domain. relay also sets a `Feedback-ID` header with
+  its own token. This token replaces a customer-supplied `Feedback-ID`, so
+  complaint reports echo relay's key and the complaint maps to one message.
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
   message and the envelope domain aligns with your DKIM.

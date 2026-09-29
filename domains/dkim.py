@@ -40,15 +40,10 @@ def sign_message(raw_bytes, domain):
         "dkim_key_ed25519",
     ).filter(Q(name=settings.RELAY_PLATFORM_DOMAIN) | Q(pk=domain.pk))
     for sign_domain in signing_domains:
-        for field, selector, key in sign_domain.dkim_ciphers:
-            # The required RSA-2048 cipher signs for every domain. The optional
-            # Ed25519 cipher signs only while the domain is verified for sending
-            # and its own check passes.
-            if field in Domain.SENDING_CHECK_FIELDS or (
-                sign_domain.is_sending_verified
-                and getattr(sign_domain, f"{field}_status") == Domain.Status.OK
-            ):
-                signed = add_dkim_signature(
-                    signed, selector, sign_domain.name, key, INCLUDE_HEADERS
-                )
+        # RSA-2048 goes last: prepending puts the last signature on top, and the
+        # topmost one is what naive verifiers and relay's inbound evaluation read.
+        for _field, selector, key in reversed(sign_domain.dkim_ciphers):
+            signed = add_dkim_signature(
+                signed, selector, sign_domain.name, key, INCLUDE_HEADERS
+            )
     return signed

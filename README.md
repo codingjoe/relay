@@ -50,13 +50,12 @@ All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
 per-domain delegation is necessary.
 
-Outgoing mail is DKIM-signed with RSA-2048 on every message, plus Ed25519
-once the signing domain is verified for sending and its Ed25519 CNAME check
-passes. relay cosigns with the platform domain, the `Domain` row named
-`RELAY_PLATFORM_DOMAIN`, under the same rule: an unverified platform domain
-cosigns with RSA-2048 alone. Until you register it, relay signs with the
-sending domain only. Each signature covers a per-message `Feedback-ID` header
-so FBL complaints attribute to the sending organization.
+Outgoing mail is dual-signed with DKIM: once for the sender's own domain
+and once for the platform domain. The platform domain is the `Domain`
+row whose name equals `RELAY_PLATFORM_DOMAIN`; until you register it,
+relay signs with the sending domain only. Each signature covers a per-message
+`Feedback-ID` header so FBL complaints attribute to the sending
+organization.
 
 ## Architecture
 

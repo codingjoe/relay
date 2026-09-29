@@ -62,10 +62,8 @@ domain. A `p=reject` policy fails the SMTP transaction with
 platform. Quarantine policies mark the stored message as quarantined. This
 protects senders that publish strict policies from having their name abused,
 and it protects your inbox from spoofing attempts. relay signs outgoing mail
-with RSA-2048 keys and adds an Ed25519 signature once the domain is
-verified for sending and its Ed25519 CNAME check passes, but inbound DKIM
-verification still accepts signatures from older senders that use RSA-1024
-keys.
+with RSA-2048 and Ed25519 keys, but inbound DKIM verification still accepts
+signatures from older senders that use RSA-1024 keys.
 
 **Spam scan.** relay scores every accepted message, and you can see the
 score in the dashboard. A message whose score reaches the reject
