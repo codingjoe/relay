@@ -9,11 +9,12 @@ was about, not the week the reader opens it.
 
 COLUMN = "#8b5cf6"
 WIDTH = 600
+HEIGHT = 44
 CORNER_RADIUS = 4
 MAX_DAYS = 31
 
 
-def week(counts: list[int], height: int = 44) -> str:
+def week(counts: list[int]) -> str:
     """
     Return the window's days as a column chart, tallest day at full height.
 
@@ -27,13 +28,13 @@ def week(counts: list[int], height: int = 44) -> str:
     tallest = max(counts or [0]) or 1
     bars = "".join(
         f'<rect x="{index * (column + gap)}"'
-        f' y="{height - round(height * count / tallest)}"'
-        f' width="{column}" height="{round(height * count / tallest)}"'
+        f' y="{HEIGHT - round(HEIGHT * count / tallest)}"'
+        f' width="{column}" height="{round(HEIGHT * count / tallest)}"'
         f' rx="{CORNER_RADIUS}" fill="{COLUMN}"/>'
         for index, count in enumerate(counts)
     )
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {height}"'
-        f' width="{WIDTH}" height="{height}" role="img">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {HEIGHT}"'
+        f' width="{WIDTH}" height="{HEIGHT}" role="img">'
         f"{bars}</svg>"
     )
