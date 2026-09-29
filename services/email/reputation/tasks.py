@@ -198,26 +198,28 @@ def send_org_weekly_digest(org_id):
     org = Organization.objects.get(pk=org_id)
     if org.suspended_at:
         logger.info("Dropped the weekly digest for suspended organization %r", org_id)
-        return
-    digest = build_org_digest(org)
-    failures = []
-    mailer = mailers.default
-    with mailer:
-        for membership in iter_digest_members(org):
-            try:
-                mailer.send_messages(
-                    [
-                        WeeklyDigestEmail.to_user(
-                            membership.user,
-                            digest=digest,
-                            language=settings.LANGUAGE_CODE,
-                        )
-                    ]
-                )
-            except OSError as error:
-                logger.exception("Weekly digest for user %r failed", membership.user_id)
-                failures.append((membership.user_id, error))
-    if failures:
-        raise DigestDeliveryError(
-            org.pk, [user_id for user_id, _ in failures]
-        ) from failures[0][1]
+    else:
+        digest = build_org_digest(org)
+        failures = []
+        mailer = mailers.default
+        with mailer:
+            for membership in iter_digest_members(org):
+                try:
+                    mailer.send_messages(
+                        [
+                            WeeklyDigestEmail.to_user(
+                                membership.user,
+                                digest=digest,
+                                language=settings.LANGUAGE_CODE,
+                            )
+                        ]
+                    )
+                except OSError as error:
+                    logger.exception(
+                        "Weekly digest for user %r failed", membership.user_id
+                    )
+                    failures.append((membership.user_id, error))
+        if failures:
+            raise DigestDeliveryError(
+                org.pk, [user_id for user_id, _ in failures]
+            ) from failures[0][1]
