@@ -46,17 +46,26 @@ def chart_url(org: Organization, name: str, **query) -> str:
     return f"{path}?{urlencode(query)}"
 
 
-def digest_illustration(stats: ReputationSummary) -> str:
-    """Return the illustration the mail shows for one window."""
+def digest_illustration(stats: ReputationSummary) -> tuple[str, str]:
+    """
+    Return the pair of illustrations the mail shows for one window.
+
+    The pairs are light and dark, so a client that reports a dark scheme gets
+    the drawing that belongs on it. A breach shows none, and stays plain.
+    """
     match stats:
         case {"total_sent": 0}:
-            return "img/illustrations/empty-mailbox-light.svg"
+            stem = "empty-mailbox"
         case {"hard_bounce_rate": 0.0, "complaint_rate": 0.0}:
-            return "img/illustrations/protection-enabled-light.svg"
+            stem = "protection-enabled"
         case _ if stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]:
-            return ""
+            return "", ""
         case _:
-            return "img/illustrations/connected-light.svg"
+            stem = "connected"
+    return (
+        f"img/illustrations/{stem}-light.svg",
+        f"img/illustrations/{stem}-dark.svg",
+    )
 
 
 def build_digest_context(
@@ -74,13 +83,15 @@ def build_digest_context(
     """
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     free_monthly_messages = settings.RELAY_FREE_MONTHLY_MESSAGES
+    illustration = digest_illustration(stats)
     return {
         "stats": stats,
         "organization": org.slug,
         "window_phrase": ngettext("last %d day", "last %d days", window_days)
         % window_days,
         "daily_average": round(stats["total_sent"] / window_days),
-        "illustration": digest_illustration(stats),
+        "illustration_light": illustration[0],
+        "illustration_dark": illustration[1],
         "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
         "month_messages": month_messages,
