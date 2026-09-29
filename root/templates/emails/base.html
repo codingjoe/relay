@@ -73,13 +73,10 @@
       padding-bottom: 16px;
     }
 
-    /* The package turns the card dark in a dark client, so relay's palette
-       follows, the way the web theme switches. These rules land after the
-       package's own dark block and win its `!important` ties. */
     @media (prefers-color-scheme: dark) {
       a,
       .text-link {
-        color: #bb80ff !important; /* 5.3:1 on the package's #1f2937 card */
+        color: #bb80ff !important;
       }
 
       .btn a {
@@ -101,7 +98,7 @@
       .footer p,
       .footer span,
       .footer a {
-        color: #b0b0b0 !important; /* 6.6:1 on the dark card */
+        color: #b0b0b0 !important;
       }
 
       .footer a {
