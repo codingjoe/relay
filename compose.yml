@@ -18,7 +18,7 @@ include:
 
 services:
   crontask:
-    command: [ "-m", "manage", "crontask", "--no-heartbeat" ]
+    command: [ "-m", "manage", "crontask" ]
     extends:
       service: worker
   dns:

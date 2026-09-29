@@ -47,7 +47,7 @@ services:
     extends:
       service: clamav
   crontask:
-    command: [ "-m", "manage", "crontask", "--no-heartbeat" ]
+    command: [ "-m", "manage", "crontask" ]
     # Exactly one scheduler: the web and worker services run two replicas,
     # and a second scheduler would take the lock, exit, and restart in a loop.
     deploy:
