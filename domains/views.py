@@ -98,9 +98,6 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
             ),
             None,
         )
-        # One message per click, for the first unfinished group in badge order,
-        # so the message and the badge beside it always agree. A group below an
-        # unfinished one is never named.
         match unfinished:
             case None:
                 messages.success(request, _("Verification passed: every check passes."))
