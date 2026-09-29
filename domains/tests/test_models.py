@@ -266,13 +266,13 @@ class TestDkimCiphers:
     def test_dkim_ciphers__returns_all_with_prefix(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        selectors = [selector for selector, _ in domain.dkim_ciphers]
+        selectors = [selector for _field, selector, _key in domain.dkim_ciphers]
         assert selectors == ["relay-rsa2048", "relay-ed25519"]
 
     def test_dkim_ciphers__all_keys_present(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        for _, key in domain.dkim_ciphers:
+        for _field, _selector, key in domain.dkim_ciphers:
             assert key is not None
 
 
@@ -282,8 +282,8 @@ class TestDkimCnames:
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         cnames = domain.dkim_cnames
-        assert len(cnames) == 2
-        for name, target in cnames:
+        assert set(cnames) == {"dkim_rsa2048", "dkim_ed25519"}
+        for name, target in cnames.values():
             assert name.startswith("relay-")
             assert name.endswith("._domainkey.example.com")
             assert target.endswith("._domainkey.mail.relay.example.com")
@@ -291,7 +291,7 @@ class TestDkimCnames:
     def test_dkim_cnames__managed_domain_uses_sender_subdomain(self):
         Organization.objects.create(slug="acme")
         domain = Domain.objects.get(name="acme.open.localhost")
-        for name, target in domain.dkim_cnames:
+        for name, target in domain.dkim_cnames.values():
             assert name.endswith("._domainkey.acme.open.localhost")
             assert target.endswith("._domainkey.mail.relay.acme.open.localhost")
 

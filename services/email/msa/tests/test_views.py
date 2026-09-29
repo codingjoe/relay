@@ -243,7 +243,7 @@ class TestTestEmailView:
             org=org,
             nameserver_status=Domain.Status.OK,
             spf_status=Domain.Status.OK,
-            dkim_status=Domain.Status.OK,
+            dkim_rsa2048_status=Domain.Status.OK,
             dmarc_status=Domain.Status.OK,
         )
 

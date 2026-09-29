@@ -164,7 +164,7 @@ class DNSResolver(BaseResolver):
         domain: Domain,
     ) -> Iterator[RR]:
         """Build DKIM TXT records. Serve each cipher's public key at its selector."""
-        for selector, key in domain.dkim_ciphers:
+        for _field, selector, key in domain.dkim_ciphers:
             if key:
                 dkim_names = [
                     f"{selector}._domainkey.{domain.sender_domain}",

@@ -16,7 +16,8 @@ class TestSynchronizeManagedDomain:
         assert {
             domain.nameserver_status,
             domain.spf_status,
-            domain.dkim_status,
+            domain.dkim_rsa2048_status,
+            domain.dkim_ed25519_status,
             domain.dmarc_status,
             domain.mta_sts_status,
             domain.tls_rpt_status,

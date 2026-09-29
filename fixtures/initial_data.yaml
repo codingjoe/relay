@@ -254,8 +254,10 @@
     nameserver_error: ''
     spf_status: ok
     spf_error: ''
-    dkim_status: ok
-    dkim_error: ''
+    dkim_rsa2048_status: ok
+    dkim_rsa2048_error: ''
+    dkim_ed25519_status: ok
+    dkim_ed25519_error: ''
     dmarc_status: ok
     dmarc_error: ''
     mta_sts_status: ok
@@ -278,8 +280,10 @@
     nameserver_error: ''
     spf_status: ok
     spf_error: ''
-    dkim_status: ok
-    dkim_error: ''
+    dkim_rsa2048_status: ok
+    dkim_rsa2048_error: ''
+    dkim_ed25519_status: ok
+    dkim_ed25519_error: ''
     dmarc_status: ok
     dmarc_error: ''
     mta_sts_status: ok
@@ -591,8 +595,10 @@
     nameserver_error: ''
     spf_status: ok
     spf_error: ''
-    dkim_status: ok
-    dkim_error: ''
+    dkim_rsa2048_status: ok
+    dkim_rsa2048_error: ''
+    dkim_ed25519_status: ok
+    dkim_ed25519_error: ''
     dmarc_status: ok
     dmarc_error: ''
     mta_sts_status: ok
@@ -614,8 +620,10 @@
     nameserver_error: ''
     spf_status: unchecked
     spf_error: ''
-    dkim_status: unchecked
-    dkim_error: ''
+    dkim_rsa2048_status: unchecked
+    dkim_rsa2048_error: ''
+    dkim_ed25519_status: unchecked
+    dkim_ed25519_error: ''
     dmarc_status: unchecked
     dmarc_error: ''
     mta_sts_status: ok
@@ -638,8 +646,10 @@
     nameserver_error: ''
     spf_status: ok
     spf_error: ''
-    dkim_status: ok
-    dkim_error: ''
+    dkim_rsa2048_status: ok
+    dkim_rsa2048_error: ''
+    dkim_ed25519_status: ok
+    dkim_ed25519_error: ''
     dmarc_status: ok
     dmarc_error: ''
     mta_sts_status: ok

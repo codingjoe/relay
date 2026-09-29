@@ -66,20 +66,17 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
             "dkim_cnames": self.object.dkim_cnames,
             "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
             "mx_priority": resolver.DNSResolver.MX_PRIORITY,
-            "sending_passing": sum(
-                getattr(self.object, f"{field}_status") == Domain.Status.OK
-                for field in Domain.SENDING_CHECK_FIELDS
-            ),
-            "sending_total": len(Domain.SENDING_CHECK_FIELDS),
-            "receiving_passing": sum(
-                getattr(self.object, f"{field}_status") == Domain.Status.OK
-                for field in Domain.RECEIVING_CHECK_FIELDS
-            ),
-            "receiving_total": len(Domain.RECEIVING_CHECK_FIELDS),
         }
 
 
 class DomainVerifyView(OrganizationScopedView, generic.View):
+    # The three exclusive record groups, in badge order.
+    TIERS = (
+        (_("sending"), Domain.SENDING_CHECK_FIELDS),
+        (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
+        (_("production"), Domain.PRODUCTION_CHECK_FIELDS),
+    )
+
     def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(
             Domain,
@@ -89,22 +86,27 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
         )
         verify_domain_dns(domain)
 
-        for label, fields in (
-            (_("sending"), Domain.SENDING_CHECK_FIELDS),
-            (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
-        ):
-            passing = sum(
-                getattr(domain, f"{field}_status") == Domain.Status.OK
-                for field in fields
-            )
-            total = len(fields)
-            if passing == total:
-                messages.success(
+        tiers = [
+            (label, domain.checks_passing(fields), len(fields))
+            for label, fields in self.TIERS
+        ]
+        unfinished = next(
+            (
+                (label, passing, total)
+                for label, passing, total in tiers
+                if passing < total
+            ),
+            None,
+        )
+        match unfinished:
+            case None:
+                messages.success(request, _("Verification passed: every check passes."))
+            case (label, 0, _):
+                messages.info(
                     request,
-                    _("%(label)s verification passed: all %(total)d checks pass.")
-                    % {"label": label, "total": total},
+                    _("%(label)s verification is not set up yet.") % {"label": label},
                 )
-            else:
+            case (label, passing, total):
                 messages.error(
                     request,
                     _(

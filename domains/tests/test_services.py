@@ -37,6 +37,20 @@ class TestVerifyNameserverDelegation:
         domain = Domain.objects.create(name="example.com", org=org)
         assert verify_nameserver_delegation(domain) is False
 
+    def test_verify_nameserver_delegation__chased_cname(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(domain.sender_domain, "CNAME", "relays.to.")
+        dns_resolver.add("relays.to", "NS", "ns1.localhost.", "ns2.localhost.")
+        assert verify_nameserver_delegation(domain) is False
+
+    def test_verify_nameserver_delegation__cname_loop(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(domain.sender_domain, "CNAME", "relays.to.")
+        dns_resolver.add("relays.to.", "CNAME", f"{domain.sender_domain}.")
+        assert verify_nameserver_delegation(domain) is False
+
 
 @pytest.mark.django_db
 class TestCheckDmarc:
@@ -85,30 +99,49 @@ class TestCheckDkimCname:
     def test_check_dkim_cname__present(self, dns_resolver):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        for cname_name, _ in domain.dkim_cnames:
-            dns_resolver.add(
-                cname_name,
-                "CNAME",
-                "relay-abc._domainkey.mail.relay.example.com.",
-            )
-        assert check_dkim_cname(domain) is True
+        cname_name, _target = domain.dkim_cnames["dkim_rsa2048"]
+        dns_resolver.add(
+            cname_name,
+            # DNS names are case-insensitive.
+            "CNAME",
+            "RELAY-RSA2048._DOMAINKEY.MAIL.RELAY.EXAMPLE.COM.",
+        )
+        assert check_dkim_cname(domain, "dkim_rsa2048") is True
 
-    def test_check_dkim_cname__fails_if_any_cname_missing(self, dns_resolver):
+    def test_check_dkim_cname__rejects_record_name_as_target(self, dns_resolver):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        # Add only the first CNAME, leave the other two unresolved
-        first_name, _ = domain.dkim_cnames[0]
+        cname_name, _target = domain.dkim_cnames["dkim_rsa2048"]
+        dns_resolver.add(cname_name, "CNAME", f"{cname_name.upper()}.")
+        assert check_dkim_cname(domain, "dkim_rsa2048") is False
+
+    def test_check_dkim_cname__rejects_foreign_target(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        cname_name, _target = domain.dkim_cnames["dkim_rsa2048"]
         dns_resolver.add(
-            first_name,
+            cname_name,
             "CNAME",
-            "relay-abc._domainkey.mail.relay.example.com.",
+            "relay-rsa2048._domainkey.evil.example.",
         )
-        assert check_dkim_cname(domain) is False
+        assert check_dkim_cname(domain, "dkim_rsa2048") is False
+
+    def test_check_dkim_cname__independent_per_cipher(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        cname_name, _target = domain.dkim_cnames["dkim_rsa2048"]
+        dns_resolver.add(
+            cname_name,
+            "CNAME",
+            "relay-rsa2048._domainkey.mail.relay.example.com.",
+        )
+        assert check_dkim_cname(domain, "dkim_rsa2048") is True
+        assert check_dkim_cname(domain, "dkim_ed25519") is False
 
     def test_check_dkim_cname__nxdomain(self, dns_resolver):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        assert check_dkim_cname(domain) is False
+        assert check_dkim_cname(domain, "dkim_rsa2048") is False
 
 
 def test_parse_mta_sts_txt_record__rejects_control_whitespace():
@@ -317,7 +350,6 @@ class TestCheckTlsRpt:
         "verify_nameserver_delegation",
         "check_dmarc",
         "check_spf",
-        "check_dkim_cname",
         "check_mta_sts",
         "check_tls_rpt",
     ],
@@ -332,6 +364,19 @@ def test_dns_record_check__no_nameservers_returns_false(monkeypatch, check_name)
     monkeypatch.setattr(dns.resolver, "resolve", raise_no_nameservers)
 
     assert getattr(services, check_name)(domain) is False
+
+
+@pytest.mark.django_db
+def test_check_dkim_cname__no_nameservers_returns_false(monkeypatch):
+    org = Organization.objects.create(slug="o")
+    domain = Domain.objects.create(name="example.com", org=org)
+
+    def raise_no_nameservers(*args, **kwargs):
+        raise dns.resolver.NoNameservers
+
+    monkeypatch.setattr(dns.resolver, "resolve", raise_no_nameservers)
+
+    assert check_dkim_cname(domain, "dkim_rsa2048") is False
 
 
 @pytest.mark.django_db
@@ -358,12 +403,9 @@ class TestVerifyDomainDns:
         dns_resolver.add(
             domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
         )
-        for cname_name, _ in domain.dkim_cnames:
-            dns_resolver.add(
-                cname_name,
-                "CNAME",
-                "relay-abc._domainkey.mail.relay.example.com.",
-            )
+        for field in ("dkim_rsa2048", "dkim_ed25519"):
+            cname_name, target = domain.dkim_cnames[field]
+            dns_resolver.add(cname_name, "CNAME", f"{target}.")
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
         dns_resolver.add(
@@ -382,7 +424,8 @@ class TestVerifyDomainDns:
         domain.refresh_from_db()
         assert domain.nameserver_status == Domain.Status.OK
         assert domain.spf_status == Domain.Status.OK
-        assert domain.dkim_status == Domain.Status.OK
+        assert domain.dkim_rsa2048_status == Domain.Status.OK
+        assert domain.dkim_ed25519_status == Domain.Status.OK
         assert domain.dmarc_status == Domain.Status.OK
         assert domain.mx_status == Domain.Status.OK
         assert domain.mta_sts_status == Domain.Status.OK
@@ -397,7 +440,8 @@ class TestVerifyDomainDns:
         domain.refresh_from_db()
         assert domain.nameserver_status == Domain.Status.ERROR
         assert domain.spf_status == Domain.Status.ERROR
-        assert domain.dkim_status == Domain.Status.ERROR
+        assert domain.dkim_rsa2048_status == Domain.Status.ERROR
+        assert domain.dkim_ed25519_status == Domain.Status.ERROR
         assert domain.dmarc_status == Domain.Status.ERROR
         assert domain.mx_status == Domain.Status.ERROR
         assert domain.mta_sts_status == Domain.Status.ERROR
@@ -405,28 +449,87 @@ class TestVerifyDomainDns:
         assert domain.verified_at is None
         assert domain.nameserver_error
         assert domain.spf_error
-        assert domain.dkim_error
+        assert domain.dkim_rsa2048_error
+        assert domain.dkim_ed25519_error
         assert domain.dmarc_error
         assert domain.mx_error
         assert domain.mta_sts_error
         assert domain.tls_rpt_error
 
+    def test_verify_domain_dns__error_names_the_record(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        verify_domain_dns(domain)
+
+        domain.refresh_from_db()
+        assert {
+            field: getattr(domain, f"{field}_error")
+            for field in (
+                *Domain.SENDING_CHECK_FIELDS,
+                *Domain.RECEIVING_CHECK_FIELDS,
+                *Domain.PRODUCTION_CHECK_FIELDS,
+            )
+        } == {
+            "nameserver": "NS record not found or incorrect.",
+            "spf": "SPF record not found or incorrect.",
+            "dkim_rsa2048": "RSA-2048 DKIM record not found or incorrect.",
+            "dkim_ed25519": "Ed25519 DKIM record not found or incorrect.",
+            "dmarc": "DMARC record not found or incorrect.",
+            "mx": "MX record not found or incorrect.",
+            "mta_sts": "MTA-STS record not found or incorrect.",
+            "tls_rpt": "TLS-RPT record not found or incorrect.",
+        }
+
+    def test_verify_domain_dns__quick_start_records_verify_the_domain(
+        self, dns_resolver
+    ):
+        """The sending records alone make a domain send, without receiving or hardening."""
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(domain.sender_domain, "NS", "ns1.localhost.", "ns2.localhost.")
+        dns_resolver.add(
+            domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
+        )
+        rsa_cname, _target = domain.dkim_cnames["dkim_rsa2048"]
+        dns_resolver.add(
+            rsa_cname,
+            "CNAME",
+            "relay-rsa2048._domainkey.mail.relay.example.com.",
+        )
+        dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+        verify_domain_dns(domain)
+
+        domain.refresh_from_db()
+        assert domain.is_sending_verified is True
+        assert domain.dkim_ed25519_status == Domain.Status.ERROR
+        assert domain.mx_status == Domain.Status.ERROR
+        assert domain.verified_at is not None
+
+    def test_verify_domain_dns__rejects_foreign_mx(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(domain.name, "MX", "10 mail.other.example.")
+
+        verify_domain_dns(domain)
+
+        domain.refresh_from_db()
+        assert domain.mx_status == Domain.Status.ERROR
+
     def test_verify_domain_dns__partial_pass(self, dns_resolver):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         dns_resolver.add(domain.sender_domain, "NS", "ns1.localhost.", "ns2.localhost.")
-        for cname_name, _ in domain.dkim_cnames:
-            dns_resolver.add(
-                cname_name,
-                "CNAME",
-                "relay-abc._domainkey.mail.relay.example.com.",
-            )
+        for field in ("dkim_rsa2048", "dkim_ed25519"):
+            cname_name, target = domain.dkim_cnames[field]
+            dns_resolver.add(cname_name, "CNAME", f"{target}.")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()
         assert domain.nameserver_status == Domain.Status.OK
         assert domain.spf_status == Domain.Status.ERROR
-        assert domain.dkim_status == Domain.Status.OK
+        assert domain.dkim_rsa2048_status == Domain.Status.OK
+        assert domain.dkim_ed25519_status == Domain.Status.OK
         assert domain.dmarc_status == Domain.Status.ERROR
         assert domain.mx_status == Domain.Status.ERROR
         assert domain.mta_sts_status == Domain.Status.ERROR
@@ -443,12 +546,9 @@ class TestVerifyDomainDns:
         dns_resolver.add(
             domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
         )
-        for cname_name, _ in domain.dkim_cnames:
-            dns_resolver.add(
-                cname_name,
-                "CNAME",
-                "relay-abc._domainkey.mail.relay.example.com.",
-            )
+        for field in ("dkim_rsa2048", "dkim_ed25519"):
+            cname_name, target = domain.dkim_cnames[field]
+            dns_resolver.add(cname_name, "CNAME", f"{target}.")
         dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
         dns_resolver.add(

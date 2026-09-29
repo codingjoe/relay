@@ -88,7 +88,7 @@ def make_domain_with_dkim_key(algorithm):
 class TestResolveTxt:
     def test_resolve_txt__ed25519_dkim_record_includes_k_tag(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.ED25519)
-        selector, _ = domain.dkim_ciphers[1]
+        _field, selector, _key = domain.dkim_ciphers[1]
         query_name = f"{selector}._domainkey.{domain.name}"
         records = list(
             DNSResolver().resolve_txt(
@@ -100,7 +100,7 @@ class TestResolveTxt:
 
     def test_resolve_txt__ed25519_dkim_record_has_raw_public_key(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.ED25519)
-        selector, _ = domain.dkim_ciphers[1]
+        _field, selector, _key = domain.dkim_ciphers[1]
         query_name = f"{selector}._domainkey.{domain.name}"
         records = list(
             DNSResolver().resolve_txt(
@@ -114,7 +114,7 @@ class TestResolveTxt:
 
     def test_resolve_txt__rsa_dkim_record_includes_k_tag(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.RSA_2048)
-        selector, _ = domain.dkim_ciphers[0]
+        _field, selector, _key = domain.dkim_ciphers[0]
         query_name = f"{selector}._domainkey.{domain.name}"
         records = list(
             DNSResolver().resolve_txt(
@@ -126,7 +126,7 @@ class TestResolveTxt:
 
     def test_resolve_txt__rsa_dkim_record_has_der_public_key(self):
         domain = make_domain_with_dkim_key(SigningKey.Algorithm.RSA_2048)
-        selector, _ = domain.dkim_ciphers[0]
+        _field, selector, _key = domain.dkim_ciphers[0]
         query_name = f"{selector}._domainkey.{domain.name}"
         records = list(
             DNSResolver().resolve_txt(

@@ -13,14 +13,16 @@ class DomainAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "verified_at",
         "nameserver_status",
         "spf_status",
-        "dkim_status",
+        "dkim_rsa2048_status",
+        "dkim_ed25519_status",
         "dmarc_status",
         "created_at",
     ]
     list_filter = [
         "nameserver_status",
         "spf_status",
-        "dkim_status",
+        "dkim_rsa2048_status",
+        "dkim_ed25519_status",
         "dmarc_status",
         "verified_at",
     ]
