@@ -71,9 +71,9 @@ def message_interval(daily_average: int) -> str:
             ) % {"count": minutes}
         case _:
             hours = max(round(seconds / 3600), 1)
-            return ngettext(
-                "one every hour", "one every %(count)d hours", hours
-            ) % {"count": hours}
+            return ngettext("one every hour", "one every %(count)d hours", hours) % {
+                "count": hours
+            }
 
 
 def build_digest_context(
