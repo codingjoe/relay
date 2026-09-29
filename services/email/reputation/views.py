@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
@@ -7,7 +6,6 @@ from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
-from . import svg
 from .billing import month_cost, overage_price
 from .charts import build_reputation_chart, build_volume_chart
 from .models import FblReport
@@ -104,26 +102,3 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "bounce_threshold": bounce_threshold,
             "complaint_threshold": complaint_threshold,
         }
-
-
-def chart_number(value: str) -> int:
-    """Return the count a chart query string carries, or zero."""
-    try:
-        return max(int(value), 0)
-    except ValueError:
-        return 0
-
-
-class DigestWeekChartView(generic.View):
-    """Draw the digest mail's week chart from the counts in its query."""
-
-    def get(self, request, *args, **kwargs):
-        counts = [
-            chart_number(part)
-            for part in request.GET.get("counts", "").split(",")
-            if part
-        ]
-        response = HttpResponse(svg.week(counts), content_type="image/svg+xml")
-        response["Cache-Control"] = "public, max-age=604800, immutable"
-        response["X-Content-Type-Options"] = "nosniff"
-        return response

@@ -1,16 +1,17 @@
 from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any
-from urllib.parse import urlencode
 
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, ngettext
 
 from accounts.models import Membership, Organization
 from services.email.msa.models import OutgoingMessage, SuppressionEntry
 
+from . import svg
 from .billing import month_cost
 from .charts import build_volume_chart, sent_per_day
 from .evaluation import ReputationSummary, build_reputation_stats
@@ -46,12 +47,6 @@ def count_window_recipients(org: Organization, window_days: int) -> int:
         .distinct()
         .count()
     )
-
-
-def chart_url(org: Organization, name: str, **query) -> str:
-    """Return the path of one digest chart, with its numbers in the query."""
-    path = reverse(f"monitoring:{name}", kwargs={"org_slug": org.slug})
-    return f"{path}?{urlencode(query)}"
 
 
 def digest_illustration(stats: ReputationSummary) -> tuple[str, str]:
@@ -110,15 +105,7 @@ def build_digest_context(
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
         "month_messages": month_messages,
         "recipients": recipients,
-        "week_chart_url": (
-            chart_url(
-                org,
-                "digest-week",
-                counts=",".join(str(count) for count in daily_counts),
-            )
-            if any(daily_counts)
-            else ""
-        ),
+        "week_chart": (mark_safe(svg.week(daily_counts)) if any(daily_counts) else ""),
         "cost": month_cost(month_messages),
         "free_monthly_messages": free_monthly_messages,
         "dashboard_path": reverse("monitoring:overview", kwargs={"org_slug": org.slug}),

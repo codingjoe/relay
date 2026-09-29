@@ -73,10 +73,12 @@
     }
 
     .digest-chart {
+      margin: 0 0 8px;
+    }
+
+    .digest-chart svg {
       display: block;
       width: 100%;
-      height: auto;
-      margin: 0 0 8px;
     }
 
     .digest-art {
@@ -195,15 +197,15 @@
       {% endif %}
     </tr>
   </table>
-  {% if week_chart_url %}
+  {% if week_chart %}
     <h2>{% translate "the week, bar by bar"|capfirst %}</h2>
-    <img
+    <div
       class="digest-chart"
-      src="{{ week_chart_url }}"
-      alt="{% translate 'Each bar is one day of the window.' %}"
-      width="600"
-      height="44"
+      role="img"
+      aria-label="{% translate 'Each bar is one day of the window.' %}"
     >
+      {{ week_chart }}
+    </div>
   {% endif %}
   <p>
     {% if message_interval %}

@@ -145,11 +145,12 @@ often one goes out, then the distinct addresses those messages reached, then
 the month's total on its own. An illustration and a sign-off close the mail,
 and a rate above its limit drops the illustration.
 
-The per-day chart and the closing illustration arrive as images. A mail
-client that does not render images shows the copy without them. Every number
-still travels as text: the totals, the rates, their limits, the messages a
-day and how often one goes out, the distinct addresses reached, and the month
-so far. Only the drawn shape is lost.
+The per-day chart travels as SVG inside the mail itself, and the closing
+illustration arrives as an image. A mail client that strips SVG or blocks
+images shows the copy without them. Every number still travels as text: the
+totals, the rates, their limits, the messages a day and how often one goes
+out, the distinct addresses reached, and the month so far. Only the drawn
+shape is lost.
 
 The mail reports a rolling window that ends the moment it goes out. The
 dashboard counts by calendar day, so a card can differ from the mail by up to

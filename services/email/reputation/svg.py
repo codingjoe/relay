@@ -1,10 +1,9 @@
 """
-The chart the digest mail links, drawn as SVG.
+Draw the digest mail's week chart as inline SVG.
 
-Mail clients run no scripts and strip inline SVG, so the chart ships as its own
-document behind an image source. Nothing here reads the database: the counts
-travel in the query string, which means a chart always draws the week its mail
-was about, not the week the reader opens it.
+Nothing here reads the database. The counts come from the digest being mailed,
+so a chart always draws the week its mail was about, not the week the reader
+opens it.
 """
 
 COLUMN = "#8b5cf6"
@@ -30,6 +29,6 @@ def week(counts: list[int]) -> str:
     )
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {HEIGHT}"'
-        f' width="{WIDTH}" height="{HEIGHT}" role="img">'
+        f' width="{WIDTH}" height="{HEIGHT}">'
         f"{bars}</svg>"
     )
