@@ -76,6 +76,6 @@ Resend is one of the best developer email APIs, and inbound receiving is include
 ## Migrating from Resend to relay
 
 1. Add your domain in relay. Delegate NS to the relay nameservers.
-1. Set the DMARC record that relay gives you.
-1. Point your app at relay's SMTP submission with a per-org credential.
-1. Replace your `email.received` webhook with a relay webhook subscription.
+2. Set the DMARC record that relay gives you.
+3. Point your app at relay's SMTP submission with a per-org credential.
+4. Replace your `email.received` webhook with a relay webhook subscription.
