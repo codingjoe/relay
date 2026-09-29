@@ -72,8 +72,8 @@ def digest_illustration(stats: ReputationSummary) -> tuple[str, str]:
             return "", ""
         case _:
             return (
-                "img/illustrations/home-run-light.svg",
-                "img/illustrations/home-run-dark.svg",
+                "img/illustrations/all-the-data-light.svg",
+                "img/illustrations/all-the-data-dark.svg",
             )
 
 

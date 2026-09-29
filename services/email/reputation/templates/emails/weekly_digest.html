@@ -88,15 +88,6 @@
       display: none;
     }
 
-    .digest-kicker {
-      margin: 0 0 6px;
-      color: #6200d1;
-      font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
     @media only screen and (max-width: 640px) {
       .digest-card {
         display: block !important;
@@ -132,10 +123,6 @@
         color: #c480ff !important;
       }
 
-      .digest-kicker {
-        color: #bb80ff !important;
-      }
-
       .digest-art--light {
         display: none !important;
       }
@@ -148,8 +135,7 @@
 {% endblock extra_header %}
 
 {% block content %}
-  <p class="first digest-kicker">{% translate "All the Data" %}</p>
-  <h1>{{ headline }}</h1>
+  <h1 class="first">{{ headline }}</h1>
   <p>{{ verdict }}</p>
   <p class="digest-count">{{ sent }}</p>
   <p class="digest-count-caption">
