@@ -66,7 +66,7 @@ def digest_illustration(stats: ReputationSummary) -> str:
         case _ if stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]:
             return ""
         case _:
-            return "img/game-day.svg"
+            return "img/home-run.svg"
 
 
 def message_interval(daily_average: int) -> str:
