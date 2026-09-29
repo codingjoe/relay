@@ -116,23 +116,35 @@ without this proof stays on record, and it does not count into the rates.
 ## The weekly digest
 
 Every Monday, relay mails every member of your organization a short report on
-the last few days:
+the last few days. The headline counts the messages that left the building. A
+line under it reads the window in plain words. It reports a rate over its
+limit, nothing sent at all, a clean record, or a few bounces and complaints
+inside the limits.
 
-- how many messages left the building,
-- your hard-bounce rate and your complaint rate, each one next to the limit
-  relay applies,
-- the month so far: messages sent, the bill, and the free tier.
+Three cards follow, the same three the monitoring dashboard opens with:
 
-The mail wraps the numbers in graphics. A window with traffic draws a column
-chart under the headline, one column per day, so a spike or a quiet day
-stands out. The same window adds an illustration and a line that reads the
-volume as messages a day. Each rate is drawn as a bar against the limit relay
-applies, so the headroom reads next to the number. The month so far carries
-three bars: this month, last month, and the free tier.
+- **Cost.** The amount billed so far, or the word free, with the free tier's
+  monthly allowance underneath.
+- **Hard-bounce rate.** The rate for the window, with the limit relay applies
+  underneath.
+- **Complaint rate.** The rate for the window, with the limit relay applies
+  underneath.
 
-The graphics arrive as images. A mail client that does not render them shows
-the numbers alone: the totals, the rates, the limits, and the month figures
-all travel as text in the copy, and only the drawn shape is lost.
+Each rate card turns red when its rate is over the limit, and green when the
+rate stays below it. When a rate passes its limit, the line at the top says
+so, and a paragraph explains what relay does next. It asks you to correct the
+source of the bounces or the complaints. relay suspends the organization when
+the window carries enough volume, and relay staff then review the account.
+
+A window with traffic draws a column chart, one column per day, so a spike or
+a quiet day stands out. One sentence under it sets this month against the
+previous month, and a second line reads the volume as messages a day. An
+illustration closes the mail, and a rate above its limit drops it.
+
+The per-day chart and the closing illustration arrive as images. A mail
+client that does not render images shows the copy without them. Every number
+still travels as text: the totals, the rates, their limits, the month against
+the previous month, and the daily average. Only the drawn shape is lost.
 
 The mail reports a rolling window that ends the moment it goes out. The
 dashboard counts by calendar day, so a card can differ from the mail by up to
@@ -140,9 +152,8 @@ a day of traffic. It arrives every week, including one with no traffic at
 all: nothing sent is nothing to fix, and the report says so. An organization
 that relay has suspended receives no digest.
 
-A rate that sits above its limit drops the illustration. The mail names the
-rate, the limit, and what relay does next, and it links to the dashboard for
-the per-day charts and the reports behind them.
+Every digest links to the monitoring dashboard. The dashboard keeps the
+per-day charts and the reports behind them.
 
 A member whose address sits on the organization's suppression list receives
 no digest, and neither does one whose address hard bounced at another
