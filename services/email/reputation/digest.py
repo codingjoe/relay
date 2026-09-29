@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.translation import gettext, ngettext
 
 from accounts.models import Membership, Organization
-from services.email.msa.models import SuppressionEntry
+from services.email.msa.models import OutgoingMessage, SuppressionEntry
 
 from .billing import month_cost
 from .charts import build_volume_chart, sent_per_day
@@ -32,11 +32,25 @@ def build_org_digest(org: Organization) -> dict[str, Any]:
         org,
         stats=build_reputation_stats(org),
         month_messages=volume["this_month_total"],
-        month_last_messages=volume["rows"][-1]["last_month"] or 0,
         daily_counts=[
             window_counts.get(start + timedelta(days=offset), 0)
             for offset in range(window_days)
         ],
+        recipients=count_window_recipients(org, window_days),
+    )
+
+
+def count_window_recipients(org: Organization, window_days: int) -> int:
+    """Return how many distinct addresses the window's messages went to."""
+    return (
+        OutgoingMessage.objects.filter(
+            org=org,
+            created_at__gte=timezone.now() - timedelta(days=window_days),
+        )
+        .exclude(status=OutgoingMessage.Status.SANDBOXED)
+        .values("rcpt_to")
+        .distinct()
+        .count()
     )
 
 
@@ -79,8 +93,8 @@ def build_digest_context(
     org: Organization,
     stats: ReputationSummary,
     month_messages: int,
-    month_last_messages: int,
     daily_counts: list[int],
+    recipients: int,
 ) -> dict[str, Any]:
     """
     Return the window rates, their limits, the month so far, and its cost.
@@ -101,7 +115,7 @@ def build_digest_context(
         "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
         "month_messages": month_messages,
-        "month_last_messages": month_last_messages,
+        "recipients": recipients,
         "week_chart_url": (
             chart_url(
                 org,
@@ -136,8 +150,8 @@ def sample_org_digest() -> dict[str, Any]:
             complaint_over_limit=False,
         ),
         month_messages=42100,
-        month_last_messages=38400,
         daily_counts=[980, 1420, 2310, 1750, 2640, 1880, 1500],
+        recipients=214,
     )
 
 

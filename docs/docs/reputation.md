@@ -126,8 +126,8 @@ own, in large type, captioned with the window in plain words.
 
 Three cards follow, the same three the monitoring dashboard opens with:
 
-- **Cost.** The amount billed so far, or the word free, with the free tier's
-  monthly allowance underneath.
+- **Cost.** The amount billed so far, or the word free, with the free monthly
+  allowance underneath.
 - **Hard-bounce rate.** The rate for the window, with the limit relay applies
   underneath.
 - **Complaint rate.** The rate for the window, with the limit relay applies
@@ -140,14 +140,16 @@ source of the bounces or the complaints. relay suspends the organization when
 the window carries enough volume, and relay staff then review the account.
 
 A window with traffic draws a column chart, one column per day, so a spike or
-a quiet day stands out. One sentence under it sets this month against the
-previous month, and a second line reads the volume as messages a day. An
-illustration closes the mail, and a rate above its limit drops it.
+a quiet day stands out. A line under it reads the messages a day and how
+often one goes out, then the distinct addresses those messages reached, then
+the month's total on its own. An illustration and a sign-off close the mail,
+and a rate above its limit drops the illustration.
 
 The per-day chart and the closing illustration arrive as images. A mail
 client that does not render images shows the copy without them. Every number
-still travels as text: the totals, the rates, their limits, the month against
-the previous month, and the daily average. Only the drawn shape is lost.
+still travels as text: the totals, the rates, their limits, the messages a
+day and how often one goes out, the distinct addresses reached, and the month
+so far. Only the drawn shape is lost.
 
 The mail reports a rolling window that ends the moment it goes out. The
 dashboard counts by calendar day, so a card can differ from the mail by up to

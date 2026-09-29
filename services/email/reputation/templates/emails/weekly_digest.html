@@ -56,17 +56,20 @@
     }
 
     .digest-count {
-      margin: 8px 0 0;
+      margin: 24px 0 0;
+      color: #6200d1;
       font-weight: 700;
-      font-size: 34px;
-      line-height: 40px;
+      font-size: 46px;
+      line-height: 52px;
+      text-align: center;
     }
 
     .digest-count-caption {
-      margin: 0 0 16px;
+      margin: 0 0 24px;
       color: #5d5d5d;
       font-size: 14px;
       line-height: 20px;
+      text-align: center;
     }
 
     .digest-chart {
@@ -111,6 +114,10 @@
       .digest-card-value--bad {
         color: #fca5a5 !important;
       }
+
+      .digest-count {
+        color: #c480ff !important;
+      }
     }
   </style>
 {% endblock extra_header %}
@@ -141,7 +148,7 @@
     {% translate "free"|capfirst as cost_value %}
   {% endif %}
   {% blocktranslate with limit=free_monthly_messages|intcomma asvar cost_caption trimmed %}
-    {{ limit }} a month are on the house.
+    {{ limit }} a month on the house.
   {% endblocktranslate %}
   {% translate "hard bounce rate" as bounce_label %}
   {% blocktranslate with limit=bounce_threshold|percent:"2" asvar bounce_caption trimmed %}
@@ -187,16 +194,23 @@
     >
   {% endif %}
   <p>
-    {% blocktranslate with month=month_messages|intcomma last=month_last_messages|intcomma trimmed %}
-      {{ month }} messages this month, against {{ last }} last month.
-    {% endblocktranslate %}
     {% if message_interval %}
-      {% blocktranslate count counter=daily_average trimmed %}
-        That is about {{ counter }} message a day, {{ message_interval }}.
+      {% blocktranslate count counter=daily_average with average=daily_average|intcomma trimmed %}
+        That is about {{ average }} message a day, {{ message_interval }}.
       {% plural %}
-        That is about {{ counter }} messages a day, {{ message_interval }}.
+        That is about {{ average }} messages a day, {{ message_interval }}.
       {% endblocktranslate %}
     {% endif %}
+    {% if recipients %}
+      {% blocktranslate count counter=recipients with total=recipients|intcomma trimmed %}
+        Those messages reached {{ total }} distinct recipient.
+      {% plural %}
+        Those messages reached {{ total }} distinct recipients.
+      {% endblocktranslate %}
+    {% endif %}
+    {% blocktranslate with month=month_messages|intcomma trimmed %}
+      {{ month }} messages this month.
+    {% endblocktranslate %}
   </p>
   {% translate "Open monitoring" as button_label %}
   {% button href=dashboard_path value=button_label primary=True %}
@@ -216,7 +230,7 @@
   {% endif %}
   <p class="last">
     {% blocktranslate trimmed %}
-      Back next Monday with a fresh set. The dashboard keeps the fine print.
+      Back next Monday with a fresh set. Keep on sending!
     {% endblocktranslate %}
   </p>
 {% endblock content %}
