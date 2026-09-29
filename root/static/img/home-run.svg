@@ -1,18 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img">
-  <title>Home run</title>
-  <!-- The infield, drawn as the diamond the bases sit on. -->
-  <path d="M330 230 L480 380 L330 530 L180 380 Z" fill="none" stroke="#8b5cf6" stroke-width="8" stroke-linejoin="round"/>
-  <path d="M330 214 L346 230 L330 246 L314 230 Z" fill="#f4f4f5" stroke="#8b5cf6" stroke-width="6" stroke-linejoin="round"/>
-  <path d="M480 364 L496 380 L480 396 L464 380 Z" fill="#f4f4f5" stroke="#8b5cf6" stroke-width="6" stroke-linejoin="round"/>
-  <path d="M180 364 L196 380 L180 396 L164 380 Z" fill="#f4f4f5" stroke="#8b5cf6" stroke-width="6" stroke-linejoin="round"/>
-  <path d="M318 522 L330 510 L342 522 L342 538 L318 538 Z" fill="#f4f4f5" stroke="#8b5cf6" stroke-width="6" stroke-linejoin="round"/>
-  <!-- The ball, away and rising, with the dotted line it left behind. -->
-  <path d="M348 508 C 430 430 520 300 566 214" fill="none" stroke="#8b5cf6" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.1 30" opacity="0.7"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <path fill="none" stroke="#8b5cf6" stroke-linejoin="round" stroke-width="8" d="m330 230 150 150-150 150-150-150Z"/>
+  <path fill="#f4f4f5" stroke="#8b5cf6" stroke-linejoin="round" stroke-width="6" d="m330 214 16 16-16 16-16-16Zm150 150 16 16-16 16-16-16Zm-300 0 16 16-16 16-16-16Zm138 158 12-12 12 12v16h-24Z"/>
+  <path fill="none" stroke="#8b5cf6" stroke-dasharray="0.1 30" stroke-linecap="round" stroke-width="7" d="M348 508c82-78 172-208 218-294" opacity=".7"/>
   <circle cx="600" cy="180" r="44" fill="#fed253" stroke="#8b5cf6" stroke-width="8"/>
-  <path d="M578 148 q 26 32 0 64" fill="none" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round"/>
-  <path d="M622 148 q -26 32 0 64" fill="none" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round"/>
-  <!-- Two speed lines off the fence, to send it home. -->
-  <path d="M672 118 L716 96" fill="none" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
-  <path d="M668 172 L716 172" fill="none" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round" opacity="0.45"/>
-  <path d="M672 226 L716 248" fill="none" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+  <path fill="none" stroke="#8b5cf6" stroke-linecap="round" stroke-width="6" d="M578 148q26 32 0 64"/>
+  <path fill="none" stroke="#8b5cf6" stroke-linecap="round" stroke-width="6" d="M622 148q-26 32 0 64"/>
+  <path fill="none" stroke="#8b5cf6" stroke-linecap="round" stroke-width="8" d="m672 118 44-22" opacity=".7"/>
+  <path fill="none" stroke="#8b5cf6" stroke-linecap="round" stroke-width="8" d="M668 172h48" opacity=".45"/>
+  <path fill="none" stroke="#8b5cf6" stroke-linecap="round" stroke-width="8" d="m672 226 44 22" opacity=".7"/>
 </svg>
