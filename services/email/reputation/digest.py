@@ -65,12 +65,12 @@ def message_interval(daily_average: int) -> str:
                 "one every second", "one every %(count)d seconds", seconds
             ) % {"count": seconds}
         case _ if seconds < 5400:
-            minutes = max(round(seconds / 60), 1)
+            minutes = round(seconds / 60)
             return ngettext(
                 "one every minute", "one every %(count)d minutes", minutes
             ) % {"count": minutes}
         case _:
-            hours = max(round(seconds / 3600), 1)
+            hours = round(seconds / 3600)
             return ngettext("one every hour", "one every %(count)d hours", hours) % {
                 "count": hours
             }

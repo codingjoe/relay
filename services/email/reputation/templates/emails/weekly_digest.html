@@ -170,19 +170,19 @@
       width="600"
       height="44"
     >
-    <p>
-      {% blocktranslate with month=month_messages|intcomma last=month_last_messages|intcomma trimmed %}
-        {{ month }} messages this month, against {{ last }} last month.
-      {% endblocktranslate %}
-      {% if message_interval %}
-        {% blocktranslate count counter=daily_average trimmed %}
-          That is about {{ counter }} message a day, {{ message_interval }}.
-        {% plural %}
-          That is about {{ counter }} messages a day, {{ message_interval }}.
-        {% endblocktranslate %}
-      {% endif %}
-    </p>
   {% endif %}
+  <p>
+    {% blocktranslate with month=month_messages|intcomma last=month_last_messages|intcomma trimmed %}
+      {{ month }} messages this month, against {{ last }} last month.
+    {% endblocktranslate %}
+    {% if message_interval %}
+      {% blocktranslate count counter=daily_average trimmed %}
+        That is about {{ counter }} message a day, {{ message_interval }}.
+      {% plural %}
+        That is about {{ counter }} messages a day, {{ message_interval }}.
+      {% endblocktranslate %}
+    {% endif %}
+  </p>
   {% translate "Open monitoring" as button_label %}
   {% button href=dashboard_path value=button_label primary=True %}
   {% if illustration %}

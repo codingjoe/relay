@@ -10,19 +10,27 @@ was about, not the week the reader opens it.
 COLUMN = "#8b5cf6"
 TRACK = "#6b6b76"
 WIDTH = 600
+CORNER_RADIUS = 4
+MAX_DAYS = 31
 
 
 def week(counts: list[int], height: int = 44) -> str:
-    """Return the window's days as a column chart, tallest day at full height."""
+    """
+    Return the window's days as a column chart, tallest day at full height.
+
+    Draws at most MAX_DAYS columns, and drops the rest of a longer row, so a
+    column stays wide enough to read.
+    """
+    counts = counts[:MAX_DAYS]
     days = max(len(counts), 1)
     gap = 8
-    column = max((WIDTH - gap * (days - 1)) // days, 1)
+    column = (WIDTH - gap * (days - 1)) // days
     tallest = max(counts or [0]) or 1
     bars = "".join(
         f'<rect x="{index * (column + gap)}"'
         f' y="{height - round(height * count / tallest)}"'
         f' width="{column}" height="{round(height * count / tallest)}"'
-        f' rx="{min(column // 2, 4)}" fill="{COLUMN}"/>'
+        f' rx="{CORNER_RADIUS}" fill="{COLUMN}"/>'
         for index, count in enumerate(counts)
     )
     return (
