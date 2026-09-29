@@ -63,9 +63,9 @@ You do not need a separate DNS record for the Return-Path.
 ## How to set up the Return-Path
 
 1. Choose a subdomain of your sending domain for the envelope sender, for example `bounces.example.com`.
-1. Publish an MX record for the subdomain so that bounce messages return to your mail server.
-1. Add the subdomain to your SPF record.
-1. Make sure that the envelope sender domain aligns with the visible From domain for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
+2. Publish an MX record for the subdomain so that bounce messages return to your mail server.
+3. Add the subdomain to your SPF record.
+4. Make sure that the envelope sender domain aligns with the visible From domain for <a href="{% url 'know_how:detail' slug='dmarc' %}">DMARC</a>.
 
 A subdomain of the sending domain aligns under relaxed DMARC. Add a tag such as `bounce+<message-id>` to the local part to identify the original message from a bounce.
 

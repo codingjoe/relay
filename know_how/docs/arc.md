@@ -41,7 +41,7 @@ The `cv=` tag in the ARC-Seal records the validation status of the chain up to t
 Seal verification is the same as <a href="{% url 'know_how:detail' slug='dkim' %}">DKIM</a> verification. The ARC-Seal header carries the selector `s=` and the signing domain `d=` of the sealing intermediary.
 
 1. Look up the public key in DNS at `<selector>._domainkey.<domain>`.
-1. Verify the signature of each set in chain order.
+2. Verify the signature of each set in chain order.
 
 The `cv=` tag of the newest seal gives the status of the entire chain.
 

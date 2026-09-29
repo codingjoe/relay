@@ -76,6 +76,6 @@ Mailgun is a capable developer email API with inbound routes. relay is the bette
 ## Migrating from Mailgun to relay
 
 1. Add your domain in relay. Delegate NS to the relay nameservers.
-1. Set the DMARC record that relay gives you.
-1. Move your SMTP or API calls to relay with a per-org credential.
-1. Replace Mailgun Routes with relay webhook subscriptions.
+2. Set the DMARC record that relay gives you.
+3. Move your SMTP or API calls to relay with a per-org credential.
+4. Replace Mailgun Routes with relay webhook subscriptions.

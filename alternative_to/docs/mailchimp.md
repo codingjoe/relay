@@ -76,6 +76,6 @@ Mailchimp is a top marketing platform. relay is the better fit for developer ema
 ## Migrating from Mailchimp to relay
 
 1. Add your domain in relay. Delegate NS to the relay nameservers.
-1. Set the DMARC record that relay gives you.
-1. Move transactional calls from Mandrill to relay with a per-org credential.
-1. Set up relay webhooks for any inbound mail you need.
+2. Set the DMARC record that relay gives you.
+3. Move transactional calls from Mandrill to relay with a per-org credential.
+4. Set up relay webhooks for any inbound mail you need.

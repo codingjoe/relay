@@ -16,11 +16,11 @@ Three things to have ready:
    HCLOUD_TOKEN="<token>" hcloud context create relay --token-from-env
    ```
 
-1. **`.env.keys`** in the repo root. It decrypts the committed
+2. **`.env.keys`** in the repo root. It decrypts the committed
    `.env.production` and is git-ignored, so restore it from wherever you keep
    it.
 
-1. **Object Storage credentials**, exported for the `storage` step:
+3. **Object Storage credentials**, exported for the `storage` step:
 
    ```bash
    export AWS_ACCESS_KEY_ID="<key>"
