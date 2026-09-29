@@ -113,59 +113,6 @@ The report carries the per-message Return-Path, or the per-message
 complaint maps to one message, one domain, and one organization. A complaint
 without this proof stays on record, and it does not count into the rates.
 
-## The weekly digest
-
-Every Monday, relay mails every member of your organization a short report on
-the last few days. A headline opens the mail and sums up how the week went,
-with no number in it: a clean week, a week with nothing sent, a week with a
-few bumps, or something to fix when a rate sits over its limit. The line
-under it reads the numbers at a glance. It reports a rate over its limit,
-nothing sent at all, a clean record, or a few bounces and complaints inside
-the limits. Under that line, the window's message count takes a line of its
-own, in large type, captioned with the window in plain words.
-
-Three cards follow, the same three the monitoring dashboard opens with:
-
-- **Cost.** The amount billed so far, or the word free, with the free monthly
-  allowance underneath.
-- **Hard-bounce rate.** The rate for the window, with the limit relay applies
-  underneath.
-- **Complaint rate.** The rate for the window, with the limit relay applies
-  underneath.
-
-Each rate card turns red when its rate is over the limit, and green when the
-rate stays below it. When a rate passes its limit, the line at the top says
-so, and a paragraph explains what relay does next. It asks you to correct the
-source of the bounces or the complaints. relay suspends the organization when
-the window carries enough volume, and relay staff then review the account.
-
-A window with traffic draws a column chart, one column per day, so a spike or
-a quiet day stands out. A line under it reads the messages a day and how
-often one goes out, then the distinct addresses those messages reached, then
-the month's total on its own. An illustration and a sign-off close the mail,
-and a rate above its limit drops the illustration.
-
-The per-day chart travels as SVG inside the mail itself, and the closing
-illustration arrives as an image. A mail client that strips SVG or blocks
-images shows the copy without them. Every number still travels as text: the
-totals, the rates, their limits, the messages a day and how often one goes
-out, the distinct addresses reached, and the month so far. Only the drawn
-shape is lost.
-
-The mail reports a rolling window that ends the moment it goes out. The
-dashboard counts by calendar day, so a card can differ from the mail by up to
-a day of traffic. It arrives every week, including one with no traffic at
-all: nothing sent is nothing to fix, and the report says so. An organization
-that relay has suspended receives no digest.
-
-Every digest links to the monitoring dashboard. The dashboard keeps the
-per-day charts and the reports behind them.
-
-A deactivated member receives no digest, and neither does one with no address
-on file. A member whose address sits on the organization's suppression list
-receives no digest either, and neither does one whose address hard bounced at
-another organization within the last 30 days.
-
 ## Reputation limits
 
 relay computes hard-bounce and complaint rates for your organization over a
