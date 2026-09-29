@@ -116,10 +116,13 @@ without this proof stays on record, and it does not count into the rates.
 ## The weekly digest
 
 Every Monday, relay mails every member of your organization a short report on
-the last few days. The headline counts the messages that left the building. A
-line under it reads the window in plain words. It reports a rate over its
-limit, nothing sent at all, a clean record, or a few bounces and complaints
-inside the limits.
+the last few days. A headline opens the mail and sums up how the week went,
+with no number in it: a clean week, a week with nothing sent, a week with a
+few bumps, or something to fix when a rate sits over its limit. The line
+under it reads the numbers at a glance. It reports a rate over its limit,
+nothing sent at all, a clean record, or a few bounces and complaints inside
+the limits. Under that line, the window's message count takes a line of its
+own, in large type, captioned with the window in plain words.
 
 Three cards follow, the same three the monitoring dashboard opens with:
 

@@ -40,10 +40,26 @@ class WeeklyDigestEmail(TemplateEmail):
             super().get_context_data()
             | self.digest
             | {
+                "headline": self.get_headline(
+                    self.digest["stats"], self.digest["organization"]
+                ),
                 "sent": intcomma(self.digest["stats"]["total_sent"]),
                 "verdict": self.get_verdict(self.digest["stats"]),
             }
         )
+
+    def get_headline(self, stats: ReputationSummary, organization: str) -> str:
+        """Return the words that open the mail, with no numbers in them."""
+        match stats:
+            case _ if stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]:
+                headline = _("Something to fix at %(organization)s.")
+            case {"total_sent": 0}:
+                headline = _("%(organization)s took the week off.")
+            case {"hard_bounces": 0, "complaints": 0}:
+                headline = _("A clean week at %(organization)s.")
+            case _:
+                headline = _("A week with a few bumps at %(organization)s.")
+        return headline % {"organization": organization}
 
     def get_subject(self, **context) -> str:
         """Pick the subject that fits the count, then fill its placeholders."""

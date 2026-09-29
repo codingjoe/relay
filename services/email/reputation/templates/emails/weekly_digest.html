@@ -55,6 +55,20 @@
       margin-top: 4px;
     }
 
+    .digest-count {
+      margin: 8px 0 0;
+      font-weight: 700;
+      font-size: 34px;
+      line-height: 40px;
+    }
+
+    .digest-count-caption {
+      margin: 0 0 16px;
+      color: #5d5d5d;
+      font-size: 14px;
+      line-height: 20px;
+    }
+
     .digest-chart {
       display: block;
       width: 100%;
@@ -85,7 +99,8 @@
       }
 
       .digest-card-label,
-      .digest-card-caption {
+      .digest-card-caption,
+      .digest-count-caption {
         color: #9ca3af !important;
       }
 
@@ -101,14 +116,14 @@
 {% endblock extra_header %}
 
 {% block content %}
-  <h1 class="first">
-    {% blocktranslate count counter=stats.total_sent trimmed %}
-      {{ sent }} message out the door at {{ organization }}, in the {{ window_phrase }}.
-    {% plural %}
-      {{ sent }} messages out the door at {{ organization }}, in the {{ window_phrase }}.
-    {% endblocktranslate %}
-  </h1>
+  <h1 class="first">{{ headline }}</h1>
   <p>{{ verdict }}</p>
+  <p class="digest-count">{{ sent }}</p>
+  <p class="digest-count-caption">
+    {% blocktranslate with phrase=window_phrase trimmed %}
+      messages out the door in the {{ phrase }}.
+    {% endblocktranslate %}
+  </p>
   {% if stats.hard_bounce_over_limit or stats.complaint_over_limit %}
     <p>
       {% blocktranslate trimmed %}
