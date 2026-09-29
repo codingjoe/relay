@@ -142,14 +142,43 @@ class StubResolver(dns.resolver.Resolver):
         rdtype_str = (
             dns.rdatatype.to_text(rdtype) if isinstance(rdtype, int) else rdtype.upper()
         )
-        key = (qname_str, rdtype_str)
-        self.lookups.append(key)
+        rdtype_int = dns.rdatatype.from_text(rdtype_str)
+        query_name = dns.name.from_text(str(qname))
+        owner = query_name
+        owner_str = qname_str
+        # A recursive resolver chases a CNAME, so the answer RRset is owned by
+        # the canonical name and not by the queried name.
+        answer_rrsets = []
+        visited = {qname_str}
 
-        if error := self._failures.get(key):
-            raise error
+        while True:
+            key = (owner_str, rdtype_str)
+            self.lookups.append(key)
 
-        if (rdata_texts := self._records.get(key)) is None:
-            raise dns.resolver.NXDOMAIN(qname)
+            if error := self._failures.get(key):
+                raise error
+
+            if (rdata_texts := self._records.get(key)) is not None:
+                break
+
+            cname_texts = self._records.get((owner_str, "CNAME"))
+            if not cname_texts:
+                raise dns.resolver.NXDOMAIN(qname)
+
+            cname_rrset = dns.rrset.from_rdata_list(
+                owner,
+                1800,
+                [
+                    dns.rdata.from_text(rdclass, dns.rdatatype.CNAME, text)
+                    for text in cname_texts
+                ],
+            )
+            answer_rrsets.append(cname_rrset)
+            owner = cname_rrset[0].target
+            owner_str = str(owner).rstrip(".").lower()
+            if owner_str in visited:
+                raise dns.resolver.NXDOMAIN(qname)
+            visited.add(owner_str)
 
         if not rdata_texts and raise_on_no_answer:
             raise dns.resolver.NoAnswer()
@@ -157,20 +186,25 @@ class StubResolver(dns.resolver.Resolver):
         if not rdata_texts:
             return None
 
-        qname_obj = dns.name.from_text(str(qname))
-        rdtype_int = dns.rdatatype.from_text(rdtype_str)
-        rdatas = [
-            dns.rdata.from_text(rdclass, rdtype_int, text) for text in rdata_texts
-        ]
-        rrset = dns.rrset.from_rdata_list(qname_obj, 1800, rdatas)
+        answer_rrsets.append(
+            dns.rrset.from_rdata_list(
+                owner,
+                1800,
+                [
+                    dns.rdata.from_text(rdclass, rdtype_int, text)
+                    for text in rdata_texts
+                ],
+            )
+        )
 
-        query = dns.message.make_query(qname_obj, rdtype_int, rdclass)
+        query = dns.message.make_query(query_name, rdtype_int, rdclass)
         response = dns.message.make_response(query)
-        response.answer.append(rrset)
+        for rrset in answer_rrsets:
+            response.answer.append(rrset)
         # Pack and re-parse to rebuild the message index, which find_rrset uses
         response = dns.message.from_wire(response.to_wire())
 
-        return dns.resolver.Answer(qname_obj, rdtype_int, rdclass, response)
+        return dns.resolver.Answer(query_name, rdtype_int, rdclass, response)
 
 
 @pytest.fixture

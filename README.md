@@ -50,12 +50,13 @@ All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
 per-domain delegation is necessary.
 
-Outgoing mail is dual-signed with DKIM: once for the sender's own domain
-and once for the platform domain. The platform domain is the `Domain`
-row whose name equals `RELAY_PLATFORM_DOMAIN`; until you register it,
-relay signs with the sending domain only. Each signature covers a per-message
-`Feedback-ID` header so FBL complaints attribute to the sending
-organization.
+Outgoing mail is DKIM-signed with RSA-2048 on every message, plus Ed25519
+once the signing domain is verified for sending and its Ed25519 CNAME check
+passes. relay cosigns with the platform domain, the `Domain` row named
+`RELAY_PLATFORM_DOMAIN`, under the same rule: an unverified platform domain
+cosigns with RSA-2048 alone. Until you register it, relay signs with the
+sending domain only. Each signature covers a per-message `Feedback-ID` header
+so FBL complaints attribute to the sending organization.
 
 ## Architecture
 
@@ -64,7 +65,7 @@ Organization → Domain, SmtpCredential
 ```
 
 - **Organization**: Owns resources (domains, credentials). Each user gets a personal org on signup.
-- **Domain**: Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
+- **Domain**: Root domain, verified for sending once NS delegation, SPF, the RSA-2048 DKIM CNAME, and DMARC pass. Holds shared DKIM keys.
 - **SendingDomain**: Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
 - **ReceivingDomain**: Receiving domain with MX record pointing to the relay MX hostnames
 - **SmtpCredential**: Per-org API key used to authenticate outgoing SMTP submissions

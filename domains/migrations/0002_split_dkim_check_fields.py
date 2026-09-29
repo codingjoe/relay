@@ -65,4 +65,6 @@ class Migration(migrations.Migration):
                 verbose_name="Ed25519 DKIM status",
             ),
         ),
+        # No backfill: the pre-split verdict never proved the target, so Ed25519
+        # re-earns its check on the next verification.
     ]

@@ -31,12 +31,14 @@ Facts to understand about this model:
 - **The sender subdomain exists once per root domain.** The envelope
   addresses, the DKIM zone, and the report collectors live under
   `{prefix}.{root}`. You delegate exactly that subdomain to the relay
-  nameservers, and you add one DMARC record at your root.
+  nameservers, and you publish the quick start records at your root.
 - **Every root domain gets its own signing keys**: RSA-2048 and Ed25519
   keys, one selector each, at `relay-rsa2048` and `relay-ed25519` under
   `_domainkey`. Your domain signs with its own keys, so
   reputation attaches to your domain and not to someone else's. relay signs
-  with both keys, and the RSA-2048 CNAME is the one a sender needs.
+  every message with the RSA-2048 key, adds the Ed25519 signature once the
+  domain is verified for sending and the Ed25519 CNAME check passes; only
+  the RSA-2048 CNAME is required to send.
 - **Managed domains cannot be deleted** in the dashboard, and custom domains can.
 - There can be no overlap: you cannot register a subdomain of the managed
   domain, and no two organizations can claim overlapping names.
@@ -58,49 +60,65 @@ zone, the platform signs, and you send.
 The platform signature comes from a platform domain row registered for the
 operator's organization. Relay matches that platform domain by its name.
 Once the platform domain exists, the nameserver serves its DKIM selectors
-through the ordinary record path, and relay cosigns customer mail. Until
-then, relay signs with the sending domain only.
+through the ordinary record path, and relay cosigns customer mail. The
+platform domain signs under the same rule as a customer domain: RSA-2048 on
+every message, and Ed25519 only while it is verified for sending and its
+Ed25519 CNAME check passes. Until the platform domain exists, relay signs
+with the sending domain only.
 
 ## Adding your own domain
 
 The flow for a user domain, for example `acme.com`, has two stages. The
 quick start stage makes the domain send, and the production stage adds
-receiving and TLS hardening:
+inbound mail and the hardening records:
 
 ```mermaid
 flowchart TD
     A[Add domain in dashboard] --> B[Store DKIM keys at creation]
     B --> C[Dashboard shows the quick start records]
-    C --> D[Publish NS delegation, SPF, DKIM, and DMARC]
+    C --> D[Publish NS delegation, SPF, the RSA-2048 DKIM CNAME, and DMARC]
     D --> E[Run verification]
-    E --> F{Quick start checks ok?}
+    E --> F{Sending checks ok?}
     F -- No --> G[Fix the record shown, check again]
     G --> E
     F -- Yes --> H[Domain is verified and sends authenticated email]
-    H --> I[Publish MX, MTA-STS, TLS-RPT, and the Ed25519 DKIM record]
-    I --> J{Production checks ok?}
+    H --> I[Publish the MX, MTA-STS, TLS-RPT, and Ed25519 DKIM records]
+    I --> J{Receiving and production checks ok?}
     J -- No --> G
-    J -- Yes --> K[Receiving and TLS hardening in place]
+    J -- Yes --> K[Inbound mail and hardening records in place]
 ```
 
-Verification reads the live DNS for eight records and splits the result
-into three independent purposes:
+Verification runs eight checks on the live DNS and sorts the result into
+three exclusive groups, one badge each:
 
-- **Quick start (sending)**: NS delegation on the sender subdomain, SPF
+- **Sending (quick start)**: NS delegation on the sender subdomain, SPF
   authorization, the RSA-2048 DKIM CNAME, and the DMARC record at the root.
   These four records are everything an email needs to reach a recipient
   authenticated, and the domain is verified as soon as they pass.
 - **Receiving**: the MX record at the root, which routes inbound mail to
   relay.
-- **Production (hardening)**: the Ed25519 DKIM CNAME, the MTA-STS record
-  and CNAME, and the TLS-RPT record with the relay reporting address. They
-  are optional, and the production check passes only when all of them pass
-  together with the quick start and receiving records.
+- **Production**: the Ed25519 DKIM CNAME, the MTA-STS TXT record and its
+  CNAME, and the TLS-RPT record with the relay reporting address. The
+  MTA-STS check covers both of its records, and all three checks are
+  optional: the domain sends without them. relay adds the Ed25519 signature
+  only once the domain is verified for sending and the Ed25519 CNAME check
+  passes.
 
-Each purpose verifies on its own. Publish only the quick start records and
-the domain sends while receiving and production read as not set up. Checks
-run per record, and the dashboard shows each of them, so a wrong record is
-identifiable. Re-check at any time.
+The domain page gives each group its own section: sending in quick start,
+receiving in its own, and production in its own. Every record
+belongs to exactly one group, so a badge counts its own checks alone: the
+production badge never counts a sending or receiving record, and it turns
+on only when all three of its checks pass. Each group verifies on its own:
+publish only the quick start records and the domain sends while the
+receiving and production badges read as not set up.
+
+Every check carries its own checkmark, so a wrong record is identifiable,
+and the three groups each carry a badge. A verify click reports one message
+for the first unfinished group in badge order: sending, then receiving,
+then production. The message is an error naming the group and counting the
+checks that still fail when you published part of it, reads not set up yet
+when nothing in the group passed, and reports a pass only when every group
+is complete.
 
 ## What the nameserver serves
 

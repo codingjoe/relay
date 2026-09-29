@@ -2,7 +2,7 @@
 <input
   type="text"
   readonly
-  value="{% if quote %}&quot;{{ record_value }}&quot;{% elif trailing_dot %}{{ record_value }}.{% else %}{{ record_value }}{% endif %}"
+  value="{% if quote %}&quot;{{ record_value }}&quot;{% else %}{{ record_value }}.{% endif %}"
   data-select
 >
 <button

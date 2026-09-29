@@ -22,8 +22,8 @@ certificate. Those names are static and served by the relay platform, so
 the MX host and its TLS records exist without further work. The
 dashboard's webhook check shows a wrong MX record, with the observed value
 and the time of the last check. The MX record on its own accepts inbound
-mail; MTA-STS and TLS-RPT are the optional hardening records the dashboard
-groups under production.
+mail and is the whole receiving group; MTA-STS, TLS-RPT, and the Ed25519
+DKIM CNAME are the optional production checks.
 
 Inbound flow:
 
@@ -62,8 +62,10 @@ domain. A `p=reject` policy fails the SMTP transaction with
 platform. Quarantine policies mark the stored message as quarantined. This
 protects senders that publish strict policies from having their name abused,
 and it protects your inbox from spoofing attempts. relay signs outgoing mail
-with RSA-2048 and Ed25519 keys, but inbound DKIM verification still accepts
-signatures from older senders that use RSA-1024 keys.
+with RSA-2048 keys and adds an Ed25519 signature once the domain is
+verified for sending and its Ed25519 CNAME check passes, but inbound DKIM
+verification still accepts signatures from older senders that use RSA-1024
+keys.
 
 **Spam scan.** relay scores every accepted message, and you can see the
 score in the dashboard. A message whose score reaches the reject

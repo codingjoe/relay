@@ -60,7 +60,12 @@ def verify_nameserver_delegation(domain):
         return False
     our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
     their_ns = {str(r.target).rstrip(".").lower() for r in ns_records}
-    return our_ns == their_ns
+    # A chased CNAME answers with the target's records, so the owner name of
+    # the answer is what proves a zone cut, and the nameserver set alone does not.
+    return (
+        str(ns_records.rrset.name).rstrip(".").lower() == domain.sender_domain.lower()
+        and our_ns == their_ns
+    )
 
 
 def check_dmarc(domain):
@@ -89,12 +94,16 @@ def check_spf(domain):
 
 
 def check_dkim_cname(domain, field):
-    """Return whether the DKIM CNAME of one cipher resolves."""
-    name, _target = domain.dkim_cnames[field]
+    name, target = domain.dkim_cnames[field]
     try:
-        return bool(dns.resolver.resolve(name, "CNAME"))
+        cname_records = dns.resolver.resolve(name, "CNAME")
     except dns.exception.DNSException:
         return False
+    # relay serves the key at the documented target and nowhere else, so the
+    # record's own name, a loop, leaves the signature unverifiable.
+    return any(
+        str(record.target).lower() == f"{target}.".lower() for record in cname_records
+    )
 
 
 def check_mx(domain):
@@ -201,8 +210,7 @@ def verify_domain_dns(domain):
 
     domain.dns_checked_at = timezone.now()
 
-    # A domain sends as soon as the quick start records pass. The receiving
-    # and hardening records stay optional, so they must not gate sending.
+    # Only the quick start group gates sending, so the rest stay optional.
     if domain.is_sending_verified and domain.verified_at is None:
         domain.verified_at = timezone.now()
 
@@ -210,7 +218,7 @@ def verify_domain_dns(domain):
         update_fields=[
             *(
                 attribute
-                for field in Domain.PRODUCTION_CHECK_FIELDS
+                for field in checks
                 for attribute in (f"{field}_status", f"{field}_error")
             ),
             "dns_checked_at",

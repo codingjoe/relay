@@ -15,11 +15,12 @@ and monitored under relay.
 
 ## Your domain carries your reputation
 
-relay signs each outgoing message with your own domain's DKIM keys. A
-receiving server attributes the message to your DKIM domain, not to the
-platform. The envelope sender lives on your sender subdomain, so SPF
-attribute as well, and DMARC alignment for `p=quarantine` and stricter
-policies is the default case, not an achievement.
+relay signs each outgoing message for your own domain: RSA-2048 on every
+message, and Ed25519 once the domain is verified for sending with a passing
+Ed25519 CNAME check. A receiving server attributes the message to your DKIM
+domain, not to the platform. The envelope sender lives on your sender
+subdomain, so SPF attribute as well, and DMARC alignment for `p=quarantine`
+and stricter policies is the default case, not an achievement.
 
 ```mermaid
 graph LR

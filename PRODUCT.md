@@ -41,9 +41,9 @@ Developer workflow, confirmed from product code and copy:
 - Sign up via GitHub OAuth; a personal organization is created automatically.
 - A managed sender domain is ready immediately, no DNS work to start.
 - Custom domains start with a quick start record set (NS delegation, SPF,
-  a DKIM CNAME, and DMARC) and grow into a production set (MX, MTA-STS,
-  TLS-RPT, and the Ed25519 DKIM CNAME); the dashboard verifies and serves
-  every record.
+  the RSA-2048 DKIM CNAME, and DMARC), then add the receiving record (MX)
+  and the production set (the Ed25519 DKIM CNAME, MTA-STS, and TLS-RPT);
+  the dashboard verifies and serves every record.
 - Send via SMTP submission (ports 587/465) or MCP; receive via MX to
   Standard Webhooks (Ed25519-signed, `whpk_` keys) or MCP.
 - Monitor DMARC aggregate (RUA) and forensic (RUF) reports, TLS-RPT, bounce

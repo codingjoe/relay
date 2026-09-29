@@ -15,32 +15,39 @@ receiver's decision.
 ## The record set relay manages
 
 relay runs its own authoritative nameserver. For a delegated domain, for
-example `acme.com`, you deploy the delegation and add DMARC, and relay serves
-the rest. The dashboard lists the exact records, and its checks confirm each
-one:
+example `acme.com`, you delegate the sender subdomain and publish the records
+the dashboard lists. The dashboard confirms each record with a check, and
+every check belongs to one group:
 
-| Check         | Where relay looks                  | What it wants to see                                 |
-| ------------- | ---------------------------------- | ---------------------------------------------------- |
-| NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
-| SPF           | root and sender subdomain TXT      | a record that authorizes each relay sending IP       |
-| DKIM          | one CNAME record per cipher        | `{selector}._domainkey` pointing into the relay zone |
-| DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
-| MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
-| TLS-RPT       | `_smtp._tls` TXT                   | reporting to the relay TLS collector                 |
+| Check         | Group      | Where relay looks                  | What it wants to see                             |
+| ------------- | ---------- | ---------------------------------- | ------------------------------------------------ |
+| NS delegation | Sending    | `mail.relay.acme.com`              | NS records to the relay nameservers              |
+| SPF           | Sending    | root and sender subdomain TXT      | a record that authorizes each relay sending IP   |
+| RSA-2048 DKIM | Sending    | `relay-rsa2048._domainkey` CNAME   | a pointer to the relay-served `_domainkey` name  |
+| DMARC         | Sending    | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector |
+| MX            | Receiving  | `acme.com` MX                      | the relay MX hostnames                           |
+| Ed25519 DKIM  | Production | `relay-ed25519._domainkey` CNAME   | a pointer to the relay-served `_domainkey` name  |
+| MTA-STS       | Production | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host           |
+| TLS-RPT       | Production | `_smtp._tls` TXT                   | reporting to the relay TLS collector             |
 
-Four public-key selectors, two per domain (RSA-2048 and Ed25519),
-sign every message with `h=sha256`. Both algorithms ride on every
-outgoing message, so receivers that cannot read Ed25519 names yet still
-find an RSA signature they accept. The RSA-2048 CNAME is required to send,
-and the Ed25519 CNAME belongs to the production record set.
+Four public-key selectors, two per domain (RSA-2048 and Ed25519), sign with
+`h=sha256`. The RSA-2048 signature rides on every outgoing message, so a
+receiver that cannot read Ed25519 names still finds a signature it accepts.
+relay adds a domain's Ed25519 signature only once that domain is verified for
+sending and its Ed25519 CNAME check passes. The RSA-2048 CNAME belongs to the
+four sending records and is required to send; the Ed25519 CNAME is a
+production record.
 
 Your message carries one more identity besides your domain keys. relay
-cosigns customers' messages with the keys of the platform domain. The cosign
-carries the platform domain's name, so a receiver can tell the platform
-apart from your domain. Your domain signatures and the cosign cover the same
-headers: From, To, Subject, Date, Message-ID, and `Feedback-ID`. A mailbox
-provider copies `Feedback-ID` into spam complaints, so the complaint points
-back at one message. The complaint path is on the
+cosigns customers' messages with the platform domain, which signs under the
+rule above: its RSA-2048 signature covers every message, and its Ed25519
+signature appears only while the platform domain is verified for sending and
+its Ed25519 CNAME check passes. The cosign carries the platform domain's
+name, so a receiver can tell the platform apart from your domain. Your domain
+signatures and the cosign cover the same headers: From, To, Subject, Date,
+Message-ID, and `Feedback-ID`. A mailbox provider copies `Feedback-ID` into
+spam complaints, so the complaint points back at one message. The complaint
+path is on the
 <a href="{% url 'docs:detail' slug='reputation' %}">Sender
 reputation</a> page.
 
@@ -72,7 +79,7 @@ sequenceDiagram
     alt score reaches the hold threshold
         Worker->>Worker: status held, stop
     else clean
-        Worker->>Sign: sign with RSA-2048, Ed25519
+        Worker->>Sign: sign RSA-2048, plus Ed25519 once checks pass
         Sign-->>Worker: signed message
         Worker->>Remote: STARTTLS on 25, per-MX attempts
         Remote-->>Worker: SMTP response, recorded in the dashboard

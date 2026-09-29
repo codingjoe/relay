@@ -70,6 +70,13 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
 
 
 class DomainVerifyView(OrganizationScopedView, generic.View):
+    # The three exclusive record groups, in badge order.
+    TIERS = (
+        (_("sending"), Domain.SENDING_CHECK_FIELDS),
+        (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
+        (_("production"), Domain.PRODUCTION_CHECK_FIELDS),
+    )
+
     def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(
             Domain,
@@ -79,36 +86,38 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
         )
         verify_domain_dns(domain)
 
-        for label, fields in (
-            (_("sending"), Domain.SENDING_CHECK_FIELDS),
-            (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
-            (_("production"), Domain.PRODUCTION_CHECK_FIELDS),
-        ):
-            passing = sum(
-                getattr(domain, f"{field}_status") == Domain.Status.OK
-                for field in fields
-            )
-            total = len(fields)
-            match passing:
-                case _ if passing == total:
-                    messages.success(
-                        request,
-                        _("%(label)s verification passed: all %(total)d checks pass.")
-                        % {"label": label, "total": total},
+        tiers = [
+            (label, domain.checks_passing(fields), len(fields))
+            for label, fields in self.TIERS
+        ]
+        unfinished = next(
+            (
+                (label, passing, total)
+                for label, passing, total in tiers
+                if passing < total
+            ),
+            None,
+        )
+        # One message per click, for the first unfinished group in badge order,
+        # so the message and the badge beside it always agree. A group below an
+        # unfinished one is never named.
+        match unfinished:
+            case None:
+                messages.success(request, _("Verification passed: every check passes."))
+            case (label, 0, _):
+                messages.info(
+                    request,
+                    _("%(label)s verification is not set up yet.") % {"label": label},
+                )
+            case (label, passing, total):
+                messages.error(
+                    request,
+                    _(
+                        "%(label)s verification failed: %(failing)d of %(total)d "
+                        "checks are still failing."
                     )
-                case 0:
-                    # A tier nobody started is not a failure. The quick start
-                    # records alone already make the domain send.
-                    pass
-                case _:
-                    messages.error(
-                        request,
-                        _(
-                            "%(label)s verification failed: %(failing)d of %(total)d "
-                            "checks are still failing."
-                        )
-                        % {"label": label, "failing": total - passing, "total": total},
-                    )
+                    % {"label": label, "failing": total - passing, "total": total},
+                )
         return redirect(domain.get_absolute_url())
 
 
