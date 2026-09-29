@@ -106,42 +106,22 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
         }
 
 
-def chart_number(value: str, default: float = 0.0) -> float:
-    """Return the number a chart query string carries, or the default."""
+def chart_number(value: str) -> int:
+    """Return the count a chart query string carries, or zero."""
     try:
-        return float(value)
+        return max(int(value), 0)
     except TypeError, ValueError:
-        return default
+        return 0
 
 
-class DigestChartView(generic.View):
-    """Draw one chart of the digest mail from the numbers in its query."""
-
-    kind = "bar"
+class DigestWeekChartView(generic.View):
+    """Draw the digest mail's week chart from the counts in its query."""
 
     def get(self, request, *args, **kwargs):
-        response = HttpResponse(
-            self.get_svg(request.GET),
-            content_type="image/svg+xml",
-        )
+        counts = [
+            chart_number(part) for part in request.GET.get("counts", "").split(",") if part
+        ]
+        response = HttpResponse(svg.week(counts[:31]), content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=604800, immutable"
         response["X-Content-Type-Options"] = "nosniff"
         return response
-
-    def get_svg(self, query):
-        match self.kind:
-            case "week":
-                counts = [
-                    max(int(chart_number(part)), 0)
-                    for part in query.get("counts", "").split(",")
-                    if part
-                ]
-                return svg.week(counts[:31], tone=query.get("tone", "primary"))
-            case _:
-                height = int(chart_number(query.get("height"), 12))
-                return svg.bar(
-                    chart_number(query.get("value")),
-                    tone=query.get("tone", "good"),
-                    height=min(max(height, 6), 24),
-                    marker=query.get("marker") == "1",
-                )

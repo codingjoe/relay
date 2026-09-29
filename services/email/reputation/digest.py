@@ -11,7 +11,7 @@ from django.utils.translation import ngettext
 from accounts.models import Membership, Organization
 from services.email.msa.models import SuppressionEntry
 
-from .billing import month_cost, overage_price
+from .billing import month_cost
 from .charts import build_volume_chart, sent_per_day
 from .evaluation import ReputationSummary, build_reputation_stats
 
@@ -46,11 +46,6 @@ def chart_url(org: Organization, name: str, **query) -> str:
     return f"{path}?{urlencode(query)}"
 
 
-def share(value: float, total: float) -> float:
-    """Return how much of a total a value fills, in per cent."""
-    return min(value / total, 1) * 100 if total else 0.0
-
-
 def digest_illustration(stats: ReputationSummary) -> str:
     """Return the illustration the mail shows for one window."""
     match stats:
@@ -74,13 +69,11 @@ def build_digest_context(
     """
     Return the window rates, their limits, the month so far, and its cost.
 
-    The organization the mail names and the window phrase it reports come
-    from the same context, and the bars it draws are shares of a limit or of
-    the largest month on show.
+    The organization the mail names, the window phrase it reports, and the
+    chart it links all come from the same context.
     """
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     free_monthly_messages = settings.RELAY_FREE_MONTHLY_MESSAGES
-    volume_scale = max(month_messages, month_last_messages, free_monthly_messages, 1)
     return {
         "stats": stats,
         "organization": org.slug,
@@ -90,49 +83,8 @@ def build_digest_context(
         "illustration": digest_illustration(stats),
         "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
-        "bounce_limit_share": share(
-            stats["hard_bounce_rate"],
-            settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
-        ),
-        "complaint_limit_share": share(
-            stats["complaint_rate"],
-            settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
-        ),
-        "bounce_bar_url": chart_url(
-            org,
-            "digest-bar",
-            value=f"{share(stats['hard_bounce_rate'], settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD):.1f}",
-            tone="bad" if stats["hard_bounce_over_limit"] else "good",
-            marker=1,
-        ),
-        "complaint_bar_url": chart_url(
-            org,
-            "digest-bar",
-            value=f"{share(stats['complaint_rate'], settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD):.1f}",
-            tone="bad" if stats["complaint_over_limit"] else "good",
-            marker=1,
-        ),
         "month_messages": month_messages,
         "month_last_messages": month_last_messages,
-        "month_bar_url": chart_url(
-            org,
-            "digest-bar",
-            value=f"{share(month_messages, volume_scale):.1f}",
-            tone="primary",
-        ),
-        "last_month_bar_url": chart_url(
-            org,
-            "digest-bar",
-            value=f"{share(month_last_messages, volume_scale):.1f}",
-            tone="muted",
-        ),
-        "free_tier_bar_url": chart_url(
-            org,
-            "digest-bar",
-            value=f"{share(free_monthly_messages, volume_scale):.1f}",
-            tone="soft",
-            height=8,
-        ),
         "week_chart_url": (
             chart_url(
                 org,
@@ -144,7 +96,6 @@ def build_digest_context(
         ),
         "cost": month_cost(month_messages),
         "free_monthly_messages": free_monthly_messages,
-        "overage_price": overage_price(),
         "dashboard_path": reverse("monitoring:overview", kwargs={"org_slug": org.slug}),
     }
 

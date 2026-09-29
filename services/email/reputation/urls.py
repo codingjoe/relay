@@ -11,21 +11,9 @@ urlpatterns = [
             [
                 path("", views.ReputationOverviewView.as_view(), name="overview"),
                 path(
-                    "digest/",
-                    include(
-                        [
-                            path(
-                                "bar.svg",
-                                views.DigestChartView.as_view(kind="bar"),
-                                name="digest-bar",
-                            ),
-                            path(
-                                "week.svg",
-                                views.DigestChartView.as_view(kind="week"),
-                                name="digest-week",
-                            ),
-                        ]
-                    ),
+                    "digest/week.svg",
+                    views.DigestWeekChartView.as_view(),
+                    name="digest-week",
                 ),
                 path(
                     "fbl/",

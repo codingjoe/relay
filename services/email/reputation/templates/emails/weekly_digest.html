@@ -1,6 +1,20 @@
 {% extends "emails/base.html" %}
 {% load django_letter i18n humanize static %}
 
+{% block extra_header %}
+  {{ block.super }}
+  <style media="all" type="text/css">
+    /* Three cards sit side by side on a desktop and stack on a phone. */
+    @media only screen and (max-width: 640px) {
+      .digest-cards > tbody > tr > td {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 0 8px !important;
+      }
+    }
+  </style>
+{% endblock extra_header %}
+
 {% block content %}
   <h1 class="first">
     {% blocktranslate count counter=stats.total_sent trimmed %}
@@ -9,39 +23,7 @@
       Your {{ window_phrase }} at {{ organization }}: {{ sent }} messages sent.
     {% endblocktranslate %}
   </h1>
-  <p>
-    {{ verdict }}
-    {% if stats.total_sent %}
-      {% blocktranslate count counter=daily_average trimmed %}
-        That is about {{ counter }} message a day.
-      {% plural %}
-        That is about {{ counter }} messages a day.
-      {% endblocktranslate %}
-    {% endif %}
-  </p>
-  {% if week_chart_url %}
-    <img
-      src="{{ week_chart_url }}"
-      alt="{% translate 'Each bar is one day of the window.' %}"
-      width="600"
-      height="44"
-      style="display: block; width: 100%; height: auto; margin: 0 0 8px"
-    >
-  {% endif %}
-  {% if illustration %}
-    {% table class="align-center" %}
-    <tr>
-      <td align="center" class="pb16">
-        <img
-          src="{% static illustration %}"
-          alt=""
-          width="360"
-          style="width: 68%; height: auto"
-        >
-      </td>
-    </tr>
-    {% endtable %}
-  {% endif %}
+  <p>{{ verdict }}</p>
   {% if stats.hard_bounce_over_limit or stats.complaint_over_limit %}
     <p>
       {% blocktranslate trimmed %}
@@ -50,80 +32,78 @@
       {% endblocktranslate %}
     </p>
   {% endif %}
-  <h2>{% translate "the scoreboard"|capfirst %}</h2>
-  {% translate "hard bounce rate" as bounce_label %}
-  {% include "emails/digest_gauge.html" with label=bounce_label|capfirst value=stats.hard_bounce_rate limit=bounce_threshold share=bounce_limit_share over=stats.hard_bounce_over_limit bar_url=bounce_bar_url %}
-  {% translate "complaint rate" as complaint_label %}
-  {% include "emails/digest_gauge.html" with label=complaint_label|capfirst value=stats.complaint_rate limit=complaint_threshold share=complaint_limit_share over=stats.complaint_over_limit bar_url=complaint_bar_url %}
-  <p>
-    {% translate "A message the spam filter held counts as a complaint, exactly as the dashboard counts it." %}
-  </p>
-  <h2>{% translate "the month so far"|capfirst %}</h2>
-  {% table %}
-  <tr>
-    <td>{% translate "this month"|capfirst %}</td>
-    <td class="align-right">{{ month_messages|intcomma }}</td>
-  </tr>
-  {% endtable %}
-  <img
-    src="{{ month_bar_url }}"
-    alt=""
-    width="600"
-    height="12"
-    style="display: block; width: 100%; height: auto; margin: 6px 0 10px"
-  >
-  {% table %}
-  <tr>
-    <td>{% translate "last month"|capfirst %}</td>
-    <td class="align-right">{{ month_last_messages|intcomma }}</td>
-  </tr>
-  {% endtable %}
-  <img
-    src="{{ last_month_bar_url }}"
-    alt=""
-    width="600"
-    height="12"
-    style="display: block; width: 100%; height: auto; margin: 6px 0 10px"
-  >
-  {% table %}
-  <tr>
-    <td>{% translate "free tier"|capfirst %}</td>
-    <td class="align-right">{{ free_monthly_messages|intcomma }}</td>
-  </tr>
-  {% endtable %}
-  <img
-    src="{{ free_tier_bar_url }}"
-    alt=""
-    width="600"
-    height="8"
-    style="display: block; width: 100%; height: auto; margin: 6px 0 10px"
-  >
-  <p>
-    {% blocktranslate with limit=free_monthly_messages|intcomma trimmed %}
-      The free tier covers {{ limit }} messages a month.
+  {% translate "cost" as cost_label %}
+  {% if cost %}
+    {% blocktranslate with amount=cost|intcomma asvar cost_value trimmed %}
+      {{ amount }} EUR
     {% endblocktranslate %}
-    {% if overage_price %}
-      {% blocktranslate with amount=overage_price|intcomma trimmed %}
-        Beyond it, relay charges {{ amount }} EUR per 1,000 messages.
-      {% endblocktranslate %}
-    {% endif %}
-  </p>
-  {% table %}
-  <tr>
-    <td>{% translate "bill so far"|capfirst %}</td>
-    <td class="align-right">
-      {% if cost %}
-        {% blocktranslate with amount=cost|intcomma trimmed %}
-          {{ amount }} EUR
-        {% endblocktranslate %}
+  {% else %}
+    {% translate "free"|capfirst as cost_value %}
+  {% endif %}
+  {% blocktranslate with limit=free_monthly_messages|intcomma asvar cost_caption trimmed %}
+    The free tier covers {{ limit }} messages a month.
+  {% endblocktranslate %}
+  {% translate "hard bounce rate" as bounce_label %}
+  {% blocktranslate with limit=bounce_threshold|percent:"2" asvar bounce_caption trimmed %}
+    The limit is {{ limit }}.
+  {% endblocktranslate %}
+  {% translate "complaint rate" as complaint_label %}
+  {% blocktranslate with limit=complaint_threshold|percent:"2" asvar complaint_caption trimmed %}
+    The limit is {{ limit }}.
+  {% endblocktranslate %}
+  <table role="presentation" class="digest-cards" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+    <tr>
+      {% include "emails/digest_card.html" with label=cost_label|capfirst value=cost_value caption=cost_caption colour="#157a3f" background="#e7f5ec" %}
+      {% if stats.hard_bounce_over_limit %}
+        {% include "emails/digest_card.html" with label=bounce_label|capfirst value=stats.hard_bounce_rate|percent:"2" caption=bounce_caption colour="#b3261e" background="#fbeaea" %}
       {% else %}
-        {% translate "free"|capfirst %}
+        {% include "emails/digest_card.html" with label=bounce_label|capfirst value=stats.hard_bounce_rate|percent:"2" caption=bounce_caption colour="#157a3f" background="#e7f5ec" %}
       {% endif %}
-    </td>
-  </tr>
-  {% endtable %}
+      {% if stats.complaint_over_limit %}
+        {% include "emails/digest_card.html" with label=complaint_label|capfirst value=stats.complaint_rate|percent:"2" caption=complaint_caption colour="#b3261e" background="#fbeaea" %}
+      {% else %}
+        {% include "emails/digest_card.html" with label=complaint_label|capfirst value=stats.complaint_rate|percent:"2" caption=complaint_caption colour="#157a3f" background="#e7f5ec" %}
+      {% endif %}
+    </tr>
+  </table>
+  {% if week_chart_url %}
+    <h2>{% translate "the week, day by day"|capfirst %}</h2>
+    <img
+      src="{{ week_chart_url }}"
+      alt="{% translate 'Each bar is one day of the window.' %}"
+      width="600"
+      height="44"
+      style="display: block; width: 100%; height: auto; margin: 0 0 8px"
+    >
+    <p>
+      {% blocktranslate with month=month_messages|intcomma last=month_last_messages|intcomma trimmed %}
+        {{ month }} messages this month, against {{ last }} last month.
+      {% endblocktranslate %}
+      {% if stats.total_sent %}
+        {% blocktranslate count counter=daily_average trimmed %}
+          That is about {{ counter }} message a day.
+        {% plural %}
+          That is about {{ counter }} messages a day.
+        {% endblocktranslate %}
+      {% endif %}
+    </p>
+  {% endif %}
   {% translate "Open monitoring" as button_label %}
   {% button href=dashboard_path value=button_label primary=True %}
+  {% if illustration %}
+    {% table class="align-center" %}
+    <tr>
+      <td align="center" class="pb16">
+        <img
+          src="{% static illustration %}"
+          alt=""
+          width="320"
+          style="width:56%;height:auto"
+        >
+      </td>
+    </tr>
+    {% endtable %}
+  {% endif %}
   <p class="last">
     {% blocktranslate trimmed %}
       This is your {{ window_phrase }}, every Monday. The dashboard keeps the per-day detail.
