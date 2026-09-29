@@ -78,12 +78,20 @@ class TestTestEmail:
         )
         assert email.message()["Subject"] == "Test email from custom.example"
 
-    def test_message__attaches_html_and_plain_text_parts(self):
+    def test_message__attaches_the_bodies_and_the_wordmark(self):
         message = make_test_email().message()
-        assert [part.get_content_type() for part in message.iter_parts()] == [
+        assert [part.get_content_type() for part in message.walk()] == [
+            "multipart/mixed",
+            "multipart/alternative",
             "text/plain",
             "text/html",
+            "image/svg+xml",
         ]
+        artwork = message.get_payload()[1]
+        assert artwork["Content-ID"] == "<word-brand.svg>"
+        assert artwork.get_content_disposition() == "inline"
+        html = message.get_body(preferencelist=("html",)).get_content()
+        assert 'src="cid:word-brand.svg"' in html
 
     def test_message__plain_text_derives_from_html(self, base_url):
         message = make_test_email().message()
