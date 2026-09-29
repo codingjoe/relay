@@ -134,7 +134,8 @@ the rate, the limit, and what relay does next, and links to the dashboard for
 the per-day charts and the reports behind them.
 
 A member whose address sits on the organization's suppression list receives
-no digest.
+no digest, and neither does one whose address hard bounced at another
+organization within the last 30 days.
 
 ## Reputation limits
 
