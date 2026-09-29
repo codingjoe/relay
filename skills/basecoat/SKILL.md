@@ -14,13 +14,13 @@ BasecoatUI (`basecoat-css`) is a framework-agnostic Tailwind CSS v4 component li
 Basecoat publishes a machine-readable page index and per-page markdown exports.
 
 1. Get the page index: `curl https://basecoatui.com/llms.txt`.
-1. Find the slug for the component or guide you need.
-1. Build the markdown URL: replace a trailing `/` with `.md` or append `.md` if there is no trailing slash. Examples:
+2. Find the slug for the component or guide you need.
+3. Build the markdown URL: replace a trailing `/` with `.md` or append `.md` if there is no trailing slash. Examples:
    - `https://basecoatui.com/components/select/` becomes `https://basecoatui.com/components/select.md`
    - `https://basecoatui.com/introduction/` becomes `https://basecoatui.com/introduction.md`
    - `https://basecoatui.com/templates/` becomes `https://basecoatui.com/templates.md`
-1. Fetch that `.md` page and use it as the source of truth for markup, variants, `data-*` attributes, ARIA roles, and JS requirements.
-1. For the GitHub repo readme, run `gh repo view hunvreus/basecoat --readme`.
+4. Fetch that `.md` page and use it as the source of truth for markup, variants, `data-*` attributes, ARIA roles, and JS requirements.
+5. For the GitHub repo readme, run `gh repo view hunvreus/basecoat --readme`.
 
 ## Core conventions
 

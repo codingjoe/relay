@@ -76,6 +76,6 @@ SendGrid is a strong all-round email API with deep marketing features. relay is 
 ## Migrating from SendGrid to relay
 
 1. Add your domain in relay. Delegate NS to the relay nameservers.
-1. Set the DMARC record that relay gives you.
-1. Switch your app to relay with a per-org credential.
-1. Point inbound webhooks at relay instead of SendGrid Inbound Parse.
+2. Set the DMARC record that relay gives you.
+3. Switch your app to relay with a per-org credential.
+4. Point inbound webhooks at relay instead of SendGrid Inbound Parse.

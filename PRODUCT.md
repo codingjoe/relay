@@ -123,10 +123,10 @@ developer building on relay, no marketing fluff.
 1. Empowerment through transparency, derived from developer-first: show
    verification, DNS state, and reputation plainly and truthfully, so
    developers can act on what they see.
-1. Sovereignty through privacy: message data is processed only to deliver and
+2. Sovereignty through privacy: message data is processed only to deliver and
    report, never to profile, mine, or resell. EU hosting is an extension of
    this focus, not the story itself.
-1. Passion for excellence: craft every detail
+3. Passion for excellence: craft every detail
    (reliability, clarity, polish) as visible respect for the developers who rely on relay.
 
 ## Accessibility & Inclusion

@@ -54,9 +54,9 @@ In `enforce` mode, the sending server validates the TLS certificate of the recei
 ## How to set up MTA-STS
 
 1. Create a policy file that lists your valid MX hosts and the enforcement mode.
-1. Serve the policy file over HTTPS at `mta-sts.<domain>/.well-known/mta-sts.txt`.
-1. Publish a TXT record at `_mta-sts.<domain>` with a unique policy ID.
-1. Publish a CNAME record for `mta-sts.<domain>` that points to the host that serves the policy file.
+2. Serve the policy file over HTTPS at `mta-sts.<domain>/.well-known/mta-sts.txt`.
+3. Publish a TXT record at `_mta-sts.<domain>` with a unique policy ID.
+4. Publish a CNAME record for `mta-sts.<domain>` that points to the host that serves the policy file.
 
 Start with `mode: testing` and monitor the reports. Then switch to `mode: enforce` once you confirm that all senders can connect with TLS.
 
