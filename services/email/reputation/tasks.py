@@ -3,6 +3,7 @@ import logging
 from crontask import cron
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.mail import mailers
 from django.db import transaction
 from django.tasks import task
 from django.utils import timezone
@@ -191,7 +192,8 @@ def send_org_weekly_digest(org_id):
 
     An organization relay suspended after the fan-out is dropped here. A
     failed delivery leaves the rest of the organization mailed, and the run
-    fails at the end with the members it could not reach.
+    fails at the end with the members it could not reach. Every message
+    rides one connection from the default mailer.
     """
     org = Organization.objects.get(pk=org_id)
     if org.suspended_at:
@@ -199,16 +201,22 @@ def send_org_weekly_digest(org_id):
         return
     digest = build_org_digest(org)
     failures = []
-    for membership in iter_digest_members(org):
-        try:
-            WeeklyDigestEmail.to_user(
-                membership.user,
-                digest=digest,
-                language=settings.LANGUAGE_CODE,
-            ).send()
-        except Exception as error:  # the backend and the template raise varied errors
-            logger.exception("Weekly digest for user %r failed", membership.user_id)
-            failures.append((membership.user_id, error))
+    mailer = mailers.default
+    with mailer:
+        for membership in iter_digest_members(org):
+            try:
+                mailer.send_messages(
+                    [
+                        WeeklyDigestEmail.to_user(
+                            membership.user,
+                            digest=digest,
+                            language=settings.LANGUAGE_CODE,
+                        )
+                    ]
+                )
+            except Exception as error:  # the backend and the template raise varied errors
+                logger.exception("Weekly digest for user %r failed", membership.user_id)
+                failures.append((membership.user_id, error))
     if failures:
         raise DigestDeliveryError(
             org.pk, [user_id for user_id, _ in failures]
