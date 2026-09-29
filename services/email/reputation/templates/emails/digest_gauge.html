@@ -1,0 +1,30 @@
+{% load django_letter i18n abstract %}
+{% comment %}
+  One reputation gauge: the rate, its limit, the bar, and a one-line read on
+  how much of the limit the rate uses.
+{% endcomment %}
+{% table %}
+<tr>
+  <td>{{ label }}</td>
+  <td class="align-right"><strong>{{ value|percent:"2" }}</strong></td>
+</tr>
+{% endtable %}
+{% if over %}
+  {% include "emails/digest_bar.html" with share=share colour="#c93a3a" height=12 %}
+{% else %}
+  {% include "emails/digest_bar.html" with share=share colour="#157a3f" height=12 %}
+{% endif %}
+<p class="mb0">
+  {% if over %}
+    {% translate "Over the limit we allow." %}
+  {% elif share < 25 %}
+    {% translate "Plenty of headroom." %}
+  {% elif share < 75 %}
+    {% translate "Comfortably inside the limit." %}
+  {% else %}
+    {% translate "Close to the line." %}
+  {% endif %}
+  {% blocktranslate with limit=limit|percent:"2" trimmed %}
+    Limit {{ limit }}.
+  {% endblocktranslate %}
+</p>

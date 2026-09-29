@@ -1,0 +1,14 @@
+{% comment %}
+  One bar of the digest mail: the filled share, then the empty track.
+
+  Mail clients run no scripts, so a bar is a two-cell table with a width on
+  each cell. Colours are literal because the mail carries no stylesheet.
+{% endcomment %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:6px 0 10px;">
+  <tr>
+    {% if share %}
+      <td width="{{ share|floatformat:1 }}%" bgcolor="{{ colour }}" style="width:{{ share|floatformat:1 }}%;height:{{ height }}px;line-height:{{ height }}px;font-size:0;">&nbsp;</td>
+    {% endif %}
+    <td bgcolor="#ece9f3" style="height:{{ height }}px;line-height:{{ height }}px;font-size:0;">&nbsp;</td>
+  </tr>
+</table>

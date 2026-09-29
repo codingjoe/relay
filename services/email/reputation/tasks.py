@@ -1,11 +1,12 @@
 import logging
+import smtplib
 
 from crontask import cron
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail import mailers
 from django.db import transaction
-from django.tasks import task
+from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 from django.utils import timezone
 
 from accounts.models import Organization
@@ -164,7 +165,7 @@ def check_org_reputation(org_id):
 
 
 @cron("0 8 * * Mon")
-@task(queue_name="default")
+@task(queue_name=DEFAULT_TASK_QUEUE_NAME)
 def send_weekly_digests():
     """Queue one task per organization that is not suspended."""
     for org_id in (
@@ -185,7 +186,7 @@ class DigestDeliveryError(Exception):
         )
 
 
-@task(queue_name="default")
+@task(queue_name=DEFAULT_TASK_QUEUE_NAME)
 def send_org_weekly_digest(org_id):
     """
     Mail the window's numbers to the members the digest reaches.
@@ -214,7 +215,7 @@ def send_org_weekly_digest(org_id):
                         )
                     ]
                 )
-            except Exception as error:  # the backend and the template raise varied errors
+            except (smtplib.SMTPException, OSError) as error:
                 logger.exception("Weekly digest for user %r failed", membership.user_id)
                 failures.append((membership.user_id, error))
     if failures:

@@ -1,5 +1,5 @@
 {% extends "emails/base.html" %}
-{% load django_letter i18n humanize abstract %}
+{% load django_letter i18n humanize static %}
 
 {% block content %}
   <h1 class="first">
@@ -9,7 +9,30 @@
       Your {{ window_phrase }} at {{ organization }}: {{ sent }} messages sent.
     {% endblocktranslate %}
   </h1>
-  <p>{{ verdict }}</p>
+  <p>
+    {{ verdict }}
+    {% if stats.total_sent %}
+      {% blocktranslate count counter=daily_average trimmed %}
+        That is about {{ counter }} message a day.
+      {% plural %}
+        That is about {{ counter }} messages a day.
+      {% endblocktranslate %}
+    {% endif %}
+  </p>
+  {% if illustration %}
+    {% table class="align-center" %}
+    <tr>
+      <td align="center" class="pb16">
+        <img
+          src="{% static illustration %}"
+          alt=""
+          width="360"
+          style="width:68%;height:auto"
+        >
+      </td>
+    </tr>
+    {% endtable %}
+  {% endif %}
   {% if stats.hard_bounce_over_limit or stats.complaint_over_limit %}
     <p>
       {% blocktranslate trimmed %}
@@ -19,32 +42,51 @@
     </p>
   {% endif %}
   <h2>{% translate "the scoreboard"|capfirst %}</h2>
-  {% table %}
-  <tr>
-    <td>{% translate "hard bounce rate"|capfirst %}</td>
-    <td class="align-right">{{ stats.hard_bounce_rate|percent:"2" }}</td>
-    <td>{% translate "limit"|capfirst %} {{ bounce_threshold|percent:"2" }}</td>
-  </tr>
-  <tr>
-    <td>{% translate "complaint rate"|capfirst %}</td>
-    <td class="align-right">{{ stats.complaint_rate|percent:"2" }}</td>
-    <td>{% translate "limit"|capfirst %} {{ complaint_threshold|percent:"2" }}</td>
-  </tr>
-  {% endtable %}
+  {% translate "hard bounce rate" as bounce_label %}
+  {% include "emails/digest_gauge.html" with label=bounce_label|capfirst value=stats.hard_bounce_rate limit=bounce_threshold share=bounce_limit_share over=stats.hard_bounce_over_limit %}
+  {% translate "complaint rate" as complaint_label %}
+  {% include "emails/digest_gauge.html" with label=complaint_label|capfirst value=stats.complaint_rate limit=complaint_threshold share=complaint_limit_share over=stats.complaint_over_limit %}
   <p>
     {% translate "A message the spam filter held counts as a complaint, exactly as the dashboard counts it." %}
   </p>
   <h2>{% translate "the month so far"|capfirst %}</h2>
   {% table %}
   <tr>
-    <td>{% translate "messages this month"|capfirst %}</td>
+    <td>{% translate "this month"|capfirst %}</td>
     <td class="align-right">{{ month_messages|intcomma }}</td>
   </tr>
+  {% endtable %}
+  {% include "emails/digest_bar.html" with share=month_bar_share colour="#6200d1" height=12 %}
+  {% table %}
+  <tr>
+    <td>{% translate "last month"|capfirst %}</td>
+    <td class="align-right">{{ month_last_messages|intcomma }}</td>
+  </tr>
+  {% endtable %}
+  {% include "emails/digest_bar.html" with share=last_month_bar_share colour="#9aa0a6" height=12 %}
+  {% table %}
+  <tr>
+    <td>{% translate "free tier"|capfirst %}</td>
+    <td class="align-right">{{ free_monthly_messages|intcomma }}</td>
+  </tr>
+  {% endtable %}
+  {% include "emails/digest_bar.html" with share=free_tier_bar_share colour="#cbb6f2" height=8 %}
+  <p>
+    {% blocktranslate with limit=free_monthly_messages|intcomma trimmed %}
+      The free tier covers {{ limit }} messages a month.
+    {% endblocktranslate %}
+    {% if overage_price %}
+      {% blocktranslate with amount=overage_price|intcomma trimmed %}
+        Beyond it, relay charges {{ amount }} EUR per 1,000 messages.
+      {% endblocktranslate %}
+    {% endif %}
+  </p>
+  {% table %}
   <tr>
     <td>{% translate "bill so far"|capfirst %}</td>
     <td class="align-right">
       {% if cost %}
-        {% blocktranslate trimmed with amount=cost|intcomma %}
+        {% blocktranslate with amount=cost|intcomma trimmed %}
           {{ amount }} EUR
         {% endblocktranslate %}
       {% else %}
@@ -53,16 +95,6 @@
     </td>
   </tr>
   {% endtable %}
-  <p>
-    {% blocktranslate trimmed with limit=free_monthly_messages|intcomma %}
-      The free tier covers {{ limit }} messages a month.
-    {% endblocktranslate %}
-    {% if overage_price %}
-      {% blocktranslate trimmed with amount=overage_price|intcomma %}
-        Beyond it, relay charges {{ amount }} EUR per 1,000 messages.
-      {% endblocktranslate %}
-    {% endif %}
-  </p>
   {% translate "Open monitoring" as button_label %}
   {% button href=dashboard_path value=button_label primary=True %}
   <p class="last">
