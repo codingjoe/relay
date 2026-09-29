@@ -187,14 +187,7 @@ class DigestDeliveryError(Exception):
 
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
 def send_org_weekly_digest(org_id):
-    """
-    Mail the window's numbers to the members the digest reaches.
-
-    An organization relay suspended after the fan-out is dropped here. A
-    failed delivery leaves the rest of the organization mailed, and the run
-    fails at the end with the members it could not reach. Every message
-    rides one connection from the default mailer.
-    """
+    """Mail the window's numbers to the members the digest reaches."""
     org = Organization.objects.get(pk=org_id)
     if org.suspended_at:
         logger.info("Dropped the weekly digest for suspended organization %r", org_id)
