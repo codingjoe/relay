@@ -16,7 +16,7 @@ from services.email.mta.models import IncomingMessage
 from . import evaluation
 from .digest import build_org_digest, iter_digest_members
 from .emails import WeeklyDigestEmail
-from .models import DigestOptOut, FblReport
+from .models import FblReport
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +204,6 @@ def send_org_weekly_digest(org_id):
             WeeklyDigestEmail.to_user(
                 membership.user,
                 digest=digest,
-                opt_out_token=DigestOptOut.build_token(org, membership.user),
                 language=settings.LANGUAGE_CODE,
             ).send()
         except Exception as error:  # the backend and the template raise varied errors

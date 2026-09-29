@@ -79,13 +79,12 @@ def iter_digest_members(org: Organization) -> Iterator[Membership]:
     """
     Yield the members of one organization that the digest reaches.
 
-    A member with a deactivated account, no address, an opt-out for this
-    organization, or a suppressed address is skipped.
+    A member with a deactivated account, no address, or a suppressed address
+    is skipped.
     """
     for membership in (
         Membership.objects.filter(org=org, user__is_active=True)
         .exclude(user__email="")
-        .exclude(user__digest_opt_outs__org=org)
         .select_related("user")
     ):
         if not SuppressionEntry.objects.is_suppressed(org, membership.user.email):

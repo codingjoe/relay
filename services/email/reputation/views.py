@@ -1,21 +1,14 @@
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core import signing
-from django.http import Http404
-from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
-from django.views.decorators.csrf import csrf_exempt
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
-from accounts.models import Organization
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
 
 from .billing import month_cost, overage_price
 from .charts import build_reputation_chart, build_volume_chart
-from .models import DigestOptOut, FblReport
+from .models import FblReport
 
 
 class FblReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
@@ -109,38 +102,3 @@ class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
             "bounce_threshold": bounce_threshold,
             "complaint_threshold": complaint_threshold,
         }
-
-
-# A mail client posts one click with no session, so the signed token is the
-# whole credential and CSRF middleware has nothing to check.
-@method_decorator(csrf_exempt, name="dispatch")
-class DigestOptOutView(NoStoreCacheMixin, generic.TemplateView):
-    """
-    Confirm and record one member's exit from the weekly digest.
-
-    The link carries a signed token, so it works without signing in. A GET
-    only shows the confirmation: prefetchers and scanners follow links, and
-    none of them may stop a member's mail.
-    """
-
-    template_name = "reputation/digest_opt_out.html"
-
-    def setup(self, request, *args, **kwargs):
-        super().setup(request, *args, **kwargs)
-        try:
-            # No max_age: an opt-out link in an old mail must still work.
-            org_pk, user_pk = signing.loads(kwargs["token"], salt=DigestOptOut.salt())
-        except signing.BadSignature as error:
-            raise Http404 from error
-        self.org = get_object_or_404(Organization, pk=org_pk)
-        self.member = get_object_or_404(get_user_model(), pk=user_pk)
-
-    def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {
-            "org": self.org,
-            "member": self.member,
-        }
-
-    def post(self, request, *args, **kwargs):
-        DigestOptOut.objects.get_or_create(org=self.org, user=self.member)
-        return self.render_to_response(self.get_context_data(opted_out=True))
