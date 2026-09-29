@@ -123,14 +123,25 @@ the last few days:
   relay applies,
 - the month so far: messages sent, the bill, and the free tier.
 
+The mail wraps the numbers in graphics. A window with traffic draws a column
+chart under the headline, one column per day, so a spike or a quiet day
+stands out. The same window adds an illustration and a line that reads the
+volume as messages a day. Each rate is drawn as a bar against the limit relay
+applies, so the headroom reads next to the number. The month so far carries
+three bars: this month, last month, and the free tier.
+
+The graphics arrive as images. A mail client that does not render them shows
+the numbers alone: the totals, the rates, the limits, and the month figures
+all travel as text in the copy, and only the drawn shape is lost.
+
 The mail reports a rolling window that ends the moment it goes out. The
 dashboard counts by calendar day, so a card can differ from the mail by up to
 a day of traffic. It arrives every week, including one with no traffic at
 all: nothing sent is nothing to fix, and the report says so. An organization
 that relay has suspended receives no digest.
 
-A rate that sits above its limit turns the copy plain. The mail then names
-the rate, the limit, and what relay does next, and links to the dashboard for
+A rate that sits above its limit drops the illustration. The mail names the
+rate, the limit, and what relay does next, and it links to the dashboard for
 the per-day charts and the reports behind them.
 
 A member whose address sits on the organization's suppression list receives
