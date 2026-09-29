@@ -76,6 +76,6 @@ Brevo is a strong all-in-one marketing platform. relay is the better fit for dev
 ## Migrating from Brevo to relay
 
 1. Add your domain in relay. Delegate NS to the relay nameservers.
-1. Set the DMARC record that relay gives you.
-1. Move transactional SMTP or API calls to relay with a per-org credential.
-1. Set up relay webhooks for any inbound mail you need.
+2. Set the DMARC record that relay gives you.
+3. Move transactional SMTP or API calls to relay with a per-org credential.
+4. Set up relay webhooks for any inbound mail you need.

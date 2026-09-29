@@ -76,6 +76,6 @@ Amazon SES is a strong outbound relay. relay is the better fit when you want inb
 ## Migrating from Amazon SES to relay
 
 1. Add a domain in relay. Delegate NS to the relay nameservers.
-1. Publish the DMARC record that relay gives you.
-1. Point your app at relay with a per-org credential.
-1. Set up webhooks for any inbound mail you handled with S3 or Lambda.
+2. Publish the DMARC record that relay gives you.
+3. Point your app at relay with a per-org credential.
+4. Set up webhooks for any inbound mail you handled with S3 or Lambda.

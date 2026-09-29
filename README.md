@@ -26,25 +26,25 @@ The platform operator must set up the following records on the
 1. **NS delegation for `open.{platform_domain}`**. Add NS records for the
    `open` subdomain pointing to `RELAY_DNS_NS_NAMESERVERS` (for example,
    `ns1.{platform_domain}`, `ns2.{platform_domain}`).
-1. **A/AAAA record for the web server**. The platform domain itself needs
+2. **A/AAAA record for the web server**. The platform domain itself needs
    an A/AAAA record for the web UI.
-1. **A/AAAA record for the storage host**. Caddy serves signed message body
+3. **A/AAAA record for the storage host**. Caddy serves signed message body
    URLs on `storage.{platform_domain}`, and the certificate for that name
    needs a record that resolves. Point it at the web server, or set
    `RELAY_STORAGE_DOMAIN` to serve bodies from a different name.
-1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
+4. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
    public hostname (`smtp.{platform_domain}`) and sender subdomains resolve
    to the SMTP server IPs, and the SPF record of each sender subdomain
    authorizes every one of them.
-1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
+5. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
    record with the hosting provider. Outbound SMTP must use the corresponding
    hostname for EHLO.
-1. **SPF include**. The `spf.{platform_domain}` TXT record must list the
+6. **SPF include**. The `spf.{platform_domain}` TXT record must list the
    SMTP server IP addresses.
-1. **DMARC**. `_dmarc.{platform_domain}` TXT record.
-1. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
+7. **DMARC**. `_dmarc.{platform_domain}` TXT record.
+8. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
    `mta-sts.{platform_domain}` CNAME.
-1. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
+9. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
 
 All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
