@@ -174,16 +174,28 @@ def send_weekly_digests():
         send_org_weekly_digest.enqueue(org_id=org_id)
 
 
+class DigestDeliveryError(Exception):
+    """One or more members did not receive the weekly digest."""
+
+    def __init__(self, org_id, user_ids):
+        super().__init__(
+            f"Weekly digest delivery failed for organization {org_id} "
+            f"and users {user_ids}"
+        )
+
+
 @task(queue_name="default")
 def send_org_weekly_digest(org_id):
     """
     Mail the window's numbers to every active member of the organization.
 
-    A member with a deactivated account or no email address is skipped. One
-    member's failed delivery does not stop the rest, and the failure is logged.
+    A member with a deactivated account or no email address is skipped. A
+    failed delivery leaves the rest of the organization mailed, and the run
+    fails at the end with the members it could not reach.
     """
     org = Organization.objects.get(pk=org_id)
     digest = build_org_digest(org)
+    failures = []
     for membership in (
         Membership.objects.filter(org=org, user__is_active=True)
         .exclude(user__email="")
@@ -195,9 +207,9 @@ def send_org_weekly_digest(org_id):
                 digest=digest,
                 language=settings.LANGUAGE_CODE,
             ).send()
-        except Exception:
-            logger.exception(
-                "Weekly digest delivery failed for organization %r and user %r",
-                org.pk,
-                membership.user_id,
-            )
+        except Exception as error:
+            failures.append((membership.user_id, error))
+    if failures:
+        raise DigestDeliveryError(
+            org.pk, [user_id for user_id, _ in failures]
+        ) from failures[0][1]

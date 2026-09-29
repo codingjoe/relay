@@ -3,10 +3,10 @@
 
 {% block content %}
   <h1 class="first">
-    {% blocktranslate count counter=stats.total_sent with sent=sent organization=organization window=window_phrase trimmed %}
-      Your {{ window }} at {{ organization }}: {{ sent }} message sent.
+    {% blocktranslate count counter=stats.total_sent trimmed %}
+      Your {{ window_phrase }} at {{ organization }}: {{ sent }} message sent.
     {% plural %}
-      Your {{ window }} at {{ organization }}: {{ sent }} messages sent.
+      Your {{ window_phrase }} at {{ organization }}: {{ sent }} messages sent.
     {% endblocktranslate %}
   </h1>
   <p>{{ verdict }}</p>
@@ -66,8 +66,8 @@
   {% translate "Open monitoring" as button_label %}
   {% button href=dashboard_path value=button_label primary=True %}
   <p class="last">
-    {% blocktranslate trimmed with window=window_phrase %}
-      This is your {{ window }}, every Monday. The dashboard keeps the per-day detail.
+    {% blocktranslate trimmed %}
+      This is your {{ window_phrase }}, every Monday. The dashboard keeps the per-day detail.
     {% endblocktranslate %}
   </p>
 {% endblock content %}
