@@ -36,7 +36,8 @@ def build_org_digest(org: Organization) -> dict[str, Any]:
 
 
 def count_window_recipients(org: Organization, window_days: int) -> int:
-    """Return how many distinct addresses the window's messages went to."""
+    """Return how many distinct addresses the window's messages were addressed to."""
+    # Keep the window and statuses in step with `compute_org_reputation`.
     return (
         OutgoingMessage.objects.filter(
             org=org,
@@ -66,6 +67,8 @@ def message_interval(daily_average: int) -> str:
     # The minute arm starts at 90 seconds, so only the seconds arm has a singular.
     interval = timedelta(days=1) / daily_average if daily_average else timedelta()
     match seconds := int(interval.total_seconds()):
+        case 0 if daily_average:  # the interval truncates below one second
+            return gettext("more than one a second")
         case 0:
             return ""
         case _ if interval < timedelta(seconds=90):

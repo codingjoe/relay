@@ -217,9 +217,9 @@
     {% endif %}
     {% if recipients %}
       {% blocktranslate count counter=recipients with total=recipients|intcomma trimmed %}
-        Those messages reached {{ total }} distinct recipient.
+        Those messages were addressed to {{ total }} distinct recipient.
       {% plural %}
-        Those messages reached {{ total }} distinct recipients.
+        Those messages were addressed to {{ total }} distinct recipients.
       {% endblocktranslate %}
     {% endif %}
     {% blocktranslate with month=month_messages|intcomma trimmed %}

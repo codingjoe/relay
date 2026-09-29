@@ -15,11 +15,11 @@ MAX_DAYS = 31
 
 def week(counts: list[int]) -> str:
     """Return the window's days as a column chart, tallest day at full height."""
-    counts = counts[:MAX_DAYS]
-    days = max(len(counts), 1)
+    counts = counts[-MAX_DAYS:]  # the newest days, the ones the mail is about
+    days = len(counts)
     gap = 8
     column = (WIDTH - gap * (days - 1)) // days
-    tallest = max(counts or [0]) or 1
+    tallest = max(counts) or 1
     bars = "".join(
         f'<rect x="{index * (column + gap)}"'
         f' y="{HEIGHT - round(HEIGHT * count / tallest)}"'
