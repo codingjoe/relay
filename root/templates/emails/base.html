@@ -1,5 +1,5 @@
 {% extends "django_letter/base.html" %}
-{% load django_letter i18n static %}
+{% load django_letter email_images i18n %}
 
 {% block extra_header %}
   <style media="all" type="text/css">
@@ -112,7 +112,7 @@
   {% table class="align-center" %}
   <tr>
     <td align="center">
-      <img src="{% static 'img/word-brand.svg' %}" alt="relay" width="120">
+      <img src="{% inline_image 'img/word-brand.svg' %}" alt="relay" width="120">
     </td>
   </tr>
   {% endtable %}

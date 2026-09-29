@@ -5,7 +5,6 @@ import pathlib
 from email.message import Message, MIMEPart
 
 from django.contrib.staticfiles import finders
-from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.mail import EmailAlternative
 from django_letter import TemplateEmail
 
@@ -48,15 +47,9 @@ def static_image_part(name: str) -> MIMEPart:
     return part
 
 
-def static_image_address(email: TemplateEmail, name: str) -> str:
-    """Return the address the rendered body gives one static image."""
-    url = staticfiles_storage.url(name)
-    return f"{email.get_base_url().rstrip('/')}/{url.lstrip('/')}"
-
-
 class RelayEmail(TemplateEmail):
     """
-    A relay message, with its artwork travelling inside the message.
+    A relay message, with the images its templates ask for travelling inside.
 
     A reader whose client blocks remote content still sees the brand, because
     the image is a part of the message rather than a fetch to allow. Django
@@ -64,8 +57,14 @@ class RelayEmail(TemplateEmail):
     resolve a `cid:` reference.
     """
 
-    inline_images: tuple[str, ...] = ("img/word-brand.svg",)
-    """Static names, as `{% static %}` states them, carried in the message."""
+    inline_images: list[tuple[str, str]]
+    """The images the rendered body asked to carry, as (static name, address)."""
+
+    def render_html(self, **context) -> str:
+        # The tag reads the email back out of the context to register itself.
+        context["email"] = self
+        self.inline_images = []
+        return super().render_html(**context)
 
     def message(self, **kwargs) -> Message:
         # The body has to exist before its addresses can be swapped, and the
@@ -76,36 +75,29 @@ class RelayEmail(TemplateEmail):
 
     def embed_inline_images(self) -> None:
         """
-        Attach each configured image and point the body at its part.
+        Attach the images the body asked for and point the body at their parts.
 
-        Only an image the body still names is attached, so a second call adds
-        nothing, and a body that no longer uses the artwork carries no part.
-        A preview never reaches this method: it serves the body without the
-        MIME context that a `cid:` reference needs, so it keeps the address.
+        Attaching empties the list, so a second call adds nothing. A preview
+        never reaches this method: it serves the body without the MIME context
+        that a `cid:` reference needs, so it keeps the address.
         """
-        named = [
-            name
-            for name in self.inline_images
-            if any(
-                static_image_address(self, name) in alternative.content
-                for alternative in self.alternatives
-            )
-        ]
-        for name in named:
+        references = {
+            address: f"cid:{name.rpartition('/')[2]}"
+            for name, address in self.inline_images
+        }
+        for name, _ in self.inline_images:
             self.attach(static_image_part(name))
+        self.inline_images = []
         self.alternatives = [
-            self.reference_inline_images(alternative)
+            self.reference_inline_images(alternative, references)
             for alternative in self.alternatives
         ]
 
     def reference_inline_images(
-        self, alternative: EmailAlternative
+        self, alternative: EmailAlternative, references: dict[str, str]
     ) -> EmailAlternative:
         """Swap each address one alternative names for the part that answers it."""
         content = alternative.content
-        for name in self.inline_images:
-            filename = name.rpartition("/")[2]
-            content = content.replace(
-                static_image_address(self, name), f"cid:{filename}"
-            )
+        for address, reference in references.items():
+            content = content.replace(address, reference)
         return alternative._replace(content=content)
