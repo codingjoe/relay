@@ -160,9 +160,10 @@ that relay has suspended receives no digest.
 Every digest links to the monitoring dashboard. The dashboard keeps the
 per-day charts and the reports behind them.
 
-A member whose address sits on the organization's suppression list receives
-no digest, and neither does one whose address hard bounced at another
-organization within the last 30 days.
+A deactivated member receives no digest, and neither does one with no address
+on file. A member whose address sits on the organization's suppression list
+receives no digest either, and neither does one whose address hard bounced at
+another organization within the last 30 days.
 
 ## Reputation limits
 

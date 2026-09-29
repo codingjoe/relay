@@ -15,12 +15,7 @@ MAX_DAYS = 31
 
 
 def week(counts: list[int]) -> str:
-    """
-    Return the window's days as a column chart, tallest day at full height.
-
-    Draws at most MAX_DAYS columns, and drops the rest of a longer row, so a
-    column stays wide enough to read.
-    """
+    """Return the window's days as a column chart, tallest day at full height."""
     counts = counts[:MAX_DAYS]
     days = max(len(counts), 1)
     gap = 8

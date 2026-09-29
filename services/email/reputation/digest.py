@@ -17,13 +17,7 @@ from .evaluation import ReputationSummary, build_reputation_stats
 
 
 def build_org_digest(org: Organization) -> dict[str, Any]:
-    """
-    Return the numbers the mail shows for one organization.
-
-    The rolling window matches the one the suspension check uses, while the
-    dashboard cards read the day-aligned chart, so a card can differ from the
-    mail by up to a day of traffic.
-    """
+    """Return the numbers the mail shows for one organization."""
     volume = build_volume_chart(org)
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     start = timezone.localdate() - timedelta(days=window_days - 1)
@@ -61,12 +55,7 @@ def chart_url(org: Organization, name: str, **query) -> str:
 
 
 def digest_illustration(stats: ReputationSummary) -> tuple[str, str]:
-    """
-    Return the pair of illustrations the mail shows for one window.
-
-    The pairs are light and dark, so a client that reports a dark scheme gets
-    the drawing that belongs on it. A breach shows none, and stays plain.
-    """
+    """Return the light and dark illustrations for one window, none on a breach."""
     match stats:
         case _ if stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]:
             return "", ""
@@ -104,12 +93,7 @@ def build_digest_context(
     daily_counts: list[int],
     recipients: int,
 ) -> dict[str, Any]:
-    """
-    Return the window rates, their limits, the month so far, and its cost.
-
-    The organization the mail names, the window phrase it reports, and the
-    chart it links all come from the same context.
-    """
+    """Return the rates, their limits, and the month so far for one organization."""
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     free_monthly_messages = settings.RELAY_FREE_MONTHLY_MESSAGES
     illustration = digest_illustration(stats)
@@ -142,11 +126,7 @@ def build_digest_context(
 
 
 def sample_org_digest() -> dict[str, Any]:
-    """
-    Return a clean, busy window for the mail preview.
-
-    The preview renders for an organization that no database knows about.
-    """
+    """Return a busy window for the mail preview."""
     return build_digest_context(
         Organization(slug="acme"),
         stats=ReputationSummary(
@@ -166,12 +146,7 @@ def sample_org_digest() -> dict[str, Any]:
 
 
 def iter_digest_members(org: Organization) -> Iterator[Membership]:
-    """
-    Yield the members of one organization that the digest reaches.
-
-    A member with a deactivated account, no address, or a suppressed address
-    is skipped.
-    """
+    """Yield the members of one organization that the digest reaches."""
     for membership in (
         Membership.objects.filter(org=org, user__is_active=True)
         .exclude(user__email="")
