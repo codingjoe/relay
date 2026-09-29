@@ -4,8 +4,6 @@ from django.contrib.messages import get_messages
 
 from domains.models import Domain
 
-# The eight DNS checks, grouped as the badges name them. Hardcoded on purpose,
-# so a change to the model groups fails these tests.
 QUICK_START_FIELDS = ("nameserver", "spf", "dkim_rsa2048", "dmarc")
 RECEIVING_FIELDS = ("mx",)
 PRODUCTION_FIELDS = ("dkim_ed25519", "mta_sts", "tls_rpt")
