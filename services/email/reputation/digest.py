@@ -134,7 +134,11 @@ def build_digest_context(
             height=8,
         ),
         "week_chart_url": (
-            chart_url(org, "digest-week", counts=",".join(str(count) for count in daily_counts))
+            chart_url(
+                org,
+                "digest-week",
+                counts=",".join(str(count) for count in daily_counts),
+            )
             if any(daily_counts)
             else ""
         ),

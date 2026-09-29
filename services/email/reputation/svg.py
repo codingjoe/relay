@@ -1,4 +1,5 @@
-"""The charts the digest mail links, drawn as SVG.
+"""
+The charts the digest mail links, drawn as SVG.
 
 Mail clients run no scripts and strip inline SVG, so each chart ships as its
 own document behind an image source. Nothing here reads the database: the
@@ -20,7 +21,9 @@ TONES = {
 WIDTH = 600
 
 
-def bar(value: float, tone: str = "good", height: int = 12, marker: bool = False) -> str:
+def bar(
+    value: float, tone: str = "good", height: int = 12, marker: bool = False
+) -> str:
     """Return one horizontal bar filled to `value` per cent of its track."""
     colour = TONES.get(tone, TONES["good"])
     radius = max(height // 2, 1)

@@ -110,7 +110,7 @@ def chart_number(value: str, default: float = 0.0) -> float:
     """Return the number a chart query string carries, or the default."""
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
 
 
