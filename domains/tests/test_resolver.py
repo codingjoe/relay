@@ -261,7 +261,7 @@ class TestResolve:
     def test_resolve_records__publishes_dkim_at_root_and_sender_domain(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        selector, _ = domain.dkim_ciphers[0]
+        _field, selector, _key = domain.dkim_ciphers[0]
 
         for base in (domain.name, domain.sender_domain):
             records = DNSResolver().resolve_records(
@@ -277,7 +277,7 @@ class TestResolve:
             name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
             org=platform_org,
         )
-        selector, _ = platform.dkim_ciphers[0]
+        _field, selector, _key = platform.dkim_ciphers[0]
 
         for base in (platform.name, platform.sender_domain):
             records = DNSResolver().resolve_records(

@@ -21,7 +21,9 @@ runs the MTA on both MX hostnames and presents each hostname's own
 certificate. Those names are static and served by the relay platform, so
 the MX host and its TLS records exist without further work. The
 dashboard's webhook check shows a wrong MX record, with the observed value
-and the time of the last check.
+and the time of the last check. The MX record on its own accepts inbound
+mail; MTA-STS and TLS-RPT are the optional hardening records the dashboard
+groups under production.
 
 Inbound flow:
 

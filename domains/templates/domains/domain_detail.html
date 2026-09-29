@@ -8,17 +8,17 @@
       <p class="m-0 mt-2 flex items-center gap-2 flex-wrap text-sm">
         {% include "domains/_purpose_badges.html" %}
         <span class="text-muted-foreground">
-          {% blocktranslate count counter=sending_total trimmed %}
-            Sending: {{ sending_passing }} of {{ counter }} check passing.
+          {% blocktranslate with passing=domain.sending_checks_passing count counter=domain.SENDING_CHECK_FIELDS|length trimmed %}
+            Quick start: {{ passing }} of {{ counter }} check passing.
           {% plural %}
-            Sending: {{ sending_passing }} of {{ counter }} checks passing.
+            Quick start: {{ passing }} of {{ counter }} checks passing.
           {% endblocktranslate %}
         </span>
         <span class="text-muted-foreground">
-          {% blocktranslate count counter=receiving_total trimmed %}
-            Receiving: {{ receiving_passing }} of {{ counter }} check passing.
+          {% blocktranslate with passing=domain.production_checks_passing count counter=domain.PRODUCTION_CHECK_FIELDS|length trimmed %}
+            Production: {{ passing }} of {{ counter }} check passing.
           {% plural %}
-            Receiving: {{ receiving_passing }} of {{ counter }} checks passing.
+            Production: {{ passing }} of {{ counter }} checks passing.
           {% endblocktranslate %}
         </span>
         {% if domain.dns_checked_at %}
@@ -55,73 +55,44 @@
   </header>
 
   <p class="text-muted-foreground mb-6">
-    {% translate "Publish these records at your DNS provider. Relaxed DMARC alignment covers all subdomains." %}
+    {% blocktranslate trimmed %}
+      Publish the quick start records to send email from this domain. Add the production records to receive mail and
+      harden TLS. Relaxed DMARC alignment covers all subdomains.
+    {% endblocktranslate %}
   </p>
-
-  <div class="flex items-center gap-2 mb-4 flex-wrap">
-    {% include "domains/_check_status.html" with status=domain.nameserver_status %}
-    <label>NS</label>
-    {% if domain.nameserver_status == 'error' %}
-      <p class="text-sm text-destructive m-0">{{ domain.nameserver_error }}</p>
-      <p class="text-sm text-muted-foreground m-0">
-        {% translate "Publish the NS records below, then verify DNS again." %}
-      </p>
-    {% endif %}
-  </div>
 
   <section class="accordion mb-6">
     <details open>
-      <summary>{% translate "subdomain NS + manual apex records"|capfirst %}</summary>
+      <summary>{% translate "quick start: send email"|capfirst %}</summary>
       <section>
+        <p class="text-sm text-muted-foreground mb-4">
+          {% blocktranslate trimmed %}
+            Delegate the sender subdomain and publish the records below. This is everything this domain needs to send
+            authenticated email.
+          {% endblocktranslate %}
+        </p>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              {% include "domains/_check_status.html" with status=domain.nameserver_status %}
+              <label>NS</label>
+            </div>
             <p class="text-sm text-muted-foreground">
               {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
             </p>
+            {% if domain.nameserver_status == 'error' %}
+              <p class="text-sm text-destructive">{{ domain.nameserver_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish the NS records below, then verify DNS again." %}
+              </p>
+            {% endif %}
             {% for ns in nameservers %}
               <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-                <span data-align="start">NS</span>
-                <input
-                  class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                  type="text"
-                  readonly
-                  value="{{ domain.sender_domain|relative_record_name:domain }}"
-                  data-select
-                >
-                <span
-                  class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-                >{{ domain.sender_domain|apex_suffix:domain }}</span>
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ domain.sender_domain|relative_record_name:domain }}"
-                  aria-label='{% translate "copy name"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
-                <input type="text" readonly value="{{ ns }}." data-select>
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ ns }}."
-                  aria-label='{% translate "copy value"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
+                {% include "domains/_record_name.html" with record_type="NS" record_name=domain.sender_domain %}
+                {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
               </div>
             {% endfor %}
           </div>
-
-          <header class="border-t pt-4">
-            <h3 class="m-0">{% translate "sending records"|capfirst %}</h3>
-            <p class="text-sm text-muted-foreground">
-              {% translate "authorize relay to send authenticated email for this domain."|capfirst %}
-            </p>
-          </header>
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
@@ -139,97 +110,30 @@
               </p>
             {% endif %}
             <div class="input-group flex-wrap max-sm:h-auto">
-              <span data-align="start">TXT</span>
-              <input
-                class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                type="text"
-                readonly
-                value="{{ domain.name|relative_record_name:domain }}"
-                data-select
-              >
-              <span
-                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-              >{{ domain.name|apex_suffix:domain }}</span>
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.name|relative_record_name:domain }}"
-                aria-label='{% translate "copy name"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
-              <input
-                type="text"
-                readonly
-                value="&quot;{{ domain.root_spf_record }}&quot;"
-                data-select
-              >
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.root_spf_record }}"
-                aria-label='{% translate "copy value"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
+              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.name %}
+              {% include "domains/_record_value.html" with record_value=domain.root_spf_record quote=True %}
             </div>
           </div>
 
           <div role="group" class="field">
             <div class="flex items-center gap-2">
-              {% include "domains/_check_status.html" with status=domain.dkim_status %}
+              {% include "domains/_check_status.html" with status=domain.dkim_rsa2048_status %}
               <label>DKIM</label>
               {% know_how_badge "dkim" "DKIM" %}
             </div>
             <p class="text-sm text-muted-foreground">
-              {% translate "Cryptographic email signing. One CNAME per cipher." %}
+              {% translate "signs outbound email with the RSA-2048 key."|capfirst %}
             </p>
-            {% if domain.dkim_status == 'error' %}
-              <p class="text-sm text-destructive">{{ domain.dkim_error }}</p>
+            {% if domain.dkim_rsa2048_status == 'error' %}
+              <p class="text-sm text-destructive">{{ domain.dkim_rsa2048_error }}</p>
               <p class="text-sm text-muted-foreground">
-                {% translate "Publish all DKIM CNAME records below, then verify DNS again." %}
+                {% translate "Publish the DKIM CNAME record below, then verify DNS again." %}
               </p>
             {% endif %}
-            {% for cname in dkim_cnames %}
-              <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-                <span data-align="start">CNAME</span>
-                <input
-                  class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                  type="text"
-                  readonly
-                  value="{{ cname.0|relative_record_name:domain }}"
-                  data-select
-                >
-                <span
-                  class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-                >{{ cname.0|apex_suffix:domain }}</span>
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ cname.0|relative_record_name:domain }}"
-                  aria-label='{% translate "copy name"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
-                <input type="text" readonly value="{{ cname.1 }}." data-select>
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ cname.1 }}."
-                  aria-label='{% translate "copy value"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
-              </div>
-            {% endfor %}
+            <div class="input-group flex-wrap max-sm:h-auto">
+              {% include "domains/_record_name.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 %}
+              {% include "domains/_record_value.html" with record_value=dkim_cnames.dkim_rsa2048.1 trailing_dot=True %}
+            </div>
           </div>
 
           <div role="group" class="field">
@@ -248,53 +152,24 @@
               </p>
             {% endif %}
             <div class="input-group flex-wrap max-sm:h-auto">
-              <span data-align="start">TXT</span>
-              <input
-                class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                type="text"
-                readonly
-                value="{{ domain.dmarc_record_name|relative_record_name:domain }}"
-                data-select
-              >
-              <span
-                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-              >{{ domain.dmarc_record_name|apex_suffix:domain }}</span>
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.dmarc_record_name|relative_record_name:domain }}"
-                aria-label='{% translate "copy name"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
-              <input
-                type="text"
-                readonly
-                value="&quot;{{ domain.dmarc_record }}&quot;"
-                data-select
-              >
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.dmarc_record }}"
-                aria-label='{% translate "copy value"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
+              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.dmarc_record_name %}
+              {% include "domains/_record_value.html" with record_value=domain.dmarc_record quote=True %}
             </div>
           </div>
+        </div>
+      </section>
+    </details>
 
-          <header class="border-t pt-4">
-            <h3 class="m-0">{% translate "receiving records"|capfirst %}</h3>
-            <p class="text-sm text-muted-foreground">
-              {% translate "route incoming email to relay and require secure delivery."|capfirst %}
-            </p>
-          </header>
-
+    <details>
+      <summary>{% translate "production: receive mail and harden TLS"|capfirst %}</summary>
+      <section>
+        <p class="text-sm text-muted-foreground mb-4">
+          {% blocktranslate trimmed %}
+            Route incoming mail to relay and harden the TLS and DKIM setup. A sending-only domain can leave these
+            records out.
+          {% endblocktranslate %}
+        </p>
+        <div class="flex flex-col gap-4">
           <div role="group" class="field">
             <div class="flex items-center gap-2">
               {% include "domains/_check_status.html" with status=domain.mx_status %}
@@ -308,27 +183,7 @@
             {% endif %}
             {% for mx_hostname in mx_hostnames %}
               <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-                <span data-align="start">MX</span>
-                <input
-                  class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                  type="text"
-                  readonly
-                  value="{{ domain.name|relative_record_name:domain }}"
-                  data-select
-                >
-                <span
-                  class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-                >{{ domain.name|apex_suffix:domain }}</span>
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ domain.name|relative_record_name:domain }}"
-                  aria-label='{% translate "copy name"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
+                {% include "domains/_record_name.html" with record_type="MX" record_name=domain.name %}
                 <input
                   class="basis-12 flex-none"
                   type="text"
@@ -346,75 +201,9 @@
                 >
                   <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
                 </button>
-                <input type="text" readonly value="{{ mx_hostname }}." data-select>
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ mx_hostname }}."
-                  aria-label='{% translate "copy value"|capfirst %}'
-                >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-                </button>
+                {% include "domains/_record_value.html" with record_value=mx_hostname trailing_dot=True %}
               </div>
             {% endfor %}
-          </div>
-
-          <div role="group" class="field">
-            <div class="flex items-center gap-2">
-              {% include "domains/_check_status.html" with status=domain.tls_rpt_status %}
-              <label>TLS-RPT</label>
-              {% know_how_badge "tls-rpt" "TLS-RPT" %}
-            </div>
-            <p class="text-sm text-muted-foreground">
-              {% translate "Receive TLS failure reports from senders. Add this record at your DNS provider for the root domain." %}
-            </p>
-            {% if domain.tls_rpt_status == 'error' %}
-              <p class="text-sm text-destructive">{{ domain.tls_rpt_error }}</p>
-              <p class="text-sm text-muted-foreground">
-                {% translate "Publish the TLS-RPT TXT record below, then verify DNS again." %}
-              </p>
-            {% endif %}
-            <div class="input-group flex-wrap max-sm:h-auto">
-              <span data-align="start">TXT</span>
-              <input
-                class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                type="text"
-                readonly
-                value="{{ domain.tls_rpt_record_name|relative_record_name:domain }}"
-                data-select
-              >
-              <span
-                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-              >{{ domain.tls_rpt_record_name|apex_suffix:domain }}</span>
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.tls_rpt_record_name|relative_record_name:domain }}"
-                aria-label='{% translate "copy name"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
-              <input
-                type="text"
-                readonly
-                value="&quot;{{ domain.tls_rpt_record }}&quot;"
-                data-select
-              >
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.tls_rpt_record }}"
-                aria-label='{% translate "copy value"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
-            </div>
           </div>
 
           <div role="group" class="field">
@@ -433,82 +222,54 @@
               </p>
             {% endif %}
             <div class="input-group flex-wrap max-sm:h-auto">
-              <span data-align="start">TXT</span>
-              <input
-                class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                type="text"
-                readonly
-                value="{{ domain.mta_sts_record_name|relative_record_name:domain }}"
-                data-select
-              >
-              <span
-                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-              >{{ domain.mta_sts_record_name|apex_suffix:domain }}</span>
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.mta_sts_record_name|relative_record_name:domain }}"
-                aria-label='{% translate "copy name"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
-              <input
-                type="text"
-                readonly
-                value="&quot;{{ domain.mta_sts_record }}&quot;"
-                data-select
-              >
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.mta_sts_record }}"
-                aria-label='{% translate "copy value"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
+              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.mta_sts_record_name %}
+              {% include "domains/_record_value.html" with record_value=domain.mta_sts_record quote=True %}
             </div>
             <div class="input-group flex-wrap max-sm:h-auto mt-2">
-              <span data-align="start">CNAME</span>
-              <input
-                class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-                type="text"
-                readonly
-                value="{{ domain.mta_sts_hostname|relative_record_name:domain }}"
-                data-select
-              >
-              <span
-                class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-              >{{ domain.mta_sts_hostname|apex_suffix:domain }}</span>
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.mta_sts_hostname|relative_record_name:domain }}"
-                aria-label='{% translate "copy name"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
-              <input
-                type="text"
-                readonly
-                value="{{ domain.mta_sts_cname_target }}."
-                data-select
-              >
-              <button
-                type="button"
-                class="btn"
-                data-variant="ghost"
-                data-size="icon-xs"
-                data-copy="{{ domain.mta_sts_cname_target }}."
-                aria-label='{% translate "copy value"|capfirst %}'
-              >
-                <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-              </button>
+              {% include "domains/_record_name.html" with record_type="CNAME" record_name=domain.mta_sts_hostname %}
+              {% include "domains/_record_value.html" with record_value=domain.mta_sts_cname_target trailing_dot=True %}
+            </div>
+          </div>
+
+          <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              {% include "domains/_check_status.html" with status=domain.tls_rpt_status %}
+              <label>TLS-RPT</label>
+              {% know_how_badge "tls-rpt" "TLS-RPT" %}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {% translate "Receive TLS failure reports from senders. Add this record at your DNS provider for the root domain." %}
+            </p>
+            {% if domain.tls_rpt_status == 'error' %}
+              <p class="text-sm text-destructive">{{ domain.tls_rpt_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish the TLS-RPT TXT record below, then verify DNS again." %}
+              </p>
+            {% endif %}
+            <div class="input-group flex-wrap max-sm:h-auto">
+              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.tls_rpt_record_name %}
+              {% include "domains/_record_value.html" with record_value=domain.tls_rpt_record quote=True %}
+            </div>
+          </div>
+
+          <div role="group" class="field">
+            <div class="flex items-center gap-2">
+              {% include "domains/_check_status.html" with status=domain.dkim_ed25519_status %}
+              <label>DKIM</label>
+              {% know_how_badge "dkim" "DKIM" %}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {% translate "adds an Ed25519 signature to outbound email. Relay signs with both keys."|capfirst %}
+            </p>
+            {% if domain.dkim_ed25519_status == 'error' %}
+              <p class="text-sm text-destructive">{{ domain.dkim_ed25519_error }}</p>
+              <p class="text-sm text-muted-foreground">
+                {% translate "Publish the DKIM CNAME record below, then verify DNS again." %}
+              </p>
+            {% endif %}
+            <div class="input-group flex-wrap max-sm:h-auto">
+              {% include "domains/_record_name.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 %}
+              {% include "domains/_record_value.html" with record_value=dkim_cnames.dkim_ed25519.1 trailing_dot=True %}
             </div>
           </div>
         </div>
@@ -528,38 +289,8 @@
         </div>
         {% for ns in nameservers %}
           <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-            <span data-align="start">NS</span>
-            <input
-              class="max-sm:basis-[calc(100%-2.75rem)] text-right"
-              type="text"
-              readonly
-              value="{{ domain.name|relative_record_name:domain }}"
-              data-select
-            >
-            <span
-              class="select-none ps-1 text-sm text-muted-foreground empty:hidden"
-            >{{ domain.name|apex_suffix:domain }}</span>
-            <button
-              type="button"
-              class="btn"
-              data-variant="ghost"
-              data-size="icon-xs"
-              data-copy="{{ domain.name|relative_record_name:domain }}"
-              aria-label='{% translate "copy name"|capfirst %}'
-            >
-              <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-            </button>
-            <input type="text" readonly value="{{ ns }}." data-select>
-            <button
-              type="button"
-              class="btn"
-              data-variant="ghost"
-              data-size="icon-xs"
-              data-copy="{{ ns }}."
-              aria-label='{% translate "copy value"|capfirst %}'
-            >
-              <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
-            </button>
+            {% include "domains/_record_name.html" with record_type="NS" record_name=domain.name %}
+            {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
           </div>
         {% endfor %}
       </section>

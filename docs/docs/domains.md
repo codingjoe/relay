@@ -35,7 +35,8 @@ Facts to understand about this model:
 - **Every root domain gets its own signing keys**: RSA-2048 and Ed25519
   keys, one selector each, at `relay-rsa2048` and `relay-ed25519` under
   `_domainkey`. Your domain signs with its own keys, so
-  reputation attaches to your domain and not to someone else's.
+  reputation attaches to your domain and not to someone else's. relay signs
+  with both keys, and the RSA-2048 CNAME is the one a sender needs.
 - **Managed domains cannot be deleted** in the dashboard, and custom domains can.
 - There can be no overlap: you cannot register a subdomain of the managed
   domain, and no two organizations can claim overlapping names.
@@ -62,31 +63,42 @@ then, relay signs with the sending domain only.
 
 ## Adding your own domain
 
-The flow for a user domain, for example `acme.com`:
+The flow for a user domain, for example `acme.com`, has two stages. The
+quick start stage makes the domain send, and the production stage adds
+receiving and TLS hardening:
 
 ```mermaid
 flowchart TD
     A[Add domain in dashboard] --> B[Store DKIM keys at creation]
-    B --> C[Dashboard shows the records to publish]
-    C --> D[You publish NS records for the sender subdomain and one DMARC record]
+    B --> C[Dashboard shows the quick start records]
+    C --> D[Publish NS delegation, SPF, DKIM, and DMARC]
     D --> E[Run verification]
-    E --> F{Checks ok?}
-    F -- No --> G[Fix shown record, check again]
+    E --> F{Quick start checks ok?}
+    F -- No --> G[Fix the record shown, check again]
     G --> E
-    F -- Yes --> H[Verified for sending, receiving, or both]
-    H --> I[Nameserver serves the DNS now]
+    F -- Yes --> H[Domain is verified and sends authenticated email]
+    H --> I[Publish MX, MTA-STS, TLS-RPT, and the Ed25519 DKIM record]
+    I --> J{Production checks ok?}
+    J -- No --> G
+    J -- Yes --> K[Receiving and TLS hardening in place]
 ```
 
-Verification reads the live DNS for seven records and splits the result
-into two independent purposes:
+Verification reads the live DNS for eight records and splits the result
+into three independent purposes:
 
-- Sending: NS delegation on the sender subdomain, SPF authorization, the
-  two DKIM CNAMEs, and the DMARC record at the root.
-- Receiving: the MX record at the root, the MTA-STS record and CNAME, and
-  the TLS-RPT record with the relay reporting address.
+- **Quick start (sending)**: NS delegation on the sender subdomain, SPF
+  authorization, the RSA-2048 DKIM CNAME, and the DMARC record at the root.
+  These four records are everything an email needs to reach a recipient
+  authenticated, and the domain is verified as soon as they pass.
+- **Receiving**: the MX record at the root, which routes inbound mail to
+  relay.
+- **Production (hardening)**: the Ed25519 DKIM CNAME, the MTA-STS record
+  and CNAME, and the TLS-RPT record with the relay reporting address. They
+  are optional, and the production check passes only when all of them pass
+  together with the quick start and receiving records.
 
-Each purpose verifies on its own. Publish only the sending records and the
-domain shows sending verified while receiving reads as not set up. Checks
+Each purpose verifies on its own. Publish only the quick start records and
+the domain sends while receiving and production read as not set up. Checks
 run per record, and the dashboard shows each of them, so a wrong record is
 identifiable. Re-check at any time.
 

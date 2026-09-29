@@ -59,8 +59,9 @@ publish, `mx1.relays.to`, the relay platform domain, so senders
 that validate the certificate, as MTA-STS enforce mode requires, complete
 the handshake. relay records for each message whether it arrived over TLS,
 together with the protocol version and cipher suite, and the certificate
-the sender presented when one was offered. relay publishes MTA-STS and
-TLS-RPT records for your domains, which asks all senders to use TLS as well.
+the sender presented when one was offered. relay serves MTA-STS and
+TLS-RPT records for your domains once you publish them, which asks all
+senders to use TLS as well.
 
 ## The MTA-STS policy
 

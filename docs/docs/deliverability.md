@@ -23,7 +23,7 @@ one:
 | ------------- | ---------------------------------- | ---------------------------------------------------- |
 | NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
 | SPF           | root and sender subdomain TXT      | a record that authorizes each relay sending IP       |
-| DKIM          | two CNAME records                  | `{selector}._domainkey` pointing into the relay zone |
+| DKIM          | one CNAME record per cipher        | `{selector}._domainkey` pointing into the relay zone |
 | DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
 | MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
 | TLS-RPT       | `_smtp._tls` TXT                   | reporting to the relay TLS collector                 |
@@ -31,7 +31,8 @@ one:
 Four public-key selectors, two per domain (RSA-2048 and Ed25519),
 sign every message with `h=sha256`. Both algorithms ride on every
 outgoing message, so receivers that cannot read Ed25519 names yet still
-find an RSA signature they accept.
+find an RSA signature they accept. The RSA-2048 CNAME is required to send,
+and the Ed25519 CNAME belongs to the production record set.
 
 Your message carries one more identity besides your domain keys. relay
 cosigns customers' messages with the keys of the platform domain. The cosign

@@ -78,10 +78,19 @@ class DomainQuerySet(models.QuerySet):
 
 
 class Domain(TimeStamped):
-    """Root domain. Verified once with NS delegation, DMARC, SPF, and DKIM."""
+    """Root domain. Verified per purpose: sending, receiving, and hardening."""
 
-    SENDING_CHECK_FIELDS = ("nameserver", "spf", "dkim", "dmarc")
-    RECEIVING_CHECK_FIELDS = ("mx", "mta_sts", "tls_rpt")
+    # The records an email needs to send authenticated mail.
+    SENDING_CHECK_FIELDS = ("nameserver", "spf", "dkim_rsa2048", "dmarc")
+    # The record that routes inbound mail to relay.
+    RECEIVING_CHECK_FIELDS = ("mx",)
+    # Optional records that harden signatures and inbound TLS.
+    HARDENING_CHECK_FIELDS = ("dkim_ed25519", "mta_sts", "tls_rpt")
+    PRODUCTION_CHECK_FIELDS = (
+        *SENDING_CHECK_FIELDS,
+        *RECEIVING_CHECK_FIELDS,
+        *HARDENING_CHECK_FIELDS,
+    )
 
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
@@ -134,16 +143,27 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if the SPF record is incorrect."),
     )
-    dkim_status = models.TextField(
-        _("DKIM status"),
+    dkim_rsa2048_status = models.TextField(
+        _("RSA-2048 DKIM status"),
         choices=Status,
         default=Status.UNCHECKED,
-        help_text=_("DKIM CNAME check result on the root domain."),
+        help_text=_("RSA-2048 DKIM CNAME check result on the root domain."),
     )
-    dkim_error = models.TextField(
-        _("DKIM error"),
+    dkim_rsa2048_error = models.TextField(
+        _("RSA-2048 DKIM error"),
         blank=True,
-        help_text=_("Failure detail if the DKIM CNAME is incorrect."),
+        help_text=_("Failure detail if the RSA-2048 DKIM CNAME is incorrect."),
+    )
+    dkim_ed25519_status = models.TextField(
+        _("Ed25519 DKIM status"),
+        choices=Status,
+        default=Status.UNCHECKED,
+        help_text=_("Ed25519 DKIM CNAME check result on the root domain."),
+    )
+    dkim_ed25519_error = models.TextField(
+        _("Ed25519 DKIM error"),
+        blank=True,
+        help_text=_("Failure detail if the Ed25519 DKIM CNAME is incorrect."),
     )
     dmarc_status = models.TextField(
         _("DMARC status"),
@@ -248,33 +268,46 @@ class Domain(TimeStamped):
     def is_verified(self):
         return self.verified_at is not None
 
-    @property
-    def is_sending_verified(self):
-        return all(
-            getattr(self, f"{field}_status") == self.Status.OK
-            for field in self.SENDING_CHECK_FIELDS
-        )
-
-    @property
-    def is_receiving_verified(self):
-        return all(
-            getattr(self, f"{field}_status") == self.Status.OK
-            for field in self.RECEIVING_CHECK_FIELDS
+    def checks_passing(self, fields) -> int:
+        """Return the number of passing checks among *fields*."""
+        return sum(
+            getattr(self, f"{field}_status") == self.Status.OK for field in fields
         )
 
     @property
     def sending_checks_passing(self):
-        return sum(
-            getattr(self, f"{field}_status") == self.Status.OK
-            for field in self.SENDING_CHECK_FIELDS
-        )
+        """Return how many sending records pass their check."""
+        return self.checks_passing(self.SENDING_CHECK_FIELDS)
 
     @property
     def receiving_checks_passing(self):
-        return sum(
-            getattr(self, f"{field}_status") == self.Status.OK
-            for field in self.RECEIVING_CHECK_FIELDS
-        )
+        """Return how many receiving records pass their check."""
+        return self.checks_passing(self.RECEIVING_CHECK_FIELDS)
+
+    @property
+    def hardening_checks_passing(self):
+        """Return how many hardening records pass their check."""
+        return self.checks_passing(self.HARDENING_CHECK_FIELDS)
+
+    @property
+    def production_checks_passing(self):
+        """Return how many production records pass their check."""
+        return self.checks_passing(self.PRODUCTION_CHECK_FIELDS)
+
+    @property
+    def is_sending_verified(self):
+        """Return whether the domain can send authenticated mail."""
+        return self.sending_checks_passing == len(self.SENDING_CHECK_FIELDS)
+
+    @property
+    def is_receiving_verified(self):
+        """Return whether relay routes inbound mail for the domain."""
+        return self.receiving_checks_passing == len(self.RECEIVING_CHECK_FIELDS)
+
+    @property
+    def is_production_ready(self):
+        """Return whether the sending, receiving, and hardening records all pass."""
+        return self.production_checks_passing == len(self.PRODUCTION_CHECK_FIELDS)
 
     is_managed = models.BooleanField(
         _("managed"),
@@ -325,10 +358,11 @@ class Domain(TimeStamped):
 
     @property
     def dkim_ciphers(self):
+        """Return the check field, selector, and key of every DKIM cipher."""
         prefix = settings.RELAY_DNS_DKIM_IDENTIFIER
         return [
-            (f"{prefix}-rsa2048", self.dkim_key_rsa2048),
-            (f"{prefix}-ed25519", self.dkim_key_ed25519),
+            ("dkim_rsa2048", f"{prefix}-rsa2048", self.dkim_key_rsa2048),
+            ("dkim_ed25519", f"{prefix}-ed25519", self.dkim_key_ed25519),
         ]
 
     @property
@@ -348,9 +382,11 @@ class Domain(TimeStamped):
 
     @property
     def dkim_cnames(self):
-        return [
-            self.dkim_cname_for_selector(selector) for selector, _ in self.dkim_ciphers
-        ]
+        """Return the CNAME name and target per DKIM check field."""
+        return {
+            field: self.dkim_cname_for_selector(selector)
+            for field, selector, _key in self.dkim_ciphers
+        }
 
     @property
     def spf_record(self):

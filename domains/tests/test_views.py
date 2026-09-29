@@ -109,12 +109,12 @@ class TestDomainDetailView:
             b"Websites and other services on this domain will stop" in response.content
         )
 
-    def test_get__groups_sending_and_receiving_records(self, admin_client, org):
+    def test_get__groups_quick_start_and_production_records(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"Sending records" in response.content
-        assert b"Receiving records" in response.content
+        assert b"Quick start: send email" in response.content
+        assert b"Production: receive mail and harden TLS" in response.content
         for mx_hostname in settings.RELAY_DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."'.encode() in response.content
 
@@ -138,7 +138,7 @@ class TestDomainVerifyView:
         dns_resolver.add(
             domain.name, "TXT", f"v=spf1 include:{domain.sender_domain} ~all"
         )
-        for cname_name, _ in domain.dkim_cnames:
+        for cname_name, _target in domain.dkim_cnames.values():
             dns_resolver.add(
                 cname_name,
                 "CNAME",

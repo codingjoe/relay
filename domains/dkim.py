@@ -40,7 +40,7 @@ def sign_message(raw_bytes, domain):
         "dkim_key_ed25519",
     ).filter(Q(name=settings.RELAY_PLATFORM_DOMAIN) | Q(pk=domain.pk))
     for sign_domain in signing_domains:
-        for selector, key in sign_domain.dkim_ciphers:
+        for _field, selector, key in sign_domain.dkim_ciphers:
             signed = add_dkim_signature(
                 signed, selector, sign_domain.name, key, INCLUDE_HEADERS
             )

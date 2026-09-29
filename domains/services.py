@@ -1,15 +1,28 @@
 """DNS verification services. Validates NS delegation and DMARC on root domain."""
 
 import re
+from functools import partial
 
 import dns.resolver
 from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from .models import Domain
 
 MTA_STS_EXTENSION_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,31}")
 MTA_STS_EXTENSION_VALUE = re.compile(r"[\x21-\x3A\x3C\x3E-\x7E]+")
+
+CHECK_LABELS = {
+    "nameserver": "NS",
+    "spf": "SPF",
+    "dkim_rsa2048": "RSA-2048 DKIM",
+    "dkim_ed25519": "Ed25519 DKIM",
+    "dmarc": "DMARC",
+    "mx": "MX",
+    "mta_sts": "MTA-STS",
+    "tls_rpt": "TLS-RPT",
+}
 
 
 def parse_mta_sts_txt_record(value):
@@ -75,12 +88,11 @@ def check_spf(domain):
         return False
 
 
-def check_dkim_cname(domain):
+def check_dkim_cname(domain, field):
+    """Return whether the DKIM CNAME of one cipher resolves."""
+    name, _target = domain.dkim_cnames[field]
     try:
-        return all(
-            bool(dns.resolver.resolve(cname_name, "CNAME"))
-            for cname_name, _ in domain.dkim_cnames
-        )
+        return bool(dns.resolver.resolve(name, "CNAME"))
     except dns.exception.DNSException:
         return False
 
@@ -161,12 +173,11 @@ def verify_domain_dns(domain):
     checks = {
         "nameserver": verify_nameserver_delegation,
         "spf": check_spf,
-        "dkim": check_dkim_cname,
         "dmarc": check_dmarc,
         "mx": check_mx,
         "mta_sts": check_mta_sts,
         "tls_rpt": check_tls_rpt,
-    }
+    } | {field: partial(check_dkim_cname, field=field) for field in domain.dkim_cnames}
 
     for field, check_fn in checks.items():
         try:
@@ -179,7 +190,10 @@ def verify_domain_dns(domain):
             setattr(
                 domain,
                 f"{field}_error",
-                "" if ok else f"{field} record not found or incorrect",
+                ""
+                if ok
+                else _("%(name)s record not found or incorrect.")
+                % {"name": CHECK_LABELS[field]},
             )
         except dns.exception.DNSException as error:
             setattr(domain, f"{field}_status", Domain.Status.ERROR)
@@ -187,34 +201,18 @@ def verify_domain_dns(domain):
 
     domain.dns_checked_at = timezone.now()
 
-    if (
-        all(
-            getattr(domain, f"{field}_status") == Domain.Status.OK
-            for field in (
-                *Domain.SENDING_CHECK_FIELDS,
-                *Domain.RECEIVING_CHECK_FIELDS,
-            )
-        )
-        and domain.verified_at is None
-    ):
+    # A domain sends as soon as the quick start records pass. The receiving
+    # and hardening records stay optional, so they must not gate sending.
+    if domain.is_sending_verified and domain.verified_at is None:
         domain.verified_at = timezone.now()
 
     domain.save(
         update_fields=[
-            "nameserver_status",
-            "nameserver_error",
-            "spf_status",
-            "spf_error",
-            "dkim_status",
-            "dkim_error",
-            "dmarc_status",
-            "dmarc_error",
-            "mx_status",
-            "mx_error",
-            "mta_sts_status",
-            "mta_sts_error",
-            "tls_rpt_status",
-            "tls_rpt_error",
+            *(
+                attribute
+                for field in Domain.PRODUCTION_CHECK_FIELDS
+                for attribute in (f"{field}_status", f"{field}_error")
+            ),
             "dns_checked_at",
             "verified_at",
         ]

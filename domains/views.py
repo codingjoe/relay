@@ -66,16 +66,6 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
             "dkim_cnames": self.object.dkim_cnames,
             "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
             "mx_priority": resolver.DNSResolver.MX_PRIORITY,
-            "sending_passing": sum(
-                getattr(self.object, f"{field}_status") == Domain.Status.OK
-                for field in Domain.SENDING_CHECK_FIELDS
-            ),
-            "sending_total": len(Domain.SENDING_CHECK_FIELDS),
-            "receiving_passing": sum(
-                getattr(self.object, f"{field}_status") == Domain.Status.OK
-                for field in Domain.RECEIVING_CHECK_FIELDS
-            ),
-            "receiving_total": len(Domain.RECEIVING_CHECK_FIELDS),
         }
 
 
@@ -92,27 +82,33 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
         for label, fields in (
             (_("sending"), Domain.SENDING_CHECK_FIELDS),
             (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
+            (_("production"), Domain.PRODUCTION_CHECK_FIELDS),
         ):
             passing = sum(
                 getattr(domain, f"{field}_status") == Domain.Status.OK
                 for field in fields
             )
             total = len(fields)
-            if passing == total:
-                messages.success(
-                    request,
-                    _("%(label)s verification passed: all %(total)d checks pass.")
-                    % {"label": label, "total": total},
-                )
-            else:
-                messages.error(
-                    request,
-                    _(
-                        "%(label)s verification failed: %(failing)d of %(total)d "
-                        "checks are still failing."
+            match passing:
+                case _ if passing == total:
+                    messages.success(
+                        request,
+                        _("%(label)s verification passed: all %(total)d checks pass.")
+                        % {"label": label, "total": total},
                     )
-                    % {"label": label, "failing": total - passing, "total": total},
-                )
+                case 0:
+                    # A tier nobody started is not a failure. The quick start
+                    # records alone already make the domain send.
+                    pass
+                case _:
+                    messages.error(
+                        request,
+                        _(
+                            "%(label)s verification failed: %(failing)d of %(total)d "
+                            "checks are still failing."
+                        )
+                        % {"label": label, "failing": total - passing, "total": total},
+                    )
         return redirect(domain.get_absolute_url())
 
 
