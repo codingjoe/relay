@@ -84,6 +84,19 @@
       height: auto;
     }
 
+    .digest-art--dark {
+      display: none;
+    }
+
+    .digest-kicker {
+      margin: 0 0 6px;
+      color: #6200d1;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
     @media only screen and (max-width: 640px) {
       .digest-card {
         display: block !important;
@@ -118,12 +131,25 @@
       .digest-count {
         color: #c480ff !important;
       }
+
+      .digest-kicker {
+        color: #bb80ff !important;
+      }
+
+      .digest-art--light {
+        display: none !important;
+      }
+
+      .digest-art--dark {
+        display: inline-block !important;
+      }
     }
   </style>
 {% endblock extra_header %}
 
 {% block content %}
-  <h1 class="first">{{ headline }}</h1>
+  <p class="first digest-kicker">{% translate "All the Data" %}</p>
+  <h1>{{ headline }}</h1>
   <p>{{ verdict }}</p>
   <p class="digest-count">{{ sent }}</p>
   <p class="digest-count-caption">
@@ -214,13 +240,19 @@
   </p>
   {% translate "Open monitoring" as button_label %}
   {% button href=dashboard_path value=button_label primary=True %}
-  {% if illustration %}
+  {% if illustration_light %}
     {% table class="align-center" %}
     <tr>
       <td align="center" class="pb16">
         <img
-          class="digest-art"
-          src="{% static illustration %}"
+          class="digest-art digest-art--light"
+          src="{% static illustration_light %}"
+          alt=""
+          width="360"
+        >
+        <img
+          class="digest-art digest-art--dark"
+          src="{% static illustration_dark %}"
           alt=""
           width="360"
         >

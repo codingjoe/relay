@@ -60,13 +60,21 @@ def chart_url(org: Organization, name: str, **query) -> str:
     return f"{path}?{urlencode(query)}"
 
 
-def digest_illustration(stats: ReputationSummary) -> str:
-    """Return the illustration the mail shows for one window."""
+def digest_illustration(stats: ReputationSummary) -> tuple[str, str]:
+    """
+    Return the pair of illustrations the mail shows for one window.
+
+    The pairs are light and dark, so a client that reports a dark scheme gets
+    the drawing that belongs on it. A breach shows none, and stays plain.
+    """
     match stats:
         case _ if stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]:
-            return ""
+            return "", ""
         case _:
-            return "img/home-run.svg"
+            return (
+                "img/illustrations/home-run-light.svg",
+                "img/illustrations/home-run-dark.svg",
+            )
 
 
 def message_interval(daily_average: int) -> str:
@@ -104,13 +112,15 @@ def build_digest_context(
     """
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     free_monthly_messages = settings.RELAY_FREE_MONTHLY_MESSAGES
+    illustration = digest_illustration(stats)
     return {
         "stats": stats,
         "organization": org.slug,
         "window_phrase": ngettext("last %d day", "last %d days", window_days)
         % window_days,
         "daily_average": round(stats["total_sent"] / window_days),
-        "illustration": digest_illustration(stats),
+        "illustration_light": illustration[0],
+        "illustration_dark": illustration[1],
         "message_interval": message_interval(round(stats["total_sent"] / window_days)),
         "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
