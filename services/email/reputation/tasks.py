@@ -175,16 +175,6 @@ def send_weekly_digests():
         send_org_weekly_digest.enqueue(org_id=org_id)
 
 
-class DigestDeliveryError(Exception):
-    """One or more members did not receive the weekly digest."""
-
-    def __init__(self, org_id, user_ids):
-        super().__init__(
-            f"Weekly digest delivery failed for organization {org_id} "
-            f"and users {user_ids}"
-        )
-
-
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
 def send_org_weekly_digest(org_id):
     """Mail the window's numbers to the members the digest reaches."""
@@ -193,7 +183,6 @@ def send_org_weekly_digest(org_id):
         logger.info("Dropped the weekly digest for suspended organization %r", org_id)
     else:
         digest = build_org_digest(org)
-        failures = []
         mailer = mailers.default
         with mailer:
             for membership in iter_digest_members(org):
@@ -207,12 +196,7 @@ def send_org_weekly_digest(org_id):
                             )
                         ]
                     )
-                except OSError as error:
+                except OSError:
                     logger.exception(
                         "Weekly digest for user %r failed", membership.user_id
                     )
-                    failures.append((membership.user_id, error))
-        if failures:
-            raise DigestDeliveryError(
-                org.pk, [user_id for user_id, _ in failures]
-            ) from failures[0][1]
