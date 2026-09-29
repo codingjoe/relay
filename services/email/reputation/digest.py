@@ -2,6 +2,7 @@ from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils.translation import ngettext
 
 from accounts.models import Organization
 
@@ -32,7 +33,9 @@ def build_digest_context(
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     return {
         "stats": stats,
-        "window_days": window_days,
+        "organization": org.slug,
+        "window_phrase": ngettext("last %d day", "last %d days", window_days)
+        % window_days,
         "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
         "month_messages": month_messages,

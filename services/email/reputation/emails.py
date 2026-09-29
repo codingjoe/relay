@@ -13,7 +13,7 @@ class WeeklyDigestEmail(TemplateEmail):
     """Report one organization's sending volume and its sender reputation."""
 
     template_name = "emails/weekly_digest.html"
-    subject = _("Your last %(window_days)s days in email: %(sent)s sent")
+    subject = _("Your %(window_phrase)s in email at %(organization)s: %(sent)s sent")
 
     def __init__(self, *, digest: dict[str, typing.Any], **kwargs):
         self.digest = digest
