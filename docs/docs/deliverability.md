@@ -15,27 +15,23 @@ receiver's decision.
 ## The record set relay manages
 
 relay runs its own authoritative nameserver. For a delegated domain, for
-example `acme.com`, you delegate the sender subdomain and publish the records
-the dashboard lists. The dashboard confirms each record with a check, and
-every check belongs to one group:
+example `acme.com`, you deploy the delegation and add DMARC, and relay serves
+the rest. The dashboard lists the exact records, and its checks confirm each
+one:
 
-| Check         | Group      | Where relay looks                  | What it wants to see                             |
-| ------------- | ---------- | ---------------------------------- | ------------------------------------------------ |
-| NS delegation | Sending    | `mail.relay.acme.com`              | NS records to the relay nameservers              |
-| SPF           | Sending    | root and sender subdomain TXT      | a record that authorizes each relay sending IP   |
-| RSA-2048 DKIM | Sending    | `relay-rsa2048._domainkey` CNAME   | a pointer to the relay-served `_domainkey` name  |
-| DMARC         | Sending    | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector |
-| MX            | Receiving  | `acme.com` MX                      | the relay MX hostnames                           |
-| Ed25519 DKIM  | Production | `relay-ed25519._domainkey` CNAME   | a pointer to the relay-served `_domainkey` name  |
-| MTA-STS       | Production | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host           |
-| TLS-RPT       | Production | `_smtp._tls` TXT                   | reporting to the relay TLS collector             |
+| Check         | Where relay looks                  | What it wants to see                                 |
+| ------------- | ---------------------------------- | ---------------------------------------------------- |
+| NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
+| SPF           | root and sender subdomain TXT      | a record that authorizes each relay sending IP       |
+| DKIM          | two CNAME records                  | `{selector}._domainkey` pointing into the relay zone |
+| DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
+| MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
+| TLS-RPT       | `_smtp._tls` TXT                   | reporting to the relay TLS collector                 |
 
 Four public-key selectors, two per domain (RSA-2048 and Ed25519),
 sign every message with `h=sha256`. Both algorithms ride on every
 outgoing message, so receivers that cannot read Ed25519 names yet still
-find an RSA signature they accept. The RSA-2048 CNAME belongs to the
-four sending records and is required to send; the Ed25519 CNAME is a
-production record.
+find an RSA signature they accept.
 
 Your message carries one more identity besides your domain keys. relay
 cosigns customers' messages with the keys of the platform domain. The cosign

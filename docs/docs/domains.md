@@ -31,12 +31,11 @@ Facts to understand about this model:
 - **The sender subdomain exists once per root domain.** The envelope
   addresses, the DKIM zone, and the report collectors live under
   `{prefix}.{root}`. You delegate exactly that subdomain to the relay
-  nameservers, and you publish the quick start records at your root.
+  nameservers, and you add one DMARC record at your root.
 - **Every root domain gets its own signing keys**: RSA-2048 and Ed25519
   keys, one selector each, at `relay-rsa2048` and `relay-ed25519` under
   `_domainkey`. Your domain signs with its own keys, so
-  reputation attaches to your domain and not to someone else's. Only the
-  RSA-2048 CNAME is required to send.
+  reputation attaches to your domain and not to someone else's.
 - **Managed domains cannot be deleted** in the dashboard, and custom domains can.
 - There can be no overlap: you cannot register a subdomain of the managed
   domain, and no two organizations can claim overlapping names.
@@ -63,45 +62,33 @@ then, relay signs with the sending domain only.
 
 ## Adding your own domain
 
-The flow for a user domain, for example `acme.com`, has two stages. The
-quick start stage makes the domain send, and the production stage adds
-inbound mail and the hardening records:
+The flow for a user domain, for example `acme.com`:
 
 ```mermaid
 flowchart TD
     A[Add domain in dashboard] --> B[Store DKIM keys at creation]
-    B --> C[Dashboard shows the quick start records]
-    C --> D[Publish NS delegation, SPF, the RSA-2048 DKIM CNAME, and DMARC]
+    B --> C[Dashboard shows the records to publish]
+    C --> D[You publish NS records for the sender subdomain and one DMARC record]
     D --> E[Run verification]
-    E --> F{Sending checks ok?}
-    F -- No --> G[Fix the record shown, check again]
+    E --> F{Checks ok?}
+    F -- No --> G[Fix shown record, check again]
     G --> E
-    F -- Yes --> H[Domain is verified and sends authenticated email]
-    H --> I[Publish the MX, MTA-STS, TLS-RPT, and Ed25519 DKIM records]
-    I --> J{Receiving and production checks ok?}
-    J -- No --> G
-    J -- Yes --> K[Inbound mail and hardening records in place]
+    F -- Yes --> H[Verified for sending, receiving, or both]
+    H --> I[Nameserver serves the DNS now]
 ```
 
-Verification runs eight checks on the live DNS and sorts the result into
-three groups, each with its own badge and its own section on the domain
-page:
+Verification reads the live DNS for seven records and splits the result
+into two independent purposes:
 
-- **Sending (quick start)**: NS delegation on the sender subdomain, SPF
-  authorization, the RSA-2048 DKIM CNAME, and the DMARC record at the root.
-  These four records are everything an email needs to send authenticated,
-  and the domain is verified as soon as they pass.
-- **Receiving**: the MX record at the root, which routes inbound mail to
-  relay.
-- **Production**: the Ed25519 DKIM CNAME, the MTA-STS TXT record and its
-  CNAME, and the TLS-RPT record with the relay reporting address. All three
-  are optional: a domain sends without them.
+- Sending: NS delegation on the sender subdomain, SPF authorization, the
+  two DKIM CNAMEs, and the DMARC record at the root.
+- Receiving: the MX record at the root, the MTA-STS record and CNAME, and
+  the TLS-RPT record with the relay reporting address.
 
-Every record carries its own checkmark, so a wrong record is identifiable.
-Each group verifies on its own: publish only the quick start records and the
-domain sends while receiving and production read as not set up. A verify
-click reports one message for the first unfinished group in badge order.
-Re-check at any time.
+Each purpose verifies on its own. Publish only the sending records and the
+domain shows sending verified while receiving reads as not set up. Checks
+run per record, and the dashboard shows each of them, so a wrong record is
+identifiable. Re-check at any time.
 
 ## What the nameserver serves
 
