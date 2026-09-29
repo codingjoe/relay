@@ -51,7 +51,15 @@
   {% blocktranslate with limit=complaint_threshold|percent:"2" asvar complaint_caption trimmed %}
     The limit is {{ limit }}.
   {% endblocktranslate %}
-  <table role="presentation" class="digest-cards" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+  <table
+    role="presentation"
+    class="digest-cards"
+    width="100%"
+    cellpadding="0"
+    cellspacing="0"
+    border="0"
+    style="border-collapse: collapse"
+  >
     <tr>
       {% include "emails/digest_card.html" with label=cost_label|capfirst value=cost_value caption=cost_caption colour="#157a3f" background="#e7f5ec" %}
       {% if stats.hard_bounce_over_limit %}
@@ -98,7 +106,7 @@
           src="{% static illustration %}"
           alt=""
           width="320"
-          style="width:56%;height:auto"
+          style="width: 56%; height: auto"
         >
       </td>
     </tr>

@@ -119,7 +119,9 @@ class DigestWeekChartView(generic.View):
 
     def get(self, request, *args, **kwargs):
         counts = [
-            chart_number(part) for part in request.GET.get("counts", "").split(",") if part
+            chart_number(part)
+            for part in request.GET.get("counts", "").split(",")
+            if part
         ]
         response = HttpResponse(svg.week(counts[:31]), content_type="image/svg+xml")
         response["Cache-Control"] = "public, max-age=604800, immutable"
