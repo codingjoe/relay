@@ -189,11 +189,14 @@ def send_org_weekly_digest(org_id):
     """
     Mail the window's numbers to every active member of the organization.
 
-    A member with a deactivated account or no email address is skipped. A
+    An organization relay suspended after the fan-out is dropped here, and a
+    member with a deactivated account or no email address is skipped. A
     failed delivery leaves the rest of the organization mailed, and the run
     fails at the end with the members it could not reach.
     """
     org = Organization.objects.get(pk=org_id)
+    if org.suspended_at:
+        return None
     digest = build_org_digest(org)
     failures = []
     for membership in (

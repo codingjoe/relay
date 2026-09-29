@@ -44,7 +44,7 @@
     <td>{% translate "bill so far"|capfirst %}</td>
     <td class="align-right">
       {% if cost %}
-        {% blocktranslate trimmed with amount=cost %}
+        {% blocktranslate trimmed with amount=cost|intcomma %}
           {{ amount }} EUR
         {% endblocktranslate %}
       {% else %}
@@ -58,7 +58,7 @@
       The free tier covers {{ limit }} messages a month.
     {% endblocktranslate %}
     {% if overage_price %}
-      {% blocktranslate trimmed with amount=overage_price %}
+      {% blocktranslate trimmed with amount=overage_price|intcomma %}
         Beyond it, relay charges {{ amount }} EUR per 1,000 messages.
       {% endblocktranslate %}
     {% endif %}
