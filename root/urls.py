@@ -44,6 +44,14 @@ urlpatterns = [
                                     )
                                 },
                             ),
+                            *(
+                                (
+                                    "health_check.contrib.threadmill.Threadmill",
+                                    {"queue_name": queue_name},
+                                )
+                                for queue_name in settings.TASK_QUEUES
+                            ),
+                            "health_check.contrib.crontask.Scheduler",
                             "health_check.Storage",
                             "health_check.Mail",
                             (
