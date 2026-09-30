@@ -193,7 +193,9 @@ class TestTestEmailView:
         message = OutgoingMessage.objects.get(org=org)
         stored = message_from_bytes(message.raw_body.read(), policy=policy.default)
         parts = {
-            part.get_content_type(): part.get_content() for part in stored.iter_parts()
+            part.get_content_type(): part.get_content()
+            for part in stored.walk()
+            if part.get_content_maintype() == "text"
         }
         assert set(parts) == {"text/html", "text/plain"}
         for part in parts.values():
@@ -201,6 +203,7 @@ class TestTestEmailView:
         link = f"http://testserver/org/{org.slug}/email/messages/{message.pk}"
         assert f'href="{link}"' in parts["text/html"]
         assert f"<{link}>" in parts["text/plain"]
+        assert 'src="cid:word-brand.svg"' in parts["text/html"]
 
     def test_post__ignores_submitted_content(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)

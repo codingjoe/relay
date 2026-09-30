@@ -11,7 +11,7 @@ from django.utils.translation import gettext, ngettext
 from accounts.models import Membership, Organization
 from services.email.msa.models import OutgoingMessage, SuppressionEntry
 
-from . import svg
+from . import chart
 from .billing import month_cost
 from .charts import build_volume_chart, sent_per_day
 from .evaluation import ReputationSummary, build_reputation_stats
@@ -109,7 +109,9 @@ def build_digest_context(
         "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
         "month_messages": month_messages,
         "recipients": recipients,
-        "week_chart": (mark_safe(svg.week(daily_counts)) if any(daily_counts) else ""),
+        "week_chart": (
+            mark_safe(chart.week(daily_counts)) if any(daily_counts) else ""
+        ),
         "cost": month_cost(month_messages),
         "free_monthly_messages": free_monthly_messages,
         "dashboard_path": reverse("monitoring:overview", kwargs={"org_slug": org.slug}),

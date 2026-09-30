@@ -286,8 +286,13 @@ class TestForwardPostmasterMessage:
         forward_postmaster_message.func(message_pk=str(message.pk))
 
         copy = forwarded_copy(message)
-        parts = {part.get_content_type() for part in copy.iter_parts()}
-        assert parts == {"text/html", "text/plain"}
+        parts = {
+            part.get_content_type(): part.get_content()
+            for part in copy.walk()
+            if part.get_content_maintype() == "text"
+        }
+        assert set(parts) == {"text/html", "text/plain"}
+        assert 'src="cid:word-brand.svg"' in parts["text/html"]
 
     def test_forward_postmaster_message__replies_to_original_author(self, org):
         message = make_postmaster_message(org)

@@ -1,5 +1,5 @@
 {% extends "django_letter/base.html" %}
-{% load django_letter i18n static %}
+{% load django_letter i18n %}
 
 {% block extra_header %}
   <style media="all" type="text/css">
@@ -80,6 +80,39 @@
     .btn td {
       padding-bottom: 16px;
     }
+
+    @media (prefers-color-scheme: dark) {
+      a,
+      .text-link {
+        color: #bb80ff !important;
+      }
+
+      .btn a {
+        border-color: #bb80ff !important;
+        color: #bb80ff !important;
+      }
+
+      .btn-primary table td {
+        background-color: #6200d1 !important;
+      }
+
+      .btn-primary a {
+        border-color: #6200d1 !important;
+        background-color: #6200d1 !important;
+        color: #ffffff !important;
+      }
+
+      .footer td,
+      .footer p,
+      .footer span,
+      .footer a {
+        color: #b0b0b0 !important;
+      }
+
+      .footer a {
+        color: #bb80ff !important;
+      }
+    }
   </style>
 {% endblock extra_header %}
 
@@ -87,7 +120,7 @@
   {% table class="align-center" %}
   <tr>
     <td align="center">
-      <img src="{% static 'img/word-brand-512x.jpg' %}" alt="relay" width="120">
+      <img src="{% attached_static 'img/word-brand.svg' %}" alt="relay" width="120">
     </td>
   </tr>
   {% endtable %}
