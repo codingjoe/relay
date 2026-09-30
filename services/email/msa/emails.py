@@ -8,12 +8,11 @@ from django_letter import TemplateEmail
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.message.emails import RelayEmail
 
 from .submission import get_submission_context
 
 
-class TestEmail(RelayEmail):
+class TestEmail(TemplateEmail):
     """Send one templated test message to an organization member."""
 
     template_name = "emails/test_email.html"

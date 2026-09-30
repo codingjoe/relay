@@ -9,12 +9,11 @@ from django_letter import TemplateEmail
 
 from abstract.email_utils import decode_header_value
 from accounts.models import Organization
-from services.email.message.emails import RelayEmail
 
 from .models import IncomingMessage
 
 
-class PostmasterForwardEmail(RelayEmail):
+class PostmasterForwardEmail(TemplateEmail):
     """Forward one inbound postmaster message to an organization member."""
 
     template_name = "emails/postmaster_forward.html"

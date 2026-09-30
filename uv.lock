@@ -477,15 +477,15 @@ threadmill = [
 
 [[package]]
 name = "django-letter"
-version = "0.4.2"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "premailer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/36/54432ad43cede649b7c432a76a4a20cde0e6abbb631514756aa83f51609c/django_letter-0.4.2.tar.gz", hash = "sha256:54bb0791dddd7f855e2f1e9ed48c1546c71baad0175205cc781223f2c2f1b568", size = 30683, upload-time = "2026-09-27T21:33:54.345Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/e6/80ed2986f7c1d27a4e7c24ddae2eaad061631ad33deb2fdb8e5817f64073/django_letter-0.6.0.tar.gz", hash = "sha256:bd3954d8695364aea079c009fca5aab809c24f849bd2a19f1adb023bd13fbb48", size = 60083, upload-time = "2026-09-30T13:10:23.955Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/fd/5747ed96e90bdd4399f341aaf56617f131ddadea2ea24fb99b3e927b4e93/django_letter-0.4.2-py3-none-any.whl", hash = "sha256:3845973f25fcd6b02c56ff181570cd06e5a734efafe58593a0d793200bb8800a", size = 32060, upload-time = "2026-09-27T21:33:53.164Z" },
+    { url = "https://files.pythonhosted.org/packages/80/32/5cb5faadc944b309ce5dc9b22e71ed35fc899db7bb68749b05c3209a1023/django_letter-0.6.0-py3-none-any.whl", hash = "sha256:6884d35d29fb512b666b15acff235503023eb96634e531d926af4096d5d5de8b", size = 62698, upload-time = "2026-09-30T13:10:22.738Z" },
 ]
 
 [[package]]
@@ -1250,8 +1250,8 @@ requires-dist = [
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-crontask", specifier = ">=2" },
     { name = "django-environ", specifier = ">=0.14" },
-    { name = "django-health-check", extras = ["crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.7.0" },
-    { name = "django-letter", specifier = ">=0.4.2" },
+    { name = "django-health-check", extras = ["crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.7" },
+    { name = "django-letter", specifier = ">=0.6.0" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
     { name = "dnslib", specifier = ">=0.9.26" },
