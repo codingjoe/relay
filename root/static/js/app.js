@@ -1,7 +1,9 @@
 (() => {
   try {
     const stored = localStorage.getItem("themeMode");
-    if (stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches) {
+    if (
+      stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
       document.documentElement.classList.add("dark");
     }
   } catch (_) {}
@@ -91,7 +93,10 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("focusin", (event) => {
-  if (event.target instanceof HTMLInputElement && event.target.hasAttribute("data-select")) {
+  if (
+    event.target instanceof HTMLInputElement &&
+    event.target.hasAttribute("data-select")
+  ) {
     event.target.select();
   }
 });

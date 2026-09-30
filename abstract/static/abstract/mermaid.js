@@ -36,9 +36,11 @@ function themeVariables() {
   const primary = raw(dark ? "--color-primary-text" : "--color-primary");
   const background = resolve(dark ? "oklch(0.145 0 0)" : "white");
   const fill = resolve(
-    `color-mix(in srgb, ${primary} ${dark ? 24 : 8}%, ${background})`
+    `color-mix(in srgb, ${primary} ${dark ? 24 : 8}%, ${background})`,
   );
-  const border = resolve(`color-mix(in srgb, ${primary} 55%, ${raw("--color-border")})`);
+  const border = resolve(
+    `color-mix(in srgb, ${primary} 55%, ${raw("--color-border")})`,
+  );
   const foreground = resolve(raw("--color-foreground"));
   const muted = resolve(raw("--color-muted"));
   const mutedBorder = resolve(raw("--color-border"));
