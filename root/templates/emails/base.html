@@ -81,6 +81,12 @@
       padding-bottom: 16px;
     }
 
+    /* The wordmark ships as a PNG, since clients drop the SVG, and the
+       lighter file takes over where the mail turns dark. */
+    .logo--dark {
+      display: none;
+    }
+
     @media (prefers-color-scheme: dark) {
       a,
       .text-link {
@@ -112,15 +118,40 @@
       .footer a {
         color: #bb80ff !important;
       }
+
+      .logo--light {
+        display: none !important;
+      }
+
+      .logo--dark {
+        display: inline-block !important;
+      }
     }
   </style>
 {% endblock extra_header %}
 
 {% block logo %}
+  {% comment %}
+    The wordmark travels as a PNG, because the clients that draw an attached
+    SVG are few, and the media query in the head swaps the lighter file in
+    where the mail turns dark. Exactly one of the two draws, so each carries
+    the name. Both files render from `img/word-brand.svg`.
+  {% endcomment %}
   {% table class="align-center" %}
   <tr>
     <td align="center">
-      <img src="{% attached_static 'img/word-brand.svg' %}" alt="relay" width="120">
+      <img
+        class="logo--light"
+        src="{% attached_static 'img/word-brand-light.png' %}"
+        alt="relay"
+        width="120"
+      >
+      <img
+        class="logo--dark"
+        src="{% attached_static 'img/word-brand-dark.png' %}"
+        alt="relay"
+        width="120"
+      >
     </td>
   </tr>
   {% endtable %}

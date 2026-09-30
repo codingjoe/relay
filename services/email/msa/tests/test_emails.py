@@ -76,20 +76,23 @@ class TestTestEmail:
         )
         assert email.message()["Subject"] == "Test email from custom.example"
 
-    def test_message__attaches_the_bodies_and_the_wordmark(self):
+    def test_message__attaches_the_bodies_and_the_wordmarks(self):
         message = make_test_email().message()
         assert [part.get_content_type() for part in message.walk()] == [
             "multipart/mixed",
             "multipart/alternative",
             "text/plain",
             "text/html",
-            "image/svg+xml",
+            "image/png",
+            "image/png",
         ]
-        artwork = message.get_payload()[1]
-        assert artwork["Content-ID"] == "<word-brand.svg>"
-        assert artwork.get_content_disposition() == "inline"
+        light, dark = message.get_payload()[1:]
+        assert light["Content-ID"] == "<word-brand-light.png>"
+        assert dark["Content-ID"] == "<word-brand-dark.png>"
+        assert light.get_content_disposition() == "inline"
         html = message.get_body(preferencelist=("html",)).get_content()
-        assert 'src="cid:word-brand.svg"' in html
+        assert 'src="cid:word-brand-light.png"' in html
+        assert 'src="cid:word-brand-dark.png"' in html
 
     def test_message__plain_text_derives_from_html(self, base_url):
         message = make_test_email().message()
@@ -131,7 +134,7 @@ class TestTestEmail:
         assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
         assert "acme.example" in email.body
         assert f"{base_url}/org/acme/email/messages/" in email.body
-        assert 'src="cid:word-brand.svg"' in email.html
+        assert 'src="cid:word-brand-light.png"' in email.html
 
     def test_render_preview__uses_given_domain(self):
         email = emails.TestEmail.render_preview(

@@ -292,7 +292,7 @@ class TestForwardPostmasterMessage:
             if part.get_content_maintype() == "text"
         }
         assert set(parts) == {"text/html", "text/plain"}
-        assert 'src="cid:word-brand.svg"' in parts["text/html"]
+        assert 'src="cid:word-brand-light.png"' in parts["text/html"]
 
     def test_forward_postmaster_message__replies_to_original_author(self, org):
         message = make_postmaster_message(org)
