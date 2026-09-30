@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     "social_django",
     "storages",
     "threadmill",
+    "crontask",
     *(["debug_toolbar"] if DEBUG else []),
     # First-party apps
     "accounts",
@@ -415,6 +416,10 @@ else:
             "REDIS_URL": TASK_REDIS_URL,
         },
     }
+
+# One scheduler across replicas, locked in Redis, see
+# https://github.com/codingjoe/django-crontask
+CRONTASK = {"REDIS_URL": TASK_REDIS_URL}
 
 # Authentication
 LOGIN_URL = "accounts:login"

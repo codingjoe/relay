@@ -1,9 +1,11 @@
 import logging
 
+from crontask import cron
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.mail import mailers
 from django.db import transaction
-from django.tasks import task
+from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 from django.utils import timezone
 
 from accounts.models import Organization
@@ -13,6 +15,8 @@ from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 
 from . import evaluation
+from .digest import build_org_digest, iter_digest_members
+from .emails import WeeklyDigestEmail
 from .models import FblReport
 
 logger = logging.getLogger(__name__)
@@ -157,3 +161,42 @@ def parse_fbl_report(report_pk):
 def check_org_reputation(org_id):
     """Evaluate rates for an organization and suspend it on a threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))
+
+
+@cron("0 8 * * Mon")
+@task(queue_name=DEFAULT_TASK_QUEUE_NAME)
+def send_weekly_digests():
+    """Queue one task per organization that is not suspended."""
+    for org_id in (
+        Organization.objects.filter(suspended_at__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
+    ):
+        send_org_weekly_digest.enqueue(org_id=org_id)
+
+
+@task(queue_name=DEFAULT_TASK_QUEUE_NAME)
+def send_org_weekly_digest(org_id):
+    """Mail the window's numbers to the members the digest reaches."""
+    org = Organization.objects.get(pk=org_id)
+    if org.suspended_at:
+        logger.info("Dropped the weekly digest for suspended organization %r", org_id)
+    else:
+        digest = build_org_digest(org)
+        mailer = mailers.default
+        with mailer:
+            for membership in iter_digest_members(org):
+                try:
+                    mailer.send_messages(
+                        [
+                            WeeklyDigestEmail.to_user(
+                                membership.user,
+                                digest=digest,
+                                language=settings.LANGUAGE_CODE,
+                            )
+                        ]
+                    )
+                except OSError:
+                    logger.exception(
+                        "Weekly digest for user %r failed", membership.user_id
+                    )

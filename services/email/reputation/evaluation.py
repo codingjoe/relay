@@ -22,6 +22,11 @@ class ReputationStats(TypedDict):
     complaint_rate: float
 
 
+class ReputationSummary(ReputationStats):
+    hard_bounce_over_limit: bool
+    complaint_over_limit: bool
+
+
 def compute_org_reputation(org: Organization) -> ReputationStats:
     """
     Return bounce and complaint rates for an organization over the rolling window.
@@ -74,6 +79,19 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     }
 
 
+def build_reputation_stats(org: Organization) -> ReputationSummary:
+    """Return the window counts, both rates, and each rate against its limit."""
+    stats = compute_org_reputation(org)
+    return stats | {
+        "hard_bounce_over_limit": (
+            stats["hard_bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
+        ),
+        "complaint_over_limit": (
+            stats["complaint_rate"] > settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
+        ),
+    }
+
+
 def check_org_reputation(org: Organization) -> ReputationStats:
     """
     Evaluate rates and suspend the organization on a threshold breach.
@@ -84,14 +102,11 @@ def check_org_reputation(org: Organization) -> ReputationStats:
     The suspension is never cleared automatically. Returns the computed
     reputation stats.
     """
-    stats = compute_org_reputation(org)
+    stats = build_reputation_stats(org)
     if stats["total_sent"] < settings.RELAY_REPUTATION_MIN_VOLUME:
         return stats
 
-    if not (
-        stats["hard_bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
-        or stats["complaint_rate"] > settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
-    ):
+    if not (stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]):
         return stats
 
     now = timezone.now()

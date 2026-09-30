@@ -17,6 +17,20 @@ include:
       - compose.production.yml
 
 services:
+  crontask:
+    build: *development-build
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app:cached
+    environment:
+      <<: *application-environment
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres/postgres
+    command: [ "-m", "manage", "crontask" ]
+    pull_policy: build
   dns:
     build: *development-build
     depends_on:

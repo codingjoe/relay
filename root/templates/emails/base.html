@@ -73,6 +73,14 @@
       padding-bottom: 16px;
     }
 
+    /* The base template states the gap under a button on `.btn > tbody >
+       tr > td`, and premailer parses no tbody, so that rule never matches.
+       State the same gap without one, or the button sits flush on whatever
+       follows it. */
+    .btn td {
+      padding-bottom: 16px;
+    }
+
     @media (prefers-color-scheme: dark) {
       a,
       .text-link {

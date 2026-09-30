@@ -97,12 +97,7 @@ def rate_chart(rows, key, label, color, limit, subtitle):
 
 
 def build_reputation_chart(org):
-    """
-    Return the per-day rates of one org, ready for one chart per rate.
-
-    Counts provider FBL reports and spam-flagged mail as complaints, and
-    accumulates over the evaluation window, so the last point matches its check.
-    """
+    """Return the per-day rates of one org, ready for one chart per rate."""
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     start = timezone.localdate() - timedelta(days=window_days - 1)
 
