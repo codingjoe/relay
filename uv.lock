@@ -404,6 +404,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/6c/b87d197ac4beaebf967206181273c3015f9476ac70f57a22d7bf8d42147e/django_crontask-2.0.0-py3-none-any.whl", hash = "sha256:434c1e2dacd97d2d39b2d85db9082573a4ab7bce8a72be5c5a7f5808ac5003e3", size = 10275, upload-time = "2026-05-27T10:44:21.888Z" },
 ]
 
+[package.optional-dependencies]
+redis = [
+    { name = "redis" },
+]
+
 [[package]]
 name = "django-debug-toolbar"
 version = "8.0.0"
@@ -440,18 +445,22 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.6.1"
+version = "4.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/66/fc/a5e623c60600b888914ea8b7bdaba1abbfc4b6e88b6382d746177fdc9ea6/django_health_check-4.6.1.tar.gz", hash = "sha256:53b17a142d52179561593493351f6b6c20343b23a669ac632e53bb7a4dcfca51", size = 22156, upload-time = "2026-09-18T11:35:26.777Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/b9/6d5de237b3ea8ccc6bc85aa462eaab84765d492b28ecf24c435b16df7939/django_health_check-4.7.0.tar.gz", hash = "sha256:ade252f15dcb14cd28f0566aa032fd5dd20ea3bda647eab6d50e4e670a98fe32", size = 24018, upload-time = "2026-09-30T20:14:48.032Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/0e/2401f90f841cc89f48eddcc0a316257f2550b0ef1ace37c60b02a868be1e/django_health_check-4.6.1-py3-none-any.whl", hash = "sha256:1e3641e7d09975052cc9c081d572660269d3becb4b690cdf1b5302aeda5e4302", size = 27253, upload-time = "2026-09-18T11:35:25.572Z" },
+    { url = "https://files.pythonhosted.org/packages/af/82/86e0a17fbddaf5950c1a6d8abdef2fe32bb250a5ab9ada579c6819fe5b11/django_health_check-4.7.0-py3-none-any.whl", hash = "sha256:e1a1b8d777e623a8e1d451c48980e20427be22ab1d122440159f7ac959275769", size = 30017, upload-time = "2026-09-30T20:14:46.637Z" },
 ]
 
 [package.optional-dependencies]
+crontask = [
+    { name = "django-crontask", extra = ["redis"] },
+    { name = "redis" },
+]
 psutil = [
     { name = "psutil" },
 ]
@@ -461,6 +470,9 @@ redis = [
 rss = [
     { name = "feedparser" },
     { name = "httpx" },
+]
+threadmill = [
+    { name = "threadmill", extra = ["redis"] },
 ]
 
 [[package]]
@@ -1177,7 +1189,7 @@ dependencies = [
     { name = "django" },
     { name = "django-crontask" },
     { name = "django-environ" },
-    { name = "django-health-check", extra = ["psutil", "redis", "rss"] },
+    { name = "django-health-check", extra = ["crontask", "psutil", "redis", "rss", "threadmill"] },
     { name = "django-letter" },
     { name = "django-storages", extra = ["s3"] },
     { name = "dkimpy" },
@@ -1238,7 +1250,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-crontask", specifier = ">=2" },
     { name = "django-environ", specifier = ">=0.14" },
-    { name = "django-health-check", extras = ["psutil", "redis", "rss"], specifier = ">=4.6.1" },
+    { name = "django-health-check", extras = ["crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.7.0" },
     { name = "django-letter", specifier = ">=0.4.2" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
