@@ -9,10 +9,7 @@ function capitalize(text) {
 
 function axisMax(percent, threshold) {
   return (value) => {
-    const highest = Math.max(
-      Number.isFinite(value.max) ? value.max : 0,
-      threshold,
-    );
+    const highest = Math.max(Number.isFinite(value.max) ? value.max : 0, threshold);
     // A ceiling would round a 0.1 per cent limit up to a whole one.
     return percent ? highest * 1.1 : Math.ceil(highest * 1.05);
   };
