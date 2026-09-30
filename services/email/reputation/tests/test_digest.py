@@ -10,6 +10,7 @@ from django.utils import timezone
 from accounts.models import Membership
 from domains.models import Domain
 from services.email.msa.models import OutgoingMessage, SuppressionEntry
+from services.email.reputation import chart
 from services.email.reputation.digest import (
     build_digest_context,
     build_org_digest,
@@ -133,7 +134,8 @@ class TestBuildDigestContext:
         assert context["complaint_threshold"] == 0.001
         assert context["free_monthly_messages"] == 1000
         assert context["cost"] == Decimal("28.36")
-        assert "<svg" in context["week_chart"]
+        assert "<svg" not in context["week_chart"]
+        assert f'bgcolor="{chart.COLUMN}"' in context["week_chart"]
         assert context["illustration_dark"] == "img/illustrations/all-the-data-dark.svg"
         assert context["dashboard_path"] == reverse(
             "monitoring:overview", kwargs={"org_slug": "test-org"}
@@ -171,7 +173,7 @@ class TestBuildOrgDigest:
         assert digest["month_messages"] == 2
         assert digest["window_phrase"] == "last 2 days"
         assert digest["cost"] == Decimal("0.00")
-        assert "<svg" in digest["week_chart"]
+        assert f'bgcolor="{chart.COLUMN}"' in digest["week_chart"]
         assert digest["dashboard_path"] == reverse(
             "monitoring:overview", kwargs={"org_slug": "test-org"}
         )
@@ -183,7 +185,7 @@ class TestBuildOrgDigest:
         digest = build_org_digest(org)
 
         assert digest["window_phrase"] == "last 1 day"
-        assert "<svg" in digest["week_chart"]
+        assert f'bgcolor="{chart.COLUMN}"' in digest["week_chart"]
 
 
 @pytest.mark.django_db

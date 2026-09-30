@@ -1,7 +1,7 @@
 import pytest
 
 from accounts.models import Organization
-from services.email.reputation import emails
+from services.email.reputation import chart, emails
 from services.email.reputation.digest import build_digest_context
 from services.email.reputation.tests.conftest import make_stats
 
@@ -130,7 +130,8 @@ class TestWeeklyDigestEmail:
         assert "Those messages were addressed to 214 distinct recipients." in email.html
         assert "42,100 messages this month." in email.html
         assert "bar by bar" in email.html
-        assert "<svg" in email.html
+        assert f'bgcolor="{chart.COLUMN}"' in email.html
+        assert "<svg" not in email.html
         assert "all-the-data-light" in email.html
         assert "28.36 EUR" in card_containing(email.html, "Cost")
         assert "1,000 a month on the house." in card_containing(email.html, "Cost")
@@ -218,7 +219,7 @@ class TestWeeklyDigestEmail:
         assert "acme took the week off." in email.html
         assert "Nothing left the building." in email.html
         assert "bar by bar" not in email.html
-        assert "<svg" not in email.html
+        assert f'bgcolor="{chart.COLUMN}"' not in email.html
         assert "message a day" not in email.html
         assert "distinct recipient" not in email.html
         assert "all-the-data-light" in email.html
