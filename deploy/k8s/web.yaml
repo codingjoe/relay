@@ -48,6 +48,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
+            requests: {cpu: 100m}
             limits: {cpu: "1", memory: 512Mi}
 ---
 apiVersion: v1
@@ -112,6 +113,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
+            requests: {cpu: 100m}
             limits: {memory: 1Gi}
 ---
 apiVersion: apps/v1
@@ -166,6 +168,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
+            requests: {cpu: 100m}
             limits: {memory: 1Gi}
 ---
 apiVersion: apps/v1
@@ -204,6 +207,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
+            requests: {cpu: 10m}
             limits: {memory: 1Gi}
 ---
 apiVersion: batch/v1
@@ -222,6 +226,9 @@ spec:
       containers:
         - name: migration
           image: ghcr.io/codingjoe/relay
+          resources:
+            requests: {cpu: 100m}
+            limits: {memory: 1Gi}
           args: ["-m", "manage", "migrate", "--noinput"]
           env:
             - name: HOSTNAME

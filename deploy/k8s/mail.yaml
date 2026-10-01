@@ -33,7 +33,11 @@ spec:
           securityContext:
             runAsUser: 0
             capabilities:
+              # Root for Caddy's root-only certificates, and Kubernetes
+              # does not set Docker's ip_unprivileged_port_start=0, so the
+              # bind on 587 and 25 needs the capability back.
               drop: [ALL]
+              add: [NET_BIND_SERVICE]
           volumeMounts:
             - {name: caddy-data, mountPath: /data, readOnly: true}
           startupProbe:
@@ -54,6 +58,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
+            requests: {cpu: 100m}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: caddy-data
@@ -105,7 +110,11 @@ spec:
           securityContext:
             runAsUser: 0
             capabilities:
+              # Root for Caddy's root-only certificates, and Kubernetes
+              # does not set Docker's ip_unprivileged_port_start=0, so the
+              # bind on 587 and 25 needs the capability back.
               drop: [ALL]
+              add: [NET_BIND_SERVICE]
           volumeMounts:
             - {name: caddy-data, mountPath: /data, readOnly: true}
           startupProbe:
@@ -126,6 +135,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
+            requests: {cpu: 100m}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: caddy-data
@@ -174,6 +184,7 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 5
           resources:
+            requests: {cpu: 100m}
             limits: {cpu: "0.5", memory: 512Mi}
       volumes:
         - name: config
@@ -234,6 +245,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
+            requests: {cpu: 100m}
             limits: {memory: 4Gi}
       volumes:
         - name: signatures
@@ -266,6 +278,9 @@ spec:
       containers:
         - name: clamav-updater
           image: clamav/clamav:1.5.4_base-debian13-slim
+          resources:
+            requests: {cpu: 100m}
+            limits: {memory: 1Gi}
           args: ["sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd"]
           env:
             - {name: FRESHCLAM_CONF_TestDatabases, value: "no"}
@@ -328,6 +343,7 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 5
           resources:
+            requests: {cpu: 50m}
             limits: {cpu: "1", memory: 512Mi}
 ---
 apiVersion: v1

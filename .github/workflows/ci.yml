@@ -11,7 +11,10 @@ concurrency:
 jobs:
   container:
     name: Build and publish image
-    runs-on: ubuntu-24.04-arm
+    # The cluster is x86_64 (ccx33), so the image has to be. The runner and
+    # platforms agree deliberately: building on an arm runner produced an arm64
+    # image that no node could pull, with "no match for platform in manifest".
+    runs-on: ubuntu-24.04
     permissions:
       contents: read # Allow the job to check out the repository
       packages: write # Allow the job to push the image to the GitHub Container Registry
@@ -34,6 +37,7 @@ jobs:
           context: .
           file: ./Dockerfile
           target: production # Mirror the compose build section
+          platforms: linux/amd64 # Pinned so a runner change cannot ship the wrong architecture
           build-args: |
             UV_NO_DEV=0
           push: ${{ github.ref == 'refs/heads/main' }} # Only publish images from the main branch

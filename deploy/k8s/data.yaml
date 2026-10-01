@@ -47,6 +47,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
+            requests: {cpu: 250m}
             limits: {cpu: "2", memory: 1Gi}
       volumes:
         - name: data
@@ -102,6 +103,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
+            requests: {cpu: 50m}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: data
@@ -157,6 +159,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
+            requests: {cpu: 100m}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: data
