@@ -137,3 +137,21 @@ jobs:
           for deployment in $(kubectl get deployment --namespace relay --output name); do
               kubectl rollout status "$deployment" --namespace relay --timeout=15m
           done
+      - name: Check every pod is ready
+        run: |
+          # rollout status is not enough on its own. A container that exits
+          # immediately counts as available for the moment it runs when it has no
+          # readiness probe, so a crash loop can report a finished rollout:
+          # dnsdist did exactly that and only failed once it restarted. Assert
+          # the end state instead of trusting the rollouts.
+          not_ready="$(kubectl get pods --namespace relay --no-headers \
+              --field-selector=status.phase!=Succeeded |
+              awk '$3 == "Terminating" || $3 == "Completed" { next }
+                   $2 != "1/1" || $3 != "Running" { print "  " $0 }')"
+          if [ -n "$not_ready" ]; then
+              echo "::error::these pods are not running and ready:"
+              printf '%s\n' "$not_ready"
+              kubectl get events --namespace relay --sort-by=.lastTimestamp | tail -15
+              exit 1
+          fi
+          echo "every pod is running and ready"

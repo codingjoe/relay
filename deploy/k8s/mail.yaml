@@ -184,8 +184,10 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 5
           resources:
-            requests: {cpu: 100m}
-            limits: {cpu: "0.5", memory: 512Mi}
+            requests: {cpu: 100m, memory: 512Mi}
+            # 512Mi is killed at startup, while rspamd compiles its hyperscan
+            # databases and loads the maps.
+            limits: {cpu: "0.5", memory: 2Gi}
       volumes:
         - name: config
           secret:
