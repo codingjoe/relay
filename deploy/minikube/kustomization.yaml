@@ -1,6 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Run the production stack on minikube. See deploy/README.md.
 namespace: relay
 resources:
   - ../k8s
@@ -50,7 +49,6 @@ patches:
       - op: replace
         path: /spec/storageClassName
         value: standard
-  # A laptop runs one replica of each workload, with small memory requests.
   - target:
       kind: Deployment
     patch: &size |-

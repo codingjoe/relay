@@ -1,6 +1,4 @@
-# Cluster-scoped, so the deploy token cannot create it. Apply it once:
-#
-#   kubectl apply -f deploy/k8s/dozzle-rbac.yaml
+# Cluster-scoped. Apply by hand, the deploy token cannot create it.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

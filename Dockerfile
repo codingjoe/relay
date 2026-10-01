@@ -41,13 +41,10 @@ RUN apt-get install -y gettext
 
 COPY --exclude=.env ./ /app
 
-# Compile message files
 RUN /opt/venv/bin/python -m manage compilemessages
 
-# Copy compiled CSS from the frontend build stage
 COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
 
-# Collect static files
 RUN /opt/venv/bin/python -m manage collectstatic --no-input
 
 FROM gcr.io/distroless/cc:${DISTROLESS_FLAVOR} AS development
