@@ -1,31 +1,24 @@
-# Cluster-scoped, and therefore not part of kustomization.yaml: the deploy
-# token's Role grants namespaced access only, and a namespaced grant can never
-# create a ClusterRole. Apply this once per cluster with the admin kubeconfig:
+# Cluster-scoped, so the deploy token cannot create it. Apply it once per
+# cluster with the admin kubeconfig:
 #
 #   kubectl apply -f deploy/k8s/dozzle-rbac.yaml
 #
-# Dozzle only reads. Container actions stay off (the default), so the role
-# carries no delete verb.
+# Dozzle only reads logs. Container actions stay off, so the role has no
+# delete verb.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: relay-dozzle
 rules:
-  # Logs come from the API, not from the node's filesystem. Nodes are
-  # cluster-scoped and listed at startup; the default namespace is what the
-  # health check pings.
   - apiGroups: [""]
     resources: ["pods", "pods/log", "nodes"]
     verbs: ["get", "list", "watch"]
-  # Owner references resolve pod -> ReplicaSet -> Deployment, so Dozzle can
-  # group a workload's pods.
   - apiGroups: ["apps"]
     resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
     verbs: ["get"]
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
     verbs: ["get"]
-  # CPU and memory columns. Without metrics-server they stay empty.
   - apiGroups: ["metrics.k8s.io"]
     resources: ["pods"]
     verbs: ["get", "list"]

@@ -9,15 +9,13 @@ images:
   - name: ghcr.io/codingjoe/relay
     newTag: local
 configMapGenerator:
-  # A minikube address cannot get a certificate from ACME, and the mail
-  # services read Caddy's certificate files at startup, so the local stack
-  # issues from Caddy's own CA instead.
+  # ACME cannot issue for a minikube address, and the mail services read
+  # Caddy's certificate files at startup.
   - name: caddy-config
     behavior: replace
     files:
       - Caddyfile
 patches:
-  # The base manifests carry k3s's local-path provisioner.
   - target:
       kind: PersistentVolumeClaim
     patch: |-

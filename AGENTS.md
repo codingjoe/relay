@@ -62,10 +62,10 @@ with wireit), k3s on Hetzner Cloud with Caddy as ingress and Layer 4 proxy.
 - `uv run pre-commit run --all-files`. Lint/format (ruff, djangofmt, pyupgrade,
   mdformat, dockerfmt).
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
-- Full-stack local runs use the production manifests on minikube
-  (`deploy/minikube`). See "Local stack on minikube" in
-  `deploy/README.md`. Day-to-day work runs `manage.py runserver` against a
-  Postgres and Redis you point `DATABASE_URL` and `REDIS_URL` at.
+- `deploy/minikube/up.sh`. Run the full stack on minikube. See "Local stack on
+  minikube" in `deploy/README.md`.
+- Day-to-day work runs `manage.py runserver` against a Postgres and Redis that
+  you start yourself.
 
 Production deployment, all driven by `.github/workflows/deploy.yml`:
 

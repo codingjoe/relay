@@ -87,9 +87,8 @@ until provisioning has set the `KUBECONFIG` secret.
 It applies `deploy/k8s`, runs the migration, refreshes the virus signatures,
 and rolls out every workload.
 
-One manifest is deliberately outside the kustomization: Dozzle's ClusterRole is
-cluster-scoped, and the deploy token's Role cannot create cluster-scoped
-resources. Apply it once per cluster, before the first deploy:
+The deploy token cannot create a ClusterRole. Before the first deploy, apply
+the Dozzle ClusterRole once per cluster:
 
 ```bash
 hcloud server ssh relays.to "sudo k3s kubectl apply -f -" < deploy/k8s/dozzle-rbac.yaml
@@ -264,15 +263,15 @@ Every deploy rolls those services, so this normally takes care of itself.
 
 ### Logs
 
-Dozzle reads pod logs through the Kubernetes API and serves them on a
-ClusterIP Service. Nothing is published to the internet, so tunnel to it:
+Dozzle reads pod logs through the Kubernetes API. It is not published to the
+internet. Tunnel to the dashboard:
 
 ```bash
 kubectl --kubeconfig ~/.kube/relay.yaml port-forward -n relay svc/dozzle 5000:8080
 ```
 
-That is also the address the Dozzle MCP server in `.mcp.json` expects. The
-ClusterRole it needs is applied once per cluster, as the Deploy section says.
+The dashboard and the Dozzle MCP server in `.mcp.json` answer on
+`http://127.0.0.1:5000`.
 
 ### Backups
 
@@ -322,54 +321,32 @@ move Kubernetes APIs, and the manifests here are not version pinned.
 
 ## Local stack on minikube
 
-`deploy/minikube` runs the production manifests on minikube, so a local stack
-is the cluster you deploy to rather than a second definition of it.
-The overlay swaps k3s's `local-path` storage class for minikube's `standard`,
-and has Caddy issue certificates from its own CA: no ACME server can validate
-the address of a node inside minikube, and the mail services wait for their
-certificate files at startup.
+`deploy/minikube` runs the production manifests on minikube. The overlay uses
+minikube's `standard` storage class, and Caddy issues its own certificates.
+ACME cannot reach an address inside minikube, and the mail services read their
+certificate files at start.
+
+1. Make sure that `.env.keys` is in the checkout you run from. The launcher
+   cannot decrypt `.env.production` without it.
+2. Run `deploy/minikube/up.sh`. The script builds the image, creates the
+   Secrets, applies the manifests, and waits for the web rollout.
+3. Add the `/etc/hosts` line that the script prints.
+4. Open `https://relay.local`.
+
+Set `RELAY_LOCAL_HOSTNAME` to change the local name. Set `RELAY_SKIP_BUILD=1`
+to keep the image that minikube already has.
+
+The stack reads the production `.env.production`. Before you run anything that
+writes to storage, point it at a test bucket.
+
+To trust Caddy's CA:
 
 ```bash
-minikube start
-docker build --target production --build-arg UV_NO_DEV=0 -t ghcr.io/codingjoe/relay:local .
-minikube image load ghcr.io/codingjoe/relay:local
-kubectl apply -f deploy/k8s/dozzle-rbac.yaml
-kubectl create namespace relay --dry-run=client -o yaml | kubectl apply -f -
+kubectl --namespace relay exec deploy/caddy -- cat /data/caddy/pki/authorities/local/root.crt > relay-local-ca.crt
 ```
 
-The image carries the encrypted `.env.production` and decrypts it at start, so
-the Secrets come from the same values the deploy workflow builds
-(`.github/workflows/deploy.yml`), read from `.env.production` and `.env.keys`,
-with three local differences:
-
-- `HOSTNAME` in `relay-infra` names the node in `/etc/hosts`, for example
-  `relay.local`.
-- `RELAY_STORAGE_DOMAIN` in `relay-cluster-env` is `storage.<HOSTNAME>`.
-- the certificate paths in `relay-cluster-env` start at
-  `/data/caddy/certificates/local/` instead of the Let's Encrypt directory, for
-  example `/data/caddy/certificates/local/smtp.$HOSTNAME/smtp.$HOSTNAME.crt`.
-
-Then apply the overlay and point the host at the node:
-
-```bash
-kubectl apply -k deploy/minikube
-kubectl rollout status -n relay deployment/web
-printf '%s relay.local storage.relay.local\n' "$(minikube ip)" | sudo tee -a /etc/hosts
-```
-
-`https://relay.local` serves Caddy's internal certificate. Trust its root once,
-or use HTTP:
-
-```bash
-kubectl exec -n relay deploy/caddy -- cat /data/caddy/pki/authorities/local/root.crt > relay-local-ca.crt
-```
-
-Dozzle is not routed through Caddy.
-`kubectl port-forward -n relay svc/dozzle 5000:8080` serves the log dashboard,
-and the Dozzle MCP server, at `http://127.0.0.1:5000`.
-
-The stack runs with the same `.env.production` the production image carries, so
-point it at a test bucket before you run anything that writes to storage.
+Add `relay-local-ca.crt` to the trust store of your system. Then
+`https://relay.local` works without a warning.
 
 ## Architecture
 

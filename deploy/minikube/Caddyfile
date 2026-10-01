@@ -6,9 +6,8 @@
 		format json
 	}
 
-	# The local stack has no public address to validate an ACME challenge
-	# against, so every certificate comes from Caddy's own CA. The mail
-	# services read those files at startup.
+	# No public address for an ACME challenge, so every certificate comes from
+	# Caddy's own CA.
 	local_certs
 
 	layer4 {
