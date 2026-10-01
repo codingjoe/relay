@@ -16,6 +16,240 @@ configMapGenerator:
     files:
       - Caddyfile
 patches:
+  # A laptop runs one replica of each workload with small memory requests, so
+  # the stack fits the node. The limits stay as production sets them.
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: caddy
+      spec:
+        template:
+          spec:
+            containers:
+              - name: caddy
+                resources:
+                  requests: {memory: 128Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: dns
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: dns
+                resources:
+                  requests: {memory: 128Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: dnsdist
+      spec:
+        template:
+          spec:
+            containers:
+              - name: dnsdist
+                resources:
+                  requests: {memory: 128Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: web
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: web
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: worker
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: worker
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: sender
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: sender
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: crontask
+      spec:
+        template:
+          spec:
+            containers:
+              - name: crontask
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: msa
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: msa
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: mta
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: mta
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: rspamd
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: rspamd
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: clamav
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: clamav
+                resources:
+                  requests: {memory: 512Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: storage
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: storage
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: dozzle
+      spec:
+        template:
+          spec:
+            containers:
+              - name: dozzle
+                resources:
+                  requests: {memory: 128Mi}
+      ---
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: postgres
+      spec:
+        template:
+          spec:
+            containers:
+              - name: postgres
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: redis
+      spec:
+        template:
+          spec:
+            containers:
+              - name: redis
+                resources:
+                  requests: {memory: 128Mi}
+      ---
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: redis-tasks
+      spec:
+        template:
+          spec:
+            containers:
+              - name: redis-tasks
+                resources:
+                  requests: {memory: 128Mi}
+      ---
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: migration
+      spec:
+        template:
+          spec:
+            containers:
+              - name: migration
+                resources:
+                  requests: {memory: 256Mi}
+      ---
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: clamav-updater
+      spec:
+        template:
+          spec:
+            containers:
+              - name: clamav-updater
+                resources:
+                  requests: {memory: 256Mi}
+  # .env carries DEBUG for the local run.
+  - target:
+      kind: ConfigMap
+      name: relay-config
+    patch: |-
+      - op: remove
+        path: /data/DEBUG
   - target:
       kind: PersistentVolumeClaim
     patch: |-

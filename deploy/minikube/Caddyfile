@@ -57,3 +57,16 @@ mx2.{$HOSTNAME} {
 		health_uri /healthz
 	}
 }
+
+# The caddy Deployment probes /caddy-health on port 80, with the pod address
+# as the host.
+:80 {
+	@caddy_health path /caddy-health
+	handle @caddy_health {
+		respond "OK" 200
+	}
+
+	handle {
+		respond "Misdirected Request" 421
+	}
+}

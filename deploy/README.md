@@ -321,33 +321,22 @@ move Kubernetes APIs, and the manifests here are not version pinned.
 
 ## Local stack on minikube
 
-`deploy/minikube` runs the production manifests on minikube. The overlay uses
-minikube's `standard` storage class, and Caddy issues its own certificates.
-ACME cannot reach an address inside minikube, and the mail services read their
-certificate files at start.
+`deploy/minikube` runs the production manifests on minikube. The launcher reads
+`.env`, so the local stack needs no production Secrets and no `.env.keys`.
 
-1. Make sure that `.env.keys` is in the checkout you run from. The launcher
-   cannot decrypt `.env.production` without it. Worktrees copy only `.env`, so
-   if the key is missing, run the launcher from the main checkout.
-2. Run `deploy/minikube/up.sh`. The script builds the image, creates the
-   Secrets, applies the manifests, and waits for the web rollout.
-3. Add the `/etc/hosts` line that the script prints.
-4. Open `https://relay.local`.
+1. Make sure that `.env` is in the checkout you run from. A worktree copies it.
+2. Run `deploy/minikube/up.sh`. The script builds the image with `.env` and
+   creates the Secrets. Then it applies the manifests and waits for the
+   migration and the web rollout.
+3. Run the port-forward that the script prints.
+4. Open the URL that the script prints.
 
-Set `RELAY_LOCAL_HOSTNAME` to change the local name. Set `RELAY_SKIP_BUILD=1`
-to keep the image that minikube already has.
+Run the script again after you change a value in `.env`. The image carries the
+file.
 
-The stack reads the production `.env.production`. Before you run anything that
-writes to storage, point it at a test bucket.
-
-To trust Caddy's CA:
-
-```bash
-kubectl --namespace relay exec deploy/caddy -- cat /data/caddy/pki/authorities/local/root.crt > relay-local-ca.crt
-```
-
-Add `relay-local-ca.crt` to the trust store of your system. Then
-`https://relay.local` works without a warning.
+The overlay runs one replica of each workload with small memory requests, so
+the stack fits a laptop. Caddy signs every certificate with its own CA. It
+never asks ACME for a certificate.
 
 ## Architecture
 
