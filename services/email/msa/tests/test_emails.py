@@ -85,9 +85,8 @@ class TestTestEmail:
             "text/html",
         ]
         html = message.get_body(preferencelist=("html",)).get_content()
-        for variant in ("light", "dark"):
-            wordmark = static(f"img/word-brand-{variant}.png")
-            assert f'src="{base_url}{wordmark}"' in html
+        wordmark = static("img/word-brand.svg")
+        assert f'src="{base_url}{wordmark}"' in html
 
     def test_message__plain_text_derives_from_html(self, base_url):
         message = make_test_email().message()
@@ -129,8 +128,8 @@ class TestTestEmail:
         assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
         assert "acme.example" in email.body
         assert f"{base_url}/org/acme/email/messages/" in email.body
-        light = static("img/word-brand-light.png")
-        assert f'src="{base_url}{light}"' in email.html
+        wordmark = static("img/word-brand.svg")
+        assert f'src="{base_url}{wordmark}"' in email.html
 
     def test_render_preview__uses_given_domain(self):
         email = emails.TestEmail.render_preview(
