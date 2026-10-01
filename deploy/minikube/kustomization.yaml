@@ -53,7 +53,7 @@ patches:
   # A laptop runs one replica of each workload, with small memory requests.
   - target:
       kind: Deployment
-    patch: |-
+    patch: &size |-
       - op: replace
         path: /spec/replicas
         value: 1
@@ -62,13 +62,7 @@ patches:
         value: 256Mi
   - target:
       kind: StatefulSet
-    patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 1
-      - op: add
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 256Mi
+    patch: *size
   - target:
       kind: Job
     patch: |-

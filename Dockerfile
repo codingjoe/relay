@@ -81,3 +81,15 @@ COPY .env.production /app/.env.production
 
 WORKDIR /app
 ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env.production", "--", "/opt/venv/bin/python"]
+
+# The local stack reads .env instead of .env.production.
+FROM build AS dotenv
+
+RUN --mount=type=secret,id=dotenv,target=/tmp/dotenv \
+    cp /tmp/dotenv /local.env && chmod 644 /local.env
+
+FROM production AS local
+
+COPY --from=dotenv /local.env /app/.env
+
+ENTRYPOINT ["dotenvx", "run", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
