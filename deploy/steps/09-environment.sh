@@ -133,7 +133,9 @@ gh variable set SSH_HOSTNAME --body "$SERVER_ADDRESS"
 gh variable set SSH_KNOWN_HOSTS --body "$SSH_KNOWN_HOSTS"
 gh variable set HOSTNAME --body "$RELAY_HOSTNAME" --env production
 gh secret set SSH_PRIVATE_KEY <"$DEPLOY_KEY"
-gh secret set KUBECONFIG --body "$(deploy_kubeconfig)"
+# Through stdin, not --body: an argument is readable by any local user in
+# /proc/<pid>/cmdline, and this one is the cluster credential.
+deploy_kubeconfig | gh secret set KUBECONFIG
 
 note "Writing the infrastructure values to .env.production"
 dotenvx set HOSTNAME "$RELAY_HOSTNAME" -f .env.production --plain

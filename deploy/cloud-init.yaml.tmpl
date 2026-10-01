@@ -50,7 +50,11 @@ write_files:
         name: deploy
         namespace: ${RELAY_NAMESPACE}
       rules:
-        - apiGroups: ["", "apps", "batch", "policy", "networking.k8s.io"]
+        # The groups the kustomization applies. Creating pods is inside this
+        # grant, and that reaches node root: no Pod Security Admission level is
+        # enforced here, because baseline forbids hostNetwork and caddy, dnsdist
+        # and sender need it. An enforcing policy has to exempt those three.
+        - apiGroups: ["", "apps", "batch"]
           resources: ["*"]
           verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
       ---

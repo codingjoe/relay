@@ -221,11 +221,13 @@ hcloud server create-image --type snapshot --description "relay Docker, pre-k3s 
 hcloud all list --paid                         # what costs money
 ```
 
-`/etc/rancher/k3s/k3s.yaml` on the server is the admin kubeconfig. Copy it
-locally to use `kubectl` without going through SSH every time:
+`/etc/rancher/k3s/k3s.yaml` on the server is the admin kubeconfig, readable by
+root only. Copy it locally to use `kubectl` without going through SSH every
+time, and keep it root-only on your machine too, since it is the cluster
+credential:
 
 ```bash
-hcloud server ssh relays.to "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/relay.yaml
+umask 077 && hcloud server ssh relays.to "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/relay.yaml
 kubectl --kubeconfig ~/.kube/relay.yaml get pods -n relay
 ```
 
@@ -271,7 +273,7 @@ least once before you need it.
 ### Upgrading k3s
 
 ```bash
-hcloud server ssh relays.to "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='server --disable traefik --disable servicelb --secrets-encryption --write-kubeconfig-mode 644' sh -"
+hcloud server ssh relays.to "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='server --disable traefik --disable servicelb --secrets-encryption' sh -"
 ```
 
 Re-running the installer is the upgrade path, and repeating the same flags
@@ -287,6 +289,16 @@ move Kubernetes APIs, and the manifests here are not version pinned.
   and two pods cannot share a port on one node. That is also what preserves the
   real client address on the mail path.
 - **The namespace is flat**, because no NetworkPolicies are defined yet.
+- **The API server answers on the public internet** at `:6443`, because the
+  GitHub runner reaches it at the server's address and no Hetzner Cloud Firewall
+  is created. Either restrict 6443 to the runner with a firewall, or deploy over
+  an SSH tunnel. The token it hands out does not expire, so rotating it means
+  deleting the `deploy-token` secret and running the `environment` step again.
+- **The deploy token can create pods**, which on a single node is node root: a
+  privileged pod with a `hostPath` mount reaches the k3s admin kubeconfig. No
+  Pod Security Admission level is enforced, because baseline forbids
+  `hostNetwork` and `caddy`, `dnsdist` and `sender` need it, so enforcing it
+  means exempting those three first.
 
 ## Architecture
 

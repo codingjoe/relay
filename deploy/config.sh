@@ -202,7 +202,7 @@ SERVER_IMAGE="ubuntu-24.04"
 S3_REGION="fsn1"
 S3_ENDPOINT_URL="https://fsn1.your-objectstorage.com"
 
-K3S_INSTALL_FLAGS="server --disable traefik --disable servicelb --secrets-encryption --write-kubeconfig-mode 644"
+K3S_INSTALL_FLAGS="server --disable traefik --disable servicelb --secrets-encryption"
 
 RELAY_NAMESPACE="relay"
 
