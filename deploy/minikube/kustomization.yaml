@@ -4,6 +4,7 @@ namespace: relay
 resources:
   - ../k8s
   - namespace.yaml
+  - dozzle-rbac.yaml
 secretGenerator:
   - name: relay-infra
     literals:

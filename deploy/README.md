@@ -87,12 +87,8 @@ until provisioning has set the `KUBECONFIG` secret.
 It applies `deploy/k8s`, runs the migration, refreshes the virus signatures,
 and rolls out every workload.
 
-The deploy token cannot create a ClusterRole. Before the first deploy, apply
-the Dozzle ClusterRole once per cluster:
-
-```bash
-hcloud server ssh relays.to "sudo k3s kubectl apply -f -" < deploy/k8s/dozzle-rbac.yaml
-```
+The deploy token holds a Role in the `relay` namespace alone, so the first boot
+creates the cluster-scoped Dozzle RBAC. See `deploy/cloud-init.yaml.tmpl`.
 
 ## 5. Check it
 
