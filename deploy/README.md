@@ -327,7 +327,8 @@ ACME cannot reach an address inside minikube, and the mail services read their
 certificate files at start.
 
 1. Make sure that `.env.keys` is in the checkout you run from. The launcher
-   cannot decrypt `.env.production` without it.
+   cannot decrypt `.env.production` without it. Worktrees copy only `.env`, so
+   if the key is missing, run the launcher from the main checkout.
 2. Run `deploy/minikube/up.sh`. The script builds the image, creates the
    Secrets, applies the manifests, and waits for the web rollout.
 3. Add the `/etc/hosts` line that the script prints.

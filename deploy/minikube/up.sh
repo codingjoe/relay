@@ -14,6 +14,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${RELAY_ENV_FILE:-$REPO_ROOT/.env.production}"
 KEYS_FILE="$(dirname "$ENV_FILE")/.env.keys"
+MAIN_CHECKOUT="$(dirname "$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" 2>/dev/null || true)"
 NAMESPACE=relay
 LOCAL_HOSTNAME="${RELAY_LOCAL_HOSTNAME:-relay.local}"
 STORAGE_HOSTNAME="storage.$LOCAL_HOSTNAME"
@@ -37,7 +38,12 @@ for tool in docker minikube kubectl dotenvx envsubst; do
     command -v "$tool" >/dev/null 2>&1 || fail "$tool is not installed"
 done
 [ -f "$ENV_FILE" ] || fail "$ENV_FILE is missing"
-[ -f "$KEYS_FILE" ] || fail "$KEYS_FILE is missing, so $ENV_FILE cannot be decrypted"
+if [ ! -f "$KEYS_FILE" ]; then
+    if [ -n "$MAIN_CHECKOUT" ] && [ "$MAIN_CHECKOUT" != "$REPO_ROOT" ] && [ -f "$MAIN_CHECKOUT/.env.keys" ]; then
+        fail "$KEYS_FILE is missing. Run this script from $MAIN_CHECKOUT."
+    fi
+    fail "$KEYS_FILE is missing, so $ENV_FILE cannot be decrypted"
+fi
 
 note "Start minikube"
 minikube status >/dev/null 2>&1 || minikube start
