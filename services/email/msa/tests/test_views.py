@@ -7,6 +7,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.http import http_date
@@ -203,7 +204,7 @@ class TestTestEmailView:
         link = f"http://testserver/org/{org.slug}/email/messages/{message.pk}"
         assert f'href="{link}"' in parts["text/html"]
         assert f"<{link}>" in parts["text/plain"]
-        assert 'src="cid:word-brand.svg"' in parts["text/html"]
+        assert static("img/word-brand.svg") in parts["text/html"]
 
     def test_post__ignores_submitted_content(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)

@@ -12,6 +12,7 @@ import pytest
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
+from django.templatetags.static import static
 from django.utils import timezone, translation
 from django_letter.exceptions import EmailImproperlyConfigured
 
@@ -292,7 +293,7 @@ class TestForwardPostmasterMessage:
             if part.get_content_maintype() == "text"
         }
         assert set(parts) == {"text/html", "text/plain"}
-        assert 'src="cid:word-brand.svg"' in parts["text/html"]
+        assert static("img/word-brand.svg") in parts["text/html"]
 
     def test_forward_postmaster_message__replies_to_original_author(self, org):
         message = make_postmaster_message(org)

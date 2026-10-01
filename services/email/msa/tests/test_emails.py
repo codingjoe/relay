@@ -1,6 +1,7 @@
 import pytest
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.templatetags.static import static
 from django.utils import translation
 from django_letter.exceptions import InactiveUserError, MissingEmailError
 
@@ -76,20 +77,16 @@ class TestTestEmail:
         )
         assert email.message()["Subject"] == "Test email from custom.example"
 
-    def test_message__attaches_the_bodies_and_the_wordmark(self):
+    def test_message__carries_the_bodies_and_the_wordmark(self, base_url):
         message = make_test_email().message()
         assert [part.get_content_type() for part in message.walk()] == [
-            "multipart/mixed",
             "multipart/alternative",
             "text/plain",
             "text/html",
-            "image/svg+xml",
         ]
-        artwork = message.get_payload()[1]
-        assert artwork["Content-ID"] == "<word-brand.svg>"
-        assert artwork.get_content_disposition() == "inline"
         html = message.get_body(preferencelist=("html",)).get_content()
-        assert 'src="cid:word-brand.svg"' in html
+        wordmark = static("img/word-brand.svg")
+        assert f'src="{base_url}{wordmark}"' in html
 
     def test_message__plain_text_derives_from_html(self, base_url):
         message = make_test_email().message()
@@ -131,7 +128,8 @@ class TestTestEmail:
         assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
         assert "acme.example" in email.body
         assert f"{base_url}/org/acme/email/messages/" in email.body
-        assert 'src="cid:word-brand.svg"' in email.html
+        wordmark = static("img/word-brand.svg")
+        assert f'src="{base_url}{wordmark}"' in email.html
 
     def test_render_preview__uses_given_domain(self):
         email = emails.TestEmail.render_preview(
