@@ -62,8 +62,8 @@ with wireit), k3s on Hetzner Cloud with Caddy as ingress and Layer 4 proxy.
 - `uv run pre-commit run --all-files`. Lint/format (ruff, djangofmt, pyupgrade,
   mdformat, dockerfmt).
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
-- `docker compose up -d`. All services via Docker Compose. This is the local
-  development stack only; production is Kubernetes.
+- `deploy/minikube`. Run the full stack on minikube with `.env`. See
+  `README.md`.
 
 Production deployment, all driven by `.github/workflows/deploy.yml`:
 

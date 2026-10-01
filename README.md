@@ -279,6 +279,20 @@ sent automatically.
 | `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                    |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default. |
 
+## Local development
+
+Run the whole stack on minikube with your `.env`, rebuild the image after each
+change, and open `http://localhost:8000`:
+
+```bash
+minikube start
+docker build --target development --build-arg UV_NO_DEV=0 --build-arg DISTROLESS_FLAVOR=debug-nonroot --build-arg DOTENV_FILE=.env -t ghcr.io/codingjoe/relay:local .
+minikube image load ghcr.io/codingjoe/relay:local
+kubectl apply -f deploy/k8s/dozzle-rbac.yaml
+kubectl apply -k deploy/minikube
+kubectl --namespace relay port-forward svc/web 8000:8000
+```
+
 ## App dependencies
 
 The graph shows a simplified representation of the app's dependencies.

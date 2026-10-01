@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     npm install -g pnpm && pnpm ci --frozen-lockfile
-COPY ./ /app
+COPY --exclude=.env ./ /app
 RUN mkdir -p root/static/css && pnpm run build
 
 FROM ghcr.io/astral-sh/uv:0.12.19-trixie-slim AS build
@@ -35,6 +35,18 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-editable
 
+FROM build AS compile
+
+RUN apt-get install -y gettext
+
+COPY --exclude=.env ./ /app
+
+RUN /opt/venv/bin/python -m manage compilemessages
+
+COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
+
+RUN /opt/venv/bin/python -m manage collectstatic --no-input
+
 FROM gcr.io/distroless/cc:${DISTROLESS_FLAVOR} AS development
 
 # Copy binary dependencies
@@ -53,31 +65,12 @@ ENV PORT=8000
 
 WORKDIR /app
 
+ARG DOTENV_FILE=.env.production
+COPY --from=compile --chown=root:root /app /app
+COPY ${DOTENV_FILE} /app/.env
+
 ENTRYPOINT ["dotenvx", "run", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
-
-FROM build AS compile
-
-RUN apt-get install -y gettext
-
-COPY ./ /app
-
-# Compile message files
-RUN /opt/venv/bin/python -m manage compilemessages
-
-# Copy compiled CSS from the frontend build stage
-COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
-
-# Collect static files
-RUN /opt/venv/bin/python -m manage collectstatic --no-input
 
 FROM development AS production
 
-COPY ./ /app
-
-COPY --from=compile /app/root/locale /app/root/locale
-COPY --from=compile /app/staticfiles /app/staticfiles
-
-COPY .env.production /app/.env.production
-
-WORKDIR /app
-ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env.production", "--", "/opt/venv/bin/python"]
+ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env", "--", "/opt/venv/bin/python"]

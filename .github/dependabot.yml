@@ -49,13 +49,6 @@ updates:
       interval: weekly
     cooldown:
       default-days: 3
-  - package-ecosystem: docker-compose
-    directories:
-      - "/"
-    schedule:
-      interval: weekly
-    cooldown:
-      default-days: 3
   - package-ecosystem: pre-commit
     directory: "/"
     schedule:

@@ -87,6 +87,13 @@ until provisioning has set the `KUBECONFIG` secret.
 It applies `deploy/k8s`, runs the migration, refreshes the virus signatures,
 and rolls out every workload.
 
+The deploy token cannot create a ClusterRole. Before the first deploy, apply
+the Dozzle ClusterRole once per cluster:
+
+```bash
+hcloud server ssh relays.to "sudo k3s kubectl apply -f -" < deploy/k8s/dozzle-rbac.yaml
+```
+
 ## 5. Check it
 
 ```bash
@@ -253,6 +260,18 @@ kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/msa deploymen
 ```
 
 Every deploy rolls those services, so this normally takes care of itself.
+
+### Logs
+
+Dozzle reads pod logs through the Kubernetes API. It is not published to the
+internet. Tunnel to the dashboard:
+
+```bash
+kubectl --kubeconfig ~/.kube/relay.yaml port-forward -n relay svc/dozzle 5000:8080
+```
+
+The dashboard and the Dozzle MCP server in `.mcp.json` answer on
+`http://127.0.0.1:5000`.
 
 ### Backups
 

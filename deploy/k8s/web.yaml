@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: web
+        dev.dozzle.icon: django
     spec:
       containers:
         - name: web
@@ -74,6 +75,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: worker
+        dev.dozzle.icon: django
     spec:
       containers:
         - name: worker
@@ -221,6 +223,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: migration
+        dev.dozzle.icon: django
     spec:
       restartPolicy: Never
       containers:

@@ -9,6 +9,7 @@ resources:
   - web.yaml
   - mail.yaml
   - data.yaml
+  - dozzle.yaml
 configMapGenerator:
   - name: caddy-config
     files:

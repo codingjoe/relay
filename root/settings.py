@@ -363,7 +363,7 @@ RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 
-# compose passes an unset EMAIL_URL through as an empty string
+# An empty EMAIL_URL means unset: a deployment can pass it through with no value.
 if email_url := env("EMAIL_URL", default=""):
     _email = env.email_url_config(email_url)
     _mailer = {

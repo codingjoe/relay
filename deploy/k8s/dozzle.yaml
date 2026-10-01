@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dozzle
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dozzle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dozzle
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dozzle
+    spec:
+      serviceAccountName: dozzle
+      containers:
+        - name: dozzle
+          image: amir20/dozzle:v11.1.3
+          env:
+            - {name: DOZZLE_MODE, value: k8s}
+            - {name: DOZZLE_NAMESPACE, value: relay}
+            - {name: DOZZLE_HOSTNAME, value: relay}
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe:
+            httpGet: {path: /healthcheck, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /healthcheck, port: http}
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 10m}
+            limits: {cpu: "1", memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dozzle
+spec:
+  selector:
+    app.kubernetes.io/name: dozzle
+  ports:
+    - {name: http, port: 8080, targetPort: http}
