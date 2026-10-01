@@ -3,8 +3,9 @@
 # Provisioning step: hand the deployment to GitHub Actions and write the
 # production environment file.
 #
-# Inputs: RELAY_HOSTNAME, DEPLOY_KEY, S3_BUCKET, AWS_ACCESS_KEY_ID,
-#         AWS_SECRET_ACCESS_KEY
+# Inputs: RELAY_HOSTNAME, DEPLOY_KEY, S3_BUCKET. AWS_ACCESS_KEY_ID and
+#         AWS_SECRET_ACCESS_KEY come from the environment on the first
+#         provisioning, and from .env.production after that.
 
 set -euo pipefail
 
@@ -81,6 +82,7 @@ if [ "${1:-}" = "--check" ]; then
 fi
 
 require_command gh dotenvx python3 ssh-keyscan
+adopt_stored_s3_credentials
 require_env AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 
 if environment_is_set; then

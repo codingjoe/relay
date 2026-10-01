@@ -485,3 +485,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - A destructive action is an opt-in flag on its step, never something a bare
   `./deploy/provision.sh` can reach. `--reinit` on the server step reinstalls the
   box for that reason, and is run directly.
+
+- Object storage credentials have two spellings, because two readers want
+  different names: the `aws` CLI reads `AWS_ACCESS_KEY_ID` while django-storages
+  reads `AWS_S3_ACCESS_KEY_ID`, and `.env.production` stores the second. A step
+  that shells out to the CLI calls `adopt_stored_s3_credentials` first, so only
+  the first provisioning needs them exported.

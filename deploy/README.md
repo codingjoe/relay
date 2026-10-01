@@ -23,7 +23,10 @@ Three things to have ready:
    `.env.production` and is git-ignored, so restore it from wherever you keep
    it.
 
-3. **Object Storage credentials**, exported for the `storage` step:
+3. **Object Storage credentials**, on the first provisioning only. Later runs
+   read them from `.env.production`, where they are stored as
+   `AWS_S3_ACCESS_KEY_ID` and `AWS_S3_SECRET_ACCESS_KEY`, the names
+   django-storages uses:
 
    ```bash
    export AWS_ACCESS_KEY_ID="<key>"

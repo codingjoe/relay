@@ -85,6 +85,27 @@ require_env() {
     done
 }
 
+# The AWS CLI reads AWS_ACCESS_KEY_ID, and django-storages reads the AWS_S3_
+# spelled names that .env.production stores. Adopt the stored pair rather than
+# asking for it again, so a second run does not need credentials it already has.
+# The environment still wins, because the first provisioning is what puts them
+# in the file.
+adopt_stored_s3_credentials() {
+    local name key stored
+    for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+        [ -n "${!name:-}" ] && continue
+        key="AWS_S3_${name#AWS_}"
+        stored="$(dotenvx get "$key" -f "$REPO_ROOT/.env.production" 2>/dev/null || true)"
+        # Without the key that decrypts the file, dotenvx prints the ciphertext
+        # and exits non-zero. Taking that for a credential would authenticate as
+        # nobody and report the failure much later, as an access denied.
+        case "$stored" in
+            "" | encrypted:*) continue ;;
+        esac
+        export "$name=$stored"
+    done
+}
+
 # Poll a check until it passes or the timeout runs out. Pass the check with its
 # arguments, for example: wait_until "the delegation" delegation_is_live
 wait_until() {
