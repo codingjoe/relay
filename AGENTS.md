@@ -63,7 +63,7 @@ with wireit), k3s on Hetzner Cloud with Caddy as ingress and Layer 4 proxy.
   mdformat, dockerfmt).
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
 - `deploy/minikube`. Run the full stack on minikube with `.env`. See
-  `deploy/README.md`.
+  `README.md`.
 
 Production deployment, all driven by `.github/workflows/deploy.yml`:
 
