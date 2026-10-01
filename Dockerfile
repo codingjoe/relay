@@ -35,6 +35,21 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-editable
 
+FROM build AS compile
+
+RUN apt-get install -y gettext
+
+COPY --exclude=.env ./ /app
+
+# Compile message files
+RUN /opt/venv/bin/python -m manage compilemessages
+
+# Copy compiled CSS from the frontend build stage
+COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
+
+# Collect static files
+RUN /opt/venv/bin/python -m manage collectstatic --no-input
+
 FROM gcr.io/distroless/cc:${DISTROLESS_FLAVOR} AS development
 
 # Copy binary dependencies
@@ -53,32 +68,12 @@ ENV PORT=8000
 
 WORKDIR /app
 
+ARG DOTENV_FILE=.env.production
+COPY --from=compile --chown=root:root /app /app
+COPY ${DOTENV_FILE} /app/.env
+
 ENTRYPOINT ["dotenvx", "run", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
-
-FROM build AS compile
-
-RUN apt-get install -y gettext
-
-COPY --exclude=.env ./ /app
-
-# Compile message files
-RUN /opt/venv/bin/python -m manage compilemessages
-
-# Copy compiled CSS from the frontend build stage
-COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
-
-# Collect static files
-RUN /opt/venv/bin/python -m manage collectstatic --no-input
 
 FROM development AS production
 
-ARG DOTENV_FILE=.env.production
-COPY --exclude=.env ./ /app
-
-COPY --from=compile /app/root/locale /app/root/locale
-COPY --from=compile /app/staticfiles /app/staticfiles
-
-COPY ${DOTENV_FILE} /app/.env
-
-WORKDIR /app
 ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
