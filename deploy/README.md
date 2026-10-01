@@ -165,7 +165,16 @@ every address it holds survives: the primary IP, the floating IPs, and the
 records and PTRs that point at them. **No DNS change is needed.** The disk is
 erased, and the platform is down until the deploy workflow runs again.
 
+It needs `deploy/id_ed25519.pub`, because first boot installs that key for the
+`github` user. The pair is git-ignored and lives only in the checkout that
+created it, so a fresh clone has none. If it is missing, run
+`./deploy/provision.sh keys` first: that creates a pair when neither file
+exists, or derives the public key from the private one. It stops with
+instructions if the key uploaded to Hetzner holds different material, which is
+a `hcloud ssh-key delete` away.
+
 ```bash
+./deploy/provision.sh keys
 ./deploy/steps/05-server.sh --reinit
 ./deploy/provision.sh              # carry on with the remaining steps
 ```
@@ -176,7 +185,7 @@ that a rerun can trigger by accident.
 
 Reinstalling is also the decommissioning. The deployment that ran on the box
 goes with the disk, and nothing is left behind, because the server, the floating
-IPs, the zone, the key and the bucket are all reused rather than replaced. Take a
+IPs, the zone and the bucket are all reused rather than replaced. Take a
 snapshot first if you want a way back.
 
 ### Changing the server image
