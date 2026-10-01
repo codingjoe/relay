@@ -16,13 +16,25 @@ source "$(dirname "$STEPS_DIR")/config.sh"
 # shellcheck source=../hcloud.sh
 source "$DEPLOY_DIR/hcloud.sh"
 
-# A server that exists is not enough: the egress pool has to be assigned to it
-# as well, or the sender cannot bind the addresses it sends from.
+# A server that exists is not enough: it has to be the one this guide built, and
+# the egress pool has to be assigned to it, or the sender cannot bind the
+# addresses it sends from. The image is what tells a box that ran this step's
+# first boot from one that predates it, because a Docker host has the same name,
+# the same address and the same pool, and would otherwise be reported as done
+# while it has no k3s at all. An unreadable image name is not a mismatch, so a
+# box built from an image Hetzner has since deprecated is not condemned by it.
+server_image_is_expected() {
+    local image
+    image="$(fetch_server_image_name)"
+    [ -z "$image" ] || [ "$image" = "$SERVER_IMAGE" ]
+}
+
 server_is_ready() {
     local index server_id
     server_id="$(fetch_server_id)"
     [ -n "$server_id" ] || return 1
     [ "$(fetch_server_status)" = "running" ] || return 1
+    server_image_is_expected || return 1
     for ((index = 1; index <= SMTP_FLOATING_IP_COUNT; index++)); do
         [ "$(floating_ip_server_id "$(smtp_floating_ip_name "$index")")" = "$server_id" ] || return 1
     done
@@ -87,6 +99,10 @@ if [ "$REINIT" = true ]; then
         --user-data-from-file "$CLOUD_INIT" \
         "$RELAY_HOSTNAME" >/dev/null
 elif server_exists; then
+    image="$(fetch_server_image_name)"
+    if [ -n "$image" ] && [ "$image" != "$SERVER_IMAGE" ]; then
+        fail "server $RELAY_HOSTNAME was built from \"$image\", not $SERVER_IMAGE, so it has never run this guide's first boot and has no k3s. Run ./deploy/steps/05-server.sh --reinit to reinstall it in place, which keeps its addresses."
+    fi
     note "Server $RELAY_HOSTNAME already exists, keeping it as-is (not re-initialised)"
 else
     # Only a create needs the type and location. A rebuild keeps the server it

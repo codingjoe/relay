@@ -84,6 +84,13 @@ fetch_server_status() {
     hcloud server describe "$RELAY_HOSTNAME" -o json 2>/dev/null | jq -r '.status // empty' || true
 }
 
+# Empty when the image has left the public set. Callers have to treat that as
+# "unknown" rather than as a mismatch, or a server built from a deprecated image
+# would look foreign forever.
+fetch_server_image_name() {
+    hcloud server describe "$RELAY_HOSTNAME" -o json 2>/dev/null | jq -r '.image.name // empty' || true
+}
+
 fetch_server_address() {
     hcloud server ip "$RELAY_HOSTNAME" 2>/dev/null || true
 }
