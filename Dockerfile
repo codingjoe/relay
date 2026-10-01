@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     npm install -g pnpm && pnpm ci --frozen-lockfile
-COPY ./ /app
+COPY --exclude=.env ./ /app
 RUN mkdir -p root/static/css && pnpm run build
 
 FROM ghcr.io/astral-sh/uv:0.12.19-trixie-slim AS build
