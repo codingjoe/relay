@@ -1,5 +1,5 @@
 {% extends "django_letter/base.html" %}
-{% load django_letter i18n %}
+{% load django_letter i18n static %}
 
 {% block extra_header %}
   <style media="all" type="text/css">
@@ -81,7 +81,7 @@
       padding-bottom: 16px;
     }
 
-    /* The wordmark ships as a PNG, since clients drop the SVG, and the
+    /* The wordmark is a plain PNG, since clients drop the SVG, and the
        lighter file takes over where the mail turns dark. */
     .logo--dark {
       display: none;
@@ -132,23 +132,24 @@
 
 {% block logo %}
   {% comment %}
-    The wordmark travels as a PNG, because the clients that draw an attached
-    SVG are few, and the media query in the head swaps the lighter file in
-    where the mail turns dark. Exactly one of the two draws, so each carries
-    the name. Both files render from `img/word-brand.svg`.
+    The wordmark is a PNG, because a client that draws an attached SVG is
+    hard to find, and a PNG cannot recolour itself the way the SVG did, so
+    the media query in the head brings in the lighter file where the mail
+    turns dark. Exactly one of the two draws, so each carries the name.
+    Both files render from `img/word-brand.svg`.
   {% endcomment %}
   {% table class="align-center" %}
   <tr>
     <td align="center">
       <img
         class="logo--light"
-        src="{% attached_static 'img/word-brand-light.png' %}"
+        src="{% static 'img/word-brand-light.png' %}"
         alt="relay"
         width="120"
       >
       <img
         class="logo--dark"
-        src="{% attached_static 'img/word-brand-dark.png' %}"
+        src="{% static 'img/word-brand-dark.png' %}"
         alt="relay"
         width="120"
       >
