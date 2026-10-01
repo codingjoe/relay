@@ -59,7 +59,7 @@ FROM build AS compile
 
 RUN apt-get install -y gettext
 
-COPY ./ /app
+COPY --exclude=.env ./ /app
 
 # Compile message files
 RUN /opt/venv/bin/python -m manage compilemessages
@@ -72,24 +72,13 @@ RUN /opt/venv/bin/python -m manage collectstatic --no-input
 
 FROM development AS production
 
-COPY ./ /app
+ARG DOTENV_FILE=.env.production
+COPY --exclude=.env ./ /app
 
 COPY --from=compile /app/root/locale /app/root/locale
 COPY --from=compile /app/staticfiles /app/staticfiles
 
-COPY .env.production /app/.env.production
+COPY ${DOTENV_FILE} /app/.env
 
 WORKDIR /app
-ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env.production", "--", "/opt/venv/bin/python"]
-
-# The local stack reads .env instead of .env.production.
-FROM build AS dotenv
-
-RUN --mount=type=secret,id=dotenv,target=/tmp/dotenv \
-    cp /tmp/dotenv /local.env && chmod 644 /local.env
-
-FROM production AS local
-
-COPY --from=dotenv /local.env /app/.env
-
-ENTRYPOINT ["dotenvx", "run", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
+ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env", "--", "/opt/venv/bin/python"]

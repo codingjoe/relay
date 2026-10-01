@@ -325,7 +325,7 @@ Run the production stack on minikube with your `.env`:
 
 ```bash
 minikube start
-docker build --target local --build-arg UV_NO_DEV=0 --secret id=dotenv,src=.env --no-cache-filter dotenv -t ghcr.io/codingjoe/relay:local .
+docker build --target production --build-arg UV_NO_DEV=0 --build-arg DOTENV_FILE=.env -t ghcr.io/codingjoe/relay:local .
 minikube image load ghcr.io/codingjoe/relay:local
 kubectl apply -f deploy/k8s/dozzle-rbac.yaml
 kubectl apply -k deploy/minikube
@@ -334,11 +334,12 @@ kubectl --namespace relay port-forward svc/web 8000:8000
 
 Open `http://localhost:8000`.
 
-The `local` stage carries `.env`, so build it again after you change a value.
-`--no-cache-filter dotenv` reads the file again. The overlay runs one replica
-of each workload with small memory requests. It fixes the database, Redis and
-S3 values, because they point at Services in the cluster. Caddy signs every
-certificate with its own CA, so Caddy never asks ACME.
+`DOTENV_FILE` defaults to `.env.production`, which the deploy workflow builds.
+The build puts that file at `/app/.env`, where the entrypoint reads it. Build
+again after you change `.env`. The overlay runs one replica of each workload
+with small memory requests. It fixes the database, Redis and S3 values, because
+they point at Services in the cluster. Caddy signs every certificate with its
+own CA, so Caddy never asks ACME.
 
 ## Architecture
 
