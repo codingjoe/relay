@@ -1,6 +1,7 @@
 #cloud-config
 #
-# Rendered by deploy/steps/05-server.sh with envsubst, which replaces the deploy
+# Rendered by deploy/steps/05-server.sh with envsubst, which fills in the deploy
+# key, the netplan address list, the k3s flags and the namespace.
 users:
   - default
   - name: github
@@ -11,7 +12,7 @@ users:
       - ${DEPLOY_PUBLIC_KEY}
   - name: collaborator
     shell: /bin/rbash
-    home: /home/collaborator
+    homedir: /home/collaborator
 write_files:
   # netplan hands the egress pool to systemd-networkd, which re-applies it
   # whenever it reconfigures eth0 and after every reboot. An address bound by
@@ -78,6 +79,7 @@ write_files:
   - path: /usr/local/bin/relay-bootstrap.sh
     permissions: "0755"
     content: |
+      #!/bin/sh
       set -eu
 
       systemctl disable --now systemd-resolved
@@ -86,8 +88,20 @@ write_files:
 
       netplan apply
 
-      primary_ip="$(ip -4 route show default | awk '{for (i = 1; i <= NF; i++) if ($i == "src") {print $(i+1); exit}}')"
-      [ -n "$primary_ip" ] || { echo "could not determine the primary address" >&2; exit 1; }
+      # netplan apply restarts networkd, and the DHCP lease that gives the
+      # default route its source address returns a moment later. Reading the
+      # route once races that, finds no source, and aborts before k3s installs.
+      primary_ip=""
+      attempt=0
+      while [ -z "$primary_ip" ] && [ "$attempt" -lt 60 ]; do
+          primary_ip="$(ip -4 route show default | awk '{for (i = 1; i <= NF; i++) if ($i == "src") {print $(i+1); exit}}')"
+          attempt=$((attempt + 1))
+          [ -n "$primary_ip" ] || sleep 1
+      done
+      if [ -z "$primary_ip" ]; then
+          echo "no default route with a source address after 60s" >&2
+          exit 1
+      fi
 
       curl -sfL https://get.k3s.io | \
           INSTALL_K3S_EXEC="${K3S_INSTALL_FLAGS} --node-ip=$primary_ip" sh -

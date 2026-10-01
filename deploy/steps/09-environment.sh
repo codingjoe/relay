@@ -120,7 +120,11 @@ printf '%s\n' "$SSH_KNOWN_HOSTS" >"$KNOWN_HOSTS_FILE"
 
 note "Waiting for the cluster on $SERVER_ADDRESS"
 if ! wait_until "the relay namespace and deploy token" cluster_is_ready; then
-    warn "k3s is not serving the relay namespace yet. Check cloud-init on the server, then run this step again."
+    warn "k3s is not serving the relay namespace yet. Its first boot installs it, so read what that boot did:"
+    warn "  hcloud server ssh $RELAY_HOSTNAME \"cloud-init status --long\""
+    warn "  hcloud server ssh $RELAY_HOSTNAME \"sudo tail -40 /var/log/cloud-init-output.log\""
+    warn "A boot that failed leaves no cluster however long this waits, so fix it and run ./deploy/steps/05-server.sh --reinit, which reinstalls in place and keeps the addresses."
+    warn "Otherwise, run this step again once the install has finished."
     exit "$EXIT_INCOMPLETE"
 fi
 
