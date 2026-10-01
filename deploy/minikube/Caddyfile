@@ -1,0 +1,60 @@
+{
+	admin off
+
+	log {
+		output stdout
+		format json
+	}
+
+	# The local stack has no public address to validate an ACME challenge
+	# against, so every certificate comes from Caddy's own CA. The mail
+	# services read those files at startup.
+	local_certs
+
+	layer4 {
+		:587 {
+			route {
+				proxy msa:587 {
+					proxy_protocol v2
+				}
+			}
+		}
+		:465 {
+			route {
+				tls
+				proxy msa:2465 {
+					proxy_protocol v2
+				}
+			}
+		}
+		:25 {
+			route {
+				proxy mta:25 {
+					proxy_protocol v2
+				}
+			}
+		}
+	}
+}
+
+{$HOSTNAME} {
+	reverse_proxy web:8000
+}
+
+smtp.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+mx1.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+mx2.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+{$RELAY_STORAGE_DOMAIN} {
+	reverse_proxy storage:8080 {
+		health_uri /healthz
+	}
+}

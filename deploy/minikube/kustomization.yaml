@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Run the production stack on minikube. See "Local stack on minikube" in
+# deploy/README.md.
+namespace: relay
+resources:
+  - ../k8s
+images:
+  - name: ghcr.io/codingjoe/relay
+    newTag: local
+configMapGenerator:
+  # A minikube address cannot get a certificate from ACME, and the mail
+  # services read Caddy's certificate files at startup, so the local stack
+  # issues from Caddy's own CA instead.
+  - name: caddy-config
+    behavior: replace
+    files:
+      - Caddyfile
+patches:
+  # The base manifests carry k3s's local-path provisioner.
+  - target:
+      kind: PersistentVolumeClaim
+    patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: standard

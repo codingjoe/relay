@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: dnsdist
+        dev.dozzle.icon: powerdns
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -23,7 +24,7 @@ spec:
             # Root, like caddy and the mail servers. A non-root user cannot use
             # an added capability: the runtime puts it in the bounding set but
             # the process has no permitted set to raise it from, so the bind is
-            # denied. Compose never needed this because Docker sets
+            # denied. Docker never needs this because it sets
             # ip_unprivileged_port_start=0; the node's value is 1024.
             runAsUser: 0
             capabilities:
@@ -87,6 +88,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: dns
+        dev.dozzle.icon: django
     spec:
       containers:
         - name: dns

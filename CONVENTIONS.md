@@ -136,9 +136,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Return `None` from tasks: backends serialize the return value, so a model
   instance or a `UUID` records a failed run for work that succeeded.
 - Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
-  commands in `compose.yml` (local development) and `deploy/k8s/web.yaml`
-  (production), with the mail pipeline queues ahead of `default`. A task whose
-  queue is missing from the settings raises at import time.
+  commands in `deploy/k8s/web.yaml`, with the mail pipeline queues ahead of
+  `default`. A task whose queue is missing from the settings raises at import
+  time.
 
 ## Naming
 
@@ -433,8 +433,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
   that have to stay in place.
 
 - Never put a credential in a ConfigMap. Where a config file needs one, commit
-  it with a `${PLACEHOLDER}` and let the deploy workflow render a Secret, which
-  is what Docker Compose did when it interpolated `content:` blocks. See
+  it with a `${PLACEHOLDER}` and let the deploy workflow render a Secret. See
   `deploy/k8s/redis/` and `deploy/k8s/rspamd/`.
 
 - Do not rely on `$(VAR)` expansion in a manifest. Kubernetes expands it only

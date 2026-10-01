@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: msa
+        dev.dozzle.icon: django
     spec:
       containers:
         - name: msa
@@ -89,6 +90,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: mta
+        dev.dozzle.icon: django
     spec:
       containers:
         - name: mta
@@ -165,6 +167,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: rspamd
+        dev.dozzle.icon: rspamd
     spec:
       containers:
         - name: rspamd
@@ -216,6 +219,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: clamav
+        dev.dozzle.icon: clam-av
     spec:
       containers:
         - name: clamav

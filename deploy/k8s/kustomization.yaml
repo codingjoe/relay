@@ -9,6 +9,9 @@ resources:
   - web.yaml
   - mail.yaml
   - data.yaml
+  - dozzle.yaml
+# dozzle-rbac.yaml is cluster-scoped and applied once with the admin
+# kubeconfig, because the deploy token's Role cannot create ClusterRoles.
 configMapGenerator:
   - name: caddy-config
     files:
