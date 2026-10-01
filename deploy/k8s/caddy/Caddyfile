@@ -1,0 +1,135 @@
+{
+	admin off
+
+	log {
+		output stdout
+		format json
+	}
+
+	cache
+
+	on_demand_tls {
+		permission http http://web:8000/internal/mta-sts/authorize/
+	}
+
+	layer4 {
+		:587 {
+			route {
+				proxy msa:587 {
+					proxy_protocol v2
+				}
+			}
+		}
+		:465 {
+			route {
+				tls
+				proxy msa:2465 {
+					proxy_protocol v2
+				}
+			}
+		}
+		:25 {
+			route {
+				proxy mta:25 {
+					proxy_protocol v2
+				}
+			}
+		}
+	}
+
+	servers :443 {
+		listener_wrappers {
+			layer4 {
+				@pg postgres {
+					tls enabled
+				}
+				route @pg {
+					postgres_tls
+					tls {
+						connection_policy {
+							alpn postgresql
+						}
+					}
+					proxy postgres:5432
+				}
+
+				@redis tls {
+					sni redis.{$HOSTNAME}
+				}
+				route @redis {
+					tls
+					proxy redis:6379
+				}
+
+				@redis_tasks tls {
+					sni redis-tasks.{$HOSTNAME}
+				}
+				route @redis_tasks {
+					tls
+					proxy redis-tasks:6379
+				}
+			}
+			tls
+		}
+	}
+}
+
+:80, :443 {
+	@caddy_health path /caddy-health
+	handle @caddy_health {
+		respond "OK" 200
+	}
+
+	@mta_sts {
+		path /.well-known/mta-sts.txt
+		protocol https
+	}
+	handle @mta_sts {
+		reverse_proxy web:8000
+	}
+
+	handle {
+		respond "Misdirected Request" 421
+	}
+
+	tls {
+		on_demand
+	}
+}
+
+{$HOSTNAME} {
+	cache
+	reverse_proxy web:8000 {
+		health_uri /health/
+	}
+}
+
+smtp.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+mx1.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+mx2.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+pg.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+redis.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+redis-tasks.{$HOSTNAME} {
+	respond "OK" 200
+}
+
+{$RELAY_STORAGE_DOMAIN} {
+	reverse_proxy storage:8080 {
+		health_uri /healthz
+	}
+}

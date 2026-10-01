@@ -177,11 +177,13 @@ S3_BUCKET="${S3_BUCKET:-relay-${RELAY_HOSTNAME//./-}}"
 DEPLOY_KEY="${DEPLOY_KEY:-$DEPLOY_DIR/id_ed25519}"
 DEPLOY_KEY_NAME="${RELAY_HOSTNAME}-deploy"
 
-# The single server runs Hetzner's docker-ce image and keeps its bucket in the
-# same location.
-SERVER_IMAGE="docker-ce"
+SERVER_IMAGE="ubuntu-24.04"
 S3_REGION="fsn1"
 S3_ENDPOINT_URL="https://fsn1.your-objectstorage.com"
+
+K3S_INSTALL_FLAGS="server --disable traefik --disable servicelb --secrets-encryption --write-kubeconfig-mode 644"
+
+RELAY_NAMESPACE="relay"
 
 # Caddy serves stored message bodies on this name, which the zone's wildcard
 # record covers.

@@ -1,0 +1,236 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/codingjoe/relay
+          args: ["-m", "granian", "--port", "8000", "--host", "0.0.0.0", "root.asgi:application"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env
+          ports:
+            - {name: http, containerPort: 8000}
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - 'import os, urllib.request; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8000/health/", headers={"Host": os.environ["HOSTNAME"]}), timeout=5)'
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - 'import os, urllib.request; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8000/health/", headers={"Host": os.environ["HOSTNAME"]}), timeout=5)'
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits: {cpu: "1", memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app.kubernetes.io/name: web
+  ports:
+    - {name: http, port: 8000, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/codingjoe/relay
+          args:
+            - "-m"
+            - manage
+            - threadmill
+            - worker
+            - --queues
+            - ingress
+            - egress
+            - default
+            - --workers
+            - "2"
+            - --threads
+            - "4"
+            - --max-tasks
+            - "10000"
+            - --max-tasks-jitter
+            - "100"
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "manage", "health_check", "health", "--no-http"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits: {memory: 1Gi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sender
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sender
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sender
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: sender
+          image: ghcr.io/codingjoe/relay
+          args:
+            - "-m"
+            - manage
+            - threadmill
+            - worker
+            - --queues
+            - delivery
+            - --workers
+            - "2"
+            - --threads
+            - "4"
+            - --max-tasks
+            - "10000"
+            - --max-tasks-jitter
+            - "100"
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "manage", "health_check", "health", "--no-http"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits: {memory: 1Gi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crontask
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: crontask
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: crontask
+    spec:
+      containers:
+        - name: crontask
+          image: ghcr.io/codingjoe/relay
+          args: ["-m", "manage", "crontask"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "manage", "health_check", "health", "--no-http"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits: {memory: 1Gi}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migration
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: ghcr.io/codingjoe/relay
+          args: ["-m", "manage", "migrate", "--noinput"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env

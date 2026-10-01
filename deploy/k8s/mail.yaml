@@ -1,0 +1,341 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: msa
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: msa
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: msa
+    spec:
+      containers:
+        - name: msa
+          image: ghcr.io/codingjoe/relay
+          args: ["-m", "manage", "msa", "--ports", "587"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env
+          ports:
+            - {name: submission, containerPort: 587}
+            - {name: balancer, containerPort: 2465}
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - {name: caddy-data, mountPath: /data, readOnly: true}
+          startupProbe:
+            exec:
+              command: ["python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')"]
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 587), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - name: caddy-data
+          persistentVolumeClaim:
+            claimName: caddy-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: msa
+spec:
+  selector:
+    app.kubernetes.io/name: msa
+  ports:
+    - {name: submission, port: 587, targetPort: submission}
+    - {name: balancer, port: 2465, targetPort: balancer}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mta
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mta
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mta
+    spec:
+      containers:
+        - name: mta
+          image: ghcr.io/codingjoe/relay
+          args: ["-m", "manage", "mta"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env
+          ports:
+            - {name: smtp, containerPort: 25}
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - {name: caddy-data, mountPath: /data, readOnly: true}
+          startupProbe:
+            exec:
+              command: ["python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')"]
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 25), timeout=5); s.sendall(b'PROXY UNKNOWN\\r\\n'); assert s.recv(1024).startswith(b'220'); s.sendall(b'QUIT\\r\\n')"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - name: caddy-data
+          persistentVolumeClaim:
+            claimName: caddy-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mta
+spec:
+  selector:
+    app.kubernetes.io/name: mta
+  ports:
+    - {name: smtp, port: 25, targetPort: smtp}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rspamd
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rspamd
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rspamd
+    spec:
+      containers:
+        - name: rspamd
+          image: rspamd/rspamd:4.1
+          ports:
+            - {name: controller, containerPort: 11334}
+          volumeMounts:
+            - {name: config, mountPath: /etc/rspamd/local.d, readOnly: true}
+          readinessProbe:
+            httpGet: {path: /ping, port: controller}
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /ping, port: controller}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            limits: {cpu: "0.5", memory: 512Mi}
+      volumes:
+        - name: config
+          secret:
+            secretName: rspamd-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rspamd
+spec:
+  selector:
+    app.kubernetes.io/name: rspamd
+  ports:
+    - {name: controller, port: 11334, targetPort: controller}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clamav
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clamav
+    spec:
+      containers:
+        - name: clamav
+          image: clamav/clamav:1.5.4_base-debian13-slim
+          env:
+            - {name: CLAMAV_NO_FRESHCLAMD, value: "true"}
+            - {name: CLAMD_CONF_ConcurrentDatabaseReload, value: "no"}
+            - {name: CLAMD_CONF_AlertExceedsMax, value: "yes"}
+            - {name: CLAMD_CONF_StreamMaxLength, value: "40M"}
+          ports:
+            - {name: clamd, containerPort: 3310}
+          volumeMounts:
+            - {name: signatures, mountPath: /var/lib/clamav}
+          startupProbe:
+            exec:
+              command: ["clamdcheck.sh"]
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["clamdcheck.sh"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["clamdcheck.sh"]
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            limits: {memory: 4Gi}
+      volumes:
+        - name: signatures
+          persistentVolumeClaim:
+            claimName: clamav
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav
+spec:
+  selector:
+    app.kubernetes.io/name: clamav
+  ports:
+    - {name: clamd, port: 3310, targetPort: clamd}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: clamav-updater
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clamav-updater
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: clamav-updater
+          image: clamav/clamav:1.5.4_base-debian13-slim
+          args: ["sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd"]
+          env:
+            - {name: FRESHCLAM_CONF_TestDatabases, value: "no"}
+          volumeMounts:
+            - {name: signatures, mountPath: /var/lib/clamav}
+      volumes:
+        - name: signatures
+          persistentVolumeClaim:
+            claimName: clamav
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: storage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: storage
+    spec:
+      containers:
+        - name: storage
+          image: andrewgaul/s3proxy:4.1.1
+          env:
+            - {name: S3PROXY_ENDPOINT, value: "http://0.0.0.0:8080"}
+            - {name: S3PROXY_AUTHORIZATION, value: aws-v4}
+            - {name: JCLOUDS_PROVIDER, value: aws-s3}
+            - name: S3PROXY_IDENTITY
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: AWS_S3_ACCESS_KEY_ID}
+            - name: S3PROXY_CREDENTIAL
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: AWS_S3_SECRET_ACCESS_KEY}
+            - name: JCLOUDS_IDENTITY
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: AWS_S3_ACCESS_KEY_ID}
+            - name: JCLOUDS_CREDENTIAL
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: AWS_S3_SECRET_ACCESS_KEY}
+            - name: JCLOUDS_ENDPOINT
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: AWS_S3_ENDPOINT_URL}
+            - name: JCLOUDS_REGION
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: AWS_S3_REGION_NAME}
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            limits: {cpu: "1", memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage
+spec:
+  selector:
+    app.kubernetes.io/name: storage
+  ports:
+    - {name: http, port: 8080, targetPort: http}

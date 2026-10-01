@@ -1,29 +1,18 @@
 #cloud-config
 #
 # Rendered by deploy/steps/05-server.sh with envsubst, which replaces the deploy
-# public key and the comma separated netplan address entries only. Other shell
-# variables are left untouched.
 users:
   - default
   - name: github
-    groups: sudo, docker
+    groups: sudo
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
       - ${DEPLOY_PUBLIC_KEY}
   - name: collaborator
-    groups: docker
     shell: /bin/rbash
     home: /home/collaborator
 write_files:
-  - path: /etc/ssh/sshd_config.d/10-maxstartups.conf
-    permissions: "0644"
-    content: |
-      # The deploy reaches Docker over SSH, and compose starts a couple of
-      # dozen sessions at once, one per service. The default 10:30:100 begins
-      # throttling at the tenth unauthenticated connection, drops the rest,
-      # and every network and volume that inherited the failure reports it.
-      MaxStartups 100:30:200
   # netplan hands the egress pool to systemd-networkd, which re-applies it
   # whenever it reconfigures eth0 and after every reboot. An address bound by
   # hand belongs to no configuration: networkd drops it on the next
@@ -38,15 +27,73 @@ write_files:
         ethernets:
           eth0:
             addresses: [${NETPLAN_ADDRESSES}]
+  - path: /etc/relay/bootstrap.yaml
+    permissions: "0600"
+    content: |
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: ${RELAY_NAMESPACE}
+        labels:
+          app.kubernetes.io/part-of: relay
+      ---
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: deploy
+        namespace: ${RELAY_NAMESPACE}
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: deploy
+        namespace: ${RELAY_NAMESPACE}
+      rules:
+        - apiGroups: ["", "apps", "batch", "policy", "networking.k8s.io"]
+          resources: ["*"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: deploy
+        namespace: ${RELAY_NAMESPACE}
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: deploy
+      subjects:
+        - kind: ServiceAccount
+          name: deploy
+          namespace: ${RELAY_NAMESPACE}
+      ---
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: deploy-token
+        namespace: ${RELAY_NAMESPACE}
+        annotations:
+          kubernetes.io/service-account.name: deploy
+      type: kubernetes.io/service-account-token
+  - path: /usr/local/bin/relay-bootstrap.sh
+    permissions: "0755"
+    content: |
+      set -eu
+
+      systemctl disable --now systemd-resolved
+      rm -f /etc/resolv.conf
+      printf 'nameserver 1.1.1.1\nnameserver 9.9.9.9\n' > /etc/resolv.conf
+
+      netplan apply
+
+      primary_ip="$(ip -4 route show default | awk '{for (i = 1; i <= NF; i++) if ($i == "src") {print $(i+1); exit}}')"
+      [ -n "$primary_ip" ] || { echo "could not determine the primary address" >&2; exit 1; }
+
+      curl -sfL https://get.k3s.io | \
+          INSTALL_K3S_EXEC="${K3S_INSTALL_FLAGS} --node-ip=$primary_ip" sh -
+
+      until k3s kubectl apply -f /etc/relay/bootstrap.yaml >/dev/null 2>&1; do
+          sleep 5
+      done
 runcmd:
-  # write_files runs after cloud-init brought the network up, so the drop-in
-  # needs its own apply to take effect on the first boot.
-  - netplan apply
-  # The DNS container publishes 0.0.0.0:53. The resolved stub listener holds
-  # 127.0.0.53 and 127.0.0.54 on that port, and Linux refuses a wildcard bind
-  # while any specific address holds it, so the listener goes and resolv.conf
-  # names the upstreams directly. Containers cannot reach 127.0.0.53 anyway, so
-  # this is also what makes name resolution work inside them.
-  - systemctl disable --now systemd-resolved
-  - rm -f /etc/resolv.conf
-  - printf 'nameserver 1.1.1.1\nnameserver 9.9.9.9\n' > /etc/resolv.conf
+  - /usr/local/bin/relay-bootstrap.sh

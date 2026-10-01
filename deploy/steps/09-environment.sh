@@ -3,10 +3,6 @@
 # Provisioning step: hand the deployment to GitHub Actions and write the
 # production environment file.
 #
-# The deploy workflow reads SSH_HOSTNAME, SSH_KNOWN_HOSTS and HOSTNAME from the
-# repository variables, and the private key and the environment file from its
-# secrets.
-#
 # Inputs: RELAY_HOSTNAME, DEPLOY_KEY, S3_BUCKET, AWS_ACCESS_KEY_ID,
 #         AWS_SECRET_ACCESS_KEY
 
@@ -24,20 +20,59 @@ environment_is_set() {
     [ -n "$address" ] || return 1
     [ "$(gh variable get SSH_HOSTNAME 2>/dev/null)" = "$address" ] || return 1
     [ "$(gh variable get HOSTNAME --env production 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
-    # Both are read by the deploy workflow, and an empty known-hosts file stops
-    # it at host key verification rather than at anything that names the cause.
-    [ -n "$(gh variable get SSH_KNOWN_HOSTS 2>/dev/null)" ] || return 1
     secrets="$(gh secret list 2>/dev/null || true)"
+    printf '%s\n' "$secrets" | grep -q "^KUBECONFIG" || return 1
     printf '%s\n' "$secrets" | grep -q "^SSH_PRIVATE_KEY" || return 1
     printf '%s\n' "$secrets" | grep -q "^DOTENV_PRIVATE_KEY_PRODUCTION" || return 1
     [ "$(dotenvx get HOSTNAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
+    [ "$(dotenvx get RELAY_STORAGE_DOMAIN -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$STORAGE_HOSTNAME" ] || return 1
     [ "$(dotenvx get AWS_S3_ENDPOINT_URL -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_ENDPOINT_URL" ] || return 1
     [ "$(dotenvx get AWS_STORAGE_BUCKET_NAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_BUCKET" ] || return 1
 }
 
-# cloud-init has to finish before the host keys exist.
 ssh_is_reachable() {
     [ -n "$(ssh-keyscan -T 5 "$1" 2>/dev/null)" ]
+}
+
+ssh_deploy() {
+    ssh -i "$DEPLOY_KEY" \
+        -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE" \
+        -o StrictHostKeyChecking=yes \
+        -o BatchMode=yes \
+        -o ConnectTimeout=10 \
+        "github@$SERVER_ADDRESS" "$@"
+}
+
+cluster_is_ready() {
+    ssh_deploy "sudo k3s kubectl -n $RELAY_NAMESPACE get secret deploy-token" >/dev/null 2>&1
+}
+
+deploy_kubeconfig() {
+    local token certificate_authority
+    token="$(ssh_deploy "sudo k3s kubectl -n $RELAY_NAMESPACE get secret deploy-token -o jsonpath='{.data.token}'" |
+        python3 -c 'import base64, sys; print(base64.b64decode(sys.stdin.read().strip()).decode())')"
+    [ -n "$token" ] || return 1
+    certificate_authority="$(ssh_deploy "sudo k3s kubectl -n $RELAY_NAMESPACE get secret deploy-token -o jsonpath='{.data.ca\.crt}'")"
+    [ -n "$certificate_authority" ] || return 1
+    cat <<EOF
+apiVersion: v1
+kind: Config
+clusters:
+  - name: relay
+    cluster:
+      server: https://$SERVER_ADDRESS:6443
+      certificate-authority-data: $certificate_authority
+contexts:
+  - name: relay
+    context:
+      cluster: relay
+      user: deploy
+current-context: relay
+users:
+  - name: deploy
+    user:
+      token: $token
+EOF
 }
 
 if [ "${1:-}" = "--check" ]; then
@@ -69,6 +104,9 @@ fail "no SMTP floating IPs found. Run ./deploy/provision.sh egress first"
 SMTP_FLOATING_IP_ADDRESSES="$(comma_list "${smtp_addresses[@]}")"
 SMTP_SOURCE_ADDRESSES="$SMTP_FLOATING_IP_ADDRESSES,$SERVER_ADDRESS"
 
+KNOWN_HOSTS_FILE="$(mktemp)"
+trap 'rm -f "$KNOWN_HOSTS_FILE"' EXIT
+
 note "Waiting for SSH on $SERVER_ADDRESS"
 if ! wait_until "SSH on $SERVER_ADDRESS" ssh_is_reachable "$SERVER_ADDRESS"; then
     warn "the server does not answer on SSH yet. Run this step again once it does."
@@ -76,15 +114,24 @@ if ! wait_until "SSH on $SERVER_ADDRESS" ssh_is_reachable "$SERVER_ADDRESS"; the
 fi
 
 SSH_KNOWN_HOSTS="$(ssh-keyscan -T 5 "$SERVER_ADDRESS" 2>/dev/null)"
+printf '%s\n' "$SSH_KNOWN_HOSTS" >"$KNOWN_HOSTS_FILE"
+
+note "Waiting for the cluster on $SERVER_ADDRESS"
+if ! wait_until "the relay namespace and deploy token" cluster_is_ready; then
+    warn "k3s is not serving the relay namespace yet. Check cloud-init on the server, then run this step again."
+    exit "$EXIT_INCOMPLETE"
+fi
 
 note "Writing variables and secrets to GitHub"
 gh variable set SSH_HOSTNAME --body "$SERVER_ADDRESS"
 gh variable set SSH_KNOWN_HOSTS --body "$SSH_KNOWN_HOSTS"
 gh variable set HOSTNAME --body "$RELAY_HOSTNAME" --env production
 gh secret set SSH_PRIVATE_KEY <"$DEPLOY_KEY"
+gh secret set KUBECONFIG --body "$(deploy_kubeconfig)"
 
 note "Writing the infrastructure values to .env.production"
 dotenvx set HOSTNAME "$RELAY_HOSTNAME" -f .env.production --plain
+dotenvx set RELAY_STORAGE_DOMAIN "$STORAGE_HOSTNAME" -f .env.production --plain
 dotenvx set RELAY_DNS_SMTP_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
 dotenvx set RELAY_SMTP_SOURCE_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
 dotenvx set AWS_S3_ENDPOINT_URL "$S3_ENDPOINT_URL" -f .env.production --plain

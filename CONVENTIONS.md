@@ -136,9 +136,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Return `None` from tasks: backends serialize the return value, so a model
   instance or a `UUID` records a failed run for work that succeeded.
 - Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
-  commands in `compose.yml` and `compose.production.yml`, with the mail
-  pipeline queues ahead of `default`. A task whose queue is missing from the
-  settings raises at import time.
+  commands in `compose.yml` (local development) and `deploy/k8s/web.yaml`
+  (production), with the mail pipeline queues ahead of `default`. A task whose
+  queue is missing from the settings raises at import time.
 
 ## Naming
 
@@ -390,3 +390,98 @@ A rule lives either in this document or in `.relint.yml`, never both.
   Describe behavior and configuration in product terms: the platform
   domain, the dashboard, a submission host. Internal names such as
   `RELAY_*` belong in `README.md`.
+
+## Kubernetes manifests
+
+- Keep the manifests in `deploy/k8s/`, grouped by concern rather than one file
+  per object. `kustomization.yaml` lists them.
+
+- Put multi-line configuration in a real file rather than a block scalar in a
+  manifest, and generate its ConfigMap from `kustomization.yaml`, the way
+  `caddy/Caddyfile` does. The generated name carries a content hash, so editing
+  the file changes the pod template and rolls the workload. A block scalar in a
+  resource updates in place and leaves the running pods on the old
+  configuration.
+
+- Give every container a liveness probe. It is the only thing that restarts a
+  hung process, so omitting one silently regresses to the behaviour this
+  deployment exists to fix.
+
+- Add a readiness probe wherever a Service fronts more than one replica. A
+  Service only routes to Ready endpoints, so readiness is what takes an
+  unresponsive replica out of rotation instead of waiting for liveness to
+  restart it. On the mail path that is the difference between one failed
+  submission and 45 seconds of them. Workloads with no Service, and the
+  single-replica stateful services, do not need one.
+
+- Do not send `Host: localhost` from a probe. Django validates the header in
+  `CommonMiddleware`, so a disallowed host answers 400 with a fully healthy app
+  behind it, and the pod never becomes Ready. Only `web` is a Django service, so
+  it is the only workload that needs an HTTP probe, and it sends the pinned
+  `HOSTNAME`. Note that an `exec` probe does not run through the image
+  entrypoint, so it sees the kubelet's environment and never a decrypted one.
+
+- Give every container resource requests and limits.
+
+- Add a startup probe only where boot is genuinely slow: `msa` and `mta` wait up
+  to five minutes for certificate files, `clamav` loads its signature database,
+  and `postgres` initialises a data directory. Everywhere else a liveness probe
+  with a sensible `failureThreshold` is enough, and a startup probe is noise.
+
+- Set `args`, not `command`, when overriding what a service runs. The images
+  carry entrypoints (`/opt/venv/bin/python`, `/init`, `docker-entrypoint.sh`)
+  that have to stay in place.
+
+- Never put a credential in a ConfigMap. Where a config file needs one, commit
+  it with a `${PLACEHOLDER}` and let the deploy workflow render a Secret, which
+  is what Docker Compose did when it interpolated `content:` blocks. See
+  `deploy/k8s/redis/` and `deploy/k8s/rspamd/`.
+
+- Do not rely on `$(VAR)` expansion in a manifest. Kubernetes expands it only
+  between a container's `env` entries, and never in `command` or `args`. Derive
+  such values in the deploy workflow instead.
+
+- Derive values that depend on the cluster topology in the deploy workflow, not
+  in `.env.production`. The database URL, both Redis URLs, the rspamd URL and
+  the mail certificate paths are functions of the Service names in `deploy/k8s`,
+  and the workflow builds the `relay-cluster-env` Secret from them. Stored in the
+  encrypted file they would freeze the topology and go stale on the next
+  password rotation.
+
+- Always set `HOSTNAME` explicitly from the `relay-infra` Secret. The image
+  entrypoint decrypts `.env.production` without `--overload`, so what the kubelet
+  injects wins, and Kubernetes sets `HOSTNAME` to the pod name. relay reads it
+  for the platform domain at settings load, so every DNS record it served would
+  otherwise be named after a pod. It comes from the Secret, not a literal, so
+  the value keeps one source: `.env.production`.
+
+- The entrypoint decrypts the environment; it does not validate it. `--strict`
+  stops a container whose environment file is missing, but a key deleted from
+  `.env.production` still falls back to Django's defaults (`DATABASE_URL` to
+  SQLite, `SECRET_KEY` to the insecure development value).
+
+- Do not add pod anti-affinity on a single node. Nothing can be spread across
+  nodes that do not exist, so it is dead weight until the cluster has more than
+  one. Add `preferredDuringSchedulingIgnoredDuringExecution` (never
+  `requiredDuringScheduling`) as part of the multi-node step.
+
+- Keep `postgres` and `redis-tasks` at one replica. A second independent replica
+  is not redundancy for a database or a task queue; it is a divergent dataset.
+  Run one `crontask` as well: it elects a single scheduler through a Redis lock,
+  so a second replica would wait for the first to stop rather than share the
+  work.
+
+- Mount the `caddy-data` claim into the mail servers read-only. It is where
+  Caddy writes the certificates they read, and losing it costs a week of
+  Let's Encrypt duplicate-certificate budget, not just a restart.
+
+## Provisioning steps
+
+- Every step in `deploy/steps/` must be safe to run twice. Check the real
+  resource before changing anything, so a rerun resumes rather than duplicating.
+  `deploy/provision.sh` stops at the first step that is not done and depends on
+  that.
+
+- A destructive action is an opt-in flag on its step, never something a bare
+  `./deploy/provision.sh` can reach. `--reinit` on the server step reinstalls the
+  box for that reason, and is run directly.

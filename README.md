@@ -79,19 +79,32 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
+Every service below runs as a Kubernetes workload in the `relay` namespace on a
+single-node k3s cluster. Stateless services run two replicas; `postgres`,
+`redis-tasks` and the `crontask` scheduler run one. Two independent replicas of a
+database or a task queue would hold divergent data rather than provide
+redundancy, and the scheduler already elects one active instance through a Redis
+lock. The manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator
+guide.
+
 | Service | Port         | Description                                                    |
 | ------- | ------------ | -------------------------------------------------------------- |
-| Web     | 8000         | Django web UI (Granian)                                        |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                            |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)               |
+| Web     | 8000         | Django web UI (Granian), 2 replicas                            |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching, on the host network                    |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only), 2 replicas   |
 | SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)          |
 | MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS)     |
-| rspamd  | 11334        | Spam detection (internal only)                                 |
-| clamav  | 3310         | Malware scanning (internal only)                               |
+| rspamd  | 11334        | Spam detection (internal only), 2 replicas                     |
+| clamav  | 3310         | Malware scanning (internal only), 2 replicas                   |
 | Worker  | N/A          | Threadmill task worker for ingress, egress, and default queues |
 | Sender  | N/A          | Threadmill task worker for delivery to remote MX hosts         |
 | Cron    | N/A          | django-crontask scheduler for recurring work                   |
-| Storage | 8080         | Message body proxy with signed, expiring URLs                  |
+| Storage | 8080         | Message body proxy with signed, expiring URLs, 2 replicas      |
+
+Caddy and dnsdist publish on the node's ports directly, through host
+networking, so the mail path sees the real client address: the MX and
+submission servers read it from the PROXY protocol v2 header Caddy sends them.
+That is also why neither can run more than one replica on a single node.
 
 ```mermaid
 flowchart TD
@@ -102,8 +115,8 @@ flowchart TD
     end
 
     subgraph caddy[Caddy reverse proxy + L4 balancer]
-        caddy_proxy[Caddy docker-proxy]
-        caddy_l4[Caddy layer4]
+        caddy_proxy[Caddy :80 :443]
+        caddy_l4[Caddy layer4 :25 :465 :587]
     end
 
     subgraph app[app network]
@@ -215,7 +228,7 @@ when clamd did not answer, which retries the scan instead of storing a
 verdict.
 
 A clean scan carries no symbol at all, so rspamd never confirms that
-ClamAV ran. The `clamav` block of `compose.production.yml` sets
+ClamAV ran. The `clamav` block of `deploy/k8s/rspamd/antivirus.conf` sets
 `log_clean`, which logs every part ClamAV reports clean, and the controller
 statistics behind `RELAY_RSPAMD_PASSWORD` count the messages rspamd
 scanned. To exercise the whole path, send an EICAR test attachment through
@@ -251,6 +264,8 @@ allowlist their report sender.
   the storage proxy with signed, expiring URLs
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
+- **k3s**. Single-node Kubernetes on Hetzner Cloud, with Caddy as the ingress
+  and Layer 4 proxy. See `deploy/README.md`.
 
 ### Error monitoring (Sentry)
 

@@ -11,12 +11,10 @@ on:
 concurrency:
   group: deploy
   cancel-in-progress: false
+permissions:
+  contents: read # Allow the job to check out the repository
 jobs:
   deploy:
-    # The deploy action derives the Compose project from the ref, so a dispatch
-    # from any other branch would build a parallel stack instead. Only main
-    # deploys; the CI trigger is already limited to it. A manual dispatch is the
-    # operator's redeploy path, so only the CI trigger has a conclusion to check.
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     name: Deploy to production
     runs-on: ubuntu-latest
@@ -24,12 +22,118 @@ jobs:
       name: production
       url: https://${{ vars.HOSTNAME }}
     steps:
-      - uses: codingjoe/the-box/actions/deploy@main
-        with:
-          ssh-host: ${{ vars.SSH_HOSTNAME }}
-          ssh-known-hosts: ${{ vars.SSH_KNOWN_HOSTS }}
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          hostname: ${{ vars.HOSTNAME }}
-          dotenv-private-key: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
-          environment: production
-          rollout-services: web worker sender mta msa dns
+      - uses: actions/checkout@v7
+      - name: Authenticate to the cluster
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          mkdir -p ~/.kube
+          printf '%s\n' "$KUBECONFIG_CONTENT" > ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl version --output=yaml --context relay >/dev/null
+      - name: Install tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends gettext
+          curl -fsSL https://dotenvx.sh | sh
+          dotenvx --version
+      - name: Build the dotenvx key Secret
+        env:
+          DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+        run: |
+          if [ -z "$DOTENV_PRIVATE_KEY_PRODUCTION" ]; then
+              echo "::error::the DOTENV_PRIVATE_KEY_PRODUCTION repository secret is not set"
+              exit 1
+          fi
+          kubectl create secret generic dotenvx-key --namespace relay \
+              --from-literal=DOTENV_PRIVATE_KEY_PRODUCTION="$DOTENV_PRIVATE_KEY_PRODUCTION" \
+              --dry-run=client --output=yaml | kubectl apply -f -
+      - name: Build the relay-infra Secret
+        env:
+          DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+        run: |
+          names="$(grep -rhoE 'name: relay-infra, key: [A-Z0-9_]+' deploy/k8s |
+              grep -oE '[A-Z0-9_]+$' | sort -u)"
+          test -n "$names"
+          args=()
+          for name in $names; do
+              value="$(dotenvx get "$name" -f .env.production || true)"
+              if [ -z "$value" ]; then
+                  echo "::error::$name is missing or empty in .env.production, but deploy/k8s requires it"
+                  exit 1
+              fi
+              args+=(--from-literal="$name=$value")
+          done
+          kubectl create secret generic relay-infra --namespace relay \
+              "${args[@]}" --dry-run=client --output=yaml | kubectl apply -f -
+      - name: Build the relay-cluster-env Secret
+        env:
+          DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+        run: |
+          postgres_password="$(dotenvx get POSTGRES_PASSWORD -f .env.production || true)"
+          redis_password="$(dotenvx get REDIS_PASSWORD -f .env.production || true)"
+          rspamd_password="$(dotenvx get RELAY_RSPAMD_PASSWORD -f .env.production || true)"
+          hostname="$(dotenvx get HOSTNAME -f .env.production || true)"
+          for check in "$postgres_password" "$redis_password" "$rspamd_password" "$hostname"; do
+              if [ -z "$check" ]; then
+                  echo "::error::a value the cluster environment derives from is missing or empty in .env.production"
+                  exit 1
+              fi
+          done
+          certificates="/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
+          kubectl create secret generic relay-cluster-env --namespace relay \
+              --from-literal=DATABASE_URL="postgresql://postgres:${postgres_password}@postgres:5432/postgres" \
+              --from-literal=REDIS_URL="redis://:${redis_password}@redis:6379/0" \
+              --from-literal=TASK_REDIS_URL="redis://:${redis_password}@redis-tasks:6379/0" \
+              --from-literal=RELAY_RSPAMD_URL="http://:${rspamd_password}@rspamd:11334" \
+              --from-literal=RELAY_SMTP_TLS_CERT_PATH="${certificates}/smtp.${hostname}/smtp.${hostname}.crt" \
+              --from-literal=RELAY_SMTP_TLS_KEY_PATH="${certificates}/smtp.${hostname}/smtp.${hostname}.key" \
+              --from-literal=RELAY_MX_TLS_CERT_PATH="${certificates}/mx1.${hostname}/mx1.${hostname}.crt,${certificates}/mx2.${hostname}/mx2.${hostname}.crt" \
+              --from-literal=RELAY_MX_TLS_KEY_PATH="${certificates}/mx1.${hostname}/mx1.${hostname}.key,${certificates}/mx2.${hostname}/mx2.${hostname}.key" \
+              --dry-run=client --output=yaml | kubectl apply -f -
+      - name: Build the rspamd and redis config Secrets
+        env:
+          DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+        run: |
+          needed="$(grep -rhoE '\$\{[A-Za-z_][A-Za-z0-9_]*\}' deploy/k8s/rspamd deploy/k8s/redis |
+              tr -d '${}' | sort -u)"
+          for name in $needed; do
+              value="$(dotenvx get "$name" -f .env.production)"
+              if [ -z "$value" ]; then
+                  echo "::error::$name is unset in .env.production but a config template interpolates it"
+                  exit 1
+              fi
+          done
+
+          mkdir -p rendered/rspamd rendered/redis
+          for file in deploy/k8s/rspamd/*; do
+              dotenvx run -f .env.production -- envsubst <"$file" >"rendered/rspamd/$(basename "$file")"
+          done
+          for file in deploy/k8s/redis/*; do
+              dotenvx run -f .env.production -- envsubst <"$file" >"rendered/redis/$(basename "$file")"
+          done
+          kubectl create secret generic rspamd-config --namespace relay \
+              --from-file=rendered/rspamd/ --dry-run=client --output=yaml | kubectl apply -f -
+          kubectl create secret generic redis-config --namespace relay \
+              --from-file=rendered/redis/ --dry-run=client --output=yaml | kubectl apply -f -
+          rm -rf rendered
+      - name: Point the manifests at this release
+        run: |
+          sed -i "s|newTag: .*|newTag: sha-${GITHUB_SHA}|" deploy/k8s/kustomization.yaml
+          grep -q "newTag: sha-${GITHUB_SHA}" deploy/k8s/kustomization.yaml
+      - name: Apply
+        run: |
+          kubectl delete job --namespace relay --ignore-not-found migration clamav-updater
+          kubectl apply -k deploy/k8s
+      - name: Migrate
+        run: kubectl wait --namespace relay --for=condition=complete job/migration --timeout=10m
+      - name: Refresh virus signatures
+        run: |
+          kubectl wait --namespace relay --for=condition=complete job/clamav-updater --timeout=20m
+      - name: Roll out
+        run: |
+          # 15m exceeds the 10m startup budget on msa, mta and clamav; a stuck
+          # rollout still exits sooner, on the Deployment's progress deadline.
+          for deployment in $(kubectl get deployment --namespace relay --output name); do
+              kubectl rollout status "$deployment" --namespace relay --timeout=15m
+          done

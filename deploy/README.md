@@ -3,6 +3,9 @@
 One script, one server. It stops wherever it needs you, and rerunning the same
 command carries on from there.
 
+The server runs a single-node k3s cluster. This guide covers provisioning and
+day-to-day operations; the deployment's internals live in `deploy/k8s/`.
+
 ## Before you start
 
 Install nothing. `hcloud`, `aws`, `jq`, `gh`, `dotenvx`, `envsubst`,
@@ -31,6 +34,12 @@ Then open outbound ports 25 and 465 in the Console. Everything works without
 them except mail delivery.
 
 ## 1. Provision
+
+If a server named `relays.to` already exists, reinstall it first. That includes
+the box an earlier Compose deployment ran on. `user_data` applies at first boot
+only, so a run that finds an existing server reuses it as-is and never installs
+k3s, and the environment step then waits for a cluster that is not there. See
+[Reinstalling the server](#reinstalling-the-server).
 
 ```bash
 RELAY_HOSTNAME="relays.to" \
@@ -68,14 +77,31 @@ git add .env.production && git commit -m "Add OAuth credentials" && git push
 gh workflow run deploy.yml
 ```
 
+The workflow runs from `main` and skips itself on any other ref, so dispatch it
+from `main`. It also fires on its own after CI passes there, and fails harmlessly
+until provisioning has set the `KUBECONFIG` secret.
+
+It applies `deploy/k8s`, runs the migration, refreshes the virus signatures,
+and rolls out every workload.
+
 ## 5. Check it
 
 ```bash
 curl https://relays.to/health/
 curl https://relays.to/health/soa/
 openssl s_client -connect smtp.relays.to:587 -starttls smtp
+openssl s_client -connect mx1.relays.to:25 -starttls smtp
 dig +short pg.relays.to storage.relays.to
 ```
+
+Then confirm the cluster itself is healthy:
+
+```bash
+hcloud server ssh relays.to "sudo k3s kubectl get pods -n relay"
+hcloud server ssh relays.to "sudo k3s kubectl get events -n relay --sort-by=.lastTimestamp | tail"
+```
+
+Every pod should be `Running` with a `1/1` ready count.
 
 ## Rerunning and inspecting
 
@@ -97,14 +123,20 @@ git-ignored and safe to delete.
 It prints what it needs and halts. Fix that, then rerun the same command.
 
 - **No SSH yet**: the server is still booting. Rerun in a minute.
+- **No cluster yet**: k3s is still installing, or cloud-init failed. Check
+  `cloud-init status --long` and `/var/log/cloud-init-output.log` on the server,
+  then rerun. On a fresh box this is normally a minute of patience.
 - **Records pending**: a resolver cached the old answer. Rerun in a few minutes.
 - **`.env.keys` missing**: restore the key that decrypts `.env.production`.
+- **Pod stops at start**: the entrypoint is `dotenvx run --strict`, which halts
+  instead of falling back to Django's defaults. Read the pod log. A missing
+  `.env.production` or a missing `DOTENV_PRIVATE_KEY_PRODUCTION` both stop it.
 - **Pool short**: run `./deploy/provision.sh egress`.
 
 ## Changing the deployment
 
-Everything else is fixed for one server in `fsn1`, on Hetzner's `docker-ce`
-image, with its bucket alongside. Three values are worth setting:
+Everything else is fixed for one server in `fsn1`, running k3s on
+`ubuntu-24.04`, with its bucket alongside. Three values are worth setting:
 
 - `SMTP_FLOATING_IP_COUNT` (default `2`): the egress pool size. Raise it to keep
   a spare for rotation, then run `./deploy/provision.sh egress records`.
@@ -113,6 +145,46 @@ image, with its bucket alongside. Three values are worth setting:
   anything.
 - `S3_BUCKET` (default `relay-<hostname>`): bucket names are unique across
   Hetzner Object Storage, so override it when the derived name is taken.
+
+The k3s install flags live in `deploy/config.sh` as `K3S_INSTALL_FLAGS`. They
+disable Traefik and ServiceLB, because Caddy is the ingress and nothing uses a
+LoadBalancer Service, and turn on encryption at rest for Secrets.
+
+### Changing a setting
+
+The image carries the encrypted `.env.production` and decrypts it at container
+start, so a change to it only reaches the cluster inside a new image. Push the
+commit and the deploy workflow rebuilds. `CONVENTIONS.md` covers which values the
+workflow derives and why.
+
+### Reinstalling the server
+
+A box that predates this guide, or one that is beyond repair, needs
+reinstalling rather than patching. Rebuilding reinstalls the same server, so
+every address it holds survives: the primary IP, the floating IPs, and the
+records and PTRs that point at them. **No DNS change is needed.** The disk is
+erased, and the platform is down until the deploy workflow runs again.
+
+```bash
+./deploy/steps/05-server.sh --reinit
+./deploy/provision.sh              # carry on with the remaining steps
+```
+
+Run the step directly rather than through `provision.sh`. Rebuilding is
+destructive, and a step that a bare `./deploy/provision.sh` can reach is one
+that a rerun can trigger by accident.
+
+Reinstalling is also the decommissioning. The deployment that ran on the box
+goes with the disk, and nothing is left behind, because the server, the floating
+IPs, the zone, the key and the bucket are all reused rather than replaced. Take a
+snapshot first if you want a way back.
+
+### Changing the server image
+
+`SERVER_IMAGE` is a first-boot setting, so an image change is a reinstall rather
+than an edit: set it in `deploy/config.sh`, then reinstall as above. That keeps
+the addresses and erases the disk. Once the platform carries real data, treat it
+as a planned move.
 
 ## Rotating a blacklisted address
 
@@ -133,35 +205,76 @@ Set `SMTP_FLOATING_IP_COUNT` high enough that a spare is always available.
 hcloud server ssh relays.to                    # log in
 hcloud server metrics relays.to                # CPU, disk, network
 hcloud server enable-backup relays.to
-hcloud server create-image --type snapshot --name relay-$(date +%F) relays.to
+hcloud server create-image --type snapshot --description "relay Docker, pre-k3s $(date +%F)" relays.to
 hcloud all list --paid                         # what costs money
 ```
 
-To grow the pool, raise `SMTP_FLOATING_IP_COUNT`, run the `egress` and `server`
-steps, then bind the new address, because `user_data` only applies at first
-boot:
+`/etc/rancher/k3s/k3s.yaml` on the server is the admin kubeconfig. Copy it
+locally to use `kubectl` without going through SSH every time:
 
 ```bash
-hcloud server ssh relays.to "sudo ip addr add <new_ip>/32 dev eth0"
+hcloud server ssh relays.to "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/relay.yaml
+kubectl --kubeconfig ~/.kube/relay.yaml get pods -n relay
 ```
 
-The same applies to the two settings `user_data` writes at first boot, which a
-box created before them does not have. A deploy opens a session per service,
-and sshd drops the tenth without the first; the DNS container cannot bind `:53`
-while the resolved stub listener holds it:
+To grow the egress pool, raise `SMTP_FLOATING_IP_COUNT` and run the `egress`
+and `server` steps. Those create and assign the address but do not configure the
+box, because `user_data` only applies at first boot. Add it through netplan,
+which keeps the whole pool through a reconfiguration:
 
 ```bash
-# sshd drops the tenth session a deploy opens
-hcloud server ssh relays.to "printf '%s\n' 'MaxStartups 100:30:200' | sudo tee /etc/ssh/sshd_config.d/10-maxstartups.conf && sudo systemctl reload ssh"
-
-# the resolved stub listener holds :53, which the DNS container needs
-hcloud server ssh relays.to "sudo systemctl disable --now systemd-resolved && sudo rm -f /etc/resolv.conf && printf 'nameserver 1.1.1.1\nnameserver 9.9.9.9\n' | sudo tee /etc/resolv.conf"
-
-# containers created before that still name 127.0.0.53 as their upstream, which
-# no longer answers, so restart them to pick up the new resolvers. Without this
-# they resolve nothing, and Caddy cannot even reach the ACME directory.
-hcloud server ssh relays.to 'docker restart $(docker ps -q)'
+hcloud server ssh relays.to "sudo netplan set --origin-hint 61-floating-ip-pool 'ethernets.eth0.addresses=[<new_ip>/32]' && sudo netplan apply"
 ```
+
+Not `ip addr add`: an address bound by hand belongs to no configuration, and
+networkd drops it the next time it reconfigures eth0.
+
+### Certificates
+
+The mail servers read Caddy's certificates at startup and never re-read them, so
+**a rotation needs an `msa` and `mta` restart**:
+
+```bash
+kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/msa deployment/mta -n relay
+```
+
+Every deploy rolls those services, so this normally takes care of itself.
+
+### Backups
+
+The nightly workflow writes an encrypted `backup.dump.gpg` artifact. To restore,
+decrypt with the private key matching `.box/backup.pub`, then load the
+custom-format dump:
+
+```bash
+gpg --decrypt backup.dump.gpg > backup.dump
+kubectl --kubeconfig ~/.kube/relay.yaml cp backup.dump relay/postgres-0:/tmp/backup.dump
+kubectl --kubeconfig ~/.kube/relay.yaml exec -n relay postgres-0 -- \
+    pg_restore -U postgres -d postgres --clean --if-exists /tmp/backup.dump
+```
+
+An untested restore is not a backup. Run that against a scratch database at
+least once before you need it.
+
+### Upgrading k3s
+
+```bash
+hcloud server ssh relays.to "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='server --disable traefik --disable servicelb --secrets-encryption --write-kubeconfig-mode 644' sh -"
+```
+
+Re-running the installer is the upgrade path, and repeating the same flags
+keeps the cluster's shape. Read the release notes first: a minor version can
+move Kubernetes APIs, and the manifests here are not version pinned.
+
+### Known limitations
+
+- **One node.** Two replicas survive a replica going unhealthy, not the node
+  failing. A second and third node is the next step, and it is also when
+  `postgres` and `redis-tasks` can gain real replication rather than just probes.
+- **Caddy and dnsdist run one replica each**, because both bind the node's ports
+  and two pods cannot share a port on one node. That is also what preserves the
+  real client address on the mail path.
+- **The namespace is flat**, because no NetworkPolicies are defined yet.
 
 ## Architecture
 

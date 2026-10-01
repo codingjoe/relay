@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dnsdist
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dnsdist
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dnsdist
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: dnsdist
+          image: powerdns/dnsdist-21:2.1.2
+          ports:
+            - {name: dns-udp, containerPort: 53, protocol: UDP}
+            - {name: dns-tcp, containerPort: 53, protocol: TCP}
+          volumeMounts:
+            - {name: config, mountPath: /etc/dnsdist}
+          livenessProbe:
+            exec:
+              command:
+                - python3
+                - -c
+                - |
+                  import socket, time
+                  label = str(int(time.time())).encode()
+                  query = bytes.fromhex('123400000001000000000000') + bytes([len(label)]) + label + b'\x06health\x00' + b'\x00\x01\x00\x01'
+                  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                  s.settimeout(5)
+                  s.sendto(query, ('127.0.0.1', 53))
+                  response = s.recv(512)
+                  assert response[:2] == query[:2]
+                  assert response[3] & 0xF == 0
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
+            initialDelaySeconds: 30
+          resources:
+            limits: {cpu: "0.5", memory: 128Mi}
+      volumes:
+        - name: config
+          configMap:
+            name: dnsdist-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: dns
+  ports:
+    - {name: dns, port: 5353, targetPort: dns}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dns
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dns
+    spec:
+      containers:
+        - name: dns
+          image: ghcr.io/codingjoe/relay
+          args: ["-m", "manage", "dns", "--port", "5353"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+          envFrom:
+            - configMapRef:
+                name: relay-config
+            - secretRef:
+                name: dotenvx-key
+            - secretRef:
+                name: relay-cluster-env
+          ports:
+            - {name: dns, containerPort: 5353}
+          readinessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)"
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import dns.message, dns.query; dns.query.udp(dns.message.make_query('relay.health', 'A'), '127.0.0.1', port=5353, timeout=5)"
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
+            initialDelaySeconds: 10
+          resources:
+            limits: {cpu: "0.5", memory: 256Mi}
