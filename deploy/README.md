@@ -335,11 +335,12 @@ kubectl --namespace relay port-forward svc/web 8000:8000
 Open `http://localhost:8000`.
 
 `DOTENV_FILE` defaults to `.env.production`, which the deploy workflow builds.
-The target is the development image, with the debug distroless flavor, so
-`kubectl exec` gives a shell. Build again after you change `.env`. The overlay
-runs one replica of each workload with small memory requests. It fixes the
-database, Redis and S3 values, because they point at Services in the cluster.
-Caddy signs every certificate with its own CA, so Caddy never asks ACME.
+`UV_NO_DEV=0` installs the development dependencies. The target is the
+development image, with the debug distroless flavor, so `kubectl exec` gives a
+shell. Build again after you change `.env`. The overlay runs one replica of each
+workload with small memory requests. It fixes the database, Redis and S3 values,
+because they point at Services in the cluster. Caddy signs every certificate
+with its own CA, so Caddy never asks ACME.
 
 ## Architecture
 
