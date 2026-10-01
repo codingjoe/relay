@@ -55,7 +55,9 @@ spec:
             initialDelaySeconds: 30
           resources:
             requests: {cpu: 100m}
-            limits: {cpu: "0.5", memory: 128Mi}
+            # 128Mi is not enough once it is actually serving: it was
+            # OOMKilled while doing real work, then settled at 72Mi.
+            limits: {cpu: "0.5", memory: 256Mi}
       volumes:
         - name: config
           configMap:
