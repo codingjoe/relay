@@ -27,7 +27,6 @@ spec:
             - {name: DOZZLE_HOSTNAME, value: relay}
           ports:
             - {name: http, containerPort: 8080}
-          # Reads logs, like the UI, so a blind pod reports unready.
           readinessProbe:
             httpGet: {path: /healthcheck, port: http}
             periodSeconds: 10

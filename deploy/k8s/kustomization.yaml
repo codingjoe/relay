@@ -10,7 +10,6 @@ resources:
   - mail.yaml
   - data.yaml
   - dozzle.yaml
-# dozzle-rbac.yaml is cluster-scoped. Apply it once with the admin kubeconfig.
 configMapGenerator:
   - name: caddy-config
     files:

@@ -321,22 +321,25 @@ move Kubernetes APIs, and the manifests here are not version pinned.
 
 ## Local stack on minikube
 
-`deploy/minikube` runs the production manifests on minikube. The launcher reads
-`.env`, so the local stack needs no production Secrets and no `.env.keys`.
+Run the production stack on minikube with your `.env`:
 
-1. Make sure that `.env` is in the checkout you run from. A worktree copies it.
-2. Run `deploy/minikube/up.sh`. The script builds the image with `.env` and
-   creates the Secrets. Then it applies the manifests and waits for the
-   migration and the web rollout.
-3. Run the port-forward that the script prints.
-4. Open the URL that the script prints.
+```bash
+minikube start
+docker build --target production -t ghcr.io/codingjoe/relay:local-base .
+docker build -f deploy/minikube/Dockerfile -t ghcr.io/codingjoe/relay:local .
+minikube image load ghcr.io/codingjoe/relay:local
+kubectl apply -f deploy/k8s/dozzle-rbac.yaml
+kubectl apply -k deploy/minikube
+kubectl --namespace relay port-forward svc/web 8000:8000
+```
 
-Run the script again after you change a value in `.env`. The image carries the
-file.
+Open `http://localhost:8000`.
 
-The overlay runs one replica of each workload with small memory requests, so
-the stack fits a laptop. Caddy signs every certificate with its own CA. It
-never asks ACME for a certificate.
+The image carries `.env`, so build it again after you change a value. The
+overlay runs one replica of each workload with small memory requests. It fixes
+the database, Redis and S3 values, because they point at Services in the
+cluster. Caddy signs every certificate with its own CA, so Caddy never asks
+ACME.
 
 ## Architecture
 

@@ -1,258 +1,83 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Run the production stack on minikube. See "Local stack on minikube" in
-# deploy/README.md.
+# Run the production stack on minikube. See deploy/README.md.
 namespace: relay
 resources:
   - ../k8s
-images:
-  - name: ghcr.io/codingjoe/relay
-    newTag: local
-configMapGenerator:
-  # ACME cannot issue for a minikube address, and the mail services read
-  # Caddy's certificate files at startup.
-  - name: caddy-config
-    behavior: replace
-    files:
-      - Caddyfile
+  - namespace.yaml
+secretGenerator:
+  - name: relay-infra
+    literals:
+      - HOSTNAME=localhost
+      - RELAY_STORAGE_DOMAIN=storage.localhost
+      - POSTGRES_PASSWORD=postgres
+      - REDIS_PASSWORD=redis
+      - RELAY_RSPAMD_PASSWORD=rspamd
+      - AWS_S3_ACCESS_KEY_ID=local
+      - AWS_S3_SECRET_ACCESS_KEY=local
+      - AWS_S3_ENDPOINT_URL=http://localhost:9000
+      - AWS_S3_REGION_NAME=fsn1
+  - name: relay-cluster-env
+    literals:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - REDIS_URL=redis://:redis@redis:6379/0
+      - TASK_REDIS_URL=redis://:redis@redis-tasks:6379/0
+      - RELAY_RSPAMD_URL=http://:rspamd@rspamd:11334
+      - RELAY_SMTP_TLS_CERT_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.crt
+      - RELAY_SMTP_TLS_KEY_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.key
+      - RELAY_MX_TLS_CERT_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.crt,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.crt
+      - RELAY_MX_TLS_KEY_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.key,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.key
+  - name: dotenvx-key
+    literals:
+      - DOTENV_PRIVATE_KEY_PRODUCTION=unused
+  - name: redis-config
+    literals:
+      - |-
+        redis.conf=requirepass redis
+        maxmemory 384mb
+        maxmemory-policy allkeys-lru
+      - |-
+        redis-tasks.conf=requirepass redis
+        maxmemory 384mb
+        maxmemory-policy noeviction
+  - name: rspamd-config
+    literals:
+      - worker-controller.inc=password = "rspamd";
 patches:
-  # A laptop runs one replica of each workload with small memory requests, so
-  # the stack fits the node. The limits stay as production sets them.
-  - patch: |-
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: caddy
-      spec:
-        template:
-          spec:
-            containers:
-              - name: caddy
-                resources:
-                  requests: {memory: 128Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: dns
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: dns
-                resources:
-                  requests: {memory: 128Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: dnsdist
-      spec:
-        template:
-          spec:
-            containers:
-              - name: dnsdist
-                resources:
-                  requests: {memory: 128Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: web
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: web
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: worker
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: worker
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: sender
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: sender
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: crontask
-      spec:
-        template:
-          spec:
-            containers:
-              - name: crontask
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: msa
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: msa
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: mta
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: mta
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: rspamd
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: rspamd
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: clamav
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: clamav
-                resources:
-                  requests: {memory: 512Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: storage
-      spec:
-        replicas: 1
-        template:
-          spec:
-            containers:
-              - name: storage
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: dozzle
-      spec:
-        template:
-          spec:
-            containers:
-              - name: dozzle
-                resources:
-                  requests: {memory: 128Mi}
-      ---
-      apiVersion: apps/v1
-      kind: StatefulSet
-      metadata:
-        name: postgres
-      spec:
-        template:
-          spec:
-            containers:
-              - name: postgres
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: apps/v1
-      kind: StatefulSet
-      metadata:
-        name: redis
-      spec:
-        template:
-          spec:
-            containers:
-              - name: redis
-                resources:
-                  requests: {memory: 128Mi}
-      ---
-      apiVersion: apps/v1
-      kind: StatefulSet
-      metadata:
-        name: redis-tasks
-      spec:
-        template:
-          spec:
-            containers:
-              - name: redis-tasks
-                resources:
-                  requests: {memory: 128Mi}
-      ---
-      apiVersion: batch/v1
-      kind: Job
-      metadata:
-        name: migration
-      spec:
-        template:
-          spec:
-            containers:
-              - name: migration
-                resources:
-                  requests: {memory: 256Mi}
-      ---
-      apiVersion: batch/v1
-      kind: Job
-      metadata:
-        name: clamav-updater
-      spec:
-        template:
-          spec:
-            containers:
-              - name: clamav-updater
-                resources:
-                  requests: {memory: 256Mi}
-  # .env carries DEBUG for the local run.
-  - target:
-      kind: ConfigMap
-      name: relay-config
-    patch: |-
-      - op: remove
-        path: /data/DEBUG
   - target:
       kind: PersistentVolumeClaim
     patch: |-
       - op: replace
         path: /spec/storageClassName
         value: standard
+  # A laptop runs one replica of each workload, with small memory requests.
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+  - target:
+      kind: StatefulSet
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+  - target:
+      kind: Job
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+  - target:
+      kind: ConfigMap
+      name: relay-config
+    patch: |-
+      - op: remove
+        path: /data/DEBUG  # .env carries DEBUG

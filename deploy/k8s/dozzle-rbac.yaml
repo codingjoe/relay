@@ -1,10 +1,6 @@
-# Cluster-scoped, so the deploy token cannot create it. Apply it once per
-# cluster with the admin kubeconfig:
+# Cluster-scoped, so the deploy token cannot create it. Apply it once:
 #
 #   kubectl apply -f deploy/k8s/dozzle-rbac.yaml
-#
-# Dozzle only reads logs. Container actions stay off, so the role has no
-# delete verb.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
