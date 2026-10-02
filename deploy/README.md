@@ -261,6 +261,22 @@ kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/msa deploymen
 
 Every deploy rolls those services, so this normally takes care of itself.
 
+### Edge compression and caching
+
+Static files are served by the app through ServeStatic, with pre-compressed
+`zstd` and `gzip` variants. Caddy's `{$HOSTNAME}` block in
+`deploy/k8s/caddy/Caddyfile` additionally compresses on the fly with `br` and
+keeps publicly cacheable responses in `caddy-redis`, so its cache survives a
+Caddy restart.
+
+Caddy creates its cache storer once at startup. If it starts before
+`caddy-redis` answers, it logs a Redis init error and keeps cache entries in
+memory until its next restart, so restart the deployment after such a race:
+
+```bash
+kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/caddy -n relay
+```
+
 ### Logs
 
 One Dozzle instance watches every namespace through the Kubernetes API. It is

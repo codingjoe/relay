@@ -192,3 +192,63 @@ spec:
     app.kubernetes.io/name: redis-tasks
   ports:
     - {name: redis, port: 6379, targetPort: redis}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: caddy-redis
+        dev.dozzle.name: caddy-redis
+        dev.dozzle.group: data
+    spec:
+      containers:
+        - name: caddy-redis
+          image: redis:8.10.1-alpine
+          args: ["redis-server", "/usr/local/etc/redis/caddy.conf"]
+          env:
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
+          ports:
+            - {name: redis, containerPort: 6379}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: config, mountPath: /usr/local/etc/redis, readOnly: true}
+          readinessProbe: &redisProbe
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *redisProbe
+            failureThreshold: 5
+            initialDelaySeconds: 30
+          resources:
+            requests: {cpu: 50m}
+            limits: {cpu: "1", memory: 256Mi}
+      volumes:
+        # The cache is disposable: no volume, a restart leaves it cold.
+        - name: data
+          emptyDir: {}
+        - name: config
+          secret:
+            secretName: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-redis
+spec:
+  selector:
+    app.kubernetes.io/name: caddy-redis
+  ports:
+    - {name: redis, port: 6379, targetPort: redis}
