@@ -2,8 +2,6 @@ lockfileVersion: '9.0'
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
-patchedDependencies:
-  esimport@0.10.0: 65bf863666685636e6ee573973f6163569a2cf443dfdfeb3039d95beca9fa6b5
 importers:
   .:
     dependencies:
@@ -36,8 +34,8 @@ importers:
         specifier: ^0.5.20
         version: 0.5.20(tailwindcss@4.3.3)
       esimport:
-        specifier: ^0.10.0
-        version: 0.10.0(patch_hash=65bf863666685636e6ee573973f6163569a2cf443dfdfeb3039d95beca9fa6b5)
+        specifier: ^0.10.1
+        version: 0.10.1
       postcss:
         specifier: ^8.5.26
         version: 8.5.28
@@ -577,8 +575,8 @@ packages:
   escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
     engines: {node: '>=6'}
-  esimport@0.10.0:
-    resolution: {integrity: sha512-Iy0lMUX2K4gSQ5Nz7JysdyxKQU+lSDXwRDnG3gVMvqz88/FfY6jYAvjdug0GR35TXOuhPWRvgzmt8+YYR7raIA==}
+  esimport@0.10.1:
+    resolution: {integrity: sha512-OY+VyajOr8zEDCt/wg4v0VMIxc3A09C/74m1KTqAM8mzKZu5Pir8dtzcRgOrki2KGc2HCtKRfRMc8Vb8euvCeA==}
     hasBin: true
   fast-glob@3.3.3:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
@@ -1437,7 +1435,7 @@ snapshots:
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
   escalade@3.2.0: {}
-  esimport@0.10.0(patch_hash=65bf863666685636e6ee573973f6163569a2cf443dfdfeb3039d95beca9fa6b5):
+  esimport@0.10.1:
     dependencies:
       commander: 15.0.0
       esbuild: 0.28.2
