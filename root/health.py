@@ -34,7 +34,7 @@ application_checks = [
 
 pipeline_checks = [
     "health_check.contrib.rss.Hetzner",
-    "health_check.contrib.rss.GoogleCloud",
+    "health_check.contrib.rss.GoogleCloud",  # distroless images
     # CI, the image registry, the source checkout, and the API the runner
     # talks to.
     ("health_check.contrib.atlassian.GitHub", {"component": "Actions"}),
