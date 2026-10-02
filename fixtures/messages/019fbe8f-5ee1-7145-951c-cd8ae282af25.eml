@@ -1,0 +1,16 @@
+From: sender3@acme.com
+To: recipient3@example.com
+Message-ID: <test3@acme.com>
+Subject: Test message 3
+Date: Tue, 25 Aug 2026 15:45:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Hello recipient3,
+
+This is the third fixture message. Three sends make
+the message log chart show a trend.
+
+Regards,
+sender3

@@ -333,7 +333,7 @@
       - - Date
         - Sat, 22 Aug 2026 09:14:00 +0000
       - - Content-Type
-        - text/plain; charset="utf-8"
+        - multipart/alternative; boundary="b1_1787390040"
       - - Content-Transfer-Encoding
         - 7bit
       - - MIME-Version
