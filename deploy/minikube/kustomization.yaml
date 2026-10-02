@@ -40,6 +40,12 @@ secretGenerator:
         redis-tasks.conf=requirepass redis
         maxmemory 384mb
         maxmemory-policy noeviction
+      - |-
+        caddy.conf=requirepass redis
+        maxmemory 96mb
+        maxmemory-policy allkeys-lru
+        save ""
+        appendonly no
   - name: rspamd-config
     literals:
       - worker-controller.inc=password = "rspamd";

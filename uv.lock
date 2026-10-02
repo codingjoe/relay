@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.14.*"
 
 [[package]]
@@ -1223,10 +1223,10 @@ dependencies = [
     { name = "python-json-logger" },
     { name = "redis" },
     { name = "sentry-sdk" },
+    { name = "servestatic" },
     { name = "social-auth-app-django" },
     { name = "threadmill", extra = ["redis"] },
     { name = "validators" },
-    { name = "whitenoise" },
 ]
 
 [package.dev-dependencies]
@@ -1266,7 +1266,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-crontask", specifier = ">=2" },
     { name = "django-environ", specifier = ">=0.14" },
-    { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8.0" },
+    { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8" },
     { name = "django-letter", specifier = ">=0.6" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
@@ -1284,10 +1284,10 @@ requires-dist = [
     { name = "python-json-logger", specifier = ">=4.2" },
     { name = "redis", specifier = ">=8.1" },
     { name = "sentry-sdk", specifier = ">=2.71" },
-    { name = "social-auth-app-django", specifier = ">=6.0.1" },
+    { name = "servestatic", specifier = ">=4.3" },
+    { name = "social-auth-app-django", specifier = ">=6.1" },
     { name = "threadmill", extras = ["redis"], specifier = ">=0.7.3" },
     { name = "validators", specifier = ">=0.35" },
-    { name = "whitenoise", specifier = ">=6.12" },
 ]
 
 [package.metadata.requires-dev]
@@ -1383,6 +1383,18 @@ wheels = [
 ]
 
 [[package]]
+name = "servestatic"
+version = "4.3.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/dc/62/d0c5e77182fde15b6f04157aa1362a19b3e50436f782c7e090d6bf0aa73f/servestatic-4.3.4.tar.gz", hash = "sha256:fef61ea48b708f1e3a7f7fd29b3e70ad563486933ba1df97018f335e1abe9997", size = 33755, upload-time = "2026-09-07T02:13:36.294Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/05/7c/f0f0ebb0d4d6864eeab8396556d906fbac4159e8a9e9bc687c48a87c119b/servestatic-4.3.4-py3-none-any.whl", hash = "sha256:5e467887d527ae7e8f12b511d6e99cf3b842a9f988e1a4d01f13e7e7e0e6b7dd", size = 40888, upload-time = "2026-09-07T02:13:35.042Z" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1393,21 +1405,21 @@ wheels = [
 
 [[package]]
 name = "social-auth-app-django"
-version = "6.0.1"
+version = "6.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "django" },
     { name = "social-auth-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cd/7a/5d3f1e4a90edaff35824864c233a3c6a291621cc9dd39c157431fbb6376d/social_auth_app_django-6.0.1.tar.gz", hash = "sha256:43002de0530e2ad13ef067f54aba7185a05fc8527310006c5328dc0b5e7a4cfd", size = 31664, upload-time = "2026-07-24T06:55:59.119Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/29/8c/813d5fdcc1b81500b4803bd4807825321c307fc45bae9efcfa5d660d4aa8/social_auth_app_django-6.1.0.tar.gz", hash = "sha256:7ce0489710f450dafd652833eea833505ccf5dacda6b188daa8bf90038986557", size = 47148, upload-time = "2026-09-30T16:42:17.508Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/e9/c0b06b90b76d02b8e45d6989d0adb947df9b6d9b37d3c96e486f2de37bdb/social_auth_app_django-6.0.1-py3-none-any.whl", hash = "sha256:652ec21105ef58a34ffd223a02c338bc03e5f56d357ee69c33283afd08442065", size = 29481, upload-time = "2026-07-24T06:55:58.115Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/18/e64decbe38a820c6e844658d079c6f37108035161cb95352ffa6a79a03fc/social_auth_app_django-6.1.0-py3-none-any.whl", hash = "sha256:b192b1f7c432c7d5d552ac44f43d07c7c01bfd528c6dfa0f7605df5a8495afd8", size = 38879, upload-time = "2026-09-30T16:42:16.49Z" },
 ]
 
 [[package]]
 name = "social-auth-core"
-version = "5.0.2"
+version = "5.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -1418,9 +1430,9 @@ dependencies = [
     { name = "requests" },
     { name = "requests-oauthlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a9/b7/f2878b7ce6a5195aa2f14eef8337f2734940b11d68e14a36308770b633d7/social_auth_core-5.0.2.tar.gz", hash = "sha256:f53930c9b2a86ee0fc8e8fb0eac79221cfc2f017d9efb578691e5a3e2cf36784", size = 260859, upload-time = "2026-06-26T07:25:19.522Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/0b/8d5137b3a020719702e1d159a68c6c4dd863e1ae57fd4875a4a68b2855fe/social_auth_core-5.2.0.tar.gz", hash = "sha256:72d3c52fe87d07c0db8421fee5f5ec33b3dacce449975b8a572cd0691e3de315", size = 292820, upload-time = "2026-09-30T15:55:58.723Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f9/04/7530b56a1eaa33bac6595739b19e4ebe3fe9d35a5c5f188790de9d3c26de/social_auth_core-5.0.2-py3-none-any.whl", hash = "sha256:c7250f0c1d539bb1420a7d165b240f066d866ec19d9b829e660260f024f0e2d3", size = 459405, upload-time = "2026-06-26T07:25:18.009Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/31/245e19405808689b60810ec8ebd0a4d6be51d73e69c810e686fb7aede33a/social_auth_core-5.2.0-py3-none-any.whl", hash = "sha256:e7b9990450291488deffce8d92d14d4396021b8d3c4a0ac5c32ec03bfaccc496", size = 492771, upload-time = "2026-09-30T15:55:57.372Z" },
 ]
 
 [[package]]
@@ -1524,13 +1536,4 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/66/a435d9ae49850b2f071f7ebd8119dd4e84872b01630d6736761e6e7fd847/validators-0.35.0.tar.gz", hash = "sha256:992d6c48a4e77c81f1b4daba10d16c3a9bb0dbb79b3a19ea847ff0928e70497a", size = 73399, upload-time = "2025-05-01T05:42:06.7Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/6e/3e955517e22cbdd565f2f8b2e73d52528b14b8bcfdb04f62466b071de847/validators-0.35.0-py3-none-any.whl", hash = "sha256:e8c947097eae7892cb3d26868d637f79f47b4a0554bc6b80065dfe5aac3705dd", size = 44712, upload-time = "2025-05-01T05:42:04.203Z" },
-]
-
-[[package]]
-name = "whitenoise"
-version = "6.12.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cb/2a/55b3f3a4ec326cd077c1c3defeee656b9298372a69229134d930151acd01/whitenoise-6.12.0.tar.gz", hash = "sha256:f723ebb76a112e98816ff80fcea0a6c9b8ecde835f8ddda25df7a30a3c2db6ad", size = 26841, upload-time = "2026-02-27T00:05:42.028Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/eb/d5583a11486211f3ebd4b385545ae787f32363d453c19fffd81106c9c138/whitenoise-6.12.0-py3-none-any.whl", hash = "sha256:fc5e8c572e33ebf24795b47b6a7da8da3c00cff2349f5b04c02f28d0cc5a3cc2", size = 20302, upload-time = "2026-02-27T00:05:40.086Z" },
 ]

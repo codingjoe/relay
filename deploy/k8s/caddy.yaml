@@ -27,6 +27,9 @@ spec:
             - name: HOSTNAME
               valueFrom:
                 secretKeyRef: {name: relay-infra, key: HOSTNAME}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
             - name: RELAY_STORAGE_DOMAIN
               valueFrom:
                 secretKeyRef: {name: relay-infra, key: RELAY_STORAGE_DOMAIN}
