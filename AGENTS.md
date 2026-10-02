@@ -97,8 +97,8 @@ one as the `KUBECONFIG` secret; on your machine, read the admin kubeconfig from
   `sus`, `real`, `cap`, `receipts`, `yeet`, `duh`, `NPC`, `cringe`, `glow up`,
   `ghost`, `delulu`, `kept`, `dropped`. Reuse these labels and the colors they
   carry; do not invent new ones. Feature requests keep `enhancement`, and
-  Dependabot's own labels stay spelled the way the bot writes them. The
-  `Issue labels` section of `CONVENTIONS.md` says what each one means.
+  Dependabot's own labels stay spelled the way the bot writes them. Each label's
+  description on GitHub says what it means.
 - **`root/views.py` must not import models from other first-party apps.**
   Cross-app views belong in their corresponding app.
 - **`Model.save()` must include `update_fields=`** to avoid race conditions.
@@ -170,7 +170,7 @@ developer still has the same UX without needing a superuser.
 ## Pointers to further documentation
 
 - `CONVENTIONS.md`. Authoritative coding conventions (URLs, PKs, model fields,
-  save patterns, control flow, imports, authentication, naming, issue labels).
+  save patterns, control flow, imports, authentication, naming).
 - `README.md`. Setup guide, architecture overview, app dependency graph,
   free sender domain docs.
 - `REVIEW.md`. The reviewer's standing rules (conventions, dependency
