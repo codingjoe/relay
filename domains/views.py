@@ -10,6 +10,7 @@ from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 
 from . import resolver
+from .forms import DomainCreateForm
 from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
 
@@ -24,8 +25,7 @@ class DomainListView(OrganizationScopedView, generic.ListView):
 
 
 class DomainCreateView(OrganizationScopedView, generic.CreateView):
-    model = Domain
-    fields = ["name"]
+    form_class = DomainCreateForm
     title = _("New domain")
     parent = "domains:domain-list"
 
@@ -180,7 +180,7 @@ class MtaStsAuthorizeView(NoStoreCacheMixin, generic.View):
                     domain = Domain.objects.get(name=name)
                 except Domain.DoesNotExist:
                     domain = None
-        # Every organization can register a name below the platform domain, so
+        # A row below the platform domain bypasses the name validation, so
         # only relay's own managed domains are valid hosts there.
         platform = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
         authorized = (
