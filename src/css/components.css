@@ -77,3 +77,15 @@
 .snippet-tabs > [role='tabpanel'] {
   grid-column: 1 / -1;
 }
+
+/* Basecoat flips the switch knob with `html.dark` selectors. Mirror them
+   under the media query, since no element carries that class. */
+@media (prefers-color-scheme: dark) {
+  :is(.field > input[type='checkbox'][role='switch'], .input[type='checkbox'][role='switch']):not(:checked)::before {
+    background-color: var(--color-foreground);
+  }
+
+  :is(.field > input[type='checkbox'][role='switch'], .input[type='checkbox'][role='switch']):checked::before {
+    background-color: var(--color-primary-foreground);
+  }
+}

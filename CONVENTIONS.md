@@ -286,10 +286,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   markup: `data-dialog`, `data-dialog-close`, `data-backdrop-close`,
   `data-auto-open`, `data-confirm`, `data-copy`, `data-share`, `data-href`,
   `data-toggle`, `data-select`, `data-mirror`.
-  `root/static/js/theme.js` is the one exception: `base.html` loads it as a
-  classic (blocking) script before the app modules so the `dark` class is
-  set before first paint. Never convert it to a module; deferred scripts
-  flash the light theme.
+  Theme detection is CSS-only: there is no theme toggle, so `theme.css`
+  redefines Tailwind's `dark` variant as `prefers-color-scheme: dark` and
+  mirrors basecoat's class-based dark palette in the same media query. Never
+  set or test a `dark` class; in JavaScript use
+  `matchMedia("(prefers-color-scheme: dark)")` instead.
 
 - Third-party JavaScript comes from npm, never from a CDN. Import it by
   package name (`import { html } from "lit"`) and let the import map
