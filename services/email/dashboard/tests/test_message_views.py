@@ -201,6 +201,33 @@ class TestMessageDetailAddressLinks:
 
 
 @pytest.mark.django_db
+class TestMessageDetailBreadcrumbs:
+    def test_get__ends_with_the_subject(self, admin_client, org):
+        message = make_incoming(org)
+        message.subject = "Quarterly invoice"
+        message.save(update_fields=["subject"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert [crumb["title"] for crumb in response.context["breadcrumbs"]] == [
+            str(org),
+            "Message log",
+            "Quarterly invoice",
+        ]
+
+    def test_get__falls_back_to_the_object_string_without_a_subject(
+        self, admin_client, org
+    ):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert response.context["breadcrumbs"][-1]["title"] == str(message)
+
+
+@pytest.mark.django_db
 class TestMessageDetailStatusCard:
     def test_get__shows_the_status_and_the_delivery_summary(self, admin_client, org):
         message = make_incoming(org)
