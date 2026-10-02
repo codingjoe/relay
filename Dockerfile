@@ -2,7 +2,8 @@ ARG DISTROLESS_FLAVOR=nonroot
 
 FROM node:26-slim AS frontend
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY --exclude=.env ./ /app
@@ -44,8 +45,9 @@ COPY --exclude=.env ./ /app
 RUN /opt/venv/bin/python -m manage compilemessages
 
 COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
+COPY --from=frontend /app/staticfiles/esm /app/staticfiles/esm
 
-RUN /opt/venv/bin/python -m manage collectstatic --no-input
+RUN /opt/venv/bin/python -m manage collectstatic --no-input --no-esm
 
 FROM gcr.io/distroless/cc:${DISTROLESS_FLAVOR} AS development
 

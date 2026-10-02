@@ -1,7 +1,7 @@
-import * as echarts from "https://esm.sh/echarts@5.6.0";
-import escapeHtml from "https://esm.sh/lodash.escape@4.0.1";
+import * as echarts from "echarts";
+import escapeHtml from "lodash.escape";
 
-import { toRgba } from "./chart.js";
+import { toRgba } from "#abstract/chart.js";
 
 function capitalize(text) {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;

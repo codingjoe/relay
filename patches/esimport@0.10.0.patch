@@ -1,0 +1,56 @@
+diff --git a/esimport.mjs b/esimport.mjs
+index 917999f659c5847a9fe9cee56d4cb97f3b0c2bf8..a19f93747949935db9589562f1fc093adbadaa37 100755
+--- a/esimport.mjs
++++ b/esimport.mjs
+@@ -126,7 +126,11 @@ export async function expandSubpathPattern(pattern, cwd) {
+       ignore: 'node_modules/**',
+       posix: true,
+     })
+-  ).filter((filePath) => /\.([mc]?jsx?|tsx?|css|txt|json)$/.test(filePath))
++  ).filter(
++    (filePath) =>
++      !filePath.endsWith('.d.ts') &&
++      /\.([mc]?jsx?|tsx?|css|txt|json)$/.test(filePath),
++  )
+ }
+ 
+ /**
+@@ -184,7 +188,10 @@ export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot)
+     } else {
+       for (const subpath of await expandSubpathPattern(pathPattern, cwd)) {
+         const importPath = path2EntryPoint(subpath, pathPattern, entryPointPattern)
+-        entryPointMap[importPath] = path.relative(projectRoot, path.join(cwd, subpath))
++        entryPointMap[importPath] = path.relative(
++          projectRoot,
++          await fs.realpath(path.join(cwd, subpath)),
++        )
+       }
+     }
+   }
+@@ -212,7 +219,7 @@ export async function bundleExports(cwd, projectRoot) {
+   return await expandEntryPoints(
+     packageInfo.name,
+     packageInfo.exports || {
+-      '.': packageInfo.browser || packageInfo.module || packageInfo.main,
++      '.': packageInfo.browser || packageInfo.module || packageInfo.main || './index.js',
+     },
+     cwd,
+     projectRoot,
+@@ -550,6 +557,8 @@ export async function run(packageDir, outputDir, options) {
+     ? outputDir
+     : path.join(process.cwd(), outputDir)
+ 
++  packageDir = await fs.realpath(packageDir)
++
+   const [entryPoints, external] = await compileEntryPoints(packageDir)
+ 
+   const context = await esbuild.context({
+@@ -670,7 +679,7 @@ export async function main(argv) {
+ 
+ /* node:coverage ignore next 6 */
+ if (
+-  process.argv[1] === fileURLToPath(import.meta.url) ||
++  (await fs.realpath(process.argv[1] ?? '')) === fileURLToPath(import.meta.url) ||
+   path.basename(process.argv[1]) === 'esimport' // npx
+ ) {
+   await main(process.argv)

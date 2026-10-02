@@ -1,3 +1,6 @@
+import "basecoat-css/all.min";
+import { createIcons, icons } from "lucide";
+
 (() => {
   try {
     const stored = localStorage.getItem("themeMode");
@@ -114,5 +117,5 @@ document.addEventListener("DOMContentLoaded", () => {
   for (const dialog of document.querySelectorAll("dialog[data-auto-open]")) {
     dialog.showModal();
   }
-  if (globalThis.lucide) globalThis.lucide.createIcons();
+  createIcons({ icons });
 });

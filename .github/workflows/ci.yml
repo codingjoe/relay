@@ -64,7 +64,7 @@ jobs:
       - run: pnpm ci --frozen-lockfile
       - run: pnpm run build
       - run: uv run python manage.py check
-      - run: uv run python manage.py collectstatic --no-input
+      - run: uv run python manage.py collectstatic --no-input --no-esm
       - run: uv run python manage.py makemigrations --check --dry-run
       - run: uv run py.test --cov --cov-report=xml --maxfail=5 -n auto "--randomly-seed=${{ github.run_id }}"
       - uses: codecov/codecov-action@v7

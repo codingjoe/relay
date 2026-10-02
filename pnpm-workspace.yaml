@@ -1,0 +1,9 @@
+# esimport 0.10.0 cannot resolve pnpm's symlinked dependencies (entry point
+# detection and tree shaking) and treats TypeScript declaration files as entry
+# points. Drop the patch once a release carries the fixes.
+allowBuilds:
+  esbuild: false
+minimumReleaseAgeExclude:
+  - lucide@1.50.0
+patchedDependencies:
+  esimport@0.10.0: patches/esimport@0.10.0.patch
