@@ -91,6 +91,14 @@ one as the `KUBECONFIG` secret; on your machine, read the admin kubeconfig from
 - **Extend `.relint.yml`** when a convention can be enforced by regex. Move
   enforced rules out of `CONVENTIONS.md`: `CONVENTIONS.md` documents for
   humans, `.relint.yml` enforces for machines.
+- **Label every issue you file with the superJoe vocabulary**, one lane and one
+  tag, the two halves of a finding line, `<tag>: <lane> <what>.` Lanes: `sec`,
+  `bug`, `perf`, `naming`, `bloat`, `doc`, `test`, `deps`. Tags: `side quest`,
+  `sus`, `real`, `cap`, `receipts`, `yeet`, `duh`, `NPC`, `cringe`, `glow up`,
+  `ghost`, `delulu`, `kept`, `dropped`. Reuse these labels and the colors they
+  carry; do not invent new ones. Feature requests keep `enhancement`, and
+  Dependabot's own labels stay spelled the way the bot writes them. The
+  `Issue labels` section of `CONVENTIONS.md` says what each one means.
 - **`root/views.py` must not import models from other first-party apps.**
   Cross-app views belong in their corresponding app.
 - **`Model.save()` must include `update_fields=`** to avoid race conditions.
@@ -162,7 +170,7 @@ developer still has the same UX without needing a superuser.
 ## Pointers to further documentation
 
 - `CONVENTIONS.md`. Authoritative coding conventions (URLs, PKs, model fields,
-  save patterns, control flow, imports, authentication, naming).
+  save patterns, control flow, imports, authentication, naming, issue labels).
 - `README.md`. Setup guide, architecture overview, app dependency graph,
   free sender domain docs.
 - `REVIEW.md`. The reviewer's standing rules (conventions, dependency
