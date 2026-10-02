@@ -20,7 +20,7 @@ from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
-from .tasks import check_outgoing_spam
+from .tasks import check_outgoing_spam, deliver_message
 
 logger = logging.getLogger(__name__)
 
@@ -172,12 +172,14 @@ def store_outgoing_message(
     client_ip,
     raw_bytes,
     started_at,
+    is_system_mail=False,
     message_pk=None,
 ):
     """
     Store an outgoing message with its submission record.
 
-    Enqueues spam processing for deliverable messages.
+    Enqueues spam processing for customer submissions, and delivery directly
+    for the system mail relay authored itself.
     """
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
@@ -198,12 +200,17 @@ def store_outgoing_message(
             raw_body=SimpleUploadedFile("message.eml", raw_bytes),
         )
     if status == OutgoingMessage.Status.PENDING:
-        transaction.on_commit(
-            lambda: check_outgoing_spam.enqueue(
-                message_pk=str(message.id),
-                client_ip=client_ip,
+        if is_system_mail:
+            transaction.on_commit(
+                lambda: deliver_message.enqueue(message_id=str(message.id))
             )
-        )
+        else:
+            transaction.on_commit(
+                lambda: check_outgoing_spam.enqueue(
+                    message_pk=str(message.id),
+                    client_ip=client_ip,
+                )
+            )
     return message
 
 
@@ -241,6 +248,7 @@ def submit_relay_message(
         client_ip=client_ip,
         raw_bytes=raw_bytes,
         started_at=started_at,
+        is_system_mail=True,
         message_pk=message_pk,
     )
 

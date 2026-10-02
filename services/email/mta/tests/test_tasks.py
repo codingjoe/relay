@@ -203,11 +203,15 @@ def forwarded_copy(message):
 @pytest.mark.django_db(transaction=True)
 class TestForwardPostmasterMessage:
     @pytest.fixture(autouse=True)
-    def spam_check(self, monkeypatch):
-        """Keep the queued spam scans off rspamd."""
-        check = Mock()
-        monkeypatch.setattr("services.email.msa.handlers.check_outgoing_spam", check)
-        return check
+    def queued_tasks(self, monkeypatch):
+        """Keep the queued scans and deliveries off rspamd and the network."""
+        spam_check = Mock()
+        monkeypatch.setattr(
+            "services.email.msa.handlers.check_outgoing_spam", spam_check
+        )
+        delivery = Mock()
+        monkeypatch.setattr("services.email.msa.handlers.deliver_message", delivery)
+        return SimpleNamespace(spam_check=spam_check, delivery=delivery)
 
     def test_forward_postmaster_message__submits_a_copy_per_member_with_email(
         self, org, other_user
@@ -338,15 +342,17 @@ class TestForwardPostmasterMessage:
         assert transmission.status == Transmission.Status.SUBMITTED
 
     def test_forward_postmaster_message__queues_every_copy_for_delivery(
-        self, org, other_user, spam_check
+        self, org, other_user, queued_tasks
     ):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
+        queued_tasks.spam_check.enqueue.assert_not_called()
         assert sorted(
-            call.kwargs["message_pk"] for call in spam_check.enqueue.call_args_list
+            call.kwargs["message_id"]
+            for call in queued_tasks.delivery.enqueue.call_args_list
         ) == sorted(
             str(pk)
             for pk in OutgoingMessage.objects.filter(org=org).values_list(
