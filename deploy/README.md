@@ -93,8 +93,9 @@ creates the cluster-scoped Dozzle RBAC. See `deploy/cloud-init.yaml.tmpl`.
 ## 5. Check it
 
 ```bash
-curl https://relays.to/health/
-curl https://relays.to/health/soa/
+curl https://relays.to/health/node/        # host resources, the container probes
+curl https://relays.to/health/application/ # every dependency relay controls
+curl https://relays.to/health/pipeline/    # third-party status pages the pipeline depends on
 openssl s_client -connect smtp.relays.to:587 -starttls smtp
 openssl s_client -connect mx1.relays.to:25 -starttls smtp
 dig +short pg.relays.to storage.relays.to

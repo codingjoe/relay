@@ -99,12 +99,14 @@
 
 {$HOSTNAME} {
 	cache
-	# No health_uri here. Caddy proxies to the web Service, so the check would
-	# probe the Service, not the pods, and the kubelet's readiness probe already
-	# removes an unready pod from that Service's endpoints. It also cannot pass:
-	# the check sends Host: web:8000, which Django refuses with a 400, and Caddy
-	# reads that as the only upstream being down and answers 503 to everything.
-	reverse_proxy web:8000
+	reverse_proxy web:8000 {
+		health_uri /health/node/
+		health_headers {
+			Host {$HOSTNAME}
+		}
+		health_interval 15s
+		health_fails 3
+	}
 }
 
 smtp.{$HOSTNAME} {

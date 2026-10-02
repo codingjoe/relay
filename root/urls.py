@@ -1,74 +1,11 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from health_check.views import HealthCheckView
-from redis.asyncio import Redis
 
 from . import views
 
 urlpatterns = [
-    path(
-        "health/",
-        include(
-            [
-                path(
-                    "",
-                    HealthCheckView.as_view(
-                        checks=[
-                            "health_check.contrib.psutil.Disk",
-                            "health_check.contrib.psutil.Memory",
-                        ]
-                    ),
-                    name="health",
-                ),
-                # Status page for every dependency.
-                path(
-                    "soa/",
-                    HealthCheckView.as_view(
-                        checks=[
-                            "health_check.Database",
-                            "health_check.Cache",
-                            (
-                                "health_check.contrib.redis.Redis",
-                                {
-                                    "client_factory": lambda: Redis.from_url(
-                                        settings.REDIS_URL
-                                    )
-                                },
-                            ),
-                            (
-                                "health_check.contrib.redis.Redis",
-                                {
-                                    "client_factory": lambda: Redis.from_url(
-                                        settings.TASK_REDIS_URL
-                                    )
-                                },
-                            ),
-                            *(
-                                (
-                                    "health_check.contrib.threadmill.Threadmill",
-                                    {"queue_name": queue_name},
-                                )
-                                for queue_name in settings.TASK_QUEUES
-                            ),
-                            "health_check.contrib.crontask.Scheduler",
-                            "health_check.Storage",
-                            "health_check.Mail",
-                            (
-                                "health_check.DNS",
-                                {
-                                    "hostname": "mail.relay.open.relays.to",
-                                    "record_type": "MX",
-                                },
-                            ),
-                            "health_check.contrib.rss.Hetzner",
-                        ]
-                    ),
-                    name="soa",
-                ),
-            ]
-        ),
-    ),
+    path("health/", include("root.health")),
     path("", views.HomeView.as_view(), name="home"),
     path("open-source/", views.OpenSourceView.as_view(), name="open-source"),
     # Platform (not org-scoped)
