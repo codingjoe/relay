@@ -493,10 +493,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 ## Issue labels
 
-- Label every issue the superJoe crew files with one lane and one tag, the two
-  halves of a finding line, `<tag>: <lane> <what>.` The lane names what kind of
-  defect it is, the tag names how far the finding got.
-
 - Lanes: `sec` (exploitability, secrets, authorization), `bug` (correctness),
   `perf` (speed and memory), `naming` (names and readability), `bloat`
   (over-engineering and dead code), `doc` (docstrings, comments, README), `test`
