@@ -288,9 +288,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `data-toggle`, `data-select`, `data-mirror`.
   Theme detection is CSS-only: there is no theme toggle, so `theme.css`
   redefines Tailwind's `dark` variant as `prefers-color-scheme: dark` and
-  mirrors basecoat's class-based dark palette in the same media query. Never
-  set or test a `dark` class; in JavaScript use
-  `matchMedia("(prefers-color-scheme: dark)")` instead. Basecoat's two
+  restates basecoat's palette as `light-dark()` tokens, which is what the
+  `color-scheme: light dark` on `:root` feeds. The three icon tokens hold
+  `url()` values, which `light-dark()` is not specified to accept, so they
+  keep a small media query. Never set or test a `dark` class; in JavaScript
+  use `matchMedia("(prefers-color-scheme: dark)")` instead. Basecoat's two
   `html.dark` switch-knob rules are deliberately not mirrored, because relay
   renders no switch. Mirror them in `components.css` if one appears.
 
