@@ -36,10 +36,10 @@ dependencies = [
   "python-json-logger>=4.2",
   "redis>=8.1",
   "sentry-sdk>=2.71",
+  "servestatic>=4.3",
   "social-auth-app-django>=6.1",
   "threadmill[redis]>=0.7.3",
   "validators>=0.35",
-  "whitenoise>=6.12",
 ]
 
 [dependency-groups]

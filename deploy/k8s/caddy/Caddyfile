@@ -6,7 +6,21 @@
 		format json
 	}
 
-	cache
+	cache {
+		# Key by encoding, or an uncompressed entry gets served to everyone.
+		key {
+			headers Accept-Encoding
+		}
+		redis {
+			configuration {
+				InitAddress caddy-redis:6379
+				Password {$REDIS_PASSWORD}
+				# Part of the storer UUID; omitting them drops the Redis cache.
+				ClientName souin-redis
+				SelectDB 0
+			}
+		}
+	}
 
 	on_demand_tls {
 		permission http http://web:8000/internal/mta-sts/authorize/
@@ -99,6 +113,7 @@
 
 {$HOSTNAME} {
 	cache
+	encode zstd br gzip
 	reverse_proxy web:8000 {
 		health_uri /health/node/
 		health_headers {
