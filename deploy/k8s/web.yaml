@@ -35,7 +35,7 @@ spec:
               command:
                 - python
                 - -c
-                - 'import os, urllib.request; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8000/health/", headers={"Host": os.environ["HOSTNAME"]}), timeout=5)'
+                - 'import os, urllib.request; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8000/health/node/", headers={"Host": os.environ["HOSTNAME"]}), timeout=5)'
             periodSeconds: 15
             timeoutSeconds: 10
             failureThreshold: 3
@@ -44,7 +44,7 @@ spec:
               command:
                 - python
                 - -c
-                - 'import os, urllib.request; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8000/health/", headers={"Host": os.environ["HOSTNAME"]}), timeout=5)'
+                - 'import os, urllib.request; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8000/health/node/", headers={"Host": os.environ["HOSTNAME"]}), timeout=5)'
             periodSeconds: 10
             timeoutSeconds: 10
             failureThreshold: 3
@@ -110,7 +110,7 @@ spec:
                 name: relay-cluster-env
           livenessProbe:
             exec:
-              command: ["python", "-m", "manage", "health_check", "health", "--no-http"]
+              command: ["python", "-m", "manage", "health_check", "health-node", "--no-http"]
             periodSeconds: 15
             timeoutSeconds: 10
             failureThreshold: 3
@@ -165,7 +165,7 @@ spec:
                 name: relay-cluster-env
           livenessProbe:
             exec:
-              command: ["python", "-m", "manage", "health_check", "health", "--no-http"]
+              command: ["python", "-m", "manage", "health_check", "health-node", "--no-http"]
             periodSeconds: 15
             timeoutSeconds: 10
             failureThreshold: 3
@@ -204,7 +204,7 @@ spec:
                 name: relay-cluster-env
           livenessProbe:
             exec:
-              command: ["python", "-m", "manage", "health_check", "health", "--no-http"]
+              command: ["python", "-m", "manage", "health_check", "health-node", "--no-http"]
             periodSeconds: 15
             timeoutSeconds: 10
             failureThreshold: 3

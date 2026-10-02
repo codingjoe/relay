@@ -458,15 +458,15 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.7.2"
+version = "4.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d2/03/18136756b389d5ead6cd126084136263109087ee42f418990a2a044cb45a/django_health_check-4.7.2.tar.gz", hash = "sha256:a36e588bbf530f5129f1c14276715b931f2ad3f367acb02c58fb4fb89178405f", size = 24357, upload-time = "2026-10-01T22:02:46.494Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/3a/d0ed4f7fc42832f0d6201c343d59633fc49adba4a5567cba97bb1edede7d/django_health_check-4.8.0.tar.gz", hash = "sha256:3f7e8fd0e85ebb2a62bdaf96bd0e990f93b4c6bbaca68778df79b2cf1810884b", size = 24669, upload-time = "2026-10-02T11:40:15.45Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/08/7fe841ec32634defc28ac8b1d3748da6efea389a5453b4e0da1bdf94d3b6/django_health_check-4.7.2-py3-none-any.whl", hash = "sha256:c5d3568d39b6a539154b070c4e463670fd0ebf6514ed1a1eb2e21f1a7ec36c5b", size = 30443, upload-time = "2026-10-01T22:02:44.84Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/5d/9cde569955ecb9c9c669e6143a4976987243fa749702e12f235ec14e84cd/django_health_check-4.8.0-py3-none-any.whl", hash = "sha256:d377aba46a029c8eac5ce6170cce5b67a8ecd70180b1212c9eb302f22691da7a", size = 30752, upload-time = "2026-10-02T11:40:14.256Z" },
 ]
 
 [package.optional-dependencies]
@@ -1266,7 +1266,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-crontask", specifier = ">=2" },
     { name = "django-environ", specifier = ">=0.14" },
-    { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.7.2" },
+    { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8.0" },
     { name = "django-letter", specifier = ">=0.6" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
