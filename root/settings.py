@@ -18,6 +18,7 @@ from pathlib import Path
 import environ
 from cryptography.fernet import Fernet
 from django.tasks import DEFAULT_TASK_QUEUE_NAME
+from django.utils.csp import CSP
 
 env = environ.Env(
     # set casting, default value
@@ -77,6 +78,24 @@ DEBUG_TOOLBAR_CONFIG = {
     "SHOW_COLLAPSED": True,
 }
 
+
+# Content Security Policy
+# https://docs.djangoproject.com/en/6.1/howto/csp/
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    "img-src": [CSP.SELF, "data:", "https://www.gravatar.com"],
+    "font-src": [CSP.SELF],
+    "media-src": [CSP.SELF],
+    "connect-src": [CSP.SELF],
+    "frame-src": [CSP.SELF],
+    "form-action": [CSP.SELF],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.NONE],
+    "frame-ancestors": [CSP.NONE],
+}
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
@@ -128,6 +147,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "root.middleware.ContentSecurityPolicyMiddleware",
     *(
         [
             "django_devbar.DevBarMiddleware",

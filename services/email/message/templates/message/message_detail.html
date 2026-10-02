@@ -156,7 +156,7 @@
     </header>
     <div class="tabs" id="message-tabs">
       <nav role="tablist" aria-orientation="horizontal">
-        {% if html_body %}
+        {% if has_html_body %}
           <button
             type="button"
             role="tab"
@@ -173,8 +173,8 @@
           role="tab"
           id="message-tab-text"
           aria-controls="message-panel-text"
-          aria-selected="{% if html_body %}false{% else %}true{% endif %}"
-          tabindex="{% if html_body %}-1{% else %}0{% endif %}"
+          aria-selected="{% if has_html_body %}false{% else %}true{% endif %}"
+          tabindex="{% if has_html_body %}-1{% else %}0{% endif %}"
         >
           {% translate "text"|capfirst %}
         </button>
@@ -189,7 +189,7 @@
           {% translate "headers"|capfirst %}
         </button>
       </nav>
-      {% if html_body %}
+      {% if has_html_body %}
         <div
           role="tabpanel"
           id="message-panel-html"
@@ -202,7 +202,7 @@
             class="h-[36rem] w-full rounded-xl border bg-white"
             sandbox
             referrerpolicy="no-referrer"
-            srcdoc="{{ html_body }}"
+            src="{{ body_url }}"
             title='{% translate "HTML body" %}'
           ></iframe>
         </div>
@@ -212,8 +212,8 @@
         id="message-panel-text"
         aria-labelledby="message-tab-text"
         tabindex="-1"
-        aria-selected="{% if html_body %}false{% else %}true{% endif %}"
-        {% if html_body %}hidden{% endif %}
+        aria-selected="{% if has_html_body %}false{% else %}true{% endif %}"
+        {% if has_html_body %}hidden{% endif %}
       >
         <article class="card gap-0 p-0 overflow-hidden">
           <div class="px-6 py-6 flex flex-col gap-6">

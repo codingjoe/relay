@@ -35,6 +35,13 @@
   hint: |
     Use {% translate %} instead of the shorthand {% trans %}.
   filePattern: .*\.html$
+- name: No inline scripts in templates
+  pattern: '<script(?![^>]*\bsrc=)(?![^>]*type="importmap")[^>]*>'
+  hint: |
+    The enforced CSP loads scripts from relay alone (`script-src 'self'`). Load a static ES
+    module with `<script type="module" src="{% static '...' %}">` and pass per-render data
+    with `json_script` or `data-*` attributes. The ESM import map is the only inline script.
+  filePattern: .*\.html$
 - name: Input group icon buttons use the icon-xs size
   pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*<i data-lucide'
   hint: 'Icon buttons inside an `.input-group` use the app''s `data-size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. Without it the button takes the default 36px and fills the whole field.'

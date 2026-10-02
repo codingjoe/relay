@@ -268,6 +268,13 @@ class Message(TimeStamped):
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
+    def get_body_url(self) -> str:
+        """Return the URL of the view serving the HTML body to a sandboxed frame."""
+        return reverse(
+            "message:message-body",
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
+
     @classmethod
     def status_choices(cls) -> list[tuple[str, str]]:
         """Return status choices collected from all concrete subclasses."""
