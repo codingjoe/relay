@@ -8,6 +8,7 @@ from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.csp import csp_override
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
@@ -178,6 +179,7 @@ MESSAGE_BODY_CSP = {
 
 
 @method_decorator(csp_override(MESSAGE_BODY_CSP), name="get")
+@method_decorator(xframe_options_sameorigin, name="get")
 class MessageBodyView(OrganizationScopedView, NoStoreCacheMixin, generic.View):
     """Serve the HTML body of a message to a sandboxed frame."""
 

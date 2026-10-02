@@ -291,6 +291,8 @@ class TestMessageDetailStatusCard:
         policy = response.headers["Content-Security-Policy"]
         assert "script-src 'none'" in policy
         assert "sandbox" in policy
+        assert "frame-ancestors 'self'" in policy
+        assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
         assert response.headers["Cache-Control"] == "private, no-store"
 
     def test_get__hides_the_body_of_another_org(self, admin_client, write_org):
