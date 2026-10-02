@@ -7,6 +7,10 @@
 	}
 
 	cache {
+		# Key by encoding, or an uncompressed entry gets served to everyone.
+		key {
+			headers Accept-Encoding
+		}
 		redis {
 			configuration {
 				InitAddress caddy-redis:6379
