@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: caddy
+        dev.dozzle.icon: caddy
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet

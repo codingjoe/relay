@@ -23,8 +23,13 @@ spec:
           image: amir20/dozzle:v11.1.3
           env:
             - {name: DOZZLE_MODE, value: k8s}
-            - {name: DOZZLE_NAMESPACE, value: relay}
             - {name: DOZZLE_HOSTNAME, value: relay}
+            # One instance watches every namespace; restart (pod delete) and
+            # shell (pod exec) ride on the cluster role, see
+            # deploy/cloud-init.yaml.tmpl.
+            - {name: DOZZLE_ENABLE_ACTIONS, value: "true"}
+            - {name: DOZZLE_ENABLE_SHELL, value: "true"}
+            - {name: DOZZLE_ENABLE_MCP, value: "true"}
           ports:
             - {name: http, containerPort: 8080}
           readinessProbe:

@@ -219,6 +219,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: clamav
+        # dashboard-icons slug. Dozzle does not bundle ClamAV's icon yet, so
+        # the label renders nothing until it does.
         dev.dozzle.icon: clam-av
     spec:
       containers:
@@ -279,6 +281,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: clamav-updater
+        dev.dozzle.icon: clam-av
     spec:
       restartPolicy: Never
       containers:

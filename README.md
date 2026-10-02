@@ -286,6 +286,7 @@ change, and open `http://localhost:8000`:
 
 ```bash
 minikube start
+minikube addons enable metrics-server  # Dozzle needs the metrics API for stats
 docker build --target development --build-arg UV_NO_DEV=0 --build-arg DISTROLESS_FLAVOR=debug-nonroot --build-arg DOTENV_FILE=.env -t ghcr.io/codingjoe/relay:local .
 minikube image load ghcr.io/codingjoe/relay:local
 kubectl apply -k deploy/minikube

@@ -131,6 +131,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: sender
+        dev.dozzle.icon: django
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -186,6 +187,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: crontask
+        dev.dozzle.icon: django
     spec:
       containers:
         - name: crontask

@@ -81,9 +81,11 @@ write_files:
           kubernetes.io/service-account.name: deploy
       type: kubernetes.io/service-account-token
       ---
-      # Dozzle lists the nodes to build its cluster client, so it needs cluster
-      # scope. The deploy token holds a Role in the namespace alone and cannot
-      # grant that, so the boot applies this with the admin kubeconfig.
+      # Dozzle lists nodes to build its cluster client and watches every
+      # namespace, so it needs cluster scope; restart and shell ride on the
+      # same role. The deploy token holds a Role in the namespace alone and
+      # cannot grant cluster scope, so the boot applies this with the admin
+      # kubeconfig.
       apiVersion: rbac.authorization.k8s.io/v1
       kind: ClusterRole
       metadata:
@@ -101,6 +103,14 @@ write_files:
         - apiGroups: ["metrics.k8s.io"]
           resources: ["pods"]
           verbs: ["get", "list"]
+        # Restart is a pod delete: the owning controller recreates the pod.
+        - apiGroups: [""]
+          resources: ["pods"]
+          verbs: ["delete"]
+        # The browser shell attaches to or execs in a pod.
+        - apiGroups: [""]
+          resources: ["pods/exec", "pods/attach"]
+          verbs: ["create"]
       ---
       apiVersion: rbac.authorization.k8s.io/v1
       kind: ClusterRoleBinding

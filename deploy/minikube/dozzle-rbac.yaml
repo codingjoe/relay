@@ -17,6 +17,14 @@ rules:
   - apiGroups: ["metrics.k8s.io"]
     resources: ["pods"]
     verbs: ["get", "list"]
+  # Restart is a pod delete: the owning controller recreates the pod.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["delete"]
+  # The browser shell attaches to or execs in a pod.
+  - apiGroups: [""]
+    resources: ["pods/exec", "pods/attach"]
+    verbs: ["create"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
