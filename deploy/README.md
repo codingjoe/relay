@@ -101,17 +101,6 @@ openssl s_client -connect mx1.relays.to:25 -starttls smtp
 dig +short pg.relays.to storage.relays.to
 ```
 
-`/health/node/` only reports disk and memory, so a pod restarts on host
-pressure and nothing else. `/health/application/` covers every service relay
-runs: the database, both Redis instances, the queue workers and scheduler,
-storage, mail, and DNS. `/health/pipeline/` tracks the vendors the build and
-deploy pipeline depends on: Hetzner, Google Cloud (the distroless base
-images), GitHub (Actions, Packages, Git Operations, and API Requests), Sentry,
-npm, and PyPI. A third-party incident shows up there but does not fail the
-container probes, because relay cannot fix someone else's outage. Subscribe to
-`https://relays.to/health/pipeline/?format=rss` in Slack or Matrix to hear
-about upstream incidents when they start.
-
 Then confirm the cluster itself is healthy:
 
 ```bash
