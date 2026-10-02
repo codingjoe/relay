@@ -259,8 +259,8 @@ Every deploy rolls those services, so this normally takes care of itself.
 
 ### Logs
 
-Dozzle reads pod logs through the Kubernetes API. It is not published to the
-internet. Tunnel to the dashboard:
+One Dozzle instance watches every namespace through the Kubernetes API. It is
+not published to the internet. Tunnel to the dashboard:
 
 ```bash
 kubectl --kubeconfig ~/.kube/relay.yaml port-forward -n relay svc/dozzle 5000:8080

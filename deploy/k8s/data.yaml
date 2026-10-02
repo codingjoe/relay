@@ -20,6 +20,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: postgres
+        dev.dozzle.name: postgres
+        dev.dozzle.group: data
     spec:
       containers:
         - name: postgres
@@ -81,6 +83,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: redis
+        dev.dozzle.name: redis
+        dev.dozzle.group: data
     spec:
       containers:
         - name: redis
@@ -137,6 +141,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: redis-tasks
+        dev.dozzle.name: redis-tasks
+        dev.dozzle.group: data
     spec:
       containers:
         - name: redis-tasks

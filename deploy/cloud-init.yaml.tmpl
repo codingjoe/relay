@@ -81,9 +81,10 @@ write_files:
           kubernetes.io/service-account.name: deploy
       type: kubernetes.io/service-account-token
       ---
-      # Dozzle lists the nodes to build its cluster client, so it needs cluster
-      # scope. The deploy token holds a Role in the namespace alone and cannot
-      # grant that, so the boot applies this with the admin kubeconfig.
+      # Dozzle watches every namespace, so discovery needs cluster scope.
+      # Restart and shell stay in the namespace. The deploy token cannot
+      # grant cluster scope, so the boot applies these with the admin
+      # kubeconfig.
       apiVersion: rbac.authorization.k8s.io/v1
       kind: ClusterRole
       metadata:
@@ -109,6 +110,33 @@ write_files:
       roleRef:
         apiGroup: rbac.authorization.k8s.io
         kind: ClusterRole
+        name: dozzle
+      subjects:
+        - kind: ServiceAccount
+          name: dozzle
+          namespace: ${RELAY_NAMESPACE}
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: dozzle
+        namespace: ${RELAY_NAMESPACE}
+      rules:
+        - apiGroups: [""]
+          resources: ["pods"]
+          verbs: ["delete"]
+        - apiGroups: [""]
+          resources: ["pods/exec", "pods/attach"]
+          verbs: ["create"]
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: dozzle
+        namespace: ${RELAY_NAMESPACE}
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
         name: dozzle
       subjects:
         - kind: ServiceAccount
