@@ -160,6 +160,18 @@ class TestDomainCreateView:
             for message in get_messages(response.wsgi_request)
         )
 
+    def test_post__rejects_platform_domain(self, admin_client, org, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/new",
+            {"name": "relay.example.com"},
+        )
+
+        assert response.status_code == 302
+        assert not Domain.objects.filter(name="relay.example.com").exists()
+
 
 @pytest.mark.django_db
 class TestDomainDetailView:
@@ -567,7 +579,9 @@ class TestMtaStsAuthorizeView:
 
     @pytest.mark.django_db
     def test_get__forbidden_for_non_managed_platform_subdomain(self, client, org):
-        Domain.objects.create(name="foo.localhost", org=org)
+        # The row models a legacy claim that bypassed name validation, the
+        # state the gate exists for.
+        Domain.objects.bulk_create([Domain(name="foo.localhost", org=org)])
         response = client.get(
             "/internal/mta-sts/authorize/", {"domain": "mta-sts.foo.localhost"}
         )

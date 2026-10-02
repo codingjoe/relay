@@ -125,6 +125,21 @@ class TestDomainClean:
         with pytest.raises(ValidationError):
             Domain(name="app。open.relay.example.com").clean()
 
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "foo.relay.example.com",
+            "mail.relay.relay.example.com",
+            "app。relay.example.com",
+        ],
+    )
+    def test_clean__rejects_platform_subdomain(self, name, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        with pytest.raises(ValidationError):
+            Domain(name=name).clean()
+
     @pytest.mark.django_db
     def test_save__rejects_cross_org_child_domain(self):
         parent_org = Organization.objects.create(slug="parent")

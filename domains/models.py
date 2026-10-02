@@ -289,6 +289,7 @@ class Domain(TimeStamped):
     def clean(self):
         name = canonicalize_domain_name(self.name)
         self.name = name
+        platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
         if not self.is_managed:
             root = canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN)
             if name == root or name.endswith(f".{root}"):
@@ -298,6 +299,15 @@ class Domain(TimeStamped):
                     )
                     % {"base": root}
                 )
+            # A name below the platform domain answers for relay's own MX,
+            # SMTP, and policy hosts, so only relay-managed rows may use one.
+            if name.endswith(f".{platform_name}"):
+                raise ValidationError(
+                    _(
+                        "Cannot add a subdomain of %(base)s. relay manages these automatically."
+                    )
+                    % {"base": platform_name}
+                )
 
         if self.org_id:
             parts = name.split(".")
@@ -306,7 +316,6 @@ class Domain(TimeStamped):
                 reduce(or_, (models.Q(name__iexact=value) for value in ancestors))
                 | models.Q(name__iendswith=f".{name}")
             )
-            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
             # The platform domain is the ancestor of every managed sender
             # domain by design, so a conflict is skipped exactly when one
             # of the two rows' canonical name is the platform domain.
