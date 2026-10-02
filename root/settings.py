@@ -89,6 +89,8 @@ INSTALLED_APPS = [
     # First-party apps (abstract first so its widget overrides win)
     "abstract",
     "django.forms",
+    # Before staticfiles so its `collectstatic` override wins.
+    "django_esm",
     # Django
     "django.contrib.admin",
     "django.contrib.auth",

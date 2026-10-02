@@ -1,4 +1,4 @@
-import { highlightAll } from "https://cdn.jsdelivr.net/npm/microlighter@2/dist/index.js";
+import { highlightAll } from "microlighter";
 
 for (const tabs of document.querySelectorAll(".tabs")) {
   tabs.addEventListener("click", () => highlightAll());

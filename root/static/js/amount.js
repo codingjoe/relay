@@ -1,4 +1,4 @@
-import { LitElement, html } from "https://esm.sh/lit@3";
+import { LitElement, html } from "lit";
 
 /** Render a money amount for the page language, e.g. "€0.69" or "0,69 €". */
 export class RelayAmount extends LitElement {

@@ -49,9 +49,9 @@ with wireit), k3s on Hetzner Cloud with Caddy as ingress and Layer 4 proxy.
 ## Core commands & workflows
 
 - `uv sync`. Install dependencies. **Use `uv` only**, never `pip`.
-- `pnpm install`. Install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit).
-- `pnpm run build`. Compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`).
-- `pnpm run dev`. Watch and recompile CSS on change.
+- `pnpm install`. Install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit, ESM modules).
+- `pnpm run build`. Compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`) and vendor ES modules into `staticfiles/esm` with esimport.
+- `pnpm run dev`. Watch and rebuild CSS and ES modules on change.
 - `uv run python manage.py check`: Django system checks.
 - `uv run python manage.py makemigrations`. Generate migrations.
 - `uv run python manage.py migrate`. Apply migrations.
@@ -124,8 +124,10 @@ Before you finish, always:
 
 ## Running tests
 
-- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput`
+- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput --no-esm`
   must run in advance; the Django checks and templates tests fail without it.
+  ES modules are vendored by `pnpm run build`, so collectstatic must skip the
+  esimport step (`--no-esm`).
 - `uv run --group test pytest`. The last line is always the outcome summary, e.g.
   `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
   to assert results. Nothing is measured by default.

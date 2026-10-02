@@ -217,8 +217,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
     not a translatable string. Do not wrap it in `{% translate %}` or
     apply `|capfirst`/`|title`.
 
-- Icons use [Lucide](https://lucide.dev/) via vanilla JS. Load the UMD
-  bundle from a CDN with `defer` and call `lucide.createIcons()` on
+- Icons use [Lucide](https://lucide.dev/) via vanilla JS. `root/static/js/app.js`
+  imports the npm package and calls `createIcons({ icons })` on
   `DOMContentLoaded`. Render icons with `<i data-lucide="name" class="size-4|size-5|size-3.5" aria-hidden="true">`
   (Tailwind size scale: 3.5=14px, 4=16px, 5=20px). Never inline Lucide SVGs
   by hand. The library replaces the `<i>` element with the SVG at runtime.
@@ -236,7 +236,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   Run `pnpm run build` to compile `src/css/app.css` → `root/static/css/app.css`
   (a build artifact, gitignored. Do not edit it directly). Run `pnpm run dev`
   to watch for changes during development. The build output is served via
-  `{% static 'css/app.css' %}` in `base.html`.
+  `{% static 'css/app.css' %}` in `base.html`. The same build vendors the ES
+  modules, which is why `collectstatic` runs with `--no-esm`.
   Custom CSS is kept to the bare minimum. Use it only for layout glue
   basecoat/Tailwind do not provide directly (for example, the breadcrumb
   container's background, marketing-page accent highlights). Do not use it
@@ -285,6 +286,17 @@ A rule lives either in this document or in `.relint.yml`, never both.
   markup: `data-dialog`, `data-dialog-close`, `data-backdrop-close`,
   `data-auto-open`, `data-confirm`, `data-copy`, `data-share`, `data-href`,
   `data-toggle`, `data-select`, `data-mirror`.
+
+- Third-party JavaScript comes from npm, never from a CDN. Import it by
+  package name (`import { html } from "lit"`) and let the import map
+  (`{% importmap %}` in `base.html`) resolve it: `pnpm run build` vendors the
+  `dependencies` from `package.json` into `staticfiles/esm` via
+  [esimport](https://github.com/codingjoe/esimport). List every first-party
+  module that imports a package in the `imports` map of `package.json`
+  (`#js/*`, `#abstract/*`, `#message/*`). `esimport --treeshake` starts from
+  those entries, so it keeps the package entry points they reach and drops the
+  rest. Add a package with `pnpm add`; the import map picks it up on the next
+  build.
 
 ## Views & Queries
 
