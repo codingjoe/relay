@@ -269,27 +269,6 @@ kubectl --kubeconfig ~/.kube/relay.yaml port-forward -n relay svc/dozzle 5000:80
 The dashboard and the Dozzle MCP server in `.mcp.json` answer on
 `http://127.0.0.1:5000`.
 
-Restart and shell are enabled. A restart deletes the pod so its controller
-recreates it, which is the only action Kubernetes has; pods without a
-controller cannot be restarted. The browser shell needs a shell binary inside
-the container: the production relay images are distroless and ship none, so
-shells work in caddy, dnsdist, rspamd, clamav, postgres, redis, and storage
-(the minikube image is built `debug-nonroot` and keeps one). Live CPU and
-memory stats come from the metrics API, which k3s ships; minikube needs
-`minikube addons enable metrics-server` first.
-
-Dozzle's ClusterRole is part of the boot, so an existing server keeps the old
-permissions until the role is re-applied by hand. `deploy/minikube/dozzle-rbac.yaml`
-holds the same objects as the boot:
-
-```bash
-hcloud server ssh relays.to "sudo k3s kubectl apply -f -" < deploy/minikube/dozzle-rbac.yaml
-```
-
-The role is cluster-wide because one instance watches every namespace, so
-whoever reaches the dashboard can exec into any pod in the cluster. The
-port-forward is the access control.
-
 ### Backups
 
 The nightly workflow writes an encrypted `backup.dump.gpg` artifact. To restore,
