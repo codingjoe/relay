@@ -41,7 +41,8 @@ pipeline_checks = [
     ("health_check.contrib.atlassian.GitHub", {"component": "Packages"}),
     ("health_check.contrib.atlassian.GitHub", {"component": "Git Operations"}),
     ("health_check.contrib.atlassian.GitHub", {"component": "API Requests"}),
-    "health_check.contrib.atlassian.Sentry",
+    ("health_check.contrib.atlassian.Sentry", {"component": "EU Ingestion"}),
+    ("health_check.contrib.atlassian.Sentry", {"component": "API"}),
     "health_check.contrib.atlassian.Npm",
     "health_check.contrib.atlassian.PyPI",
 ]
