@@ -490,3 +490,27 @@ A rule lives either in this document or in `.relint.yml`, never both.
   reads `AWS_S3_ACCESS_KEY_ID`, and `.env.production` stores the second. A step
   that shells out to the CLI calls `adopt_stored_s3_credentials` first, so only
   the first provisioning needs them exported.
+
+## Issue labels
+
+- Label every issue the superJoe crew files with one lane and one tag, the two
+  halves of a finding line, `<tag>: <lane> <what>.` The lane names what kind of
+  defect it is, the tag names how far the finding got.
+
+- Lanes: `sec` (exploitability, secrets, authorization), `bug` (correctness),
+  `perf` (speed and memory), `naming` (names and readability), `bloat`
+  (over-engineering and dead code), `doc` (docstrings, comments, README), `test`
+  (coverage, ghost and delulu branches), `deps` (packages, APIs, upstream docs).
+
+- Tags: `side quest` (out of scope for the review), `sus` (suspected, not
+  proven), `real` (proven), `cap` (real, but not worth fixing), `receipts`
+  (exploitability proof attached), `yeet` (delete it), `duh` (the standard
+  library ships it), `NPC` (the platform already does it), `cringe` (abstraction
+  with one implementation), `glow up` (same logic, fewer lines), `ghost` (a test
+  that cannot run), `delulu` (a test asserting what the signature already
+  guarantees), `kept` and `dropped` (dependency verdicts).
+
+- `enhancement` stays for feature requests, which are nobody's finding. The
+  Dependabot labels (`dependencies`, `python`, `docker`, `python:uv`,
+  `github_actions`, `javascript`, `pre_commit`, `docker_compose`) stay spelled
+  the way the bot writes them, or it recreates them.
