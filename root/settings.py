@@ -84,6 +84,8 @@ DEBUG_TOOLBAR_CONFIG = {
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 INSTALLED_APPS = [
+    # Ahead of staticfiles so ServeStatic serves them in development too.
+    "servestatic",
     # First-party apps (abstract first so its widget overrides win)
     "abstract",
     "django.forms",
@@ -134,8 +136,7 @@ MIDDLEWARE = [
         if DEBUG
         else []
     ),
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "root.middleware.EsmMiddleware",
+    "servestatic.middleware.ServeStaticMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "domains.middleware.MtaStsHostMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -260,7 +261,7 @@ STORAGES = {
         else "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "servestatic.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
@@ -276,10 +277,10 @@ AWS_S3_FILE_OVERWRITE = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
-# Files under `public/` are served from the domain root by WhiteNoise,
+# Files under `public/` are served from the domain root by ServeStatic,
 # e.g. public/favicon.ico is served at /favicon.ico.
-WHITENOISE_ROOT = BASE_DIR / "public"
-WHITENOISE_MAX_AGE = 60 * 60 * 24
+SERVESTATIC_ROOT = BASE_DIR / "public"
+SERVESTATIC_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"

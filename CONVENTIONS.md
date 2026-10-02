@@ -415,23 +415,17 @@ A rule lives either in this document or in `.relint.yml`, never both.
   resource updates in place and leaves the running pods on the old
   configuration.
 
-- Give every container a liveness probe. It is the only thing that restarts a
-  hung process, so omitting one silently regresses to the behaviour this
-  deployment exists to fix.
-
-- Add a readiness probe wherever a Service fronts more than one replica. A
-  Service only routes to Ready endpoints, so readiness is what takes an
-  unresponsive replica out of rotation instead of waiting for liveness to
-  restart it. On the mail path that is the difference between one failed
-  submission and 45 seconds of them. Workloads with no Service, and the
-  single-replica stateful services, do not need one.
+- Do not probe run-to-completion Job containers. `migration` and
+  `clamav-updater` are legitimately long or quiet, and their health signal is
+  the Job condition the deploy workflow already waits on; a probe would kill
+  work in progress.
 
 - Do not send `Host: localhost` from a probe. Django validates the header in
   `CommonMiddleware`, so a disallowed host answers 400 with a fully healthy app
-  behind it, and the pod never becomes Ready. Only `web` is a Django service, so
-  it is the only workload that needs an HTTP probe, and it sends the pinned
-  `HOSTNAME`. Note that an `exec` probe does not run through the image
-  entrypoint, so it sees the kubelet's environment and never a decrypted one.
+  behind it, and the pod never becomes Ready. `web` is the only probe that
+  reaches Django, and it sends the pinned `HOSTNAME`. Note that an `exec` probe
+  does not run through the image entrypoint, so it sees the kubelet's
+  environment and never a decrypted one.
 
 - Give every container resource requests and limits.
 

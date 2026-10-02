@@ -108,7 +108,10 @@ hcloud server ssh relays.to "sudo k3s kubectl get pods -n relay"
 hcloud server ssh relays.to "sudo k3s kubectl get events -n relay --sort-by=.lastTimestamp | tail"
 ```
 
-Every pod should be `Running` with a `1/1` ready count.
+Every long-running pod should be `Running` with a `1/1` ready count: each one
+carries a liveness probe that restarts a hung process and a readiness probe that
+proves it is answering. The two Jobs report `Completed` instead. A pod that
+never becomes ready describes why under `kubectl describe pod`.
 
 ## Rerunning and inspecting
 
@@ -257,6 +260,22 @@ kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/msa deploymen
 ```
 
 Every deploy rolls those services, so this normally takes care of itself.
+
+### Edge compression and caching
+
+Static files are served by the app through ServeStatic, with pre-compressed
+`zstd` and `gzip` variants. Caddy's `{$HOSTNAME}` block in
+`deploy/k8s/caddy/Caddyfile` additionally compresses on the fly with `br` and
+keeps publicly cacheable responses in `caddy-redis`, so its cache survives a
+Caddy restart.
+
+Caddy creates its cache storer once at startup. If it starts before
+`caddy-redis` answers, it logs a Redis init error and keeps cache entries in
+memory until its next restart, so restart the deployment after such a race:
+
+```bash
+kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/caddy -n relay
+```
 
 ### Logs
 

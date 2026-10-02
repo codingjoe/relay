@@ -11,6 +11,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.0",
     "@tailwindcss/typography": "^0.5.20",
+    "cssnano": "^9.1.2",
     "esimport": "^0.10.1",
     "postcss": "^8.5.26",
     "postcss-cli": "^11.0.0",

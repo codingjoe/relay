@@ -112,12 +112,15 @@ spec:
                 name: dotenvx-key
             - secretRef:
                 name: relay-cluster-env
-          livenessProbe:
+          readinessProbe: &healthProbe
             exec:
               command: ["python", "-m", "manage", "health_check", "health-node", "--no-http"]
-            periodSeconds: 15
+            periodSeconds: 10
             timeoutSeconds: 10
             failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *healthProbe
+            periodSeconds: 15
           resources:
             requests: {cpu: 100m}
             limits: {memory: 1Gi}
@@ -170,12 +173,15 @@ spec:
                 name: dotenvx-key
             - secretRef:
                 name: relay-cluster-env
-          livenessProbe:
+          readinessProbe: &healthProbe
             exec:
               command: ["python", "-m", "manage", "health_check", "health-node", "--no-http"]
-            periodSeconds: 15
+            periodSeconds: 10
             timeoutSeconds: 10
             failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *healthProbe
+            periodSeconds: 15
           resources:
             requests: {cpu: 100m}
             limits: {memory: 1Gi}
@@ -212,12 +218,15 @@ spec:
                 name: dotenvx-key
             - secretRef:
                 name: relay-cluster-env
-          livenessProbe:
+          readinessProbe: &healthProbe
             exec:
               command: ["python", "-m", "manage", "health_check", "health-node", "--no-http"]
-            periodSeconds: 15
+            periodSeconds: 10
             timeoutSeconds: 10
             failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *healthProbe
+            periodSeconds: 15
           resources:
             requests: {cpu: 10m}
             limits: {memory: 1Gi}

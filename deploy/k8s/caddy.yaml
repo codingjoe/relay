@@ -27,6 +27,9 @@ spec:
             - name: HOSTNAME
               valueFrom:
                 secretKeyRef: {name: relay-infra, key: HOSTNAME}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
             - name: RELAY_STORAGE_DOMAIN
               valueFrom:
                 secretKeyRef: {name: relay-infra, key: RELAY_STORAGE_DOMAIN}
@@ -51,11 +54,14 @@ spec:
             - {name: caddy-config, mountPath: /etc/caddy, readOnly: true}
             - {name: caddy-data, mountPath: /data}
             - {name: caddy-run, mountPath: /config}
-          livenessProbe:
+          readinessProbe: &caddyProbe
             httpGet: {path: /caddy-health, port: 80}
-            periodSeconds: 15
+            periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *caddyProbe
+            periodSeconds: 15
           resources:
             requests: {cpu: 100m}
             limits: {cpu: "1", memory: 256Mi}
