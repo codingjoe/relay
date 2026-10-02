@@ -85,25 +85,19 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         }
 
 
-class MessageBreadcrumbMixin:
-    """Start the trail with the message subject instead of the object string."""
-
-    def get_breadcrumbs(self):
-        breadcrumbs = super().get_breadcrumbs()
-        breadcrumbs[0]["title"] = self.object.subject or str(self.object)
-        return breadcrumbs
-
-
 class MessageDetailView(
     OrganizationScopedView,
     ConditionalGetMixin,
-    MessageBreadcrumbMixin,
     generic.DetailView,
 ):
     """Render the shared message detail page: timeline, headers, and body."""
 
     context_object_name = "message"
     parent = "message:message-list"
+
+    def get_object_title(self):
+        """Return the message subject instead of the object string."""
+        return self.object.subject or str(self.object)
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])

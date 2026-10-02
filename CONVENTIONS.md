@@ -266,8 +266,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   from `request.current_org`). Override `get_url` for URL patterns that
   need request kwargs (for example, `OrganizationScopedView` passes `org_slug`).
   For detail views with no `title`, the breadcrumb falls back to
-  `str(self.object)`. Context variable is `breadcrumbs`, dict keys are
-  `{"title": ..., "url": ...}`.
+  `get_object_title()`, which returns `str(self.object)` by default; override
+  it for object-dependent titles (for example, the message subject). Context
+  variable is `breadcrumbs`, dict keys are `{"title": ..., "url": ...}`.
 
 - Tailwind v4's preflight resets `a { color: inherit }`. Add
   `class="link"` to entity anchors so they get primary color and
