@@ -290,7 +290,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   redefines Tailwind's `dark` variant as `prefers-color-scheme: dark` and
   mirrors basecoat's class-based dark palette in the same media query. Never
   set or test a `dark` class; in JavaScript use
-  `matchMedia("(prefers-color-scheme: dark)")` instead.
+  `matchMedia("(prefers-color-scheme: dark)")` instead. Basecoat's two
+  `html.dark` switch-knob rules are deliberately not mirrored, because relay
+  renders no switch. Mirror them in `components.css` if one appears.
 
 - Third-party JavaScript comes from npm, never from a CDN. Import it by
   package name (`import { html } from "lit"`) and let the import map
