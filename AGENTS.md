@@ -83,7 +83,6 @@ one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
   contain real OAuth secrets, DB passwords, and Redis passwords.
 - **Use `uv` exclusively** for dependency management. Never `pip install`.
 - **PostgreSQL 18+ required**: `db_default` uses the `uuidv7()` function.
-- **Do not write tests**. The test suite is planned but not yet started.
   Linting/formatting via pre-commit is the current quality gate.
 - **Update `CONVENTIONS.md`** when a reviewer identifies a new convention or
   corrects a pattern. This file is the authoritative coding-conventions source.
@@ -93,6 +92,14 @@ one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
 - **Extend `.relint.yml`** when a convention can be enforced by regex. Move
   enforced rules out of `CONVENTIONS.md`: `CONVENTIONS.md` documents for
   humans, `.relint.yml` enforces for machines.
+- **Label every issue you file with the superJoe vocabulary**, one lane and one
+  tag, the two halves of a finding line, `<tag>: <lane> <what>.` Lanes: `sec`,
+  `bug`, `perf`, `naming`, `bloat`, `doc`, `test`, `deps`. Tags: `side quest`,
+  `sus`, `real`, `cap`, `receipts`, `yeet`, `duh`, `NPC`, `cringe`, `glow up`,
+  `ghost`, `delulu`, `kept`, `dropped`. Reuse these labels and the colors they
+  carry; do not invent new ones. Feature requests keep `enhancement`, and
+  Dependabot's own labels stay spelled the way the bot writes them. Each label's
+  description on GitHub says what it means.
 - **`root/views.py` must not import models from other first-party apps.**
   Cross-app views belong in their corresponding app.
 - **`Model.save()` must include `update_fields=`** to avoid race conditions.

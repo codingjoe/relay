@@ -37,15 +37,17 @@ spec:
             - {name: data, mountPath: /var/lib/postgresql}
             - {name: init, mountPath: /docker-entrypoint-initdb.d}
           startupProbe:
-            exec:
+            exec: &pgIsReady
               command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
             periodSeconds: 5
             failureThreshold: 60
-          livenessProbe:
-            exec:
-              command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
+          readinessProbe: &pgProbe
+            exec: *pgIsReady
             periodSeconds: 10
             timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *pgProbe
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
@@ -99,11 +101,14 @@ spec:
           volumeMounts:
             - {name: data, mountPath: /data}
             - {name: config, mountPath: /usr/local/etc/redis, readOnly: true}
-          livenessProbe:
+          readinessProbe: &redisProbe
             exec:
               command: ["redis-cli", "ping"]
             periodSeconds: 10
             timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *redisProbe
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
@@ -157,11 +162,14 @@ spec:
           volumeMounts:
             - {name: data, mountPath: /data}
             - {name: config, mountPath: /usr/local/etc/redis, readOnly: true}
-          livenessProbe:
+          readinessProbe: &redisProbe
             exec:
               command: ["redis-cli", "ping"]
             periodSeconds: 10
             timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *redisProbe
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:

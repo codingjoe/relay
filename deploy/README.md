@@ -143,7 +143,10 @@ kubectl get pods -n relay
 kubectl get events -n relay --sort-by=.lastTimestamp | tail
 ```
 
-Every pod should be `Running` with a `1/1` ready count.
+Every long-running pod should be `Running` with a `1/1` ready count: each one
+carries a liveness probe that restarts a hung process and a readiness probe that
+proves it is answering. The two Jobs report `Completed` instead. A pod that
+never becomes ready describes why under `kubectl describe pod`.
 
 ## Rerunning and inspecting
 

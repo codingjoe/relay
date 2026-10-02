@@ -731,6 +731,40 @@ class TestStoreOutgoingMessage:
         transmission = Transmission.objects.get(message=message)
         assert transmission.status == Transmission.Status.SUBMITTED
 
+    def test_store_outgoing_message__system_mail_skips_spam_check(
+        self,
+        org,
+        django_capture_on_commit_callbacks,
+    ):
+
+        domain = Domain.objects.get(org=org, is_managed=True)
+        raw_bytes = make_email("postmaster@example.com", "bob@example.com").as_bytes()
+
+        with (
+            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
+            patch("services.email.msa.handlers.deliver_message") as delivery_task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            message = store_outgoing_message(
+                org=org,
+                rcpt_to="bob@example.com",
+                mail_from="postmaster@example.com",
+                domain=domain,
+                credential=None,
+                status=OutgoingMessage.Status.PENDING,
+                feedback_id="1::abc:relay",
+                ssl=False,
+                client_ip="",
+                raw_bytes=raw_bytes,
+                started_at=timezone.now(),
+                is_system_mail=True,
+            )
+
+        spam_task.enqueue.assert_not_called()
+        delivery_task.enqueue.assert_called_once_with(message_id=str(message.id))
+        transmission = Transmission.objects.get(message=message)
+        assert transmission.status == Transmission.Status.SUBMITTED
+
     def test_store_outgoing_message__derives_subject_and_message_id(self, org):
 
         domain = Domain.objects.get(org=org, is_managed=True)

@@ -160,7 +160,7 @@ class TestTestEmailView:
     ):
         domain = Domain.objects.get(org=org, is_managed=True)
         with (
-            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
+            patch("services.email.msa.handlers.deliver_message") as delivery_task,
             django_capture_on_commit_callbacks(execute=True),
         ):
             response = admin_client.post(f"/org/{org.slug}/email/messages/test")
@@ -170,9 +170,7 @@ class TestTestEmailView:
         )
         msg = OutgoingMessage.objects.get(org=org)
         assert msg.domain == domain
-        spam_task.enqueue.assert_called_once_with(
-            message_pk=str(msg.id), client_ip="127.0.0.1"
-        )
+        delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
 
     def test_post__sets_templated_headers(self, admin_client, org, user):
         domain = Domain.objects.get(org=org, is_managed=True)
