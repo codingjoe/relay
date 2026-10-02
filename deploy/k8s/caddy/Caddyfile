@@ -100,8 +100,6 @@
 {$HOSTNAME} {
 	cache
 	reverse_proxy web:8000 {
-		# Django validates the Host header against ALLOWED_HOSTS: without the
-		# override the check gets a 400 and Caddy 503s the whole site.
 		health_uri /health/node/
 		health_headers {
 			Host {$HOSTNAME}
