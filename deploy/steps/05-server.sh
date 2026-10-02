@@ -134,7 +134,7 @@ if [ "${1:-}" = "--check" ]; then
 fi
 
 require_hcloud
-require_command talosctl envsubst
+require_command talosctl envsubst kubectl
 
 if [ "$REINIT" = false ] && server_is_ready; then
     confirm_step server "server $RELAY_HOSTNAME runs Talos with the egress pool assigned"
@@ -252,6 +252,9 @@ note "Waiting for the control plane"
 
 note "Writing $TALOS_DIR/kubeconfig"
 "${TALOSCTL[@]}" kubeconfig --force --merge=false "$TALOS_DIR/kubeconfig"
+# The cluster hosts relay and nothing else, so the admin kubeconfig points at
+# its namespace and no kubectl needs -n relay; a rerun sets the same value.
+kubectl --kubeconfig "$TALOS_DIR/kubeconfig" config set-context --current --namespace "$RELAY_NAMESPACE"
 
 record_step server "created $SERVER_TYPE server $SERVER_ID in $SERVER_LOCATION as $SERVER_ADDRESS"
 

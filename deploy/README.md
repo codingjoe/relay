@@ -353,12 +353,22 @@ the node when it has expired:
 
 ```bash
 talosctl kubeconfig --force --merge=false ~/.kube/relay.yaml
+kubectl --kubeconfig ~/.kube/relay.yaml config set-context --current --namespace relay
 export KUBECONFIG=~/.kube/relay.yaml
 ```
 
-Use `-n relay` for `kubectl debug`, not the default namespace: a node debugger
-mounts the host filesystem in a pod, and `relay` is the namespace that admits
-it.
+Both kubeconfigs default to the `relay` namespace: this admin one, and the
+deploy token the workflows carry. Plain `kubectl get pods` reaches the relay
+objects, and the workflows' explicit `--namespace relay` stays valid and is no
+longer needed.
+
+The namespace stays even though the cluster hosts nothing else: the deploy
+token's Role is scoped to it, the privileged Pod Security Admission label lives
+on it so a stray apply elsewhere is not privileged, and Dozzle's delete and exec
+Role stays inside it.
+
+Keep `-n relay` on `kubectl debug`: a node debugger mounts the host filesystem
+in a pod, and `relay` is the namespace that admits it.
 
 ### Certificates
 

@@ -77,6 +77,7 @@ contexts:
     context:
       cluster: relay
       user: deploy
+      namespace: $RELAY_NAMESPACE
 current-context: relay
 users:
   - name: deploy
@@ -140,6 +141,9 @@ note "Writing $KUBECONFIG_FILE from the node"
 # --merge=false: the file is exactly the admin kubeconfig the node serves, not
 # a merge into one that a previous cluster left behind.
 talosctl --talosconfig "$TALOSCONFIG_FILE" kubeconfig --force --merge=false "$KUBECONFIG_FILE"
+# The node writes no namespace, and this rewrite drops the one the server step
+# set, so the admin default is set again here.
+kubectl --kubeconfig "$KUBECONFIG_FILE" config set-context --current --namespace "$RELAY_NAMESPACE"
 
 note "Waiting for the cluster on $SERVER_ADDRESS"
 if ! wait_until "the relay namespace and deploy token" cluster_is_ready; then
