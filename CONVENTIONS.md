@@ -286,6 +286,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
   markup: `data-dialog`, `data-dialog-close`, `data-backdrop-close`,
   `data-auto-open`, `data-confirm`, `data-copy`, `data-share`, `data-href`,
   `data-toggle`, `data-select`, `data-mirror`.
+  `root/static/js/theme.js` is the one exception: `base.html` loads it as a
+  classic (blocking) script before the app modules so the `dark` class is
+  set before first paint. Never convert it to a module; deferred scripts
+  flash the light theme.
 
 - Third-party JavaScript comes from npm, never from a CDN. Import it by
   package name (`import { html } from "lit"`) and let the import map
