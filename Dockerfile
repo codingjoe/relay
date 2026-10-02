@@ -3,7 +3,6 @@ ARG DISTROLESS_FLAVOR=nonroot
 FROM node:26-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY --exclude=.env ./ /app

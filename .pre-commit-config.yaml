@@ -3,8 +3,6 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-        # Patch files carry meaningful whitespace in their context lines.
-        exclude: ^patches/
       - id: check-merge-conflict
       - id: check-ast
       - id: check-json
