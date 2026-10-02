@@ -2,7 +2,7 @@ import pytest
 from django.http import Http404
 from django.test import RequestFactory
 
-from abstract.views import BreadcrumbViewMixin, MarkdownArticleMixin, MarkdownView
+from abstract.views import MarkdownArticleMixin, MarkdownView
 
 
 class TestMarkdownArticleMixin:
@@ -48,26 +48,6 @@ class TestMarkdownArticleMixin:
         articles = dict(TestArticleView.get_articles())
         assert list(articles) == ["exists"]
         assert articles["exists"]["name"] == "Exists"
-
-
-class TestBreadcrumbViewMixin:
-    def test_get_breadcrumbs__title_falls_back_to_the_object_string(self):
-        class TestView(BreadcrumbViewMixin): ...
-
-        view = TestView()
-        view.request = RequestFactory().get("/test/")
-        view.object = "message body"
-        assert view.get_breadcrumbs() == [{"title": "message body", "url": None}]
-
-    def test_get_breadcrumbs__title_comes_from_get_object_title(self):
-        class TestView(BreadcrumbViewMixin):
-            def get_object_title(self):
-                return "Invoice"
-
-        view = TestView()
-        view.request = RequestFactory().get("/test/")
-        view.object = "message body"
-        assert view.get_breadcrumbs() == [{"title": "Invoice", "url": None}]
 
 
 class TestMarkdownView:

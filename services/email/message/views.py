@@ -95,9 +95,11 @@ class MessageDetailView(
     context_object_name = "message"
     parent = "message:message-list"
 
-    def get_object_title(self):
-        """Return the message subject instead of the object string."""
-        return self.object.subject or str(self.object)
+    def get_breadcrumbs(self):
+        """Name the current page by the message subject instead of the object string."""
+        breadcrumbs = super().get_breadcrumbs()
+        breadcrumbs[-1]["title"] = self.object.subject or str(self.object)
+        return breadcrumbs
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])

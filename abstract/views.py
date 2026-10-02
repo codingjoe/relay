@@ -100,8 +100,6 @@ class BreadcrumbViewMixin:
 
     Override `get_title(cls, request)` for dynamic titles that depend on
     the request (for example, the current org name from `request.current_org`).
-    Override `get_object_title()` for dynamic titles that depend on the
-    retrieved object (for example, a message subject).
     Override `get_url(cls, request)` for URL patterns that need kwargs
     from the request (for example, org-scoped views).
     """
@@ -125,7 +123,7 @@ class BreadcrumbViewMixin:
         """Build the breadcrumb chain by traversing parents to the root."""
         breadcrumbs = [{"title": self.get_title(self.request), "url": None}]
         if not breadcrumbs[0]["title"] and hasattr(self, "object") and self.object:
-            breadcrumbs[0]["title"] = self.get_object_title()
+            breadcrumbs[0]["title"] = str(self.object)
 
         url = self.get_url(self.request)
         while url:
@@ -141,10 +139,6 @@ class BreadcrumbViewMixin:
 
         breadcrumbs.reverse()
         return breadcrumbs
-
-    def get_object_title(self) -> str:
-        """Return the breadcrumb title for the retrieved object."""
-        return str(self.object)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
