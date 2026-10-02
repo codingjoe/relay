@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: dnsdist
+        dev.dozzle.name: dnsdist
+        dev.dozzle.group: dns
         dev.dozzle.icon: powerdns
     spec:
       hostNetwork: true
@@ -88,6 +90,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: dns
+        dev.dozzle.name: dns
+        dev.dozzle.group: dns
         dev.dozzle.icon: django
     spec:
       containers:

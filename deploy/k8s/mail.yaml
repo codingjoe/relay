@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: msa
+        dev.dozzle.name: msa
+        dev.dozzle.group: mail
         dev.dozzle.icon: django
     spec:
       containers:
@@ -90,6 +92,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: mta
+        dev.dozzle.name: mta
+        dev.dozzle.group: mail
         dev.dozzle.icon: django
     spec:
       containers:
@@ -167,6 +171,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: rspamd
+        dev.dozzle.name: rspamd
+        dev.dozzle.group: mail
         dev.dozzle.icon: rspamd
     spec:
       containers:
@@ -219,6 +225,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: clamav
+        dev.dozzle.name: clamav
+        dev.dozzle.group: mail
         # dashboard-icons slug. Dozzle does not bundle ClamAV's icon yet, so
         # the label renders nothing until it does.
         dev.dozzle.icon: clam-av
@@ -281,6 +289,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: clamav-updater
+        dev.dozzle.name: clamav-updater
+        dev.dozzle.group: mail
         dev.dozzle.icon: clam-av
     spec:
       restartPolicy: Never
@@ -313,6 +323,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: storage
+        dev.dozzle.name: storage
+        dev.dozzle.group: data
     spec:
       containers:
         - name: storage

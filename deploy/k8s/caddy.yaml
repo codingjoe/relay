@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: caddy
+        dev.dozzle.name: caddy
+        dev.dozzle.group: infra
         dev.dozzle.icon: caddy
     spec:
       hostNetwork: true

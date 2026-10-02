@@ -16,6 +16,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: dozzle
+        dev.dozzle.name: dozzle
+        dev.dozzle.group: infra
     spec:
       serviceAccountName: dozzle
       containers:
