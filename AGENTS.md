@@ -82,7 +82,6 @@ one as the `KUBECONFIG` secret; on your machine, read the admin kubeconfig from
   contain real OAuth secrets, DB passwords, and Redis passwords.
 - **Use `uv` exclusively** for dependency management. Never `pip install`.
 - **PostgreSQL 18+ required**: `db_default` uses the `uuidv7()` function.
-- **Do not write tests**. The test suite is planned but not yet started.
   Linting/formatting via pre-commit is the current quality gate.
 - **Update `CONVENTIONS.md`** when a reviewer identifies a new convention or
   corrects a pattern. This file is the authoritative coding-conventions source.
