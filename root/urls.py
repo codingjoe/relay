@@ -4,7 +4,7 @@ from django.urls import include, path
 from health_check.views import HealthCheckView
 from redis.asyncio import Redis
 
-from . import views
+from . import health, views
 
 urlpatterns = [
     path(
@@ -21,7 +21,7 @@ urlpatterns = [
                     ),
                     name="health",
                 ),
-                # Status page for every dependency.
+                # Status page for every dependency relay controls.
                 path(
                     "soa/",
                     HealthCheckView.as_view(
@@ -61,10 +61,43 @@ urlpatterns = [
                                     "record_type": "MX",
                                 },
                             ),
-                            "health_check.contrib.rss.Hetzner",
                         ]
                     ),
                     name="soa",
+                ),
+                # Status page for every third-party service the build and
+                # deploy pipeline depends on.
+                path(
+                    "pipeline/",
+                    HealthCheckView.as_view(
+                        checks=[
+                            "health_check.contrib.rss.Hetzner",
+                            "health_check.contrib.rss.GoogleCloud",
+                            # CI, the image registry, the source checkout, and
+                            # the API the runner talks to.
+                            (
+                                "health_check.contrib.atlassian.GitHub",
+                                {"component": "Actions"},
+                            ),
+                            (
+                                "health_check.contrib.atlassian.GitHub",
+                                {"component": "Packages"},
+                            ),
+                            (
+                                "health_check.contrib.atlassian.GitHub",
+                                {"component": "Git Operations"},
+                            ),
+                            (
+                                "health_check.contrib.atlassian.GitHub",
+                                {"component": "API Requests"},
+                            ),
+                            "health_check.contrib.atlassian.Sentry",
+                            health.Codecov,
+                            health.Npm,
+                            health.PythonPackageIndex,
+                        ]
+                    ),
+                    name="pipeline",
                 ),
             ]
         ),

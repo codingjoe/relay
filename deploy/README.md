@@ -93,12 +93,21 @@ creates the cluster-scoped Dozzle RBAC. See `deploy/cloud-init.yaml.tmpl`.
 ## 5. Check it
 
 ```bash
-curl https://relays.to/health/
-curl https://relays.to/health/soa/
+curl https://relays.to/health/          # the web process itself
+curl https://relays.to/health/soa/      # every dependency relay controls
+curl https://relays.to/health/pipeline/ # third-party status pages the pipeline depends on
 openssl s_client -connect smtp.relays.to:587 -starttls smtp
 openssl s_client -connect mx1.relays.to:25 -starttls smtp
 dig +short pg.relays.to storage.relays.to
 ```
+
+`/health/soa/` only covers services relay runs: the database, both Redis
+instances, the queue workers and scheduler, storage, mail, and DNS.
+`/health/pipeline/` tracks the vendors the build and deploy pipeline depends
+on: Hetzner, Google Cloud (the distroless base images), GitHub (Actions,
+Packages, Git Operations, and API Requests), Sentry, Codecov, npm, and PyPI.
+A third-party incident shows up there but does not fail the container probes,
+because relay cannot fix someone else's outage.
 
 Then confirm the cluster itself is healthy:
 
