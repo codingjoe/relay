@@ -1,7 +1,10 @@
 :root {
   /* relay follows the operating system color scheme. There is no theme
-     toggle, so no class is ever set; the used color scheme alone decides
-     every light-dark() token below. */
+     toggle, so no class is ever set, and this property is what makes the
+     light-dark() tokens below pick their dark value: with neither it nor the
+     <meta name="color-scheme"> in base.html, WebKit leaves them on the light
+     value instead of following the system. Declaring it here keeps the
+     stylesheet correct on its own, rather than depending on the template. */
   color-scheme: light dark;
 
   --color-primary: hsl(268, 100%, 41%);
@@ -92,10 +95,11 @@
   --sidebar-ring: light-dark(oklch(0.708 0 0), oklch(0.439 0 0));
 }
 
-/* The three icon tokens hold url() values, and light-dark() is specified for
-   colors only. Browsers that do not generalize it would drop the declaration
-   and the checkbox and select glyphs would disappear rather than merely
-   recolor, so these keep the media query. */
+/* The three icon tokens hold url() values. light-dark() accepts images as
+   well as colors, and Chromium and WebKit both resolve them here, but an
+   engine that implements only the color form would drop the declaration and
+   the checkbox and select glyphs would vanish rather than merely recolor.
+   Keep the media query, which every engine handles. */
 @media (prefers-color-scheme: dark) {
   :root {
     --chevron-down-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.708 0 0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>');
