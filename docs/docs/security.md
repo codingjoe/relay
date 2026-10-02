@@ -120,6 +120,25 @@ and sends no referrer, so a body from the outside cannot act inside your
 session. Remote images stay allowed, so the body looks as the sender wrote
 it.
 
+## Node configuration and cluster keys
+
+Talos, the node's operating system, takes its first-boot configuration from the
+Hetzner instance metadata service, which stores it as the server's user data and
+serves it back to anything running on the node at `169.254.169.254`. That
+document carries the cluster's private keys: the machine and cluster bootstrap
+tokens, the machine, etcd, API-server and aggregator CA keys, the etcd secretbox
+key, and the service-account key. Caddy terminates untrusted TLS, dnsdist
+answers DNS, and rspamd and the application parse mail, all on that node, and the
+cluster network enforces no policy between pods. Code execution in a relay pod
+therefore reads the cluster's permanent PKI and can use it to reach the cluster
+itself.
+
+This is an accepted risk, not a control. The alternative is a hand-rolled ISO
+install that keeps the configuration off the metadata service, which gives up the
+declared, repeatable provisioning the platform is built on. The keys are per
+cluster; replacing them means generating a new secrets bundle and rebuilding the
+node.
+
 ## Error monitoring and secrets
 
 All relay processes report errors to Sentry, and reporting is off by default.

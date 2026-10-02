@@ -1,0 +1,47 @@
+# The cluster add-ons Talos does not bundle, applied by deploy/steps/10-cluster.sh.
+#
+# The vendor manifests in this directory are copies of pinned upstream
+# releases, unmodified, so the versions cannot move under us:
+#
+#   local-path-storage.yaml             rancher/local-path-provisioner v0.0.37
+#   metrics-server.yaml                 kubernetes-sigs/metrics-server v0.9.0
+#   kubelet-serving-cert-approver.yaml  alex1989hu/kubelet-serving-cert-approver v0.12.1
+#
+# The patches follow the Talos local-storage guide: the provisioner stores its
+# volumes on the EPHEMERAL disk at /var/local-path-provisioner instead of the
+# read-only /opt, and its privileged helper pods are admitted by the namespace
+# label, which the default baseline Pod Security Admission profile blocks.
+# The guide also marks local-path the cluster's default StorageClass; relay
+# names it on every PVC, so that patch is left out.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - local-path-storage.yaml
+  - metrics-server.yaml
+  - kubelet-serving-cert-approver.yaml
+patches:
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: local-path-config
+        namespace: local-path-storage
+      data:
+        config.json: |-
+          {
+            "nodePathMap": [
+              {
+                "node": "DEFAULT_PATH_FOR_NON_LISTED_NODES",
+                "paths": ["/var/local-path-provisioner"]
+              }
+            ]
+          }
+  - patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: local-path-storage
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+          pod-security.kubernetes.io/audit: privileged
+          pod-security.kubernetes.io/warn: privileged

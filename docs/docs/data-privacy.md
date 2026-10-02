@@ -31,6 +31,15 @@ Germany:
 No component of this stack belongs to a provider in a third country. There
 are no third-country data transfers.
 
+The node's first-boot configuration is stored with Hetzner as the server's user
+data, because that is how the node's operating system receives it. That document
+holds the cluster's private keys, and Hetzner serves it back to anything running
+on the node. relay treats the node as inside the trust boundary for its own
+cluster credentials, and it accepts the risk deliberately: the alternative is a
+hand-rolled install that gives up repeatable provisioning. See
+<a href="{% url 'docs:detail' slug='security' %}">Security</a> for the full
+limitation.
+
 ## What relay stores, and for how long
 
 | Data                                          | Where                             | How long                                              |
