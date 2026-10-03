@@ -20,6 +20,7 @@ import environ
 from cryptography.fernet import Fernet
 from django.tasks import DEFAULT_TASK_QUEUE_NAME
 from django.utils.csp import CSP
+from social_core.backends.github import GithubOAuth2
 
 env = environ.Env(
     # set casting, default value
@@ -94,7 +95,7 @@ SECURE_CSP = {
     "media-src": [CSP.SELF],
     "connect-src": [CSP.SELF],
     "frame-src": [CSP.SELF],
-    "form-action": [CSP.SELF],
+    "form-action": [CSP.SELF, GithubOAuth2.AUTHORIZATION_URL],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.NONE],
     "frame-ancestors": [CSP.NONE],
