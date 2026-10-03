@@ -22,3 +22,7 @@ directory from `yamlfmt`, because a reformat would break that match.
 which labels `default` for relay's privileged pods, and carries the patches that
 move local-path storage to `/var/local-path-provisioner` and admit the privileged
 helper pods.
+
+A bump from Dependabot moves one `image:` line, which leaves the file no longer
+matching its release. Re-vendor the whole manifest, then update the link above
+and the URL in `.github/workflows/ci.yml`.

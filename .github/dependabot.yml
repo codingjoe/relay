@@ -43,8 +43,11 @@ updates:
     cooldown:
       default-days: 7
   - package-ecosystem: docker
+    # Dockerfiles and Kubernetes manifests share the `docker` ecosystem.
     directories:
       - "/"
+      - "/deploy/k8s"
+      - "/deploy/cluster"
     schedule:
       interval: weekly
     cooldown:
