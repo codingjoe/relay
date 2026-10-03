@@ -368,7 +368,10 @@ class TestCredentialListView:
         assert "smtp_implicit_tls_ports" in response.context
         assert response.context["smtp_hostname"] == "smtp.relay.example"
         assert response.context["smtp_uri"] == (
-            "smtps://test-org:<credential key>@smtp.relay.example:465"
+            "smtps://test-org:<credential key>@smtp.relay.example"
+        )
+        assert response.context["smtp_django_uri"] == (
+            "smtp+ssl://test-org:<credential key>@smtp.relay.example:465"
         )
 
     def test_get__offers_the_sandbox_choice(self, admin_client, org):
@@ -382,9 +385,11 @@ class TestCredentialListView:
         settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
+        content = response.content.decode()
+        assert "smtps://test-org:&lt;credential key&gt;@smtp.relay.example" in content
         assert (
-            "smtps://test-org:&lt;credential key&gt;@smtp.relay.example:465"
-            in response.content.decode()
+            "smtp+ssl://test-org:&lt;credential key&gt;@smtp.relay.example:465"
+            in content
         )
 
     def test_get__opens_the_key_dialog_after_creation(
@@ -400,7 +405,8 @@ class TestCredentialListView:
         content = response.content.decode()
         assert 'id="dlg-credential-key"' in content
         assert raw_key in content
-        assert f"smtps://{org.slug}:{raw_key}@smtp.relay.example:465" in content
+        assert f"smtps://{org.slug}:{raw_key}@smtp.relay.example" in content
+        assert f"smtp+ssl://{org.slug}:{raw_key}@smtp.relay.example:465" in content
 
     def test_get__renders_copy_buttons_in_the_key_dialog(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})

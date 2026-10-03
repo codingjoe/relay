@@ -23,6 +23,7 @@ from .handlers import submit_relay_message
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .submission import (
     get_credential_key_context,
+    get_django_submission_uri,
     get_submission_context,
     get_submission_uri,
 )
@@ -111,7 +112,10 @@ class MsaCredentialListView(OrganizationScopedView, generic.ListView):
         return (
             super().get_context_data(**kwargs)
             | get_submission_context()
-            | {"smtp_uri": get_submission_uri(self.org.slug)}
+            | {
+                "smtp_uri": get_submission_uri(self.org.slug),
+                "smtp_django_uri": get_django_submission_uri(self.org.slug),
+            }
             | get_credential_key_context(self.request, self.org.slug)
         )
 
