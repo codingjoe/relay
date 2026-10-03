@@ -79,8 +79,8 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-Every service below runs as a Kubernetes workload in the `relay` namespace on a
-single-node Talos Linux cluster, administered with `talosctl`. Stateless
+Every service below runs as a Kubernetes workload in the `default` namespace on
+a single-node Talos Linux cluster, administered with `talosctl`. Stateless
 services run two replicas; `postgres`, `redis-tasks` and the `crontask`
 scheduler run one. Two independent replicas of a database or a task queue would
 hold divergent data rather than provide redundancy, and the scheduler already
@@ -291,7 +291,7 @@ minikube addons enable metrics-server  # Dozzle needs the metrics API for stats
 docker build --target development --build-arg UV_NO_DEV=0 --build-arg DISTROLESS_FLAVOR=debug-nonroot --build-arg DOTENV_FILE=.env -t ghcr.io/codingjoe/relay:local .
 minikube image load ghcr.io/codingjoe/relay:local
 kubectl apply -k deploy/minikube
-kubectl --namespace relay port-forward svc/web 8000:8000
+kubectl port-forward svc/web 8000:8000
 ```
 
 ## App dependencies

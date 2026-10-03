@@ -13,9 +13,9 @@ authentication.
 ## Architecture & tech stack
 
 Three services from one codebase, each a separate container. Production runs
-them on a single-node Talos Linux cluster in the `relay` namespace: the manifests
-are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and the place
-to look for how deployments, probes and certificates work.
+them on a single-node Talos Linux cluster in the `default` namespace: the
+manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and
+the place to look for how deployments, probes and certificates work.
 
 - **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
 - **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
@@ -69,9 +69,9 @@ proxy.
 Production deployment, all driven by `.github/workflows/deploy.yml`:
 
 - `kubectl apply -k deploy/k8s`. Apply the whole stack.
-- `kubectl rollout status deployment/<name> -n relay`. Watch one workload.
-- `kubectl logs -n relay deployment/<name>`. Read a service's logs.
-- `kubectl exec -n relay postgres-0 -- psql -U postgres`. Reach the database.
+- `kubectl rollout status deployment/<name>`. Watch one workload.
+- `kubectl logs deployment/<name>`. Read a service's logs.
+- `kubectl exec postgres-0 -- psql -U postgres`. Reach the database.
 
 `kubectl` needs a kubeconfig for the cluster. The provisioning step publishes
 one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is

@@ -21,7 +21,7 @@ jobs:
           chmod 600 ~/.kube/config
       - name: Capture Postgres backup
         run: |
-          kubectl exec --namespace relay postgres-0 -- /usr/bin/pg_dump -Fc -U postgres postgres > backup.dump
+          kubectl exec postgres-0 -- /usr/bin/pg_dump -Fc -U postgres postgres > backup.dump
           test -s backup.dump
       - name: Encrypt backup
         env:

@@ -144,19 +144,19 @@ note "the node runs Talos $verified_version"
 # todo: a workload deleted from the cluster is invisible here; compare against
 # the manifests in deploy/k8s if a partial cluster has to fail the run too
 workloads_are_ready() {
-    kubectl get deployment,statefulset --namespace relay \
+    kubectl get deployment,statefulset \
         --output jsonpath='{range .items[*]}{.spec.replicas}{" "}{.status.readyReplicas}{"\n"}{end}' |
     awk '{ if (NF != 2 || $1 != $2) bad = 1 } END { exit (NR == 0 || bad) }'
 }
 
 pods_are_ready() {
     workloads_are_ready || return 1
-    kubectl get pods --namespace relay --no-headers --field-selector=status.phase!=Succeeded |
+    kubectl get pods --no-headers --field-selector=status.phase!=Succeeded |
     awk '$3 == "Terminating" || $3 == "Completed" { next }
          $2 != "1/1" || $3 != "Running" { exit 1 }'
 }
 
 wait_until "every relay workload" pods_are_ready ||
-fail "the relay workloads did not come back; inspect kubectl get pods --namespace relay"
+fail "the relay workloads did not come back; inspect kubectl get pods"
 
 note "Talos $target_version and Kubernetes $KUBERNETES_VERSION are installed and the relay workloads are ready"

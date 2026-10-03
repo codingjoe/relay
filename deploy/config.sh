@@ -215,8 +215,6 @@ TALOS_DIR="${TALOS_DIR:-$STATE_DIR/talos}"
 S3_REGION="fsn1"
 S3_ENDPOINT_URL="https://fsn1.your-objectstorage.com"
 
-RELAY_NAMESPACE="relay"
-
 # Caddy serves stored message bodies on this name, which the zone's wildcard
 # record covers.
 STORAGE_HOSTNAME="storage.$RELAY_HOSTNAME"

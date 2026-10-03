@@ -124,8 +124,8 @@ signatures, and rolls out every workload. A later failure rolls the workloads
 the release moved back to the image they ran before; migrations are not
 reversed.
 
-The deploy token holds a Role in the `relay` namespace alone, so the first boot
-applies the cluster-scoped Dozzle RBAC and labels the namespace for its
+The deploy token holds a Role in the `default` namespace alone, so the first
+boot applies the cluster-scoped Dozzle RBAC and labels the namespace for its
 privileged pods. See `deploy/talos/machine-config.patch.yaml.tmpl`.
 
 ## 5. Check it
@@ -143,8 +143,8 @@ Then confirm the cluster itself is healthy:
 
 ```bash
 export KUBECONFIG=deploy/.state/talos/kubeconfig
-kubectl get pods -n relay
-kubectl get events -n relay --sort-by=.lastTimestamp | tail
+kubectl get pods
+kubectl get events --sort-by=.lastTimestamp | tail
 ```
 
 Every long-running pod should be `Running` with a `1/1` ready count: each one
@@ -175,8 +175,8 @@ It prints what it needs and halts. Fix that, then rerun the same command.
 - **No Talos API yet**: the node is still installing itself to disk. Rerun in a
   minute, or read what the boot did:
   `talosctl --talosconfig deploy/.state/talos/talosconfig dmesg`.
-- **No cluster yet**: the first boot did not finish, so the namespace and the
-  deploy token are not there. The same `dmesg` says why; a node that never
+- **No cluster yet**: the first boot did not finish, so the admission labels and
+  the deploy token are not there. The same `dmesg` says why; a node that never
   answers needs a reinstall, not patience.
 - **Records pending**: a resolver cached the old answer. Rerun in a few minutes.
 - **`.env.keys` missing**: restore the key that decrypts `.env.production`.
@@ -348,7 +348,7 @@ talosctl version
 talosctl logs kubelet                  # one service's log
 talosctl dmesg                         # the kernel ring
 talosctl netstat                       # host connections and sockets
-kubectl debug node/<name> -n relay -it --image=alpine   # a shell on the host
+kubectl debug node/<name> -it --image=alpine   # a shell on the host
 ```
 
 The admin kubeconfig is the one the server step wrote to
@@ -357,22 +357,18 @@ the node when it has expired:
 
 ```bash
 talosctl kubeconfig --force --merge=false ~/.kube/relay.yaml
-kubectl --kubeconfig ~/.kube/relay.yaml config set-context --current --namespace relay
 export KUBECONFIG=~/.kube/relay.yaml
 ```
 
-Both kubeconfigs default to the `relay` namespace: this admin one, and the
-deploy token the workflows carry. Plain `kubectl get pods` reaches the relay
-objects, and the workflows' explicit `--namespace relay` stays valid and is no
-longer needed.
+Both kubeconfigs reach the `default` namespace: this admin one, and the deploy
+token the workflows carry. Plain `kubectl get pods` reaches the relay objects.
 
-The namespace stays even though the cluster hosts nothing else: the deploy
+Relay runs in `default` even though the cluster hosts nothing else: the deploy
 token's Role is scoped to it, the privileged Pod Security Admission label lives
-on it so a stray apply elsewhere is not privileged, and Dozzle's delete and exec
-Role stays inside it.
+on it, and Dozzle's delete and exec Role stays inside it.
 
-Keep `-n relay` on `kubectl debug`: a node debugger mounts the host filesystem
-in a pod, and `relay` is the namespace that admits it.
+A node debugger mounts the host filesystem in a pod, and `default` is the
+namespace that admits it.
 
 ### Certificates
 
@@ -380,7 +376,7 @@ The mail servers read Caddy's certificates at startup and never re-read them, so
 **a rotation needs an `msa` and `mta` restart**:
 
 ```bash
-kubectl rollout restart deployment/msa deployment/mta -n relay
+kubectl rollout restart deployment/msa deployment/mta
 ```
 
 Every deploy rolls those services, so this normally takes care of itself.
@@ -398,7 +394,7 @@ Caddy creates its cache storer once at startup. If it starts before
 memory until its next restart, so restart the deployment after such a race:
 
 ```bash
-kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/caddy -n relay
+kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/caddy
 ```
 
 ### Logs
@@ -407,7 +403,7 @@ One Dozzle instance watches every namespace through the Kubernetes API. It is
 not published to the internet. Tunnel to the dashboard:
 
 ```bash
-kubectl port-forward -n relay svc/dozzle 5000:8080
+kubectl port-forward svc/dozzle 5000:8080
 ```
 
 The dashboard and the Dozzle MCP server in `.mcp.json` answer on
@@ -427,8 +423,8 @@ custom-format dump:
 
 ```bash
 gpg --decrypt backup.dump.gpg > backup.dump
-kubectl cp backup.dump relay/postgres-0:/tmp/backup.dump
-kubectl exec -n relay postgres-0 -- \
+kubectl cp backup.dump postgres-0:/tmp/backup.dump
+kubectl exec postgres-0 -- \
     pg_restore -U postgres -d postgres --clean --if-exists /tmp/backup.dump
 ```
 
@@ -515,9 +511,9 @@ talosctl gen config "$RELAY_HOSTNAME" "https://$RELAY_HOSTNAME:6443" \
     --output-types controlplane -o /tmp/node.yaml \
     --with-docs=false --with-examples=false
 
-# the same patch, rendered with the namespace and the addresses this node carries
-RELAY_NAMESPACE=relay LINK_ADDRESSES='{address: <pool address>/32}' \
-    envsubst '${LINK_ADDRESSES} ${RELAY_NAMESPACE}' \
+# the same patch, rendered with the addresses this node carries
+LINK_ADDRESSES='{address: <pool address>/32}' \
+    envsubst '${LINK_ADDRESSES}' \
     < deploy/talos/machine-config.patch.yaml.tmpl > /tmp/node.patch
 talosctl machineconfig patch /tmp/node.yaml --patch @/tmp/node.patch -o /tmp/node.yaml
 talosctl validate --config /tmp/node.yaml --mode cloud
@@ -553,14 +549,14 @@ pointing at it. Without one, a control plane going down takes the API with it.
 - **Caddy and dnsdist run one replica each**, because both bind the node's ports
   and two pods cannot share a port on one node. That is also what preserves the
   real client address on the mail path.
-- **The namespace is flat**, because no NetworkPolicies are defined, and the
-  cluster's Flannel CNI enforces none anyway, so pod-to-pod traffic is
+- **The `default` namespace is flat**, because no NetworkPolicies are defined,
+  and the cluster's Flannel CNI enforces none anyway, so pod-to-pod traffic is
   unfiltered. See the node's machine config below.
 - **Both management ports answer the public internet.** The Talos API on
   `:50000` and the Kubernetes API on `:6443` are protected by mutual TLS and by
   the namespace-scoped deploy token, not by a firewall. See [Access](#access).
 - **The deploy token can create pods**, which on a single node is node root: a
-  privileged pod the token creates can reach the host. That is why the namespace
+  privileged pod the token creates can reach the host. That is why `default`
   runs the privileged Pod Security Admission profile: `caddy`, `dnsdist` and
   `sender` need `hostNetwork`, which baseline forbids. The token itself stays
   inside the namespace and cannot touch cluster-scoped objects.

@@ -63,7 +63,7 @@ jobs:
               echo "::error::the DOTENV_PRIVATE_KEY_PRODUCTION repository secret is not set"
               exit 1
           fi
-          kubectl create secret generic dotenvx-key --namespace relay \
+          kubectl create secret generic dotenvx-key \
               --from-literal=DOTENV_PRIVATE_KEY_PRODUCTION="$DOTENV_PRIVATE_KEY_PRODUCTION" \
               --dry-run=client --output=yaml | kubectl apply -f -
       - name: Build the relay-infra Secret
@@ -82,7 +82,7 @@ jobs:
               fi
               args+=(--from-literal="$name=$value")
           done
-          kubectl create secret generic relay-infra --namespace relay \
+          kubectl create secret generic relay-infra \
               "${args[@]}" --dry-run=client --output=yaml | kubectl apply -f -
       - name: Build the relay-cluster-env Secret
         env:
@@ -99,7 +99,7 @@ jobs:
               fi
           done
           certificates="/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
-          kubectl create secret generic relay-cluster-env --namespace relay \
+          kubectl create secret generic relay-cluster-env \
               --from-literal=DATABASE_URL="postgresql://postgres:${postgres_password}@postgres:5432/postgres" \
               --from-literal=REDIS_URL="redis://:${redis_password}@redis:6379/0" \
               --from-literal=TASK_REDIS_URL="redis://:${redis_password}@redis-tasks:6379/0" \
@@ -130,9 +130,9 @@ jobs:
           for file in deploy/k8s/redis/*; do
               dotenvx run -f .env.production -- envsubst <"$file" >"rendered/redis/$(basename "$file")"
           done
-          kubectl create secret generic rspamd-config --namespace relay \
+          kubectl create secret generic rspamd-config \
               --from-file=rendered/rspamd/ --dry-run=client --output=yaml | kubectl apply -f -
-          kubectl create secret generic redis-config --namespace relay \
+          kubectl create secret generic redis-config \
               --from-file=rendered/redis/ --dry-run=client --output=yaml | kubectl apply -f -
           rm -rf rendered
       - name: Point the manifests at this release
@@ -142,24 +142,24 @@ jobs:
       - name: Snapshot the running release
         run: |
           # Rollback reverts only the workloads that moved in this run.
-          kubectl get deployment --namespace relay --no-headers \
+          kubectl get deployment --no-headers \
               --output custom-columns='NAME:.metadata.name,IMAGE:.spec.template.spec.containers[0].image' \
               > /tmp/previous-images.txt
       - name: Apply
         run: |
-          kubectl delete job --namespace relay --ignore-not-found migration clamav-updater
+          kubectl delete job --ignore-not-found migration clamav-updater
           kubectl apply -k deploy/k8s
       - name: Migrate
-        run: kubectl wait --namespace relay --for=condition=complete job/migration --timeout=10m
+        run: kubectl wait --for=condition=complete job/migration --timeout=10m
       - name: Refresh virus signatures
         run: |
-          kubectl wait --namespace relay --for=condition=complete job/clamav-updater --timeout=20m
+          kubectl wait --for=condition=complete job/clamav-updater --timeout=20m
       - name: Roll out
         run: |
           # 15m exceeds the 10m startup budget on msa, mta and clamav; a stuck
           # rollout still exits sooner, on the Deployment's progress deadline.
-          for deployment in $(kubectl get deployment --namespace relay --output name); do
-              kubectl rollout status "$deployment" --namespace relay --timeout=15m
+          for deployment in $(kubectl get deployment --output name); do
+              kubectl rollout status "$deployment" --timeout=15m
           done
       - name: Check every pod is ready
         run: |
@@ -168,14 +168,14 @@ jobs:
           # readiness probe, so a crash loop can report a finished rollout:
           # dnsdist did exactly that and only failed once it restarted. Assert
           # the end state instead of trusting the rollouts.
-          not_ready="$(kubectl get pods --namespace relay --no-headers \
+          not_ready="$(kubectl get pods --no-headers \
               --field-selector=status.phase!=Succeeded |
               awk '$3 == "Terminating" || $3 == "Completed" { next }
                    $2 != "1/1" || $3 != "Running" { print "  " $0 }')"
           if [ -n "$not_ready" ]; then
               echo "::error::these pods are not running and ready:"
               printf '%s\n' "$not_ready"
-              kubectl get events --namespace relay --sort-by=.lastTimestamp | tail -15
+              kubectl get events --sort-by=.lastTimestamp | tail -15
               exit 1
           fi
           echo "every pod is running and ready"
@@ -188,15 +188,15 @@ jobs:
               exit 0
           fi
           while read -r deployment previous; do
-              current="$(kubectl get "deployment/$deployment" --namespace relay \
+              current="$(kubectl get "deployment/$deployment" \
                   --output jsonpath='{.spec.template.spec.containers[0].image}')"
               if [ "$current" = "$previous" ]; then
                   continue
               fi
               echo "rolling $deployment back from $current"
-              kubectl rollout undo "deployment/$deployment" --namespace relay ||
+              kubectl rollout undo "deployment/$deployment" ||
                   echo "::warning::$deployment has no earlier revision to roll back to"
           done < /tmp/previous-images.txt
-          for deployment in $(kubectl get deployment --namespace relay --output name); do
-              kubectl rollout status "$deployment" --namespace relay --timeout=15m
+          for deployment in $(kubectl get deployment --output name); do
+              kubectl rollout status "$deployment" --timeout=15m
           done
