@@ -125,8 +125,11 @@ the release moved back to the image they ran before; migrations are not
 reversed.
 
 The deploy token holds a Role in the `default` namespace alone, so the first
-boot applies the cluster-scoped Dozzle RBAC and labels the namespace for its
-privileged pods. See `deploy/talos/machine-config.patch.yaml.tmpl`.
+boot applies the cluster-scoped Dozzle RBAC and creates that token. See
+`deploy/talos/machine-config.patch.yaml.tmpl`. The namespace's admission labels
+come with `deploy/k8s` instead, because Talos writes an inline manifest only
+once, for objects that do not exist yet, and `default` always exists. See
+`deploy/k8s/namespace.yaml`.
 
 ## 5. Check it
 
@@ -175,9 +178,9 @@ It prints what it needs and halts. Fix that, then rerun the same command.
 - **No Talos API yet**: the node is still installing itself to disk. Rerun in a
   minute, or read what the boot did:
   `talosctl --talosconfig deploy/.state/talos/talosconfig dmesg`.
-- **No cluster yet**: the first boot did not finish, so the admission labels and
-  the deploy token are not there. The same `dmesg` says why; a node that never
-  answers needs a reinstall, not patience.
+- **No cluster yet**: the first boot did not finish, so the deploy token is not
+  there. The same `dmesg` says why; a node that never answers needs a reinstall,
+  not patience.
 - **Records pending**: a resolver cached the old answer. Rerun in a few minutes.
 - **`.env.keys` missing**: restore the key that decrypts `.env.production`.
 - **Pod stops at start**: the entrypoint is `dotenvx run --strict`, which halts
@@ -204,11 +207,11 @@ release, with its bucket alongside. The values worth setting:
 
 The machine config lives in `deploy/talos/machine-config.patch.yaml.tmpl`. It
 carries the egress pool, the resolvers, the kubelet serving certificate setting
-and the namespace's admission labels. The server step renders it onto the
-config the keys step generated and either hands the result to a new or rebuilt
-node as user_data or pushes it to the running node with `talosctl apply-config`.
-Nothing else configures the machine: Talos has no cloud-init, no netplan and no
-SSH.
+and the bootstrap manifest that creates the deploy token and the cluster-scoped
+Dozzle RBAC. The server step renders it onto the config the keys step generated
+and either hands the result to a new or rebuilt node as user_data or pushes it
+to the running node with `talosctl apply-config`. Nothing else configures the
+machine: Talos has no cloud-init, no netplan and no SSH.
 
 ### Changing a setting
 

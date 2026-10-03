@@ -1,0 +1,10 @@
+# Relies on kubectl patching an existing namespace; Talos would only create it, and `default` always exists.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+  labels:
+    # caddy, dnsdist and sender need hostNetwork and hostPorts, which the baseline profile refuses.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
