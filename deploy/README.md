@@ -189,6 +189,11 @@ It prints what it needs and halts. Fix that, then rerun the same command.
 - **`certificate signed by unknown authority` in the deploy**: the `KUBECONFIG`
   secret was issued by an earlier cluster, so the environment step has to
   republish both secrets. Run that step, then dispatch the deploy again.
+- **No DNS answers, and dnsdist keeps restarting**: its config resolves the
+  authoritative Service by a cluster-internal name, and that name carries the
+  namespace. Pointing at another one returns NXDOMAIN, so dnsdist starts with no
+  downstream servers, drops every query and fails its liveness probe. See
+  `deploy/k8s/dnsdist/dnsdist.conf`.
 - **Pool short**: run `./deploy/provision.sh egress`.
 
 ## Changing the deployment
