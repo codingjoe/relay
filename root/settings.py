@@ -60,6 +60,19 @@ ALLOWED_HOSTS = [
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Probes keep speaking plain HTTP; HSTS covers every subdomain.
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=not (DEBUG or TEST))
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not (DEBUG or TEST))
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not (DEBUG or TEST))
+SECURE_HSTS_SECONDS = env.int(
+    "SECURE_HSTS_SECONDS", default=0 if DEBUG or TEST else 31536000
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not (DEBUG or TEST)
+)
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=not (DEBUG or TEST))
+SECURE_REDIRECT_EXEMPT = [r"^health/"]
+
 # Show django-debug-toolbar for local development requests.
 INTERNAL_IPS = ["127.0.0.1"]
 

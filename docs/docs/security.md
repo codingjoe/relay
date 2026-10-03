@@ -24,6 +24,9 @@ organization data at the database level. Every query of org-owned data filters o
 organization, so one organization cannot read the messages of another
 organization.
 
+The dashboard answers over HTTPS only, and its HSTS policy keeps browsers from
+falling back to plain HTTP.
+
 relay also blocks domain hijacking between organizations: a domain that
 overlaps a domain of another organization cannot be registered. relay reserves subdomains
 of the managed sender domain for the platform. relay enforces

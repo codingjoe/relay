@@ -23,6 +23,30 @@ jobs:
       url: https://${{ vars.HOSTNAME }}
     steps:
       - uses: actions/checkout@v7
+      - name: Install tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends gettext
+          curl -fsSL https://dotenvx.sh | sh
+          dotenvx --version
+      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - name: Build the frontend
+        run: |
+          npm install -g pnpm
+          pnpm ci --frozen-lockfile
+          # The staticfiles deployment check reads the ESM import map.
+          pnpm run build
+      - name: Check the release
+        env:
+          DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+        run: |
+          # --overload makes HOSTNAME the platform domain, not the runner's own.
+          dotenvx run --strict --overload -f .env.production -- \
+              uv run --no-dev --no-default-groups \
+              python manage.py check --deploy --fail-level WARNING
       - name: Authenticate to the cluster
         env:
           KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
@@ -31,12 +55,6 @@ jobs:
           printf '%s\n' "$KUBECONFIG_CONTENT" > ~/.kube/config
           chmod 600 ~/.kube/config
           kubectl version --output=yaml --context relay >/dev/null
-      - name: Install tooling
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends gettext
-          curl -fsSL https://dotenvx.sh | sh
-          dotenvx --version
       - name: Build the dotenvx key Secret
         env:
           DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
@@ -121,6 +139,12 @@ jobs:
         run: |
           sed -i "s|newTag: .*|newTag: sha-${GITHUB_SHA}|" deploy/k8s/kustomization.yaml
           grep -q "newTag: sha-${GITHUB_SHA}" deploy/k8s/kustomization.yaml
+      - name: Snapshot the running release
+        run: |
+          # Rollback reverts only the workloads that moved in this run.
+          kubectl get deployment --namespace relay --no-headers \
+              --output custom-columns='NAME:.metadata.name,IMAGE:.spec.template.spec.containers[0].image' \
+              > /tmp/previous-images.txt
       - name: Apply
         run: |
           kubectl delete job --namespace relay --ignore-not-found migration clamav-updater
@@ -155,3 +179,24 @@ jobs:
               exit 1
           fi
           echo "every pod is running and ready"
+      - name: Roll back the release
+        if: failure()
+        run: |
+          # Images only: migrations, Secrets and ConfigMaps stay as applied.
+          if [ ! -s /tmp/previous-images.txt ]; then
+              echo "nothing was applied in this run"
+              exit 0
+          fi
+          while read -r deployment previous; do
+              current="$(kubectl get "deployment/$deployment" --namespace relay \
+                  --output jsonpath='{.spec.template.spec.containers[0].image}')"
+              if [ "$current" = "$previous" ]; then
+                  continue
+              fi
+              echo "rolling $deployment back from $current"
+              kubectl rollout undo "deployment/$deployment" --namespace relay ||
+                  echo "::warning::$deployment has no earlier revision to roll back to"
+          done < /tmp/previous-images.txt
+          for deployment in $(kubectl get deployment --namespace relay --output name); do
+              kubectl rollout status "$deployment" --namespace relay --timeout=15m
+          done
