@@ -275,7 +275,34 @@ class TestMessageDetailStatusCard:
         assert "<iframe" in content
         assert "sandbox" in content
         assert "allow-scripts" not in content
-        assert response.context["html_body"] == "<p>html body</p>"
+        assert f'src="{response.context["body_url"]}"' in content
+        assert response.context["has_html_body"] is True
+
+    def test_get__serves_the_html_body_to_the_frame(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(message.get_body_url())
+
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "text/html; charset=utf-8"
+        assert response.content == b"<p>html body</p>"
+        policy = response.headers["Content-Security-Policy"]
+        assert "script-src 'none'" in policy
+        assert "sandbox" in policy
+        assert "frame-ancestors 'self'" in policy
+        assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
+        assert response.headers["Cache-Control"] == "private, no-store"
+
+    def test_get__hides_the_body_of_another_org(self, admin_client, write_org):
+        message = make_incoming(write_org)
+
+        response = admin_client.get(
+            f"/org/{write_org.slug}/email/messages/{message.id}/body"
+        )
+
+        assert response.status_code == 404
 
     def test_get__leads_with_the_html_body_and_ends_with_the_headers(
         self, admin_client, org
@@ -306,7 +333,7 @@ class TestMessageDetailStatusCard:
         assert response.status_code == 200
         content = response.content.decode()
         assert 'id="message-tab-html"' not in content
-        assert response.context["html_body"] == ""
+        assert response.context["has_html_body"] is False
         assert tab_order(content) == ["message-tab-text", "message-tab-headers"]
         assert panel_visibility(content) == {
             "message-panel-text": False,

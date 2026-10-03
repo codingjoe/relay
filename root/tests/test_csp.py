@@ -1,0 +1,55 @@
+import base64
+import hashlib
+
+from django.http import HttpResponse
+from django.urls import reverse
+from django.utils.csp import CSP
+from django.views.decorators.csp import csp_override
+
+from root.middleware import ContentSecurityPolicyMiddleware
+
+
+class TestContentSecurityPolicyMiddleware:
+    def test_process_response__adds_the_import_map_hash(self, rf):
+        response = HttpResponse(
+            '<html><script type="importmap">{"imports": {}}</script></html>'
+        )
+        middleware = ContentSecurityPolicyMiddleware(lambda request: response)
+        response = middleware.process_response(rf.get("/"), response)
+        digest = base64.b64encode(hashlib.sha512(b'{"imports": {}}').digest()).decode()
+        assert f"'sha512-{digest}'" in response.headers["Content-Security-Policy"]
+
+    def test_process_response__hashes_the_map_the_page_carries(self, client):
+        response = client.get(reverse("home"))
+        content = response.content.decode()
+        open_tag = '<script type="importmap">'
+        start = content.index(open_tag) + len(open_tag)
+        rendered_map = content[start : content.index("</script>", start)]
+        digest = base64.b64encode(
+            hashlib.sha512(rendered_map.encode()).digest()
+        ).decode()
+        assert f"'sha512-{digest}'" in response.headers["Content-Security-Policy"]
+
+    def test_process_response__serves_no_hash_without_the_map(self, rf):
+        response = HttpResponse('{"ok": true}', content_type="application/json")
+        middleware = ContentSecurityPolicyMiddleware(lambda request: response)
+        response = middleware.process_response(rf.get("/"), response)
+        assert "'sha512-" not in response.headers["Content-Security-Policy"]
+
+    def test_process_response__skips_a_policy_without_script_src(self, settings, rf):
+        settings.SECURE_CSP = {"default-src": [CSP.SELF]}
+        response = HttpResponse('<script type="importmap">{"imports": {}}</script>')
+        middleware = ContentSecurityPolicyMiddleware(lambda request: response)
+        response = middleware.process_response(rf.get("/"), response)
+        assert response.headers["Content-Security-Policy"] == "default-src 'self'"
+
+    def test_process_response__keeps_the_policy_of_the_view(self, rf):
+        @csp_override({"default-src": [CSP.NONE]})
+        def view(request):
+            return HttpResponse()
+
+        response = view(rf.get("/"))
+        middleware = ContentSecurityPolicyMiddleware(view)
+        request = rf.get("/")
+        response = middleware.process_response(request, response)
+        assert response.headers["Content-Security-Policy"] == "default-src 'none'"
