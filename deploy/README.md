@@ -495,10 +495,11 @@ one server, and the egress pool belongs to it.
 The patched machine config exists only while the server step runs: it renders
 `deploy/talos/machine-config.patch.yaml.tmpl` onto the generated
 `deploy/.state/talos/controlplane.yaml` in a temporary file, hands that to the
-node and deletes it. The generated file carries the secrets, the installer image
-and the cluster certificates, but none of the patch's link, resolver or
-bootstrap documents. Build the new node's config the same way, from the same two
-inputs:
+node and deletes it. The base carries the secrets and the cluster certificates,
+but none of the patch's link, resolver or bootstrap documents, and the patch
+deletes the generator's install document, so the config handed to the node
+carries no installer image. Build the new node's config the same way, from the
+same two inputs:
 
 ```bash
 source deploy/config.sh   # RELAY_HOSTNAME, TALOS_VERSION, TALOS_INSTALLER, TALOS_DIR
