@@ -90,7 +90,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:8.10.1-alpine
+          image: redis:8.10.2-alpine
           args: ["redis-server", "/usr/local/etc/redis/redis.conf"]
           env:
             - name: REDISCLI_AUTH
@@ -151,7 +151,7 @@ spec:
     spec:
       containers:
         - name: redis-tasks
-          image: redis:8.10.1-alpine
+          image: redis:8.10.2-alpine
           args: ["redis-server", "/usr/local/etc/redis/redis-tasks.conf"]
           env:
             - name: REDISCLI_AUTH
@@ -211,7 +211,7 @@ spec:
     spec:
       containers:
         - name: caddy-redis
-          image: redis:8.10.1-alpine
+          image: redis:8.10.2-alpine
           args: ["redis-server", "/usr/local/etc/redis/caddy.conf"]
           env:
             - name: REDISCLI_AUTH
