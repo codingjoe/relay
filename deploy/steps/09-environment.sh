@@ -52,15 +52,15 @@ talos_api_is_reachable() {
 }
 
 cluster_is_ready() {
-    [ -n "$(kubectl_admin -n "$RELAY_NAMESPACE" get secret deploy-token -o jsonpath='{.data.token}' 2>/dev/null)" ]
+    [ -n "$(kubectl_admin get secret deploy-token -o jsonpath='{.data.token}' 2>/dev/null)" ]
 }
 
 deploy_kubeconfig() {
     local token certificate_authority server
-    token="$(kubectl_admin -n "$RELAY_NAMESPACE" get secret deploy-token -o jsonpath='{.data.token}' |
+    token="$(kubectl_admin get secret deploy-token -o jsonpath='{.data.token}' |
         python3 -c 'import base64, sys; print(base64.b64decode(sys.stdin.read().strip()).decode())')"
     [ -n "$token" ] || return 1
-    certificate_authority="$(kubectl_admin -n "$RELAY_NAMESPACE" get secret deploy-token -o jsonpath='{.data.ca\.crt}')"
+    certificate_authority="$(kubectl_admin get secret deploy-token -o jsonpath='{.data.ca\.crt}')"
     [ -n "$certificate_authority" ] || return 1
     server="$(kubectl_admin config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
     [ -n "$server" ] || return 1
@@ -77,7 +77,6 @@ contexts:
     context:
       cluster: relay
       user: deploy
-      namespace: $RELAY_NAMESPACE
 current-context: relay
 users:
   - name: deploy
@@ -141,13 +140,10 @@ note "Writing $KUBECONFIG_FILE from the node"
 # --merge=false: the file is exactly the admin kubeconfig the node serves, not
 # a merge into one that a previous cluster left behind.
 talosctl --talosconfig "$TALOSCONFIG_FILE" kubeconfig --force --merge=false "$KUBECONFIG_FILE"
-# The node writes no namespace, and this rewrite drops the one the server step
-# set, so the admin default is set again here.
-kubectl --kubeconfig "$KUBECONFIG_FILE" config set-context --current --namespace "$RELAY_NAMESPACE"
 
 note "Waiting for the cluster on $SERVER_ADDRESS"
-if ! wait_until "the relay namespace and deploy token" cluster_is_ready; then
-    warn "the Kubernetes API is not serving the relay namespace yet. If the cluster has not been bootstrapped, bootstrap it once:"
+if ! wait_until "the deploy token" cluster_is_ready; then
+    warn "the Kubernetes API is not serving the deploy token yet. If the cluster has not been bootstrapped, bootstrap it once:"
     warn "  talosctl --talosconfig $TALOSCONFIG_FILE bootstrap"
     warn "If it has, read what this boot did:"
     warn "  talosctl --talosconfig $TALOSCONFIG_FILE dmesg"

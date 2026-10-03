@@ -1,10 +1,10 @@
 # Machine config patch for the relay control plane.
 #
 # Rendered by deploy/steps/05-server.sh with envsubst, which fills in the
-# egress addresses and the namespace, and applied to the controlplane config
-# the keys step generated. Every document here either merges into one the
-# generator wrote, is appended to it, or deletes one, so the generated secrets,
-# the etcd encryption key and the cluster endpoint stay untouched.
+# egress addresses, and applied to the controlplane config the keys step
+# generated. Every document here either merges into one the generator wrote, is
+# appended to it, or deletes one, so the generated secrets, the etcd encryption
+# key and the cluster endpoint stay untouched.
 #
 # The snapshot already carries an installed system, so the generated
 # UnattendedInstallConfig would run the installer on every boot and tear the
@@ -69,7 +69,7 @@ manifest: |
   apiVersion: v1
   kind: Namespace
   metadata:
-    name: ${RELAY_NAMESPACE}
+    name: default
     labels:
       app.kubernetes.io/part-of: relay
       # caddy, dnsdist and sender need hostNetwork and hostPorts, which the
@@ -82,17 +82,17 @@ manifest: |
   kind: ServiceAccount
   metadata:
     name: deploy
-    namespace: ${RELAY_NAMESPACE}
+    namespace: default
   ---
   apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     name: deploy
-    namespace: ${RELAY_NAMESPACE}
+    namespace: default
   rules:
     # The groups the kustomization applies. Creating pods is inside this grant,
-    # and that reaches node root: the namespace runs privileged for exactly
-    # that reason.
+    # and that reaches node root: default runs privileged for exactly that
+    # reason.
     - apiGroups: ["", "apps", "batch"]
       resources: ["*"]
       verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -101,7 +101,7 @@ manifest: |
   kind: RoleBinding
   metadata:
     name: deploy
-    namespace: ${RELAY_NAMESPACE}
+    namespace: default
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: Role
@@ -109,13 +109,13 @@ manifest: |
   subjects:
     - kind: ServiceAccount
       name: deploy
-      namespace: ${RELAY_NAMESPACE}
+      namespace: default
   ---
   apiVersion: v1
   kind: Secret
   metadata:
     name: deploy-token
-    namespace: ${RELAY_NAMESPACE}
+    namespace: default
     annotations:
       kubernetes.io/service-account.name: deploy
   type: kubernetes.io/service-account-token
@@ -150,7 +150,7 @@ manifest: |
   subjects:
     - kind: ServiceAccount
       name: dozzle
-      namespace: ${RELAY_NAMESPACE}
+      namespace: default
   ---
   # Restart deletes a pod and the shell execs in one, so both stay inside the
   # namespace instead of reaching every pod in the cluster.
@@ -158,7 +158,7 @@ manifest: |
   kind: Role
   metadata:
     name: dozzle
-    namespace: ${RELAY_NAMESPACE}
+    namespace: default
   rules:
     - apiGroups: [""]
       resources: ["pods"]
@@ -171,7 +171,7 @@ manifest: |
   kind: RoleBinding
   metadata:
     name: dozzle
-    namespace: ${RELAY_NAMESPACE}
+    namespace: default
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: Role
@@ -179,4 +179,4 @@ manifest: |
   subjects:
     - kind: ServiceAccount
       name: dozzle
-      namespace: ${RELAY_NAMESPACE}
+      namespace: default
