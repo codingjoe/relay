@@ -35,6 +35,13 @@
   hint: |
     Use {% translate %} instead of the shorthand {% trans %}.
   filePattern: .*\.html$
+- name: No inline scripts in templates
+  pattern: '<script(?![^>]*\bsrc=)(?![^>]*type="importmap")[^>]*>'
+  hint: |
+    The enforced CSP loads scripts from relay alone (`script-src 'self'`). Load a static ES
+    module with `<script type="module" src="{% static '...' %}">` and pass per-render data
+    with `json_script` or `data-*` attributes. The ESM import map is the only inline script.
+  filePattern: .*\.html$
 - name: Input group icon buttons use the icon-xs size
   pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*<i data-lucide'
   hint: 'Icon buttons inside an `.input-group` use the app''s `data-size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. Without it the button takes the default 36px and fills the whole field.'
@@ -145,9 +152,13 @@
   hint: 'Put the RFC link definition at the bottom of the page and reference it inline, for example `[RFC 8617][rfc-8617]` defined by `[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/`.'
   filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'
 - name: No inline script blocks in templates
-  pattern: '<script(?![^>]*\bsrc=)'
-  hint: "Load a static ES module instead: <script type=\"module\" src=\"{% static 'app/page.js' %}\">, and pass per-page data with json_script or data-* attributes."
+  pattern: '<script(?![^>]*(?:\bsrc=|type="importmap"))'
+  hint: "Load a static ES module instead: <script type=\"module\" src=\"{% static 'app/page.js' %}\">, and pass per-page data with json_script or data-* attributes. The django-esm import map in base.html is the only inline script allowed."
   filePattern: '.*\.html$'
+- name: No third-party JavaScript from a CDN
+  pattern: 'https?://(?:esm\.sh|cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com)/'
+  hint: 'Vendor third-party modules with `pnpm add` and import them by package name; the import map served by django-esm resolves them locally. Only first-party URLs or plain relative paths belong in a script tag.'
+  filePattern: '.*\.(?:html|js)$'
 - name: No inline event handlers in templates
   pattern: '\s(?:onclick|onchange|oninput|onsubmit|onfocus|onblur|onkeydown|onkeyup|onload|onerror|onmouseover|onmouseout|ondblclick)\s*='
   hint: "Drive behavior with a data hook instead (data-dialog, data-dialog-close, data-backdrop-close, data-auto-open, data-confirm, data-copy, data-share, data-href, data-toggle, data-select, data-mirror). root/static/js/app.js handles them all."

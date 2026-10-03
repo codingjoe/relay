@@ -120,6 +120,17 @@ and sends no referrer, so a body from the outside cannot act inside your
 session. Remote images stay allowed, so the body looks as the sender wrote
 it.
 
+## Content Security Policy
+
+Every web response carries an enforced Content Security Policy, and relay never
+serves it in report-only mode. Pages load scripts from relay alone: no page
+ships an inline script of its own, and relay allows neither `'unsafe-inline'`
+nor `'unsafe-eval'` for scripts. Every module is pinned to an integrity hash,
+so a browser refuses a file it cannot verify. A message body renders in a
+sandboxed frame that keeps the styles and images its sender embedded, but runs
+no scripts. Pages load no third-party frames and no plugins, they submit forms
+to relay alone, and other sites cannot embed them.
+
 ## Node configuration and cluster keys
 
 Talos, the node's operating system, takes its first-boot configuration from the

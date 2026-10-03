@@ -2,9 +2,14 @@ from itertools import chain
 
 from django.db import models
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.csp import CSP
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.views.decorators.csp import csp_override
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
@@ -140,7 +145,8 @@ class MessageDetailView(
                 "headers": headers,
                 "received": [v for k, v in headers if k.lower() == "received"],
                 "body": message.text_body,
-                "html_body": message.html_body,
+                "has_html_body": bool(message.html_body),
+                "body_url": message.get_body_url(),
                 "transmissions": transmissions,
                 "timeline": sorted(
                     (timing.event for timing in timings),
@@ -149,6 +155,37 @@ class MessageDetailView(
             }
             | self.get_delivery_summary(message, transmissions)
         )
+
+
+# A message body is mail from the outside. Keep what a mail client keeps
+# (inline styles and the images of the sender) and block what mail clients
+# block: scripts, frames, plugins, forms, and remote stylesheets, fonts, and
+# media.
+MESSAGE_BODY_CSP = {
+    "default-src": [CSP.NONE],
+    "script-src": [CSP.NONE],
+    "connect-src": [CSP.NONE],
+    "frame-src": [CSP.NONE],
+    "object-src": [CSP.NONE],
+    "style-src": [CSP.UNSAFE_INLINE],
+    "img-src": ["http:", "https:"],
+    "form-action": [CSP.NONE],
+    "base-uri": [CSP.NONE],
+    "frame-ancestors": [CSP.SELF],
+    "sandbox": True,
+}
+
+
+@method_decorator(csp_override(MESSAGE_BODY_CSP), name="get")
+@method_decorator(xframe_options_sameorigin, name="get")
+class MessageBodyView(OrganizationScopedView, NoStoreCacheMixin, generic.View):
+    """Serve the HTML body of a message to a sandboxed frame."""
+
+    def get(self, request, *args, **kwargs):
+        message = get_object_or_404(
+            Message.objects.filter(org=self.org), pk=self.kwargs["pk"]
+        )
+        return HttpResponse(message.html_body, content_type="text/html; charset=utf-8")
 
 
 class CertificateDetailView(

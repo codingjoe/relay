@@ -1,28 +1,43 @@
 {
   "dependencies": {
-    "basecoat-css": "^1.0.2"
+    "basecoat-css": "^1.0.2",
+    "echarts": "^5.6.0",
+    "lit": "^3.3.3",
+    "lodash.escape": "^4.0.1",
+    "lucide": "^1.50.0",
+    "mermaid": "^11.17.2",
+    "microlighter": "^2.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.0",
     "@tailwindcss/typography": "^0.5.20",
     "cssnano": "^9.1.2",
+    "esimport": "^0.10.1",
     "postcss": "^8.5.26",
     "postcss-cli": "^11.0.0",
     "tailwindcss": "^4.1.0",
     "wireit": "^0.14.0"
+  },
+  "imports": {
+    "#abstract/*": "./abstract/static/abstract/*",
+    "#js/*": "./root/static/js/*",
+    "#message/*": "./services/email/message/static/message/*"
   },
   "name": "relay",
   "packageManager": "pnpm@11.20.0",
   "private": true,
   "scripts": {
     "build": "wireit",
-    "dev": "wireit"
+    "dev": "wireit",
+    "esm:build": "wireit",
+    "esm:watch": "wireit"
   },
   "version": "0.1.0",
   "wireit": {
     "build": {
       "dependencies": [
-        "css:build"
+        "css:build",
+        "esm:build"
       ]
     },
     "css:build": {
@@ -52,8 +67,33 @@
     },
     "dev": {
       "dependencies": [
-        "css:watch"
+        "css:watch",
+        "esm:watch"
       ]
+    },
+    "esm:build": {
+      "command": "esimport . staticfiles/esm --treeshake",
+      "files": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "abstract/static/**/*.js",
+        "root/static/js/**/*.js",
+        "services/email/message/static/**/*.js"
+      ],
+      "output": [
+        "staticfiles/esm/**"
+      ]
+    },
+    "esm:watch": {
+      "command": "esimport . staticfiles/esm --treeshake --watch",
+      "files": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "abstract/static/**/*.js",
+        "root/static/js/**/*.js",
+        "services/email/message/static/**/*.js"
+      ],
+      "service": true
     }
   }
 }

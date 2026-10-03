@@ -1,4 +1,4 @@
-{% load static i18n accounts %}
+{% load static i18n accounts esm %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
   <head>
@@ -41,8 +41,9 @@
       >
     {% endblock meta_tags %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script type="importmap">
+      {% importmap %}
+    </script>
     <script type="module" src="{% static 'js/app.js' %}"></script>
     <script type="module" src="{% static 'js/snippets.js' %}"></script>
     <script type="module" src="{% static 'js/amount.js' %}"></script>

@@ -457,6 +457,19 @@ wheels = [
 ]
 
 [[package]]
+name = "django-esm"
+version = "0.10.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "servestatic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bc/7c/ebea49f7beea8a2fd93fe16a01c7fb85cc22bad0ccadfd5585487d3bc725/django_esm-0.10.0.tar.gz", hash = "sha256:6eea0185dabd8b32578022e304d34802976a5c21654e364fb87fe5351a3b331b", size = 8940, upload-time = "2026-10-02T20:43:47.572Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/60/bb/3c1de2eb36c48f36400ca23a26c8c87263410d907c36c8c7b9a227657c06/django_esm-0.10.0-py3-none-any.whl", hash = "sha256:536f9a650b6bc5d312a73ffa2cd16d65418317dd8ba4cab6aff4c60b3cab36d3", size = 10168, upload-time = "2026-10-02T20:43:46.42Z" },
+]
+
+[[package]]
 name = "django-health-check"
 version = "4.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1205,6 +1218,7 @@ dependencies = [
     { name = "django" },
     { name = "django-crontask" },
     { name = "django-environ" },
+    { name = "django-esm" },
     { name = "django-health-check", extra = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"] },
     { name = "django-letter" },
     { name = "django-storages", extra = ["s3"] },
@@ -1266,6 +1280,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-crontask", specifier = ">=2" },
     { name = "django-environ", specifier = ">=0.14" },
+    { name = "django-esm", specifier = ">=0.10.0" },
     { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8" },
     { name = "django-letter", specifier = ">=0.6" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },

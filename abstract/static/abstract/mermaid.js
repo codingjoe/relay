@@ -1,7 +1,9 @@
-import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+import mermaid from "mermaid";
+
+const darkScheme = matchMedia("(prefers-color-scheme: dark)");
 
 function isDark() {
-  return document.documentElement.classList.contains("dark");
+  return darkScheme.matches;
 }
 
 function raw(name) {
@@ -115,7 +117,4 @@ async function render() {
 }
 
 render();
-new MutationObserver(render).observe(document.documentElement, {
-  attributes: true,
-  attributeFilter: ["class"],
-});
+darkScheme.addEventListener("change", render);

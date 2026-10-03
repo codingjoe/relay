@@ -14,10 +14,12 @@ import base64
 import datetime
 import hashlib
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import environ
 from cryptography.fernet import Fernet
 from django.tasks import DEFAULT_TASK_QUEUE_NAME
+from django.utils.csp import CSP
 
 env = environ.Env(
     # set casting, default value
@@ -44,6 +46,8 @@ DEBUG = env("DEBUG")
 
 # True when running under pytest (see pyproject.toml TEST env var).
 TEST = env.bool("TEST", default=False)
+
+SENTRY_DSN = env("SENTRY_DSN", default="").strip()
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -77,6 +81,32 @@ DEBUG_TOOLBAR_CONFIG = {
     "SHOW_COLLAPSED": True,
 }
 
+
+# Content Security Policy
+# https://docs.djangoproject.com/en/6.1/howto/csp/
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    "img-src": [CSP.SELF, "data:", "https://www.gravatar.com"],
+    "font-src": [CSP.SELF],
+    "media-src": [CSP.SELF],
+    "connect-src": [CSP.SELF],
+    "frame-src": [CSP.SELF],
+    "form-action": [CSP.SELF],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.NONE],
+    "frame-ancestors": [CSP.NONE],
+}
+
+if SENTRY_DSN and not (TEST or DEBUG):
+    dsn = urlsplit(SENTRY_DSN)
+    host = dsn.netloc.rpartition("@")[2]
+    SECURE_CSP["report-uri"] = [
+        f"{dsn.scheme}://{host}/api{dsn.path}/security/?sentry_key={dsn.username}"
+    ]
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
@@ -89,6 +119,8 @@ INSTALLED_APPS = [
     # First-party apps (abstract first so its widget overrides win)
     "abstract",
     "django.forms",
+    # Before staticfiles so its `collectstatic` override wins.
+    "django_esm",
     # Django
     "django.contrib.admin",
     "django.contrib.auth",
@@ -126,6 +158,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "root.middleware.ContentSecurityPolicyMiddleware",
     *(
         [
             "django_devbar.DevBarMiddleware",
@@ -506,7 +539,7 @@ LOGGING = {
 
 
 # Error monitoring (Sentry)
-if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DEBUG:
+if SENTRY_DSN and not TEST and not DEBUG:
     import sentry_sdk
     from sentry_sdk.integrations.asyncio import AsyncioIntegration
     from sentry_sdk.integrations.django import DjangoIntegration

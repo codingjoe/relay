@@ -1,0 +1,7 @@
+# pnpm 11 requires both: it fails on versions younger than its supply-chain
+# window and on ignored build scripts. Drop an exclusion once it ages out.
+allowBuilds:
+  esbuild: false
+minimumReleaseAgeExclude:
+  - lucide@1.50.0
+  - esimport@0.10.1
