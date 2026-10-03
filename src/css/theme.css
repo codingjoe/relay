@@ -1,4 +1,6 @@
 :root {
+  color-scheme: light dark;
+
   --color-primary: hsl(268, 100%, 41%);
   --color-primary-foreground: hsl(0, 0%, 100%);
   --color-primary-text: light-dark(hsl(268, 100%, 41%), hsl(268, 100%, 75%));
@@ -46,4 +48,40 @@
 
   --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+:root {
+  --background: light-dark(oklch(1 0 0), oklch(0.145 0 0));
+  --foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+  --card: light-dark(oklch(1 0 0), oklch(0.205 0 0));
+  --card-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+  --popover: light-dark(oklch(1 0 0), oklch(0.205 0 0));
+  --popover-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+  --primary: light-dark(oklch(0.205 0 0), oklch(0.922 0 0));
+  --primary-foreground: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
+  --secondary: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
+  --secondary-foreground: light-dark(oklch(0.205 0 0), oklch(0.985 0 0));
+  --muted: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
+  --accent: light-dark(oklch(0.97 0 0), oklch(0.371 0 0));
+  --accent-foreground: light-dark(oklch(0.205 0 0), oklch(0.985 0 0));
+  --border: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 10%));
+  --input: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 15%));
+  --ring: light-dark(oklch(0.708 0 0), oklch(0.556 0 0));
+  --sidebar: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
+  --sidebar-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+  --sidebar-primary: light-dark(oklch(0.205 0 0), oklch(0.488 0.243 264.376));
+  --sidebar-accent: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
+  --sidebar-accent-foreground: light-dark(oklch(0.205 0 0), oklch(0.985 0 0));
+  --sidebar-border: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 10%));
+  --sidebar-ring: light-dark(oklch(0.708 0 0), oklch(0.439 0 0));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chevron-down-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.708 0 0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>');
+    --chevron-down-icon-50: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.708 0 0 / 0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>');
+    --check-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.708 0 0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg>');
+  }
 }

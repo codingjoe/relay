@@ -1,17 +1,6 @@
 import "basecoat-css/all.min";
 import { createIcons, icons } from "lucide";
 
-(() => {
-  try {
-    const stored = localStorage.getItem("themeMode");
-    if (
-      stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      document.documentElement.classList.add("dark");
-    }
-  } catch (_) {}
-})();
-
 function sharePage() {
   const url = globalThis.location.href;
   navigator.clipboard?.writeText(url);
