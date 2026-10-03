@@ -336,6 +336,11 @@ Keep `SMTP_FLOATING_IP_COUNT` high enough that a spare is always available.
 
 ## Access
 
+Run `bin/relay-access` to install your relay kubeconfig. The `Sync Cluster Access` workflow issues it from repository membership, so a collaborator needs
+nothing handed to them. It carries read access to the workloads, the pod logs
+and Dozzle. Node administration stays with `talosctl` on the operator's
+machine.
+
 Both management endpoints answer the public internet, because no Hetzner Cloud
 Firewall is created: the Talos API on `:50000` and the Kubernetes API server on
 `:6443`. Neither is open. Talos and `kubectl` authenticate with client
