@@ -136,6 +136,33 @@ bootstrap_etcd() {
     return 1
 }
 
+# The kubeconfig the workloads, the workflows and kubectl share. Talos hands it
+# out of the node's own PKI, so it exists before the API answers.
+write_kubeconfig() {
+    "${TALOSCTL[@]}" kubeconfig --force --merge=false "$TALOS_DIR/kubeconfig" >/dev/null 2>&1
+}
+
+# The API answers, the node is Ready and the API server, controller manager and
+# scheduler run as static pods. talosctl health checks the same things, but it
+# tracks the node by an address and the egress pool puts two /32 addresses on
+# that interface, so it never matches the static pods to the node and spends its
+# whole timeout on a healthy cluster.
+control_plane_is_ready() {
+    local kubeconfig="$TALOS_DIR/kubeconfig"
+    kubectl --kubeconfig "$kubeconfig" --request-timeout 10s get --raw=/readyz >/dev/null 2>&1 || return 1
+    kubectl --kubeconfig "$kubeconfig" --request-timeout 10s get nodes --no-headers 2>/dev/null |
+    awk '$2 != "Ready" { bad = 1 } END { exit (NR < 1 || bad) }' || return 1
+    kubectl --kubeconfig "$kubeconfig" --request-timeout 10s get pods --namespace kube-system \
+        --no-headers 2>/dev/null |
+    awk '
+            $1 ~ /^kube-(apiserver|controller-manager|scheduler)-/ {
+                found++
+                if ($2 != "1/1" || $3 != "Running") bad = 1
+            }
+            END { exit (found < 3 || bad) }
+        '
+}
+
 REINIT=false
 [ "${1:-}" = "--reinit" ] && REINIT=true
 
@@ -145,7 +172,7 @@ if [ "${1:-}" = "--check" ]; then
 fi
 
 require_hcloud
-require_command talosctl envsubst
+require_command talosctl envsubst kubectl
 
 if [ "$REINIT" = false ] && server_is_ready; then
     confirm_step server "server $RELAY_HOSTNAME runs Talos with the egress pool assigned"
@@ -258,11 +285,12 @@ fi
 wait_until "the etcd bootstrap" bootstrap_etcd ||
 fail "the etcd bootstrap did not complete: ${BOOTSTRAP_ERROR:-talosctl bootstrap reported no output}"
 
-note "Waiting for the control plane"
-"${TALOSCTL[@]}" health --wait-timeout "${WAIT_TIMEOUT_SECS}s"
-
 note "Writing $TALOS_DIR/kubeconfig"
-"${TALOSCTL[@]}" kubeconfig --force --merge=false "$TALOS_DIR/kubeconfig"
+wait_until "the kubeconfig" write_kubeconfig ||
+fail "talosctl kubeconfig did not hand one out. Read the node: talosctl --talosconfig $TALOS_DIR/talosconfig dmesg"
+
+wait_until "the control plane" control_plane_is_ready ||
+fail "the control plane did not come up. Read the API server: kubectl --kubeconfig $TALOS_DIR/kubeconfig logs --namespace kube-system -l component=kube-apiserver"
 
 record_step server "created $SERVER_TYPE server $SERVER_ID in $SERVER_LOCATION as $SERVER_ADDRESS"
 
