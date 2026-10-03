@@ -1,2 +1,7 @@
 # Deployment state, written by provision.sh as it runs
 .state/
+
+# The k3s deploy key pair, left on disk by the migration and read by nothing.
+# It stays out of the index until you delete it.
+id_ed25519
+id_ed25519.pub

@@ -35,7 +35,12 @@ run_talosctl() {
 # thing that proves the boot from the image metadata was read and survived. The
 # document is read rather than listed, so an empty answer cannot pass.
 talos_is_configured() {
-    run_talosctl get mc v1alpha1 -o yaml 2>/dev/null | grep -q 'machine:'
+    local config
+    # Captured, not piped: `grep -q` exits at the match and closes the pipe, and
+    # the SIGPIPE that kills talosctl fails the pipeline under `pipefail`, so a
+    # healthy node would read as unconfigured.
+    config="$(run_talosctl get mc v1alpha1 -o yaml 2>/dev/null)" || return 1
+    grep -q 'machine:' <<<"$config"
 }
 
 # The image tells a box that ran this step's first boot from one that predates
@@ -106,6 +111,12 @@ render_machine_config() {
         <"$DEPLOY_DIR/talos/machine-config.patch.yaml.tmpl" >"${path}.patch"
     talosctl machineconfig patch "$TALOS_DIR/controlplane.yaml" \
         --patch "@${path}.patch" -o "$path"
+    # The generator writes an UnattendedInstallConfig whenever --install-image
+    # is set, and a node booted from the snapshot's installed system runs it on
+    # every boot, which is what kept the first --reinit from ever finishing.
+    # talosctl validate accepts the document, so the render is checked instead.
+    ! grep -q '^kind: UnattendedInstallConfig$' "$path" ||
+    fail "the rendered machine config carries UnattendedInstallConfig, which would reinstall the node on every boot and never keep its control plane up. Keep the delete document in deploy/talos/machine-config.patch.yaml.tmpl"
     printf '%s' "$path"
 }
 

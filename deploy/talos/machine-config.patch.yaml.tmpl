@@ -3,10 +3,18 @@
 # Rendered by deploy/steps/05-server.sh with envsubst, which fills in the
 # egress addresses and the namespace, and applied to the controlplane config
 # the keys step generated. Every document here either merges into one the
-# generator wrote or is appended to it, so the generated secrets, the etcd
-# encryption key and the cluster endpoint stay untouched, including the
-# installer image the keys step names.
+# generator wrote, is appended to it, or deletes one, so the generated secrets,
+# the etcd encryption key and the cluster endpoint stay untouched.
 #
+# The snapshot already carries an installed system, so the generated
+# UnattendedInstallConfig would run the installer on every boot and tear the
+# control plane down each cycle. Delete it; the keys step keeps passing
+# --install-image, which still names the hcloud build should an install ever be
+# asked for again.
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+$patch: delete
+---
 # The egress pool rides on the primary interface. Naming any link turns the
 # platform's default DHCP client off, so DHCPv4Config has to name eth0 too; the
 # default route and the primary address keep coming from DHCP, and Hetzner
