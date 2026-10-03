@@ -70,3 +70,22 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           use_oidc: true
+  vendored:
+    name: Check the vendored add-ons
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Diff the add-ons against their releases
+        # Vendored verbatim: any drift, including a Dependabot image bump, fails.
+        run: |
+          set -eo pipefail
+          while read -r file url; do
+            printf '%s\n' "checking $file against $url"
+            curl -fsSL "$url" | diff -u "$file" -
+          done <<'EOF'
+          deploy/cluster/local-path-storage.yaml https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.37/deploy/local-path-storage.yaml
+          deploy/cluster/metrics-server.yaml https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.0/components.yaml
+          deploy/cluster/kubelet-serving-cert-approver.yaml https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/v0.12.1/deploy/standalone-install.yaml
+          EOF
