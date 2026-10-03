@@ -48,6 +48,9 @@ updates:
       - "/"
       - "/deploy/k8s"
       - "/deploy/cluster"
+    ignore:
+      # Dependabot cannot read registry.k8s.io; it moves on re-vendoring.
+      - dependency-name: "*metrics-server/metrics-server"
     schedule:
       interval: weekly
     cooldown:
