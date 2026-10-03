@@ -117,8 +117,12 @@ The workflow runs from `main` and skips itself on any other ref, so dispatch it
 from `main`. It also fires on its own after CI passes there, and fails harmlessly
 until provisioning has set the `KUBECONFIG` secret.
 
-It applies `deploy/k8s`, runs the migration, refreshes the virus signatures,
-and rolls out every workload.
+It installs the environment and runs `manage.py check --deploy` against
+`.env.production` before it opens the cluster connection, with warnings as
+failures. It then applies `deploy/k8s`, runs the migration, refreshes the virus
+signatures, and rolls out every workload. A later failure rolls the workloads
+the release moved back to the image they ran before; migrations are not
+reversed.
 
 The deploy token holds a Role in the `relay` namespace alone, so the first boot
 applies the cluster-scoped Dozzle RBAC and labels the namespace for its
