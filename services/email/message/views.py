@@ -168,7 +168,7 @@ MESSAGE_BODY_CSP = {
     "frame-src": [CSP.NONE],
     "object-src": [CSP.NONE],
     "style-src": [CSP.UNSAFE_INLINE],
-    "img-src": ["https:", "data:"],
+    "img-src": ["http:", "https:", "data:"],
     "font-src": ["data:"],
     "media-src": ["data:"],
     "form-action": [CSP.NONE],
