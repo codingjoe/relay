@@ -49,9 +49,7 @@ updates:
       - "/deploy/k8s"
       - "/deploy/cluster"
     ignore:
-      # Dependabot cannot authenticate to registry.k8s.io (its tag lookup
-      # redirects to *.pkg.dev), which fails the whole deploy/cluster run.
-      # Bump metrics-server when re-vendoring its manifest.
+      # Dependabot cannot read registry.k8s.io; it moves on re-vendoring.
       - dependency-name: "*metrics-server/metrics-server"
     schedule:
       interval: weekly
