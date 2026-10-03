@@ -186,6 +186,9 @@ It prints what it needs and halts. Fix that, then rerun the same command.
 - **Pod stops at start**: the entrypoint is `dotenvx run --strict`, which halts
   instead of falling back to Django's defaults. Read the pod log. A missing
   `.env.production` or a missing `DOTENV_PRIVATE_KEY_PRODUCTION` both stop it.
+- **`certificate signed by unknown authority` in the deploy**: the `KUBECONFIG`
+  secret was issued by an earlier cluster, so the environment step has to
+  republish both secrets. Run that step, then dispatch the deploy again.
 - **Pool short**: run `./deploy/provision.sh egress`.
 
 ## Changing the deployment
@@ -241,6 +244,27 @@ the zone and the bucket are all reused rather than replaced.
 Run the step directly rather than through `provision.sh`. Rebuilding is
 destructive, and a step that a bare `./deploy/provision.sh` can reach is one
 that a rerun can trigger by accident.
+
+The disk that goes is the whole platform: the workloads, the volumes behind the
+database and Caddy's certificates, and the cluster add-ons. Nothing outside
+Kubernetes goes with it, so the server, its addresses, the zone and the bucket
+are kept. Carry on with:
+
+```bash
+talosctl kubeconfig --force --merge=false ~/.kube/relay.yaml   # the admin copy
+./deploy/provision.sh              # environment and cluster republish and reinstall
+gh workflow run deploy.yml --ref main
+```
+
+Two steps matter more than the rest. `environment` republishes `KUBECONFIG` and
+`TALOSCONFIG`, because `gh secret set` overwrites and the deploy refuses a
+credential from a cluster that no longer exists. It compares the CA the deploy
+token carries with the fingerprint it recorded in
+`deploy/.state/talos/published-ca.sha256`, so a rebuild from new secrets cannot
+leave the GitHub copy behind while a rerun that keeps the secrets bundle stays
+skipped. `cluster` reinstalls the add-ons, and without the local-path
+provisioner every PersistentVolumeClaim stays Pending, which hangs the deploy's
+migration job until it times out.
 
 The snapshot is uploaded once per Talos version: `hcloud-upload-image` boots a
 temporary server to write the disk, so the `image` step runs only when the

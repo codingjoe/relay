@@ -17,6 +17,9 @@ source "$DEPLOY_DIR/hcloud.sh"
 
 TALOSCONFIG_FILE="$TALOS_DIR/talosconfig"
 KUBECONFIG_FILE="$TALOS_DIR/kubeconfig"
+# The cluster identity the two GitHub secrets were last published for, so a
+# rebuild from new secrets cannot leave a stale credential in place.
+IDENTITY_FILE="$TALOS_DIR/published-ca.sha256"
 TALOS_ENDPOINT="$RELAY_HOSTNAME"
 
 environment_is_set() {
@@ -37,6 +40,10 @@ environment_is_set() {
     printf '%s\n' "$secrets" | grep -q "^KUBECONFIG" || return 1
     printf '%s\n' "$secrets" | grep -q "^TALOSCONFIG" || return 1
     printf '%s\n' "$secrets" | grep -q "^DOTENV_PRIVATE_KEY_PRODUCTION" || return 1
+    # Present is not the same as current. A rebuild from a new secrets bundle
+    # leaves both secrets in place while the cluster stops trusting them, and
+    # the deploy then dies on "certificate signed by unknown authority".
+    published_credentials_are_current || return 1
     [ "$(dotenvx get HOSTNAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
     [ "$(dotenvx get RELAY_STORAGE_DOMAIN -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$STORAGE_HOSTNAME" ] || return 1
     [ "$(dotenvx get AWS_S3_ENDPOINT_URL -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_ENDPOINT_URL" ] || return 1
@@ -53,6 +60,27 @@ talos_api_is_reachable() {
 
 cluster_is_ready() {
     [ -n "$(kubectl_admin get secret deploy-token -o jsonpath='{.data.token}' 2>/dev/null)" ]
+}
+
+# The cluster's identity, as the deploy token carries it: the CA it trusts. A
+# rerun that keeps the secrets bundle reinstalls the node onto the same PKI and
+# this does not move; deleting deploy/.state mints a new one.
+cluster_identity() {
+    kubectl_admin get secret deploy-token -o jsonpath='{.data.ca\.crt}' 2>/dev/null |
+    python3 -c 'import hashlib, sys
+data = sys.stdin.read().strip()
+print(hashlib.sha256(data.encode()).hexdigest() if data else "")'
+}
+
+# The two secrets carry a Role and a client certificate from one cluster, so
+# both are republished together and one fingerprint covers them both.
+published_credentials_are_current() {
+    local recorded current
+    recorded="$(cat "$IDENTITY_FILE" 2>/dev/null)" || return 1
+    [ -n "$recorded" ] || return 1
+    current="$(cluster_identity)"
+    [ -n "$current" ] || return 1
+    [ "$current" = "$recorded" ]
 }
 
 deploy_kubeconfig() {
@@ -165,6 +193,12 @@ gh secret delete SSH_PRIVATE_KEY 2>/dev/null || true
 # /proc/<pid>/cmdline, and these two are the cluster credentials.
 deploy_kubeconfig | gh secret set KUBECONFIG
 gh secret set TALOSCONFIG <"$TALOSCONFIG_FILE"
+# gh secret set overwrites, so a stale pair is replaced rather than refused, and
+# this records which cluster they were published for.
+identity="$(cluster_identity)"
+[ -n "$identity" ] ||
+fail "the deploy token carries no CA, so the published credentials cannot be identified"
+printf '%s\n' "$identity" >"$IDENTITY_FILE"
 
 note "Keep $TALOS_DIR/secrets.yaml: it reissues the TALOSCONFIG credential and is the cluster recovery input."
 
