@@ -20,7 +20,10 @@ KUBECONFIG_FILE="$TALOS_DIR/kubeconfig"
 # The cluster identity the two GitHub secrets were last published for, so a
 # rebuild from new secrets cannot leave a stale credential in place.
 IDENTITY_FILE="$TALOS_DIR/published-ca.sha256"
-TALOS_ENDPOINT="$RELAY_HOSTNAME"
+# The node's certificate covers its own name and its addresses, and the platform
+# truncates a server name at the first dot, so a client that dials
+# $RELAY_HOSTNAME fails the handshake. The workflows hand this to talosctl -n.
+TALOS_ENDPOINT="$(fetch_server_address)"
 
 environment_is_set() {
     local secrets server_address smtp_addresses smtp_source_addresses

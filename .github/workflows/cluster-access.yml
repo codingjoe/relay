@@ -1,0 +1,47 @@
+name: 📦 Sync Cluster Access
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  access:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    name: Issue cluster credentials
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - name: Authenticate to the cluster
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          if [ -z "$KUBECONFIG_CONTENT" ]; then
+              echo "::error::the KUBECONFIG repository secret is not set"
+              exit 1
+          fi
+          printf '%s\n' "$KUBECONFIG_CONTENT" > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+      - name: Install age
+        run: |
+          sudo apt-get update --quiet
+          sudo apt-get install --quiet --yes age
+      - name: Issue and encrypt the credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACCESS_DIR: ${{ runner.temp }}/access
+        run: deploy/cluster-access.sh
+      - name: Publish the encrypted credentials
+        uses: actions/upload-artifact@v7
+        with:
+          name: cluster-access
+          path: ${{ runner.temp }}/access
+      - name: Remove the credentials from the runner
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/access" "$RUNNER_TEMP/kubeconfig"

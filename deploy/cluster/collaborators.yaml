@@ -1,0 +1,43 @@
+# What every collaborator credential may do, bound once to the group that
+# holds every ServiceAccount in this namespace. The access workflow runs on the
+# deploy token, which cannot create RoleBindings, so these live here and the
+# workflow only creates the ServiceAccount and its token.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: collaborators-view
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:serviceaccounts:default
+---
+# The built-in view role stops at logs, and Dozzle is reached through a
+# port-forward, which view does not grant.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: collaborators-portforward
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: collaborators-portforward
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: collaborators-portforward
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:serviceaccounts:default
