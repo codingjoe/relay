@@ -45,7 +45,7 @@ service_account_token() {
         printf '%s' "$token"
         return
     fi
-    token="$(kubectl create token "$sa" --duration="$TOKEN_TTL")"
+    token="$(kubectl create token "$sa" --duration="$TOKEN_TTL")" || return 1
     kubectl delete secret "$sa-token" --ignore-not-found >/dev/null
     kubectl apply -f - >/dev/null <<EOF
 apiVersion: v1
@@ -90,7 +90,8 @@ fail "the collaborator list came back empty, so nothing would be issued and ever
 : > "$SCRATCH/current"
 
 while read -r login; do
-    sa="$(printf '%s' "$login" | tr '[:upper:]' '[:lower:]')"
+    # Prefixed, so a login cannot adopt the deploy or dozzle ServiceAccount.
+    sa="relay-access-$(printf '%s' "$login" | tr '[:upper:]' '[:lower:]')"
     printf '%s\n' "$sa" >> "$SCRATCH/current"
     recipients="$SCRATCH/recipients-$sa"
     gh api "users/$login/keys" --paginate --jq '.[].key' |
@@ -100,7 +101,10 @@ while read -r login; do
         continue
     fi
     apply_service_account "$sa"
-    write_kubeconfig "$sa" "$SCRATCH/kubeconfig-$login" "$(service_account_token "$sa")"
+    # Checked here, because errexit does not reach into a command substitution.
+    token="$(service_account_token "$sa")" ||
+    fail "no token for $sa, so no credential is issued for $login"
+    write_kubeconfig "$sa" "$SCRATCH/kubeconfig-$login" "$token"
     age --encrypt --recipients-file "$recipients" \
         --output "$ACCESS_DIR/$login-kubeconfig.age" "$SCRATCH/kubeconfig-$login"
     note "issued $login"
