@@ -18,6 +18,7 @@ directory from `yamlfmt`, because a reformat would break that match.
   at tag `v0.12.1`:
   <https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/v0.12.1/deploy/standalone-install.yaml>
 
-`kustomization.yaml` is local. It lists the three manifests and carries the
-patches that move local-path storage to `/var/local-path-provisioner` and admit
-the privileged helper pods.
+`kustomization.yaml` is local. It lists the manifests above plus `namespace.yaml`,
+which labels `default` for relay's privileged pods, and carries the patches that
+move local-path storage to `/var/local-path-provisioner` and admit the privileged
+helper pods.

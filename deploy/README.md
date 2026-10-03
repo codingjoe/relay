@@ -127,9 +127,9 @@ reversed.
 The deploy token holds a Role in the `default` namespace alone, so the first
 boot applies the cluster-scoped Dozzle RBAC and creates that token. See
 `deploy/talos/machine-config.patch.yaml.tmpl`. The namespace's admission labels
-come with `deploy/k8s` instead, because Talos writes an inline manifest only
-once, for objects that do not exist yet, and `default` always exists. See
-`deploy/k8s/namespace.yaml`.
+come with `deploy/cluster` instead, because the deploy token is a Role in that
+namespace and a Role cannot patch a cluster-scoped Namespace. See
+`deploy/cluster/namespace.yaml`.
 
 ## 5. Check it
 

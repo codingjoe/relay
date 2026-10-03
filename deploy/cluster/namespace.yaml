@@ -1,0 +1,12 @@
+# caddy, dnsdist and sender bind the node's ports as hostNetwork pods, which the
+# baseline profile refuses. The label lives here rather than in deploy/k8s,
+# because the deploy token is a Role in that namespace and a Role cannot patch a
+# cluster-scoped Namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged

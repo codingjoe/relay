@@ -16,6 +16,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - namespace.yaml
   - local-path-storage.yaml
   - metrics-server.yaml
   - kubelet-serving-cert-approver.yaml
