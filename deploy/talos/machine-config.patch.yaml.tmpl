@@ -62,22 +62,12 @@ taints:
 # Everything Kubernetes needs before the deploy workflow runs. Talos applies
 # the manifest with the admin kubeconfig, which is how the cluster-scoped
 # Dozzle RBAC gets created: the deploy token cannot grant cluster scope.
+#
+# No Namespace here: it always exists, so Talos would never apply it; deploy/k8s/namespace.yaml owns its labels.
 apiVersion: v1alpha1
 kind: KubeInlineManifestConfig
 name: relay-bootstrap
 manifest: |
-  apiVersion: v1
-  kind: Namespace
-  metadata:
-    name: default
-    labels:
-      app.kubernetes.io/part-of: relay
-      # caddy, dnsdist and sender need hostNetwork and hostPorts, which the
-      # baseline profile refuses; Talos enforces Pod Security Admission.
-      pod-security.kubernetes.io/enforce: privileged
-      pod-security.kubernetes.io/warn: privileged
-      pod-security.kubernetes.io/audit: privileged
-  ---
   apiVersion: v1
   kind: ServiceAccount
   metadata:
