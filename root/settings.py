@@ -14,6 +14,7 @@ import base64
 import datetime
 import hashlib
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import environ
 from cryptography.fernet import Fernet
@@ -45,6 +46,8 @@ DEBUG = env("DEBUG")
 
 # True when running under pytest (see pyproject.toml TEST env var).
 TEST = env.bool("TEST", default=False)
+
+SENTRY_DSN = env("SENTRY_DSN", default="").strip()
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -81,6 +84,7 @@ DEBUG_TOOLBAR_CONFIG = {
 
 # Content Security Policy
 # https://docs.djangoproject.com/en/6.1/howto/csp/
+
 SECURE_CSP = {
     "default-src": [CSP.SELF],
     "script-src": [CSP.SELF],
@@ -95,6 +99,13 @@ SECURE_CSP = {
     "base-uri": [CSP.NONE],
     "frame-ancestors": [CSP.NONE],
 }
+
+if SENTRY_DSN and not (TEST or DEBUG):
+    dsn = urlsplit(SENTRY_DSN)
+    host = dsn.netloc.rpartition("@")[2]
+    SECURE_CSP["report-uri"] = [
+        f"{dsn.scheme}://{host}/api{dsn.path}/security/?sentry_key={dsn.username}"
+    ]
 
 # Application definition
 
@@ -528,7 +539,7 @@ LOGGING = {
 
 
 # Error monitoring (Sentry)
-if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DEBUG:
+if SENTRY_DSN and not TEST and not DEBUG:
     import sentry_sdk
     from sentry_sdk.integrations.asyncio import AsyncioIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
