@@ -80,12 +80,12 @@ inherit the UUIDv7 primary key and inbound email metadata.
 ### Services
 
 Every service below runs as a Kubernetes workload in the `relay` namespace on a
-single-node k3s cluster. Stateless services run two replicas; `postgres`,
-`redis-tasks` and the `crontask` scheduler run one. Two independent replicas of a
-database or a task queue would hold divergent data rather than provide
-redundancy, and the scheduler already elects one active instance through a Redis
-lock. The manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator
-guide.
+single-node Talos Linux cluster, administered with `talosctl`. Stateless
+services run two replicas; `postgres`, `redis-tasks` and the `crontask`
+scheduler run one. Two independent replicas of a database or a task queue would
+hold divergent data rather than provide redundancy, and the scheduler already
+elects one active instance through a Redis lock. The manifests are in
+`deploy/k8s/`, and `deploy/README.md` is the operator guide.
 
 | Service | Port         | Description                                                    |
 | ------- | ------------ | -------------------------------------------------------------- |
@@ -264,8 +264,9 @@ allowlist their report sender.
   the storage proxy with signed, expiring URLs
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
-- **k3s**. Single-node Kubernetes on Hetzner Cloud, with Caddy as the ingress
-  and Layer 4 proxy. See `deploy/README.md`.
+- **Talos Linux**. Immutable single-node Kubernetes on Hetzner Cloud,
+  administered with `talosctl`, with Caddy as the ingress and Layer 4 proxy. See
+  `deploy/README.md`.
 
 ### Error monitoring (Sentry)
 

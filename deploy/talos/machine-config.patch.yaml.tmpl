@@ -1,0 +1,174 @@
+# Machine config patch for the relay control plane.
+#
+# Rendered by deploy/steps/05-server.sh with envsubst, which fills in the
+# egress addresses and the namespace, and applied to the controlplane config
+# the keys step generated. Every document here either merges into one the
+# generator wrote or is appended to it, so the generated secrets, the etcd
+# encryption key and the cluster endpoint stay untouched, including the
+# installer image the keys step names.
+#
+# The egress pool rides on the primary interface. Naming any link turns the
+# platform's default DHCP client off, so DHCPv4Config has to name eth0 too; the
+# default route and the primary address keep coming from DHCP, and Hetzner
+# routes the floating IPs to the server, so no route is configured here.
+apiVersion: v1alpha1
+kind: LinkConfig
+name: eth0
+addresses: [${LINK_ADDRESSES}]
+---
+apiVersion: v1alpha1
+kind: DHCPv4Config
+name: eth0
+---
+# Host DNS listens on port 53, which dnsdist needs, and these two resolvers
+# replace the ones systemd-resolved used to be given on the old server. With
+# host DNS off they are also what CoreDNS forwards to.
+apiVersion: v1alpha1
+kind: ResolverConfig
+nameservers:
+  - address: 1.1.1.1
+  - address: 9.9.9.9
+hostDNS:
+  enabled: false
+  forwardKubeDNSToHost: false
+---
+# metrics-server needs the kubelet's serving certificate signed by the cluster
+# CA instead of the self-signed one, so it can be trusted without
+# --kubelet-insecure-tls.
+apiVersion: v1alpha1
+kind: KubeletConfig
+config:
+  serverTLSBootstrap: true
+---
+# The relay runs on the one node this cluster has, and the generator taints a
+# control plane node with node-role.kubernetes.io/control-plane=NoSchedule
+# unless it is told otherwise. None of the relay workloads tolerates it, so the
+# taint would leave every one of them pending. This is the only place it is
+# removed; a second delete for the same document fails the render.
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+taints:
+  node-role.kubernetes.io/control-plane:
+    $patch: delete
+---
+# Everything Kubernetes needs before the deploy workflow runs. Talos applies
+# the manifest with the admin kubeconfig, which is how the cluster-scoped
+# Dozzle RBAC gets created: the deploy token cannot grant cluster scope.
+apiVersion: v1alpha1
+kind: KubeInlineManifestConfig
+name: relay-bootstrap
+manifest: |
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${RELAY_NAMESPACE}
+    labels:
+      app.kubernetes.io/part-of: relay
+      # caddy, dnsdist and sender need hostNetwork and hostPorts, which the
+      # baseline profile refuses; Talos enforces Pod Security Admission.
+      pod-security.kubernetes.io/enforce: privileged
+      pod-security.kubernetes.io/warn: privileged
+      pod-security.kubernetes.io/audit: privileged
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: deploy
+    namespace: ${RELAY_NAMESPACE}
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: deploy
+    namespace: ${RELAY_NAMESPACE}
+  rules:
+    # The groups the kustomization applies. Creating pods is inside this grant,
+    # and that reaches node root: the namespace runs privileged for exactly
+    # that reason.
+    - apiGroups: ["", "apps", "batch"]
+      resources: ["*"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: deploy
+    namespace: ${RELAY_NAMESPACE}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: deploy
+  subjects:
+    - kind: ServiceAccount
+      name: deploy
+      namespace: ${RELAY_NAMESPACE}
+  ---
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: deploy-token
+    namespace: ${RELAY_NAMESPACE}
+    annotations:
+      kubernetes.io/service-account.name: deploy
+  type: kubernetes.io/service-account-token
+  ---
+  # Dozzle watches every namespace, so discovery needs cluster scope.
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: dozzle
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "pods/log", "nodes"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+      verbs: ["get"]
+    - apiGroups: ["batch"]
+      resources: ["jobs", "cronjobs"]
+      verbs: ["get"]
+    - apiGroups: ["metrics.k8s.io"]
+      resources: ["pods"]
+      verbs: ["get", "list"]
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: dozzle
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: dozzle
+  subjects:
+    - kind: ServiceAccount
+      name: dozzle
+      namespace: ${RELAY_NAMESPACE}
+  ---
+  # Restart deletes a pod and the shell execs in one, so both stay inside the
+  # namespace instead of reaching every pod in the cluster.
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: dozzle
+    namespace: ${RELAY_NAMESPACE}
+  rules:
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["delete"]
+    - apiGroups: [""]
+      resources: ["pods/exec", "pods/attach"]
+      verbs: ["create"]
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: dozzle
+    namespace: ${RELAY_NAMESPACE}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: dozzle
+  subjects:
+    - kind: ServiceAccount
+      name: dozzle
+      namespace: ${RELAY_NAMESPACE}

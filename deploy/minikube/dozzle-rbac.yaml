@@ -1,5 +1,5 @@
-# The boot of a production server creates this, see
-# deploy/cloud-init.yaml.tmpl. A laptop has no boot to do it.
+# The first boot of a production server creates the cluster-scoped part, see
+# deploy/talos/machine-config.patch.yaml.tmpl. A laptop has no boot to do it.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

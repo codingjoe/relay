@@ -13,9 +13,9 @@ authentication.
 ## Architecture & tech stack
 
 Three services from one codebase, each a separate container. Production runs
-them on a single-node k3s cluster in the `relay` namespace: the manifests are in
-`deploy/k8s/`, and `deploy/README.md` is the operator guide and the place to
-look for how deployments, probes and certificates work.
+them on a single-node Talos Linux cluster in the `relay` namespace: the manifests
+are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and the place
+to look for how deployments, probes and certificates work.
 
 - **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
 - **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
@@ -44,7 +44,8 @@ the contracts.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS
-with wireit), k3s on Hetzner Cloud with Caddy as ingress and Layer 4 proxy.
+with wireit), Talos Linux on Hetzner Cloud with Caddy as ingress and Layer 4
+proxy.
 
 ## Core commands & workflows
 
@@ -73,8 +74,8 @@ Production deployment, all driven by `.github/workflows/deploy.yml`:
 - `kubectl exec -n relay postgres-0 -- psql -U postgres`. Reach the database.
 
 `kubectl` needs a kubeconfig for the cluster. The provisioning step publishes
-one as the `KUBECONFIG` secret; on your machine, read the admin kubeconfig from
-`/etc/rancher/k3s/k3s.yaml` on the server.
+one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
+`deploy/.state/talos/kubeconfig`, and `talosctl kubeconfig --force --merge=false <path>` re-issues it from the node. See `deploy/README.md`.
 
 ## Rules, constraints & safety
 

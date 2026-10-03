@@ -27,8 +27,8 @@ spec:
             - {name: DOZZLE_MODE, value: k8s}
             - {name: DOZZLE_HOSTNAME, value: relay}
             # One instance watches every namespace; restart (pod delete) and
-            # shell (pod exec) ride on the cluster role, see
-            # deploy/cloud-init.yaml.tmpl.
+            # shell (pod exec) ride on the role the first boot of a production
+            # server applies, see deploy/talos/machine-config.patch.yaml.tmpl.
             - {name: DOZZLE_ENABLE_ACTIONS, value: "true"}
             - {name: DOZZLE_ENABLE_SHELL, value: "true"}
             - {name: DOZZLE_ENABLE_MCP, value: "true"}

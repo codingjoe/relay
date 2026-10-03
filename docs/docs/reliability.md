@@ -1,6 +1,6 @@
 ---
 name: Reliability
-description: Queued delivery, transmission records, and retry schedules
+description: Queued delivery, transmission records, retry schedules, and the maintenance window
 author: Johannes Maron
 ---
 
@@ -116,6 +116,18 @@ endpoint misbehavior shows as data.
 - Distinguish bounce types where it matters: a "550 mailbox unknown" answer
   in the dashboard transcript is final, do not wait it out. The suppression
   already protects you.
+
+## Maintenance window
+
+relay upgrades its host and Kubernetes on Wednesdays between 01:00 and 03:00
+UTC, when mail traffic is lowest. The window is skipped when Hetzner, the
+hosting provider, reports an incident or maintenance of its own: relay reads
+Hetzner's status page before it starts, and only then touches the host.
+
+An upgrade reboots the host, so open SMTP connections drop and an attempt in
+flight fails. The queue model above covers that gap: every message is stored
+before delivery starts, and an interrupted attempt is retried on its schedule.
+Expect a delivery delay during the window, never a lost message.
 
 ## Related pages
 
