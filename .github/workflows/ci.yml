@@ -66,8 +66,20 @@ jobs:
       - run: uv run python manage.py check
       - run: uv run python manage.py collectstatic --no-input --no-esm
       - run: uv run python manage.py makemigrations --check --dry-run
+      - run: uv run py.test --cov --cov-report=xml --maxfail=5 -n auto "--randomly-seed=${{ github.run_id }}"
+      - uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+  vendored:
+    name: Check the vendored add-ons
+    # Only a Docker bump can move these tags without touching the manifests.
+    if: startsWith(github.head_ref, 'dependabot/docker')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
       - name: Diff the add-ons against their releases
-        # Vendored verbatim: any drift, including a Dependabot image bump, fails.
         run: |
           set -eo pipefail
           while read -r file url; do
@@ -78,7 +90,3 @@ jobs:
           deploy/cluster/metrics-server.yaml https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.0/components.yaml
           deploy/cluster/kubelet-serving-cert-approver.yaml https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/v0.12.1/deploy/standalone-install.yaml
           EOF
-      - run: uv run py.test --cov --cov-report=xml --maxfail=5 -n auto "--randomly-seed=${{ github.run_id }}"
-      - uses: codecov/codecov-action@v7
-        with:
-          use_oidc: true
