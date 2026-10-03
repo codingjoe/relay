@@ -8,6 +8,11 @@ on:
     types:
       - completed
   workflow_dispatch: # Allow manual trigger
+    inputs:
+      skip_preflight:
+        description: Deploy without the release checks, which a cluster that answers no DNS yet cannot pass.
+        type: boolean
+        default: false
 concurrency:
   group: deploy
   cancel-in-progress: false
@@ -40,6 +45,7 @@ jobs:
           # The staticfiles deployment check reads the ESM import map.
           pnpm run build
       - name: Check the release
+        if: ${{ !inputs.skip_preflight }}
         env:
           DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
         run: |
