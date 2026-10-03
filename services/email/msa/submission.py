@@ -18,12 +18,25 @@ def get_submission_context() -> dict:
     }
 
 
+def get_submission_credentials(org_slug, key="") -> str:
+    """Return the user and password of a submission URI."""
+    return f"{org_slug}:{key}" if key else f"{org_slug}:<{_('credential key')}>"
+
+
 def get_submission_uri(org_slug, key="") -> str:
-    """Return the implicit TLS submission URI, carrying the key when it is known."""
-    credentials = f"{org_slug}:{key}" if key else f"{org_slug}:<{_('credential key')}>"
+    """Return the submission URI of the smtps scheme, which implies port 465."""
     context = get_submission_context()
+    credentials = get_submission_credentials(org_slug, key)
+    return f"smtps://{credentials}@{context['smtp_hostname']}"
+
+
+def get_django_submission_uri(org_slug, key="") -> str:
+    """Return the submission URI that django-environ reads as implicit TLS."""
+    context = get_submission_context()
+    credentials = get_submission_credentials(org_slug, key)
     port = context["smtp_implicit_tls_ports"][0]
-    return f"smtps://{credentials}@{context['smtp_hostname']}:{port}"
+    # django-environ maps smtps:// to STARTTLS and never defaults a port.
+    return f"smtp+ssl://{credentials}@{context['smtp_hostname']}:{port}"
 
 
 def get_credential_key_context(request, org_slug) -> dict:
@@ -34,5 +47,8 @@ def get_credential_key_context(request, org_slug) -> dict:
         context = {
             "raw_key": raw_key,
             "smtp_uri_with_key": get_submission_uri(org_slug, key=raw_key),
+            "smtp_django_uri_with_key": get_django_submission_uri(
+                org_slug, key=raw_key
+            ),
         }
     return context
