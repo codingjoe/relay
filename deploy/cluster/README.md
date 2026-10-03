@@ -25,4 +25,4 @@ helper pods.
 
 A bump from Dependabot moves one `image:` line, which leaves the file no longer
 matching its release. Re-vendor the whole manifest, then update the link above
-and the URL in the `vendored` job of `.github/workflows/ci.yml`.
+and the URL in `.github/workflows/ci.yml`.
