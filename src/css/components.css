@@ -78,10 +78,6 @@
   grid-column: 1 / -1;
 }
 
-/* The footer pug. Its markup is inlined so the pointer can reach it: an SVG
-   loaded as an image gets no hover state. Only the painted shapes take
-   pointer events, so a click on the transparent parts of the artwork still
-   lands on the page behind the pug. */
 .pug {
   pointer-events: none;
 
