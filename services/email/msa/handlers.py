@@ -18,6 +18,7 @@ from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
 from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
+from services.email.session import SessionExceptionMixin
 
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam, deliver_message
@@ -59,7 +60,7 @@ def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
     return b"".join(kept)
 
 
-class SMTPHandler(ProxyProtocolMixin):
+class SMTPHandler(SessionExceptionMixin, ProxyProtocolMixin):
     """Receive authenticated outgoing mail submissions from SMTP clients."""
 
     async def handle_DATA(self, server, session, envelope):

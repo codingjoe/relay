@@ -1,4 +1,5 @@
 import base64
+import logging
 import re
 import secrets
 from email import message_from_bytes
@@ -7,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from aiosmtpd.smtp import TLSSetupException
 from django.utils import timezone
 
 from domains.models import Domain
@@ -847,3 +849,15 @@ class TestImplicitTLSHandler:
         result = await handler.handle_DATA(None, session, SimpleNamespace())
         assert result == "530 Authentication required"
         assert session.ssl is True
+
+
+class TestSessionException:
+    async def test_handle_exception__logs_tls_setup_failure_at_info(self, caplog):
+        error = TLSSetupException()
+        error.__cause__ = ConnectionResetError()
+
+        with caplog.at_level(logging.INFO, logger="services.email.session"):
+            status = await SMTPHandler().handle_exception(error)
+
+        assert caplog.records[0].levelno == logging.INFO
+        assert status == "500 Error: (TLSSetupException) "

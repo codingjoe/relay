@@ -1,7 +1,9 @@
+import logging
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from aiosmtpd.smtp import TLSSetupException
 from django.conf import settings
 from django.core import mail
 
@@ -519,3 +521,15 @@ class TestReceivedHeader:
 
         assert received.startswith("Received: from mx.example\r\n")
         assert "([127.0.0.1])" not in received
+
+
+class TestSessionException:
+    async def test_handle_exception__logs_tls_setup_failure_at_info(self, caplog):
+        error = TLSSetupException()
+        error.__cause__ = ConnectionResetError()
+
+        with caplog.at_level(logging.INFO, logger="services.email.session"):
+            status = await MXHandler().handle_exception(error)
+
+        assert caplog.records[0].levelno == logging.INFO
+        assert status == "500 Error: (TLSSetupException) "

@@ -104,6 +104,10 @@ endpoint misbehavior shows as data.
 
 - **Errors go to Sentry**, all processes share one project, off by default.
   No message bodies, no credentials, no tokens travel there.
+- **Failed TLS handshakes stay in the logs**, at INFO. A scanner that speaks
+  plaintext at the TLS layer, or a sender that drops the connection during
+  the handshake, is a client failure, not a relay failure, and does not
+  raise an alert.
 - **Dashboard transmissions** show each outbound attempt with its SMTP
   conversation.
 - **Webhook delivery rows** show inbound webhook status.

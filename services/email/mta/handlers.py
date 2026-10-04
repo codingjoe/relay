@@ -15,6 +15,7 @@ from abstract.signals import request_scoped
 from domains.models import Domain
 from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
+from services.email.session import SessionExceptionMixin
 
 from .arc import seal_message
 from .models import (
@@ -45,7 +46,7 @@ def received_header(session) -> bytes:
     return f"Received: {received}".encode()
 
 
-class MXHandler(ProxyProtocolMixin):
+class MXHandler(SessionExceptionMixin, ProxyProtocolMixin):
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:
