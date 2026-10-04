@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -12,7 +13,7 @@ from .models import (
 
 
 @admin.register(IncomingMessage)
-class IncomingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class IncomingMessageAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "mail_from",
         "rcpt_to",
@@ -22,19 +23,21 @@ class IncomingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ["status"]
     search_fields = ["mail_from", "rcpt_to", "subject", "message_id"]
+    autocomplete_fields = ["org", "domain"]
     readonly_fields = ["id", "created_at"]
 
 
 @admin.register(Webhook)
-class WebhookAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class WebhookAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = ["org", "name", "url", "is_active", "last_used_at"]
     list_filter = ["is_active"]
     search_fields = ["org__slug", "name", "url"]
+    autocomplete_fields = ["org", "domain", "signing_key"]
     readonly_fields = ["last_used_at"]
 
 
 @admin.register(WebhookDelivery)
-class WebhookDeliveryAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class WebhookDeliveryAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "webhook",
         "status",
@@ -44,11 +47,12 @@ class WebhookDeliveryAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ["status", "is_test"]
     search_fields = ["webhook__url", "webhook__name"]
+    autocomplete_fields = ["message", "webhook"]
     readonly_fields = ["id", "created_at"]
 
 
 @admin.register(TlsReport)
-class TlsReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class TlsReportAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",
@@ -59,10 +63,11 @@ class TlsReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "failed_session_count",
     ]
     search_fields = ["reporting_org", "report_id", "domain__name"]
+    autocomplete_fields = ["org", "domain"]
 
 
 @admin.register(TlsFailure)
-class TlsFailureAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class TlsFailureAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "report",
         "result_type",
@@ -76,3 +81,4 @@ class TlsFailureAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "sending_mta_ip_address",
         "report__report_id",
     ]
+    autocomplete_fields = ["report"]

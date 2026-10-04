@@ -5,7 +5,7 @@ import json
 import re
 
 from django.http import HttpResponse, StreamingHttpResponse
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils.csp import CSP
 from django.views.decorators.csp import csp_override
 
@@ -102,3 +102,21 @@ class TestContentSecurityPolicyMiddleware:
         middleware = ContentSecurityPolicyMiddleware(lambda request: response)
         response = middleware.process_response(rf.get("/"), response)
         assert response.streaming
+
+    def test_process_response__allows_eval_on_the_admin(self, rf):
+        url = reverse("admin:index")
+        request = rf.get(url)
+        request.resolver_match = resolve(url)
+        response = HttpResponse('{"ok": true}', content_type="application/json")
+        middleware = ContentSecurityPolicyMiddleware(lambda request: response)
+        response = middleware.process_response(request, response)
+        assert CSP.UNSAFE_EVAL in response.headers["Content-Security-Policy"]
+
+    def test_process_response__keeps_eval_out_of_app_responses(self, rf):
+        url = reverse("home")
+        request = rf.get(url)
+        request.resolver_match = resolve(url)
+        response = HttpResponse('{"ok": true}', content_type="application/json")
+        middleware = ContentSecurityPolicyMiddleware(lambda request: response)
+        response = middleware.process_response(request, response)
+        assert CSP.UNSAFE_EVAL not in response.headers["Content-Security-Policy"]

@@ -186,3 +186,7 @@
   pattern: '\.(?!default\.)\w+\.svc\.cluster\.local'
   hint: 'The platform runs in the default namespace, and a cluster-internal FQDN carries it. A name that points at another namespace resolves to nothing, which leaves the client with no endpoints: dnsdist drops every query, and other clients fail to connect. Use default, or move this rule when the namespace moves.'
   filePattern: '^deploy/.*$'
+- name: Use Unfold's ModelAdmin
+  pattern: 'class \w+Admin\([^)]*admin\.ModelAdmin\b'
+  hint: 'Build admin classes on `unfold.admin.ModelAdmin` so the change form keeps the Unfold theme.'
+  filePattern: '.*/admin\.py$'

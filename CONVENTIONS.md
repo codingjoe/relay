@@ -301,6 +301,18 @@ A rule lives either in this document or in `.relint.yml`, never both.
   rest. Add a package with `pnpm add`; the import map picks it up on the next
   build.
 
+## Admin
+
+- Build every admin on Unfold's `ModelAdmin`
+  (`from unfold.admin import ModelAdmin`) so the admin carries the project
+  theme. `.relint.yml` rejects `admin.ModelAdmin`.
+- List every editable foreign key and many-to-many field in
+  `autocomplete_fields`. The change form must never render a select box over
+  a whole table. The related admin needs `search_fields`, and the related
+  model its own admin, or Django's checks fail.
+- Unfold's Alpine runtime needs `'unsafe-eval'`, which the CSP middleware
+  grants to admin responses alone. Never widen it to the rest of the app.
+
 ## Views & Queries
 
 - Publicly cacheable views (`public: True`) render the static chrome

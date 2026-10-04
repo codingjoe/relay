@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -6,7 +7,7 @@ from .models import Domain
 
 
 @admin.register(Domain)
-class DomainAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class DomainAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "name",
         "org",
@@ -27,3 +28,4 @@ class DomainAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "verified_at",
     ]
     search_fields = ["name", "org__name"]
+    autocomplete_fields = ["org", "dkim_key_rsa2048", "dkim_key_ed25519"]

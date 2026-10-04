@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -6,7 +7,7 @@ from .models import FblReport
 
 
 @admin.register(FblReport)
-class FblReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class FblReportAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",
@@ -23,4 +24,5 @@ class FblReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "source_ip_address",
         "domain__name",
     ]
+    autocomplete_fields = ["org", "domain", "message"]
     readonly_fields = ["id", "arrival_at"]

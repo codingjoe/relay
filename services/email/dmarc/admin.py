@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -6,7 +7,7 @@ from .models import DmarcFailureReport, DmarcRecord, DmarcReport
 
 
 @admin.register(DmarcReport)
-class DmarcReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class DmarcReportAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",
@@ -15,11 +16,12 @@ class DmarcReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "end_at",
     ]
     search_fields = ["reporting_org", "report_id", "domain__name"]
+    autocomplete_fields = ["org", "domain"]
     readonly_fields = ["id", "begin_at", "end_at", "reporting_org", "reporting_email"]
 
 
 @admin.register(DmarcRecord)
-class DmarcRecordAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class DmarcRecordAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "report",
         "source_ip_address",
@@ -31,10 +33,11 @@ class DmarcRecordAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ["disposition", "dkim_alignment", "spf_alignment"]
     search_fields = ["source_ip_address", "header_from", "report__report_id"]
+    autocomplete_fields = ["report"]
 
 
 @admin.register(DmarcFailureReport)
-class DmarcFailureReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
+class DmarcFailureReportAdmin(TimeStampedAdminMixin, ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",
@@ -48,4 +51,5 @@ class DmarcFailureReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "source_ip_address",
         "domain__name",
     ]
+    autocomplete_fields = ["org", "domain"]
     readonly_fields = ["id", "arrival_at"]

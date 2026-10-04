@@ -127,7 +127,9 @@ it.
 
 Every web response carries an enforced Content Security Policy and a strict
 integrity policy. Pages load scripts from relay alone, and every module is
-pinned to a hash, so a browser refuses a script it cannot verify.
+pinned to a hash, so a browser refuses a script it cannot verify. The admin is
+the one exception: its theme evaluates expressions at runtime, so admin
+responses also allow `unsafe-eval`. Only staff accounts can load those pages.
 
 ## Node configuration and cluster keys
 
