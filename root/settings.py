@@ -71,7 +71,8 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
     "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not (DEBUG or TEST)
 )
 SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=not (DEBUG or TEST))
-SECURE_REDIRECT_EXEMPT = [r"^health/"]
+# Probes and Caddy's on-demand TLS permission check arrive over plain HTTP.
+SECURE_REDIRECT_EXEMPT = [r"^health/", r"^internal/mta-sts/authorize/"]
 
 # Show django-debug-toolbar for local development requests.
 INTERNAL_IPS = ["127.0.0.1"]
