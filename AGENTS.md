@@ -145,6 +145,12 @@ Disable the browser cache before capturing screenshots
 revalidations with `304`, so the browser would otherwise reuse stale
 HTML that still contains the debug toolbar.
 
+Refresh the homepage screenshots (`root/static/img/email-*-{light,dark}.png`)
+from the message log and a message detail at a 1182x788 viewport with
+device scale factor 1. The fixture ages out: its message timestamps sit
+far in the past, so shift them forward before capturing or the message
+log's 30-day chart renders empty.
+
 ## Test data
 
 Bundle: one user (`test`, password `test`), one org (`acme`), one
