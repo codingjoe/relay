@@ -44,9 +44,9 @@
     <script type="importmap">
       {% importmap %}
     </script>
-    <script type="module" src="{% static 'js/app.js' %}"></script>
-    <script type="module" src="{% static 'js/snippets.js' %}"></script>
-    <script type="module" src="{% static 'js/amount.js' %}"></script>
+    {% esm '#js/app.js' %}
+    {% esm '#js/snippets.js' %}
+    {% esm '#js/amount.js' %}
   </head>
   <body class="min-h-screen flex">
     {% if current_org and request.resolver_match.namespace != 'accounts' %}

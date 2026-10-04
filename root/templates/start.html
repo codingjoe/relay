@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize l10n static %}
+{% load i18n humanize l10n static esm %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: communication as a service" %}{% endblock %}
@@ -579,5 +579,5 @@
       }
     }
   </style>
-  <script type="module" src="{% static 'js/start.js' %}"></script>
+  {% esm '#js/start.js' %}
 {% endblock %}

@@ -1,4 +1,4 @@
-{% load i18n static abstract %}
+{% load i18n abstract esm %}
 <section class="card {{ class }}">
   <header>
     <h3 class="m-0">{{ title }}</h3>
@@ -21,5 +21,5 @@
   >
   </div>
   {{ chart|json_script:data_id }}
-  <script type="module" src="{% static 'abstract/chart_card.js' %}"></script>
+  {% esm '#abstract/chart_card.js' %}
 </section>
