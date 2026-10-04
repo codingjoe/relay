@@ -77,3 +77,41 @@
 .snippet-tabs > [role='tabpanel'] {
   grid-column: 1 / -1;
 }
+
+.pug {
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  .eye {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  &:hover .eye-blink {
+    animation: pug-blink 3s infinite;
+  }
+}
+
+@keyframes pug-blink {
+  0% {
+    transform: rotate(0deg) scaleY(1);
+  }
+
+  4% {
+    transform: rotate(-7deg) scaleY(0.08);
+  }
+
+  8%,
+  100% {
+    transform: rotate(0deg) scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pug:hover .eye-blink {
+    animation: none;
+  }
+}
