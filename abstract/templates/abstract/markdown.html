@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n static abstract %}
+{% load i18n abstract esm %}
 {% block topbar %}{% include "partials/topbar_static.html" %}{% endblock %}
 {% block title %}{{ title }}{% endblock %}
 {% block meta_description %}{{ meta_description|default:"relay: developer-first email infrastructure." }}{% endblock %}
@@ -36,5 +36,5 @@
       {{ license }}
     </footer>
   {% endif %}
-  <script type="module" src="{% static 'abstract/mermaid.js' %}"></script>
+  {% esm '#abstract/mermaid.js' %}
 {% endblock %}

@@ -1,4 +1,4 @@
-{% load i18n static %}
+{% load i18n esm %}
 {% translate "duration" as duration_label %}
 {% translate "click the bar to open the transcript" as transcript_hint %}
 {% translate "score" as score_label %}
@@ -15,5 +15,5 @@
   >
   </div>
   {{ timeline|json_script:"transmission-timeline" }}
-  <script type="module" src="{% static 'message/timeline.js' %}"></script>
+  {% esm '#message/timeline.js' %}
 </article>

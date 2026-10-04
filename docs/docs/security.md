@@ -122,14 +122,9 @@ it.
 
 ## Content Security Policy
 
-Every web response carries an enforced Content Security Policy, and relay never
-serves it in report-only mode. Pages load scripts from relay alone: no page
-ships an inline script of its own, and relay allows neither `'unsafe-inline'`
-nor `'unsafe-eval'` for scripts. Every module is pinned to an integrity hash,
-so a browser refuses a file it cannot verify. A message body renders in a
-sandboxed frame that keeps the styles and images its sender embedded, but runs
-no scripts. Pages load no third-party frames and no plugins, they submit forms
-to relay alone, and other sites cannot embed them.
+Every web response carries an enforced Content Security Policy and a strict
+integrity policy. Pages load scripts from relay alone, and every module is
+pinned to a hash, so a browser refuses a script it cannot verify.
 
 ## Node configuration and cluster keys
 

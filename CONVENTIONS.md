@@ -280,8 +280,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `{% filter force_escape %}{% include "snippets/name.py" %}{% endfilter %}`.
 
 - Scripts live in static ES modules, never inline in a template. A page loads
-  its module with `<script type="module" src="{% static '...' %}">` and passes
-  per-render data with `json_script` or `data-*` attributes. Shared UI
+  its module with `{% esm '#js/app.js' %}` (load the `esm` tag library in that
+  template), which resolves the specifier through the import map and writes the
+  bundle URL with the integrity hash the browser verifies. A form that needs a
+  module puts `django_esm.forms.ESM` in its `Media`, never a hand-written tag.
+  Pass per-render data with `json_script` or `data-*` attributes. Shared UI
   behavior lives in `root/static/js/app.js` and is driven by data hooks on the
   markup: `data-dialog`, `data-dialog-close`, `data-backdrop-close`,
   `data-auto-open`, `data-confirm`, `data-copy`, `data-share`, `data-href`,

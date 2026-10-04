@@ -38,9 +38,16 @@
 - name: No inline scripts in templates
   pattern: '<script(?![^>]*\bsrc=)(?![^>]*type="importmap")[^>]*>'
   hint: |
-    The enforced CSP loads scripts from relay alone (`script-src 'self'`). Load a static ES
-    module with `<script type="module" src="{% static '...' %}">` and pass per-render data
-    with `json_script` or `data-*` attributes. The ESM import map is the only inline script.
+    The enforced CSP loads scripts from relay alone (`script-src 'self'`). Load a module with
+    `{% esm '#js/app.js' %}` and pass per-render data with `json_script` or `data-*` attributes.
+    The ESM import map is the only inline script.
+  filePattern: .*\.html$
+- name: Load ES modules with the esm tag
+  pattern: '<script[^>]*\bsrc='
+  hint: |
+    Load the module with `{% esm '#js/app.js' %}`. The tag resolves the specifier through the
+    import map and writes the bundle URL with the integrity hash the browser verifies. A
+    hand-written tag carries no hash, and the enforced Integrity-Policy blocks it.
   filePattern: .*\.html$
 - name: Input group icon buttons use the icon-xs size
   pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*<i data-lucide'
@@ -153,7 +160,7 @@
   filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'
 - name: No inline script blocks in templates
   pattern: '<script(?![^>]*(?:\bsrc=|type="importmap"))'
-  hint: "Load a static ES module instead: <script type=\"module\" src=\"{% static 'app/page.js' %}\">, and pass per-page data with json_script or data-* attributes. The django-esm import map in base.html is the only inline script allowed."
+  hint: "Load a static ES module instead: {% esm '#js/app.js' %}, and pass per-page data with json_script or data-* attributes. The django-esm import map in base.html is the only inline script allowed."
   filePattern: '.*\.html$'
 - name: No third-party JavaScript from a CDN
   pattern: 'https?://(?:esm\.sh|cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com)/'
