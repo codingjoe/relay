@@ -47,6 +47,7 @@
         "postcss.config.mjs",
         "pnpm-lock.yaml",
         "root/templates/**/*.html",
+        "root/templates/**/*.svg",
         "services/**/*.html",
         "accounts/**/*.html",
         "domains/**/*.html",

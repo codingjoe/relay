@@ -77,3 +77,45 @@
 .snippet-tabs > [role='tabpanel'] {
   grid-column: 1 / -1;
 }
+
+/* The footer pug. Its markup is inlined so the pointer can reach it: an SVG
+   loaded as an image gets no hover state. Only the painted shapes take
+   pointer events, so a click on the transparent parts of the artwork still
+   lands on the page behind the pug. */
+.pug {
+  pointer-events: none;
+}
+
+.pug > * {
+  pointer-events: auto;
+}
+
+.pug__eye {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.pug:hover .pug__eye--blink {
+  animation: pug-blink 3s infinite;
+}
+
+@keyframes pug-blink {
+  0% {
+    transform: rotate(0deg) scaleY(1);
+  }
+
+  4% {
+    transform: rotate(-7deg) scaleY(0.08);
+  }
+
+  8%,
+  100% {
+    transform: rotate(0deg) scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pug:hover .pug__eye--blink {
+    animation: none;
+  }
+}
