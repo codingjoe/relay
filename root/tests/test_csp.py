@@ -12,7 +12,7 @@ from django.views.decorators.csp import csp_override
 from root.middleware import ContentSecurityPolicyMiddleware
 
 IMPORTMAP_TAG = '<script type="importmap">{"imports": {}}</script>'
-SCRIPT_TAG = re.compile(rb"<script\b[^>]*>")
+SCRIPT_TAG = re.compile(rb"<script\b[^>]*>", re.IGNORECASE)
 
 
 class TestContentSecurityPolicyMiddleware:
