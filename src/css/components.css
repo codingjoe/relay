@@ -84,19 +84,19 @@
    lands on the page behind the pug. */
 .pug {
   pointer-events: none;
-}
 
-.pug > * {
-  pointer-events: auto;
-}
+  & > * {
+    pointer-events: auto;
+  }
 
-.pug__eye {
-  transform-box: fill-box;
-  transform-origin: center;
-}
+  .pug-eye {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
 
-.pug:hover .pug__eye--blink {
-  animation: pug-blink 3s infinite;
+  &:hover .pug-eye-blink {
+    animation: pug-blink 3s infinite;
+  }
 }
 
 @keyframes pug-blink {
@@ -115,7 +115,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pug:hover .pug__eye--blink {
+  .pug:hover .pug-eye-blink {
     animation: none;
   }
 }
