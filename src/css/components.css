@@ -89,12 +89,12 @@
     pointer-events: auto;
   }
 
-  .pug-eye {
+  .eye {
     transform-box: fill-box;
     transform-origin: center;
   }
 
-  &:hover .pug-eye-blink {
+  &:hover .eye-blink {
     animation: pug-blink 3s infinite;
   }
 }
@@ -115,7 +115,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pug:hover .pug-eye-blink {
+  .pug:hover .eye-blink {
     animation: none;
   }
 }
