@@ -1,6 +1,8 @@
+import datetime
 import pathlib
 
 import frontmatter
+from django.db.models import Count, Max
 from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
@@ -43,6 +45,34 @@ class ConditionalGetMixin:
                 self.get_context_data(object=self.object)
             )
         )(request)
+        patch_cache_control(response, private=True, no_cache=True)
+        return response
+
+
+class ConditionalGetListMixin:
+    """Answer conditional GETs for a list with an ETag and `Last-Modified` from its newest row."""
+
+    def get_list_summary(self, queryset) -> tuple[int, datetime.datetime | None]:
+        """Return the number of rows and the newest modification time of the list."""
+        summary = queryset.aggregate(
+            count=Count("pk"),
+            modified_at=Max("modified_at"),
+        )
+        return summary["count"], summary["modified_at"]
+
+    def get_list_etag(self, count: int, modified_at: datetime.datetime | None) -> str:
+        """Return the ETag of the list summary."""
+        if modified_at is None:
+            return f'"{count:x}"'
+        return f'"{count:x}-{int(modified_at.timestamp() * 1e6):x}"'
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        count, modified_at = self.get_list_summary(self.object_list)
+        response = condition(
+            etag_func=lambda request, *a, **kw: self.get_list_etag(count, modified_at),
+            last_modified_func=lambda request, *a, **kw: modified_at,
+        )(lambda request: self.render_to_response(self.get_context_data()))(request)
         patch_cache_control(response, private=True, no_cache=True)
         return response
 
@@ -156,7 +186,7 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
     markdown_template: str = ""
     """Template name of the markdown file to render."""
     toc_levels: str = "2-3"
-    cache_control = {"public": True, "max_age": 3600}
+    cache_control = {"public": True, "max_age": 60}
 
     def get_markdown_template(self):
         """Return the markdown template name for this view."""
@@ -210,7 +240,7 @@ class MarkdownListView(
 ):
     """Display all Markdown articles in a docs directory."""
 
-    cache_control = {"public": True, "max_age": 3600}
+    cache_control = {"public": True, "max_age": 60}
     parent = "home"
     docs_dir: pathlib.Path
     slugs: frozenset[str]

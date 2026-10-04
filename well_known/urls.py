@@ -1,5 +1,6 @@
 from django.contrib.sitemaps.views import sitemap
 from django.urls import path
+from django.views.decorators.cache import cache_control
 
 from . import views
 from .sitemaps import (
@@ -26,7 +27,7 @@ urlpatterns = [
     path("llms-full.txt", views.LlmsFullTxtView.as_view(), name="llms-full-txt"),
     path(
         "sitemap.xml",
-        sitemap,
+        cache_control(public=True, max_age=300)(sitemap),
         {"sitemaps": sitemaps},
         name="sitemap",
     ),

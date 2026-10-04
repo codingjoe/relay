@@ -306,14 +306,27 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Publicly cacheable views (`public: True`) render the static chrome
   (`request.public_cache`): no user menu, no toasts, no org switcher. The
   response carries no `Vary: Cookie` and no queries.
+- Every view sets an explicit `Cache-Control`; `PrivateByDefaultMiddleware`
+  answers `private, no-store` when a view forgot one. The Caddy edge cache
+  stores a response without the header for its 120s default and then serves
+  it to every visitor, including one without a session.
+- Whole-page caches are short: `max_age=60` for HTML, `max_age=300` for
+  generated text files. They absorb request peaks, they do not stretch
+  freshness.
+- Private lists and forms answer `private, no-store`. A list whose page
+  renders one queryset and nothing else mixes in `ConditionalGetListMixin`;
+  detail views mix in `ConditionalGetMixin`. Both revalidate with an ETag and
+  `Last-Modified` under `private, no-cache`, so a write expires the cached
+  page.
 - Do not add context processors that provide querysets. Template chrome data
   (for example, `user_orgs`) comes from the view's mixin.
 - Fetch a list once and derive counts, flags, and related objects from it
   instead of separate `count()`, `exists()`, and `get()` queries.
-- List views answer `private, no-store`; detail views mix in
-  `ConditionalGetMixin` for ETag/`Last-Modified` revalidation.
 - `TimeStamped` models default to `models.FETCH_PEERS` (`FetchPeersManager`).
   Do not call `.fetch_mode()` in views.
+- `TimeStamped.save()` persists `modified_at` on partial saves. Conditional
+  GETs trust that timestamp, so a `QuerySet.update()` must pass
+  `modified_at=timezone.now()` itself.
 
 ## Testing
 

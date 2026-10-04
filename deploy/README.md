@@ -430,7 +430,10 @@ Static files are served by the app through ServeStatic, with pre-compressed
 `zstd` and `gzip` variants. Caddy's `{$HOSTNAME}` block in
 `deploy/k8s/caddy/Caddyfile` additionally compresses on the fly with `br` and
 keeps publicly cacheable responses in `caddy-redis`, so its cache survives a
-Caddy restart.
+Caddy restart. Pages carry a short `max-age` (60s for HTML, 300s for generated
+text files), and every other response says `private, no-store` or revalidates
+with an ETag. A response without a `Cache-Control` header is stored for
+Caddy's 120s default.
 
 Caddy creates its cache storer once at startup. If it starts before
 `caddy-redis` answers, it logs a Redis init error and keeps cache entries in

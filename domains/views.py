@@ -6,7 +6,11 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import NoStoreCacheMixin
+from abstract.views import (
+    ConditionalGetListMixin,
+    ConditionalGetMixin,
+    NoStoreCacheMixin,
+)
 from accounts.views import OrganizationScopedView
 
 from . import resolver
@@ -15,7 +19,7 @@ from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
 
 
-class DomainListView(OrganizationScopedView, generic.ListView):
+class DomainListView(OrganizationScopedView, ConditionalGetListMixin, generic.ListView):
     context_object_name = "domains"
     title = _("Domains")
     parent = "accounts:org-home"
@@ -52,7 +56,7 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
 
 
-class DomainDetailView(OrganizationScopedView, generic.DetailView):
+class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.DetailView):
     context_object_name = "domain"
     parent = "domains:domain-list"
 

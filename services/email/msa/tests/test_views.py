@@ -360,6 +360,11 @@ class TestCredentialListView:
         assert len(creds) == 1
         assert creds[0].name == "mine"
 
+    @pytest.mark.django_db
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.headers["Cache-Control"] == "private, no-store"
+
     def test_get__context_has_smtp_info(self, admin_client, org, settings):
         settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")

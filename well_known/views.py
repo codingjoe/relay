@@ -14,7 +14,7 @@ class RobotsTxtView(CacheControlMixin, generic.TemplateView):
 
     template_name = "well_known/robots.txt"
     content_type = "text/plain; charset=utf-8"
-    cache_control = {"public": True, "max_age": 3600}
+    cache_control = {"public": True, "max_age": 300}
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -29,7 +29,7 @@ class LlmsTxtView(CacheControlMixin, generic.TemplateView):
 
     template_name = "well_known/llms.txt"
     content_type = "text/plain; charset=utf-8"
-    cache_control = {"public": True, "max_age": 3600}
+    cache_control = {"public": True, "max_age": 300}
 
     def get_context_data(self, **kwargs):
         docs_articles = [
@@ -80,7 +80,7 @@ class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
 
     template_name = "well_known/llms-full.txt"
     content_type = "text/plain; charset=utf-8"
-    cache_control = {"public": True, "max_age": 3600}
+    cache_control = {"public": True, "max_age": 300}
 
     def get_context_data(self, **kwargs):
         docs_articles = [

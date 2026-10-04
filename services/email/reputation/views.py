@@ -67,7 +67,9 @@ class FblReportDetailView(
         }
 
 
-class ReputationOverviewView(OrganizationScopedView, generic.TemplateView):
+class ReputationOverviewView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.TemplateView
+):
     def get_template_names(self):
         return ["reputation/overview.html"]
 

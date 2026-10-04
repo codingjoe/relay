@@ -97,7 +97,9 @@ class TestEmailView(OrganizationScopedView, generic.View):
         return redirect("message:message-list", org_slug=org_slug)
 
 
-class MsaCredentialListView(OrganizationScopedView, generic.ListView):
+class MsaCredentialListView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.ListView
+):
     def get_template_names(self):
         return ["msa/credential_list.html"]
 
@@ -147,7 +149,9 @@ class MsaCredentialCreateView(OrganizationScopedView, generic.View):
         return redirect(self.get_redirect_url(request, org_slug))
 
 
-class MsaCredentialDeleteView(OrganizationScopedView, generic.DeleteView):
+class MsaCredentialDeleteView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.DeleteView
+):
     model = MsaCredential
     title = _("Delete")
     parent = "msa:credential-list"

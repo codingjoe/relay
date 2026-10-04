@@ -43,7 +43,7 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
 
     template_name = "start.html"
     title = _("Home")
-    cache_control = {"public": True, "max_age": 300}
+    cache_control = {"public": True, "max_age": 60}
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -62,4 +62,4 @@ class OpenSourceView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateVie
     template_name = "open_source.html"
     title = _("the open-source pledge")
     parent = "home"
-    cache_control = {"public": True, "max_age": 300}
+    cache_control = {"public": True, "max_age": 60}

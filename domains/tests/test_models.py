@@ -275,6 +275,16 @@ class TestDomainSave:
         domain.save()
         assert domain.dkim_key_rsa2048 == first
 
+    def test_save__bumps_modified_at_on_partial_save(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        modified_at = domain.modified_at
+
+        domain.save(update_fields=["name"])
+
+        domain.refresh_from_db()
+        assert domain.modified_at > modified_at
+
 
 @pytest.mark.django_db
 class TestDkimCiphers:
