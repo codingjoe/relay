@@ -153,9 +153,11 @@ log's 30-day chart renders empty.
 
 ## Test data
 
-Bundle: one user (`test`, password `test`), one org (`acme`), one
-domain (`acme.com`), one SMTP credential, three outgoing messages,
-three transmissions, two SigningKeys. Load with
+Bundle: one user (`test`, password `test`), one org (`acme`), five domains,
+one SMTP credential, two SigningKeys, and a month of message traffic: 256
+messages with 375 transmissions and 17 spam checks, spread over
+2026-09-04 to 2026-10-04 so the dashboard charts and the message log have
+data instead of a single row. Load with
 `manage.py loaddata fixtures/initial_data.yaml`. Refresh with:
 
 1. Wipe the database and re-apply migrations:
