@@ -37,17 +37,23 @@ class CacheControlMixin:
         return response
 
 
-# A revalidating response is held by the browser alone: `private` keeps the
-# shared edge cache out of it, and `max-age` lets the browser reuse the page
-# for a moment before it asks again and revalidates against the ETag.
-REVALIDATION_CACHE_CONTROL = {
-    "private": True,
-    "max_age": 5,
-    "must_revalidate": True,
-}
+class RevalidationCacheMixin(CacheControlMixin):
+    """
+    Let the browser reuse a revalidating page for a moment.
+
+    `private` keeps the shared edge cache out of it, and `max-age` lets the
+    browser serve the page from its own cache before it comes back and
+    revalidates against the ETag.
+    """
+
+    cache_control = {
+        "private": True,
+        "max_age": datetime.timedelta(seconds=5),
+        "must_revalidate": True,
+    }
 
 
-class ConditionalGetMixin:
+class ConditionalGetMixin(RevalidationCacheMixin):
     """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
 
     def get_etag(self, obj) -> str:
@@ -56,7 +62,7 @@ class ConditionalGetMixin:
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        response = condition(
+        return condition(
             etag_func=lambda request, *a, **kw: self.get_etag(self.object),
             last_modified_func=lambda request, *a, **kw: self.object.modified_at,
         )(
@@ -64,11 +70,9 @@ class ConditionalGetMixin:
                 self.get_context_data(object=self.object)
             )
         )(request)
-        patch_cache_control(response, **REVALIDATION_CACHE_CONTROL)
-        return response
 
 
-class ConditionalGetListMixin:
+class ConditionalGetListMixin(RevalidationCacheMixin):
     """Answer conditional GETs for a list with an ETag and `Last-Modified` from its newest row."""
 
     def get_list_summary(self, queryset) -> tuple[int, datetime.datetime | None]:
@@ -88,12 +92,10 @@ class ConditionalGetListMixin:
     def get(self, request, *args, **kwargs):
         self.object_list = self.get_queryset()
         count, modified_at = self.get_list_summary(self.object_list)
-        response = condition(
+        return condition(
             etag_func=lambda request, *a, **kw: self.get_list_etag(count, modified_at),
             last_modified_func=lambda request, *a, **kw: modified_at,
         )(lambda request: self.render_to_response(self.get_context_data()))(request)
-        patch_cache_control(response, **REVALIDATION_CACHE_CONTROL)
-        return response
 
 
 class NoStoreCacheMixin(CacheControlMixin):
