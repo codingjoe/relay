@@ -38,10 +38,9 @@ class ContentSecurityPolicyMiddleware(DjangoContentSecurityPolicyMiddleware):
             resolver_match and resolver_match.namespace == self.ADMIN_NAMESPACE
         )
         if script_src and not hasattr(response, "_csp_config"):
-            # Unfold's Alpine runtime compiles expressions with the Function
-            # constructor, which a strict script-src blocks. Only the staff-only
-            # admin runs it.
-            # https://github.com/unfoldadmin/django-unfold/issues/1535
+            # Unfold's Alpine needs the Function constructor; only the staff-only
+            # admin runs it. Upstream closed strict-CSP support as not planned:
+            # https://github.com/unfoldadmin/django-unfold/issues/2129
             if is_admin and CSP.UNSAFE_EVAL not in script_src:
                 script_src = [*script_src, CSP.UNSAFE_EVAL]
                 response._csp_config = policy | {"script-src": script_src}

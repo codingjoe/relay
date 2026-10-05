@@ -311,7 +311,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   a whole table. The related admin needs `search_fields`, and the related
   model its own admin, or Django's checks fail.
 - Unfold's Alpine runtime needs `'unsafe-eval'`, which the CSP middleware
-  grants to admin responses alone. Never widen it to the rest of the app.
+  grants to admin responses alone. Upstream closed strict-CSP support as not
+  planned (`unfoldadmin/django-unfold#2129`); never widen it to the app.
 
 ## Views & Queries
 
