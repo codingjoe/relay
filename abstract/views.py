@@ -251,6 +251,7 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "title": self.title,
+            "meta_description": "",
             "markdown_template": self.get_markdown_template(),
             "toc_levels": self.toc_levels,
         }
