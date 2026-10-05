@@ -19,12 +19,21 @@ from abstract.utils import md_2_html, strip_frontmatter
 class CacheControlMixin:
     """Set cache control headers and flag `public` responses for the static chrome."""
 
-    cache_control: dict[str, bool | int] = {}
+    cache_control: dict[str, bool | int | datetime.timedelta] = {}
+
+    def get_cache_directives(self) -> dict[str, bool | int]:
+        """Return the cache control directives with durations in whole seconds."""
+        return {
+            directive: int(value.total_seconds())
+            if isinstance(value, datetime.timedelta)
+            else value
+            for directive, value in self.cache_control.items()
+        }
 
     def dispatch(self, request, *args, **kwargs):
         request.public_cache = "public" in self.cache_control
         response = super().dispatch(request, *args, **kwargs)
-        patch_cache_control(response, **self.cache_control)
+        patch_cache_control(response, **self.get_cache_directives())
         return response
 
 
@@ -186,7 +195,7 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
     markdown_template: str = ""
     """Template name of the markdown file to render."""
     toc_levels: str = "2-3"
-    cache_control = {"public": True, "max_age": 60}
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
 
     def get_markdown_template(self):
         """Return the markdown template name for this view."""
@@ -240,7 +249,7 @@ class MarkdownListView(
 ):
     """Display all Markdown articles in a docs directory."""
 
-    cache_control = {"public": True, "max_age": 60}
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
     parent = "home"
     docs_dir: pathlib.Path
     slugs: frozenset[str]

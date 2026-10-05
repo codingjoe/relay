@@ -310,9 +310,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   answers `private, no-store` when a view forgot one. The Caddy edge cache
   stores a response without the header for its 120s default and then serves
   it to every visitor, including one without a session.
-- Whole-page caches are short: `max_age=60` for HTML, `max_age=300` for
-  generated text files. They absorb request peaks, they do not stretch
-  freshness.
+- Whole-page caches are short: `datetime.timedelta(minutes=1)` for HTML,
+  `datetime.timedelta(minutes=5)` for generated text files. They absorb
+  request peaks, they do not stretch freshness.
 - Private lists and forms answer `private, no-store`. A list whose page
   renders one queryset and nothing else mixes in `ConditionalGetListMixin`;
   detail views mix in `ConditionalGetMixin`. Both revalidate with an ETag and

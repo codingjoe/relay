@@ -1,3 +1,6 @@
+import datetime
+
+from django.contrib.sitemaps.views import sitemap
 from django.template import loader
 from django.urls import reverse
 from django.views import generic
@@ -14,7 +17,7 @@ class RobotsTxtView(CacheControlMixin, generic.TemplateView):
 
     template_name = "well_known/robots.txt"
     content_type = "text/plain; charset=utf-8"
-    cache_control = {"public": True, "max_age": 300}
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=5)}
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -29,7 +32,7 @@ class LlmsTxtView(CacheControlMixin, generic.TemplateView):
 
     template_name = "well_known/llms.txt"
     content_type = "text/plain; charset=utf-8"
-    cache_control = {"public": True, "max_age": 300}
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=5)}
 
     def get_context_data(self, **kwargs):
         docs_articles = [
@@ -80,7 +83,7 @@ class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
 
     template_name = "well_known/llms-full.txt"
     content_type = "text/plain; charset=utf-8"
-    cache_control = {"public": True, "max_age": 300}
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=5)}
 
     def get_context_data(self, **kwargs):
         docs_articles = [
@@ -123,3 +126,12 @@ class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
                 for slug, metadata in AlternativeToListView.get_articles()
             ],
         }
+
+
+class SitemapView(CacheControlMixin, generic.View):
+    """Serve the XML sitemap with a short public cache."""
+
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=5)}
+
+    def get(self, request, sitemaps, *args, **kwargs):
+        return sitemap(request, sitemaps=sitemaps)
