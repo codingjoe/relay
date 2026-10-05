@@ -67,7 +67,9 @@ class TestMessageDetailView:
         assert response.headers["Last-Modified"] == http_date(
             msg.modified_at.timestamp()
         )
-        assert response.headers["Cache-Control"] == "private, no-cache"
+        assert (
+            response.headers["Cache-Control"] == "private, max-age=5, must-revalidate"
+        )
 
     def test_get__not_modified_when_etag_matches(self, admin_client, org, user):
         msg = make_message(org, user)
@@ -363,7 +365,7 @@ class TestCredentialListView:
     @pytest.mark.django_db
     def test_get__no_store_cache_control_header(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
-        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__context_has_smtp_info(self, admin_client, org, settings):
         settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"

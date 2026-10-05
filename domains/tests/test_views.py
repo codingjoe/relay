@@ -110,7 +110,9 @@ class TestDomainListView:
     def test_get__cache_control_header(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/domains/")
 
-        assert response.headers["Cache-Control"] == "private, no-cache"
+        assert (
+            response.headers["Cache-Control"] == "private, max-age=5, must-revalidate"
+        )
         assert "ETag" in response.headers
         assert "Last-Modified" in response.headers
 
@@ -216,7 +218,9 @@ class TestDomainDetailView:
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert response.headers["Cache-Control"] == "private, no-cache"
+        assert (
+            response.headers["Cache-Control"] == "private, max-age=5, must-revalidate"
+        )
         assert "ETag" in response.headers
 
     def test_get__not_modified_when_etag_matches(self, admin_client, org):
@@ -679,4 +683,4 @@ class TestMtaStsAuthorizeView:
     def test_get__no_store_cache_control_header(self, client, org, name):
         Domain.objects.create(name="example.com", org=org)
         response = client.get("/internal/mta-sts/authorize/", {"domain": name})
-        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.headers["Cache-Control"] == "no-store"

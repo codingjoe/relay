@@ -431,9 +431,10 @@ Static files are served by the app through ServeStatic, with pre-compressed
 `deploy/k8s/caddy/Caddyfile` additionally compresses on the fly with `br` and
 keeps publicly cacheable responses in `caddy-redis`, so its cache survives a
 Caddy restart. Pages carry a short `max-age` (1 minute for HTML, 5 minutes for
-generated text files); private pages answer `private, no-store` or revalidate
-with an ETag. A response without a `Cache-Control` header is stored for Caddy's
-120s default, so every view sets one.
+generated text files); private pages answer `no-store` or revalidate with an
+ETag under `private, max-age=5, must-revalidate`. A response without a
+`Cache-Control` header is stored for Caddy's 120s default, so every view sets
+one.
 
 Caddy creates its cache storer once at startup. If it starts before
 `caddy-redis` answers, it logs a Redis init error and keeps cache entries in

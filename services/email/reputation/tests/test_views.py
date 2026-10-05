@@ -160,7 +160,7 @@ class TestReputationOverviewView:
 
     def test_get__no_store_cache_control_header(self, admin_client, org):
         response = admin_client.get(overview_url(org))
-        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__keeps_the_plan_card_green_when_suspended(self, admin_client, org):
         org.suspended_at = timezone.now()

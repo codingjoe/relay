@@ -312,11 +312,12 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Whole-page caches are short: `datetime.timedelta(minutes=1)` for HTML,
   `datetime.timedelta(minutes=5)` for generated text files. They absorb
   request peaks, they do not stretch freshness.
-- Private lists and forms answer `private, no-store`. A list whose page
-  renders one queryset and nothing else mixes in `ConditionalGetListMixin`;
-  detail views mix in `ConditionalGetMixin`. Both revalidate with an ETag and
-  `Last-Modified` under `private, no-cache`, so a write expires the cached
-  page.
+- Private lists and forms answer `no-store`. A list whose page renders one
+  queryset and nothing else mixes in `ConditionalGetListMixin`; detail views
+  mix in `ConditionalGetMixin`. Both revalidate with an ETag and
+  `Last-Modified` under `private, max-age=5, must-revalidate`: the browser may
+  reuse the page for a few seconds, and a write expires it on the next
+  revalidation.
 - Do not add context processors that provide querysets. Template chrome data
   (for example, `user_orgs`) comes from the view's mixin.
 - Fetch a list once and derive counts, flags, and related objects from it

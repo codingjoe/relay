@@ -37,6 +37,16 @@ class CacheControlMixin:
         return response
 
 
+# A revalidating response is held by the browser alone: `private` keeps the
+# shared edge cache out of it, and `max-age` lets the browser reuse the page
+# for a moment before it asks again and revalidates against the ETag.
+REVALIDATION_CACHE_CONTROL = {
+    "private": True,
+    "max_age": 5,
+    "must_revalidate": True,
+}
+
+
 class ConditionalGetMixin:
     """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
 
@@ -54,7 +64,7 @@ class ConditionalGetMixin:
                 self.get_context_data(object=self.object)
             )
         )(request)
-        patch_cache_control(response, private=True, no_cache=True)
+        patch_cache_control(response, **REVALIDATION_CACHE_CONTROL)
         return response
 
 
@@ -82,14 +92,14 @@ class ConditionalGetListMixin:
             etag_func=lambda request, *a, **kw: self.get_list_etag(count, modified_at),
             last_modified_func=lambda request, *a, **kw: modified_at,
         )(lambda request: self.render_to_response(self.get_context_data()))(request)
-        patch_cache_control(response, private=True, no_cache=True)
+        patch_cache_control(response, **REVALIDATION_CACHE_CONTROL)
         return response
 
 
 class NoStoreCacheMixin(CacheControlMixin):
-    """Prevent caching entirely with `private, no-store`."""
+    """Prevent caching entirely with `no-store`."""
 
-    cache_control = {"private": True, "no_store": True}
+    cache_control = {"no_store": True}
 
 
 class MarkdownArticleMixin:
