@@ -173,10 +173,11 @@ data instead of a single row. Load with
 3. Validate that the YAML is well-formed via the `yamlfmt`
    pre-commit hook.
 
-The `test` user has no admin or staff access. Only a `write`
-membership in `acme`. The dev server authenticates via the
-`RemoteUserBackend` middleware when `DEBUG=True`, so the bundle
-developer still has the same UX without needing a superuser.
+The `test` user is a superuser, so the Django admin works out of the
+box in development. Only a `write` membership in `acme`, so product
+pages still render with a regular member's permissions. The dev server
+authenticates via the `RemoteUserBackend` middleware when `DEBUG=True`,
+so the bundle developer signs in without a password.
 
 ## Pointers to further documentation
 

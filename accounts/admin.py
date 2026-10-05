@@ -17,3 +17,4 @@ class MembershipAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = ["org", "user", "role", "created_at"]
     list_filter = ["role"]
     search_fields = ["org__slug", "user__username"]
+    autocomplete_fields = ["org", "user"]

@@ -23,4 +23,5 @@ class FblReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "source_ip_address",
         "domain__name",
     ]
+    autocomplete_fields = ["org", "domain", "message"]
     readonly_fields = ["id", "arrival_at"]
