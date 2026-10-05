@@ -129,9 +129,6 @@ if SENTRY_DSN and not (TEST or DEBUG):
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 INSTALLED_APPS = [
-    # Unfold replaces the admin site, so it must come before django.contrib.admin.
-    # https://unfoldadmin.com/docs/installation/quickstart/
-    "unfold",
     # Ahead of staticfiles so ServeStatic serves them in development too.
     "servestatic",
     # First-party apps (abstract first so its widget overrides win)
@@ -202,14 +199,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "root.urls"
-
-# Admin theme
-# https://unfoldadmin.com/docs/configuration/settings/
-
-UNFOLD = {
-    "SITE_TITLE": "relay",
-    "SITE_HEADER": "relay",
-}
 
 _TEMPLATES_LOADERS = [
     "django.template.loaders.filesystem.Loader",

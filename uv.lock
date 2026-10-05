@@ -535,18 +535,6 @@ s3 = [
 ]
 
 [[package]]
-name = "django-unfold"
-version = "0.108.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/48/30/f539fe86cd247d9468f84ec21468fd3ae91f5215e0f0c3264a600cc34cdb/django_unfold-0.108.0.tar.gz", hash = "sha256:f791e6b3ca8a6f84da3a9bdc09ea8f6269194f317fcd2b871bb123c815fa557a", size = 1163440, upload-time = "2026-09-24T07:27:27.342Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/cb/29cd61b8ff07602eb2c9966f298e5da05ef510f99efa46487d15a1529b55/django_unfold-0.108.0-py3-none-any.whl", hash = "sha256:6cb928bc0d9a9487075334084f738c44729b36e6c6fd0b9bfbdd6a504c1e827d", size = 1291690, upload-time = "2026-09-24T07:27:25.784Z" },
-]
-
-[[package]]
 name = "dkimpy"
 version = "1.1.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1234,7 +1222,6 @@ dependencies = [
     { name = "django-health-check", extra = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"] },
     { name = "django-letter" },
     { name = "django-storages", extra = ["s3"] },
-    { name = "django-unfold" },
     { name = "dkimpy" },
     { name = "dnslib" },
     { name = "dnspython" },
@@ -1297,7 +1284,6 @@ requires-dist = [
     { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8" },
     { name = "django-letter", specifier = ">=0.6" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
-    { name = "django-unfold", specifier = ">=0.108.0" },
     { name = "dkimpy", specifier = ">=1.1.8" },
     { name = "dnslib", specifier = ">=0.9.26" },
     { name = "dnspython", specifier = ">=2.8" },

@@ -303,16 +303,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 ## Admin
 
-- Build every admin on Unfold's `ModelAdmin`
-  (`from unfold.admin import ModelAdmin`) so the admin carries the project
-  theme. `.relint.yml` rejects `admin.ModelAdmin`.
 - List every editable foreign key and many-to-many field in
   `autocomplete_fields`. The change form must never render a select box over
   a whole table. The related admin needs `search_fields`, and the related
   model its own admin, or Django's checks fail.
-- Unfold's Alpine runtime needs `'unsafe-eval'`, which the CSP middleware
-  grants to admin responses alone. Upstream closed strict-CSP support as not
-  planned (`unfoldadmin/django-unfold#2129`); never widen it to the app.
 
 ## Views & Queries
 

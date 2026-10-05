@@ -1,5 +1,4 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -7,7 +6,7 @@ from .models import FblReport
 
 
 @admin.register(FblReport)
-class FblReportAdmin(TimeStampedAdminMixin, ModelAdmin):
+class FblReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",

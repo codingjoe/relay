@@ -1,5 +1,4 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -7,7 +6,7 @@ from .models import DmarcFailureReport, DmarcRecord, DmarcReport
 
 
 @admin.register(DmarcReport)
-class DmarcReportAdmin(TimeStampedAdminMixin, ModelAdmin):
+class DmarcReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",
@@ -21,7 +20,7 @@ class DmarcReportAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(DmarcRecord)
-class DmarcRecordAdmin(TimeStampedAdminMixin, ModelAdmin):
+class DmarcRecordAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "report",
         "source_ip_address",
@@ -37,7 +36,7 @@ class DmarcRecordAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(DmarcFailureReport)
-class DmarcFailureReportAdmin(TimeStampedAdminMixin, ModelAdmin):
+class DmarcFailureReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",

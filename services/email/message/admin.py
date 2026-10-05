@@ -1,5 +1,4 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -7,7 +6,7 @@ from .models import Message, Transmission
 
 
 @admin.register(Message)
-class MessageAdmin(TimeStampedAdminMixin, ModelAdmin):
+class MessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = ["mail_from", "rcpt_to", "subject", "created_at"]
     search_fields = ["mail_from", "rcpt_to", "subject", "message_id"]
     autocomplete_fields = ["org", "domain"]
@@ -15,7 +14,7 @@ class MessageAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(Transmission)
-class TransmissionAdmin(TimeStampedAdminMixin, ModelAdmin):
+class TransmissionAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = ["message", "status", "code", "tls_mode", "created_at"]
     list_filter = ["status", "tls_mode"]
     search_fields = ["message__mail_from", "message__rcpt_to"]

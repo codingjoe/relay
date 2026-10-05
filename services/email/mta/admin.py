@@ -1,5 +1,4 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -13,7 +12,7 @@ from .models import (
 
 
 @admin.register(IncomingMessage)
-class IncomingMessageAdmin(TimeStampedAdminMixin, ModelAdmin):
+class IncomingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "mail_from",
         "rcpt_to",
@@ -28,7 +27,7 @@ class IncomingMessageAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(Webhook)
-class WebhookAdmin(TimeStampedAdminMixin, ModelAdmin):
+class WebhookAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = ["org", "name", "url", "is_active", "last_used_at"]
     list_filter = ["is_active"]
     search_fields = ["org__slug", "name", "url"]
@@ -37,7 +36,7 @@ class WebhookAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(WebhookDelivery)
-class WebhookDeliveryAdmin(TimeStampedAdminMixin, ModelAdmin):
+class WebhookDeliveryAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "webhook",
         "status",
@@ -52,7 +51,7 @@ class WebhookDeliveryAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(TlsReport)
-class TlsReportAdmin(TimeStampedAdminMixin, ModelAdmin):
+class TlsReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "reporting_org",
         "domain",
@@ -67,7 +66,7 @@ class TlsReportAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(TlsFailure)
-class TlsFailureAdmin(TimeStampedAdminMixin, ModelAdmin):
+class TlsFailureAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "report",
         "result_type",

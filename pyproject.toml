@@ -22,7 +22,6 @@ dependencies = [
   "django-health-check[atlassian,crontask,psutil,redis,rss,threadmill]>=4.8",
   "django-letter>=0.6",
   "django-storages[s3]>=1.14.6",
-  "django-unfold>=0.108",
   "dkimpy>=1.1.8",
   "dnslib>=0.9.26",
   "dnspython>=2.8",

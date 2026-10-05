@@ -2,18 +2,16 @@ import pytest
 from django.contrib import admin
 from django.db import models
 from django.urls import reverse
-from django.utils.csp import CSP
 
 
 class TestAdminSite:
     @pytest.mark.django_db
-    def test_get__index_renders_with_unfold(self, client, admin_user):
+    def test_get__index_renders(self, client, admin_user):
         client.force_login(admin_user)
         response = client.get(reverse("admin:index"))
 
         assert response.status_code == 200
-        assert "/static/unfold/" in response.content.decode()
-        assert CSP.UNSAFE_EVAL in response.headers["Content-Security-Policy"]
+        assert "/static/admin/" in response.content.decode()
 
 
 class TestAdminAutocomplete:

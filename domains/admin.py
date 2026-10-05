@@ -1,5 +1,4 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -7,7 +6,7 @@ from .models import Domain
 
 
 @admin.register(Domain)
-class DomainAdmin(TimeStampedAdminMixin, ModelAdmin):
+class DomainAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "name",
         "org",

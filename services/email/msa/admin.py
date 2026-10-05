@@ -1,5 +1,4 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -7,7 +6,7 @@ from .models import MsaCredential, OutgoingMessage
 
 
 @admin.register(OutgoingMessage)
-class OutgoingMessageAdmin(TimeStampedAdminMixin, ModelAdmin):
+class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "credential",
         "mail_from",
@@ -27,7 +26,7 @@ class OutgoingMessageAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(MsaCredential)
-class MsaCredentialAdmin(TimeStampedAdminMixin, ModelAdmin):
+class MsaCredentialAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = [
         "org",
         "key_prefix",

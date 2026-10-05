@@ -1,5 +1,4 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
 from abstract.admin import TimeStampedAdminMixin
 
@@ -7,7 +6,7 @@ from .models import Certificate, SigningKey
 
 
 @admin.register(SigningKey)
-class SigningKeyAdmin(TimeStampedAdminMixin, ModelAdmin):
+class SigningKeyAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = ["key_id", "algorithm", "created_at"]
     list_filter = ["algorithm"]
     search_fields = ["key_id", "algorithm"]
@@ -18,7 +17,7 @@ class SigningKeyAdmin(TimeStampedAdminMixin, ModelAdmin):
 
 
 @admin.register(Certificate)
-class CertificateAdmin(TimeStampedAdminMixin, ModelAdmin):
+class CertificateAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = ["subject", "issuer", "serial_number", "not_after", "created_at"]
     search_fields = ["fingerprint", "subject", "issuer"]
     autocomplete_fields = ["issuer_certificate"]
