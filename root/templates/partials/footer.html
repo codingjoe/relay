@@ -8,7 +8,7 @@
     <nav class="flex gap-3">
       <a
         href="{% url 'open-source' %}"
-        class="text-muted-foreground hover:text-foreground transition-colors"
+        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
       >{% translate "open source"|capfirst %}</a>
       <a
         href="{% url 'legal:imprint' %}"
@@ -26,7 +26,7 @@
         href="{% url 'docs:list' %}"
         target="_blank"
         rel="noopener"
-        class="text-muted-foreground hover:text-foreground transition-colors"
+        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
       >{% translate "docs"|capfirst %}</a>
       <a
         href="{% url 'know_how:list' %}"
