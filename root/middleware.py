@@ -36,13 +36,7 @@ class ContentSecurityPolicyMiddleware(DjangoContentSecurityPolicyMiddleware):
             and (hash_source := self.hash_importmap_script(response))
         ):
             response._csp_config = policy | {"script-src": [*script_src, hash_source]}
-        # Safari blocks import-map-resolved imports under the enforced header,
-        # before the module loader applies the import map's hashes, and it
-        # reports covered imports in report-only mode.
         # https://bugs.webkit.org/show_bug.cgi?id=326341
-        # Chromium and Firefox let the same pages through, and the script tags'
-        # integrity attributes and the import map hashes verify scripts on
-        # their own, so the policy stays in report-only mode.
         if not settings.DEBUG and self.IMPORTMAP_PATTERN.search(
             getattr(response, "content", b"")
         ):

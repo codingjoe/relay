@@ -125,13 +125,9 @@ it.
 
 ## Content Security Policy
 
-Every web response carries an enforced Content Security Policy. Pages load
-scripts from relay alone, and every module is pinned to an integrity hash, so a
-browser refuses a script it cannot verify. Pages that use an import map also
-send an `Integrity-Policy-Report-Only` header. It reports scripts without a
-hash and blocks nothing, because Safari blocks import-map-resolved imports
-under the enforced header. Safari also reports the imports that the map covers
-(WebKit bug 326341).
+Every web response carries an enforced Content Security Policy and a strict
+integrity policy. Pages load scripts from relay alone, and every module is
+pinned to a hash, so a browser refuses a script it cannot verify.
 
 ## Node configuration and cluster keys
 

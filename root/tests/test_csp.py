@@ -81,9 +81,6 @@ class TestContentSecurityPolicyMiddleware:
                 assert source in importmap["integrity"]
 
     def test_process_response__serves_the_integrity_policy_report_only(self, client):
-        # Safari blocks import-map-resolved imports under the enforced header,
-        # so the policy stays in report-only mode.
-        # https://bugs.webkit.org/show_bug.cgi?id=326341
         response = client.get(reverse("home"))
         assert (
             response.headers["Integrity-Policy-Report-Only"]
