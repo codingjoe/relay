@@ -5,12 +5,22 @@ from django.urls import reverse
 from accounts.models import Membership, Organization
 
 
+class TestLoginView:
+    def test_get__no_store_cache_control_header(self, client):
+        response = client.get("/account/login")
+        assert response.headers["Cache-Control"] == "no-store"
+
+
 @pytest.mark.django_db
 class TestOrganizationListView:
     def test_get__requires_login(self, client, org):
         response = client.get("/organizations/")
         assert response.status_code == 302
         assert "/account/login" in response.url
+
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get("/organizations/")
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__shows_single_org_user(self, admin_client, org):
         response = admin_client.get("/organizations/")
@@ -106,6 +116,10 @@ class TestOrganizationDetailView:
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/settings/")
         assert response.status_code == 404
+
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/settings/")
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__context_has_memberships_and_is_admin(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/settings/")

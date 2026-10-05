@@ -432,6 +432,16 @@ class TestVerifyDomainDns:
         assert domain.tls_rpt_status == Domain.Status.OK
         assert domain.verified_at is not None
 
+    def test_verify_domain_dns__bumps_modified_at(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        modified_at = domain.modified_at
+
+        verify_domain_dns(domain)
+
+        domain.refresh_from_db()
+        assert domain.modified_at > modified_at
+
     def test_verify_domain_dns__all_fail_sets_errors(self, dns_resolver):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)

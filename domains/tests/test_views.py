@@ -107,6 +107,33 @@ class TestDomainListView:
         assert b"the first send needs no" in response.content
         assert b"Add Domain" in response.content
 
+    def test_get__cache_control_header(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/domains/")
+
+        assert (
+            response.headers["Cache-Control"] == "private, max-age=5, must-revalidate"
+        )
+        assert "ETag" in response.headers
+        assert "Last-Modified" in response.headers
+
+    def test_get__not_modified_when_etag_matches(self, admin_client, org):
+        url = f"/org/{org.slug}/email/domains/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+
+        assert response.status_code == 304
+
+    def test_get__fresh_response_when_domain_added(self, admin_client, org):
+        url = f"/org/{org.slug}/email/domains/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        Domain.objects.create(name="new.example.com", org=org)
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
+
 
 @pytest.mark.django_db
 class TestDomainCreateView:
@@ -186,6 +213,37 @@ class TestDomainDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
         assert "nameservers" in response.context
         assert "dkim_cnames" in response.context
+
+    def test_get__cache_control_header(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+
+        assert (
+            response.headers["Cache-Control"] == "private, max-age=5, must-revalidate"
+        )
+        assert "ETag" in response.headers
+
+    def test_get__not_modified_when_etag_matches(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        url = f"/org/{org.slug}/email/domains/{domain.pk}/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+
+        assert response.status_code == 304
+
+    def test_get__fresh_response_when_verification_changes_status(
+        self, admin_client, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        url = f"/org/{org.slug}/email/domains/{domain.pk}/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        verify_dns(admin_client, org, domain, dns_resolver, ALL_CHECK_FIELDS)
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
 
     def test_get__warns_about_apex_ns_delegation(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -625,4 +683,4 @@ class TestMtaStsAuthorizeView:
     def test_get__no_store_cache_control_header(self, client, org, name):
         Domain.objects.create(name="example.com", org=org)
         response = client.get("/internal/mta-sts/authorize/", {"domain": name})
-        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.headers["Cache-Control"] == "no-store"
