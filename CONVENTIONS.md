@@ -306,18 +306,19 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Publicly cacheable views (`public: True`) render the static chrome
   (`request.public_cache`): no user menu, no toasts, no org switcher. The
   response carries no `Vary: Cookie` and no queries.
-- Every view sets an explicit `Cache-Control`; a view that forgets it hands
-  the Caddy edge cache a response it stores for its 120s default and then
-  serves to every visitor, including one without a session.
-- Whole-page caches are short: `datetime.timedelta(minutes=1)` for HTML,
-  `datetime.timedelta(minutes=5)` for generated text files. They absorb
-  request peaks, they do not stretch freshness.
-- Private lists and forms answer `no-store`. A list whose page renders one
-  queryset and nothing else mixes in `ConditionalGetListMixin`; detail views
-  mix in `ConditionalGetMixin`. Both revalidate with an ETag and
-  `Last-Modified` under `private, max-age=5, must-revalidate`: the browser may
-  reuse the page for a few seconds, and a write expires it on the next
-  revalidation.
+- Every view that renders a page sets an explicit `Cache-Control`; a view that
+  forgets it hands the Caddy edge cache a response it stores for its 120s
+  default and then serves to every visitor. `.relint.yml` requires a cache
+  mixin on every list and detail view. Forms, redirects, and template views
+  answer `no-store` by hand.
+- Pick the mixin by what the page renders: `ConditionalGetListMixin` for a
+  private list whose page renders one queryset and nothing else,
+  `ConditionalGetMixin` for a detail view. Both answer
+  `private, max-age=5, must-revalidate`, so the browser may reuse the page for
+  a few seconds and a write expires it on the next revalidation. Use
+  `datetime.timedelta` for every `max_age`.
+- Whole-page caches stay short: they absorb request peaks, they do not stretch
+  freshness. `.relint.yml` caps `max_age` at five minutes.
 - Do not add context processors that provide querysets. Template chrome data
   (for example, `user_orgs`) comes from the view's mixin.
 - Fetch a list once and derive counts, flags, and related objects from it
