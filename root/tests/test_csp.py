@@ -80,22 +80,28 @@ class TestContentSecurityPolicyMiddleware:
                 assert b"integrity=" in tag, f"{url} loads {source} without a hash"
                 assert source in importmap["integrity"]
 
-    def test_process_response__enforces_the_integrity_policy(self, client):
+    def test_process_response__serves_the_integrity_policy_report_only(self, client):
         response = client.get(reverse("home"))
-        assert response.headers["Integrity-Policy"] == "blocked-destinations=(script)"
+        assert (
+            response.headers["Integrity-Policy-Report-Only"]
+            == "blocked-destinations=(script)"
+        )
+        assert "Integrity-Policy" not in response.headers
 
-    def test_process_response__skips_the_integrity_policy_in_debug(self, settings, rf):
+    def test_process_response__skips_the_report_only_policy_in_debug(
+        self, settings, rf
+    ):
         settings.DEBUG = True
         response = HttpResponse(IMPORTMAP_TAG)
         middleware = ContentSecurityPolicyMiddleware(lambda request: response)
         response = middleware.process_response(rf.get("/"), response)
-        assert "Integrity-Policy" not in response.headers
+        assert "Integrity-Policy-Report-Only" not in response.headers
 
-    def test_process_response__serves_no_integrity_policy_without_the_map(self, rf):
+    def test_process_response__serves_no_report_only_policy_without_the_map(self, rf):
         response = HttpResponse('{"ok": true}', content_type="application/json")
         middleware = ContentSecurityPolicyMiddleware(lambda request: response)
         response = middleware.process_response(rf.get("/"), response)
-        assert "Integrity-Policy" not in response.headers
+        assert "Integrity-Policy-Report-Only" not in response.headers
 
     def test_process_response__keeps_a_streaming_response_streaming(self, rf):
         response = StreamingHttpResponse(itertools.repeat(b"<script></script>"))

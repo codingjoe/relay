@@ -47,7 +47,7 @@
   hint: |
     Load the module with `{% esm '#js/app.js' %}`. The tag resolves the specifier through the
     import map and writes the bundle URL with the integrity hash the browser verifies. A
-    hand-written tag carries no hash, and the enforced Integrity-Policy blocks it.
+    hand-written tag carries no hash, so the browser runs it unverified.
   filePattern: .*\.html$
 - name: Input group icon buttons use the icon-xs size
   pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*<i data-lucide'
