@@ -2,8 +2,10 @@
   pk: 1
   fields:
     password: '!JS7bUqSW70yvspWcdGlMF3gqmzxRszioWF3hDxmY'
+    is_superuser: true
     username: test
     email: test@example.com
+    is_staff: true
     date_joined: 2026-08-01 18:21:34.533171+00:00
 - model: accounts.organization
   pk: 1
