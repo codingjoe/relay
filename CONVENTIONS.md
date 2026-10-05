@@ -305,8 +305,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - List every editable foreign key and many-to-many field in
   `autocomplete_fields`. The change form must never render a select box over
-  a whole table. The related admin needs `search_fields`, and the related
-  model its own admin, or Django's checks fail.
+  a whole table. The related admin needs `search_fields` and the related
+  model its own admin, or Django's checks fail. `abstract.W004` warns about
+  a missing autocomplete.
 
 ## Views & Queries
 
