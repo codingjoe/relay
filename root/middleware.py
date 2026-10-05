@@ -6,20 +6,6 @@ from django.conf import settings
 from django.middleware.csp import (
     ContentSecurityPolicyMiddleware as DjangoContentSecurityPolicyMiddleware,
 )
-from django.utils.cache import patch_cache_control
-
-
-class PrivateByDefaultMiddleware:
-    """Refuse shared caching unless the view sets its own `Cache-Control`."""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        response = self.get_response(request)
-        if not response.headers.get("Cache-Control"):
-            patch_cache_control(response, private=True, no_store=True)
-        return response
 
 
 class ContentSecurityPolicyMiddleware(DjangoContentSecurityPolicyMiddleware):

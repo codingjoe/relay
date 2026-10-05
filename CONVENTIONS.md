@@ -306,10 +306,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Publicly cacheable views (`public: True`) render the static chrome
   (`request.public_cache`): no user menu, no toasts, no org switcher. The
   response carries no `Vary: Cookie` and no queries.
-- Every view sets an explicit `Cache-Control`; `PrivateByDefaultMiddleware`
-  answers `private, no-store` when a view forgot one. The Caddy edge cache
-  stores a response without the header for its 120s default and then serves
-  it to every visitor, including one without a session.
+- Every view sets an explicit `Cache-Control`; a view that forgets it hands
+  the Caddy edge cache a response it stores for its 120s default and then
+  serves to every visitor, including one without a session.
 - Whole-page caches are short: `datetime.timedelta(minutes=1)` for HTML,
   `datetime.timedelta(minutes=5)` for generated text files. They absorb
   request peaks, they do not stretch freshness.

@@ -174,7 +174,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "root.middleware.ContentSecurityPolicyMiddleware",
-    "root.middleware.PrivateByDefaultMiddleware",
     *(
         [
             "django_devbar.DevBarMiddleware",
