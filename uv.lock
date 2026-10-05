@@ -92,30 +92,30 @@ sdist = { url = "https://files.pythonhosted.org/packages/6a/29/e28209b5d3d56c102
 
 [[package]]
 name = "boto3"
-version = "1.43.108"
+version = "1.43.107"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "botocore" },
     { name = "jmespath" },
     { name = "s3transfer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/48/59/fb93b6ebd9ad43eb9a58c7a6da51a0fe24ab0c04bc4d534a0bfc5eba7f59/boto3-1.43.108.tar.gz", hash = "sha256:03341f089158368acf83e921aca98b706095322ca52bc4c039a616940aa5ad41", size = 112682, upload-time = "2026-10-02T19:32:25.211Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/c4/c68d22d91482898f1294dab7541ad83f8bcf9df83107e6d8436d6e9dbf01/boto3-1.43.107.tar.gz", hash = "sha256:c4e0f1a0295cbb7103f2950128cf88463c076d220080a7d0f127cf834969fc3a", size = 112718, upload-time = "2026-10-01T19:31:22.283Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/e4/7e88c40e9f61888e12dac0de41a5fddc2bcd1c3992d9b28e17d915cce0df/boto3-1.43.108-py3-none-any.whl", hash = "sha256:19e9da95ef0c494e27052049a42137550e66730509bb613e76eaa30ddf9a7170", size = 140045, upload-time = "2026-10-02T19:32:23.826Z" },
+    { url = "https://files.pythonhosted.org/packages/01/5c/a865e8902370151daf915e3a072ee57e693144838427e42c9bbd986ecb88/boto3-1.43.107-py3-none-any.whl", hash = "sha256:632a4f8298725b94144c8cd383cbdacb34624daa73221e954c3d33ac6e2528d6", size = 140043, upload-time = "2026-10-01T19:31:20.518Z" },
 ]
 
 [[package]]
 name = "botocore"
-version = "1.43.108"
+version = "1.43.107"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "python-dateutil" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/61/16/6b4477f433da2c11193802f538330ce080076c2f38d817ad437ed3cd1465/botocore-1.43.108.tar.gz", hash = "sha256:ee4f75cf3bdbb0da7912e089950e8112f692016539d939312c771499958e6cfd", size = 16312879, upload-time = "2026-10-02T19:32:20.797Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4d/22/3aed44a1e0b9820485124a9ad25e9bccd5539c547ef12827547c3cbeb25f/botocore-1.43.107.tar.gz", hash = "sha256:4a37fa072a00280c746313532d19b00e2dc53f1993222601df104d71d548d5b6", size = 16306128, upload-time = "2026-10-01T19:31:17.202Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/0b/4670b7e23914b5cc357be5ca45fae503b57d98ecff4b3eabea70412809fd/botocore-1.43.108-py3-none-any.whl", hash = "sha256:ab9d16c6b4350aaa54ed28202dfa2998b2d735fdbf3247eb60af469d8d48a5b8", size = 16008194, upload-time = "2026-10-02T19:32:15.086Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/39/3a0db1ba57531062cda616dae68b69faef8114939414a2a291b3aac7617b/botocore-1.43.107-py3-none-any.whl", hash = "sha256:23cbe854e815dbaccf097f7fd32b461c9e1d2ed7e0c7dcc5658218704509d840", size = 16002666, upload-time = "2026-10-01T19:31:14.463Z" },
 ]
 
 [[package]]
@@ -406,15 +406,15 @@ wheels = [
 
 [[package]]
 name = "django-crontask"
-version = "2.0.1"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "apscheduler" },
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7b/52/6ae53023bc73046098b8e398b9a24f7ad1ae73866c04f3da9add60b3b84b/django_crontask-2.0.1.tar.gz", hash = "sha256:0a7c87f7b329aebbd67a494264c3a7394cec695ecd7df401324341683c80d7ac", size = 10030, upload-time = "2026-10-01T22:27:13.621Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/58/28859776c9c5df7adc1c985342e44813bb271401015043a44429e69eac8f/django_crontask-2.0.0.tar.gz", hash = "sha256:1367aaa5be6f401c5fa4516f484208ae2c8c6b722fb56bb88e1383f37f9b459d", size = 9784, upload-time = "2026-05-27T10:44:23.501Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/5e/03da69051c10d7f22e5d766f93746a013119f8ac6414c64b1ac8c8f81414/django_crontask-2.0.1-py3-none-any.whl", hash = "sha256:3ec6e0d1bb1f595e104d18954bd8c38ac4f796afdaee68255c8036d731264a62", size = 10390, upload-time = "2026-10-01T22:27:12.481Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/6c/b87d197ac4beaebf967206181273c3015f9476ac70f57a22d7bf8d42147e/django_crontask-2.0.0-py3-none-any.whl", hash = "sha256:434c1e2dacd97d2d39b2d85db9082573a4ab7bce8a72be5c5a7f5808ac5003e3", size = 10275, upload-time = "2026-05-27T10:44:21.888Z" },
 ]
 
 [package.optional-dependencies]
@@ -1275,10 +1275,10 @@ requires-dist = [
     { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "aiosmtplib", specifier = ">=5.1.3" },
     { name = "authres", specifier = ">=1.2" },
-    { name = "boto3", specifier = ">=1.43.108" },
+    { name = "boto3", specifier = ">=1.43.107" },
     { name = "cryptography", specifier = ">=50.0.2" },
     { name = "django", specifier = ">=6.1.1,<6.2" },
-    { name = "django-crontask", specifier = ">=2.0.1" },
+    { name = "django-crontask", specifier = ">=2" },
     { name = "django-environ", specifier = ">=0.14" },
     { name = "django-esm", specifier = ">=0.11" },
     { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8" },
@@ -1299,7 +1299,7 @@ requires-dist = [
     { name = "python-json-logger", specifier = ">=4.2" },
     { name = "redis", specifier = ">=8.1" },
     { name = "sentry-sdk", specifier = ">=2.71" },
-    { name = "servestatic", specifier = ">=4.4" },
+    { name = "servestatic", specifier = ">=4.3" },
     { name = "social-auth-app-django", specifier = ">=6.1" },
     { name = "threadmill", extras = ["redis"], specifier = ">=0.7.3" },
     { name = "validators", specifier = ">=0.35" },
@@ -1399,14 +1399,14 @@ wheels = [
 
 [[package]]
 name = "servestatic"
-version = "4.4.0"
+version = "4.3.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fa/44/c9d97449772bcb22f5dcb06eca5f2edd70882fdbaba433c4159cb722e16b/servestatic-4.4.0.tar.gz", hash = "sha256:1888da43de2d5e46960404b0ff718992053b45ee875763c2a905809d7d0b4380", size = 36523, upload-time = "2026-10-02T23:45:58.091Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/62/d0c5e77182fde15b6f04157aa1362a19b3e50436f782c7e090d6bf0aa73f/servestatic-4.3.4.tar.gz", hash = "sha256:fef61ea48b708f1e3a7f7fd29b3e70ad563486933ba1df97018f335e1abe9997", size = 33755, upload-time = "2026-09-07T02:13:36.294Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/45/bf0422b5790712076260455006b39847978714a7930decfda95de26602b1/servestatic-4.4.0-py3-none-any.whl", hash = "sha256:78add8a928ce21c821746ab6c53df026fbcc7a105789ae2f4511241f5e7413ee", size = 43736, upload-time = "2026-10-02T23:45:56.691Z" },
+    { url = "https://files.pythonhosted.org/packages/05/7c/f0f0ebb0d4d6864eeab8396556d906fbac4159e8a9e9bc687c48a87c119b/servestatic-4.3.4-py3-none-any.whl", hash = "sha256:5e467887d527ae7e8f12b511d6e99cf3b842a9f988e1a4d01f13e7e7e0e6b7dd", size = 40888, upload-time = "2026-09-07T02:13:35.042Z" },
 ]
 
 [[package]]
