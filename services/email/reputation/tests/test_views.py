@@ -158,6 +158,10 @@ class TestReputationOverviewView:
         bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
         assert "text-success" in bounce_card
 
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get(overview_url(org))
+        assert response.headers["Cache-Control"] == "no-store"
+
     def test_get__keeps_the_plan_card_green_when_suspended(self, admin_client, org):
         org.suspended_at = timezone.now()
         org.save(update_fields=["suspended_at"])

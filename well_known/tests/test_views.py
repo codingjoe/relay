@@ -11,6 +11,10 @@ class TestRobotsTxt:
         assert "Sitemap:" in body
         assert "/sitemap.xml" in body
 
+    def test_get__short_public_cache(self, client):
+        response = client.get(reverse("well_known:robots-txt"))
+        assert response.headers["Cache-Control"] == "public, max-age=300"
+
 
 class TestLlmsTxt:
     def test_get__returns_llms_txt(self, client):
@@ -92,6 +96,10 @@ class TestSitemap:
         assert "<urlset" in body
         assert "<url>" in body
         assert "</url>" in body
+
+    def test_get__short_public_cache(self, client):
+        response = client.get(reverse("well_known:sitemap"))
+        assert response.headers["Cache-Control"] == "public, max-age=300"
 
     def test_get__contains_know_how_articles(self, client):
         response = client.get(reverse("well_known:sitemap"))

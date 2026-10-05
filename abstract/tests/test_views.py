@@ -1,8 +1,24 @@
+import datetime
+
 import pytest
 from django.http import Http404
 from django.test import RequestFactory
 
-from abstract.views import MarkdownArticleMixin, MarkdownView
+from abstract.views import CacheControlMixin, MarkdownArticleMixin, MarkdownView
+
+
+class TestCacheControlMixin:
+    def test_get_cache_directives__converts_durations_to_seconds(self):
+        class TestView(CacheControlMixin):
+            cache_control = {"public": True, "max_age": datetime.timedelta(minutes=5)}
+
+        assert TestView().get_cache_directives() == {"public": True, "max_age": 300}
+
+    def test_get_cache_directives__keeps_plain_seconds(self):
+        class TestView(CacheControlMixin):
+            cache_control = {"private": True, "max_age": 60}
+
+        assert TestView().get_cache_directives() == {"private": True, "max_age": 60}
 
 
 class TestMarkdownArticleMixin:

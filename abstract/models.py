@@ -33,6 +33,12 @@ class TimeStamped(models.Model):
         get_latest_by = "created_at"
         abstract = True
 
+    def save(self, *args, update_fields=None, **kwargs):
+        """Persist `modified_at` on partial saves, so conditional GETs revalidate."""
+        if update_fields is not None:
+            update_fields = {*update_fields, "modified_at"}
+        return super().save(*args, update_fields=update_fields, **kwargs)
+
 
 class Timing(TimeStamped):
     """

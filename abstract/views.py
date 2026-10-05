@@ -1,6 +1,8 @@
+import datetime
 import pathlib
 
 import frontmatter
+from django.db.models import Count, Max
 from django.http import Http404, HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
@@ -17,16 +19,41 @@ from abstract.utils import md_2_html, strip_frontmatter
 class CacheControlMixin:
     """Set cache control headers and flag `public` responses for the static chrome."""
 
-    cache_control: dict[str, bool | int] = {}
+    cache_control: dict[str, bool | int | datetime.timedelta] = {}
+
+    def get_cache_directives(self) -> dict[str, bool | int]:
+        """Return the cache control directives with durations in whole seconds."""
+        return {
+            directive: int(value.total_seconds())
+            if isinstance(value, datetime.timedelta)
+            else value
+            for directive, value in self.cache_control.items()
+        }
 
     def dispatch(self, request, *args, **kwargs):
         request.public_cache = "public" in self.cache_control
         response = super().dispatch(request, *args, **kwargs)
-        patch_cache_control(response, **self.cache_control)
+        patch_cache_control(response, **self.get_cache_directives())
         return response
 
 
-class ConditionalGetMixin:
+class RevalidationCacheMixin(CacheControlMixin):
+    """
+    Let the browser reuse a revalidating page for a moment.
+
+    `private` keeps the shared edge cache out of it, and `max-age` lets the
+    browser serve the page from its own cache before it comes back and
+    revalidates against the ETag.
+    """
+
+    cache_control = {
+        "private": True,
+        "max_age": datetime.timedelta(seconds=5),
+        "must_revalidate": True,
+    }
+
+
+class ConditionalGetMixin(RevalidationCacheMixin):
     """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
 
     def get_etag(self, obj) -> str:
@@ -35,7 +62,7 @@ class ConditionalGetMixin:
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        response = condition(
+        return condition(
             etag_func=lambda request, *a, **kw: self.get_etag(self.object),
             last_modified_func=lambda request, *a, **kw: self.object.modified_at,
         )(
@@ -43,14 +70,38 @@ class ConditionalGetMixin:
                 self.get_context_data(object=self.object)
             )
         )(request)
-        patch_cache_control(response, private=True, no_cache=True)
-        return response
+
+
+class ConditionalGetListMixin(RevalidationCacheMixin):
+    """Answer conditional GETs for a list with an ETag and `Last-Modified` from its newest row."""
+
+    def get_list_summary(self, queryset) -> tuple[int, datetime.datetime | None]:
+        """Return the number of rows and the newest modification time of the list."""
+        summary = queryset.aggregate(
+            count=Count("pk"),
+            modified_at=Max("modified_at"),
+        )
+        return summary["count"], summary["modified_at"]
+
+    def get_list_etag(self, count: int, modified_at: datetime.datetime | None) -> str:
+        """Return the ETag of the list summary."""
+        if modified_at is None:
+            return f'"{count:x}"'
+        return f'"{count:x}-{int(modified_at.timestamp() * 1e6):x}"'
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        count, modified_at = self.get_list_summary(self.object_list)
+        return condition(
+            etag_func=lambda request, *a, **kw: self.get_list_etag(count, modified_at),
+            last_modified_func=lambda request, *a, **kw: modified_at,
+        )(lambda request: self.render_to_response(self.get_context_data()))(request)
 
 
 class NoStoreCacheMixin(CacheControlMixin):
-    """Prevent caching entirely with `private, no-store`."""
+    """Prevent caching entirely with `no-store`."""
 
-    cache_control = {"private": True, "no_store": True}
+    cache_control = {"no_store": True}
 
 
 class MarkdownArticleMixin:
@@ -156,7 +207,7 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
     markdown_template: str = ""
     """Template name of the markdown file to render."""
     toc_levels: str = "2-3"
-    cache_control = {"public": True, "max_age": 3600}
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
 
     def get_markdown_template(self):
         """Return the markdown template name for this view."""
@@ -200,6 +251,7 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "title": self.title,
+            "meta_description": "",
             "markdown_template": self.get_markdown_template(),
             "toc_levels": self.toc_levels,
         }
@@ -210,7 +262,7 @@ class MarkdownListView(
 ):
     """Display all Markdown articles in a docs directory."""
 
-    cache_control = {"public": True, "max_age": 3600}
+    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
     parent = "home"
     docs_dir: pathlib.Path
     slugs: frozenset[str]

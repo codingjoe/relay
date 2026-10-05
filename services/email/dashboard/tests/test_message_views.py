@@ -293,7 +293,7 @@ class TestMessageDetailStatusCard:
         assert "sandbox" in policy
         assert "frame-ancestors 'self'" in policy
         assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
-        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__hides_the_body_of_another_org(self, admin_client, write_org):
         message = make_incoming(write_org)

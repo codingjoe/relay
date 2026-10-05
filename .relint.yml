@@ -186,3 +186,19 @@
   pattern: '\.(?!default\.)\w+\.svc\.cluster\.local'
   hint: 'The platform runs in the default namespace, and a cluster-internal FQDN carries it. A name that points at another namespace resolves to nothing, which leaves the client with no endpoints: dnsdist drops every query, and other clients fail to connect. Use default, or move this rule when the namespace moves.'
   filePattern: '^deploy/.*$'
+- name: Use timedelta for cache durations
+  pattern: 'max_age["'']?\s*[:=]\s*\d'
+  hint: 'Declare `max_age` as `datetime.timedelta(...)`. A bare number hides the unit, and the cache control mixin converts the duration to whole seconds for the header.'
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: Keep whole-page caches short
+  pattern: 'max_age["'']?\s*[:=]\s*datetime\.timedelta\((?:minutes=(?:[6-9]|[1-9]\d+)|hours|days|weeks|seconds=(?:(?:3[1-9]|[4-9]\d)\d|[1-9]\d{3,}))'
+  hint: 'A page cache takes request peaks, it does not serve stale content: a minute for HTML, five for the generated text files. A longer `max_age` delays every content change, including a deploy.'
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: List views declare their cache control
+  pattern: 'class \w+ListView\((?=[^)]*generic\.ListView)(?![^)]*(?:CacheControlMixin|ConditionalGetListMixin|NoStoreCacheMixin))'
+  hint: 'A list view states how it caches: `NoStoreCacheMixin` for a private list, `ConditionalGetListMixin` when the page renders one queryset and can revalidate with an ETag, or `CacheControlMixin` for a public list. A response without a `Cache-Control` header is stored by the Caddy edge cache for its 120s default and then served to every visitor.'
+  filePattern: .*\.py
+- name: Detail views declare their cache control
+  pattern: 'class \w+DetailView\((?=[^)]*generic\.DetailView)(?![^)]*(?:CacheControlMixin|ConditionalGetMixin|NoStoreCacheMixin))'
+  hint: 'A detail view states how it caches: `ConditionalGetMixin` so the object''s `modified_at` expires the page, or `NoStoreCacheMixin` when the page renders rows that the object''s timestamp does not cover.'
+  filePattern: .*\.py

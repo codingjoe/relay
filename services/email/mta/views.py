@@ -58,7 +58,7 @@ class IncomingMessageDetailView(MessageDetailView):
         }
 
 
-class WebhookListView(OrganizationScopedView, generic.ListView):
+class WebhookListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
     context_object_name = "webhooks"
     title = _("Inbound email")
     parent = "accounts:org-home"
@@ -103,7 +103,7 @@ class WebhookCreateView(OrganizationScopedView, generic.CreateView):
         return reverse_lazy("mta:webhook-list", kwargs={"org_slug": self.org.slug})
 
 
-class WebhookDeleteView(OrganizationScopedView, generic.DeleteView):
+class WebhookDeleteView(OrganizationScopedView, NoStoreCacheMixin, generic.DeleteView):
     model = Webhook
     title = _("Delete")
     parent = "mta:webhook-list"
