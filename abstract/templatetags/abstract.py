@@ -131,8 +131,10 @@ def tabler(name, size="4", **attributes):
     Args:
         name: Icon name without the `tabler-` prefix, for example `copy`.
         size: Size on the Tailwind scale (`3.5`, `4`, `6`, `8`), rendered as
-            `size-<size>`. Pass `None` for an icon that takes its size from
-            CSS instead, such as basecoat's modal close button.
+            `size-<size>`. Tailwind cannot see a class that is built at render
+            time, so the scale is safelisted in `src/css/app.css`. Pass `None`
+            for an icon that takes its size from CSS instead, such as
+            basecoat's modal close button.
         **attributes: Extra attributes. `class` adds utilities to the icon,
             for example `class="text-primary shrink-0"`. Other names pass
             through, for example `data_tooltip=label`. Underscores become

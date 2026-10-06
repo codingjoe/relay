@@ -234,13 +234,16 @@ A rule lives either in this document or in `.relint.yml`, never both.
   the `@tabler/icons-sprite` dev dependency, so icon names come straight from
   tabler.io/icons and nothing is generated per icon. Sizes follow the
   Tailwind scale on the icon (`size-3`=12px, `3.5`=14px, `4`=16px, `5`=20px,
-  `6`=24px, `8`=32px); `src/css/base.css` keeps `svg.tabler` inline with its
-  label. Never write the `svg` element by hand and never ship a placeholder
-  attribute for the client to replace. Never use unicode emoji (✅, ❌, ⏳, 📬)
-  for status or decorative icons - use Tabler icons with semantic color
-  classes instead (for example, `#tabler-circle-check` with `text-primary`,
-  `#tabler-circle-x` with `text-destructive`, `#tabler-circle-dashed` with
-  `text-muted-foreground`).
+  `6`=24px, `8`=32px). The tag builds `size-<size>` at render time, so
+  `src/css/app.css` safelists the scale with `@source inline(...)`; add a
+  size there when the tag gains one. `src/css/base.css` keeps `svg.tabler`
+  inline with its label and scales it by 1.1, because Tabler draws inside a
+  3px inset where Lucide drew inside 2px. Never write the `svg` element by
+  hand and never ship a placeholder attribute for the client to replace.
+  Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons - use
+  Tabler icons with semantic color classes instead (for example,
+  `#tabler-circle-check` with `text-primary`, `#tabler-circle-x` with
+  `text-destructive`, `#tabler-circle-dashed` with `text-muted-foreground`).
 
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`, which imports Tailwind CSS v4,

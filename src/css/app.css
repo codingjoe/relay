@@ -2,6 +2,10 @@
 @plugin "@tailwindcss/typography";
 @import "basecoat-css/maia";
 
+/* The tabler tag builds the `size-<n>` class at render time, so Tailwind's
+   scanner never sees it. Safelist the scale the tag documents. */
+@source inline("size-3.5 size-4 size-5 size-6 size-7 size-8");
+
 @import "./fonts.css";
 @import "./theme.css";
 @import "./base.css";

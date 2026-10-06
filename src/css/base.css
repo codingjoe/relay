@@ -24,9 +24,12 @@
 }
 
 /* Tabler icons must sit inline with their label; Tailwind preflight forces
-   display: block on every svg, which adds a line break after each icon. */
+   display: block on every svg, which adds a line break after each icon.
+   Tabler draws inside a 3px inset where Lucide drew inside 2px, so the same
+   `size-*` utility reads about 10% smaller. Scale the drawing back up. */
 svg.tabler {
   display: inline-block;
+  scale: 1.1;
 }
 
 .bg-background {
