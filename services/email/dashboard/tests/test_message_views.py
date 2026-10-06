@@ -314,6 +314,12 @@ class TestMessageDetailStatusCard:
         assert 'data-preview-client="gmail"' in content
         assert 'data-preview-client="apple-mail"' in content
         assert 'data-preview-client="outlook"' in content
+        assert 'data-preview-client-icon="gmail"' in content
+        assert 'data-preview-client-icon="apple-mail"' in content
+        assert 'data-preview-client-icon="outlook"' in content
+        assert "#tabler-brand-gmail" in content
+        assert "#tabler-brand-apple" in content
+        assert "#tabler-brand-office" in content
         assert "data-preview-theme=" not in content
         assert "data-preview-tracking" not in content
         assert "No client" not in content

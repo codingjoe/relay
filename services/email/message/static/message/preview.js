@@ -15,6 +15,7 @@ const frame = root?.querySelector("[data-preview-frame]");
 const menu = root?.querySelector("#preview-command-menu");
 const summary = root?.querySelector("[data-preview-summary]");
 const toggle = root?.querySelector("#preview-theme-toggle");
+const trigger = root?.querySelector("#preview-options-trigger");
 
 const THEMES = ["light", "dark"];
 
@@ -23,6 +24,16 @@ function themeIcons() {
   return Object.fromEntries(
     [...toggle.querySelectorAll("[data-preview-icon]")].map((icon) => [
       icon.dataset.previewIcon,
+      icon,
+    ]),
+  );
+}
+
+/** @returns {object} The brand icons the trigger swaps. */
+function clientIcons() {
+  return Object.fromEntries(
+    [...trigger.querySelectorAll("[data-preview-client-icon]")].map((icon) => [
+      icon.dataset.previewClientIcon,
       icon,
     ]),
   );
@@ -106,6 +117,9 @@ function applyMode(mode) {
   for (const [theme, icon] of Object.entries(themeIcons())) {
     icon.hidden = theme !== mode.theme;
   }
+  for (const [client, icon] of Object.entries(clientIcons())) {
+    icon.hidden = client !== mode.client;
+  }
   const url = frameUrl(mode);
   if (frame.getAttribute("src") !== url) {
     frame.src = url;
@@ -127,7 +141,7 @@ function keepMode(mode) {
   }
 }
 
-if (root && frame && menu && summary && toggle) {
+if (root && frame && menu && summary && toggle && trigger) {
   const restored = currentMode();
   const stored = storedMode();
   if (

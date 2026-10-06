@@ -26,7 +26,15 @@
     aria-controls="preview-options-popover"
     aria-expanded="false"
   >
-    {% tabler name="adjustments-horizontal" size="3.5" %}
+    <span data-preview-client-icon="gmail">
+      {% tabler name="brand-gmail" size="3.5" %}
+    </span>
+    <span data-preview-client-icon="apple-mail" hidden>
+      {% tabler name="brand-apple" size="3.5" %}
+    </span>
+    <span data-preview-client-icon="outlook" hidden>
+      {% tabler name="brand-office" size="3.5" %}
+    </span>
     <span data-preview-summary>{% translate "Gmail" %}</span>
     {% tabler name="chevron-down" size="3.5" %}
   </button>
@@ -74,7 +82,7 @@
             data-filter="{% translate 'Gmail' %}"
             data-keywords="google"
           >
-            {% tabler name="mail" %}
+            {% tabler name="brand-gmail" %}
             <span>{% translate "Gmail" %}</span>
             <span data-indicator>{% tabler name="check" %}</span>
           </button>
@@ -98,7 +106,7 @@
             data-filter="{% translate 'Outlook' %}"
             data-keywords="microsoft"
           >
-            {% tabler name="mailbox" %}
+            {% tabler name="brand-office" %}
             <span>{% translate "Outlook" %}</span>
             <span class="text-xs text-muted-foreground">{% translate "blocks remote images" %}</span>
             <span data-indicator>{% tabler name="check" %}</span>
