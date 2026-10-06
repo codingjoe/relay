@@ -1,16 +1,13 @@
 """
 The CSS an Outlook preview drops, from the caniemail.com support data.
 
-Outlook renders with the Word engine, which reads no @media rule, no flex or
-grid display, no gradient, no rgba() color, no calc() math, no rem, viewport or
-ch unit, no intrinsic size, and no universal, child, sibling, or attribute
-selector.
+Outlook renders with the Word engine, which reads no @media rule and misses
+much of modern CSS.
 """
 
 from .. import styles
 
-# The rules whose selectors use a pseudo-class or pseudo-element Outlook does
-# not support: caniemail.com/features/css-pseudo-class-*.
+# Selectors with a pseudo-class or pseudo-element Outlook does not support.
 PSEUDOS = (
     r"::?(?:active|checked|default|first-child|first-of-type|focus|focus-visible"
     r"|focus-within|has|hover|lang|last-child|last-of-type|not|nth-child"
@@ -215,12 +212,9 @@ RESTRICTIONS = styles.Restrictions(
         r"[\d.]+(?:rem|vh|vw|vmin|vmax|ch)\b",
         r"\b(?:fit-content|min-content|max-content)\b",
     ),
-    # caniemail.com/features/css-at-keyframes/ and css-at-supports/ do not
-    # apply in Outlook, and its Word engine reads no @media rule at all.
+    # Outlook ignores these at-rules and reads no @media rule at all.
     at_rules=frozenset({"@keyframes", "@supports"}),
-    # caniemail.com/features/selector-universal/, selector-child/,
-    # selector-adjacent-sibling/, selector-general-sibling/, and
-    # selector-attribute/ do not apply in Outlook.
+    # Universal, attribute, child, and sibling selectors do not apply.
     selectors=(PSEUDOS, r"\[", r"\*", r"[>+~]"),
     custom_properties=True,
     reads_media=False,

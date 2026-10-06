@@ -158,9 +158,8 @@ class MessageDetailView(
 
 
 # A message body is mail from the outside. Keep what a mail client keeps
-# (inline styles and the images of the sender) and block what mail clients
-# block: scripts, frames, plugins, forms, and remote stylesheets, fonts, and
-# media.
+# (inline styles and the images the sender embedded) and block what mail
+# clients block: scripts, frames, plugins, forms, and remote stylesheets.
 MESSAGE_BODY_CSP = {
     "default-src": [CSP.NONE],
     "script-src": [CSP.NONE],
@@ -168,8 +167,8 @@ MESSAGE_BODY_CSP = {
     "frame-src": [CSP.NONE],
     "object-src": [CSP.NONE],
     "style-src": [CSP.UNSAFE_INLINE],
-    # The images the message itself carries are always allowed; the remote
-    # ones are what the tracking mode stops.
+    # The images the message carries are always allowed, the remote ones are
+    # what the client profile decides.
     "img-src": ["data:", "http:", "https:"],
     "form-action": [CSP.NONE],
     "base-uri": [CSP.NONE],
@@ -177,8 +176,7 @@ MESSAGE_BODY_CSP = {
     "sandbox": True,
 }
 
-# Blocking the downloads a tracking pixel needs also stops every remote
-# image, while the pictures the message itself carries still show.
+# Blocking the downloads a tracking pixel needs stops every remote image.
 MESSAGE_BODY_BLOCKED_CSP = MESSAGE_BODY_CSP | {"img-src": ["data:"]}
 
 

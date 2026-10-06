@@ -1,17 +1,13 @@
 """
 The CSS a Gmail preview drops, from the caniemail.com support data.
 
-Gmail strips the rules whose selectors use a pseudo-class or pseudo-element it
-does not support, and it drops the declarations caniemail.com marks unsupported
-for it. It reads no prefers-color-scheme query of its own, so the color scheme
-stays with the preview theme.
+Gmail reads no prefers-color-scheme query of its own, so the color scheme stays
+with the preview theme.
 """
 
 from .. import styles
 
-# Gmail strips the rules whose selectors use a pseudo-class or pseudo-element
-# it does not support: caniemail.com/features/css-pseudo-class-hover/ and the
-# css-pseudo-class-* and css-pseudo-element-* features.
+# Selectors with a pseudo-class or pseudo-element Gmail does not support.
 PSEUDOS = (
     r"::?(?:active|checked|default|first-child|first-of-type|focus|focus-visible"
     r"|focus-within|has|lang|last-child|last-of-type|link|not|nth-child"
@@ -19,25 +15,7 @@ PSEUDOS = (
     r"|target|visited|after|before|first-letter|first-line|marker|placeholder)\b"
 )
 
-# Gmail drops the declarations caniemail.com marks unsupported for it:
-# css-accent-color, css-animation, css-aspect-ratio, css-backdrop-filter,
-# css-block-inline-size, css-border-image, css-border-inline-block,
-# css-border-inline-block-individual, css-border-inline-block-longhand,
-# css-border-radius-logical, css-box-shadow, css-clip-path, css-color-scheme,
-# css-cursor, css-filter, css-flex-direction, css-flex-wrap, css-grid-template,
-# css-hyphenate-character, css-hyphenate-limit-chars, css-hyphens,
-# css-inline-size, css-inset, css-justify-content, css-left-right-top-bottom,
-# css-list-style-image, css-margin-block-start-end, css-margin-inline-block,
-# css-margin-inline-start-end, css-mask-image, css-max-block-size,
-# css-max-inline-size, css-min-block-size, css-min-inline-size,
-# css-modern-color, css-orphans, css-outline-offset, css-overflow-wrap,
-# css-padding-block-start-end, css-padding-inline-block,
-# css-padding-inline-start-end, css-position, css-resize, css-scroll-snap,
-# css-shape-margin, css-shape-outside, css-tab-size,
-# css-text-decoration-skip-ink, css-text-decoration-thickness,
-# css-text-emphasis-position, css-text-shadow, css-text-underline-offset,
-# css-text-wrap, css-transform, css-transition, css-user-select,
-# css-visibility, css-white-space-collapse, css-widows, and css-z-index.
+# Declarations caniemail.com marks unsupported for Gmail.
 PROPERTIES = frozenset(
     {
         "accent-color",
@@ -169,12 +147,9 @@ PROPERTIES = frozenset(
 
 RESTRICTIONS = styles.Restrictions(
     properties=PROPERTIES,
-    # caniemail.com/features/css-function-light-dark/, css-modern-color/, and
-    # css-conic-gradient/ do not apply in Gmail.
+    # Modern color functions and conic gradients do not apply in Gmail.
     values=(r"\b(?:lch|oklch|lab|oklab)\(", r"\blight-dark\(", r"\bconic-gradient\("),
-    # caniemail.com/features/css-at-font-face/, css-at-import/,
-    # css-at-keyframes/, and css-at-supports/ do not apply in Gmail, and it
-    # reads no hover or motion query. The color scheme stays with the theme.
+    # These at-rules do not apply, and Gmail reads no hover or motion query.
     at_rules=frozenset({"@font-face", "@import", "@keyframes", "@supports"}),
     media_terms=(
         r"prefers-reduced-motion",
@@ -182,6 +157,5 @@ RESTRICTIONS = styles.Restrictions(
         r"-webkit-device-pixel-ratio",
     ),
     selectors=(PSEUDOS,),
-    # caniemail.com/features/css-variables/ does not apply in Gmail.
     custom_properties=True,
 )

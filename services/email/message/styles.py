@@ -1,13 +1,8 @@
 """
-CSS rewriting for the HTML body preview.
+Rewrite the CSS of a message body for one emulated client.
 
-A message body is mail from the outside, so its styles arrive as text. The
-engine walks that text instead of parsing it into a full object model, and it
-keeps everything it does not have to change, so a modern construct it does
-not understand passes through untouched. A preview must not misrepresent a
-message, so every rewrite only removes what the caller names: the
-declarations, at-rules, media conditions, and selectors of one client
-profile, or the color scheme one theme asks for.
+The engine walks the text and removes only what the caller names, so a
+construct it does not understand passes through untouched.
 """
 
 import dataclasses
@@ -29,14 +24,9 @@ DECLARATION_AT_RULES = frozenset({"@font-face", "@page", "@property", "@viewport
 @dataclasses.dataclass(frozen=True)
 class Restrictions:
     """
-    The CSS features one emulated email client never applies.
+    The CSS features one emulated client never applies.
 
-    `properties` names the declarations the client drops, `values` matches
-    declaration values it cannot read (a gradient, a `rem` length), and
-    `at_rules`, `media_terms`, and `selectors` name the rules and conditions
-    it ignores. `custom_properties` drops `--name` definitions, so no
-    `var()` call that depends on one can resolve. `reads_media` marks a
-    client that ignores `@media` rules entirely.
+    `values`, `media_terms`, and `selectors` hold regular expressions.
     """
 
     properties: frozenset[str] = frozenset()
@@ -56,7 +46,7 @@ def filter_styles(
 
 
 def filter_declarations(text: str, restrictions: Restrictions) -> str:
-    """Return a declaration list without the declarations a client drops."""
+    """Return a declaration list, e.g. the styles attribute of an element."""
     return rewrite_declarations(text, restrictions)
 
 
@@ -129,11 +119,10 @@ def rewrite_media(
     prelude: str, body: str, restrictions: Restrictions, scheme: str | None = None
 ) -> str:
     """
-    Return the media block with the theme and the client applied to its queries.
+    Return the media block with the theme and the client applied.
 
-    A query the theme resolves becomes unconditional or never applies, so the
-    block loses its `@media` wrapper and no longer depends on what a client
-    reads from one. Everything else follows the client profile.
+    A query the theme resolves loses its `@media` wrapper, so the block no
+    longer depends on what a client reads from one.
     """
     prefix_match = MEDIA_PREFIX.match(prelude)
     prefix = prefix_match.group(1) if prefix_match else f"{prelude} "
@@ -158,8 +147,7 @@ def resolve_media_query(
 ) -> str:
     """Return the conditions one media query still applies under, or never."""
     if scheme and COLOR_SCHEME_TERM.search(query):
-        # The theme decides the color scheme, even where the client reads no
-        # prefers-color-scheme query of its own.
+        # The theme owns the color scheme, even where the client reads none.
         return force_color_scheme(query, scheme)
     if not restrictions.reads_media or any(
         re.search(pattern, query, re.IGNORECASE) for pattern in restrictions.media_terms
@@ -172,8 +160,8 @@ def force_color_scheme(query: str, scheme: str) -> str:
     """
     Return the conditions one media query applies under with the scheme forced.
 
-    A query is a conjunction, so the forced scheme drops the condition it
-    satisfies, never applies to a query it contradicts, and keeps the rest.
+    A query is a conjunction, so a condition the scheme satisfies falls away
+    and one it contradicts never applies.
     """
     terms = [term.strip() for term in MEDIA_AND.split(query) if term.strip()]
     matches = {term: COLOR_SCHEME_TERM.fullmatch(term) for term in terms}
@@ -198,7 +186,7 @@ def rewrite_declarations(text: str, restrictions: Restrictions) -> str:
 
 
 def rewrite_declaration(text: str, restrictions: Restrictions) -> str:
-    """Return one declaration without what the client cannot apply, or an empty string."""
+    """Return one declaration the client applies, or an empty string."""
     name, colon, value = text.partition(":")
     property_name = COMMENT.sub(" ", name).strip().lower()
     if not colon:

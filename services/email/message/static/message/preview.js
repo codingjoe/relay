@@ -1,13 +1,9 @@
-// Preview modes of the HTML body: client and theme.
-//
-// The frame carries the mode in its own query, so the mode is applied by the
-// server and the frame stays sandboxed and script free. The mode of this
-// visit is kept in local storage, and it never leaves the frame URL.
+// Preview the HTML body the way a mail client would. The mode travels in the
+// query of the frame, so the server applies it and the frame stays script free.
 
 const STORAGE_KEY = "relay:message-preview";
 
-// The server renders the frame in the default mode, so these mirror the field
-// defaults of MessagePreview.
+// Mirror the field defaults of MessagePreview.
 const DEFAULTS = { client: "gmail", theme: "light" };
 
 const root = document.querySelector("[data-message-preview]");
@@ -19,7 +15,6 @@ const trigger = root?.querySelector("#preview-options-trigger");
 
 const THEMES = ["light", "dark"];
 
-/** @returns {object} The sun and moon the toggle swaps. */
 function themeIcons() {
   return Object.fromEntries(
     [...toggle.querySelectorAll("[data-preview-icon]")].map((icon) => [
@@ -29,7 +24,6 @@ function themeIcons() {
   );
 }
 
-/** @returns {object} The brand icons the trigger swaps. */
 function clientIcons() {
   return Object.fromEntries(
     [...trigger.querySelectorAll("[data-preview-client-icon]")].map((icon) => [
@@ -39,11 +33,7 @@ function clientIcons() {
   );
 }
 
-/**
- * Return the stored mode, or an empty object when storage is refused.
- *
- * @returns {object} The stored mode.
- */
+/** @returns {object} The stored mode, or an empty object when storage is refused. */
 function storedMode() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -53,12 +43,7 @@ function storedMode() {
   }
 }
 
-/**
- * Return the label of the client one value names.
- *
- * @param {string} value - The client value.
- * @returns {string} The label, or the value when no item carries it.
- */
+/** @returns {string} The label of the client one value names. */
 function clientLabel(value) {
   const item = clientItems().find(
     (item) => item.getAttribute("data-preview-client") === value,
@@ -66,12 +51,10 @@ function clientLabel(value) {
   return item?.dataset.filter ?? value;
 }
 
-/** @returns {Element[]} The client menu items. */
 function clientItems() {
   return [...root.querySelectorAll("[data-preview-client]")];
 }
 
-/** @returns {object} The mode the page currently shows. */
 function currentMode() {
   return {
     client: root.dataset.previewClient ?? DEFAULTS.client,
@@ -80,13 +63,12 @@ function currentMode() {
 }
 
 /**
- * Point the frame at the mode.
+ * Return the address of the frame in one mode.
  *
- * The defaults stay out of the address, so the default mode keeps the frame
- * URL the page rendered and never reloads it.
+ * Defaults stay out of the address, so the default mode keeps the frame URL
+ * the page rendered and does not reload it.
  *
  * @param {object} mode - The mode to show.
- * @returns {string} The address of the frame.
  */
 function frameUrl(mode) {
   const url = new URL(frame.src);
@@ -100,11 +82,7 @@ function frameUrl(mode) {
   return `${url.pathname}${url.search}`;
 }
 
-/**
- * Show one mode: the frame, the client check mark, the toggle, and the label.
- *
- * @param {object} mode - The mode to show.
- */
+/** Show the mode in the frame, the check mark, the toggle, and the label. */
 function applyMode(mode) {
   root.dataset.previewClient = mode.client;
   root.dataset.previewTheme = mode.theme;
@@ -127,11 +105,7 @@ function applyMode(mode) {
   summary.textContent = clientLabel(mode.client);
 }
 
-/**
- * Show the mode, and keep it for the next visit.
- *
- * @param {object} mode - The mode to show.
- */
+/** Show the mode and keep it for the next visit. */
 function keepMode(mode) {
   applyMode(mode);
   try {

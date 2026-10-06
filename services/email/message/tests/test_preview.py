@@ -1,5 +1,3 @@
-"""Tests for the preview modes of the HTML body view."""
-
 from django.http import QueryDict
 
 from services.email.message.preview import (

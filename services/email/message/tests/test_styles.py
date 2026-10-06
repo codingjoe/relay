@@ -1,5 +1,3 @@
-"""Tests for the CSS rewriting of the body preview."""
-
 from services.email.message import styles
 
 RESTRICTIONS = styles.Restrictions(
