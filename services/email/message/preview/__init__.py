@@ -1,10 +1,8 @@
 """
 Render the body of a message the way a mail client shows it.
 
-Each client drops what it never applies, and blocks remote images where it
-does. The profiles follow the support data on caniemail.com (checked September
-2026). The client and the theme travel in the frame query, so the frame itself
-stays script free.
+The client profiles follow the caniemail.com support data
+(https://www.caniemail.com/api/data.json, checked September 2026).
 """
 
 import dataclasses
