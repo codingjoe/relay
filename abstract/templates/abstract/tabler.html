@@ -1,7 +1,1 @@
-<svg
-  class="{{ classes }}"
-  aria-hidden="true"
-  {% for name, value in attributes.items %} {{ name }}{% if value is not True %}="{{ value }}" {% endif %}{% endfor %}
->
-  <use href="{{ sprite_url }}#tabler-{{ name }}" />
-</svg>
+<svg class="{{ classes }}" aria-hidden="true"{% for name, value in attributes.items %} {{ name }}{% if value is not True %}="{{ value }}"{% endif %}{% endfor %}><use href="{{ sprite_url }}#tabler-{{ name }}"></use></svg>

@@ -116,10 +116,10 @@ def pagination(context, page_obj=None):
     return {"page_obj": page_obj or context.get("page_obj")}
 
 
-@register.simple_tag
+@register.inclusion_tag("abstract/tabler.html")
 def tabler(name, size="4", **attributes):
-    """Render a Tabler icon from the vendored sprite on a single line."""
-    context = {
+    """Render a Tabler icon from the vendored sprite."""
+    return {
         "name": name,
         "classes": " ".join(
             filter(
@@ -138,10 +138,6 @@ def tabler(name, size="4", **attributes):
         },
         "sprite_url": static("img/tabler-icons/tabler-sprite.svg"),
     }
-    html = loader.get_template("abstract/tabler.html").render(context)
-    # A comparison page nests this markup in a Markdown table cell, where a
-    # newline ends the row.
-    return mark_safe(" ".join(html.split()))
 
 
 code_formatter = HtmlFormatter(cssclass="codehilite")

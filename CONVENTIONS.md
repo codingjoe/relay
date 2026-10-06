@@ -222,7 +222,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   The tag fills `abstract/templates/abstract/tabler.html`, which writes
   `<svg class="tabler size-3.5" aria-hidden="true"><use href="…"></use></svg>`
   on a single line, because the comparison pages nest that markup in Markdown
-  table cells, where a newline ends the row. The tag adds the `tabler`
+  table cells, where a newline ends the row. That partial is excluded from
+  `djangofmt` and `end-of-file-fixer`, which would otherwise split it across
+  lines and append a newline. The tag adds the `tabler`
   class and the size, so neither is repeated at the call site. Pass extra
   utilities as `class="…"`, for example
   `{% tabler name="chevron-right" class="text-muted-foreground ms-auto" %}`,
