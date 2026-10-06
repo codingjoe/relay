@@ -130,16 +130,7 @@
                   value="{{ webhook.public_key_serialized }}"
                   data-select
                 >
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ webhook.public_key_serialized }}"
-                  aria-label="{% translate 'copy public key'|capfirst %}"
-                >
-                  {% tabler name="copy" size="3.5" %}
-                </button>
+                {% include "abstract/copy_button.html" with value=webhook.public_key_serialized size="icon-xs" label=_("copy public key")|capfirst %}
               </div>
             </div>
           </section>

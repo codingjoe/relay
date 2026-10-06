@@ -1,17 +1,12 @@
-{% load abstract i18n %}
+{% load i18n %}
 <input
   type="text"
   readonly
   value="{% if quote %}&quot;{{ record_value }}&quot;{% else %}{{ record_value }}.{% endif %}"
   data-select
 >
-<button
-  type="button"
-  class="btn"
-  data-variant="ghost"
-  data-size="icon-xs"
-  data-copy="{{ record_value }}{% if trailing_dot %}.{% endif %}"
-  aria-label='{% translate "copy value"|capfirst %}'
->
-  {% tabler name="copy" size="3.5" %}
-</button>
+{% if trailing_dot %}
+  {% include "abstract/copy_button.html" with value=record_value|add:"." size="icon-xs" label=_("copy value")|capfirst %}
+{% else %}
+  {% include "abstract/copy_button.html" with value=record_value size="icon-xs" label=_("copy value")|capfirst %}
+{% endif %}

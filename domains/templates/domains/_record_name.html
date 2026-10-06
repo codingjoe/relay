@@ -8,13 +8,4 @@
   data-select
 >
 <span class="select-none ps-1 text-sm text-muted-foreground empty:hidden">{{ record_name|apex_suffix:domain }}</span>
-<button
-  type="button"
-  class="btn"
-  data-variant="ghost"
-  data-size="icon-xs"
-  data-copy="{{ record_name|relative_record_name:domain }}"
-  aria-label='{% translate "copy name"|capfirst %}'
->
-  {% tabler name="copy" size="3.5" %}
-</button>
+{% include "abstract/copy_button.html" with value=record_name|relative_record_name:domain size="icon-xs" label=_("copy name")|capfirst %}

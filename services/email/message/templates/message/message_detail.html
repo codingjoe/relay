@@ -127,17 +127,7 @@
       <h3 class="font-semibold m-0">{% translate "message"|capfirst context "noun" %}</h3>
       <div class="flex items-center gap-1">
         {% if message.headers_text %}
-          <button
-            type="button"
-            class="btn"
-            data-variant="ghost"
-            data-size="icon-xs"
-            data-tooltip='{% translate "copy headers"|capfirst %}'
-            data-copy="{{ message.headers_text }}"
-            aria-label='{% translate "copy headers"|capfirst %}'
-          >
-            {% tabler name="copy" size="3.5" %}
-          </button>
+          {% include "abstract/copy_button.html" with value=message.headers_text size="icon-xs" tooltip=_("copy headers")|capfirst label=_("copy headers")|capfirst %}
         {% endif %}
         {% if message.raw_body %}
           <a

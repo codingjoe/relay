@@ -1,4 +1,4 @@
-{% load abstract i18n %}
+{% load i18n %}
 <div class="flex flex-col gap-3">
   <div class="flex flex-col gap-1">
     <p class="m-0 text-sm text-muted-foreground">smtps</p>
@@ -11,16 +11,7 @@
         data-select
         aria-label='{% translate "connection URI"|capfirst %}'
       >
-      <button
-        type="button"
-        class="btn"
-        data-variant="ghost"
-        data-size="icon-xs"
-        data-copy="{{ smtp_uri }}"
-        aria-label='{% translate "copy connection URI"|capfirst %}'
-      >
-        {% tabler name="copy" size="3.5" %}
-      </button>
+      {% include "abstract/copy_button.html" with value=smtp_uri size="icon-xs" label=_("copy connection URI")|capfirst %}
     </div>
   </div>
   <div class="flex flex-col gap-1">
@@ -34,16 +25,7 @@
         data-select
         aria-label='{% translate "django connection URI"|capfirst %}'
       >
-      <button
-        type="button"
-        class="btn"
-        data-variant="ghost"
-        data-size="icon-xs"
-        data-copy="{{ smtp_django_uri }}"
-        aria-label='{% translate "copy django connection URI"|capfirst %}'
-      >
-        {% tabler name="copy" size="3.5" %}
-      </button>
+      {% include "abstract/copy_button.html" with value=smtp_django_uri size="icon-xs" label=_("copy django connection URI")|capfirst %}
     </div>
   </div>
 </div>

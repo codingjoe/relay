@@ -1,11 +1,12 @@
 {% load abstract %}
-{# Not for `.input-group`: buttons there stay inline, where relint's icon-xs rule can see them. #}
+{# Buttons inside an `.input-group` pass size="icon-xs"; the default fits standalone rows. #}
 <button
   type="button"
   class="btn"
   data-variant="ghost"
-  data-size="icon"
+  data-size="{% firstof size 'icon' %}"
   data-copy="{{ value }}"
+  {% if tooltip %}data-tooltip="{{ tooltip }}"{% endif %}
   aria-label="{{ label }}"
 >
   {% tabler name="copy" size="3.5" %}
