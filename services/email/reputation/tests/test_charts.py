@@ -77,6 +77,44 @@ class TestBuildReputationChart:
         assert rows[-1]["hard_bounce_rate"] == 50.0
         assert rows[-1]["complaint_rate"] == 0.0
 
+    def test_reports_the_cumulative_soft_bounce_rate(self, org, settings, monkeypatch):
+        freeze_today(monkeypatch, date(2026, 9, 19))
+        settings.RELAY_REPUTATION_WINDOW_DAYS = 7
+        hard = make_message(org, date(2026, 9, 16))
+        soft = make_message(org, date(2026, 9, 16))
+        soft.status = OutgoingMessage.Status.FAILED
+        soft.save(update_fields=["status"])
+        Transmission.objects.create(
+            message=hard,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+        Transmission.objects.create(
+            message=soft,
+            status=Transmission.Status.FAILED,
+            code=450,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        chart = build_reputation_chart(org)
+
+        assert chart["hard_bounce_chart"]["series"][0]["key"] == "hard_bounce_rate"
+        assert chart["soft_bounce_chart"]["series"][0]["key"] == "soft_bounce_rate"
+        rows = chart["rows"]
+        assert rows[2]["soft_bounce_rate"] is None
+        assert rows[3]["soft_bounce_rate"] == 50.0
+        assert rows[-1]["hard_bounce_rate"] == 50.0
+        assert rows[-1]["soft_bounce_rate"] == 50.0
+        assert (
+            chart["hard_bounce_chart"]["subtitle"]
+            == "1 hard bounce of 2 sent, limit 5.00%"
+        )
+        assert chart["soft_bounce_chart"]["subtitle"] == "1 soft bounce of 2 sent"
+        assert chart["soft_bounce_chart"]["threshold"] is None
+
 
 @pytest.mark.django_db
 class TestBuildVolumeChart:

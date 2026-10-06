@@ -94,7 +94,8 @@ class ReputationOverviewView(
         }
         return super().get_context_data(**kwargs) | {
             "stats": stats,
-            "chart_bounces": chart["bounce_chart"],
+            "chart_hard_bounces": chart["hard_bounce_chart"],
+            "chart_soft_bounces": chart["soft_bounce_chart"],
             "chart_complaints": chart["complaint_chart"],
             "chart_volume": volume,
             "cost": cost,
