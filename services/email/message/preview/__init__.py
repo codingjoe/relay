@@ -32,12 +32,10 @@ CLIENTS = {
     PreviewClient.OUTLOOK: outlook.RESTRICTIONS,
 }
 
-# Gmail darkens by inverting, so the dark theme asks for the light variant
-# there. The other clients apply the dark styles the message carries.
+# Gmail darkens by inverting, the other clients apply the dark styles of the message.
 INVERTING_CLIENTS = frozenset({PreviewClient.GMAIL})
 
-# Outlook holds remote images back until the reader asks. Gmail and Apple Mail
-# load them.
+# Outlook holds remote images back until the reader asks for them.
 IMAGE_BLOCKING_CLIENTS = frozenset({PreviewClient.OUTLOOK})
 
 LIGHT_STYLES = "html{color-scheme:light!important}"

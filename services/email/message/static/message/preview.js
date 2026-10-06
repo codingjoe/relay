@@ -1,5 +1,4 @@
-// Preview the HTML body the way a mail client would. The mode travels in the
-// query of the frame, so the server applies it and the frame stays script free.
+// Preview the HTML body the way a mail client would.
 
 const STORAGE_KEY = "relay:message-preview";
 
