@@ -609,6 +609,7 @@ class TestWebhookRetry:
             < WEBHOOK_RETRY_DELAYS[1] + 30
         )
 
+    @pytest.mark.django_db(transaction=True)
     def test_webhook_retry__ignores_missing_message_id(self):
         context = make_webhook_retry_context(attempt=len(WEBHOOK_RETRY_DELAYS) - 1)
         assert webhook_retry(context) is None

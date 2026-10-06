@@ -51,9 +51,7 @@ class WebhookDeliveryError(Exception):
 
 def webhook_retry(context):
     if context.attempt >= len(WEBHOOK_RETRY_DELAYS) - 1:
-        message_id = context.task_result.kwargs.get("message_id")
-        if message_id:
-            mark_failed_if_pending(message_id)
+        mark_failed_if_pending(context.task_result.kwargs.get("message_id"))
         return None
     delay = WEBHOOK_RETRY_DELAYS[context.attempt + 1] + secrets.randbelow(30)
     return datetime.timedelta(seconds=delay)
