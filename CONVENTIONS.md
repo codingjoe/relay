@@ -221,8 +221,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
   them with `{% tabler name="copy" size="3.5" %}` after `{% load abstract %}`.
   The tag fills `abstract/templates/abstract/tabler.html`, which writes
   `<svg class="tabler size-3.5" aria-hidden="true"><use href="…"></use></svg>`
-  and caches that markup, because a page repeats the same icons. The tag adds
-  the `tabler`
+  on a single line, because the comparison pages nest that markup in Markdown
+  table cells, where a newline ends the row. The tag adds the `tabler`
   class and the size, so neither is repeated at the call site. Pass extra
   utilities as `class="…"`, for example
   `{% tabler name="chevron-right" class="text-muted-foreground ms-auto" %}`,

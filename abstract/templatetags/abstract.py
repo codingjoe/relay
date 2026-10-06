@@ -1,7 +1,6 @@
 import datetime
 import decimal
 from datetime import timedelta
-from functools import lru_cache
 
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
@@ -118,9 +117,8 @@ def pagination(context, page_obj=None):
 
 
 @register.simple_tag
-@lru_cache
 def tabler(name, size="4", **attributes):
-    """Render a cached Tabler icon from the vendored sprite."""
+    """Render a Tabler icon from the vendored sprite on a single line."""
     context = {
         "name": name,
         "classes": " ".join(
@@ -141,8 +139,8 @@ def tabler(name, size="4", **attributes):
         "sprite_url": static("img/tabler-icons/tabler-sprite.svg"),
     }
     html = loader.get_template("abstract/tabler.html").render(context)
-    # The comparison pages nest icons in Markdown table cells, where a newline
-    # ends the row, so the markup stays on one line.
+    # A comparison page nests this markup in a Markdown table cell, where a
+    # newline ends the row.
     return mark_safe(" ".join(html.split()))
 
 

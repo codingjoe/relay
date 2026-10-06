@@ -208,14 +208,3 @@ def test_tabler__without_size():
     html = template.render({})
     assert 'class="tabler"' in html
     assert "#tabler-search" in html
-
-
-def test_tabler__cached():
-    """Render an icon once, however often the page repeats it."""
-    abstract.tabler.cache_clear()
-    template = engines["django"].from_string(
-        "{% load abstract %}{% tabler name='copy' %}"
-    )
-    template.render({})
-    template.render({})
-    assert abstract.tabler.cache_info().misses == 1
