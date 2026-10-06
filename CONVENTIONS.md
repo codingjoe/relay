@@ -170,6 +170,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
     buttons inside a `button-group`. Use `data-variant="destructive"` for
     delete/remove actions. Omit `data-variant` entirely for the primary
     action in a group.
+  - Copy buttons: render them with
+    `{% include "abstract/copy_button.html" with value=… label=… %}`. Pass
+    `size="icon-xs"` for a button inside an `.input-group`, where the default
+    36px button fills the field.
   - Cards: `<article class="card">`. Never nest a card inside another card.
     Group content within a card using headings, `<hr>`, or padded blocks.
   - Tables inside cards sit flush with the card edges: use

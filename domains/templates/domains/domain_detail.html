@@ -131,16 +131,7 @@
                   value="{{ mx_priority }}"
                   data-select
                 >
-                <button
-                  type="button"
-                  class="btn"
-                  data-variant="ghost"
-                  data-size="icon-xs"
-                  data-copy="{{ mx_priority }}"
-                  aria-label='{% translate "copy priority"|capfirst %}'
-                >
-                  {% tabler name="copy" size="3.5" %}
-                </button>
+                {% include "abstract/copy_button.html" with value=mx_priority size="icon-xs" label=_("copy priority")|capfirst %}
                 {% include "domains/_record_value.html" with record_value=mx_hostname trailing_dot=True %}
               </div>
             {% endfor %}

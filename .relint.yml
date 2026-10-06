@@ -53,6 +53,14 @@
   pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*(?:<svg class="tabler\b|\{%\s*tabler\b)'
   hint: 'Icon buttons inside an `.input-group` use the app''s `data-size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. Without it the button takes the default 36px and fills the whole field.'
   filePattern: .*\.html$
+- name: Copy buttons render through the shared include
+  pattern: 'data-copy='
+  hint: 'Render a copy button with `{% include "abstract/copy_button.html" with value=... label=... %}`. The include keeps the size, the variant, and the `data-copy` hook in one place. Pass `size="icon-xs"` inside an `.input-group`.'
+  filePattern: '^(?!.*abstract/templates/abstract/copy_button\.html$).*\.html$'
+- name: Input group copy buttons use the icon-xs size
+  pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?\{%\s*include\s+"abstract/copy_button\.html"(?![^%]*\bsize="icon-xs")'
+  hint: 'A copy button inside an `.input-group` passes `size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. The include otherwise renders the default 36px button that fills the whole field.'
+  filePattern: .*\.html$
 - name: Inputs inside an input group stay classless
   pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<input\b[^>]*class="(?:[^"\s]+\s+)*input(?:\s+[^"\s]+)*"'
   hint: 'Leave the `input` class off controls inside an `.input-group`. The group already strips the field chrome and sizes the control, and the class adds its own border, background, and larger text back.'
