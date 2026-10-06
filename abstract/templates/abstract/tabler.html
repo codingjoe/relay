@@ -1,1 +1,1 @@
-{% load static %}<svg class="{{ classes }}" aria-hidden="true"{% for name, value in attributes.items %} {{ name }}{% if value is not True %}="{{ value }}"{% endif %}{% endfor %}><use href="{% static 'img/tabler-icons/tabler-sprite.svg' %}#tabler-{{ name }}"></use></svg>
+{% load static %}<svg class="{{ classes }}" aria-hidden="true"{% include "django/forms/attrs.html" %}><use href="{% static 'img/tabler-icons/tabler-sprite.svg' %}#tabler-{{ name }}"></use></svg>

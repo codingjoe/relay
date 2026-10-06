@@ -130,7 +130,7 @@ def tabler(name, size="4", **attributes):
                 ),
             )
         ),
-        "attributes": {
+        "attrs": {
             key.replace("_", "-"): value
             for key, value in attributes.items()
             if value is not None and value is not False
