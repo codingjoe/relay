@@ -182,6 +182,7 @@ def test_tabler():
         "{% load abstract %}{% tabler name='copy' %}"
     )
     html = template.render({})
+    assert "\n" not in html
     assert 'class="tabler size-4"' in html
     assert 'aria-hidden="true"' in html
     assert "#tabler-copy" in html

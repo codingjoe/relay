@@ -158,7 +158,10 @@ def tabler(name, size="4", **attributes):
         },
         "sprite_url": static("img/tabler-icons/tabler-sprite.svg"),
     }
-    return mark_safe(loader.get_template("abstract/tabler.html").render(context))
+    html = loader.get_template("abstract/tabler.html").render(context)
+    # The comparison pages nest icons in Markdown table cells, where a newline
+    # ends the row, so the markup stays on one line.
+    return mark_safe(" ".join(html.split()))
 
 
 code_formatter = HtmlFormatter(cssclass="codehilite")
