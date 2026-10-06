@@ -83,7 +83,7 @@
               target="_blank"
               rel="noopener"
             >
-              {% tabler name="shield-exclamation" size="3.5" %}
+              {% tabler name=message.spam_icon size="3.5" %}
               {% blocktranslate with action=message.get_spam_action_display trimmed %}
                 Spam {{ action }}
               {% endblocktranslate %}
@@ -99,7 +99,7 @@
               target="_blank"
               rel="noopener"
             >
-              {% tabler name="virus" size="3.5" %}
+              {% tabler name=message.virus_icon size="3.5" %}
               {{ message.virus_display }}
             </a>
           {% endif %}
