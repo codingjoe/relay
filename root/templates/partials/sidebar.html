@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load abstract i18n %}
 <aside id="app-sidebar" class="sidebar" data-side="left" data-breakpoint="md">
   <nav aria-label='{% translate "email"|capfirst %}'>
     <section class="scrollbar-sm">
@@ -9,7 +9,7 @@
             <li>
               {% url 'email-dashboard:get-started' current_org.slug as get_started_url %}
               <a href="{{ get_started_url }}" {% if request.path == get_started_url %}aria-current="page"{% endif %}>
-                <i data-lucide="rocket" class="shrink-0" aria-hidden="true"></i>
+                {% tabler name="rocket" size="6" class="shrink-0" %}
                 <span>{% translate "get started"|capfirst %}</span>
               </a>
             </li>
@@ -17,21 +17,21 @@
           <li>
             {% url 'monitoring:overview' current_org.slug as monitoring_url %}
             <a href="{{ monitoring_url }}" {% if request.path == monitoring_url %}aria-current="page"{% endif %}>
-              <i data-lucide="gauge" class="shrink-0" aria-hidden="true"></i>
+              {% tabler name="gauge" size="6" class="shrink-0" %}
               <span>{% translate "monitoring"|capfirst %}</span>
             </a>
           </li>
           <li>
             {% url 'message:message-list' current_org.slug as messages_url %}
             <a href="{{ messages_url }}" {% if request.path == messages_url %}aria-current="page"{% endif %}>
-              <i data-lucide="messages-square" class="shrink-0" aria-hidden="true"></i>
+              {% tabler name="messages" size="6" class="shrink-0" %}
               <span>{% translate "message log"|capfirst %}</span>
             </a>
           </li>
           <li>
             {% url 'email-dashboard:report-list' current_org.slug as reports_url %}
             <a href="{{ reports_url }}" {% if request.path == reports_url %}aria-current="page"{% endif %}>
-              <i data-lucide="shield" class="shrink-0" aria-hidden="true"></i>
+              {% tabler name="shield" size="6" class="shrink-0" %}
               <span>{% translate "recipient reports"|capfirst %}</span>
             </a>
           </li>
@@ -41,7 +41,7 @@
               href="{{ domain_list_url }}"
               {% if request.path == domain_list_url %}aria-current="page"{% endif %}
             >
-              <i data-lucide="globe" class="shrink-0" aria-hidden="true"></i>
+              {% tabler name="globe" size="6" class="shrink-0" %}
               <span>{% translate "domains"|capfirst context "noun" %}</span>
             </a>
           </li>
@@ -51,7 +51,7 @@
               href="{{ credential_list_url }}"
               {% if request.path == credential_list_url %}aria-current="page"{% endif %}
             >
-              <i data-lucide="key-round" class="shrink-0" aria-hidden="true"></i>
+              {% tabler name="key" size="6" class="shrink-0" %}
               <span>{% translate "credentials"|capfirst context "noun" %}</span>
             </a>
           </li>
@@ -61,7 +61,7 @@
               href="{{ webhook_list_url }}"
               {% if request.path == webhook_list_url %}aria-current="page"{% endif %}
             >
-              <i data-lucide="inbox" class="shrink-0" aria-hidden="true"></i>
+              {% tabler name="inbox" size="6" class="shrink-0" %}
               <span>{% translate "inbound email"|capfirst %}</span>
             </a>
           </li>
@@ -71,7 +71,7 @@
               href="{{ suppression_list_url }}"
               {% if request.path == suppression_list_url %}aria-current="page"{% endif %}
             >
-              <i data-lucide="ban" class="shrink-0" aria-hidden="true"></i>
+              {% tabler name="ban" size="6" class="shrink-0" %}
               <span>{% translate "suppression list"|capfirst %}</span>
             </a>
           </li>

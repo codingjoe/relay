@@ -9,7 +9,7 @@ class TestKnowHowBadge:
         assert 'target="_blank"' in html
         assert 'rel="noopener"' in html
         assert 'aria-label="DMARC. Know how"' in html
-        assert 'data-lucide="info"' in html
+        assert "#tabler-info-circle" in html
 
     def test_know_how_badge__defaults_label_to_slug(self):
         template = Template("{% load know_how %}{% know_how_badge 'spf' %}")

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n abstract %}
+{% load abstract i18n %}
 {% block title %}{% translate "inbound email"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -112,9 +112,9 @@
             <p class="flex items-center gap-2 flex-wrap">
               <code>{{ webhook.url|truncatechars:60 }}</code>
               {% if webhook.is_active %}
-                <i data-lucide="circle-check" class="size-4 text-success" aria-hidden="true"></i>
+                {% tabler name="circle-check" class="text-success" %}
               {% else %}
-                <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i>
+                {% tabler name="circle-dashed" class="text-muted-foreground" %}
               {% endif %}
               <span aria-hidden="true">·</span>
               <code>{{ webhook.address_pattern }}</code>
@@ -138,7 +138,7 @@
                   data-copy="{{ webhook.public_key_serialized }}"
                   aria-label="{% translate 'copy public key'|capfirst %}"
                 >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                  {% tabler name="copy" size="3.5" %}
                 </button>
               </div>
             </div>
@@ -170,7 +170,7 @@
     <section class="empty">
       <header>
         <figure>
-          <i data-lucide="inbox" aria-hidden="true"></i>
+          {% tabler name="inbox" size="6" %}
         </figure>
         <h3>{% translate "No endpoints yet." %}</h3>
         <p>

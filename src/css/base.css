@@ -23,9 +23,9 @@
   }
 }
 
-/* Lucide icons must sit inline with their label; Tailwind preflight forces
+/* Tabler icons must sit inline with their label; Tailwind preflight forces
    display: block on every svg, which adds a line break after each icon. */
-svg.lucide {
+svg.tabler {
   display: inline-block;
 }
 

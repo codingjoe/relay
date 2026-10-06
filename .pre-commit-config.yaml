@@ -116,8 +116,10 @@ repos:
         types: [svg]
         # The BIMI logo must keep `version="1.2"`, which svgo strips as a
         # deprecated attribute. Brand logos are validated externally against
-        # the SVG P/S schema, so they stay untouched by svgo.
-        exclude: ^root/static/img/bimi\.svg$
+        # the SVG P/S schema, so they stay untouched by svgo. The Tabler
+        # sprite keeps its `<defs>`: svgo drops every symbol it does not see
+        # referenced in the file, which is all of them.
+        exclude: ^root/static/img/(?:bimi\.svg|tabler-icons/)
 ci:
   skip:
     - no-commit-to-branch

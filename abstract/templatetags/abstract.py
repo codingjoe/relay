@@ -1,10 +1,12 @@
 import datetime
 import decimal
 from datetime import timedelta
+from functools import lru_cache
 
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
 from django.template.defaulttags import register
+from django.templatetags.static import static
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
 from humanize import naturaldelta
@@ -113,6 +115,49 @@ def pagination(context, page_obj=None):
     so most templates can call `{% pagination %}` without an argument.
     """
     return {"page_obj": page_obj or context.get("page_obj")}
+
+
+@lru_cache
+def get_icon_sprite_url() -> str:
+    """Return the URL of the vendored Tabler sprite, looked up once per process."""
+    return static("img/tabler-icons/tabler-sprite.svg")
+
+
+@register.inclusion_tag("abstract/tabler.html")
+def tabler(name, size="4", **attributes):
+    """
+    Render a Tabler icon from the vendored sprite.
+
+    Args:
+        name: Icon name without the `tabler-` prefix, for example `copy`.
+        size: Size on the Tailwind scale (`3.5`, `4`, `6`, `8`), rendered as
+            `size-<size>`. Pass `None` for an icon that takes its size from
+            CSS instead, such as basecoat's modal close button.
+        **attributes: Extra attributes. `class` adds utilities to the icon,
+            for example `class="text-primary shrink-0"`. Other names pass
+            through, for example `data_tooltip=label`. Underscores become
+            dashes. A `True` value renders the attribute without a value.
+
+    """
+    return {
+        "name": name,
+        "classes": " ".join(
+            filter(
+                None,
+                (
+                    "tabler",
+                    f"size-{size}" if size else None,
+                    attributes.pop("class", None),
+                ),
+            )
+        ),
+        "attributes": {
+            key.replace("_", "-"): value
+            for key, value in attributes.items()
+            if value is not None and value is not False
+        },
+        "sprite_url": get_icon_sprite_url(),
+    }
 
 
 code_formatter = HtmlFormatter(cssclass="codehilite")

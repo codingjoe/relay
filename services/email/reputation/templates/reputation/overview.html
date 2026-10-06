@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize l10n abstract %}
+{% load abstract humanize i18n l10n %}
 {% block title %}{% translate "monitoring"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -40,7 +40,7 @@
       <p class="m-0 mt-1 text-2xl font-semibold {% if stats.hard_bounce_over_limit %}text-destructive{% else %}text-success{% endif %}">
         {{ stats.hard_bounce_rate|percent:"2" }}
         {% if stats.hard_bounce_over_limit %}
-          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          {% tabler name="alert-triangle" %}
         {% endif %}
       </p>
       <p class="m-0 text-sm text-muted-foreground">
@@ -52,7 +52,7 @@
       <p class="m-0 mt-1 text-2xl font-semibold {% if stats.complaint_over_limit %}text-destructive{% else %}text-success{% endif %}">
         {{ stats.complaint_rate|percent:"2" }}
         {% if stats.complaint_over_limit %}
-          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          {% tabler name="alert-triangle" %}
         {% endif %}
       </p>
       <p class="m-0 text-sm text-muted-foreground">

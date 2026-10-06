@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize %}
+{% load abstract humanize i18n %}
 {% block title %}{% translate "get started"|capfirst %} | relay{% endblock %}
 {% block content %}
   <h2 class="mb-2">{% translate "get started"|capfirst %}</h2>
@@ -12,11 +12,11 @@
   <div class="item-group">
     <article class="item" data-variant="outline">
       <figure>
-        <i
-          data-lucide="{% if has_outgoing_message %}circle-check{% else %}circle-dashed{% endif %}"
-          class="size-4 {% if has_outgoing_message %}text-primary{% else %}text-muted-foreground{% endif %}"
-          aria-hidden="true"
-        ></i>
+        {% if has_outgoing_message %}
+          {% tabler name="circle-check" class="text-primary" %}
+        {% else %}
+          {% tabler name="circle-dashed" class="text-muted-foreground" %}
+        {% endif %}
       </figure>
       <section class="min-w-48">
         {% if has_outgoing_message %}
@@ -66,11 +66,11 @@
 
     <article class="item" data-variant="outline">
       <figure>
-        <i
-          data-lucide="{% if has_credential %}circle-check{% else %}circle-dashed{% endif %}"
-          class="size-4 {% if has_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
-          aria-hidden="true"
-        ></i>
+        {% if has_credential %}
+          {% tabler name="circle-check" class="text-primary" %}
+        {% else %}
+          {% tabler name="circle-dashed" class="text-muted-foreground" %}
+        {% endif %}
       </figure>
       <section class="min-w-48">
         {% if has_credential %}
@@ -106,11 +106,11 @@
 
     <article class="item" data-variant="outline">
       <figure>
-        <i
-          data-lucide="{% if connected_credential %}circle-check{% else %}circle-dashed{% endif %}"
-          class="size-4 {% if connected_credential %}text-primary{% else %}text-muted-foreground{% endif %}"
-          aria-hidden="true"
-        ></i>
+        {% if connected_credential %}
+          {% tabler name="circle-check" class="text-primary" %}
+        {% else %}
+          {% tabler name="circle-dashed" class="text-muted-foreground" %}
+        {% endif %}
       </figure>
       <section class="min-w-48">
         {% if connected_credential %}

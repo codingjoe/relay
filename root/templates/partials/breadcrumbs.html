@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load abstract i18n %}
 {% if breadcrumbs %}
   <nav class="breadcrumb" aria-label='{% translate "breadcrumb"|capfirst %}'>
     <ol>
@@ -12,7 +12,7 @@
         </li>
         {% if not forloop.last %}
           <li aria-hidden="true">
-            <i data-lucide="chevron-right" data-rtl-flip class="icon-sm"></i>
+            {% tabler name="chevron-right" size="6" class="icon-sm" data_rtl_flip=True %}
           </li>
         {% endif %}
       {% endfor %}

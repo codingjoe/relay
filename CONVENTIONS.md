@@ -217,15 +217,30 @@ A rule lives either in this document or in `.relint.yml`, never both.
     not a translatable string. Do not wrap it in `{% translate %}` or
     apply `|capfirst`/`|title`.
 
-- Icons use [Lucide](https://lucide.dev/) via vanilla JS. `root/static/js/app.js`
-  imports the npm package and calls `createIcons({ icons })` on
-  `DOMContentLoaded`. Render icons with `<i data-lucide="name" class="size-4|size-5|size-3.5" aria-hidden="true">`
-  (Tailwind size scale: 3.5=14px, 4=16px, 5=20px). Never inline Lucide SVGs
-  by hand. The library replaces the `<i>` element with the SVG at runtime.
-  Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons -
-  use Lucide icons with semantic color classes instead (for example,
-  `circle-check` with `text-primary`, `circle-x` with `text-destructive`,
-  `circle-dashed` with `text-muted-foreground`).
+- Icons use [Tabler](https://tabler.io/icons) through its SVG sprite. Render
+  them with `{% tabler name="copy" size="3.5" %}` after `{% load abstract %}`.
+  The tag fills `abstract/templates/abstract/tabler.html`, which writes
+  `<svg class="tabler size-3.5" aria-hidden="true"><use href="…"></use></svg>`
+  and resolves the sprite URL once per process. The tag adds the `tabler`
+  class and the size, so neither is repeated at the call site. Pass extra
+  utilities as `class="…"`, for example
+  `{% tabler name="chevron-right" class="text-muted-foreground ms-auto" %}`,
+  and `size=None` for an icon that takes its size from CSS. Every icon needs
+  one of the two: basecoat sizes only the modal close button, and the sprite
+  symbols carry no width or height. Extra attributes are keyword arguments
+  with underscores for dashes, for example `data_tooltip="…"`. The sprite is
+  the vendored
+  `root/static/img/tabler-icons/tabler-sprite.svg` that ships with
+  the `@tabler/icons-sprite` dev dependency, so icon names come straight from
+  tabler.io/icons and nothing is generated per icon. Sizes follow the
+  Tailwind scale on the icon (`size-3`=12px, `3.5`=14px, `4`=16px, `5`=20px,
+  `6`=24px, `8`=32px); `src/css/base.css` keeps `svg.tabler` inline with its
+  label. Never write the `svg` element by hand and never ship a placeholder
+  attribute for the client to replace. Never use unicode emoji (✅, ❌, ⏳, 📬)
+  for status or decorative icons - use Tabler icons with semantic color
+  classes instead (for example, `#tabler-circle-check` with `text-primary`,
+  `#tabler-circle-x` with `text-destructive`, `#tabler-circle-dashed` with
+  `text-muted-foreground`).
 
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`, which imports Tailwind CSS v4,

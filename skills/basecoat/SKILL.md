@@ -52,7 +52,7 @@ Key gotchas:
 - Chart is not in `all.min.js`; it needs `chart.min.js` plus Chart.js (`chart.umd.min.js`).
 - `select` is a custom `<div>`; `native-select` is a real `<select>`. Both use `class="select"`.
 - Checkbox, radio, and switch all use `class="input"`.
-- Spinner is not a Basecoat class; use a Lucide loader icon with `animate-spin`.
+- Spinner is not a Basecoat class; use a Tabler `loader` icon with `animate-spin`.
 - Scroll Area uses `class="scrollbar"` on the scrollable container.
 
 ### Macros

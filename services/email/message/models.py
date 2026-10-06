@@ -35,7 +35,7 @@ class Message(TimeStamped):
     """
 
     icon = ""
-    """Lucide icon name of the concrete subclass. Falls back to the direction icons."""
+    """Tabler icon name of the concrete subclass. Falls back to the direction icons."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -191,7 +191,7 @@ class Message(TimeStamped):
     @property
     def kind_icon(self) -> str:
         """
-        Return the matching Lucide icon name.
+        Return the matching Tabler icon name.
 
         Reads the icon from the concrete class because multi-table
         inheritance returns base instances in shared querysets.
