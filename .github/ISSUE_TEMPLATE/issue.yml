@@ -1,0 +1,47 @@
+name: Issue
+description: Report a bug or a task. Write in simple English.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Start with the problem.** One or two short sentences that say what is
+        wrong or missing, and the effect.
+
+        - Write in simple English. Short sentences. Active voice. One topic per
+          paragraph.
+        - No semicolons and no em dashes.
+        - Keep code, commands, identifiers, and quoted output exact.
+        - Use "must" for a requirement and "can" for a possibility. Do not write
+          "should", "may", "might", or "could".
+        - Put evidence, reproduction steps, and fix options in the sections
+          below.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: |
+        One or two short sentences. Say what is wrong or missing, and the
+        effect.
+      placeholder: |
+        The soft bounce count is always zero.
+        The reputation chart therefore shows a flat line.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: |
+        Evidence, reproduction steps, and file references. One topic per
+        paragraph.
+    validations:
+      required: false
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested fix
+      description: |
+        Options or directions. Use "must" for a requirement and "can" for a
+        possibility.
+    validations:
+      required: false
