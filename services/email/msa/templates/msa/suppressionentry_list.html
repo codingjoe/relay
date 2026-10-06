@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize abstract %}
+{% load abstract humanize i18n %}
 {% block title %}{% translate "suppression list"|capfirst %} | relay{% endblock %}
 {% block content %}
   <h2 class="mb-6">{% translate "suppression list"|capfirst %}</h2>
@@ -12,7 +12,7 @@
     <section class="empty">
       <header>
         <figure>
-          <i data-lucide="ban" aria-hidden="true"></i>
+          {% tabler name="ban" size=None %}
         </figure>
         <h3>
           {% blocktranslate count counter=object_list|length with count=object_list|length|apnumber trimmed %}
@@ -52,7 +52,7 @@
             aria-label='{% translate "email address"|capfirst %}'
           >
           <span data-align="start" aria-hidden="true">
-            <i data-lucide="at-sign" class="size-4"></i>
+            {% tabler name="at" %}
           </span>
         </div>
         <div role="group" class="button-group">

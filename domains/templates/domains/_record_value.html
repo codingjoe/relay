@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load abstract i18n %}
 <input
   type="text"
   readonly
@@ -13,5 +13,5 @@
   data-copy="{{ record_value }}{% if trailing_dot %}.{% endif %}"
   aria-label='{% translate "copy value"|capfirst %}'
 >
-  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+  {% tabler name="copy" size="3.5" %}
 </button>

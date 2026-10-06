@@ -15,6 +15,7 @@ repos:
       - id: destroyed-symlinks
       - id: check-executables-have-shebangs
       - id: end-of-file-fixer
+        exclude: ^abstract/templates/abstract/tabler\.html$
       - id: name-tests-test
         args: ["--pytest-test-first"]
       - id: no-commit-to-branch
@@ -76,7 +77,7 @@ repos:
     rev: v1.0.0
     hooks:
       - id: djangofmt
-        exclude: ^abstract/templates/django/forms/widgets/.*\.html$
+        exclude: ^(?:abstract/templates/django/forms/widgets/.*|abstract/templates/abstract/tabler\.html)$
   - repo: https://github.com/reteps/dockerfmt
     rev: v0.5.4
     hooks:
@@ -116,8 +117,10 @@ repos:
         types: [svg]
         # The BIMI logo must keep `version="1.2"`, which svgo strips as a
         # deprecated attribute. Brand logos are validated externally against
-        # the SVG P/S schema, so they stay untouched by svgo.
-        exclude: ^root/static/img/bimi\.svg$
+        # the SVG P/S schema, so they stay untouched by svgo. The Tabler
+        # sprite keeps its `<defs>`: svgo drops every symbol it does not see
+        # referenced in the file, which is all of them.
+        exclude: ^root/static/img/(?:bimi\.svg|tabler-icons/)
 ci:
   skip:
     - no-commit-to-branch

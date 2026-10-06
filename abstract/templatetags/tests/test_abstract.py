@@ -1,4 +1,5 @@
 import datetime
+import re
 import zoneinfo
 from types import SimpleNamespace
 
@@ -173,3 +174,37 @@ def test_apex_suffix__at_the_apex():
 
 def test_apex_suffix__unrelated_name():
     assert abstract.apex_suffix("example.net", SimpleNamespace(name="acme.com")) == ""
+
+
+def test_tabler():
+    """Render the sprite reference with the default size."""
+    template = engines["django"].from_string(
+        "{% load abstract %}{% tabler name='copy' %}"
+    )
+    html = template.render({})
+    assert "\n" not in html
+    assert 'class="tabler size-4"' in html
+    assert 'aria-hidden="true"' in html
+    assert "#tabler-copy" in html
+
+
+def test_tabler__size_and_class():
+    """Compose the size class and the extra utilities from the arguments."""
+    template = engines["django"].from_string(
+        "{% load abstract %}{% tabler name='circle-check' size='3.5'"
+        " class='text-primary shrink-0' data_rtl_flip=True %}"
+    )
+    html = template.render({})
+    assert 'class="tabler size-3.5 text-primary shrink-0"' in html
+    assert re.search(r"data-rtl-flip(?!=\")", html)
+    assert "#tabler-circle-check" in html
+
+
+def test_tabler__without_size():
+    """Render an icon without a size class when size is None."""
+    template = engines["django"].from_string(
+        "{% load abstract %}{% tabler name='search' size=None %}"
+    )
+    html = template.render({})
+    assert 'class="tabler"' in html
+    assert "#tabler-search" in html

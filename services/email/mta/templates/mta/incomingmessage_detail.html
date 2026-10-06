@@ -1,5 +1,5 @@
 {% extends "message/message_detail.html" %}
-{% load i18n abstract %}
+{% load abstract i18n %}
 {% block timeline_dialogs %}
   {% for transmission in transmissions %}
     <dialog
@@ -92,7 +92,9 @@
   {% if is_report %}
     <section class="empty">
       <header>
-        <figure><i data-lucide="{{ message.kind_icon }}" aria-hidden="true"></i></figure>
+        <figure>
+          {% tabler name=message.kind_icon size=None %}
+        </figure>
         <h3>{{ report_kind|capfirst }}</h3>
         <p>{% translate "This email carried a report." %}</p>
       </header>

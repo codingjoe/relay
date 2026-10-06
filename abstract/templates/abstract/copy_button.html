@@ -1,3 +1,4 @@
+{% load abstract %}
 {# Not for `.input-group`: buttons there stay inline, where relint's icon-xs rule can see them. #}
 <button
   type="button"
@@ -7,5 +8,5 @@
   data-copy="{{ value }}"
   aria-label="{{ label }}"
 >
-  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+  {% tabler name="copy" size="3.5" %}
 </button>

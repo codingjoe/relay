@@ -115,6 +115,29 @@ def pagination(context, page_obj=None):
     return {"page_obj": page_obj or context.get("page_obj")}
 
 
+@register.inclusion_tag("abstract/tabler.html")
+def tabler(name, size="4", **attributes):
+    """Render a Tabler icon from the vendored sprite."""
+    return {
+        "name": name,
+        "classes": " ".join(
+            filter(
+                None,
+                (
+                    "tabler",
+                    f"size-{size}" if size else None,
+                    attributes.pop("class", None),
+                ),
+            )
+        ),
+        "attrs": {
+            key.replace("_", "-"): value
+            for key, value in attributes.items()
+            if value is not None and value is not False
+        },
+    }
+
+
 code_formatter = HtmlFormatter(cssclass="codehilite")
 
 

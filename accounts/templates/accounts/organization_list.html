@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n accounts abstract %}
+{% load abstract accounts i18n %}
 {% block title %}{% translate "organizations"|capfirst context "noun" %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -68,7 +68,7 @@
                         {{ counter }} additional member{% plural %}{{ counter }} additional members
                       {% endblocktranslate %}"
                     >
-                      <i data-lucide="plus" class="size-3.5" aria-hidden="true"></i>
+                      {% tabler name="plus" size="3.5" %}
                     </span>
                   {% endif %}
                 </div>
@@ -76,7 +76,7 @@
             </div>
           </section>
           <aside>
-            <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto shrink-0" aria-hidden="true"></i>
+            {% tabler name="chevron-right" class="text-muted-foreground ms-auto shrink-0" %}
           </aside>
         </a>
         <a
