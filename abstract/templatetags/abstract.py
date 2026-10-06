@@ -117,16 +117,14 @@ def pagination(context, page_obj=None):
     return {"page_obj": page_obj or context.get("page_obj")}
 
 
+@register.simple_tag
 @lru_cache
-def get_icon_sprite_url() -> str:
-    """Return the URL of the vendored Tabler sprite, looked up once per process."""
-    return static("img/tabler-icons/tabler-sprite.svg")
-
-
-@register.inclusion_tag("abstract/tabler.html")
 def tabler(name, size="4", **attributes):
     """
     Render a Tabler icon from the vendored sprite.
+
+    Caches the rendered markup, because a page repeats the same icon many
+    times and template rendering, unlike static file resolution, is not free.
 
     Args:
         name: Icon name without the `tabler-` prefix, for example `copy`.
@@ -141,7 +139,7 @@ def tabler(name, size="4", **attributes):
             dashes. A `True` value renders the attribute without a value.
 
     """
-    return {
+    context = {
         "name": name,
         "classes": " ".join(
             filter(
@@ -158,8 +156,9 @@ def tabler(name, size="4", **attributes):
             for key, value in attributes.items()
             if value is not None and value is not False
         },
-        "sprite_url": get_icon_sprite_url(),
+        "sprite_url": static("img/tabler-icons/tabler-sprite.svg"),
     }
+    return mark_safe(loader.get_template("abstract/tabler.html").render(context))
 
 
 code_formatter = HtmlFormatter(cssclass="codehilite")

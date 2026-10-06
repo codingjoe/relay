@@ -209,9 +209,12 @@ def test_tabler__without_size():
     assert "#tabler-search" in html
 
 
-def test_get_icon_sprite_url__cached():
-    """Resolve the sprite through the static storage once, not once per icon."""
-    abstract.get_icon_sprite_url.cache_clear()
-    abstract.get_icon_sprite_url()
-    abstract.get_icon_sprite_url()
-    assert abstract.get_icon_sprite_url.cache_info().misses == 1
+def test_tabler__cached():
+    """Render an icon once, however often the page repeats it."""
+    abstract.tabler.cache_clear()
+    template = engines["django"].from_string(
+        "{% load abstract %}{% tabler name='copy' %}"
+    )
+    template.render({})
+    template.render({})
+    assert abstract.tabler.cache_info().misses == 1
