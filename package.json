@@ -12,7 +12,7 @@
     "@tailwindcss/postcss": "^4.1.0",
     "@tailwindcss/typography": "^0.5.20",
     "cssnano": "^9.1.2",
-    "esimport": "^0.10.1",
+    "esimport": "^0.10.2",
     "postcss": "^8.5.26",
     "postcss-cli": "^11.0.0",
     "tailwindcss": "^4.1.0",
@@ -28,18 +28,17 @@
   "private": true,
   "scripts": {
     "build": "wireit",
-    "dev": "pnpm run build --watch",
-    "esm:build": "wireit"
+    "dev": "pnpm run build --watch"
   },
   "version": "0.1.0",
   "wireit": {
     "build": {
       "dependencies": [
-        "css:build",
-        "esm:build"
+        "css",
+        "esm"
       ]
     },
-    "css:build": {
+    "css": {
       "clean": false,
       "command": "postcss src/css/app.css -o root/static/css/app.css",
       "files": [
@@ -60,7 +59,7 @@
         "root/static/css/app.css"
       ]
     },
-    "esm:build": {
+    "esm": {
       "clean": false,
       "command": "esimport . staticfiles/esm --treeshake",
       "files": [
