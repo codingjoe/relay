@@ -225,11 +225,12 @@ A rule lives either in this document or in `.relint.yml`, never both.
   class and the size, so neither is repeated at the call site. Pass extra
   utilities as `class="…"`, for example
   `{% tabler name="chevron-right" class="text-muted-foreground ms-auto" %}`,
-  and `size=None` for an icon that takes its size from CSS. Every icon needs
-  one of the two: the sprite symbols carry no width or height, and basecoat
-  sizes an icon only where a component draws one itself, such as a badge
-  (12px, forced) or a modal close button (16px). Extra attributes are keyword
-  arguments with underscores for dashes, for example `data_tooltip="…"`. The
+  and `size=None` for an icon a component sizes itself. Every icon needs one
+  of the two: the sprite symbols carry no width or height, and basecoat sizes
+  an icon only where a component draws one (a sidebar link and the topbar
+  toggle at 16px, a badge at 12px, an empty state figure at 32px, a modal
+  close button at 16px). An explicit `size` opts out of that context sizing.
+  Extra attributes are keyword arguments with underscores for dashes, for example `data_tooltip="…"`. The
   sprite is the vendored
   `root/static/img/tabler-icons/tabler-sprite.svg` that ships with
   the `@tabler/icons-sprite` dev dependency, so icon names come straight from

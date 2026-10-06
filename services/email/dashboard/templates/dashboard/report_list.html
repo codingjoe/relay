@@ -51,7 +51,7 @@
           data-align="end"
           aria-label='{% translate "search"|capfirst context "verb" %}'
         >
-          {% tabler name="arrow-right" size="6" %}
+          {% tabler name="arrow-right" size=None %}
         </button>
       </div>
     </form>
@@ -65,7 +65,7 @@
         aria-controls="report-filters-popover"
         aria-expanded="false"
       >
-        {% tabler name="filter" size="6" %}
+        {% tabler name="filter" size=None %}
         {{ type_label }}
         {% for value in filter_values %}
           <span class="badge" data-size="sm">{{ value }}</span>
@@ -201,7 +201,7 @@
         <section class="empty">
           <header>
             <figure>
-              {% tabler name="search" size="6" %}
+              {% tabler name="search" size=None %}
             </figure>
             <h3>{% translate "No reports found." %}</h3>
             <p>{% translate "Try different filters to find what you are looking for." %}</p>
