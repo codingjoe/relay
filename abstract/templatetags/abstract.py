@@ -5,7 +5,6 @@ from datetime import timedelta
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
 from django.template.defaulttags import register
-from django.templatetags.static import static
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
 from humanize import naturaldelta
@@ -136,7 +135,6 @@ def tabler(name, size="4", **attributes):
             for key, value in attributes.items()
             if value is not None and value is not False
         },
-        "sprite_url": static("img/tabler-icons/tabler-sprite.svg"),
     }
 
 

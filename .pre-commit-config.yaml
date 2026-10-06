@@ -15,9 +15,6 @@ repos:
       - id: destroyed-symlinks
       - id: check-executables-have-shebangs
       - id: end-of-file-fixer
-        # The tabler partial must stay on one line, and a file always ends
-        # with a newline. A newline in its markup would end the Markdown table
-        # row it sits in on the comparison pages.
         exclude: ^abstract/templates/abstract/tabler\.html$
       - id: name-tests-test
         args: ["--pytest-test-first"]
@@ -80,7 +77,6 @@ repos:
     rev: v1.0.0
     hooks:
       - id: djangofmt
-        # The tabler partial keeps its markup on one line, see above.
         exclude: ^(?:abstract/templates/django/forms/widgets/.*|abstract/templates/abstract/tabler\.html)$
   - repo: https://github.com/reteps/dockerfmt
     rev: v0.5.4

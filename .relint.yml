@@ -49,13 +49,6 @@
     import map and writes the bundle URL with the integrity hash the browser verifies. A
     hand-written tag carries no hash, so the browser runs it unverified.
   filePattern: .*\.html$
-- name: Render Tabler icons through the tabler tag
-  pattern: '<svg[^>]*class="[^"]*\btabler\b'
-  hint: |
-    Render the icon with `{% tabler name='copy' size='3.5' %}`. The tag adds
-    the `tabler` class and the size, keeps `aria-hidden='true'`, and resolves
-    the sprite URL once per process. Hand-written markup drifts.
-  filePattern: '.*\.html$'
 - name: Input group icon buttons use the icon-xs size
   pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*(?:<svg class="tabler\b|\{%\s*tabler\b)'
   hint: 'Icon buttons inside an `.input-group` use the app''s `data-size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. Without it the button takes the default 36px and fills the whole field.'

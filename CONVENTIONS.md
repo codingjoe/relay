@@ -218,37 +218,20 @@ A rule lives either in this document or in `.relint.yml`, never both.
     apply `|capfirst`/`|title`.
 
 - Icons use [Tabler](https://tabler.io/icons) through its SVG sprite. Render
-  them with `{% tabler name="copy" size="3.5" %}` after `{% load abstract %}`.
-  The tag fills `abstract/templates/abstract/tabler.html`, which writes
-  `<svg class="tabler size-3.5" aria-hidden="true"><use href="…"></use></svg>`
-  on a single line, because the comparison pages nest that markup in Markdown
-  table cells, where a newline ends the row. That partial is excluded from
-  `djangofmt` and `end-of-file-fixer`, which would otherwise split it across
-  lines and append a newline. The tag adds the `tabler`
-  class and the size, so neither is repeated at the call site. Pass extra
-  utilities as `class="…"`, for example
-  `{% tabler name="chevron-right" class="text-muted-foreground ms-auto" %}`,
-  and `size=None` for an icon a component sizes itself. Every icon needs one
-  of the two: the sprite symbols carry no width or height, and basecoat sizes
-  an icon only where a component draws one (a sidebar link and the topbar
-  toggle at 16px, a badge at 12px, an empty state figure at 32px, a modal
-  close button at 16px). An explicit `size` opts out of that context sizing.
-  Extra attributes are keyword arguments with underscores for dashes, for example `data_tooltip="…"`. The
-  sprite is the vendored
-  `root/static/img/tabler-icons/tabler-sprite.svg` that ships with
+  them with
+  `<svg class="tabler size-4" aria-hidden="true"><use href="{% static 'img/tabler-icons/tabler-sprite.svg' %}#tabler-name"></use></svg>`,
+  which needs `{% load static %}` in that template. The sprite is the
+  vendored `root/static/img/tabler-icons/tabler-sprite.svg` that ships with
   the `@tabler/icons-sprite` dev dependency, so icon names come straight from
   tabler.io/icons and nothing is generated per icon. Sizes follow the
   Tailwind scale on the icon (`size-3`=12px, `3.5`=14px, `4`=16px, `5`=20px,
-  `6`=24px, `8`=32px). The tag builds `size-<size>` at render time, so
-  `src/css/app.css` safelists the scale with `@source inline(...)`; add a
-  size there when the tag gains one. `src/css/base.css` keeps `svg.tabler`
-  inline with its label and scales it by 1.1, because Tabler draws inside a
-  3px inset where Lucide drew inside 2px. Never write the `svg` element by
-  hand and never ship a placeholder attribute for the client to replace.
-  Never use unicode emoji (✅, ❌, ⏳, 📬) for status or decorative icons - use
-  Tabler icons with semantic color classes instead (for example,
-  `#tabler-circle-check` with `text-primary`, `#tabler-circle-x` with
-  `text-destructive`, `#tabler-circle-dashed` with `text-muted-foreground`).
+  `6`=24px, `8`=32px); `src/css/base.css` keeps `svg.tabler` inline with its
+  label. Never inline Tabler SVGs by hand and never ship a placeholder
+  attribute for the client to replace. Never use unicode emoji (✅, ❌, ⏳, 📬)
+  for status or decorative icons - use Tabler icons with semantic color
+  classes instead (for example, `#tabler-circle-check` with `text-primary`,
+  `#tabler-circle-x` with `text-destructive`, `#tabler-circle-dashed` with
+  `text-muted-foreground`).
 
 - CSS is built with [PostCSS](https://postcss.org/) and [wireit](https://github.com/google/wireit).
   The source entry is `src/css/app.css`, which imports Tailwind CSS v4,
