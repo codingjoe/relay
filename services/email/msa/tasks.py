@@ -261,8 +261,6 @@ def format_smtp_refusal(error):
             code, answer = refusal.code, refusal.message
         case aiosmtplib.SMTPResponseException():
             code, answer = error.code, error.message
-        case _:
-            code, answer = 0, str(error)
     if isinstance(answer, bytes):
         answer = answer.decode(errors="replace")
     return code, f"{code} {answer}"
