@@ -37,8 +37,8 @@ importers:
         specifier: ^9.1.2
         version: 9.1.2(postcss@8.5.28)
       esimport:
-        specifier: ^0.10.1
-        version: 0.10.1
+        specifier: ^0.10.2
+        version: 0.10.2
       postcss:
         specifier: ^8.5.26
         version: 8.5.28
@@ -647,8 +647,8 @@ packages:
   escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
     engines: {node: '>=6'}
-  esimport@0.10.1:
-    resolution: {integrity: sha512-OY+VyajOr8zEDCt/wg4v0VMIxc3A09C/74m1KTqAM8mzKZu5Pir8dtzcRgOrki2KGc2HCtKRfRMc8Vb8euvCeA==}
+  esimport@0.10.2:
+    resolution: {integrity: sha512-5Ejm4tt7t9DYxrwYzyOfrUZ8d6hjEY9MmPn+qQfAf3WFz10KO7T9xPzehKw3NybKpKuiPz0GyZl4XLUrnrep+A==}
     hasBin: true
   fast-glob@3.3.3:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
@@ -1762,7 +1762,7 @@ snapshots:
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
   escalade@3.2.0: {}
-  esimport@0.10.1:
+  esimport@0.10.2:
     dependencies:
       commander: 15.0.0
       esbuild: 0.28.2

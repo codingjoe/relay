@@ -1,5 +1,5 @@
 scripts:
-  - name: CSS watcher
+  - name: Frontend watcher
     command: |
       pnpm ci
       pnpm run dev

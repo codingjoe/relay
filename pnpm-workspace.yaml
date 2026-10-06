@@ -3,4 +3,4 @@
 allowBuilds:
   esbuild: false
 minimumReleaseAgeExclude:
-  - esimport@0.10.1
+  - esimport@0.10.2
