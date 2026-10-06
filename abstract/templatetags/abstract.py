@@ -120,25 +120,7 @@ def pagination(context, page_obj=None):
 @register.simple_tag
 @lru_cache
 def tabler(name, size="4", **attributes):
-    """
-    Render a Tabler icon from the vendored sprite.
-
-    Caches the rendered markup, because a page repeats the same icon many
-    times and template rendering, unlike static file resolution, is not free.
-
-    Args:
-        name: Icon name without the `tabler-` prefix, for example `copy`.
-        size: Size on the Tailwind scale (`3.5`, `4`, `6`, `8`), rendered as
-            `size-<size>`. Tailwind cannot see a class that is built at render
-            time, so the scale is safelisted in `src/css/app.css`. Pass `None`
-            for an icon that takes its size from CSS instead, such as
-            basecoat's modal close button.
-        **attributes: Extra attributes. `class` adds utilities to the icon,
-            for example `class="text-primary shrink-0"`. Other names pass
-            through, for example `data_tooltip=label`. Underscores become
-            dashes. A `True` value renders the attribute without a value.
-
-    """
+    """Render a cached Tabler icon from the vendored sprite."""
     context = {
         "name": name,
         "classes": " ".join(
