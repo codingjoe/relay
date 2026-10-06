@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize l10n static esm %}
+{% load abstract esm humanize i18n l10n static %}
 {% block topbar %}{% endblock %}
 {% block chrome %}{% endblock %}
 {% block title %}{% translate "relay: communication as a service" %}{% endblock %}
@@ -47,23 +47,23 @@
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         <a href="{% url 'accounts:org-start' %}" class="btn" data-size="lg">
-          <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
+          {% tabler name="rocket" %}
           {% translate "get early access"|capfirst %}
         </a>
       </div>
       <p class="text-sm text-muted-foreground flex flex-wrap items-center justify-center gap-x-3 gap-y-2 m-0 font-mono">
         <span class="inline-flex items-center gap-1.5">
-          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% tabler name="check" size="3.5" %}
           {% translate "no credit card required"|capfirst %}
         </span>
         <span aria-hidden="true">·</span>
         <span class="inline-flex items-center gap-1.5">
-          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% tabler name="check" size="3.5" %}
           {% translate "no setup required"|capfirst %}
         </span>
         <span aria-hidden="true">·</span>
         <span class="inline-flex items-center gap-1.5">
-          <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+          {% tabler name="check" size="3.5" %}
           {% translate "first"|capfirst %} {{ free_monthly_messages|intcomma }}
           {% translate "emails free every month" %}
         </span>
@@ -98,7 +98,7 @@
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
-            <i data-lucide="send" class="size-6 text-primary" aria-hidden="true"></i>
+            {% tabler name="send" size="6" class="text-primary" %}
           </div>
           <h3 class="m-0 text-lg">{% translate "email sending"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
@@ -109,7 +109,7 @@
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
-            <i data-lucide="inbox" class="size-6 text-primary" aria-hidden="true"></i>
+            {% tabler name="inbox" size="6" class="text-primary" %}
           </div>
           <h3 class="m-0 text-lg">{% translate "email receiving"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
@@ -121,7 +121,7 @@
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
-            <i data-lucide="line-chart" class="size-6 text-primary" aria-hidden="true"></i>
+            {% tabler name="chart-line" size="6" class="text-primary" %}
           </div>
           <h3 class="m-0 text-lg">{% translate "reputation monitoring"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
@@ -132,7 +132,7 @@
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
-            <i data-lucide="terminal" class="size-6 text-primary" aria-hidden="true"></i>
+            {% tabler name="terminal" size="6" class="text-primary" %}
           </div>
           <h3 class="m-0 text-lg">{% translate "dev sandbox"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
@@ -143,7 +143,7 @@
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
-            <i data-lucide="shield-check" class="size-6 text-primary" aria-hidden="true"></i>
+            {% tabler name="shield-check" size="6" class="text-primary" %}
           </div>
           <h3 class="m-0 text-lg">{% translate "hosted in the EU"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
@@ -154,7 +154,7 @@
         </article>
         <article class="card p-8 flex-col gap-4 hover:shadow-md transition-shadow">
           <div class="rounded-xl bg-muted/50 size-14 flex items-center justify-center">
-            <i data-lucide="cpu" class="size-6 text-primary" aria-hidden="true"></i>
+            {% tabler name="cpu" size="6" class="text-primary" %}
           </div>
           <h3 class="m-0 text-lg">{% translate "AI native"|capfirst %}</h3>
           <p class="text-muted-foreground m-0 leading-relaxed">
@@ -412,38 +412,38 @@
         <section class="m-0">
           <ul class="flex flex-col gap-3 m-0 p-0 list-none">
             <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% tabler name="check" class="text-primary shrink-0" %}
               {% translate "sender reputation monitoring"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% tabler name="check" class="text-primary shrink-0" %}
               {% translate "30-day message retention"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% tabler name="check" class="text-primary shrink-0" %}
               {% translate "unlimited domains"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% tabler name="check" class="text-primary shrink-0" %}
               {% translate "DKIM, SPF, DMARC management"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% tabler name="check" class="text-primary shrink-0" %}
               {% translate "sandbox credentials"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
-              <i data-lucide="check" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% tabler name="check" class="text-primary shrink-0" %}
               {% translate "unlimited team members"|capfirst %}
             </li>
             <li class="flex items-center gap-2.5">
-              <i data-lucide="infinity" class="size-4 text-primary shrink-0" aria-hidden="true"></i>
+              {% tabler name="infinity" class="text-primary shrink-0" %}
               {% translate "free forever for open-source communities"|capfirst %}
             </li>
           </ul>
         </section>
         <footer class="m-0 mt-6">
           <a href="{% url 'accounts:org-start' %}" class="btn w-full" data-size="lg">
-            <i data-lucide="rocket" class="size-4" aria-hidden="true"></i>
+            {% tabler name="rocket" %}
             {% translate "get early access"|capfirst %}
           </a>
         </footer>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load abstract i18n %}
 {% block title %}{{ domain.name }} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between gap-4 mb-6">
@@ -139,7 +139,7 @@
                   data-copy="{{ mx_priority }}"
                   aria-label='{% translate "copy priority"|capfirst %}'
                 >
-                  <i data-lucide="copy" class="size-3.5" aria-hidden="true"></i>
+                  {% tabler name="copy" size="3.5" %}
                 </button>
                 {% include "domains/_record_value.html" with record_value=mx_hostname trailing_dot=True %}
               </div>
@@ -202,7 +202,7 @@
       <summary>{% translate "apex NS delegation"|capfirst %}</summary>
       <section>
         <div class="alert mb-4" data-variant="destructive">
-          <i data-lucide="triangle-alert" class="size-4" aria-hidden="true"></i>
+          {% tabler name="alert-triangle" %}
           <h2>{% translate "DNS warning" %}</h2>
           <section>
             <p>{% translate "Caution: apex delegation replaces the current DNS service for this domain." %}</p>

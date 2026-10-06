@@ -17,9 +17,6 @@ importers:
       lodash.escape:
         specifier: ^4.0.1
         version: 4.0.1
-      lucide:
-        specifier: ^1.50.0
-        version: 1.50.0
       mermaid:
         specifier: ^11.17.2
         version: 11.17.2
@@ -27,6 +24,9 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0
     devDependencies:
+      '@tabler/icons-sprite':
+        specifier: ^3.48.0
+        version: 3.48.0
       '@tailwindcss/postcss':
         specifier: ^4.1.0
         version: 4.3.3
@@ -226,6 +226,10 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+  '@tabler/icons-sprite@3.48.0':
+    resolution: {integrity: sha512-e55W76mmXr69ub3gOy6RO8NTlT23gzjJ/khNNMyBMvQT8XdTc1LAa48k542dX71oqlXv9dDq04BjTsZAWg37iA==}
+  '@tabler/icons@3.48.0':
+    resolution: {integrity: sha512-lQk06gVHNVBnJp0UOgtth54mcZBJM7rdYKsAxKOProj1bbSAx+/xiuOWfHlyvgdL3M+Y+I0HINrjHa3ygp8eXQ==}
   '@tailwindcss/node@4.3.3':
     resolution: {integrity: sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg==}
   '@tailwindcss/oxide-android-arm64@4.3.3':
@@ -803,8 +807,6 @@ packages:
   lru-cache@11.5.3:
     resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
     engines: {node: 20 || >=22}
-  lucide@1.50.0:
-    resolution: {integrity: sha512-9ba3cwifVinKmcmGM+ChiuauzClzxxMxQKDv5hRskbwwlC9wcUpT2QygAfKrehBLbGnbAA0wC1Tc1dDSrwzNJg==}
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
   marked@16.4.2:
@@ -1268,6 +1270,10 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
+  '@tabler/icons-sprite@3.48.0':
+    dependencies:
+      '@tabler/icons': 3.48.0
+  '@tabler/icons@3.48.0': {}
   '@tailwindcss/node@4.3.3':
     dependencies:
       '@jridgewell/remapping': 2.3.5
@@ -1883,7 +1889,6 @@ snapshots:
   lodash-es@4.18.1: {}
   lodash.escape@4.0.1: {}
   lru-cache@11.5.3: {}
-  lucide@1.50.0: {}
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5

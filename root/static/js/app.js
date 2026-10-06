@@ -1,5 +1,4 @@
 import "basecoat-css/all.min";
-import { createIcons, icons } from "lucide";
 
 function sharePage() {
   const url = globalThis.location.href;
@@ -106,5 +105,4 @@ document.addEventListener("DOMContentLoaded", () => {
   for (const dialog of document.querySelectorAll("dialog[data-auto-open]")) {
     dialog.showModal();
   }
-  createIcons({ icons });
 });

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n humanize message abstract %}
+{% load abstract humanize i18n message %}
 {% block title %}{% translate "recipient reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -41,7 +41,7 @@
           >
         {% endif %}
         <span data-align="start" aria-hidden="true">
-          <i data-lucide="search" class="size-4"></i>
+          {% tabler name="search" %}
         </span>
         <button
           type="submit"
@@ -51,7 +51,7 @@
           data-align="end"
           aria-label='{% translate "search"|capfirst context "verb" %}'
         >
-          <i data-lucide="arrow-right" aria-hidden="true"></i>
+          {% tabler name="arrow-right" size=None %}
         </button>
       </div>
     </form>
@@ -65,12 +65,12 @@
         aria-controls="report-filters-popover"
         aria-expanded="false"
       >
-        <i data-lucide="list-filter" aria-hidden="true"></i>
+        {% tabler name="filter" size=None %}
         {{ type_label }}
         {% for value in filter_values %}
           <span class="badge" data-size="sm">{{ value }}</span>
         {% endfor %}
-        <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
+        {% tabler name="chevron-down" size="3.5" %}
       </button>
       <div
         id="report-filters-popover"
@@ -82,7 +82,7 @@
       >
         <div class="command" id="report-filter-command" aria-label='{% translate "filters"|capfirst %}'>
           <header>
-            <i data-lucide="search" class="size-4"></i>
+            {% tabler name="search" %}
             <input
               id="report-filter-input"
               type="search"
@@ -108,36 +108,36 @@
                 href="?{% param_replace type='dmarc' %}"
                 data-checked="{% if type == 'dmarc' %}true{% else %}false{% endif %}"
               >
-                <i data-lucide="shield-check" class="size-4" aria-hidden="true"></i>
+                {% tabler name="shield-check" %}
                 DMARC
-                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                {% tabler name="check" %}
               </a>
               <a
                 role="menuitem"
                 href="?{% param_replace type='failures' %}"
                 data-checked="{% if type == 'failures' %}true{% else %}false{% endif %}"
               >
-                <i data-lucide="alert-triangle" class="size-4" aria-hidden="true"></i>
+                {% tabler name="alert-triangle" %}
                 {% translate "DMARC failures"|capfirst %}
-                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                {% tabler name="check" %}
               </a>
               <a
                 role="menuitem"
                 href="?{% param_replace type='tls' %}"
                 data-checked="{% if type == 'tls' %}true{% else %}false{% endif %}"
               >
-                <i data-lucide="lock" class="size-4" aria-hidden="true"></i>
+                {% tabler name="lock" %}
                 {% translate "TLS"|capfirst %}
-                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                {% tabler name="check" %}
               </a>
               <a
                 role="menuitem"
                 href="?{% param_replace type='fbl' %}"
                 data-checked="{% if type == 'fbl' %}true{% else %}false{% endif %}"
               >
-                <i data-lucide="flag" class="size-4" aria-hidden="true"></i>
+                {% tabler name="flag" %}
                 {% translate "FBL"|capfirst %}
-                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                {% tabler name="check" %}
               </a>
             </div>
           </div>
@@ -146,7 +146,7 @@
     </div>
     {% if ip or domain %}
       <a class="btn" data-variant="ghost" href="?{% param_replace ip='' domain='' %}">
-        <i data-lucide="rotate-ccw" class="size-4" aria-hidden="true"></i>
+        {% tabler name="restore" %}
         {% translate "clear"|capfirst %}
       </a>
     {% endif %}
@@ -161,16 +161,16 @@
           </h3>
           <div class="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
             {% if type == 'dmarc' %}
-              <i data-lucide="shield-check" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              {% tabler name="shield-check" size="3.5" class="shrink-0" %}
               <span class="sr-only">DMARC</span>
             {% elif type == 'failures' %}
-              <i data-lucide="alert-triangle" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              {% tabler name="alert-triangle" size="3.5" class="shrink-0" %}
               <span class="sr-only">{% translate "DMARC failures"|capfirst %}</span>
             {% elif type == 'fbl' %}
-              <i data-lucide="flag" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              {% tabler name="flag" size="3.5" class="shrink-0" %}
               <span class="sr-only">FBL</span>
             {% else %}
-              <i data-lucide="lock" class="size-3.5 shrink-0" aria-hidden="true"></i>
+              {% tabler name="lock" size="3.5" class="shrink-0" %}
               <span class="sr-only">TLS</span>
             {% endif %}
             <code class="truncate max-w-96">
@@ -201,7 +201,7 @@
         <section class="empty">
           <header>
             <figure>
-              <i data-lucide="search" aria-hidden="true"></i>
+              {% tabler name="search" size=None %}
             </figure>
             <h3>{% translate "No reports found." %}</h3>
             <p>{% translate "Try different filters to find what you are looking for." %}</p>

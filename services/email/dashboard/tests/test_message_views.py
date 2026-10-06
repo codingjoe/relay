@@ -266,7 +266,22 @@ class TestMessageDetailStatusCard:
         assert response.status_code == 200
         content = response.content.decode()
         assert "Spam reject" in content
+        assert '#tabler-message-exclamation"' in content
         assert "Eicar-Test-Signature" in content
+        assert '#tabler-virus"' in content
+
+    def test_get__marks_a_clean_scan(self, admin_client, org):
+        message = make_incoming(org)
+        message.spam_action = "no action"
+        message.virus_action = "clean"
+        message.save(update_fields=["spam_action", "virus_action"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '#tabler-message-check"' in content
+        assert '#tabler-virus-off"' in content
 
     def test_get__renders_tabs_with_the_html_body(self, admin_client, org):
         message = make_incoming(org)

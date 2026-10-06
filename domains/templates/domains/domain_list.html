@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load abstract i18n %}
 {% block title %}{% translate "domains"|capfirst context "noun" %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -73,7 +73,7 @@
             </p>
           </section>
           <aside>
-            <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto shrink-0" aria-hidden="true"></i>
+            {% tabler name="chevron-right" class="text-muted-foreground ms-auto shrink-0" %}
           </aside>
         </a>
       {% endif %}

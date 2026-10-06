@@ -2,6 +2,8 @@
 @plugin "@tailwindcss/typography";
 @import "basecoat-css/maia";
 
+@source inline("size-3.5 size-4 size-5 size-6 size-7 size-8");
+
 @import "./fonts.css";
 @import "./theme.css";
 @import "./base.css";

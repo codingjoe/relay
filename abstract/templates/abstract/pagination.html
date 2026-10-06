@@ -1,4 +1,4 @@
-{% load i18n abstract %}
+{% load abstract i18n %}
 {% if page_obj.has_other_pages %}
   <nav
     role="navigation"
@@ -14,7 +14,7 @@
             data-size="sm"
             href="?{% param_replace page=page_obj.previous_page_number %}"
           >
-            <i data-lucide="chevron-left" class="size-4" aria-hidden="true"></i>
+            {% tabler name="chevron-left" %}
             {% translate "previous"|capfirst %}
           </a>
         </li>
@@ -33,7 +33,7 @@
             href="?{% param_replace page=page_obj.next_page_number %}"
           >
             {% translate "next"|capfirst %}
-            <i data-lucide="chevron-right" class="size-4" aria-hidden="true"></i>
+            {% tabler name="chevron-right" %}
           </a>
         </li>
       {% endif %}

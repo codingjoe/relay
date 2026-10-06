@@ -1,3 +1,4 @@
 *.lock binary
 *-lock.* binary
 fixtures/* linguist-generated
+*.html linguist-language=django

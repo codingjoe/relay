@@ -35,7 +35,7 @@ class Message(TimeStamped):
     """
 
     icon = ""
-    """Lucide icon name of the concrete subclass. Falls back to the direction icons."""
+    """Tabler icon name of the concrete subclass. Falls back to the direction icons."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -191,7 +191,7 @@ class Message(TimeStamped):
     @property
     def kind_icon(self) -> str:
         """
-        Return the matching Lucide icon name.
+        Return the matching Tabler icon name.
 
         Reads the icon from the concrete class because multi-table
         inheritance returns base instances in shared querysets.
@@ -225,6 +225,15 @@ class Message(TimeStamped):
                 return "outline"
 
     @property
+    def spam_icon(self) -> str:
+        """Return the icon that matches the rspamd verdict."""
+        match self.spam_action:
+            case "pass" | "no action":
+                return "message-check"
+            case _:
+                return "message-exclamation"
+
+    @property
     def virus_badge_variant(self) -> str:
         """Map the antivirus verdict to a badge variant."""
         match self.virus_action:
@@ -236,6 +245,15 @@ class Message(TimeStamped):
                 return "warning"
             case _:
                 return "outline"
+
+    @property
+    def virus_icon(self) -> str:
+        """Return the icon that matches the antivirus verdict."""
+        match self.virus_action:
+            case "infected":
+                return "virus"
+            case _:
+                return "virus-off"
 
     @property
     def virus_display(self) -> str:
