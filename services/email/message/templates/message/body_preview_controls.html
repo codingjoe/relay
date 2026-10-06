@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load abstract i18n %}
 <button
   type="button"
   class="btn"
@@ -9,10 +9,10 @@
   aria-label='{% translate "dark preview"|capfirst %}'
 >
   <span data-preview-icon="light">
-    <i data-lucide="sun" class="size-4" aria-hidden="true"></i>
+    {% tabler name="sun" %}
   </span>
   <span data-preview-icon="dark" hidden>
-    <i data-lucide="moon" class="size-4" aria-hidden="true"></i>
+    {% tabler name="moon" %}
   </span>
 </button>
 <div id="preview-options" class="popover">
@@ -26,9 +26,9 @@
     aria-controls="preview-options-popover"
     aria-expanded="false"
   >
-    <i data-lucide="sliders-horizontal" class="size-3.5" aria-hidden="true"></i>
+    {% tabler name="adjustments-horizontal" size="3.5" %}
     <span data-preview-summary>{% translate "Gmail" %}</span>
-    <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
+    {% tabler name="chevron-down" size="3.5" %}
   </button>
   <div
     id="preview-options-popover"
@@ -44,7 +44,7 @@
       aria-label='{% translate "preview settings"|capfirst %}'
     >
       <header>
-        <i data-lucide="search" class="size-4" aria-hidden="true"></i>
+        {% tabler name="search" %}
         <input
           id="preview-command-input"
           type="search"
@@ -74,9 +74,9 @@
             data-filter="{% translate 'Gmail' %}"
             data-keywords="google"
           >
-            <i data-lucide="mail" class="size-4" aria-hidden="true"></i>
+            {% tabler name="mail" %}
             <span>{% translate "Gmail" %}</span>
-            <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+            <span data-indicator>{% tabler name="check" %}</span>
           </button>
           <button
             type="button"
@@ -86,9 +86,9 @@
             data-filter="{% translate 'Apple Mail' %}"
             data-keywords="icloud"
           >
-            <i data-lucide="apple" class="size-4" aria-hidden="true"></i>
+            {% tabler name="brand-apple" %}
             <span>{% translate "Apple Mail" %}</span>
-            <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+            <span data-indicator>{% tabler name="check" %}</span>
           </button>
           <button
             type="button"
@@ -98,10 +98,10 @@
             data-filter="{% translate 'Outlook' %}"
             data-keywords="microsoft"
           >
-            <i data-lucide="mailbox" class="size-4" aria-hidden="true"></i>
+            {% tabler name="mailbox" %}
             <span>{% translate "Outlook" %}</span>
             <span class="text-xs text-muted-foreground">{% translate "blocks remote images" %}</span>
-            <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+            <span data-indicator>{% tabler name="check" %}</span>
           </button>
         </div>
       </div>
