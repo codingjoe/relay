@@ -120,8 +120,11 @@ domain, so they are billed and listed like any other message the organization
 sends. The dashboard shows every quarantined message with its score. The message
 detail page renders an HTML body in a sandboxed frame that runs no scripts
 and sends no referrer, so a body from the outside cannot act inside your
-session. Remote images stay allowed, so the body looks as the sender wrote
-it.
+session. Remote images stay allowed by default, so the body looks as the
+sender wrote it. A client preview shows the message the way that client
+shows it. Outlook holds the remote images back, Gmail and Apple Mail show
+them, and the preview loads them from the reader's browser rather than
+through a client's image proxy.
 
 ## Content Security Policy
 

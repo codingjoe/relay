@@ -151,7 +151,14 @@ with the URL, response code, and a response excerpt.
   last transmission finished, the sender and recipient, and what the scan
   found. Tabs below it open on the HTML body when the message carries one,
   then the plain text body, and the headers last. A message without an HTML
-  part opens on its plain text body.
+  part opens on its plain text body. The preview controls beside the tabs
+  render the message the way a common email client does, and open on Gmail,
+  the client most messages are read in. The command picks the client, the
+  theme toggle switches the light and dark preview. A client preview drops the
+  CSS that client never applies, following the support data published on
+  [caniemail.com](https://www.caniemail.com/), and holds remote images back
+  where the client does, which is Outlook. The dark preview applies the dark
+  styles the message carries, and inverts it the way Gmail does.
 - Filters let you watch only failed or quarantined traffic.
 
 ## The antivirus badge

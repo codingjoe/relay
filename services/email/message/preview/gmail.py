@@ -1,0 +1,187 @@
+"""
+The CSS a Gmail preview drops, from the caniemail.com support data.
+
+Gmail strips the rules whose selectors use a pseudo-class or pseudo-element it
+does not support, and it drops the declarations caniemail.com marks unsupported
+for it. It reads no prefers-color-scheme query of its own, so the color scheme
+stays with the preview theme.
+"""
+
+from .. import styles
+
+# Gmail strips the rules whose selectors use a pseudo-class or pseudo-element
+# it does not support: caniemail.com/features/css-pseudo-class-hover/ and the
+# css-pseudo-class-* and css-pseudo-element-* features.
+PSEUDOS = (
+    r"::?(?:active|checked|default|first-child|first-of-type|focus|focus-visible"
+    r"|focus-within|has|lang|last-child|last-of-type|link|not|nth-child"
+    r"|nth-last-child|nth-last-of-type|nth-of-type|only-child|only-of-type"
+    r"|target|visited|after|before|first-letter|first-line|marker|placeholder)\b"
+)
+
+# Gmail drops the declarations caniemail.com marks unsupported for it:
+# css-accent-color, css-animation, css-aspect-ratio, css-backdrop-filter,
+# css-block-inline-size, css-border-image, css-border-inline-block,
+# css-border-inline-block-individual, css-border-inline-block-longhand,
+# css-border-radius-logical, css-box-shadow, css-clip-path, css-color-scheme,
+# css-cursor, css-filter, css-flex-direction, css-flex-wrap, css-grid-template,
+# css-hyphenate-character, css-hyphenate-limit-chars, css-hyphens,
+# css-inline-size, css-inset, css-justify-content, css-left-right-top-bottom,
+# css-list-style-image, css-margin-block-start-end, css-margin-inline-block,
+# css-margin-inline-start-end, css-mask-image, css-max-block-size,
+# css-max-inline-size, css-min-block-size, css-min-inline-size,
+# css-modern-color, css-orphans, css-outline-offset, css-overflow-wrap,
+# css-padding-block-start-end, css-padding-inline-block,
+# css-padding-inline-start-end, css-position, css-resize, css-scroll-snap,
+# css-shape-margin, css-shape-outside, css-tab-size,
+# css-text-decoration-skip-ink, css-text-decoration-thickness,
+# css-text-emphasis-position, css-text-shadow, css-text-underline-offset,
+# css-text-wrap, css-transform, css-transition, css-user-select,
+# css-visibility, css-white-space-collapse, css-widows, and css-z-index.
+PROPERTIES = frozenset(
+    {
+        "accent-color",
+        "align-items",
+        "animation",
+        "animation-delay",
+        "animation-direction",
+        "animation-duration",
+        "animation-fill-mode",
+        "animation-iteration-count",
+        "animation-name",
+        "animation-play-state",
+        "animation-timing-function",
+        "aspect-ratio",
+        "backdrop-filter",
+        "block-size",
+        "border-block",
+        "border-block-color",
+        "border-block-end",
+        "border-block-end-color",
+        "border-block-end-style",
+        "border-block-end-width",
+        "border-block-start",
+        "border-block-start-color",
+        "border-block-start-style",
+        "border-block-start-width",
+        "border-block-style",
+        "border-block-width",
+        "border-end-end-radius",
+        "border-end-start-radius",
+        "border-image",
+        "border-image-outset",
+        "border-image-repeat",
+        "border-image-slice",
+        "border-image-source",
+        "border-image-width",
+        "border-inline",
+        "border-inline-color",
+        "border-inline-end",
+        "border-inline-end-color",
+        "border-inline-end-style",
+        "border-inline-end-width",
+        "border-inline-start",
+        "border-inline-start-color",
+        "border-inline-start-style",
+        "border-inline-start-width",
+        "border-inline-style",
+        "border-inline-width",
+        "border-start-end-radius",
+        "border-start-start-radius",
+        "bottom",
+        "box-shadow",
+        "clip-path",
+        "color-scheme",
+        "cursor",
+        "filter",
+        "flex-direction",
+        "flex-wrap",
+        "grid-template",
+        "grid-template-areas",
+        "grid-template-columns",
+        "grid-template-rows",
+        "hyphenate-character",
+        "hyphenate-limit-chars",
+        "hyphens",
+        "inline-size",
+        "inset",
+        "inset-block",
+        "inset-block-end",
+        "inset-block-start",
+        "inset-inline",
+        "inset-inline-end",
+        "inset-inline-start",
+        "justify-content",
+        "left",
+        "list-style-image",
+        "margin-block",
+        "margin-block-end",
+        "margin-block-start",
+        "margin-inline",
+        "margin-inline-end",
+        "margin-inline-start",
+        "mask-image",
+        "max-block-size",
+        "max-inline-size",
+        "min-block-size",
+        "min-inline-size",
+        "orphans",
+        "outline-offset",
+        "overflow-wrap",
+        "padding-block",
+        "padding-block-end",
+        "padding-block-start",
+        "padding-inline",
+        "padding-inline-end",
+        "padding-inline-start",
+        "position",
+        "resize",
+        "right",
+        "scroll-snap-align",
+        "scroll-snap-stop",
+        "scroll-snap-type",
+        "shape-margin",
+        "shape-outside",
+        "tab-size",
+        "text-decoration-skip-ink",
+        "text-decoration-thickness",
+        "text-emphasis",
+        "text-emphasis-color",
+        "text-emphasis-position",
+        "text-emphasis-style",
+        "text-shadow",
+        "text-underline-offset",
+        "text-wrap",
+        "top",
+        "transform",
+        "transition",
+        "transition-delay",
+        "transition-duration",
+        "transition-property",
+        "transition-timing-function",
+        "user-select",
+        "visibility",
+        "white-space-collapse",
+        "widows",
+        "z-index",
+    }
+)
+
+RESTRICTIONS = styles.Restrictions(
+    properties=PROPERTIES,
+    # caniemail.com/features/css-function-light-dark/, css-modern-color/, and
+    # css-conic-gradient/ do not apply in Gmail.
+    values=(r"\b(?:lch|oklch|lab|oklab)\(", r"\blight-dark\(", r"\bconic-gradient\("),
+    # caniemail.com/features/css-at-font-face/, css-at-import/,
+    # css-at-keyframes/, and css-at-supports/ do not apply in Gmail, and it
+    # reads no hover or motion query. The color scheme stays with the theme.
+    at_rules=frozenset({"@font-face", "@import", "@keyframes", "@supports"}),
+    media_terms=(
+        r"prefers-reduced-motion",
+        r"\bhover\b",
+        r"-webkit-device-pixel-ratio",
+    ),
+    selectors=(PSEUDOS,),
+    # caniemail.com/features/css-variables/ does not apply in Gmail.
+    custom_properties=True,
+)

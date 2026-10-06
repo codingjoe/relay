@@ -122,7 +122,7 @@
     {% endif %}
   {% endblock %}
 
-  <section class="mb-6">
+  <section class="mb-6" data-message-preview>
     <header class="flex items-center justify-between gap-2 mb-4">
       <h3 class="font-semibold m-0">{% translate "message"|capfirst context "noun" %}</h3>
       <div class="flex items-center gap-1">
@@ -190,6 +190,9 @@
         </button>
       </nav>
       {% if has_html_body %}
+        <div class="preview-controls flex items-center gap-1">
+          {% include "message/body_preview_controls.html" %}
+        </div>
         <div
           role="tabpanel"
           id="message-panel-html"
@@ -197,14 +200,7 @@
           tabindex="-1"
           aria-selected="true"
         >
-          {# sandbox drops allow-scripts: the body is untrusted mail #}
-          <iframe
-            class="h-[36rem] w-full rounded-xl border bg-white"
-            sandbox
-            referrerpolicy="no-referrer"
-            src="{{ body_url }}"
-            title='{% translate "HTML body" %}'
-          ></iframe>
+          {% include "message/body_preview.html" %}
         </div>
       {% endif %}
       <div

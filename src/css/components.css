@@ -115,3 +115,25 @@
     animation: none;
   }
 }
+
+/* The message detail tab strip shares its row with the preview controls. The
+   strip keeps its own column, the controls take the right end, and every
+   panel spans both so the body keeps the full width. */
+.tabs:has(> .preview-controls) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.tabs:has(> .preview-controls) > [role="tablist"] {
+  grid-area: 1 / 1;
+}
+
+.tabs:has(> .preview-controls) > .preview-controls {
+  grid-area: 1 / 2;
+  justify-self: end;
+}
+
+.tabs:has(> .preview-controls) > [role="tabpanel"] {
+  grid-column: 1 / -1;
+}

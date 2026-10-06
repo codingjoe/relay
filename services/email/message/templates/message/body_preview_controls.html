@@ -1,0 +1,110 @@
+{% load i18n %}
+<button
+  type="button"
+  class="btn"
+  data-variant="ghost"
+  data-size="icon-sm"
+  id="preview-theme-toggle"
+  aria-pressed="false"
+  aria-label='{% translate "dark preview"|capfirst %}'
+>
+  <span data-preview-icon="light">
+    <i data-lucide="sun" class="size-4" aria-hidden="true"></i>
+  </span>
+  <span data-preview-icon="dark" hidden>
+    <i data-lucide="moon" class="size-4" aria-hidden="true"></i>
+  </span>
+</button>
+<div id="preview-options" class="popover">
+  <button
+    type="button"
+    class="btn"
+    data-variant="secondary"
+    data-size="sm"
+    id="preview-options-trigger"
+    aria-haspopup="menu"
+    aria-controls="preview-options-popover"
+    aria-expanded="false"
+  >
+    <i data-lucide="sliders-horizontal" class="size-3.5" aria-hidden="true"></i>
+    <span data-preview-summary>{% translate "Gmail" %}</span>
+    <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
+  </button>
+  <div
+    id="preview-options-popover"
+    class="w-80 p-0"
+    aria-hidden="true"
+    data-side="bottom"
+    data-align="end"
+    data-popover
+  >
+    <div
+      class="command"
+      id="preview-command"
+      aria-label='{% translate "preview settings"|capfirst %}'
+    >
+      <header>
+        <i data-lucide="search" class="size-4" aria-hidden="true"></i>
+        <input
+          id="preview-command-input"
+          type="search"
+          role="combobox"
+          autocomplete="off"
+          aria-autocomplete="list"
+          aria-expanded="false"
+          aria-controls="preview-command-menu"
+          placeholder='{% translate "filter preview settings" %}'
+          aria-label='{% translate "filter preview settings" %}'
+        >
+      </header>
+      <div
+        role="menu"
+        id="preview-command-menu"
+        aria-labelledby="preview-options-trigger"
+        class="max-h-80"
+        data-empty='{% translate "No matching settings." %}'
+      >
+        <div role="group">
+          <span role="heading">{% translate "client"|capfirst %}</span>
+          <button
+            type="button"
+            role="menuitem"
+            data-checked="true"
+            data-preview-client="gmail"
+            data-filter="{% translate 'Gmail' %}"
+            data-keywords="google"
+          >
+            <i data-lucide="mail" class="size-4" aria-hidden="true"></i>
+            <span>{% translate "Gmail" %}</span>
+            <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            data-checked="false"
+            data-preview-client="apple-mail"
+            data-filter="{% translate 'Apple Mail' %}"
+            data-keywords="icloud"
+          >
+            <i data-lucide="apple" class="size-4" aria-hidden="true"></i>
+            <span>{% translate "Apple Mail" %}</span>
+            <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            data-checked="false"
+            data-preview-client="outlook"
+            data-filter="{% translate 'Outlook' %}"
+            data-keywords="microsoft"
+          >
+            <i data-lucide="mailbox" class="size-4" aria-hidden="true"></i>
+            <span>{% translate "Outlook" %}</span>
+            <span class="text-xs text-muted-foreground">{% translate "blocks remote images" %}</span>
+            <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

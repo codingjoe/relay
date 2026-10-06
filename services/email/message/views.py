@@ -4,12 +4,11 @@ from django.db import models
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils.csp import CSP
+from django.utils.csp import CSP, build_policy
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 from django.views.decorators.clickjacking import xframe_options_sameorigin
-from django.views.decorators.csp import csp_override
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
@@ -17,6 +16,7 @@ from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
 from .charts import MESSAGE_KINDS, build_direction_chart, build_kind_charts
 from .models import Message
+from .preview import MessagePreview
 
 
 class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
@@ -168,15 +168,20 @@ MESSAGE_BODY_CSP = {
     "frame-src": [CSP.NONE],
     "object-src": [CSP.NONE],
     "style-src": [CSP.UNSAFE_INLINE],
-    "img-src": ["http:", "https:"],
+    # The images the message itself carries are always allowed; the remote
+    # ones are what the tracking mode stops.
+    "img-src": ["data:", "http:", "https:"],
     "form-action": [CSP.NONE],
     "base-uri": [CSP.NONE],
     "frame-ancestors": [CSP.SELF],
     "sandbox": True,
 }
 
+# Blocking the downloads a tracking pixel needs also stops every remote
+# image, while the pictures the message itself carries still show.
+MESSAGE_BODY_BLOCKED_CSP = MESSAGE_BODY_CSP | {"img-src": ["data:"]}
 
-@method_decorator(csp_override(MESSAGE_BODY_CSP), name="get")
+
 @method_decorator(xframe_options_sameorigin, name="get")
 class MessageBodyView(OrganizationScopedView, NoStoreCacheMixin, generic.View):
     """Serve the HTML body of a message to a sandboxed frame."""
@@ -185,7 +190,14 @@ class MessageBodyView(OrganizationScopedView, NoStoreCacheMixin, generic.View):
         message = get_object_or_404(
             Message.objects.filter(org=self.org), pk=self.kwargs["pk"]
         )
-        return HttpResponse(message.html_body, content_type="text/html; charset=utf-8")
+        preview = MessagePreview.from_query(request.GET)
+        response = HttpResponse(
+            preview.render(message.html_body), content_type="text/html; charset=utf-8"
+        )
+        response.headers[str(CSP.HEADER_ENFORCE)] = build_policy(
+            MESSAGE_BODY_BLOCKED_CSP if preview.block_images else MESSAGE_BODY_CSP
+        )
+        return response
 
 
 class CertificateDetailView(
