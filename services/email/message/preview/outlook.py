@@ -1,13 +1,5 @@
-"""
-The CSS an Outlook preview drops, from the caniemail.com support data.
-
-Outlook renders with the Word engine, which reads no @media rule and misses
-much of modern CSS.
-"""
-
 from .. import styles
 
-# Selectors with a pseudo-class or pseudo-element Outlook does not support.
 PSEUDOS = (
     r"::?(?:active|checked|default|first-child|first-of-type|focus|focus-visible"
     r"|focus-within|has|hover|lang|last-child|last-of-type|not|nth-child"
@@ -15,7 +7,6 @@ PSEUDOS = (
     r"|target|visited|after|before|first-letter|first-line|marker|placeholder)\b"
 )
 
-# The declarations caniemail.com marks unsupported for Outlook.
 PROPERTIES = frozenset(
     {
         "accent-color",
@@ -212,9 +203,7 @@ RESTRICTIONS = styles.Restrictions(
         r"[\d.]+(?:rem|vh|vw|vmin|vmax|ch)\b",
         r"\b(?:fit-content|min-content|max-content)\b",
     ),
-    # Outlook ignores these at-rules and reads no @media rule at all.
     at_rules=frozenset({"@keyframes", "@supports"}),
-    # Universal, attribute, child, and sibling selectors do not apply.
     selectors=(PSEUDOS, r"\[", r"\*", r"[>+~]"),
     custom_properties=True,
     reads_media=False,

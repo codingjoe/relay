@@ -1,9 +1,3 @@
-"""
-The CSS an Apple Mail preview drops, from the caniemail.com support data.
-
-Apple Mail renders nearly everything.
-"""
-
 from .. import styles
 
 RESTRICTIONS = styles.Restrictions(

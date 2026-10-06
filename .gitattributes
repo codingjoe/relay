@@ -1,4 +1,7 @@
 *.lock binary
 *-lock.* binary
 fixtures/* linguist-generated
+services/email/message/preview/gmail.py linguist-generated
+services/email/message/preview/apple_mail.py linguist-generated
+services/email/message/preview/outlook.py linguist-generated
 *.html linguist-language=django

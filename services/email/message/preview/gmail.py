@@ -1,13 +1,5 @@
-"""
-The CSS a Gmail preview drops, from the caniemail.com support data.
-
-Gmail reads no prefers-color-scheme query of its own, so the color scheme stays
-with the preview theme.
-"""
-
 from .. import styles
 
-# Selectors with a pseudo-class or pseudo-element Gmail does not support.
 PSEUDOS = (
     r"::?(?:active|checked|default|first-child|first-of-type|focus|focus-visible"
     r"|focus-within|has|lang|last-child|last-of-type|link|not|nth-child"
@@ -15,7 +7,6 @@ PSEUDOS = (
     r"|target|visited|after|before|first-letter|first-line|marker|placeholder)\b"
 )
 
-# Declarations caniemail.com marks unsupported for Gmail.
 PROPERTIES = frozenset(
     {
         "accent-color",
@@ -147,9 +138,7 @@ PROPERTIES = frozenset(
 
 RESTRICTIONS = styles.Restrictions(
     properties=PROPERTIES,
-    # Modern color functions and conic gradients do not apply in Gmail.
     values=(r"\b(?:lch|oklch|lab|oklab)\(", r"\blight-dark\(", r"\bconic-gradient\("),
-    # These at-rules do not apply, and Gmail reads no hover or motion query.
     at_rules=frozenset({"@font-face", "@import", "@keyframes", "@supports"}),
     media_terms=(
         r"prefers-reduced-motion",
