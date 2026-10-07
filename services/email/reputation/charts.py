@@ -7,7 +7,7 @@ from django.contrib.humanize.templatetags.humanize import intcomma
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
-from django.utils.translation import gettext
+from django.utils.translation import gettext, ngettext
 
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
@@ -16,6 +16,7 @@ from .models import FblReport
 
 REPUTATION_CHART_COLORS = {
     "hard_bounce_rate": "var(--color-chart-red)",
+    "soft_bounce_rate": "var(--color-chart-yellow)",
     "complaint_rate": "var(--color-chart-orange)",
     "this_month": "var(--color-chart-green)",
     "last_month": "var(--color-chart-gray)",
@@ -50,6 +51,24 @@ def bounced_per_day(org, start):
     return {row["day"]: row["count"] for row in rows}
 
 
+def soft_bounces_per_day(org, start):
+    """Return the daily count of messages whose delivery a 4xx refusal ended."""
+    rows = (
+        OutgoingMessage.objects.filter(
+            org=org,
+            created_at__date__gte=start,
+            status=OutgoingMessage.Status.FAILED,
+            transmissions__status=Transmission.Status.FAILED,
+            transmissions__code__gte=400,
+            transmissions__code__lt=500,
+        )
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id", distinct=True))
+    )
+    return {row["day"]: row["count"] for row in rows}
+
+
 def complaints_per_day(org, start):
     """Return the complaint count per day since `start`."""
     reports = (
@@ -79,7 +98,7 @@ def complaints_per_day(org, start):
 
 
 def rate_chart(rows, key, label, color, limit, subtitle):
-    """Return one rate chart, with that rate's own limit as a threshold line."""
+    """Return the payload for one plotted series, with an optional limit line."""
     return {
         "series": [
             {
@@ -91,18 +110,27 @@ def rate_chart(rows, key, label, color, limit, subtitle):
         ],
         "rows": rows,
         "subtitle": subtitle,
-        "threshold": {"value": limit, "label": gettext("Limit")},
+        "threshold": (
+            {"value": limit, "label": gettext("Limit")} if limit is not None else None
+        ),
         "y_scale": {"stacked": False, "percent": True},
     }
 
 
 def build_reputation_chart(org):
-    """Return the per-day rates of one org, ready for one chart per rate."""
+    """
+    Return the hard bounce, soft bounce, and complaint rates of one organization.
+
+    The rates are cumulative and cover the last
+    `RELAY_REPUTATION_WINDOW_DAYS` days. The soft bounce rate is display-only:
+    only the hard bounce and complaint rates feed the suspension check.
+    """
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     start = timezone.localdate() - timedelta(days=window_days - 1)
 
     sent_counts = sent_per_day(org, start)
     hard_bounce_counts = bounced_per_day(org, start)
+    soft_bounce_counts = soft_bounces_per_day(org, start)
     complaint_counts = complaints_per_day(org, start)
 
     days_list = [start + timedelta(days=offset) for offset in range(window_days)]
@@ -112,6 +140,9 @@ def build_reputation_chart(org):
     sent_cumulative = list(accumulate(sent_counts.get(day, 0) for day in days_list))
     hard_bounce_cumulative = list(
         accumulate(hard_bounce_counts.get(day, 0) for day in days_list)
+    )
+    soft_bounce_cumulative = list(
+        accumulate(soft_bounce_counts.get(day, 0) for day in days_list)
     )
     complaint_cumulative = list(
         accumulate(complaint_counts.get(day, 0) for day in days_list)
@@ -124,30 +155,52 @@ def build_reputation_chart(org):
         ]
 
     hard_bounce_rates = rate(hard_bounce_cumulative)
+    soft_bounce_rates = rate(soft_bounce_cumulative)
     complaint_rates = rate(complaint_cumulative)
     rows = [
         {
             "day": day.isoformat(),
             "hard_bounce_rate": hard_bounce_rate,
+            "soft_bounce_rate": soft_bounce_rate,
             "complaint_rate": complaint_rate,
         }
-        for day, hard_bounce_rate, complaint_rate in zip(
-            days_list, hard_bounce_rates, complaint_rates
+        for day, hard_bounce_rate, soft_bounce_rate, complaint_rate in zip(
+            days_list, hard_bounce_rates, soft_bounce_rates, complaint_rates
         )
     ]
     return {
         "rows": rows,
-        "bounce_chart": rate_chart(
+        "hard_bounce_chart": rate_chart(
             rows,
             key="hard_bounce_rate",
             label=gettext("Hard bounce rate"),
             color=REPUTATION_CHART_COLORS["hard_bounce_rate"],
             limit=bounce_limit,
-            subtitle=gettext("%(count)s hard bounces of %(sent)s sent, limit %(limit)s")
+            subtitle=ngettext(
+                "%(count)s hard bounce of %(sent)s sent, limit %(limit)s",
+                "%(count)s hard bounces of %(sent)s sent, limit %(limit)s",
+                hard_bounce_cumulative[-1],
+            )
             % {
                 "count": intcomma(hard_bounce_cumulative[-1]),
                 "sent": intcomma(sent_cumulative[-1]),
                 "limit": f"{bounce_limit:.2f}%",
+            },
+        ),
+        "soft_bounce_chart": rate_chart(
+            rows,
+            key="soft_bounce_rate",
+            label=gettext("Soft bounce rate"),
+            color=REPUTATION_CHART_COLORS["soft_bounce_rate"],
+            limit=None,
+            subtitle=ngettext(
+                "%(count)s soft bounce of %(sent)s sent",
+                "%(count)s soft bounces of %(sent)s sent",
+                soft_bounce_cumulative[-1],
+            )
+            % {
+                "count": intcomma(soft_bounce_cumulative[-1]),
+                "sent": intcomma(sent_cumulative[-1]),
             },
         ),
         "complaint_chart": rate_chart(
@@ -156,7 +209,11 @@ def build_reputation_chart(org):
             label=gettext("Complaint rate"),
             color=REPUTATION_CHART_COLORS["complaint_rate"],
             limit=complaint_limit,
-            subtitle=gettext("%(count)s complaints of %(sent)s sent, limit %(limit)s")
+            subtitle=ngettext(
+                "%(count)s complaint of %(sent)s sent, limit %(limit)s",
+                "%(count)s complaints of %(sent)s sent, limit %(limit)s",
+                complaint_cumulative[-1],
+            )
             % {
                 "count": intcomma(complaint_cumulative[-1]),
                 "sent": intcomma(sent_cumulative[-1]),

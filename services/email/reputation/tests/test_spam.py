@@ -106,6 +106,52 @@ class TestComputeOrgReputation:
 
         assert stats["complaints"] == 1
 
+    def test_compute_org_reputation__counts_soft_bounces(self, org, user):
+        message = make_message(org, OutgoingMessage.Status.FAILED)
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.FAILED,
+            code=450,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["soft_bounces"] == 1
+        assert stats["hard_bounces"] == 0
+
+    def test_compute_org_reputation__counts_multiple_refusals_once(self, org, user):
+        message = make_message(org, OutgoingMessage.Status.FAILED)
+        started_at = timezone.now()
+        for code in (450, 451):
+            Transmission.objects.create(
+                message=message,
+                status=Transmission.Status.FAILED,
+                code=code,
+                started_at=started_at,
+                finished_at=timezone.now(),
+            )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["soft_bounces"] == 1
+
+    def test_compute_org_reputation__counts_hard_bounces(self, org, user):
+        message = make_message(org)
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["hard_bounces"] == 1
+        assert stats["soft_bounces"] == 0
+
 
 @pytest.mark.django_db
 class TestCheckOrgReputation:
@@ -139,26 +185,19 @@ class TestCheckOrgReputation:
 
     def test_check_org_reputation__ignores_soft_bounces(self, org, user, settings):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        domain = Domain.objects.create(name="reputation.test", org=org)
-        message = OutgoingMessage.objects.create(
-            org=org,
-            mail_from="sender@acme.com",
-            rcpt_to="rcpt@example.com",
-            domain=domain,
-            status=OutgoingMessage.Status.SENT,
-            raw_body=SimpleUploadedFile("test.eml", b"x"),
-        )
+        message = make_message(org, OutgoingMessage.Status.FAILED)
         Transmission.objects.create(
             message=message,
-            status=Transmission.Status.BOUNCED,
+            status=Transmission.Status.FAILED,
             code=450,
             started_at=timezone.now(),
             finished_at=timezone.now(),
         )
 
-        check_org_reputation(org)
+        stats = check_org_reputation(org)
 
         org.refresh_from_db()
+        assert stats["soft_bounces"] == 1
         assert org.suspended_at is None
 
     def test_check_org_reputation__skips_notification_when_already_locked(
@@ -190,14 +229,14 @@ class TestCheckOrgReputation:
         assert len(mailoutbox) == 0
 
 
-def make_sent_message(org):
+def make_message(org, status=OutgoingMessage.Status.SENT):
     domain = Domain.objects.create(name="reputation.test", org=org)
     return OutgoingMessage.objects.create(
         org=org,
         mail_from="sender@acme.com",
         rcpt_to="rcpt@example.com",
         domain=domain,
-        status=OutgoingMessage.Status.SENT,
+        status=status,
         raw_body=SimpleUploadedFile("test.eml", b"x"),
     )
 
@@ -208,7 +247,7 @@ class TestCheckReputationOnHardBounce:
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = make_sent_message(org)
+        message = make_message(org)
 
         with django_capture_on_commit_callbacks(execute=True):
             Transmission.objects.create(
@@ -221,25 +260,6 @@ class TestCheckReputationOnHardBounce:
 
         org.refresh_from_db()
         assert org.suspended_at is not None
-
-    @pytest.mark.django_db
-    def test_check_reputation_on_hard_bounce__ignores_soft_bounce(
-        self, django_capture_on_commit_callbacks, org, user, settings
-    ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = make_sent_message(org)
-
-        with django_capture_on_commit_callbacks(execute=True):
-            Transmission.objects.create(
-                message=message,
-                status=Transmission.Status.BOUNCED,
-                code=450,
-                started_at=timezone.now(),
-                finished_at=timezone.now(),
-            )
-
-        org.refresh_from_db()
-        assert org.suspended_at is None
 
 
 class TestCheckReputationOnHeldMessage:
@@ -272,7 +292,7 @@ class TestCheckReputationOnHeldMessage:
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
 
         with django_capture_on_commit_callbacks(execute=True):
-            make_sent_message(org)
+            make_message(org)
 
         org.refresh_from_db()
         assert org.suspended_at is None

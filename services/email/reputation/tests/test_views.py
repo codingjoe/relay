@@ -155,8 +155,11 @@ class TestReputationOverviewView:
         assert response.status_code == 200
         assert response.context["stats"]["hard_bounce_rate"] == 0.0
         assert response.context["stats"]["complaint_rate"] == 0.0
-        bounce_card = card_containing(response.content.decode(), "Hard bounce rate")
+        content = response.content.decode()
+        bounce_card = card_containing(content, "Hard bounce rate")
         assert "text-success" in bounce_card
+        assert ">Soft bounce rate<" in content
+        assert 'id="chart-soft-bounces"' in content
 
     def test_get__no_store_cache_control_header(self, admin_client, org):
         response = admin_client.get(overview_url(org))
@@ -246,14 +249,17 @@ class TestReputationOverviewView:
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
-        bounces = response.context["chart_bounces"]
+        hard_bounces = response.context["chart_hard_bounces"]
+        soft_bounces = response.context["chart_soft_bounces"]
         complaints = response.context["chart_complaints"]
-        last = bounces["rows"][-1]
+        last = hard_bounces["rows"][-1]
         assert last["hard_bounce_rate"] == 50.0
         assert last["complaint_rate"] == 0.0
-        assert bounces["threshold"]["value"] == 5.0
+        assert hard_bounces["threshold"]["value"] == 5.0
+        assert soft_bounces["threshold"] is None
         assert complaints["threshold"]["value"] == 0.1
-        assert bounces["series"][0]["key"] == "hard_bounce_rate"
+        assert hard_bounces["series"][0]["key"] == "hard_bounce_rate"
+        assert soft_bounces["series"][0]["key"] == "soft_bounce_rate"
         assert complaints["series"][0]["key"] == "complaint_rate"
 
     def test_get__charts_this_month_and_last_month_volume(self, admin_client, org):

@@ -115,14 +115,18 @@ without this proof stays on record, and it does not count into the rates.
 
 ## Reputation limits
 
-relay computes hard-bounce and complaint rates for your organization over a
-rolling window. Two rates drive the decision: the hard-bounce rate and the
-complaint rate. If one of the rates goes above its threshold, and the
-message volume in the window is large enough, relay suspends the
-organization. A suspension rejects new submissions with a 550 answer, and
-drops queued messages. The suspension never lifts by itself. relay sends
-mail to the organization admins and to relay staff when it suspends an
-organization.
+relay computes hard-bounce, soft-bounce, and complaint rates for your
+organization over a rolling window. Two rates drive the decision: the
+hard-bounce rate and the complaint rate. If one of the rates goes above its
+threshold, and the message volume in the window is large enough, relay
+suspends the organization. A suspension rejects new submissions with a 550
+answer, and drops queued messages. The suspension never lifts by itself.
+relay sends mail to the organization admins and to relay staff when it
+suspends an organization.
+
+The monitoring page charts the soft-bounce rate as well. That line is
+display-only: a 4xx refusal is a temporary condition, so it never suspends
+an organization.
 
 ## The reputation loop in practice
 

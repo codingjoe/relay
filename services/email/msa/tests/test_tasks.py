@@ -449,6 +449,7 @@ class TestDeliverMessage:
         assert transmission.code == 450
         assert transmission.output == "450 Try again later"
         assert "Temporary failure" in transmission.details
+        assert not SuppressionEntry.objects.filter(org=org).exists()
 
     def test_deliver_message__exhausts_all_mx_hosts_on_smtp_exception(
         self, user, org, dns_resolver
