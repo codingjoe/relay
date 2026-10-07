@@ -28,12 +28,16 @@ jobs:
       url: https://${{ vars.HOSTNAME }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Install tooling
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends gettext
           curl -fsSL https://dotenvx.sh | sh
           dotenvx --version
+          curl -fsSL https://sentry.io/get-cli/ | sh
+          sentry-cli --version
       - uses: astral-sh/setup-uv@v8.2.0
       - uses: actions/setup-node@v7
         with:
@@ -187,6 +191,29 @@ jobs:
               exit 1
           fi
           echo "every pod is running and ready"
+      - name: Track the Sentry release
+        continue-on-error: true
+        env:
+          DOTENV_PRIVATE_KEY_PRODUCTION: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
+        run: |
+          missing=""
+          for key in SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT; do
+              [ -n "$(dotenvx get "$key" -f .env.production 2>/dev/null || true)" ] ||
+                  missing="$missing $key"
+          done
+          if [ -n "$missing" ]; then
+              echo "Sentry release tracking is off:$missing not set in .env.production"
+              exit 0
+          fi
+
+          release="sha-${GITHUB_SHA}"
+          dotenvx run --strict -f .env.production -- \
+              sentry-cli releases new "$release" ||
+              echo "::notice::Sentry already tracks release $release"
+          dotenvx run --strict -f .env.production -- \
+              sentry-cli releases set-commits "$release" --auto
+          dotenvx run --strict -f .env.production -- \
+              sentry-cli releases finalize "$release"
       - name: Roll back the release
         if: failure()
         run: |

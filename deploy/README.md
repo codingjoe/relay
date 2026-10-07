@@ -121,9 +121,11 @@ It installs the environment and runs `manage.py check --deploy` against
 `.env.production` before it opens the cluster connection, with warnings as
 failures. It then applies `deploy/k8s`, runs the migration, refreshes the virus
 signatures, and rolls out every workload. The last gate waits up to two minutes
-for every pod to report `1/1` before it fails the release. A later failure rolls
-the workloads the release moved back to the image they ran before; migrations
-are not reversed.
+for every pod to report `1/1` before it fails the release, and then records the
+release in Sentry with the commits it shipped. A deploy skips that last step
+while `.env.production` has no `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` or
+`SENTRY_PROJECT`. A later failure rolls the workloads the release moved back to
+the image they ran before; migrations are not reversed.
 
 The deploy token holds a Role in the `default` namespace alone, so the first
 boot applies the cluster-scoped Dozzle RBAC and creates that token. See

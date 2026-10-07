@@ -104,6 +104,8 @@ endpoint misbehavior shows as data.
 
 - **Errors go to Sentry**, all processes share one project, off by default.
   No message bodies, no credentials, no tokens travel there.
+- **Releases are tracked in Sentry**, every deploy names the revision it ships
+  and attaches its commits, so an error points at the release that produced it.
 - **Dashboard transmissions** show each outbound attempt with its SMTP
   conversation.
 - **Webhook delivery rows** show inbound webhook status.

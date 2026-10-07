@@ -278,7 +278,13 @@ sent automatically.
 | --------------------------- | -------------- | ------------------------------------------ |
 | `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting. |
 | `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                    |
+| `SENTRY_RELEASE`            | _(empty)_      | Release tag. CI bakes in `sha-<commit>`.   |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default. |
+
+The deploy workflow records each shipped release in Sentry, attaches the
+commits it carries and finalizes it once the pods are ready. Set
+`SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` in `.env.production` to
+enable tracking; a deploy skips it while any of the three is unset.
 
 ## Local development
 

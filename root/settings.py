@@ -568,6 +568,7 @@ if SENTRY_DSN and not TEST and not DEBUG:
             AsyncioIntegration(),
             ThreadingIntegration(),
         ],
+        release=env("SENTRY_RELEASE", default="").strip() or None,
         send_default_pii=False,
         traces_sample_rate=float(
             env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "0.0"
