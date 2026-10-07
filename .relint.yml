@@ -190,6 +190,10 @@
   pattern: '\{%\s*url\s+[''"](?:docs|know_how|alternative_to):[^%]*?\bas\s+(?P<var>\w+)\s*%\}[\s\S]{0,2000}?<a(?![^>]*\btarget=)[^>]*\bhref="\{\{\s*(?P=var)\s*\}\}"'
   hint: 'A `{% url ... as name %}` binding hides the destination from the pattern above. A link to the docs written as href="{{ name }}" still has to open in a new tab: add target="_blank" rel="noopener". The docs, know-how, and comparison apps are exempt, they navigate in-app.'
   filePattern: '^(?!.*(?:docs|know_how|alternative_to)/templates/).*\.html$'
+- name: Auth entry links are nofollow
+  pattern: '<a(?=[^>]*\bhref="\{%\s*url\s+[''"](?:accounts:login|accounts:org-start)[''"])(?![^>]*\brel="nofollow")[^>]*>'
+  hint: 'Login and signup entry points funnel crawlers into an auth flow, not into content. Add rel="nofollow" to the link.'
+  filePattern: '.*\.html$'
 - name: Cluster-internal names use the namespace the manifests deploy into
   pattern: '\.(?!default\.)\w+\.svc\.cluster\.local'
   hint: 'The platform runs in the default namespace, and a cluster-internal FQDN carries it. A name that points at another namespace resolves to nothing, which leaves the client with no endpoints: dnsdist drops every query, and other clients fail to connect. Use default, or move this rule when the namespace moves.'
