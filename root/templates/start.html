@@ -46,7 +46,7 @@
         {% endblocktranslate %}
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-        <a href="{% url 'accounts:org-start' %}" class="btn" data-size="lg">
+        <a href="{% url 'accounts:org-start' %}" rel="nofollow" class="btn" data-size="lg">
           {% tabler name="rocket" %}
           {% translate "get early access"|capfirst %}
         </a>
@@ -442,7 +442,7 @@
           </ul>
         </section>
         <footer class="m-0 mt-6">
-          <a href="{% url 'accounts:org-start' %}" class="btn w-full" data-size="lg">
+          <a href="{% url 'accounts:org-start' %}" rel="nofollow" class="btn w-full" data-size="lg">
             {% tabler name="rocket" %}
             {% translate "get early access"|capfirst %}
           </a>

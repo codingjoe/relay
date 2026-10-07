@@ -58,7 +58,7 @@
 
   <div class="flex items-center gap-2 ms-auto">
     {% if request.public_cache or not user.is_authenticated %}
-      <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
+      <a href="{% url 'accounts:login' %}" rel="nofollow" class="btn" data-size="sm">
         {% translate "login"|capfirst context "noun" %}
       </a>
     {% else %}
