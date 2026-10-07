@@ -40,6 +40,7 @@ jobs:
           platforms: linux/amd64 # Pinned so a runner change cannot ship the wrong architecture
           build-args: |
             UV_NO_DEV=0
+            SENTRY_RELEASE=sha-${{ github.sha }}
           push: ${{ github.ref == 'refs/heads/main' }} # Only publish images from the main branch
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -70,6 +70,9 @@ ARG DOTENV_FILE=.env.production
 COPY --from=compile --chown=root:root /app /app
 COPY ${DOTENV_FILE} /app/.env
 
+ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=${SENTRY_RELEASE}
+
 ENTRYPOINT ["dotenvx", "run", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
 
 FROM development AS production
