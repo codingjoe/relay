@@ -23,11 +23,11 @@ repos:
       - id: detect-private-key
         exclude: ^(domains|kms)/tests/test_models\.py$|kms/tests/test_keys\.py$
   - repo: https://github.com/codingjoe/esupgrade
-    rev: 2026.1.0
+    rev: "2026.1.2"
     hooks:
       - id: esupgrade
   - repo: https://github.com/oxc-project/mirrors-oxlint
-    rev: v1.60.0
+    rev: v1.86.0
     hooks:
       - id: oxlint
   - repo: https://github.com/oxc-project/mirrors-oxfmt
