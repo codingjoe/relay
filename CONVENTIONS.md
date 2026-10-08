@@ -143,6 +143,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
   finalizes that state in the retry callback, because the last attempt never
   returns and no later attempt runs.
 
+- Name `threadmill.exceptions.AcknowledgementTimeout` in `expected_exceptions`
+  when a task may run again after its worker died. Threadmill hands the expired
+  lease of a task the worker acquired and never acknowledged to the retry
+  callback as that exception.
+
 - Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
   commands in `deploy/k8s/web.yaml`, with the mail pipeline queues ahead of
   `default`. A task whose queue is missing from the settings raises at import
