@@ -130,11 +130,19 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Declare the queue on the task itself, so the pipeline stage is visible at
   the definition: `@task(queue_name="ingress")`.
+
 - Pick the queue by pipeline stage: `ingress` for received mail, `egress`
   for outgoing submissions, `delivery` for SMTP delivery to remote MX hosts,
   and `default` for everything else.
+
 - Return `None` from tasks: backends serialize the return value, so a model
   instance or a `UUID` records a failed run for work that succeeded.
+
+- Retry with `threadmill.retry.ExponentialBackoff` and declare the schedule
+  next to the task. A retry that leaves a model in a non-final state
+  finalizes that state in the retry callback, because the last attempt never
+  returns and no later attempt runs.
+
 - Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
   commands in `deploy/k8s/web.yaml`, with the mail pipeline queues ahead of
   `default`. A task whose queue is missing from the settings raises at import
