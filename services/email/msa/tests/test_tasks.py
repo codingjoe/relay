@@ -719,6 +719,19 @@ class TestDeliveryRetry:
         message.refresh_from_db()
         assert message.status == OutgoingMessage.Status.SENT
 
+    @pytest.mark.django_db(transaction=True)
+    def test_delivery_retry__bumps_the_modified_at_of_the_failed_message(self, org):
+        message = make_outgoing_message(org)
+        modified_at = message.modified_at
+        context = make_delivery_retry_context(
+            attempt=DELIVERY_RETRY.max_retries, message_id=str(message.pk)
+        )
+
+        delivery_retry(context)
+
+        message.refresh_from_db()
+        assert message.modified_at > modified_at
+
 
 @pytest.mark.django_db(transaction=True)
 class TestCheckOutgoingSpam:

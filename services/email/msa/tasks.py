@@ -72,7 +72,7 @@ def mark_failed_if_pending(message_id):
 
     OutgoingMessage.objects.filter(
         pk=message_id, status=OutgoingMessage.Status.PENDING
-    ).update(status=OutgoingMessage.Status.FAILED)
+    ).update(status=OutgoingMessage.Status.FAILED, modified_at=timezone.now())
 
 
 def record_drop(message, output):
