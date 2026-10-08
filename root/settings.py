@@ -14,10 +14,13 @@ import base64
 import datetime
 import hashlib
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import environ
 from cryptography.fernet import Fernet
 from django.tasks import DEFAULT_TASK_QUEUE_NAME
+from django.utils.csp import CSP
+from social_core.backends.github import GithubOAuth2
 
 env = environ.Env(
     # set casting, default value
@@ -45,6 +48,8 @@ DEBUG = env("DEBUG")
 # True when running under pytest (see pyproject.toml TEST env var).
 TEST = env.bool("TEST", default=False)
 
+SENTRY_DSN = env("SENTRY_DSN", default="").strip()
+
 ALLOWED_HOSTS = [
     h.strip()
     for h in env.list(
@@ -54,6 +59,20 @@ ALLOWED_HOSTS = [
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Probes keep speaking plain HTTP; HSTS covers every subdomain.
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=not (DEBUG or TEST))
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not (DEBUG or TEST))
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not (DEBUG or TEST))
+SECURE_HSTS_SECONDS = env.int(
+    "SECURE_HSTS_SECONDS", default=0 if DEBUG or TEST else 31536000
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not (DEBUG or TEST)
+)
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=not (DEBUG or TEST))
+# Probes and Caddy's on-demand TLS permission check arrive over plain HTTP.
+SECURE_REDIRECT_EXEMPT = [r"^health/", r"^internal/mta-sts/authorize/"]
 
 # Show django-debug-toolbar for local development requests.
 INTERNAL_IPS = ["127.0.0.1"]
@@ -77,6 +96,32 @@ DEBUG_TOOLBAR_CONFIG = {
     "SHOW_COLLAPSED": True,
 }
 
+
+# Content Security Policy
+# https://docs.djangoproject.com/en/6.1/howto/csp/
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    "img-src": [CSP.SELF, "data:", "https://www.gravatar.com"],
+    "font-src": [CSP.SELF],
+    "media-src": [CSP.SELF],
+    "connect-src": [CSP.SELF],
+    "frame-src": [CSP.SELF],
+    "form-action": [CSP.SELF, GithubOAuth2.AUTHORIZATION_URL],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.NONE],
+    "frame-ancestors": [CSP.NONE],
+}
+
+if SENTRY_DSN and not (TEST or DEBUG):
+    dsn = urlsplit(SENTRY_DSN)
+    host = dsn.netloc.rpartition("@")[2]
+    SECURE_CSP["report-uri"] = [
+        f"{dsn.scheme}://{host}/api{dsn.path}/security/?sentry_key={dsn.username}"
+    ]
+
 # Application definition
 
 # Render Django forms (and widgets) using the project's template engine,
@@ -84,9 +129,13 @@ DEBUG_TOOLBAR_CONFIG = {
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 INSTALLED_APPS = [
+    # Ahead of staticfiles so ServeStatic serves them in development too.
+    "servestatic",
     # First-party apps (abstract first so its widget overrides win)
     "abstract",
     "django.forms",
+    # Before staticfiles so its `collectstatic` override wins.
+    "django_esm",
     # Django
     "django.contrib.admin",
     "django.contrib.auth",
@@ -102,6 +151,7 @@ INSTALLED_APPS = [
     "social_django",
     "storages",
     "threadmill",
+    "crontask",
     *(["debug_toolbar"] if DEBUG else []),
     # First-party apps
     "accounts",
@@ -123,6 +173,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "root.middleware.ContentSecurityPolicyMiddleware",
     *(
         [
             "django_devbar.DevBarMiddleware",
@@ -131,7 +182,7 @@ MIDDLEWARE = [
         if DEBUG
         else []
     ),
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "servestatic.middleware.ServeStaticMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "domains.middleware.MtaStsHostMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -143,6 +194,7 @@ MIDDLEWARE = [
         else []
     ),
     "django.contrib.messages.middleware.MessageMiddleware",
+    "social_django.middleware.SocialAuthExceptionMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -172,8 +224,9 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "root.context_processors.settings_context",
+                "services.email.dashboard.context_processors.onboarding_context",
             ],
-            "debug": DEBUG,
+            "debug": DEBUG or TEST,
             "loaders": (
                 _TEMPLATES_LOADERS
                 if DEBUG
@@ -254,7 +307,7 @@ STORAGES = {
         else "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "servestatic.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
@@ -270,10 +323,10 @@ AWS_S3_FILE_OVERWRITE = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
-# Files under `public/` are served from the domain root by WhiteNoise,
+# Files under `public/` are served from the domain root by ServeStatic,
 # e.g. public/favicon.ico is served at /favicon.ico.
-WHITENOISE_ROOT = BASE_DIR / "public"
-WHITENOISE_MAX_AGE = 60 * 60 * 24
+SERVESTATIC_ROOT = BASE_DIR / "public"
+SERVESTATIC_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
@@ -283,14 +336,23 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 RELAY_PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
 
+RELAY_STORAGE_DOMAIN = env(
+    "RELAY_STORAGE_DOMAIN", default=f"storage.{RELAY_PLATFORM_DOMAIN}"
+)
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_S3_ENDPOINT_URL = f"https://{RELAY_STORAGE_DOMAIN}"
+
 RELAY_SENDER_SUBDOMAIN_PREFIX = env(
     "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"
 )
 
-RELAY_DNS_NS_NAMESERVERS = [
-    f"ns1.{RELAY_PLATFORM_DOMAIN}",
-    f"ns2.{RELAY_PLATFORM_DOMAIN}",
-]
+RELAY_DNS_NS_NAMESERVERS = env.list(
+    "RELAY_DNS_NS_NAMESERVERS",
+    default=[
+        f"ns1.{RELAY_PLATFORM_DOMAIN}",
+        f"ns2.{RELAY_PLATFORM_DOMAIN}",
+    ],
+)
 RELAY_DNS_MX_HOSTNAMES = env.list(
     "RELAY_DNS_MX_HOSTNAMES",
     default=[f"mx1.{RELAY_PLATFORM_DOMAIN}", f"mx2.{RELAY_PLATFORM_DOMAIN}"],
@@ -349,12 +411,15 @@ RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
 RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7)
 RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
 
+RELAY_FREE_MONTHLY_MESSAGES = env.int("RELAY_FREE_MONTHLY_MESSAGES", default=1000)
+RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.69)
+
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 
-# compose passes an unset EMAIL_URL through as an empty string
+# An empty EMAIL_URL means unset: a deployment can pass it through with no value.
 if email_url := env("EMAIL_URL", default=""):
     _email = env.email_url_config(email_url)
     _mailer = {
@@ -408,6 +473,10 @@ else:
         },
     }
 
+# One scheduler across replicas, locked in Redis, see
+# https://github.com/codingjoe/django-crontask
+CRONTASK = {"REDIS_URL": TASK_REDIS_URL}
+
 # Authentication
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "accounts:org-start"
@@ -426,12 +495,15 @@ AUTHENTICATION_BACKENDS = (
 
 SOCIAL_AUTH_GITHUB_KEY = GITHUB_CLIENT_ID
 SOCIAL_AUTH_GITHUB_SECRET = GITHUB_CLIENT_SECRET
+SOCIAL_AUTH_GITHUB_SCOPE = ["user:email"]
+SOCIAL_AUTH_LOGIN_ERROR_URL = "accounts:login"
 
 SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.social_details",
     "social_core.pipeline.social_auth.social_uid",
     "social_core.pipeline.social_auth.auth_allowed",
     "social_core.pipeline.social_auth.social_user",
+    "accounts.pipelines.attach_verified_email",
     "social_core.pipeline.user.get_username",
     "social_core.pipeline.user.create_user",
     "social_core.pipeline.social_auth.associate_user",
@@ -482,7 +554,7 @@ LOGGING = {
 
 
 # Error monitoring (Sentry)
-if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DEBUG:
+if SENTRY_DSN and not TEST and not DEBUG:
     import sentry_sdk
     from sentry_sdk.integrations.asyncio import AsyncioIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -496,6 +568,7 @@ if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DE
             AsyncioIntegration(),
             ThreadingIntegration(),
         ],
+        release=env("SENTRY_RELEASE", default="").strip() or None,
         send_default_pii=False,
         traces_sample_rate=float(
             env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "0.0"

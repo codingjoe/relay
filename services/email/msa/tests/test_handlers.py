@@ -598,6 +598,72 @@ class TestProcessMessage:
         assert not any(name == "Feedback-ID" for name, _ in outgoing.headers)
         assert outgoing.feedback_id == ""
 
+    async def test_process_message__sandbox_credential_stores_sandbox_message(
+        self,
+        user,
+        org,
+    ):
+
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(
+            org=org,
+            type=MsaCredential.Type.SANDBOX,
+        )
+        mail_from = f"alice@{domain.name}"
+        message = make_email(mail_from, user.email)
+        message["Feedback-ID"] = "customer-id"
+        raw = message.as_bytes()
+
+        with patch("services.email.msa.handlers.check_outgoing_spam") as spam_task:
+            result = await process_message(
+                mail_from,
+                user.email,
+                raw,
+                credential,
+                False,
+                "",
+                timezone.now(),
+            )
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        assert result == "250 OK"
+        assert outgoing.status == OutgoingMessage.Status.SANDBOXED
+        assert outgoing.status_badge_variant == "outline"
+        stored = outgoing.raw_body.read()
+        assert stored == raw
+        assert outgoing.feedback_id == ""
+        spam_task.enqueue.assert_not_called()
+
+    async def test_process_message__production_credential_stamps_and_signs_message(
+        self,
+        user,
+        org,
+    ):
+
+        domain = await Domain.objects.aget(org=org, is_managed=True)
+        credential, _ = MsaCredential.objects.create_with_key(org=org)
+        mail_from = f"alice@{domain.name}"
+        raw = make_email(mail_from, user.email).as_bytes()
+
+        with patch("services.email.msa.handlers.check_outgoing_spam"):
+            result = await process_message(
+                mail_from,
+                user.email,
+                raw,
+                credential,
+                False,
+                "",
+                timezone.now(),
+            )
+
+        outgoing = await OutgoingMessage.objects.aget(org=org)
+        stored = message_from_bytes(outgoing.raw_body.read())
+        assert result == "250 OK"
+        assert outgoing.status == OutgoingMessage.Status.PENDING
+        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
+        assert outgoing.feedback_id == stored["Feedback-ID"]
+        assert any(name == "DKIM-Signature" for name, _ in outgoing.headers)
+
 
 @pytest.mark.django_db
 class TestStoreOutgoingMessage:
@@ -665,6 +731,40 @@ class TestStoreOutgoingMessage:
         transmission = Transmission.objects.get(message=message)
         assert transmission.status == Transmission.Status.SUBMITTED
 
+    def test_store_outgoing_message__system_mail_skips_spam_check(
+        self,
+        org,
+        django_capture_on_commit_callbacks,
+    ):
+
+        domain = Domain.objects.get(org=org, is_managed=True)
+        raw_bytes = make_email("postmaster@example.com", "bob@example.com").as_bytes()
+
+        with (
+            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
+            patch("services.email.msa.handlers.deliver_message") as delivery_task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            message = store_outgoing_message(
+                org=org,
+                rcpt_to="bob@example.com",
+                mail_from="postmaster@example.com",
+                domain=domain,
+                credential=None,
+                status=OutgoingMessage.Status.PENDING,
+                feedback_id="1::abc:relay",
+                ssl=False,
+                client_ip="",
+                raw_bytes=raw_bytes,
+                started_at=timezone.now(),
+                is_system_mail=True,
+            )
+
+        spam_task.enqueue.assert_not_called()
+        delivery_task.enqueue.assert_called_once_with(message_id=str(message.id))
+        transmission = Transmission.objects.get(message=message)
+        assert transmission.status == Transmission.Status.SUBMITTED
+
     def test_store_outgoing_message__derives_subject_and_message_id(self, org):
 
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -728,7 +828,7 @@ class TestAuthenticate:
         # so mint the key here and create the stale credential before it.
         raw_key = secrets.token_urlsafe(15)
         stale = MsaCredential(org=org, name="stale")
-        stale.set_key(raw_key[:8] + "stale-tail")
+        stale.set_key(raw_key[:4] + "stale-tail")
         stale.save()
         credential = MsaCredential(org=org, name="test")
         credential.set_key(raw_key)

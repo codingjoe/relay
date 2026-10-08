@@ -24,6 +24,9 @@ organization data at the database level. Every query of org-owned data filters o
 organization, so one organization cannot read the messages of another
 organization.
 
+The dashboard answers over HTTPS only, and its HSTS policy keeps browsers from
+falling back to plain HTTP.
+
 relay also blocks domain hijacking between organizations: a domain that
 overlaps a domain of another organization cannot be registered. relay reserves subdomains
 of the managed sender domain for the platform. relay enforces
@@ -40,6 +43,9 @@ relay does not store API keys in plain form. relay stores a key prefix and a
 key hash, and only the hash can answer an authentication attempt. The plain
 API-key value is visible once at creation and never again. Authentication
 looks up credentials by organization and prefix and verifies the key hash.
+
+A sandbox credential exists for testing, and relay never transmits its
+messages to the recipient's mail server.
 
 Any credential can carry a `hold` flag. A held credential fails
 authentication immediately without deletion. This buys you a pause button for
@@ -111,7 +117,39 @@ quarantined message is never forwarded. relay also forwards mail addressed to
 postmaster, with or without a `+` extension, to every member of the
 organization. Those copies are outgoing messages relay signs for the receiving
 domain, so they are billed and listed like any other message the organization
-sends. The dashboard shows every quarantined message with its score.
+sends. The dashboard shows every quarantined message with its score. The message
+detail page renders an HTML body in a sandboxed frame that runs no scripts
+and sends no referrer, so a body from the outside cannot act inside your
+session. Remote images stay allowed by default, so the body looks as the
+sender wrote it. A client preview shows the message the way that client
+shows it. Outlook holds the remote images back, Gmail and Apple Mail show
+them, and the preview loads them from the reader's browser rather than
+through a client's image proxy.
+
+## Content Security Policy
+
+Every web response carries an enforced Content Security Policy and a strict
+integrity policy. Pages load scripts from relay alone, and every module is
+pinned to a hash, so a browser refuses a script it cannot verify.
+
+## Node configuration and cluster keys
+
+Talos, the node's operating system, takes its first-boot configuration from the
+Hetzner instance metadata service, which stores it as the server's user data and
+serves it back to anything running on the node at `169.254.169.254`. That
+document carries the cluster's private keys: the machine and cluster bootstrap
+tokens, the machine, etcd, API-server and aggregator CA keys, the etcd secretbox
+key, and the service-account key. Caddy terminates untrusted TLS, dnsdist
+answers DNS, and rspamd and the application parse mail, all on that node, and the
+cluster network enforces no policy between pods. Code execution in a relay pod
+therefore reads the cluster's permanent PKI and can use it to reach the cluster
+itself.
+
+This is an accepted risk, not a control. The alternative is a hand-rolled ISO
+install that keeps the configuration off the metadata service, which gives up the
+declared, repeatable provisioning the platform is built on. The keys are per
+cluster; replacing them means generating a new secrets bundle and rebuilding the
+node.
 
 ## Error monitoring and secrets
 

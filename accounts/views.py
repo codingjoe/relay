@@ -15,7 +15,7 @@ from django.urls import NoReverseMatch, reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import BreadcrumbViewMixin
+from abstract.views import BreadcrumbViewMixin, NoStoreCacheMixin
 
 from .models import Membership, Organization
 
@@ -66,11 +66,11 @@ class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
         }
 
 
-class LoginView(generic.TemplateView):
+class LoginView(NoStoreCacheMixin, generic.TemplateView):
     template_name = "login.html"
 
 
-class OrganizationListView(LoginRequiredMixin, generic.ListView):
+class OrganizationListView(LoginRequiredMixin, NoStoreCacheMixin, generic.ListView):
     context_object_name = "organizations"
 
     def get_queryset(self):
@@ -144,10 +144,12 @@ class OrganizationHomeView(OrganizationScopedView, generic.View):
         return ""
 
     def get(self, request, *args, **kwargs):
-        return redirect("email-dashboard:dashboard", org_slug=self.org.slug)
+        return redirect("email-dashboard:get-started", org_slug=self.org.slug)
 
 
-class OrganizationDetailView(OrganizationScopedView, generic.DetailView):
+class OrganizationDetailView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
+):
     context_object_name = "organization"
     title = _("Settings")
     parent = "accounts:org-home"
@@ -165,7 +167,9 @@ class OrganizationDetailView(OrganizationScopedView, generic.DetailView):
         }
 
 
-class OrganizationUpdateView(OrganizationScopedView, generic.UpdateView):
+class OrganizationUpdateView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.UpdateView
+):
     model = Organization
     form_class = OrganizationForm
     title = _("Edit")
@@ -192,7 +196,9 @@ class OrganizationUpdateView(OrganizationScopedView, generic.UpdateView):
         return self.org.get_absolute_url()
 
 
-class OrganizationDeleteView(OrganizationScopedView, generic.DeleteView):
+class OrganizationDeleteView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.DeleteView
+):
     model = Organization
     success_url = reverse_lazy("accounts:org-list")
     title = _("Delete")
@@ -224,7 +230,9 @@ class MembershipForm(ModelForm):
         fields = ["role"]
 
 
-class MembershipCreateView(OrganizationScopedView, generic.DetailView):
+class MembershipCreateView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
+):
     context_object_name = "organization"
     title = _("Settings")
     parent = "accounts:org-home"
@@ -271,7 +279,9 @@ class MembershipCreateView(OrganizationScopedView, generic.DetailView):
         return redirect(self.org.get_absolute_url())
 
 
-class MembershipDeleteView(OrganizationScopedView, generic.DeleteView):
+class MembershipDeleteView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.DeleteView
+):
     model = Membership
     parent = "accounts:org-detail"
 
@@ -297,7 +307,9 @@ class MembershipDeleteView(OrganizationScopedView, generic.DeleteView):
         return super().form_valid(form)
 
 
-class MembershipUpdateView(OrganizationScopedView, generic.UpdateView):
+class MembershipUpdateView(
+    OrganizationScopedView, NoStoreCacheMixin, generic.UpdateView
+):
     model = Membership
     form_class = MembershipForm
     parent = "accounts:org-detail"

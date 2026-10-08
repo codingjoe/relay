@@ -1,3 +1,4 @@
+import re
 from email import message_from_bytes, policy
 from email.message import EmailMessage
 from unittest.mock import patch
@@ -6,7 +7,9 @@ import pytest
 from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
+from django.templatetags.static import static
 from django.urls import reverse
+from django.utils.html import escape
 from django.utils.http import http_date
 
 from domains.models import Domain
@@ -18,11 +21,12 @@ from services.email.msa.models import (
 )
 
 
-@pytest.fixture
-def base_url(settings):
-    """Return the host the package derives the base URL from."""
-    settings.ALLOWED_HOSTS = ["relay.example", "testserver"]
-    return "https://relay.example"
+def copy_button(content, value):
+    """Return the copy button tag that carries `value`, or None."""
+    return re.search(
+        rf'<button[^>]*data-copy="{re.escape(value)}"[^>]*>',
+        content,
+    )
 
 
 def make_message(org, user, **kwargs):
@@ -63,7 +67,9 @@ class TestMessageDetailView:
         assert response.headers["Last-Modified"] == http_date(
             msg.modified_at.timestamp()
         )
-        assert response.headers["Cache-Control"] == "private, no-cache"
+        assert (
+            response.headers["Cache-Control"] == "private, max-age=5, must-revalidate"
+        )
 
     def test_get__not_modified_when_etag_matches(self, admin_client, org, user):
         msg = make_message(org, user)
@@ -156,7 +162,7 @@ class TestTestEmailView:
     ):
         domain = Domain.objects.get(org=org, is_managed=True)
         with (
-            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
+            patch("services.email.msa.handlers.deliver_message") as delivery_task,
             django_capture_on_commit_callbacks(execute=True),
         ):
             response = admin_client.post(f"/org/{org.slug}/email/messages/test")
@@ -166,9 +172,7 @@ class TestTestEmailView:
         )
         msg = OutgoingMessage.objects.get(org=org)
         assert msg.domain == domain
-        spam_task.enqueue.assert_called_once_with(
-            message_pk=str(msg.id), client_ip="127.0.0.1"
-        )
+        delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
 
     def test_post__sets_templated_headers(self, admin_client, org, user):
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -183,23 +187,24 @@ class TestTestEmailView:
         assert stored["To"] == user.email
         assert stored["Reply-To"] is None
 
-    def test_post__stores_html_and_plain_parts(self, admin_client, org, base_url):
+    def test_post__stores_html_and_plain_parts(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
         response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
-        stored = message_from_bytes(
-            OutgoingMessage.objects.get(org=org).raw_body.read(),
-            policy=policy.default,
-        )
+        message = OutgoingMessage.objects.get(org=org)
+        stored = message_from_bytes(message.raw_body.read(), policy=policy.default)
         parts = {
-            part.get_content_type(): part.get_content() for part in stored.iter_parts()
+            part.get_content_type(): part.get_content()
+            for part in stored.walk()
+            if part.get_content_maintype() == "text"
         }
         assert set(parts) == {"text/html", "text/plain"}
-        assert f"postmaster@{domain.name}" in parts["text/html"]
-        assert f"postmaster@{domain.name}" in parts["text/plain"]
-        link = f"{base_url}/org/{org.slug}/email/messages/"
+        for part in parts.values():
+            assert f"This test message left {domain.name}." in part
+        link = f"http://testserver/org/{org.slug}/email/messages/{message.pk}"
         assert f'href="{link}"' in parts["text/html"]
         assert f"<{link}>" in parts["text/plain"]
+        assert static("img/word-brand.svg") in parts["text/html"]
 
     def test_post__ignores_submitted_content(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -242,7 +247,7 @@ class TestTestEmailView:
             org=org,
             nameserver_status=Domain.Status.OK,
             spf_status=Domain.Status.OK,
-            dkim_status=Domain.Status.OK,
+            dkim_rsa2048_status=Domain.Status.OK,
             dmarc_status=Domain.Status.OK,
         )
 
@@ -343,6 +348,9 @@ class TestCredentialListView:
     def test_get__ok_for_member(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
+        content = response.content.decode()
+        assert 'class="empty"' in content
+        assert "No credentials yet." in content
 
     @pytest.mark.django_db
     def test_get__filters_by_org(self, admin_client, org, write_org):
@@ -354,11 +362,137 @@ class TestCredentialListView:
         assert len(creds) == 1
         assert creds[0].name == "mine"
 
-    def test_get__context_has_smtp_info(self, admin_client, org):
+    @pytest.mark.django_db
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.headers["Cache-Control"] == "no-store"
+
+    def test_get__context_has_smtp_info(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
         assert "smtp_starttls_ports" in response.context
         assert "smtp_implicit_tls_ports" in response.context
+        assert response.context["smtp_hostname"] == "smtp.relay.example"
+        assert response.context["smtp_uri"] == (
+            "smtps://test-org:<credential key>@smtp.relay.example"
+        )
+        assert response.context["smtp_django_uri"] == (
+            "smtp+ssl://test-org:<credential key>@smtp.relay.example:465"
+        )
+
+    def test_get__offers_the_sandbox_choice(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="id_sandbox"' in content
+        assert 'name="sandbox" value="true"' not in content
+
+    def test_get__renders_connection_uri(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "smtps://test-org:&lt;credential key&gt;@smtp.relay.example" in content
+        assert (
+            "smtp+ssl://test-org:&lt;credential key&gt;@smtp.relay.example:465"
+            in content
+        )
+
+    def test_get__opens_the_key_dialog_after_creation(
+        self, admin_client, org, settings
+    ):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' in content
+        assert raw_key in content
+        assert f"smtps://{org.slug}:{raw_key}@smtp.relay.example" in content
+        assert f"smtp+ssl://{org.slug}:{raw_key}@smtp.relay.example:465" in content
+
+    def test_get__renders_copy_buttons_in_the_key_dialog(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        uri_button = copy_button(content, escape(response.context["smtp_uri_with_key"]))
+        key_button = copy_button(content, raw_key)
+        assert uri_button is not None
+        assert 'data-size="icon-xs"' in uri_button.group()
+        assert re.search(
+            r"aria-label=[\"']Copy connection URI[\"']", uri_button.group()
+        )
+        assert key_button is not None
+        assert 'data-size="icon"' in key_button.group()
+        assert re.search(r"aria-label=[\"']Copy key[\"']", key_button.group())
+
+    def test_get__key_row_carries_the_key_only_while_it_is_pending(
+        self, admin_client, org
+    ):
+        """The static table points at the key; the dialog is where it is shown."""
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        dialog = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        dialog_content = dialog.content.decode()
+        dialog_table = dialog_content.split('id="dlg-credential-key"', 1)[1]
+        assert raw_key in dialog_table
+
+        admin_client.get(f"/org/{org.slug}/email/credentials/")
+        again = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        assert raw_key not in again.content.decode()
+        assert "your credential key" in again.content.decode()
+
+    def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert content.index('id="dlg-credential-key"') < content.index(
+            'class="accordion"'
+        )
+        assert content.index('class="accordion"') < content.index("<table")
+
+    def test_get__hides_the_values_until_a_key_is_pending(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' not in content
+        assert "<table" in content
+
+    def test_get__renders_copy_buttons_in_the_connection_table(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        buttons = [
+            ("Copy server", response.context["smtp_hostname"]),
+            ("Copy port", ", ".join(map(str, response.context["smtp_starttls_ports"]))),
+            (
+                "Copy port",
+                ", ".join(map(str, response.context["smtp_implicit_tls_ports"])),
+            ),
+            ("Copy username", org.slug),
+        ]
+        for label, value in buttons:
+            button = copy_button(content, value)
+            assert button is not None, value
+            assert 'data-size="icon"' in button.group(), value
+            label_pattern = rf"aria-label=(?P<q>[\"']){re.escape(label)}(?P=q)"
+            assert re.search(label_pattern, button.group()), value
+
+        uri = escape(response.context["smtp_uri"])
+        uri_button = copy_button(content, uri)
+        assert uri_button is not None
+        assert 'data-size="icon-xs"' in uri_button.group()
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
@@ -370,11 +504,39 @@ class TestCredentialListView:
 class TestCredentialCreateView:
     def test_post__creates_credential(self, admin_client, org):
         response = admin_client.post(
-            f"/org/{org.slug}/email/credentials/new", {"name": "Production"}
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Production", "sandbox": "false"},
         )
         assert response.status_code == 302
         cred = MsaCredential.objects.get(org=org)
         assert cred.name == "Production"
+        assert cred.type == MsaCredential.Type.SMTP
+
+    def test_post__creates_sandbox_credential(self, admin_client, org):
+        admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Sandbox", "sandbox": "true"},
+        )
+        cred = MsaCredential.objects.get(org=org)
+        assert cred.type == MsaCredential.Type.SANDBOX
+
+    def test_post__returns_to_the_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": f"/org/{org.slug}/email/"},
+        )
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/"
+
+    def test_post__ignores_an_external_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": "https://evil.example/steal"},
+        )
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "msa:credential-list", kwargs={"org_slug": org.slug}
+        )
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
@@ -433,6 +595,76 @@ class TestSuppressionListView:
         assert entries[0].address_hash == SuppressionEntry.hash_address(
             "mine@example.com"
         )
+
+    @pytest.mark.django_db
+    def test_get__leads_with_the_chart(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert content.index('id="chart-suppression"') < content.index(
+            'id="form-suppression"'
+        )
+
+    @pytest.mark.django_db
+    def test_get__counts_the_addresses_atop_the_card(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="one@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="two@example.com", reason=SuppressionEntry.Reason.BOUNCE
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "two addresses on the suppression list" in content
+        assert 'data-dialog="dlg-clear-suppression"' in content
+        assert content.index('class="empty"') < content.index('id="form-suppression"')
+        assert content.index('id="form-suppression"') < content.index(
+            'id="dlg-clear-suppression"'
+        )
+
+    @pytest.mark.django_db
+    def test_get__counts_no_addresses(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "0 addresses on the suppression list" in content
+        assert 'data-dialog="dlg-clear-suppression"' not in content
+
+    @pytest.mark.django_db
+    def test_post__clears_the_list(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+
+        response = admin_client.post(f"/org/{org.slug}/email/suppression/clear")
+
+        assert response.status_code == 302
+        assert not SuppressionEntry.objects.filter(org=org).exists()
+
+    @pytest.mark.django_db
+    def test_get__renders_one_address_form_for_all_actions(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="form-suppression"' in content
+        assert (
+            f'formaction="{reverse("msa:suppression-check", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert (
+            f'formaction="{reverse("msa:suppression-remove", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert 'id="suppression-address"' in content
 
     @pytest.mark.django_db
     def test_get__context_has_chart(self, admin_client, org):

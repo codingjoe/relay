@@ -51,9 +51,7 @@ class WebhookDeliveryError(Exception):
 
 def webhook_retry(context):
     if context.attempt >= len(WEBHOOK_RETRY_DELAYS) - 1:
-        message_id = context.task_result.kwargs.get("message_id")
-        if message_id:
-            mark_failed_if_pending(message_id)
+        mark_failed_if_pending(context.task_result.kwargs.get("message_id"))
         return None
     delay = WEBHOOK_RETRY_DELAYS[context.attempt + 1] + secrets.randbelow(30)
     return datetime.timedelta(seconds=delay)
@@ -95,11 +93,15 @@ def deliver_webhook(message_id, webhook_id):
     ok, status_code = deliver_to_webhook(message, webhook)
     match ok, status_code:
         case (True, _):
-            Webhook.objects.filter(pk=webhook.pk).update(last_used_at=timezone.now())
+            Webhook.objects.filter(pk=webhook.pk).update(
+                last_used_at=timezone.now(), modified_at=timezone.now()
+            )
             message.status = IncomingMessage.Status.WEBHOOK_SENT
             message.save(update_fields=["status"])
         case (False, 410):
-            Webhook.objects.filter(pk=webhook.pk).update(is_active=False)
+            Webhook.objects.filter(pk=webhook.pk).update(
+                is_active=False, modified_at=timezone.now()
+            )
             mark_failed_if_pending(message_id)
         case (False, _):
             raise WebhookDeliveryError(status_code)
@@ -109,7 +111,7 @@ def mark_failed_if_pending(message_id):
     """Set `WEBHOOK_FAILED` only if the message is not yet delivered."""
     IncomingMessage.objects.filter(
         pk=message_id, status=IncomingMessage.Status.RECEIVED
-    ).update(status=IncomingMessage.Status.WEBHOOK_FAILED)
+    ).update(status=IncomingMessage.Status.WEBHOOK_FAILED, modified_at=timezone.now())
 
 
 @dataclass

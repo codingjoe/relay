@@ -1,20 +1,28 @@
+import logging
 import uuid
 from email.message import EmailMessage
 from unittest.mock import patch
 
 import pytest
+from crontask import scheduler
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.mail.backends import locmem
 from django.utils import timezone
 
-from accounts.models import Organization
+from accounts.models import Membership, Organization
 from domains.models import Domain
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.handlers import process_incoming_message
 from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
-from services.email.reputation.tasks import parse_fbl_report, resolve_fbl_owner
+from services.email.reputation.tasks import (
+    parse_fbl_report,
+    resolve_fbl_owner,
+    send_org_weekly_digest,
+    send_weekly_digests,
+)
 
 
 def make_arf_email(
@@ -60,6 +68,23 @@ def make_report(org, raw_bytes):
         raw_body=SimpleUploadedFile("report.eml", raw_bytes),
     )
     return FblReport.create_for_incoming(message)
+
+
+REFUSED_ADDRESS = "bob@example.com"  # the other_user fixture's address
+
+
+class RefusedConnectionError(OSError):
+    """A refused connection, the way a dead SMTP host raises it."""
+
+
+class RefusedEmailBackend(locmem.EmailBackend):
+    """Refuse one address the way a dead SMTP host would."""
+
+    def send_messages(self, email_messages):
+        for message in email_messages:
+            if REFUSED_ADDRESS in message.to:
+                raise RefusedConnectionError
+        return super().send_messages(email_messages)
 
 
 @pytest.mark.django_db
@@ -430,3 +455,89 @@ class TestProcessIncomingMessage:
         assert not await FblReport.objects.aexists()
         assert await IncomingMessage.objects.aexists()
         spam_task.enqueue.assert_called_once()
+
+
+@pytest.mark.django_db
+class TestSendOrgWeeklyDigest:
+    def test_send_org_weekly_digest__mails_each_member(
+        self, org, user, other_user, mailoutbox
+    ):
+        Membership.objects.create(org=org, user=other_user)
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=Domain.objects.create(name="acme.com", org=org),
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
+        )
+
+        send_org_weekly_digest.func(org_id=org.pk)
+
+        assert sorted(message.to[0] for message in mailoutbox) == [
+            "alice@example.com",
+            "bob@example.com",
+        ]
+        assert {message.subject for message in mailoutbox} == {
+            "test-org sent one message out the door"
+        }
+
+    def test_send_org_weekly_digest__drops_a_suspended_organization(
+        self, org, mailoutbox, caplog
+    ):
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at"])
+
+        with caplog.at_level(logging.INFO, logger="services.email.reputation.tasks"):
+            send_org_weekly_digest.func(org_id=org.pk)
+
+        assert mailoutbox == []
+        assert (
+            f"Dropped the weekly digest for suspended organization {org.pk!r}"
+            in caplog.messages
+        )
+
+    def test_send_org_weekly_digest__skips_the_member_the_mailer_refuses(
+        self, org, user, other_user, mailoutbox, settings, caplog
+    ):
+        Membership.objects.create(org=org, user=other_user)
+        settings.MAILERS = {
+            "default": {
+                "BACKEND": "services.email.reputation.tests.test_tasks.RefusedEmailBackend"
+            }
+        }
+
+        with caplog.at_level(logging.ERROR, logger="services.email.reputation.tasks"):
+            send_org_weekly_digest.func(org_id=org.pk)
+
+        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        assert f"Weekly digest for user {other_user.pk!r} failed" in caplog.messages
+
+
+class TestSendWeeklyDigestSchedule:
+    def test_send_weekly_digests__runs_on_monday_morning(self):
+        job = next(
+            job for job in scheduler.get_jobs() if job.name == send_weekly_digests.name
+        )
+        fields = {field.name: str(field) for field in job.trigger.fields}
+
+        assert fields["day_of_week"] == "mon"
+        assert fields["hour"] == "8"
+        assert fields["minute"] == "0"
+
+
+@pytest.mark.django_db
+class TestSendWeeklyDigests:
+    def test_send_weekly_digests__queues_one_task_per_active_organization(
+        self, org, user, write_org, mailoutbox
+    ):
+        suspended = Organization.objects.create(
+            slug="suspended-org", suspended_at=timezone.now()
+        )
+        Membership.objects.create(org=suspended, user=user)
+
+        send_weekly_digests.func()
+
+        assert sorted(message.subject for message in mailoutbox) == [
+            "other-org sent 0 messages out the door",
+            "test-org sent 0 messages out the door",
+        ]

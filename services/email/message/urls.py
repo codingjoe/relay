@@ -11,6 +11,11 @@ urlpatterns = [
         name="message-list",
     ),
     path(
+        "messages/<uuid:pk>/body",
+        views.MessageBodyView.as_view(),
+        name="message-body",
+    ),
+    path(
         "certificates/",
         include(
             [

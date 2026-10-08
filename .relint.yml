@@ -35,6 +35,36 @@
   hint: |
     Use {% translate %} instead of the shorthand {% trans %}.
   filePattern: .*\.html$
+- name: No inline scripts in templates
+  pattern: '<script(?![^>]*\bsrc=)(?![^>]*type="importmap")[^>]*>'
+  hint: |
+    The enforced CSP loads scripts from relay alone (`script-src 'self'`). Load a module with
+    `{% esm '#js/app.js' %}` and pass per-render data with `json_script` or `data-*` attributes.
+    The ESM import map is the only inline script.
+  filePattern: .*\.html$
+- name: Load ES modules with the esm tag
+  pattern: '<script[^>]*\bsrc='
+  hint: |
+    Load the module with `{% esm '#js/app.js' %}`. The tag resolves the specifier through the
+    import map and writes the bundle URL with the integrity hash the browser verifies. A
+    hand-written tag carries no hash, so the browser runs it unverified.
+  filePattern: .*\.html$
+- name: Input group icon buttons use the icon-xs size
+  pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<button\b(?=[^>]*aria-label=)(?![^>]*data-size="icon-xs")[^>]*>\s*(?:<svg class="tabler\b|\{%\s*tabler\b)'
+  hint: 'Icon buttons inside an `.input-group` use the app''s `data-size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. Without it the button takes the default 36px and fills the whole field.'
+  filePattern: .*\.html$
+- name: Copy buttons render through the shared include
+  pattern: 'data-copy='
+  hint: 'Render a copy button with `{% include "abstract/copy_button.html" with value=... label=... %}`. The include keeps the size, the variant, and the `data-copy` hook in one place. Pass `size="icon-xs"` inside an `.input-group`.'
+  filePattern: '^(?!.*abstract/templates/abstract/copy_button\.html$).*\.html$'
+- name: Input group copy buttons use the icon-xs size
+  pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?\{%\s*include\s+"abstract/copy_button\.html"(?![^%]*\bsize="icon-xs")'
+  hint: 'A copy button inside an `.input-group` passes `size="icon-xs"` (28px), the size reserved for controls that sit inline with fields and badges. The include otherwise renders the default 36px button that fills the whole field.'
+  filePattern: .*\.html$
+- name: Inputs inside an input group stay classless
+  pattern: 'class="input-group[^"]*"[\s\S]{0,1200}?<input\b[^>]*class="(?:[^"\s]+\s+)*input(?:\s+[^"\s]+)*"'
+  hint: 'Leave the `input` class off controls inside an `.input-group`. The group already strips the field chrome and sizes the control, and the class adds its own border, background, and larger text back.'
+  filePattern: .*\.html$
 - name: Use blocktranslate instead of blocktrans
   pattern: '\{%\s*(end)?blocktrans\b'
   hint: |
@@ -120,10 +150,6 @@
     reload the module with `importlib.reload` instead of importing
     inside a function.
   filePattern: '(?!.*(?:/tasks\.py$|/apps\.py$|/settings\.py$|manage\.py$)).*\.py$'
-- name: Compose "!reset" and "!override" tags must carry an explicit value
-  pattern: '\n(?P<i>[ \t]*)[^\n:]+:[ \t]*!(?:reset|override)[ \t]*(?=\n(?!(?P=i)[ \t]+\S))'
-  hint: 'Bare `!reset` or `!override` tags parse as empty strings outside Docker Compose and fail dclint''s schema validation. Provide a value the parser can resolve, e.g. `!reset null`, `!reset []`, `!reset {}`, or a block collection for `!override`. Docker Compose ignores the value.'
-  filePattern: '.*(?:docker-)?compose.*\.ya?ml$'
 - name: No code references in user docs
   pattern: '(?i)\bRELAY_[A-Z_]+\b'
   hint: 'docs/docs pages are for relay users, not developers. Replace environment variable and setting names with product wording (the platform domain, the submission host, the dashboard). Internal names live in README.md.'
@@ -140,3 +166,51 @@
   pattern: '\[[^\]\n]*RFC[ ]?\d{3,4}[^\]\n]*\]\(https?://[^)]+\)'
   hint: 'Put the RFC link definition at the bottom of the page and reference it inline, for example `[RFC 8617][rfc-8617]` defined by `[rfc-8617]: https://www.rfc-editor.org/info/rfc8617/`.'
   filePattern: '^docs/docs/.*\.md$|^know_how/docs/.*\.md$'
+- name: No inline script blocks in templates
+  pattern: '<script(?![^>]*(?:\bsrc=|type="importmap"))'
+  hint: "Load a static ES module instead: {% esm '#js/app.js' %}, and pass per-page data with json_script or data-* attributes. The django-esm import map in base.html is the only inline script allowed."
+  filePattern: '.*\.html$'
+- name: No third-party JavaScript from a CDN
+  pattern: 'https?://(?:esm\.sh|cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com)/'
+  hint: 'Vendor third-party modules with `pnpm add` and import them by package name; the import map served by django-esm resolves them locally. Only first-party URLs or plain relative paths belong in a script tag.'
+  filePattern: '.*\.(?:html|js)$'
+- name: No inline event handlers in templates
+  pattern: '\s(?:onclick|onchange|oninput|onsubmit|onfocus|onblur|onkeydown|onkeyup|onload|onerror|onmouseover|onmouseout|ondblclick)\s*='
+  hint: "Drive behavior with a data hook instead (data-dialog, data-dialog-close, data-backdrop-close, data-auto-open, data-confirm, data-copy, data-share, data-href, data-toggle, data-select, data-mirror). root/static/js/app.js handles them all."
+  filePattern: '.*\.html$'
+- name: Links that leave the app open in a new tab
+  pattern: '<a(?![^>]*\btarget=)(?=[^>]*\bhref="(?:https?://|\{%\s*url\s+[''"](?:docs|know_how|alternative_to):))[^>]*>'
+  hint: 'Reading the docs, the know-how, or an outside source must not cost the reader the page they are on. Add target="_blank" rel="noopener".'
+  filePattern: '^.*\.html$'
+- name: Render illustrations through the partial
+  pattern: 'img/illustrations/[a-z-]+-(?:light|dark)\.svg'
+  hint: 'Include `partials/illustration.html` with the illustration name. The partial picks the light or dark variant, keeps the decorative alt text, and reserves the intrinsic size in one place.'
+  filePattern: '.*\.html$'
+- name: Links to the docs bound to a variable open in a new tab
+  pattern: '\{%\s*url\s+[''"](?:docs|know_how|alternative_to):[^%]*?\bas\s+(?P<var>\w+)\s*%\}[\s\S]{0,2000}?<a(?![^>]*\btarget=)[^>]*\bhref="\{\{\s*(?P=var)\s*\}\}"'
+  hint: 'A `{% url ... as name %}` binding hides the destination from the pattern above. A link to the docs written as href="{{ name }}" still has to open in a new tab: add target="_blank" rel="noopener". The docs, know-how, and comparison apps are exempt, they navigate in-app.'
+  filePattern: '^(?!.*(?:docs|know_how|alternative_to)/templates/).*\.html$'
+- name: Auth entry links are nofollow
+  pattern: '<a(?=[^>]*\bhref="\{%\s*url\s+[''"](?:accounts:login|accounts:org-start)[''"])(?![^>]*\brel="nofollow")[^>]*>'
+  hint: 'Login and signup entry points funnel crawlers into an auth flow, not into content. Add rel="nofollow" to the link.'
+  filePattern: '.*\.html$'
+- name: Cluster-internal names use the namespace the manifests deploy into
+  pattern: '\.(?!default\.)\w+\.svc\.cluster\.local'
+  hint: 'The platform runs in the default namespace, and a cluster-internal FQDN carries it. A name that points at another namespace resolves to nothing, which leaves the client with no endpoints: dnsdist drops every query, and other clients fail to connect. Use default, or move this rule when the namespace moves.'
+  filePattern: '^deploy/.*$'
+- name: Use timedelta for cache durations
+  pattern: 'max_age["'']?\s*[:=]\s*\d'
+  hint: 'Declare `max_age` as `datetime.timedelta(...)`. A bare number hides the unit, and the cache control mixin converts the duration to whole seconds for the header.'
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: Keep whole-page caches short
+  pattern: 'max_age["'']?\s*[:=]\s*datetime\.timedelta\((?:minutes=(?:[6-9]|[1-9]\d+)|hours|days|weeks|seconds=(?:(?:3[1-9]|[4-9]\d)\d|[1-9]\d{3,}))'
+  hint: 'A page cache takes request peaks, it does not serve stale content: a minute for HTML, five for the generated text files. A longer `max_age` delays every content change, including a deploy.'
+  filePattern: '(?!.*(?:/tests/|/test_|conftest\.py$)).*\.py$'
+- name: List views declare their cache control
+  pattern: 'class \w+ListView\((?=[^)]*generic\.ListView)(?![^)]*(?:CacheControlMixin|ConditionalGetListMixin|NoStoreCacheMixin))'
+  hint: 'A list view states how it caches: `NoStoreCacheMixin` for a private list, `ConditionalGetListMixin` when the page renders one queryset and can revalidate with an ETag, or `CacheControlMixin` for a public list. A response without a `Cache-Control` header is stored by the Caddy edge cache for its 120s default and then served to every visitor.'
+  filePattern: .*\.py
+- name: Detail views declare their cache control
+  pattern: 'class \w+DetailView\((?=[^)]*generic\.DetailView)(?![^)]*(?:CacheControlMixin|ConditionalGetMixin|NoStoreCacheMixin))'
+  hint: 'A detail view states how it caches: `ConditionalGetMixin` so the object''s `modified_at` expires the page, or `NoStoreCacheMixin` when the page renders rows that the object''s timestamp does not cover.'
+  filePattern: .*\.py

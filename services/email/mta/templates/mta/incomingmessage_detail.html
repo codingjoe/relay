@@ -1,12 +1,12 @@
 {% extends "message/message_detail.html" %}
-{% load i18n abstract %}
+{% load abstract i18n %}
 {% block timeline_dialogs %}
   {% for transmission in transmissions %}
     <dialog
       id="transcript-{{ transmission.pk }}"
       class="drawer"
       data-side="bottom"
-      onclick="if (event.target === this) this.close()"
+      data-backdrop-close
     >
       <article>
         <header>
@@ -42,7 +42,7 @@
           {% endif %}
         </section>
         <footer>
-          <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+          <button type="button" class="btn" data-variant="outline" data-dialog-close>
             {% translate "close"|capfirst %}
           </button>
         </footer>
@@ -55,11 +55,11 @@
         id="delivery-{{ delivery.pk }}"
         class="drawer"
         data-side="bottom"
-        onclick="if (event.target === this) this.close()"
+        data-backdrop-close
       >
         <article>
           <header>
-            <h2>{% translate "webhook delivery"|capfirst %}</h2>
+            <h2>{% translate "delivery to your app"|capfirst %}</h2>
             <p class="m-0 text-sm text-muted-foreground">{% timestamp delivery.created_at %}</p>
           </header>
           <section class="flex flex-col gap-4">
@@ -78,7 +78,7 @@
             {% endif %}
           </section>
           <footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>
               {% translate "close"|capfirst %}
             </button>
           </footer>
@@ -92,7 +92,9 @@
   {% if is_report %}
     <section class="empty">
       <header>
-        <figure><i data-lucide="{{ message.kind_icon }}" aria-hidden="true"></i></figure>
+        <figure>
+          {% tabler name=message.kind_icon size=None %}
+        </figure>
         <h3>{{ report_kind|capfirst }}</h3>
         <p>{% translate "This email carried a report." %}</p>
       </header>

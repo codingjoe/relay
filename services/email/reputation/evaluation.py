@@ -22,29 +22,50 @@ class ReputationStats(TypedDict):
     complaint_rate: float
 
 
+class ReputationSummary(ReputationStats):
+    hard_bounce_over_limit: bool
+    complaint_over_limit: bool
+
+
 def compute_org_reputation(org: Organization) -> ReputationStats:
     """
     Return bounce and complaint rates for an organization over the rolling window.
 
     Returns zero counts and rates when the organization has no outgoing
     messages in the window. Only SMTP 5xx bounces count toward the
-    bounce rate; soft bounces are for display only.
+    bounce rate; a message whose delivery ended in a 4xx refusal counts
+    once as a soft bounce for display only. Sandboxed messages count
+    nowhere, because relay makes no delivery attempt for them.
     """
     window_start = timezone.now() - timedelta(
         days=settings.RELAY_REPUTATION_WINDOW_DAYS
     )
-    total_sent = OutgoingMessage.objects.filter(
-        org=org,
-        created_at__gte=window_start,
-    ).count()
+    total_sent = (
+        OutgoingMessage.objects.filter(org=org, created_at__gte=window_start)
+        .exclude(status=OutgoingMessage.Status.SANDBOXED)
+        .count()
+    )
 
-    transmissions = Transmission.objects.filter(
+    hard_bounces = Transmission.objects.filter(
         message__org=org,
         message__created_at__gte=window_start,
         status=Transmission.Status.BOUNCED,
+        code__gte=500,
+    ).count()
+    # A 4xx refusal leaves the attempt failed; only a 5xx rejection bounces.
+    # Several hosts can refuse one message, so count each message once.
+    soft_bounces = (
+        OutgoingMessage.objects.filter(
+            org=org,
+            created_at__gte=window_start,
+            status=OutgoingMessage.Status.FAILED,
+            transmissions__status=Transmission.Status.FAILED,
+            transmissions__code__gte=400,
+            transmissions__code__lt=500,
+        )
+        .distinct()
+        .count()
     )
-    hard_bounces = transmissions.filter(code__gte=500).count()
-    soft_bounces = transmissions.filter(code__lt=500).count()
 
     complaints = (
         FblReport.objects.filter(
@@ -72,6 +93,19 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     }
 
 
+def build_reputation_stats(org: Organization) -> ReputationSummary:
+    """Return the window counts, both rates, and each rate against its limit."""
+    stats = compute_org_reputation(org)
+    return stats | {
+        "hard_bounce_over_limit": (
+            stats["hard_bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
+        ),
+        "complaint_over_limit": (
+            stats["complaint_rate"] > settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
+        ),
+    }
+
+
 def check_org_reputation(org: Organization) -> ReputationStats:
     """
     Evaluate rates and suspend the organization on a threshold breach.
@@ -82,14 +116,11 @@ def check_org_reputation(org: Organization) -> ReputationStats:
     The suspension is never cleared automatically. Returns the computed
     reputation stats.
     """
-    stats = compute_org_reputation(org)
+    stats = build_reputation_stats(org)
     if stats["total_sent"] < settings.RELAY_REPUTATION_MIN_VOLUME:
         return stats
 
-    if not (
-        stats["hard_bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
-        or stats["complaint_rate"] > settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
-    ):
+    if not (stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]):
         return stats
 
     now = timezone.now()

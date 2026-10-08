@@ -43,15 +43,14 @@ updates:
     cooldown:
       default-days: 7
   - package-ecosystem: docker
+    # Dockerfiles and Kubernetes manifests share the `docker` ecosystem.
     directories:
       - "/"
-    schedule:
-      interval: weekly
-    cooldown:
-      default-days: 3
-  - package-ecosystem: docker-compose
-    directories:
-      - "/"
+      - "/deploy/k8s"
+      - "/deploy/cluster"
+    ignore:
+      # Dependabot cannot read registry.k8s.io; it moves on re-vendoring.
+      - dependency-name: "*metrics-server/metrics-server"
     schedule:
       interval: weekly
     cooldown:

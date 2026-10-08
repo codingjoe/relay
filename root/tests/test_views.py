@@ -1,6 +1,8 @@
 import itertools
+from inspect import iscoroutinefunction
 
 import pytest
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.db import connections
 from django.http import HttpResponse
@@ -39,6 +41,26 @@ class TestHomeViewRender:
         assert response.status_code == 200
 
 
+class TestHomeViewPricing:
+    def test_get__shows_the_configured_free_tier(self, client, settings):
+        settings.RELAY_FREE_MONTHLY_MESSAGES = 2000
+
+        text = " ".join(client.get("/").content.decode().split())
+
+        assert "First 2,000 emails free every month" in text
+        assert 'min="2000"' in text
+        assert 'value="2000"' in text
+        assert '<span id="price-volume">2,000</span>' in text
+
+    def test_get__shows_a_changed_price(self, client, settings):
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 2.5
+
+        text = " ".join(client.get("/").content.decode().split())
+
+        assert "First 1,000 emails free, then €2.50 / 1,000 emails." in text
+        assert 'data-per-thousand="2.5"' in text
+
+
 class TestPublicChrome:
     """Public pages render the static chrome: no session access, no Vary: Cookie."""
 
@@ -47,6 +69,11 @@ class TestPublicChrome:
         "/docs/security/",
         "/legal/imprint/",
     ]
+
+    def test_get__short_public_cache(self, client):
+        for url in self.public_urls:
+            response = client.get(url)
+            assert response.headers["Cache-Control"] == "public, max-age=60"
 
     def test_get__no_vary_cookie(self, client):
         for url in self.public_urls:
@@ -113,11 +140,29 @@ class TestNoIO:
     """Guard against eager database access in middleware and context processors."""
 
     def build_middleware_chain(self, get_response):
-        """Wrap `get_response` with every configured middleware in settings order."""
+        """
+        Wrap `get_response` with every configured middleware in settings order.
+
+        Mirrors Django's `BaseHandler.load_middleware`, because middleware that
+        only speak async, such as `ServeStaticMiddleware`, need an awaitable
+        handler and a sync bridge at the top of the stack.
+        """
         handler = get_response
+        handler_is_async = iscoroutinefunction(get_response)
         for middleware_path in reversed(settings.MIDDLEWARE):
             middleware_cls = import_string(middleware_path)
+            if not handler_is_async and getattr(middleware_cls, "sync_capable", True):
+                middleware_is_async = False
+            else:
+                middleware_is_async = getattr(middleware_cls, "async_capable", False)
+            if middleware_is_async and not handler_is_async:
+                handler = sync_to_async(handler, thread_sensitive=True)
+            elif not middleware_is_async and handler_is_async:
+                handler = async_to_sync(handler)
             handler = middleware_cls(handler)
+            handler_is_async = middleware_is_async
+        if handler_is_async:
+            handler = async_to_sync(handler)
         return handler
 
     def test_middleware_does_not_touch_db(self, rf, django_db_blocker):

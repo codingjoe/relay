@@ -25,9 +25,6 @@ glob pattern, and points at one HTTPS URL:
 - **One keypair per webhook**. Each webhook derives its own Ed25519 signing
   key. Public keys display in `whpk_` form, and you use them to verify.
 
-relay checks the MX record of the webhook automatically. A broken MX record is
-visible on the webhook page.
-
 ## The payload
 
 The body is flat JSON, and the raw message body is never inlined:

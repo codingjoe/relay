@@ -1,14 +1,93 @@
 {% extends "emails/base.html" %}
-{% load django_letter i18n %}
+{% load django_letter i18n static %}
 
 {% block content %}
-  <h1 class="first">{% translate "Your email setup works" %}</h1>
+  {% table class="align-center" %}
+  <tr>
+    <td align="center" class="pb16">
+      <img
+        src="{% static 'img/email.svg' %}"
+        alt=""
+        width="442"
+        height="305"
+        style="width: 80%; height: auto"
+      >
+    </td>
+  </tr>
+  {% endtable %}
+  <h1 class="first">{% translate "Your test message arrived" %}</h1>
   <p>
-    {% blocktranslate trimmed with sender=sender recipient=recipient %}
-      This test message went from {{ sender }} to {{ recipient }}. The signature is valid and your domain is ready to
-      send.
+    {% blocktranslate trimmed %}
+      Off it went. Every message relay sends stays in your dashboard with its delivery log, so you can follow this one
+      whenever you like.
     {% endblocktranslate %}
   </p>
-  {% translate "View it in the dashboard" as button_label %}
-  {% button href=dashboard_url value=button_label primary=True %}
+  {% translate "View the transmission trace" as button_label %}
+  {% url 'msa:message-detail' org_slug=username pk=message_pk as trace_path %}
+  {% button href=trace_path value=button_label primary=True %}
+  <h2>{% translate "Send from your own application" %}</h2>
+  <p>
+    {% blocktranslate trimmed %}
+      Ready for the real thing? Point your application at the submission host and authenticate with a credential.
+    {% endblocktranslate %}
+  </p>
+  {% table %}
+  <tr>
+    <td>{% translate "Server" %}</td>
+    <td><code>{{ smtp_hostname }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Port (implicit TLS)" %}</td>
+    <td><code>{{ smtp_implicit_tls_ports|join:", " }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Port (STARTTLS)" %}</td>
+    <td><code>{{ smtp_starttls_ports|join:", " }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Username" %}</td>
+    <td><code>{{ username }}</code></td>
+  </tr>
+  <tr>
+    <td>{% translate "Password" %}</td>
+    <td>{% translate "the credential key" %}</td>
+  </tr>
+  {% endtable %}
+  <p>
+    {% blocktranslate trimmed %}
+      The credential key is shown once, when you create it, so copy it then. A sandbox credential stores your messages
+      without delivering them.
+    {% endblocktranslate %}
+  </p>
+  <p>
+    <a href="{% url 'msa:credential-list' org_slug=username %}">{% translate "Create a credential" %}</a>
+  </p>
+  <h2>{% translate "Send from your own domain" %}</h2>
+  <p>
+    {% blocktranslate trimmed with domain=domain %}
+      This test message left {{ domain }}. Add a domain you own, delegate it to relay, and relay serves its SPF, DKIM,
+      and DMARC records for you.
+    {% endblocktranslate %}
+  </p>
+  <p>
+    <a href="{% url 'domains:domain-list' org_slug=username %}">{% translate "Add a domain" %}</a>
+  </p>
+  <p>
+    {% blocktranslate trimmed %}
+      That is all the first message needs. Happy sending!
+    {% endblocktranslate %}
+  </p>
+  {% table class="align-center" %}
+  <tr>
+    <td align="center">
+      <img
+        src="{% static 'img/game-day.svg' %}"
+        alt=""
+        width="442"
+        height="352"
+        style="width: 80%; height: auto"
+      >
+    </td>
+  </tr>
+  {% endtable %}
 {% endblock content %}

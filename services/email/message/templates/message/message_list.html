@@ -1,26 +1,21 @@
 {% extends "base.html" %}
-{% load i18n message abstract %}
-{% block title %}{% translate "email messages"|capfirst %} | relay{% endblock %}
+{% load abstract humanize i18n message %}
+{% block title %}{% translate "message log"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "email messages"|capfirst %}</h2>
-    <div class="flex items-center gap-2">
-      <p class="text-sm text-muted-foreground m-0" role="status">
-        {% blocktranslate count counter=paginator.count trimmed %}
-          {{ counter }} message{% plural %}{{ counter }} messages
-        {% endblocktranslate %}
-      </p>
-      <button
-        type="button"
-        class="btn"
-        onclick="document.getElementById('dlg-test-email').showModal()"
-      >
-        {% translate "send test email"|title %}
-      </button>
-    </div>
+    <h2 class="m-0">{% translate "message log"|capfirst %}</h2>
+    <button
+      type="button"
+      class="btn"
+      data-dialog="dlg-test-email"
+    >
+      {% translate "send test email"|title %}
+    </button>
   </header>
 
   {% include "partials/test_email_dialog.html" %}
+
+  {% include "abstract/chart_card.html" with id="chart-messages" data_id="chart-messages-data" title=chart_title|capfirst chart=chart class="mb-6" %}
 
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <form method="get" role="search" class="flex-1 min-w-56">
@@ -31,22 +26,18 @@
           name="email"
           type="search"
           value="{{ email }}"
+          autocomplete="off"
           aria-label='{% translate "search by address" %}'
           placeholder='{% translate "search by address" %}'
         >
         <span data-align="start" aria-hidden="true">
-          <i data-lucide="search" class="size-4"></i>
+          {% tabler name="search" %}
         </span>
-        <button
-          type="submit"
-          class="btn"
-          data-variant="ghost"
-          data-size="icon"
-          data-align="end"
-          aria-label='{% translate "search"|capfirst context "verb" %}'
-        >
-          <i data-lucide="arrow-right" aria-hidden="true"></i>
-        </button>
+        <span data-align="end" role="status">
+          {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
+            {{ count }} message{% plural %}{{ count }} messages
+          {% endblocktranslate %}
+        </span>
       </div>
     </form>
     <div id="filter-options" class="popover">
@@ -59,12 +50,12 @@
         aria-controls="filter-options-popover"
         aria-expanded="false"
       >
-        <i data-lucide="list-filter" class="size-4" aria-hidden="true"></i>
+        {% tabler name="filter" %}
         {{ direction_label|capfirst }}
-        {% if filter_count %}
-          <span class="badge" data-size="sm">{{ filter_count }}</span>
+        {% if status_label %}
+          <span class="badge" data-size="sm">{{ status_label|capfirst }}</span>
         {% endif %}
-        <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
+        {% tabler name="chevron-down" size="3.5" %}
       </button>
       <div
         id="filter-options-popover"
@@ -76,7 +67,7 @@
       >
         <div class="command" id="filter-command" aria-label='{% translate "filters"|capfirst %}'>
           <header>
-            <i data-lucide="search" class="size-4"></i>
+            {% tabler name="search" %}
             <input
               id="filter-command-input"
               type="search"
@@ -102,27 +93,27 @@
                 href="?{% param_replace direction='all' %}"
                 data-checked="{% if direction == 'all' %}true{% else %}false{% endif %}"
               >
-                <i data-lucide="arrow-right-left" class="size-4"></i>
+                {% tabler name="arrows-right-left" %}
                 {% translate "all"|capfirst %}
-                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                {% tabler name="check" %}
               </a>
               <a
                 role="menuitem"
                 href="?{% param_replace direction='sent' %}"
                 data-checked="{% if direction == 'sent' %}true{% else %}false{% endif %}"
               >
-                <i data-lucide="send" class="size-4"></i>
+                {% tabler name="send" %}
                 {% translate "sent"|capfirst %}
-                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                {% tabler name="check" %}
               </a>
               <a
                 role="menuitem"
                 href="?{% param_replace direction='received' %}"
                 data-checked="{% if direction == 'received' %}true{% else %}false{% endif %}"
               >
-                <i data-lucide="inbox" class="size-4"></i>
+                {% tabler name="inbox" %}
                 {% translate "received"|capfirst %}
-                <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                {% tabler name="check" %}
               </a>
             </div>
             <hr role="separator">
@@ -135,7 +126,7 @@
                   data-checked="{% if status == value %}true{% else %}false{% endif %}"
                 >
                   {{ label|capfirst }}
-                  <span data-indicator><i data-lucide="check" class="size-4" aria-hidden="true"></i></span>
+                  {% tabler name="check" %}
                 </a>
               {% endfor %}
             </div>
@@ -145,7 +136,7 @@
     </div>
     {% if email or status %}
       <a class="btn" data-variant="ghost" href="?{% param_replace email='' status='' %}">
-        <i data-lucide="rotate-ccw" class="size-4" aria-hidden="true"></i>
+        {% tabler name="restore" %}
         {% translate "clear"|capfirst %}
       </a>
     {% endif %}
@@ -163,12 +154,7 @@
             {% endif %}
           </h3>
           <div class="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-            <i
-              data-lucide="{{ message.kind_icon }}"
-              class="size-3.5 shrink-0"
-              data-tooltip="{{ message.kind_display|capfirst }}"
-              aria-hidden="true"
-            ></i>
+            {% tabler name=message.kind_icon size="3.5" class="shrink-0" data_tooltip=message.kind_display|capfirst %}
             <span class="sr-only">{{ message.kind_display|capfirst }}</span>
             <code class="truncate max-w-96">
               {{ message.mail_from }} → {{ message.rcpt_to }}
@@ -190,8 +176,8 @@
       {% if not email and not status %}
         <section class="empty">
           <header>
-            <figure>
-              <i data-lucide="inbox" aria-hidden="true"></i>
+            <figure class="max-w-48 mx-auto">
+              {% include "partials/illustration.html" with name="empty-mailbox" %}
             </figure>
             <h3>{% translate "No messages yet." %}</h3>
             <p>
@@ -205,7 +191,7 @@
               type="button"
               class="btn"
               data-variant="secondary"
-              onclick="document.getElementById('dlg-test-email').showModal()"
+              data-dialog="dlg-test-email"
             >
               {% translate "send test email"|title %}
             </button>
@@ -215,7 +201,7 @@
         <section class="empty">
           <header>
             <figure>
-              <i data-lucide="search" aria-hidden="true"></i>
+              {% tabler name="search" size=None %}
             </figure>
             <h3>{% translate "No messages found." %}</h3>
             <p>{% translate "Try different filters to find what you are looking for." %}</p>

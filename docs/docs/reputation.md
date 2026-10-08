@@ -115,28 +115,32 @@ without this proof stays on record, and it does not count into the rates.
 
 ## Reputation limits
 
-relay computes hard-bounce and complaint rates for your organization over a
-rolling window. Two rates drive the decision: the hard-bounce rate and the
-complaint rate. If one of the rates goes above its threshold, and the
-message volume in the window is large enough, relay suspends the
-organization. A suspension rejects new submissions with a 550 answer, and
-drops queued messages. The suspension never lifts by itself. relay sends
-mail to the organization admins and to relay staff when it suspends an
-organization.
+relay computes hard-bounce, soft-bounce, and complaint rates for your
+organization over a rolling window. Two rates drive the decision: the
+hard-bounce rate and the complaint rate. If one of the rates goes above its
+threshold, and the message volume in the window is large enough, relay
+suspends the organization. A suspension rejects new submissions with a 550
+answer, and drops queued messages. The suspension never lifts by itself.
+relay sends mail to the organization admins and to relay staff when it
+suspends an organization.
+
+The monitoring page charts the soft-bounce rate as well. That line is
+display-only: a 4xx refusal is a temporary condition, so it never suspends
+an organization.
 
 ## The reputation loop in practice
 
 1. Send under your domain. relay signs, aligns the envelope, and scores
    content.
-1. Suppression keeps the bounce rate low, and the spam gate keeps the content
+2. Suppression keeps the bounce rate low, and the spam gate keeps the content
    clean.
-1. A recipient marks a message as spam, and the provider sends a complaint to
+3. A recipient marks a message as spam, and the provider sends a complaint to
    the FBL address. relay matches the complaint to your message through the
    per-message ids on the Return-Path and the `Feedback-ID` header.
-1. Providers send aggregate reports every day. relay parses them.
-1. You read your report rows, and correct what you see. Policy updates and
+4. Providers send aggregate reports every day. relay parses them.
+5. You read your report rows, and correct what you see. Policy updates and
    key rotation are dashboard operations.
-1. Misconfigured senders become visible quickly. Fix or block them early.
+6. Misconfigured senders become visible quickly. Fix or block them early.
 
 Reputation is a set of boring signals, done consistently. relay runs the
 boring parts.

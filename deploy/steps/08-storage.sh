@@ -3,7 +3,9 @@
 # Provisioning step: create the Hetzner Object Storage bucket that holds
 # stored mail.
 #
-# Inputs: S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+# Inputs: S3_BUCKET, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. Only the first
+# provisioning needs those exported, because adopt_stored_s3_credentials takes
+# over once they are in .env.production.
 
 set -euo pipefail
 
@@ -14,6 +16,11 @@ source "$(dirname "$STEPS_DIR")/config.sh"
 bucket_exists() {
     aws --endpoint-url "$S3_ENDPOINT_URL" s3api head-bucket --bucket "$S3_BUCKET" >/dev/null 2>&1
 }
+
+# Before the check, because head-bucket authenticates: without the credentials
+# the check reports a bucket that exists as pending, and the step never gets to
+# the adoption below.
+adopt_stored_s3_credentials
 
 if [ "${1:-}" = "--check" ]; then
     bucket_exists

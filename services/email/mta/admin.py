@@ -22,6 +22,7 @@ class IncomingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ["status"]
     search_fields = ["mail_from", "rcpt_to", "subject", "message_id"]
+    autocomplete_fields = ["org", "domain"]
     readonly_fields = ["id", "created_at"]
 
 
@@ -30,6 +31,7 @@ class WebhookAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     list_display = ["org", "name", "url", "is_active", "last_used_at"]
     list_filter = ["is_active"]
     search_fields = ["org__slug", "name", "url"]
+    autocomplete_fields = ["org", "domain", "signing_key"]
     readonly_fields = ["last_used_at"]
 
 
@@ -44,6 +46,7 @@ class WebhookDeliveryAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ["status", "is_test"]
     search_fields = ["webhook__url", "webhook__name"]
+    autocomplete_fields = ["message", "webhook"]
     readonly_fields = ["id", "created_at"]
 
 
@@ -59,6 +62,7 @@ class TlsReportAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "failed_session_count",
     ]
     search_fields = ["reporting_org", "report_id", "domain__name"]
+    autocomplete_fields = ["org", "domain"]
 
 
 @admin.register(TlsFailure)
@@ -76,3 +80,4 @@ class TlsFailureAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "sending_mta_ip_address",
         "report__report_id",
     ]
+    autocomplete_fields = ["report"]

@@ -4,36 +4,39 @@ description: A fair 2025 comparison of relay and Brevo for email sending, receiv
 author: Johannes Maron
 ---
 
+{% load abstract %}
+
 # Alternative to Brevo
 
 > Brevo is a European all-in-one platform for marketing, SMS, and email. relay focuses on developer email: sending, receiving, and reputation monitoring in one EU-hosted service.
 
 <div class="not-prose my-6 rounded-lg border border-border bg-card p-4 text-sm">
   <p class="m-0 mb-2">
-    <i data-lucide="circle-check" class="size-4 text-primary align-middle" aria-hidden="true"></i>
+    {% tabler name="circle-check" class="text-primary align-middle" %}
     <strong>Best for all-in-one marketing, SMS, and email:</strong> Brevo
   </p>
   <p class="m-0">
-    <i data-lucide="circle-check" class="size-4 text-primary align-middle" aria-hidden="true"></i>
+    {% tabler name="circle-check" class="text-primary align-middle" %}
     <strong>Best for developer email with monitoring and EU hosting:</strong> relay
   </p>
 </div>
 
 ## Quick comparison
 
-| Feature                                                                                                                                                                                                                | relay                                                                                                    | Brevo                                                                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| SPF <a href="{% url 'know_how:detail' slug='spf' %}" target="_blank" rel="noopener" aria-label="SPF. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                         | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record |
-| DKIM <a href="{% url 'know_how:detail' slug='dkim' %}" target="_blank" rel="noopener" aria-label="DKIM. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                      | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> RSA-2048, Ed25519      | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> RSA only      |
-| DMARC <a href="{% url 'know_how:detail' slug='dmarc' %}" target="_blank" rel="noopener" aria-label="DMARC. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                   | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record |
-| MTA-STS <a href="{% url 'know_how:detail' slug='mta-sts' %}" target="_blank" rel="noopener" aria-label="MTA-STS. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>             | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Self-hosted   |
-| TLS-RPT <a href="{% url 'know_how:detail' slug='tls-rpt' %}" target="_blank" rel="noopener" aria-label="TLS-RPT. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>             | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record |
-| Return-Path <a href="{% url 'know_how:detail' slug='return-path' %}" target="_blank" rel="noopener" aria-label="Return-Path. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a> | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual CNAME  |
-| Reputation monitoring                                                                                                                                                                                                  | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> DMARC + TLS-RPT parsed | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> Not available           |
-| Incoming mail                                                                                                                                                                                                          | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> MX + webhooks          | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> Limited                 |
-| EU data sovereignty                                                                                                                                                                                                    | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> EU (Germany), GDPR     | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> EU (France)             |
-| Free test domain                                                                                                                                                                                                       | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Yes                    | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> No                      |
-| Pricing                                                                                                                                                                                                                | Flat per message                                                                                         | Tiered, contact-based                                                                                     |
+| Feature                                                                                                                                                                                                    | relay                                                                          | Brevo                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| SPF <a href="{% url 'know_how:detail' slug='spf' %}" target="_blank" rel="noopener" aria-label="SPF. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>                         | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual record                  |
+| DKIM <a href="{% url 'know_how:detail' slug='dkim' %}" target="_blank" rel="noopener" aria-label="DKIM. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>                      | {% tabler name="circle-check" class="text-primary" %} RSA-2048, Ed25519        | {% tabler name="circle-dashed" class="text-muted-foreground" %} RSA only                       |
+| DMARC <a href="{% url 'know_how:detail' slug='dmarc' %}" target="_blank" rel="noopener" aria-label="DMARC. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>                   | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual record                  |
+| MTA-STS <a href="{% url 'know_how:detail' slug='mta-sts' %}" target="_blank" rel="noopener" aria-label="MTA-STS. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>             | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Self-hosted                    |
+| TLS-RPT <a href="{% url 'know_how:detail' slug='tls-rpt' %}" target="_blank" rel="noopener" aria-label="TLS-RPT. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>             | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual record                  |
+| Return-Path <a href="{% url 'know_how:detail' slug='return-path' %}" target="_blank" rel="noopener" aria-label="Return-Path. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a> | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual CNAME                   |
+| Reputation monitoring                                                                                                                                                                                      | {% tabler name="circle-check" class="text-primary" %} DMARC + TLS-RPT parsed   | {% tabler name="circle-x" class="text-destructive" %} Not available                            |
+| Incoming mail                                                                                                                                                                                              | {% tabler name="circle-check" class="text-primary" %} MX + webhooks            | {% tabler name="circle-x" class="text-destructive" %} Limited                                  |
+| EU data sovereignty                                                                                                                                                                                        | {% tabler name="circle-check" class="text-primary" %} EU (Germany), GDPR       | {% tabler name="circle-check" class="text-primary" %} EU (France)                              |
+| Free test domain                                                                                                                                                                                           | {% tabler name="circle-check" class="text-primary" %} Yes                      | {% tabler name="circle-x" class="text-destructive" %} No                                       |
+| Sandbox                                                                                                                                                                                                    | {% tabler name="circle-check" class="text-primary" %} Credentials, no delivery | {% tabler name="circle-dashed" class="text-muted-foreground" %} Sandbox header, validates only |
+| Pricing                                                                                                                                                                                                    | Flat per message                                                               | Tiered, contact-based                                                                          |
 
 ## What Brevo does well
 
@@ -76,6 +79,6 @@ Brevo is a strong all-in-one marketing platform. relay is the better fit for dev
 ## Migrating from Brevo to relay
 
 1. Add your domain in relay. Delegate NS to the relay nameservers.
-1. Set the DMARC record that relay gives you.
-1. Move transactional SMTP or API calls to relay with a per-org credential.
-1. Set up relay webhooks for any inbound mail you need.
+2. Set the DMARC record that relay gives you.
+3. Move transactional SMTP or API calls to relay with a per-org credential.
+4. Set up relay webhooks for any inbound mail you need.

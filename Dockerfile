@@ -2,13 +2,13 @@ ARG DISTROLESS_FLAVOR=nonroot
 
 FROM node:26-slim AS frontend
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     npm install -g pnpm && pnpm ci --frozen-lockfile
-COPY ./ /app
+COPY --exclude=.env ./ /app
 RUN mkdir -p root/static/css && pnpm run build
 
-FROM ghcr.io/astral-sh/uv:0.12.13-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.12.23-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
 LABEL url="https://github.com/codingjoe/the-box"
@@ -35,10 +35,25 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-editable
 
+FROM build AS compile
+
+RUN apt-get install -y gettext
+
+COPY --exclude=.env ./ /app
+
+RUN /opt/venv/bin/python -m manage compilemessages
+
+COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
+COPY --from=frontend /app/staticfiles/esm /app/staticfiles/esm
+
+RUN /opt/venv/bin/python -m manage collectstatic --no-input --no-esm
+
 FROM gcr.io/distroless/cc:${DISTROLESS_FLAVOR} AS development
 
 # Copy binary dependencies
 COPY --from=build /dpkg /
+
+COPY --from=dotenv/dotenvx:v2.29.0 /usr/local/bin/dotenvx /usr/local/bin/dotenvx
 
 # Copy Python dependencies
 COPY --from=build --chown=root:root /opt/python /opt/python
@@ -51,29 +66,15 @@ ENV PORT=8000
 
 WORKDIR /app
 
-ENTRYPOINT ["/opt/venv/bin/python"]
+ARG DOTENV_FILE=.env.production
+COPY --from=compile --chown=root:root /app /app
+COPY ${DOTENV_FILE} /app/.env
 
-FROM build AS compile
+ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=${SENTRY_RELEASE}
 
-RUN apt-get install -y gettext
-
-COPY ./ /app
-
-# Compile message files
-RUN /opt/venv/bin/python -m manage compilemessages
-
-# Copy compiled CSS from the frontend build stage
-COPY --from=frontend /app/root/static/css/app.css /app/root/static/css/app.css
-
-# Collect static files
-RUN /opt/venv/bin/python -m manage collectstatic --no-input
+ENTRYPOINT ["dotenvx", "run", "-f", "/app/.env", "--", "/opt/venv/bin/python"]
 
 FROM development AS production
 
-COPY ./ /app
-
-COPY --from=compile /app/root/locale /app/root/locale
-COPY --from=compile /app/staticfiles /app/staticfiles
-
-WORKDIR /app
-ENTRYPOINT ["/opt/venv/bin/python"]
+ENTRYPOINT ["dotenvx", "run", "--strict", "-f", "/app/.env", "--", "/opt/venv/bin/python"]

@@ -21,8 +21,11 @@
 #   SERVER_LOCATION         (fsn1)                   hcloud location
 #   SMTP_FLOATING_IP_COUNT  (2)                      size of the SMTP egress pool
 #   S3_BUCKET               (relay-<hostname with dots replaced by dashes>)
-#   SSH_PUBLIC_KEY_FILES    (~/.ssh/id_ed25519.pub)  space separated
-#   DEPLOY_KEY              (deploy/id_ed25519)
+#   TALOS_VERSION           (v1.14.2)                Talos release
+#   KUBERNETES_VERSION      (1.37.1)                 Kubernetes release it ships
+#   TALOS_SCHEMATIC         (Hetzner's)              image factory schematic
+#   TALOS_IMAGE_NAME        (<hostname>-talos-<version>) snapshot description
+#   TALOS_DIR               (deploy/.state/talos)    generated configs and keys
 #
 # See deploy/README.md for the operator guide.
 
@@ -49,7 +52,6 @@ STATE_KEYS=(
     SMTP_FLOATING_IP_ADDRESSES
     SMTP_SOURCE_ADDRESSES
     ZONE_NAMESERVERS
-    SSH_KNOWN_HOSTS
     S3_BUCKET
     UPDATED_AT
 )
@@ -82,6 +84,27 @@ require_env() {
     local variable
     for variable in "$@"; do
         [ -n "${!variable:-}" ] || fail "$variable is not set"
+    done
+}
+
+# The AWS CLI reads AWS_ACCESS_KEY_ID, and django-storages reads the AWS_S3_
+# spelled names that .env.production stores. Adopt the stored pair rather than
+# asking for it again, so a second run does not need credentials it already has.
+# The environment still wins, because the first provisioning is what puts them
+# in the file.
+adopt_stored_s3_credentials() {
+    local name key stored
+    for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+        [ -n "${!name:-}" ] && continue
+        key="AWS_S3_${name#AWS_}"
+        stored="$(dotenvx get "$key" -f "$REPO_ROOT/.env.production" 2>/dev/null || true)"
+        # Without the key that decrypts the file, dotenvx prints the ciphertext
+        # and exits non-zero. Taking that for a credential would authenticate as
+        # nobody and report the failure much later, as an access denied.
+        case "$stored" in
+            "" | encrypted:*) continue ;;
+        esac
+        export "$name=$stored"
     done
 }
 
@@ -174,12 +197,21 @@ SERVER_TYPE="${SERVER_TYPE:-ccx33}"
 SERVER_LOCATION="${SERVER_LOCATION:-fsn1}"
 SMTP_FLOATING_IP_COUNT="${SMTP_FLOATING_IP_COUNT:-2}"
 S3_BUCKET="${S3_BUCKET:-relay-${RELAY_HOSTNAME//./-}}"
-DEPLOY_KEY="${DEPLOY_KEY:-$DEPLOY_DIR/id_ed25519}"
-DEPLOY_KEY_NAME="${RELAY_HOSTNAME}-deploy"
 
-# The single server runs Hetzner's docker-ce image and keeps its bucket in the
-# same location.
-SERVER_IMAGE="docker-ce"
+# Talos: the snapshot every server boots, and the installer the machine config
+# hands the node so it writes the same build to disk. The schematic is the one
+# Hetzner Cloud publishes (Talos with the qemu-guest-agent), which is what the
+# image factory builds the snapshot and the installer from.
+TALOS_VERSION="${TALOS_VERSION:-v1.14.2}"
+# The Kubernetes release the pinned Talos release ships. upgrade.sh hands it to
+# upgrade-k8s as an explicit target, so a talosctl binary from another release
+# cannot move the cluster to the version it defaults to. Bump both together.
+KUBERNETES_VERSION="${KUBERNETES_VERSION:-1.37.1}"
+TALOS_SCHEMATIC="${TALOS_SCHEMATIC:-ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515}"
+TALOS_INSTALLER="${TALOS_INSTALLER:-factory.talos.dev/hcloud-installer/${TALOS_SCHEMATIC}:${TALOS_VERSION}}"
+TALOS_IMAGE_NAME="${TALOS_IMAGE_NAME:-${RELAY_HOSTNAME}-talos-${TALOS_VERSION}}"
+TALOS_DIR="${TALOS_DIR:-$STATE_DIR/talos}"
+
 S3_REGION="fsn1"
 S3_ENDPOINT_URL="https://fsn1.your-objectstorage.com"
 
@@ -194,8 +226,6 @@ STORAGE_HOSTNAME="storage.$RELAY_HOSTNAME"
 PUBLIC_RESOLVERS=(1.1.1.1 9.9.9.9)
 WAIT_TIMEOUT_SECS=600
 WAIT_INTERVAL_SECS=15
-
-read -ra SSH_PUBLIC_KEY_FILES <<<"${SSH_PUBLIC_KEY_FILES:-$HOME/.ssh/id_ed25519.pub}"
 
 AWS_DEFAULT_REGION="$S3_REGION"
 export AWS_DEFAULT_REGION

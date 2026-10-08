@@ -24,7 +24,7 @@
           type="button"
           class="btn"
           data-size="sm"
-          onclick="document.getElementById('dlg-add-member').showModal()"
+          data-dialog="dlg-add-member"
         >
           {% translate "add member"|title %}
         </button>
@@ -55,7 +55,7 @@
               type="button"
               class="btn"
               data-variant="secondary"
-              onclick="document.getElementById('dlg-add-member').close()"
+              data-dialog-close="dlg-add-member"
             >
               {% translate "cancel"|capfirst context "verb" %}
             </button>
@@ -99,7 +99,7 @@
                     class="btn"
                     data-variant="destructive"
                     data-size="sm"
-                    onclick="return confirm('{% translate "remove this member?"|capfirst context "verb" %}')"
+                    data-confirm='{% translate "remove this member?"|capfirst context "verb" %}'
                   >
                     {% translate "remove"|capfirst context "verb" %}
                   </button>

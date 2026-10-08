@@ -1,49 +1,11 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from health_check.views import HealthCheckView
-from redis.asyncio import Redis
 
 from . import views
 
 urlpatterns = [
-    path(
-        "health/",
-        include(
-            [
-                path(
-                    "django/",
-                    HealthCheckView.as_view(
-                        checks=[
-                            "health_check.Cache",
-                            "health_check.Database",
-                            "health_check.contrib.psutil.Disk",
-                            "health_check.contrib.psutil.Memory",
-                            (
-                                "health_check.contrib.redis.Redis",
-                                {
-                                    "client_factory": lambda: Redis.from_url(
-                                        settings.REDIS_URL
-                                    )
-                                },
-                            ),
-                        ]
-                    ),
-                    name="home",
-                ),
-                path(
-                    "",
-                    HealthCheckView.as_view(
-                        checks=[
-                            "health_check.contrib.psutil.Disk",
-                            "health_check.contrib.psutil.Memory",
-                        ]
-                    ),
-                    name="health",
-                ),
-            ]
-        ),
-    ),
+    path("health/", include("root.health")),
     path("", views.HomeView.as_view(), name="home"),
     path("open-source/", views.OpenSourceView.as_view(), name="open-source"),
     # Platform (not org-scoped)

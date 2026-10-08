@@ -1,13 +1,41 @@
+import re
+from urllib.parse import quote
 from uuid import uuid4
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
+from abstract.templatetags.abstract import human_duration
 from domains.models import Domain
 from kms.models import Certificate
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
+
+MULTIPART_BODY = (
+    b'MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary="b"\r\n\r\n'
+    b"--b\r\nContent-Type: text/plain\r\n\r\nplain body\r\n"
+    b"--b\r\nContent-Type: text/html\r\n\r\n<p>html body</p>\r\n--b--\r\n"
+)
+
+STYLED_BODY = (
+    b"MIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n"
+    b'<p style="position: absolute; color: red">html body</p>'
+)
+
+
+def tab_order(content):
+    return re.findall(r'id="(message-tab-[a-z]+)"', content)
+
+
+def panel_visibility(content):
+    return {
+        panel_id: "hidden" in attributes
+        for panel_id, attributes in re.findall(
+            r'id="(message-panel-[a-z]+)"([^>]*)>', content
+        )
+    }
 
 
 def make_certificate(issuer_certificate=None):
@@ -105,6 +133,338 @@ class TestCertificateDetailView:
             f"/org/{org.slug}/email/certificates/{certificate.fingerprint}"
         )
         assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestMessageListDirectionChart:
+    def test_get__keeps_outgoing_counts_above_the_axis(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="alice@example.com",
+            rcpt_to="bob@example.com",
+            status=OutgoingMessage.Status.SENT,
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        assert response.context["chart"]["rows"][-1]["outgoing_sent"] == 1
+
+    def test_get__mirrors_incoming_counts_below_the_axis(self, admin_client, org):
+        make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        assert response.context["chart"]["rows"][-1]["incoming_received"] == -1
+
+    def test_get__chart_counts_only_the_filtered_messages(self, admin_client, org):
+        make_incoming(org)
+
+        response = admin_client.get(
+            f"/org/{org.slug}/email/messages/?email=nobody@example.com"
+        )
+
+        assert response.status_code == 200
+        assert response.context["chart"]["rows"][-1]["incoming_received"] == 0
+
+
+@pytest.mark.django_db
+class TestMessageListCount:
+    def test_get__shows_the_count_inside_the_search_input(self, admin_client, org):
+        make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        group = re.search(
+            r'<div class="input-group">.*?</div>', response.content.decode(), re.DOTALL
+        )
+        assert group is not None
+        assert "1 message" in group.group()
+
+
+@pytest.mark.django_db
+class TestMessageDetailAddressLinks:
+    def test_get__links_the_sender_to_the_filtered_list(self, admin_client, org):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert (
+            f'href="/org/{org.slug}/email/messages/?email={quote(message.mail_from)}"'
+            in content
+        )
+        assert (
+            f'href="/org/{org.slug}/email/messages/?email={quote(message.rcpt_to)}"'
+            in content
+        )
+
+
+@pytest.mark.django_db
+class TestMessageDetailBreadcrumbs:
+    def test_get__ends_with_the_subject(self, admin_client, org):
+        message = make_incoming(org)
+        message.subject = "Quarterly invoice"
+        message.save(update_fields=["subject"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert [crumb["title"] for crumb in response.context["breadcrumbs"]] == [
+            str(org),
+            "Message log",
+            "Quarterly invoice",
+        ]
+
+    def test_get__falls_back_to_the_object_string_without_a_subject(
+        self, admin_client, org
+    ):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert response.context["breadcrumbs"][-1]["title"] == str(message)
+
+
+@pytest.mark.django_db
+class TestMessageDetailStatusCard:
+    def test_get__shows_the_status_and_the_delivery_summary(self, admin_client, org):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert response.context["delivery_attempts"] == 1
+        assert response.context["delivery_finished_at"] is not None
+        content = response.content.decode()
+        assert 'data-variant="success"' in content
+        assert human_duration(response.context["delivery_duration"]) in content
+
+    def test_get__shows_the_scan_verdicts(self, admin_client, org):
+        message = make_incoming(org)
+        message.spam_action = "reject"
+        message.spam_score = 10.0
+        message.virus_action = "infected"
+        message.virus_name = "Eicar-Test-Signature"
+        message.save(
+            update_fields=[
+                "spam_action",
+                "spam_score",
+                "virus_action",
+                "virus_name",
+            ]
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Spam reject" in content
+        assert '#tabler-message-exclamation"' in content
+        assert "Eicar-Test-Signature" in content
+        assert '#tabler-virus"' in content
+
+    def test_get__marks_a_clean_scan(self, admin_client, org):
+        message = make_incoming(org)
+        message.spam_action = "no action"
+        message.virus_action = "clean"
+        message.save(update_fields=["spam_action", "virus_action"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '#tabler-message-check"' in content
+        assert '#tabler-virus-off"' in content
+
+    def test_get__renders_tabs_with_the_html_body(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "<iframe" in content
+        assert "sandbox" in content
+        assert "allow-scripts" not in content
+        assert f'src="{response.context["body_url"]}"' in content
+        assert response.context["has_html_body"] is True
+
+    def test_get__renders_the_preview_command(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        content = response.content.decode()
+        assert 'id="preview-theme-toggle"' in content
+        assert 'data-preview-icon="light"' in content
+        assert 'data-preview-icon="dark"' in content
+        assert 'id="preview-options-trigger"' in content
+        assert "data-preview-summary>Gmail<" in content
+        assert 'data-preview-client="gmail"' in content
+        assert 'data-preview-client="apple-mail"' in content
+        assert 'data-preview-client="outlook"' in content
+        assert 'data-preview-client-icon="gmail"' in content
+        assert 'data-preview-client-icon="apple-mail"' in content
+        assert 'data-preview-client-icon="outlook"' in content
+        assert "#tabler-brand-gmail" in content
+        assert "#tabler-brand-apple" in content
+        assert "#tabler-brand-office" in content
+        assert "data-preview-theme=" not in content
+        assert "data-preview-tracking" not in content
+        assert "No client" not in content
+        assert 'data-checked="true"' in content
+
+    def test_get__serves_the_html_body_to_the_frame(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(message.get_body_url())
+
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "text/html; charset=utf-8"
+        content = response.content.decode()
+        assert "<p>html body</p>" in content
+        assert '<style id="relay-preview">' in content
+        policy = response.headers["Content-Security-Policy"]
+        assert "script-src 'none'" in policy
+        assert "sandbox" in policy
+        assert "frame-ancestors 'self'" in policy
+        assert "img-src data: http: https:" in policy
+        assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
+        assert response.headers["Cache-Control"] == "no-store"
+
+    def test_get__blocks_remote_images_for_a_client_that_does(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"{message.get_body_url()}?client=outlook")
+
+        assert response.status_code == 200
+        assert "img-src data:" in response.headers["Content-Security-Policy"]
+        assert (
+            "img-src data: http: https:"
+            not in response.headers["Content-Security-Policy"]
+        )
+
+    def test_get__loads_remote_images_for_a_client_that_does(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        for client in ("gmail", "apple-mail"):
+            response = admin_client.get(f"{message.get_body_url()}?client={client}")
+
+            assert response.status_code == 200
+            assert (
+                "img-src data: http: https:"
+                in response.headers["Content-Security-Policy"]
+            )
+
+    def test_get__emulates_the_client_the_preview_asks_for(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("styled.eml", STYLED_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"{message.get_body_url()}?client=gmail")
+
+        assert response.status_code == 200
+        assert "position" not in response.content.decode()
+
+    def test_get__resolves_the_dark_theme_the_preview_asks_for(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("styled.eml", STYLED_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(
+            f"{message.get_body_url()}?theme=dark&client=apple-mail"
+        )
+
+        assert response.status_code == 200
+        assert "color-scheme:dark!important" in response.content.decode()
+
+    def test_get__inverts_the_dark_theme_a_client_inverts(self, admin_client, org):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("styled.eml", STYLED_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"{message.get_body_url()}?theme=dark&client=gmail")
+
+        assert response.status_code == 200
+        assert "hue-rotate(180deg)" in response.content.decode()
+
+    def test_get__hides_the_body_of_another_org(self, admin_client, write_org):
+        message = make_incoming(write_org)
+
+        response = admin_client.get(
+            f"/org/{write_org.slug}/email/messages/{message.id}/body"
+        )
+
+        assert response.status_code == 404
+
+    def test_get__leads_with_the_html_body_and_ends_with_the_headers(
+        self, admin_client, org
+    ):
+        message = make_incoming(org)
+        message.raw_body = SimpleUploadedFile("multipart.eml", MULTIPART_BODY)
+        message.save(update_fields=["raw_body"])
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        content = response.content.decode()
+        assert tab_order(content) == [
+            "message-tab-html",
+            "message-tab-text",
+            "message-tab-headers",
+        ]
+        assert panel_visibility(content) == {
+            "message-panel-html": False,
+            "message-panel-text": True,
+            "message-panel-headers": True,
+        }
+
+    def test_get__omits_the_html_tab_without_an_html_part(self, admin_client, org):
+        message = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="message-tab-html"' not in content
+        assert 'id="preview-options-trigger"' not in content
+        assert response.context["has_html_body"] is False
+        assert tab_order(content) == ["message-tab-text", "message-tab-headers"]
+        assert panel_visibility(content) == {
+            "message-panel-text": False,
+            "message-panel-headers": True,
+        }
+
+    def test_get__omits_the_delivery_summary_without_attempts(self, admin_client, org):
+        message = IncomingMessage.objects.create(
+            org=org,
+            domain=Domain.objects.get(org=org, is_managed=True),
+            mail_from="alice@example.com",
+            rcpt_to="bob@example.com",
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{message.id}")
+
+        assert response.status_code == 200
+        assert "delivery_attempts" not in response.context
+        assert "delivery_finished_at" not in response.context
+        assert "delivery_duration" not in response.context
 
 
 @pytest.mark.django_db

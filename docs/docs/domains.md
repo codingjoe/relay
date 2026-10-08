@@ -121,8 +121,7 @@ and no certificate for that name.
 A domain can send and receive independently of each other. `app.acme.com` as
 a receiving domain needs only its MX record to point at your sender
 subdomain. Verification reflects this split: a setup without receiving
-records reads as not set up, not as a failure. The webhook health check
-shows the observed MX. Read the
+records reads as not set up, not as a failure. Read the
 <a href="{% url 'docs:detail' slug='receiving' %}">receiving</a> page for
 the acceptance flow.
 

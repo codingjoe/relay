@@ -1,4 +1,4 @@
-{% load i18n accounts %}
+{% load abstract accounts i18n %}
 <header class="flex items-center gap-2 px-4 h-14 border-b border-border bg-background sticky top-0 z-30">
   {% if current_org and request.resolver_match.namespace != 'accounts' %}
     <button
@@ -6,10 +6,10 @@
       class="btn"
       data-size="icon"
       data-variant="ghost"
-      onclick="document.getElementById('app-sidebar')?.toggle()"
+      data-toggle="app-sidebar"
       aria-label='{% translate "toggle sidebar"|capfirst %}'
     >
-      <i data-lucide="panel-left" aria-hidden="true"></i>
+      {% tabler name="layout-sidebar" size=None %}
     </button>
   {% endif %}
 
@@ -31,7 +31,11 @@
 
     <nav class="flex items-baseline gap-1" aria-label='{% translate "main"|capfirst %}'>
       {% if current_org %}
-        {% url 'email-dashboard:dashboard' current_org.slug as email_url %}
+        {% if onboarding_complete %}
+          {% url 'monitoring:overview' current_org.slug as email_url %}
+        {% else %}
+          {% url 'email-dashboard:get-started' current_org.slug as email_url %}
+        {% endif %}
         <a
           href="{{ email_url }}"
           class="btn"
@@ -42,6 +46,8 @@
       {% endif %}
       <a
         href="{% url 'docs:list' %}"
+        target="_blank"
+        rel="noopener"
         class="btn"
         data-size="sm"
         data-variant="ghost"
@@ -52,7 +58,7 @@
 
   <div class="flex items-center gap-2 ms-auto">
     {% if request.public_cache or not user.is_authenticated %}
-      <a href="{% url 'accounts:login' %}" class="btn" data-size="sm">
+      <a href="{% url 'accounts:login' %}" rel="nofollow" class="btn" data-size="sm">
         {% translate "login"|capfirst context "noun" %}
       </a>
     {% else %}
@@ -68,9 +74,9 @@
             aria-haspopup="menu"
             aria-expanded="false"
           >
-            <i data-lucide="building-2" class="size-3.5" aria-hidden="true"></i>
+            {% tabler name="building-community" size="3.5" %}
             <span class="hidden md:inline">{{ current_org.slug }}</span>
-            <i data-lucide="chevron-down" class="size-3.5" aria-hidden="true"></i>
+            {% tabler name="chevron-down" size="3.5" %}
           </button>
           <div aria-hidden="true" data-align="end" data-popover data-side="bottom" id="org-switcher-popover">
             <div aria-labelledby="org-switcher-trigger" id="org-switcher-menu" role="menu">
@@ -85,7 +91,7 @@
                     <a href="{% url 'accounts:org-home' o.slug %}" class="w-full">
                       <span class="grow">{{ o.slug }}</span>
                       {% if o.slug == current_org.slug %}
-                        <i data-lucide="check" class="size-3.5" aria-hidden="true"></i>
+                        {% tabler name="check" size="3.5" %}
                       {% endif %}
                     </a>
                   </div>
@@ -130,7 +136,7 @@
             <div role="group">
               <div role="menuitem">
                 <a href="{% url 'accounts:org-list' %}">
-                  <i data-lucide="building-2" class="size-3.5" aria-hidden="true"></i>
+                  {% tabler name="building-community" size="3.5" %}
                   {% translate "your organizations"|capfirst context "noun" %}
                 </a>
               </div>
@@ -141,7 +147,7 @@
                 <form method="post" action="{% url 'accounts:logout' %}">
                   {% csrf_token %}
                   <button type="submit" class="w-full justify-start">
-                    <i data-lucide="log-out" class="size-3.5" aria-hidden="true"></i>
+                    {% tabler name="logout" size="3.5" %}
                     {% translate "logout"|capfirst context "verb" %}
                   </button>
                 </form>

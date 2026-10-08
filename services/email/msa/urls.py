@@ -60,6 +60,11 @@ urlpatterns = [
                     views.SuppressionCheckView.as_view(),
                     name="suppression-check",
                 ),
+                path(
+                    "clear",
+                    views.SuppressionClearView.as_view(),
+                    name="suppression-clear",
+                ),
             ]
         ),
     ),

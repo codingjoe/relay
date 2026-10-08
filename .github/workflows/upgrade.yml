@@ -1,0 +1,59 @@
+name: 📦 Upgrade Node
+on:
+  schedule:
+    - cron: '0 1 * * 3' # Wednesday 01:00 UTC, the start of the maintenance window
+  workflow_dispatch: # Allow manual trigger
+concurrency:
+  # An upgrade reboots the node a deploy targets, so the two take turns.
+  group: deploy
+  cancel-in-progress: false
+permissions:
+  contents: read # Allow the job to check out the repository
+jobs:
+  upgrade:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    name: Upgrade Talos and Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - name: Authenticate to the node
+        env:
+          TALOSCONFIG_CONTENT: ${{ secrets.TALOSCONFIG }}
+        run: |
+          if [ -z "$TALOSCONFIG_CONTENT" ]; then
+              echo "::error::the TALOSCONFIG repository secret is not set"
+              exit 1
+          fi
+          printf '%s\n' "$TALOSCONFIG_CONTENT" > "$RUNNER_TEMP/talosconfig"
+          chmod 600 "$RUNNER_TEMP/talosconfig"
+          echo "TALOSCONFIG=$RUNNER_TEMP/talosconfig" >> "$GITHUB_ENV"
+      - name: Authenticate to the cluster
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          if [ -z "$KUBECONFIG_CONTENT" ]; then
+              echo "::error::the KUBECONFIG repository secret is not set"
+              exit 1
+          fi
+          mkdir -p ~/.kube
+          printf '%s\n' "$KUBECONFIG_CONTENT" > ~/.kube/config
+          chmod 600 ~/.kube/config
+      - name: Install talosctl
+        env:
+          TALOS_INSTALLER: ${{ vars.TALOS_INSTALLER }}
+        run: |
+          if [ -z "$TALOS_INSTALLER" ]; then
+              echo "::error::the TALOS_INSTALLER repository variable is not set"
+              exit 1
+          fi
+          curl -fsSL --output /tmp/talosctl \
+              "https://github.com/siderolabs/talos/releases/download/${TALOS_INSTALLER##*:}/talosctl-linux-amd64"
+          sudo install -m 0755 /tmp/talosctl /usr/local/bin/talosctl
+          talosctl version --client
+      - name: Upgrade the node
+        env:
+          TALOS_ENDPOINT: ${{ vars.TALOS_ENDPOINT }}
+          TALOS_INSTALLER: ${{ vars.TALOS_INSTALLER }}
+        run: deploy/upgrade.sh ${{ github.event_name == 'schedule' && '--scheduled' || '' }}

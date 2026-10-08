@@ -71,6 +71,20 @@ class TestMtaStsHostMiddleware:
         assert response.status_code == 200
 
     @pytest.mark.django_db
+    def test__authorizes_while_ssl_redirect_is_enabled(self, client, settings, org):
+        settings.ALLOWED_HOSTS = ["localhost"]
+        settings.SECURE_SSL_REDIRECT = True
+        Domain.objects.create(name="example.com", org=org)
+
+        response = client.get(
+            "/internal/mta-sts/authorize/",
+            {"domain": "mta-sts.example.com"},
+            HTTP_HOST="web:8000",
+        )
+
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
     def test__denies_unknown_domain_before_allowed_hosts(self, client, settings):
         settings.ALLOWED_HOSTS = ["localhost"]
 

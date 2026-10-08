@@ -7,7 +7,7 @@ from email.message import EmailMessage, Message
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 
-from abstract.email_utils import extract_part_text, iter_attachments
+from abstract.email_utils import decode_payload, extract_part_text, iter_attachments
 
 
 def make_email_with_attachment(filename, data, content_type="application/gzip"):
@@ -136,3 +136,15 @@ class TestExtractPartText:
         """A 7-bit body that decodes but does not round-trip is used as-is."""
         raw = make_multipart_with_sub_part("Content-Type: text/plain\r\n\r\naGVs bG8=")
         assert extract_part_text(message_from_string(raw)) == "aGVs bG8="
+
+
+class TestDecodePayload:
+    def test_decode_payload__uses_declared_charset(self):
+        assert decode_payload("héllo".encode("latin-1"), "latin-1") == "héllo"
+
+    def test_decode_payload__defaults_to_utf8_without_a_charset(self):
+        assert decode_payload("héllo".encode(), None) == "héllo"
+
+    def test_decode_payload__unknown_charset_falls_back_to_utf8(self):
+        """The sender picks the charset label, so it can name one Python lacks."""
+        assert decode_payload("héllo".encode(), "x-bogus") == "héllo"

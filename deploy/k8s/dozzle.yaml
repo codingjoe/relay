@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dozzle
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dozzle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dozzle
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dozzle
+        dev.dozzle.name: dozzle
+        dev.dozzle.group: infra
+    spec:
+      serviceAccountName: dozzle
+      containers:
+        - name: dozzle
+          image: amir20/dozzle:v11.2.0
+          env:
+            - {name: DOZZLE_MODE, value: k8s}
+            - {name: DOZZLE_HOSTNAME, value: relay}
+            # One instance watches every namespace; restart (pod delete) and
+            # shell (pod exec) ride on the role the first boot of a production
+            # server applies, see deploy/talos/machine-config.patch.yaml.tmpl.
+            - {name: DOZZLE_ENABLE_ACTIONS, value: "true"}
+            - {name: DOZZLE_ENABLE_SHELL, value: "true"}
+            - {name: DOZZLE_ENABLE_MCP, value: "true"}
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe:
+            httpGet: {path: /healthcheck, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /healthcheck, port: http}
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 10m}
+            limits: {cpu: "1", memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dozzle
+spec:
+  selector:
+    app.kubernetes.io/name: dozzle
+  ports:
+    - {name: http, port: 8080, targetPort: http}

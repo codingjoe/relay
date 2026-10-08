@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+die() {
+    printf 'relay-access: %s\n' "$*" >&2
+    exit 1
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || die "$1 is required but not installed"
+}
+
+case "${1:-}" in
+    "") ;;
+    --help | -h)
+        cat <<'EOF'
+usage: bin/relay-access [--help]
+
+Install the newest cluster-access kubeconfig as ~/.kube/relay.yaml. The export
+line printed at the end points KUBECONFIG at it.
+
+Requires gh and age, and an SSH private key at ~/.ssh/id_ed25519 or
+~/.ssh/id_rsa.
+EOF
+        exit 0
+        ;;
+    *)
+        die "unknown argument: $1"
+        ;;
+esac
+
+require_command gh
+require_command age
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || die "cannot locate the repository root"
+
+login="$(gh api user --jq .login)"
+
+identities=()
+for key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/id_rsa"; do
+    if [ -f "$key" ]; then
+        identities+=(-i "$key")
+    fi
+done
+[ "${#identities[@]}" -gt 0 ] ||
+die "no SSH private key at ~/.ssh/id_ed25519 or ~/.ssh/id_rsa, so age cannot open your file"
+
+SCRATCH="$(mktemp -d)"
+trap 'rm -rf "$SCRATCH"' EXIT
+
+default_branch="$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)"
+run_id="$(gh run list --workflow cluster-access.yml --branch "$default_branch" \
+    --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+case "$run_id" in
+    "" | null)
+        die "no successful cluster-access run on $default_branch, so there is nothing to install"
+        ;;
+esac
+gh run download "$run_id" --name cluster-access --dir "$SCRATCH"
+
+kubeconfig_artifact="$SCRATCH/$login-kubeconfig.age"
+[ -f "$kubeconfig_artifact" ] ||
+die "the newest cluster-access artifact holds no kubeconfig for $login, add an SSH key on GitHub and wait for the next run"
+
+umask 077
+mkdir -p "$HOME/.kube"
+age --decrypt "${identities[@]}" "$kubeconfig_artifact" > "$SCRATCH/kubeconfig"
+install -m 600 "$SCRATCH/kubeconfig" "$HOME/.kube/relay.yaml"
+
+cat <<EOF
+export KUBECONFIG="$HOME/.kube/relay.yaml"
+EOF

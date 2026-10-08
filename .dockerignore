@@ -1,6 +1,9 @@
-# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed
+# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed.
+# .env.production ships with the production image, which decrypts it at start.
+# A local build passes .env with DOTENV_FILE.
 .*
-!.env.example
+!.env.production
+!.env
 
 # Python
 venv/

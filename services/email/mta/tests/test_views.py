@@ -3,7 +3,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 from django.core.files.base import ContentFile
-from django.utils.html import escapejs
 
 from domains.models import Domain
 from kms.models import SigningKey
@@ -98,7 +97,7 @@ class TestIncomingMessageDetailView:
 
     def test_get__no_store_on_list(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")
-        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__context_has_headers(self, admin_client, org):
         raw = (
@@ -145,6 +144,13 @@ class TestWebhookListView:
     def test_get__ok_for_member(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert response.status_code == 200
+        content = response.content.decode()
+        assert 'class="empty"' in content
+        assert "No endpoints yet." in content
+
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__context_has_webhook_payload(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
@@ -160,10 +166,7 @@ class TestWebhookListView:
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert response.status_code == 200
         content = response.content.decode()
-        assert (
-            f"navigator.clipboard.writeText('{escapejs(webhook.public_key_serialized)}')"
-            in content
-        )
+        assert f'data-copy="{webhook.public_key_serialized}"' in content
         assert 'aria-label="Copy public key"' in content
 
     def test_get__filters_by_org(self, admin_client, org, write_org, webhook_server):

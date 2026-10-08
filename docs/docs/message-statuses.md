@@ -111,9 +111,11 @@ The transmission list per message shows each attempt with its own outcome:
 
 One delivery walk produces one row per MX host it reached. A failed
 delivery therefore keeps the answer of every host it tried, including the
-hosts MTA-STS rejected and the lookup that found no host at all. Every
-retry walks the list again and files its own rows, so the timeline shows
-each attempt with the wait that came before it.
+hosts MTA-STS rejected and the lookup that found no host at all. An attempt
+that dials a host also keeps the sending IP it used, so a receiver that
+blocked one address of the pool is visible on the attempt. Every retry
+walks the list again and files its own rows, so the timeline shows each
+attempt with the wait that came before it.
 
 The message detail page also draws these records on a timeline. Each bar
 spans the time relay measured for that attempt: a reception bar covers the
@@ -144,8 +146,24 @@ with the URL, response code, and a response excerpt.
   and webhook_sent, warning for held and quarantined, destructive for
   bounced, failed, dropped, and webhook_failed, and outline for
   everything still open or neutral.
-- The message detail page shows the status next to the transcripts and
-  delivery records.
+- The message list graphs the last 30 days of messages by status. The sent
+  view graphs outgoing messages, the received view graphs incoming
+  messages, and the unfiltered view graphs both in one chart: outgoing bars
+  above the axis and incoming bars below it. The graph counts the same
+  messages the filters select.
+- The message detail page leads with a delivery card: the status in the
+  traffic-light colors of its badge, how long the delivery took, when the
+  last transmission finished, the sender and recipient, and what the scan
+  found. Tabs below it open on the HTML body when the message carries one,
+  then the plain text body, and the headers last. A message without an HTML
+  part opens on its plain text body. The preview controls beside the tabs
+  render the message the way a common email client does, and open on Gmail,
+  the client most messages are read in. The command picks the client, the
+  theme toggle switches the light and dark preview. A client preview drops the
+  CSS that client never applies, following the support data published on
+  [caniemail.com](https://www.caniemail.com/), and holds remote images back
+  where the client does, which is Outlook. The dark preview applies the dark
+  styles the message carries, and inverts it the way Gmail does.
 - Filters let you watch only failed or quarantined traffic.
 
 ## The antivirus badge

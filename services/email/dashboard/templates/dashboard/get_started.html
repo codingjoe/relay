@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load abstract humanize i18n %}
+{% block title %}{% translate "get started"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <h2 class="mb-2">{% translate "get started"|capfirst %}</h2>
+  <p class="text-muted-foreground mb-6">
+    {% blocktranslate trimmed %}
+      Every organization starts on a managed sender domain, so the first send needs no DNS work and no warm-up.
+    {% endblocktranslate %}
+  </p>
+
+  <div class="item-group">
+    <article class="item" data-variant="outline">
+      <figure>
+        {% if has_outgoing_message %}
+          {% tabler name="circle-check" class="text-primary" %}
+        {% else %}
+          {% tabler name="circle-dashed" class="text-muted-foreground" %}
+        {% endif %}
+      </figure>
+      <section class="min-w-48">
+        {% if has_outgoing_message %}
+          <h3>{% translate "you sent your first message"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Every message you send keeps its full transmission trace.
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">
+            {% blocktranslate with recipient=request.user.email trimmed %}
+              Send a test message to {{ recipient }}
+            {% endblocktranslate %}
+          </h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              The whole path stays visible: relay accepts the message, signs it, and delivers it, so you see it before
+              your app sends anything.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        {% if has_outgoing_message %}
+          <a
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            href="{% url 'message:message-list' org.slug %}"
+          >
+            {% translate "message log"|capfirst context "noun" %}
+          </a>
+        {% else %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            data-dialog="dlg-test-email"
+          >
+            {% translate "send test email"|title %}
+          </button>
+        {% endif %}
+      </aside>
+    </article>
+
+    <article class="item" data-variant="outline">
+      <figure>
+        {% if has_credential %}
+          {% tabler name="circle-check" class="text-primary" %}
+        {% else %}
+          {% tabler name="circle-dashed" class="text-muted-foreground" %}
+        {% endif %}
+      </figure>
+      <section class="min-w-48">
+        {% if has_credential %}
+          <h3>{% translate "you created a credential"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Its key was shown once, when you created it.
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">{% translate "create a credential"|title %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Your application authenticates with a credential, and the key is shown once, at creation.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        {% if not has_credential %}
+          <button
+            type="button"
+            class="btn"
+            data-variant="secondary"
+            data-size="sm"
+            data-dialog="dlg-new-credential"
+          >
+            {% translate "create a credential"|title %}
+          </button>
+        {% endif %}
+      </aside>
+    </article>
+
+    <article class="item" data-variant="outline">
+      <figure>
+        {% if connected_credential %}
+          {% tabler name="circle-check" class="text-primary" %}
+        {% else %}
+          {% tabler name="circle-dashed" class="text-muted-foreground" %}
+        {% endif %}
+      </figure>
+      <section class="min-w-48">
+        {% if connected_credential %}
+          <h3>{% translate "your app is connected"|capfirst %}</h3>
+          <p>
+            <code>{{ connected_credential.name|default:connected_credential.key_prefix }}</code>
+            <span aria-hidden="true">·</span>
+            {% translate "last used"|capfirst %}:
+            {% translate "never" as t_never %}
+            {{ connected_credential.last_used_at|naturaltime|default:t_never }}
+          </p>
+        {% else %}
+          <h3 class="line-clamp-none">{% translate "connect your app over SMTP"|capfirst %}</h3>
+          <p class="line-clamp-none">
+            {% blocktranslate trimmed %}
+              Point your application at the submission host and send once. This step completes on the first
+              authenticated submission.
+            {% endblocktranslate %}
+          </p>
+        {% endif %}
+      </section>
+      <aside>
+        <a
+          class="btn"
+          data-variant="secondary"
+          data-size="sm"
+          href="{% url 'msa:credential-list' org.slug %}"
+        >
+          {% translate "credentials"|capfirst context "noun" %}
+        </a>
+      </aside>
+    </article>
+  </div>
+
+  {% include "partials/test_email_dialog.html" %}
+  {% include "msa/_credential_dialog.html" with sandbox_forced=True %}
+  {% if raw_key %}{% include "msa/_credential_key_dialog.html" %}{% endif %}
+{% endblock %}

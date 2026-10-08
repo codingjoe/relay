@@ -12,7 +12,10 @@ authentication.
 
 ## Architecture & tech stack
 
-Three services from one codebase, each a separate Docker container:
+Three services from one codebase, each a separate container. Production runs
+them on a single-node Talos Linux cluster in the `default` namespace: the
+manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and
+the place to look for how deployments, probes and certificates work.
 
 - **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
 - **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
@@ -41,14 +44,15 @@ the contracts.
 
 Key tech: Django 6.0 task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis,
 S3 via django-storages, social-auth-app-django, basecoat CSS (via PostCSS
-with wireit).
+with wireit), Talos Linux on Hetzner Cloud with Caddy as ingress and Layer 4
+proxy.
 
 ## Core commands & workflows
 
 - `uv sync`. Install dependencies. **Use `uv` only**, never `pip`.
-- `pnpm install`. Install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit).
-- `pnpm run build`. Compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`).
-- `pnpm run dev`. Watch and recompile CSS on change.
+- `pnpm install`. Install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit, ESM modules).
+- `pnpm run build`. Compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`) and vendor ES modules into `staticfiles/esm` with esimport.
+- `pnpm run dev`. Watch and rebuild CSS and ES modules on change.
 - `uv run python manage.py check`: Django system checks.
 - `uv run python manage.py makemigrations`. Generate migrations.
 - `uv run python manage.py migrate`. Apply migrations.
@@ -59,7 +63,19 @@ with wireit).
 - `uv run pre-commit run --all-files`. Lint/format (ruff, djangofmt, pyupgrade,
   mdformat, dockerfmt).
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
-- `docker compose up -d`. All services via Docker Compose.
+- `deploy/minikube`. Run the full stack on minikube with `.env`. See
+  `README.md`.
+
+Production deployment, all driven by `.github/workflows/deploy.yml`:
+
+- `kubectl apply -k deploy/k8s`. Apply the whole stack.
+- `kubectl rollout status deployment/<name>`. Watch one workload.
+- `kubectl logs deployment/<name>`. Read a service's logs.
+- `kubectl exec postgres-0 -- psql -U postgres`. Reach the database.
+
+`kubectl` needs a kubeconfig for the cluster. The provisioning step publishes
+one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
+`deploy/.state/talos/kubeconfig`, and `talosctl kubeconfig --force --merge=false <path>` re-issues it from the node. See `deploy/README.md`.
 
 ## Rules, constraints & safety
 
@@ -67,7 +83,6 @@ with wireit).
   contain real OAuth secrets, DB passwords, and Redis passwords.
 - **Use `uv` exclusively** for dependency management. Never `pip install`.
 - **PostgreSQL 18+ required**: `db_default` uses the `uuidv7()` function.
-- **Do not write tests**. The test suite is planned but not yet started.
   Linting/formatting via pre-commit is the current quality gate.
 - **Update `CONVENTIONS.md`** when a reviewer identifies a new convention or
   corrects a pattern. This file is the authoritative coding-conventions source.
@@ -77,6 +92,14 @@ with wireit).
 - **Extend `.relint.yml`** when a convention can be enforced by regex. Move
   enforced rules out of `CONVENTIONS.md`: `CONVENTIONS.md` documents for
   humans, `.relint.yml` enforces for machines.
+- **Label every issue you file with the superJoe vocabulary**, one lane and one
+  tag, the two halves of a finding line, `<tag>: <lane> <what>.` Lanes: `sec`,
+  `bug`, `perf`, `naming`, `bloat`, `doc`, `test`, `deps`. Tags: `side quest`,
+  `sus`, `real`, `cap`, `receipts`, `yeet`, `duh`, `NPC`, `cringe`, `glow up`,
+  `ghost`, `delulu`, `kept`, `dropped`. Reuse these labels and the colors they
+  carry; do not invent new ones. Feature requests keep `enhancement`, and
+  Dependabot's own labels stay spelled the way the bot writes them. Each label's
+  description on GitHub says what it means.
 - **`root/views.py` must not import models from other first-party apps.**
   Cross-app views belong in their corresponding app.
 - **`Model.save()` must include `update_fields=`** to avoid race conditions.
@@ -102,8 +125,10 @@ Before you finish, always:
 
 ## Running tests
 
-- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput`
+- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput --no-esm`
   must run in advance; the Django checks and templates tests fail without it.
+  ES modules are vendored by `pnpm run build`, so collectstatic must skip the
+  esimport step (`--no-esm`).
 - `uv run --group test pytest`. The last line is always the outcome summary, e.g.
   `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
   to assert results. Nothing is measured by default.
@@ -120,16 +145,24 @@ Disable the browser cache before capturing screenshots
 revalidations with `304`, so the browser would otherwise reuse stale
 HTML that still contains the debug toolbar.
 
+Refresh the homepage screenshots (`root/static/img/email-*-{light,dark}.png`)
+from the message log and a message detail at a 1182x788 viewport with
+device scale factor 1. The fixture ages out: its message timestamps sit
+far in the past, so shift them forward before capturing or the message
+log's 30-day chart renders empty.
+
 ## Test data
 
-Bundle: one user (`test`, password `test`), one org (`acme`), one
-domain (`acme.com`), one SMTP credential, three outgoing messages,
-three transmissions, two SigningKeys. Load with
+Bundle: one user (`test`, password `test`), one org (`acme`), five domains,
+one SMTP credential, two SigningKeys, and a month of message traffic: 256
+messages with 375 transmissions and 17 spam checks, spread over
+2026-09-04 to 2026-10-04 so the dashboard charts and the message log have
+data instead of a single row. Load with
 `manage.py loaddata fixtures/initial_data.yaml`. Refresh with:
 
 1. Wipe the database and re-apply migrations:
    `rm -f db.sqlite3 && uv run python manage.py migrate`
-1. Update the YAML fixture and any binary message files it references.
+2. Update the YAML fixture and any binary message files it references.
    The fixture is plain YAML. Edit it directly. `auth.permission`
    rows are auto-generated by `post_migrate` and are not part of the
    fixture. `kms.signingkey` rows are created by the data migration
@@ -137,13 +170,14 @@ three transmissions, two SigningKeys. Load with
    material using the local KMS key (hand-written fixture data cannot
    be portable across Fernet keys. See
    [How to provide initial data for models](https://docs.djangoproject.com/en/6.0/howto/initial-data/)).
-1. Validate that the YAML is well-formed via the `yamlfmt`
+3. Validate that the YAML is well-formed via the `yamlfmt`
    pre-commit hook.
 
-The `test` user has no admin or staff access. Only a `write`
-membership in `acme`. The dev server authenticates via the
-`RemoteUserBackend` middleware when `DEBUG=True`, so the bundle
-developer still has the same UX without needing a superuser.
+The `test` user is a superuser, so the Django admin works out of the
+box in development. Only a `write` membership in `acme`, so product
+pages still render with a regular member's permissions. The dev server
+authenticates via the `RemoteUserBackend` middleware when `DEBUG=True`,
+so the bundle developer signs in without a password.
 
 ## Pointers to further documentation
 
@@ -163,8 +197,8 @@ developer still has the same UX without needing a superuser.
 Then do the following steps:
 
 1. Generate a migration.
-1. Run `manage.py check` and `makemigrations --check`.
-1. Verify that `CONVENTIONS.md` does not need an update.
+2. Run `manage.py check` and `makemigrations --check`.
+3. Verify that `CONVENTIONS.md` does not need an update.
 
 **Bad:** Import a model from `domains` in `root/views.py`, use `pip install`
 for a dependency, or save a model without `update_fields=`.

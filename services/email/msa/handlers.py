@@ -20,7 +20,7 @@ from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
 from .models import MsaCredential, OutgoingMessage, SuppressionEntry
-from .tasks import check_outgoing_spam
+from .tasks import check_outgoing_spam, deliver_message
 
 logger = logging.getLogger(__name__)
 
@@ -149,9 +149,8 @@ def authenticate(username: str, key: str):
     Return the credential, or `None` if authentication fails.
     """
     api_keys = MsaCredential.objects.select_related("org").filter(
-        key_prefix=key[:8],
+        key_prefix=key[:4],
         org__slug=username,
-        type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
         hold=False,
     )
     for api_key in api_keys:
@@ -173,17 +172,21 @@ def store_outgoing_message(
     client_ip,
     raw_bytes,
     started_at,
+    is_system_mail=False,
+    message_pk=None,
 ):
     """
     Store an outgoing message with its submission record.
 
-    Enqueues spam processing for deliverable messages.
+    Enqueues spam processing for customer submissions, and delivery directly
+    for the system mail relay authored itself.
     """
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = decode_header_value(parsed.get("Subject", ""))
     with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
         transmission.message = message = OutgoingMessage.objects.create(
+            id=message_pk,
             org=org,
             rcpt_to=rcpt_to,
             mail_from=mail_from,
@@ -197,12 +200,17 @@ def store_outgoing_message(
             raw_body=SimpleUploadedFile("message.eml", raw_bytes),
         )
     if status == OutgoingMessage.Status.PENDING:
-        transaction.on_commit(
-            lambda: check_outgoing_spam.enqueue(
-                message_pk=str(message.id),
-                client_ip=client_ip,
+        if is_system_mail:
+            transaction.on_commit(
+                lambda: deliver_message.enqueue(message_id=str(message.id))
             )
-        )
+        else:
+            transaction.on_commit(
+                lambda: check_outgoing_spam.enqueue(
+                    message_pk=str(message.id),
+                    client_ip=client_ip,
+                )
+            )
     return message
 
 
@@ -214,6 +222,7 @@ def submit_relay_message(
     mail_from,
     rcpt_to,
     started_at,
+    message_pk=None,
     ssl=None,
     client_ip=None,
 ):
@@ -221,7 +230,9 @@ def submit_relay_message(
     Stamp, sign and queue one message relay generated for an organization.
 
     The message leaves relay from the organization's own domain, which is
-    what puts it in their dashboard and on their bill.
+    what puts it in their dashboard and on their bill. A caller that passes
+    message_pk renders the body against the ID the message will carry, so a
+    message can link to its own transmission trace.
     """
     raw_bytes, feedback_id = add_feedback_id(email.message().as_bytes(), org)
     raw_bytes = sign_message(raw_bytes, domain)
@@ -237,6 +248,8 @@ def submit_relay_message(
         client_ip=client_ip,
         raw_bytes=raw_bytes,
         started_at=started_at,
+        is_system_mail=True,
+        message_pk=message_pk,
     )
 
 
@@ -248,7 +261,12 @@ def process_message(
     """
     Store a submitted outgoing message and enqueue its delivery.
 
-    Delivery is not enqueued when the org is suspended.
+    A suppressed recipient is stored without delivery, even if the
+    organization is suspended. Otherwise a suspended organization is refused
+    before relay stores anything.
+    A submission with a sandbox credential is stored with the sandboxed
+    status, without a signature or a relay-minted Feedback-ID, and relay makes
+    no delivery attempt for it.
     """
     if "@" not in mail_from:
         return "550 Sender domain not registered"
@@ -271,10 +289,8 @@ def process_message(
         return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
-        # Suppressed mail is never sent, so relay mints no Feedback-ID and
-        # FBL complaints can never be attributed to it. Strip customer
-        # Feedback-ID headers so only the Feedback-ID relay actually
-        # forwarded with ever persists.
+        # Suppressed mail never leaves relay, so relay mints no Feedback-ID
+        # and the stored copy carries none.
         raw_bytes = remove_feedback_id_headers(raw_bytes)
         store_outgoing_message(
             org=credential.org,
@@ -301,15 +317,20 @@ def process_message(
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
-    raw_bytes = sign_message(raw_bytes, domain)
+    if credential.type == MsaCredential.Type.SANDBOX:
+        # The sandboxed status is terminal, so no spam scan or delivery follows.
+        status, feedback_id = OutgoingMessage.Status.SANDBOXED, ""
+    else:
+        raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
+        raw_bytes = sign_message(raw_bytes, domain)
+        status = OutgoingMessage.Status.PENDING
     store_outgoing_message(
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
         domain=domain,
         credential=credential,
-        status=OutgoingMessage.Status.PENDING,
+        status=status,
         feedback_id=feedback_id,
         ssl=ssl,
         client_ip=client_ip,

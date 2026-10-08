@@ -12,10 +12,11 @@ import pytest
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
+from django.templatetags.static import static
 from django.utils import timezone, translation
 from django_letter.exceptions import EmailImproperlyConfigured
 
-from accounts.models import Membership, Organization
+from accounts.models import Membership
 from domains.models import Domain
 from kms.models import SigningKey
 from services.email.message.models import Transmission
@@ -202,11 +203,15 @@ def forwarded_copy(message):
 @pytest.mark.django_db(transaction=True)
 class TestForwardPostmasterMessage:
     @pytest.fixture(autouse=True)
-    def spam_check(self, monkeypatch):
-        """Keep the queued spam scans off rspamd."""
-        check = Mock()
-        monkeypatch.setattr("services.email.msa.handlers.check_outgoing_spam", check)
-        return check
+    def queued_tasks(self, monkeypatch):
+        """Keep the queued scans and deliveries off rspamd and the network."""
+        spam_check = Mock()
+        monkeypatch.setattr(
+            "services.email.msa.handlers.check_outgoing_spam", spam_check
+        )
+        delivery = Mock()
+        monkeypatch.setattr("services.email.msa.handlers.deliver_message", delivery)
+        return SimpleNamespace(spam_check=spam_check, delivery=delivery)
 
     def test_forward_postmaster_message__submits_a_copy_per_member_with_email(
         self, org, other_user
@@ -286,8 +291,13 @@ class TestForwardPostmasterMessage:
         forward_postmaster_message.func(message_pk=str(message.pk))
 
         copy = forwarded_copy(message)
-        parts = {part.get_content_type() for part in copy.iter_parts()}
-        assert parts == {"text/html", "text/plain"}
+        parts = {
+            part.get_content_type(): part.get_content()
+            for part in copy.walk()
+            if part.get_content_maintype() == "text"
+        }
+        assert set(parts) == {"text/html", "text/plain"}
+        assert static("img/word-brand.svg") in parts["text/html"]
 
     def test_forward_postmaster_message__replies_to_original_author(self, org):
         message = make_postmaster_message(org)
@@ -332,15 +342,17 @@ class TestForwardPostmasterMessage:
         assert transmission.status == Transmission.Status.SUBMITTED
 
     def test_forward_postmaster_message__queues_every_copy_for_delivery(
-        self, org, other_user, spam_check
+        self, org, other_user, queued_tasks
     ):
         Membership.objects.create(org=org, user=other_user, role=Membership.Role.WRITE)
         message = make_postmaster_message(org)
 
         forward_postmaster_message.func(message_pk=str(message.pk))
 
+        queued_tasks.spam_check.enqueue.assert_not_called()
         assert sorted(
-            call.kwargs["message_pk"] for call in spam_check.enqueue.call_args_list
+            call.kwargs["message_id"]
+            for call in queued_tasks.delivery.enqueue.call_args_list
         ) == sorted(
             str(pk)
             for pk in OutgoingMessage.objects.filter(org=org).values_list(
@@ -372,6 +384,17 @@ class TestPostmasterForwardEmail:
         detail_url = f"{base_url}{message.get_absolute_url()}"
         assert f'href="{detail_url}"' in email.alternatives[0][0]
         assert detail_url in email.body
+
+    def test_render__carries_the_legal_footer(self, org, base_url):
+        message = make_postmaster_message(org)
+        email = make_forward_email(message, to=["alice@example.com"])
+
+        email.render()
+
+        html = email.alternatives[0][0]
+        assert "Lennéstr. 19" in html
+        for page in ("imprint", "privacy"):
+            assert f'href="{base_url}/legal/{page}/"' in html
 
     def test_render_preview__uses_sample_values_without_message(self, base_url):
         email = PostmasterForwardEmail.render_preview()
@@ -586,6 +609,7 @@ class TestWebhookRetry:
             < WEBHOOK_RETRY_DELAYS[1] + 30
         )
 
+    @pytest.mark.django_db(transaction=True)
     def test_webhook_retry__ignores_missing_message_id(self):
         context = make_webhook_retry_context(attempt=len(WEBHOOK_RETRY_DELAYS) - 1)
         assert webhook_retry(context) is None
@@ -645,10 +669,11 @@ class TestDispatchWebhook:
         message.refresh_from_db()
         assert message.status == IncomingMessage.Status.RECEIVED
 
-    def test_drops_message_without_active_billing(self, org, monkeypatch):
+    def test_drops_message_without_active_billing(self, org):
         message = make_incoming_message(org)
         make_webhook(org)
-        monkeypatch.setattr(Organization, "billing_is_active", False)
+        org.billing_is_active = False
+        org.save(update_fields=["billing_is_active"])
 
         with patch("services.email.mta.tasks.deliver_webhook") as mock_deliver:
             dispatch_webhook.func(message_id=str(message.pk))

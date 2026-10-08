@@ -1,6 +1,0 @@
-hosts:
-  - host: local
-  - host: ssh://collaborator@relays.to
-    dozzle: http://localhost:5000/
-all: true
-sort: name

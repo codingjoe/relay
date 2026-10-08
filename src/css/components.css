@@ -1,0 +1,139 @@
+/* Soft-tinted status badge variants. Basecoat only ships primary,
+   secondary, outline, destructive, ghost, and link variants; these two
+   follow the destructive pattern so status badges can share the chart
+   traffic-light tones. */
+.badge[data-variant="success"] {
+  @apply bg-success/10 [a]:hover:bg-success/20 focus-visible:ring-success/20 text-success dark:bg-success/20 dark:focus-visible:ring-success/40;
+}
+
+.badge[data-variant="warning"] {
+  @apply bg-warning/10 [a]:hover:bg-warning/20 focus-visible:ring-warning/20 text-warning dark:bg-warning/20 dark:focus-visible:ring-warning/40;
+}
+
+/* Warning alert. Basecoat ships the default and destructive variants only, so
+   this follows the badge tints above: the status tokens hold the 4.5:1 text
+   floor on a 10% tint in light mode and a 20% tint in dark mode. */
+.alert[data-variant="warning"] {
+  @apply bg-warning/10 text-warning dark:bg-warning/20;
+}
+
+.alert[data-variant="warning"] > section {
+  @apply text-warning;
+}
+
+/* Message status text and card tint. The models hand the badge variant over
+   as a data attribute, so the templates carry no class logic. */
+.status {
+  --status-color: var(--color-muted-foreground);
+  color: var(--status-color);
+}
+
+[data-variant="success"] {
+  --status-color: var(--color-success);
+}
+
+[data-variant="warning"] {
+  --status-color: var(--color-warning);
+}
+
+[data-variant="destructive"] {
+  --status-color: var(--color-destructive);
+}
+
+.card[data-variant] {
+  background-color: color-mix(in srgb, var(--status-color, transparent) 10%, transparent);
+}
+
+/* Extra-small button sizes for controls that sit inline with badges
+   (data-size="sm" is 32px and dwarfs a 20px status badge). */
+.btn[data-size="xs"] {
+  height: calc(var(--spacing) * 7);
+  gap: calc(var(--spacing) * 1.5);
+  padding-inline: calc(var(--spacing) * 2.5);
+  font-size: 0.75rem;
+}
+
+.btn[data-size="icon-xs"] {
+  width: calc(var(--spacing) * 7);
+  height: calc(var(--spacing) * 7);
+}
+
+/* Basecoat pads a card's header, section, and footer inline, so a card that
+   carries its own `p-6` indents those blocks twice. Keep the outer padding. */
+.card.p-6 > :is(header, section, footer) {
+  padding-inline: 0;
+}
+
+/* A code sample puts its headline beside its own tab switch, with the block
+   below it. The tablist stays a direct child of `.tabs` so basecoat keeps
+   styling it. */
+.snippet-tabs {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
+}
+
+.snippet-tabs > [role='tabpanel'] {
+  grid-column: 1 / -1;
+}
+
+.pug {
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  .eye {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  &:hover .eye-blink {
+    animation: pug-blink 3s infinite;
+  }
+}
+
+@keyframes pug-blink {
+  0% {
+    transform: rotate(0deg) scaleY(1);
+  }
+
+  4% {
+    transform: rotate(-7deg) scaleY(0.08);
+  }
+
+  8%,
+  100% {
+    transform: rotate(0deg) scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pug:hover .eye-blink {
+    animation: none;
+  }
+}
+
+/* The message detail tab strip shares its row with the preview controls. The
+   strip keeps its own column, the controls take the right end, and every
+   panel spans both so the body keeps the full width. */
+.tabs:has(> .preview-controls) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.tabs:has(> .preview-controls) > [role="tablist"] {
+  grid-area: 1 / 1;
+}
+
+.tabs:has(> .preview-controls) > .preview-controls {
+  grid-area: 1 / 2;
+  justify-self: end;
+}
+
+.tabs:has(> .preview-controls) > [role="tabpanel"] {
+  grid-column: 1 / -1;
+}

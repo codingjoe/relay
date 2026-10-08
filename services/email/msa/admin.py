@@ -21,6 +21,7 @@ class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "subject",
         "message_id",
     ]
+    autocomplete_fields = ["org", "domain", "credential"]
     readonly_fields = ["id", "created_at"]
 
 
@@ -36,4 +37,5 @@ class MsaCredentialAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ["type", "hold"]
     search_fields = ["org__name", "key_prefix", "name"]
+    autocomplete_fields = ["org"]
     readonly_fields = ["key_hash", "key_prefix", "last_used_at"]

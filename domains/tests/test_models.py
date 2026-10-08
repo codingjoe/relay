@@ -125,6 +125,21 @@ class TestDomainClean:
         with pytest.raises(ValidationError):
             Domain(name="app。open.relay.example.com").clean()
 
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "foo.relay.example.com",
+            "mail.relay.relay.example.com",
+            "app。relay.example.com",
+        ],
+    )
+    def test_clean__rejects_platform_subdomain(self, name, settings):
+        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
+        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+
+        with pytest.raises(ValidationError):
+            Domain(name=name).clean()
+
     @pytest.mark.django_db
     def test_save__rejects_cross_org_child_domain(self):
         parent_org = Organization.objects.create(slug="parent")
@@ -260,19 +275,29 @@ class TestDomainSave:
         domain.save()
         assert domain.dkim_key_rsa2048 == first
 
+    def test_save__bumps_modified_at_on_partial_save(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        modified_at = domain.modified_at
+
+        domain.save(update_fields=["name"])
+
+        domain.refresh_from_db()
+        assert domain.modified_at > modified_at
+
 
 @pytest.mark.django_db
 class TestDkimCiphers:
     def test_dkim_ciphers__returns_all_with_prefix(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        selectors = [selector for selector, _ in domain.dkim_ciphers]
+        selectors = [selector for _field, selector, _key in domain.dkim_ciphers]
         assert selectors == ["relay-rsa2048", "relay-ed25519"]
 
     def test_dkim_ciphers__all_keys_present(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        for _, key in domain.dkim_ciphers:
+        for _field, _selector, key in domain.dkim_ciphers:
             assert key is not None
 
 
@@ -282,8 +307,8 @@ class TestDkimCnames:
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         cnames = domain.dkim_cnames
-        assert len(cnames) == 2
-        for name, target in cnames:
+        assert set(cnames) == {"dkim_rsa2048", "dkim_ed25519"}
+        for name, target in cnames.values():
             assert name.startswith("relay-")
             assert name.endswith("._domainkey.example.com")
             assert target.endswith("._domainkey.mail.relay.example.com")
@@ -291,7 +316,7 @@ class TestDkimCnames:
     def test_dkim_cnames__managed_domain_uses_sender_subdomain(self):
         Organization.objects.create(slug="acme")
         domain = Domain.objects.get(name="acme.open.localhost")
-        for name, target in domain.dkim_cnames:
+        for name, target in domain.dkim_cnames.values():
             assert name.endswith("._domainkey.acme.open.localhost")
             assert target.endswith("._domainkey.mail.relay.acme.open.localhost")
 

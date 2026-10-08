@@ -154,7 +154,7 @@ class FblReport(OrganizationOwned):
 
     def get_absolute_url(self):
         return reverse(
-            "reputation:fbl-report-detail",
+            "monitoring:fbl-report-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 

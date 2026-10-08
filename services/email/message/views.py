@@ -2,16 +2,21 @@ from itertools import chain
 
 from django.db import models
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.csp import CSP, build_policy
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
-from domains.models import Domain
 from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
+from .charts import MESSAGE_KINDS, build_direction_chart, build_kind_charts
 from .models import Message
+from .preview import MessagePreview
 
 
 class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
@@ -19,7 +24,7 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
 
     context_object_name = "messages"
     paginate_by = 50
-    title = _("Email messages")
+    title = _("Message log")
     parent = "accounts:org-home"
 
     class Direction(models.TextChoices):
@@ -46,51 +51,60 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             )
         return qs
 
+    def get_chart(self, direction):
+        """Return the title and chart of the messages the filters select."""
+        messages = self.get_queryset()
+        match direction:
+            case self.Direction.SENT:
+                model_names = [MESSAGE_KINDS["outgoing"]]
+                title = _("outgoing messages by status")
+            case self.Direction.RECEIVED:
+                model_names = [MESSAGE_KINDS["incoming"]]
+                title = _("incoming messages by status")
+            case _:
+                return (
+                    _("outgoing and incoming messages by status"),
+                    build_direction_chart(messages),
+                )
+        return title, build_kind_charts(messages, model_names)[0]
+
     def get_context_data(self, **kwargs):
         email = self.request.GET.get("email", "")
         status = self.request.GET.get("status", "")
         direction = self.request.GET.get("direction", self.Direction.ALL)
-        filter_count = sum(
-            bool(value) for value in (email, status, direction != self.Direction.ALL)
-        )
+        status_choices = Message.status_choices()
         try:
             direction_label = self.Direction(direction).label
         except ValueError:
             direction_label = self.Direction.ALL.label
+        chart_title, chart = self.get_chart(direction)
         return super().get_context_data(**kwargs) | {
             "direction": direction,
             "email": email,
             "status": status,
-            "status_choices": Message.status_choices(),
-            "filter_count": filter_count,
+            "status_choices": status_choices,
+            "status_label": dict(status_choices).get(status, ""),
             "direction_label": direction_label,
-            "sending_domains": [
-                domain
-                for domain in Domain.objects.filter(org=self.org)
-                if domain.is_sending_verified
-            ],
+            "chart_title": chart_title,
+            "chart": chart,
         }
-
-
-class MessageBreadcrumbMixin:
-    """Start the trail with the message subject instead of the object string."""
-
-    def get_breadcrumbs(self):
-        breadcrumbs = super().get_breadcrumbs()
-        breadcrumbs[0]["title"] = self.object.subject or str(self.object)
-        return breadcrumbs
 
 
 class MessageDetailView(
     OrganizationScopedView,
     ConditionalGetMixin,
-    MessageBreadcrumbMixin,
     generic.DetailView,
 ):
     """Render the shared message detail page: timeline, headers, and body."""
 
     context_object_name = "message"
     parent = "message:message-list"
+
+    def get_breadcrumbs(self):
+        """Name the current page by the message subject instead of the object string."""
+        breadcrumbs = super().get_breadcrumbs()
+        breadcrumbs[-1]["title"] = self.object.subject or str(self.object)
+        return breadcrumbs
 
     def get_object(self, queryset=None):
         return get_object_or_404(queryset or self.get_queryset(), pk=self.kwargs["pk"])
@@ -102,21 +116,83 @@ class MessageDetailView(
             message.spamcheck_set.select_related("message"),
         )
 
+    def get_delivery_summary(self, message, transmissions):
+        """
+        Return the attempts, the last finish, and the elapsed delivery time.
+
+        The elapsed time runs from the moment relay stored the message, so a
+        message that waited in the queue before its accepted attempt reads as
+        the user experienced it.
+        """
+        if not transmissions:
+            return {}
+        last_finished = max(item.finished_at for item in transmissions)
+        return {
+            "delivery_attempts": len(transmissions),
+            "delivery_finished_at": last_finished,
+            "delivery_duration": last_finished - message.created_at,
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         message = self.object
         headers = message.parsed_headers
         timings = self.get_timings(message)
-        return context | {
-            "headers": headers,
-            "received": [v for k, v in headers if k.lower() == "received"],
-            "body": message.text_body,
-            "transmissions": self.transmissions,
-            "timeline": sorted(
-                (timing.event for timing in timings),
-                key=lambda event: event["start"],
-            ),
-        }
+        transmissions = list(self.transmissions)
+        return (
+            context
+            | {
+                "headers": headers,
+                "received": [v for k, v in headers if k.lower() == "received"],
+                "body": message.text_body,
+                "has_html_body": bool(message.html_body),
+                "body_url": message.get_body_url(),
+                "transmissions": transmissions,
+                "timeline": sorted(
+                    (timing.event for timing in timings),
+                    key=lambda event: event["start"],
+                ),
+            }
+            | self.get_delivery_summary(message, transmissions)
+        )
+
+
+# A message body is mail from the outside. Keep the styles, block the rest.
+MESSAGE_BODY_CSP = {
+    "default-src": [CSP.NONE],
+    "script-src": [CSP.NONE],
+    "connect-src": [CSP.NONE],
+    "frame-src": [CSP.NONE],
+    "object-src": [CSP.NONE],
+    "style-src": [CSP.UNSAFE_INLINE],
+    # The images the message carries are allowed, the remote ones per client.
+    "img-src": ["data:", "http:", "https:"],
+    "form-action": [CSP.NONE],
+    "base-uri": [CSP.NONE],
+    "frame-ancestors": [CSP.SELF],
+    "sandbox": True,
+}
+
+# Blocking the downloads a tracking pixel needs stops every remote image.
+MESSAGE_BODY_BLOCKED_CSP = MESSAGE_BODY_CSP | {"img-src": ["data:"]}
+
+
+@method_decorator(xframe_options_sameorigin, name="get")
+class MessageBodyView(OrganizationScopedView, NoStoreCacheMixin, generic.View):
+    """Serve the HTML body of a message to a sandboxed frame."""
+
+    def get(self, request, *args, **kwargs):
+        message = get_object_or_404(
+            Message.objects.filter(org=self.org), pk=self.kwargs["pk"]
+        )
+        preview = MessagePreview.from_query(request.GET)
+        response = HttpResponse(
+            preview.render(message.html_body), content_type="text/html; charset=utf-8"
+        )
+        response.headers[str(CSP.HEADER_ENFORCE)] = build_policy(
+            MESSAGE_BODY_BLOCKED_CSP if preview.block_images else MESSAGE_BODY_CSP
+        )
+        return response
 
 
 class CertificateDetailView(

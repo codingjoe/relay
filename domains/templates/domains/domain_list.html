@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load abstract i18n %}
 {% block title %}{% translate "domains"|capfirst context "noun" %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">{% translate "domains"|capfirst context "noun" %}</h2>
-    <button type="button" class="btn" onclick="document.getElementById('dlg-new-domain').showModal()">
+    <button type="button" class="btn" data-dialog="dlg-new-domain">
       {% translate "add domain"|capfirst context "noun" %}
     </button>
   </header>
@@ -40,7 +40,7 @@
           type="button"
           class="btn"
           data-variant="secondary"
-          onclick="document.getElementById('dlg-new-domain').close()"
+          data-dialog-close="dlg-new-domain"
         >
           {% translate "cancel"|capfirst context "verb" %}
         </button>
@@ -73,12 +73,30 @@
             </p>
           </section>
           <aside>
-            <i data-lucide="chevron-right" class="size-4 text-muted-foreground ms-auto shrink-0" aria-hidden="true"></i>
+            {% tabler name="chevron-right" class="text-muted-foreground ms-auto shrink-0" %}
           </aside>
         </a>
       {% endif %}
     {% empty %}
-      <p class="text-muted-foreground">{% translate "no domains configured yet."|capfirst %}</p>
+      <section class="empty">
+        <header>
+          <figure class="max-w-48 mx-auto">
+            {% include "partials/illustration.html" with name="domain-names" %}
+          </figure>
+          <h3>{% translate "No domains yet." %}</h3>
+          <p>
+            {% blocktranslate trimmed %}
+              Sending starts on the managed domain relay provisions for your organization, so the first send needs no
+              DNS work. Add a domain you own when you want to send from your own address.
+            {% endblocktranslate %}
+          </p>
+        </header>
+        <footer>
+          <button type="button" class="btn" data-dialog="dlg-new-domain">
+            {% translate "add domain"|title context "noun" %}
+          </button>
+        </footer>
+      </section>
     {% endfor %}
   </div>
 {% endblock %}

@@ -26,25 +26,25 @@ The platform operator must set up the following records on the
 1. **NS delegation for `open.{platform_domain}`**. Add NS records for the
    `open` subdomain pointing to `RELAY_DNS_NS_NAMESERVERS` (for example,
    `ns1.{platform_domain}`, `ns2.{platform_domain}`).
-1. **A/AAAA record for the web server**. The platform domain itself needs
+2. **A/AAAA record for the web server**. The platform domain itself needs
    an A/AAAA record for the web UI.
-1. **A/AAAA record for the storage host**. Caddy serves signed message body
+3. **A/AAAA record for the storage host**. Caddy serves signed message body
    URLs on `storage.{platform_domain}`, and the certificate for that name
    needs a record that resolves. Point it at the web server, or set
    `RELAY_STORAGE_DOMAIN` to serve bodies from a different name.
-1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
+4. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
    public hostname (`smtp.{platform_domain}`) and sender subdomains resolve
    to the SMTP server IPs, and the SPF record of each sender subdomain
    authorizes every one of them.
-1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
+5. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
    record with the hosting provider. Outbound SMTP must use the corresponding
    hostname for EHLO.
-1. **SPF include**. The `spf.{platform_domain}` TXT record must list the
+6. **SPF include**. The `spf.{platform_domain}` TXT record must list the
    SMTP server IP addresses.
-1. **DMARC**. `_dmarc.{platform_domain}` TXT record.
-1. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
+7. **DMARC**. `_dmarc.{platform_domain}` TXT record.
+8. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
    `mta-sts.{platform_domain}` CNAME.
-1. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
+9. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
 
 All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
@@ -79,18 +79,32 @@ inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
+Every service below runs as a Kubernetes workload in the `default` namespace on
+a single-node Talos Linux cluster, administered with `talosctl`. Stateless
+services run two replicas; `postgres`, `redis-tasks` and the `crontask`
+scheduler run one. Two independent replicas of a database or a task queue would
+hold divergent data rather than provide redundancy, and the scheduler already
+elects one active instance through a Redis lock. The manifests are in
+`deploy/k8s/`, and `deploy/README.md` is the operator guide.
+
 | Service | Port         | Description                                                    |
 | ------- | ------------ | -------------------------------------------------------------- |
-| Web     | 8000         | Django web UI (Granian)                                        |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                            |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)               |
+| Web     | 8000         | Django web UI (Granian), 2 replicas                            |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching, on the host network                    |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only), 2 replicas   |
 | SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)          |
 | MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS)     |
-| rspamd  | 11334        | Spam detection (internal only)                                 |
-| clamav  | 3310         | Malware scanning (internal only)                               |
+| rspamd  | 11334        | Spam detection (internal only), 2 replicas                     |
+| clamav  | 3310         | Malware scanning (internal only), 2 replicas                   |
 | Worker  | N/A          | Threadmill task worker for ingress, egress, and default queues |
 | Sender  | N/A          | Threadmill task worker for delivery to remote MX hosts         |
-| Storage | 8080         | Message body proxy with signed, expiring URLs                  |
+| Cron    | N/A          | django-crontask scheduler for recurring work                   |
+| Storage | 8080         | Message body proxy with signed, expiring URLs, 2 replicas      |
+
+Caddy and dnsdist publish on the node's ports directly, through host
+networking, so the mail path sees the real client address: the MX and
+submission servers read it from the PROXY protocol v2 header Caddy sends them.
+That is also why neither can run more than one replica on a single node.
 
 ```mermaid
 flowchart TD
@@ -101,8 +115,8 @@ flowchart TD
     end
 
     subgraph caddy[Caddy reverse proxy + L4 balancer]
-        caddy_proxy[Caddy docker-proxy]
-        caddy_l4[Caddy layer4]
+        caddy_proxy[Caddy :80 :443]
+        caddy_l4[Caddy layer4 :25 :465 :587]
     end
 
     subgraph app[app network]
@@ -111,6 +125,7 @@ flowchart TD
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
         mail_sender[Sender Threadmill]
+        scheduler[Cron django-crontask]
         rspamd[rspamd :11334, 2 replicas]
         clamav[clamav :3310]
         s3proxy[Storage s3proxy :8080]
@@ -140,6 +155,7 @@ flowchart TD
     msa -->|enqueue| worker
     mta -->|enqueue| worker
     worker -->|enqueue delivery| mail_sender
+    scheduler -->|enqueue| worker
     mail_sender -->|STARTTLS :25| sender
     worker -->|scan| caddy_proxy
     caddy_proxy --> rspamd
@@ -212,7 +228,7 @@ when clamd did not answer, which retries the scan instead of storing a
 verdict.
 
 A clean scan carries no symbol at all, so rspamd never confirms that
-ClamAV ran. The `clamav` block of `compose.production.yml` sets
+ClamAV ran. The `clamav` block of `deploy/k8s/rspamd/antivirus.conf` sets
 `log_clean`, which logs every part ClamAV reports clean, and the controller
 statistics behind `RELAY_RSPAMD_PASSWORD` count the messages rspamd
 scanned. To exercise the whole path, send an EICAR test attachment through
@@ -248,6 +264,9 @@ allowlist their report sender.
   the storage proxy with signed, expiring URLs
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
+- **Talos Linux**. Immutable single-node Kubernetes on Hetzner Cloud,
+  administered with `talosctl`, with Caddy as the ingress and Layer 4 proxy. See
+  `deploy/README.md`.
 
 ### Error monitoring (Sentry)
 
@@ -259,7 +278,27 @@ sent automatically.
 | --------------------------- | -------------- | ------------------------------------------ |
 | `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting. |
 | `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                    |
+| `SENTRY_RELEASE`            | _(empty)_      | Release tag. CI bakes in `sha-<commit>`.   |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default. |
+
+The deploy workflow records each shipped release in Sentry, attaches the
+commits it carries and finalizes it once the pods are ready. Set
+`SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` in `.env.production` to
+enable tracking; a deploy skips it while any of the three is unset.
+
+## Local development
+
+Run the whole stack on minikube with your `.env`, rebuild the image after each
+change, and open `http://localhost:8000`:
+
+```bash
+minikube start
+minikube addons enable metrics-server  # Dozzle needs the metrics API for stats
+docker build --target development --build-arg UV_NO_DEV=0 --build-arg DISTROLESS_FLAVOR=debug-nonroot --build-arg DOTENV_FILE=.env -t ghcr.io/codingjoe/relay:local .
+minikube image load ghcr.io/codingjoe/relay:local
+kubectl apply -k deploy/minikube
+kubectl port-forward svc/web 8000:8000
+```
 
 ## App dependencies
 

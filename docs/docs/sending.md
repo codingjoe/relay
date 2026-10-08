@@ -29,6 +29,10 @@ relay speaks SMTP AUTH PLAIN. The username is the organization slug, and the
 password is an SMTP credential key. No session and no TLS means no AUTH: the
 server refuses AUTH over plaintext on port 587.
 
+The credentials page shows the same values as a `smtps://` URI, with the
+organization slug as the user and a `<credential key>` placeholder for the
+password. Clients that accept a URI take it once you put the key in.
+
 The submission exchange:
 
 ```text
@@ -116,7 +120,8 @@ Important details of the pipeline:
 - **Sending spreads across an IP pool.** Each outgoing connection leaves
   through a randomly picked relay sending IP. Every pool IP has matching
   forward and reverse DNS, and a blacklisted IP can rotate out without an
-  outage.
+  outage. Every delivery attempt records the sending IP it used, so a
+  refusal names the address the receiver blocked.
 - **EHLO identifies the relay sending host**, whose name matches its
   reverse DNS record. Receivers grade that consistency.
 - **Enforced MTA-STS.** For recipient domains with a policy, relay skips

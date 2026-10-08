@@ -31,27 +31,17 @@ smtp_floating_ip_name() {
     printf '%s-smtp-%s' "$RELAY_HOSTNAME" "$1"
 }
 
-# The hcloud names of the SSH keys this deployment uploads, with the file each
-# holds, one tab separated pair per line. A public key file that is not on this
-# machine is skipped, so the key is never requested.
-ssh_key_pairs() {
-    local key_file
-    printf '%s\t%s\n' "$DEPLOY_KEY_NAME" "${DEPLOY_KEY}.pub"
-    for key_file in "${SSH_PUBLIC_KEY_FILES[@]}"; do
-        [ -f "$key_file" ] || continue
-        printf '%s\t%s\n' "$RELAY_HOSTNAME-$(basename "$key_file" .pub)" "$key_file"
-    done
+# The snapshot hcloud-upload-image produced, or empty when it does not exist
+# yet. A snapshot carries a description rather than a name, so the label and
+# the description together are what identifies the image this deployment boots.
+talos_image_id() {
+    hcloud image list --type snapshot --selector relay=image -o json 2>/dev/null |
+    jq -r --arg description "$TALOS_IMAGE_NAME" \
+        'map(select(.description == $description)) | first | .id // empty' || true
 }
 
-ssh_key_names() {
-    local key_name key_file
-    while IFS=$'\t' read -r key_name key_file; do
-        printf '%s\n' "$key_name"
-    done < <(ssh_key_pairs)
-}
-
-uploaded_ssh_key() {
-    hcloud ssh-key describe "$1" -o json 2>/dev/null | jq -r '.public_key // empty' || true
+talos_image_exists() {
+    [ -n "$(talos_image_id)" ]
 }
 
 # hcloud reports the assigned nameservers as FQDNs with a trailing dot
@@ -82,6 +72,13 @@ fetch_server_id() {
 
 fetch_server_status() {
     hcloud server describe "$RELAY_HOSTNAME" -o json 2>/dev/null | jq -r '.status // empty' || true
+}
+
+# Empty when hcloud reports no image, which a caller has to treat as "unknown"
+# rather than as a mismatch: a server whose snapshot has since been deleted
+# would otherwise look foreign forever.
+fetch_server_image_id() {
+    hcloud server describe "$RELAY_HOSTNAME" -o json 2>/dev/null | jq -r '.image.id // empty' || true
 }
 
 fetch_server_address() {

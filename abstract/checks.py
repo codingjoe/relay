@@ -1,6 +1,14 @@
 from django.apps import apps
+from django.contrib import admin
 from django.core.checks import Warning, register
-from django.db.models import CharField, FileField, UniqueConstraint, UUIDField
+from django.db.models import (
+    CharField,
+    FileField,
+    ForeignKey,
+    ManyToManyField,
+    UniqueConstraint,
+    UUIDField,
+)
 
 
 @register()
@@ -80,3 +88,37 @@ def check_file_field_is_unique(app_configs, **kwargs):
             )
         )
     return errors
+
+
+@register()
+def check_admin_related_fields_use_autocomplete(app_configs, **kwargs):
+    """Warn when an admin renders a relation field as a plain select box."""
+    warnings = []
+    for model, model_admin in admin.site._registry.items():
+        handled = (
+            set(model_admin.get_autocomplete_fields(request=None))
+            | set(model_admin.get_readonly_fields(request=None))
+            | set(model_admin.raw_id_fields)
+            | set(model_admin.filter_horizontal)
+            | set(model_admin.filter_vertical)
+        )
+        warnings.extend(
+            Warning(
+                f"{model._meta.label}.{field.name} renders as a plain select box.",
+                hint="Add the field to autocomplete_fields on the admin.",
+                obj=model_admin.__class__,
+                id="abstract.W004",
+            )
+            for field in model._meta.get_fields()
+            if field.editable
+            and not field.auto_created
+            and field.name not in handled
+            and (
+                isinstance(field, ForeignKey)
+                or (
+                    isinstance(field, ManyToManyField)
+                    and field.remote_field.through._meta.auto_created
+                )
+            )
+        )
+    return warnings

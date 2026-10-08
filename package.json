@@ -1,57 +1,76 @@
 {
   "dependencies": {
-    "basecoat-css": "^1.0.2"
+    "basecoat-css": "^1.0.2",
+    "echarts": "^5.6.0",
+    "lit": "^3.3.3",
+    "lodash.escape": "^4.0.1",
+    "mermaid": "^11.17.2",
+    "microlighter": "^2.2.0"
   },
   "devDependencies": {
+    "@tabler/icons-sprite": "^3.48.0",
     "@tailwindcss/postcss": "^4.1.0",
     "@tailwindcss/typography": "^0.5.20",
+    "cssnano": "^9.1.2",
+    "esimport": "^0.10.2",
     "postcss": "^8.5.26",
     "postcss-cli": "^11.0.0",
     "tailwindcss": "^4.1.0",
     "wireit": "^0.14.0"
+  },
+  "imports": {
+    "#abstract/*": "./abstract/static/abstract/*",
+    "#js/*": "./root/static/js/*",
+    "#message/*": "./services/email/message/static/message/*"
   },
   "name": "relay",
   "packageManager": "pnpm@11.20.0",
   "private": true,
   "scripts": {
     "build": "wireit",
-    "dev": "wireit"
+    "dev": "pnpm run build --watch"
   },
   "version": "0.1.0",
   "wireit": {
     "build": {
       "dependencies": [
-        "css:build"
+        "css",
+        "esm"
       ]
     },
-    "css:build": {
+    "css": {
+      "clean": false,
       "command": "postcss src/css/app.css -o root/static/css/app.css",
       "files": [
         "src/css/**/*.css",
         "postcss.config.mjs",
         "pnpm-lock.yaml",
         "root/templates/**/*.html",
+        "root/templates/**/*.svg",
         "services/**/*.html",
         "accounts/**/*.html",
         "domains/**/*.html",
-        "abstract/**/*.html"
+        "abstract/**/*.html",
+        "abstract/static/**/*.js",
+        "root/static/js/**/*.js",
+        "services/email/message/static/**/*.js"
       ],
       "output": [
         "root/static/css/app.css"
       ]
     },
-    "css:watch": {
-      "command": "postcss src/css/app.css -o root/static/css/app.css --watch",
+    "esm": {
+      "clean": false,
+      "command": "esimport . staticfiles/esm --treeshake",
       "files": [
-        "src/css/**/*.css",
-        "postcss.config.mjs",
-        "pnpm-lock.yaml"
+        "package.json",
+        "pnpm-lock.yaml",
+        "abstract/static/**/*.js",
+        "root/static/js/**/*.js",
+        "services/email/message/static/**/*.js"
       ],
-      "service": true
-    },
-    "dev": {
-      "dependencies": [
-        "css:watch"
+      "output": [
+        "staticfiles/esm/**"
       ]
     }
   }

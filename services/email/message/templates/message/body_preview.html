@@ -1,0 +1,11 @@
+{% load esm i18n %}
+{# sandbox drops allow-scripts: the body is untrusted mail #}
+<iframe
+  class="h-[36rem] w-full rounded-xl border bg-white"
+  sandbox
+  referrerpolicy="no-referrer"
+  src="{{ body_url }}"
+  data-preview-frame
+  title="{% translate 'HTML body' %}"
+></iframe>
+{% esm '#message/preview.js' %}

@@ -8,6 +8,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from abstract.email_utils import decode_payload
 from abstract.models import FetchPeersManager, TimeStamped, Timing
 from kms.models import Certificate
 from services.email.tls import parse_peer_certificates
@@ -34,7 +35,7 @@ class Message(TimeStamped):
     """
 
     icon = ""
-    """Lucide icon name of the concrete subclass. Falls back to the direction icons."""
+    """Tabler icon name of the concrete subclass. Falls back to the direction icons."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -190,7 +191,7 @@ class Message(TimeStamped):
     @property
     def kind_icon(self) -> str:
         """
-        Return the matching Lucide icon name.
+        Return the matching Tabler icon name.
 
         Reads the icon from the concrete class because multi-table
         inheritance returns base instances in shared querysets.
@@ -224,6 +225,15 @@ class Message(TimeStamped):
                 return "outline"
 
     @property
+    def spam_icon(self) -> str:
+        """Return the icon that matches the rspamd verdict."""
+        match self.spam_action:
+            case "pass" | "no action":
+                return "message-check"
+            case _:
+                return "message-exclamation"
+
+    @property
     def virus_badge_variant(self) -> str:
         """Map the antivirus verdict to a badge variant."""
         match self.virus_action:
@@ -235,6 +245,15 @@ class Message(TimeStamped):
                 return "warning"
             case _:
                 return "outline"
+
+    @property
+    def virus_icon(self) -> str:
+        """Return the icon that matches the antivirus verdict."""
+        match self.virus_action:
+            case "infected":
+                return "virus"
+            case _:
+                return "virus-off"
 
     @property
     def virus_display(self) -> str:
@@ -264,6 +283,13 @@ class Message(TimeStamped):
             return self.get_absolute_url()
         return reverse(
             model.email_url_name,
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
+
+    def get_body_url(self) -> str:
+        """Return the URL of the view serving the HTML body to a sandboxed frame."""
+        return reverse(
+            "message:message-body",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
@@ -314,6 +340,26 @@ class Message(TimeStamped):
                 and (payload := part.get_payload(decode=True)) is not None
             ),
             b"",
+        )
+
+    @property
+    def html_body(self) -> str:
+        """
+        Return the decoded HTML payload of the stored body.
+
+        Messages whose raw body is pruned or unreadable, and messages that
+        carry no HTML part, have no HTML payload. Callers render it in a
+        sandboxed frame, because a body from the outside is untrusted.
+        """
+        return next(
+            (
+                decode_payload(payload, part.get_content_charset())
+                for part in self.parsed_email().walk()
+                if not part.is_multipart()
+                and part.get_content_type() == "text/html"
+                and (payload := part.get_payload(decode=True)) is not None
+            ),
+            "",
         )
 
     @classmethod
