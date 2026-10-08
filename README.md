@@ -202,11 +202,6 @@ own worker and scale on its own:
 `TASKS["default"]["QUEUES"]` in `root/settings.py` holds the queue list. A task
 whose queue is missing there fails at import time.
 
-A worker serves its queues in the order given on the command line: threadmill
-takes from the first non-empty queue, so a full queue always wins over the
-queues after it. Keep the mail pipeline queues ahead of `default`, which
-carries report parsing that can back up without delaying mail.
-
 ### Spam and virus scanning
 
 The egress and ingress workers scan every stored message with rspamd before

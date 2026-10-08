@@ -39,7 +39,7 @@ dependencies = [
   "sentry-sdk>=2.71",
   "servestatic>=4.4",
   "social-auth-app-django>=6.1",
-  "threadmill[redis]>=0.7.3",
+  "threadmill[redis]>=0.8",
   "validators>=0.35",
 ]
 
@@ -48,7 +48,7 @@ dev = [
   "django-debug-toolbar>=8",
   "django-devbar>=0.7",
   "pytest-pretty>=1.3",
-  "threadmill[inspector]>=0.7.3",
+  "threadmill[inspector]>=0.8",
   { include-group = "test" },
 ]
 test = [
