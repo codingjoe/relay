@@ -1,5 +1,7 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
+import aiosmtplib
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
@@ -8,7 +10,13 @@ from accounts.models import Organization
 from domains.models import Domain
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
-from services.email.msa.tasks import check_outgoing_spam
+from services.email.msa.tasks import (
+    DELIVERY_RETRY,
+    TemporaryDeliveryError,
+    check_outgoing_spam,
+    deliver_message,
+    delivery_retry,
+)
 from services.email.mta.models import IncomingMessage
 from services.email.mta.tasks import check_incoming_spam
 from services.email.reputation.charts import build_reputation_chart
@@ -151,6 +159,51 @@ class TestComputeOrgReputation:
 
         assert stats["hard_bounces"] == 1
         assert stats["soft_bounces"] == 0
+
+
+@pytest.mark.django_db(transaction=True)
+class TestSoftBounceAfterRetries:
+    def test_soft_bounce__counts_only_after_the_retry_budget_is_spent(
+        self, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        message = OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            raw_body=SimpleUploadedFile("message.eml", b"body"),
+        )
+        message_id = str(message.id)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        refusal = aiosmtplib.SMTPResponseException(450, b"Try again later")
+
+        # The first attempt of a refused message, as the worker runs it.
+        with (
+            patch("services.email.msa.tasks.aiosmtplib.SMTP", side_effect=refusal),
+            pytest.raises(TemporaryDeliveryError),
+        ):
+            deliver_message.func(message_id=message_id)
+
+        # A refused attempt keeps the message pending, so it is not a bounce yet.
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.PENDING
+        assert compute_org_reputation(org)["soft_bounces"] == 0
+
+        # The last attempt, as the retry callback runs it for the executor.
+        error = SimpleNamespace(exception_class=TemporaryDeliveryError)
+        delivery_retry(
+            SimpleNamespace(
+                attempt=DELIVERY_RETRY.max_retries,
+                task_result=SimpleNamespace(
+                    kwargs={"message_id": message_id}, errors=[error]
+                ),
+            )
+        )
+
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.FAILED
+        assert compute_org_reputation(org)["soft_bounces"] == 1
 
 
 @pytest.mark.django_db
