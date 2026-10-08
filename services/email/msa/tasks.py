@@ -3,6 +3,7 @@ import logging
 import random
 
 import aiosmtplib
+import botocore.exceptions
 import dns.resolver
 from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
@@ -124,7 +125,23 @@ def deliver_message(message_id):
         record_failed_attempt(message, started_at, error)
         message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
-    except Exception as error:  # storage backends raise varied exceptions
+    except (
+        OSError,
+        botocore.exceptions.BotoCoreError,
+        botocore.exceptions.ClientError,
+    ) as error:
+        # The storage backend could not hand over the body. botocore reports
+        # transport, timeout and streaming failures as BotoCoreError and an
+        # answer from the object store as ClientError, while the local backend
+        # raises OSError. All three can clear on a later attempt, so they stay
+        # a warning instead of a Sentry exception.
+        logger.warning("Storage error for message %r: %r", message_id, error)
+        record_failed_attempt(message, started_at, error)
+        raise TemporaryDeliveryError(str(error)) from error
+    except Exception as error:
+        # A bug or a database failure is not a storage answer, so it keeps its
+        # traceback. Retry it anyway, because a transient database error would
+        # otherwise lose the message.
         logger.exception("Transmission error for message %r", message_id)
         record_failed_attempt(message, started_at, error)
         raise TemporaryDeliveryError(str(error)) from error

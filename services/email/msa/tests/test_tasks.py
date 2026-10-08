@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiosmtplib
 import dns.exception
 import pytest
+from botocore.exceptions import ClientError
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -650,6 +651,44 @@ class TestDeliverMessage:
             ),
             ("", Transmission.Status.FAILED, "error parsing asn1 value"),
         }
+
+    def test_deliver_message__storage_error_keeps_message_pending(
+        self, user, org, dns_resolver, caplog
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        # The object store answers with botocore's own exception, not an OSError.
+        error = ClientError(
+            {
+                "Error": {"Code": "SlowDown"},
+                "ResponseMetadata": {"HTTPStatusCode": 503},
+            },
+            "GetObject",
+        )
+        message_id = str(msg.id)
+
+        with (
+            patch(
+                "django.core.files.storage.FileSystemStorage.open",
+                side_effect=error,
+            ),
+            caplog.at_level(logging.WARNING),
+            pytest.raises(TemporaryDeliveryError, match="SlowDown"),
+        ):
+            deliver_message.func(message_id=message_id)
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.details == (
+            "An error occurred (SlowDown) when calling the GetObject operation: Unknown"
+        )
+        assert (
+            f"Storage error for message {message_id!r}: ClientError('An error occurred "
+            "(SlowDown) when calling the GetObject operation: Unknown')"
+        ) in caplog.messages
 
 
 def make_outgoing_message(org, status=OutgoingMessage.Status.PENDING):
