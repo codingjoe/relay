@@ -20,22 +20,25 @@ BRANDS = [
 
 TESTIMONIALS = [
     {
-        "quote": "Sample endorsement. relay collects real quotes from friends in tech before launch.",
-        "name": "Sample Supporter",
-        "initials": "SS",
-        "role": "Founder, Sample Company",
+        "quote": "The sandbox is a killer feature. It lets us build faster and better without any infrastructure friction. You just flip a switch, lean back and watch it work.",
+        "name": "Rustem Saiargaliev",
+        "initials": "AM",
+        "role": "Lead Engineer",
+        "image": "/static/img/testimonials/rustem-saiargaliev.png",
     },
     {
-        "quote": "Sample endorsement. Replace this card with a real quote from the open-source community.",
-        "name": "Sample Maintainer",
-        "initials": "SM",
-        "role": "Maintainer, Sample Project",
+        "quote": "As a founder, I need tools that get out of the way. We plug relay into any agentic workflow to get immediate access to sending and receiving messages.",
+        "name": "Marc Metz",
+        "initials": "MM",
+        "role": "AI Entrepreneur (YC-W21)",
+        "image": "/static/img/testimonials/marc-metz.jpeg",
     },
     {
-        "quote": "Sample endorsement. relay asks its friends in tech for honest feedback, not marketing copy.",
-        "name": "Sample Engineer",
-        "initials": "SE",
-        "role": "Staff Engineer, Sample Corp",
+        "quote": "In marketing, sender reputation is everything. relay ensures our emails actually hit the inbox instead of ending up in spam or on a block list, which is critical for any growing brand.",
+        "name": "Sebastian Schirmer",
+        "initials": "BS",
+        "role": "Marketing Manager",
+        "image": "/static/img/testimonials/sebasitan-schirmer.jpeg",
     },
 ]
 
