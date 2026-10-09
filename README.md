@@ -90,6 +90,7 @@ elects one active instance through a Redis lock. The manifests are in
 | Service | Port         | Description                                                    |
 | ------- | ------------ | -------------------------------------------------------------- |
 | Web     | 8000         | Django web UI (Granian), 2 replicas                            |
+| MCP     | 8000         | Hosted MCP server (FastMCP, Granian), 2 replicas               |
 | dnsdist | 53 (UDP+TCP) | DNS proxy with caching, on the host network                    |
 | DNS     | 5353         | Authoritative nameserver (dnslib, internal only), 2 replicas   |
 | SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)          |
@@ -121,6 +122,7 @@ flowchart TD
 
     subgraph app[app network]
         web[Web Django + Granian :8000]
+        mcp[MCP FastMCP :8000]
         msa[SMTP aiosmtpd :587 :2465]
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
@@ -147,6 +149,7 @@ flowchart TD
 
     browser --> caddy_proxy
     caddy_proxy --> web
+    caddy_proxy -->|/mcp| mcp
     caddy_proxy -->|signed body URL| s3proxy
     client -->|STARTTLS :587 / TLS :465| caddy_l4
     sender -->|STARTTLS :25| caddy_l4
@@ -259,13 +262,17 @@ allowlist their report sender.
   the storage proxy with signed, expiring URLs
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
+- **FastMCP**. Model Context Protocol server framework behind the `/mcp`
+  endpoint
+- **django-allauth** with the OIDC identity provider. Authorization server that
+  registers MCP clients and issues their access tokens
 - **Talos Linux**. Immutable single-node Kubernetes on Hetzner Cloud,
   administered with `talosctl`, with Caddy as the ingress and Layer 4 proxy. See
   `deploy/README.md`.
 
 ### Error monitoring (Sentry)
 
-All five processes report to a single Sentry project. Off by default; set
+Every process reports to a single Sentry project. Off by default; set
 `SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
 sent automatically.
 
@@ -367,6 +374,10 @@ graph BT
  dashboard --> dmarc
  dashboard --> reputation
  end
+ mcp
+ mcp --> abstract
+ mcp --> accounts
+ mcp --> message
  subgraph voip
  direction BT
  end

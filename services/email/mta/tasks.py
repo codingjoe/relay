@@ -14,7 +14,7 @@ from django.tasks import task
 from django.utils import timezone
 from django_letter.exceptions import InvalidUserError
 
-from services.email.message.models import Transmission
+from services.email.message.events import MessageEvent
 from services.email.msa.handlers import submit_relay_message
 from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
@@ -115,28 +115,18 @@ def mark_failed_if_pending(message_id):
 
 
 @dataclass
-class WebhookEvent:
+class WebhookEvent(MessageEvent):
     """A flat webhook event payload, without the raw message body."""
 
-    type: str
-    message_id: str
-    sender: str
-    recipient: str
-    subject: str
-    rfc822_message_id: str
-    received_with_tls: bool
-    receiving_domain: str
-    body_url: str | None
-    spam_score: float | None = None
-    spam_action: str = ""
+    type: str = ""
     received_at: str = field(
         default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     )
 
     @classmethod
-    def from_message(cls, message, *, is_test=False):
+    def from_message(cls, message=None, *, is_test=False):
         """Build a webhook event payload from a stored message (or a test ping)."""
-        if is_test and message is None:
+        if message is None:
             return cls(
                 type="email.test",
                 message_id="",
@@ -148,25 +138,9 @@ class WebhookEvent:
                 receiving_domain="",
                 body_url=None,
             )
-        try:
-            reception = message.transmissions.get(status=Transmission.Status.RECEIVED)
-        except Transmission.DoesNotExist:
-            reception = None
         return cls(
             type="email.test" if is_test else "email.received",
-            message_id=str(message.id),
-            sender=message.mail_from,
-            recipient=message.rcpt_to,
-            subject=message.subject,
-            rfc822_message_id=message.message_id,
-            received_with_tls=(
-                reception is not None
-                and reception.tls_mode != Transmission.TlsMode.PLAINTEXT
-            ),
-            receiving_domain=message.receiving_domain,
-            body_url=message.raw_body.url if message.raw_body else None,
-            spam_score=message.spam_score,
-            spam_action=message.spam_action,
+            **MessageEvent.from_message(message).__dict__,
         )
 
 

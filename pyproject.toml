@@ -16,6 +16,7 @@ dependencies = [
   "boto3>=1.43.108",
   "cryptography>=50.0.2",
   "django>=6.1.1,<6.2",
+  "django-allauth[idp-oidc,socialaccount]>=65.19.7",
   "django-crontask>=2.0.1",
   "django-environ>=0.14",
   "django-esm>=0.11",
@@ -25,6 +26,7 @@ dependencies = [
   "dkimpy>=1.1.8",
   "dnslib>=0.9.26",
   "dnspython>=2.8",
+  "fastmcp>=4.1",
   "granian>=2.8.4",
   "httpx>=0.28.1",
   "humanize>=4.16",
@@ -38,7 +40,7 @@ dependencies = [
   "redis>=8.1",
   "sentry-sdk>=2.71",
   "servestatic>=4.4",
-  "social-auth-app-django>=6.1",
+  "starlette>=1.7",
   "threadmill[redis]>=0.8",
   "validators>=0.35",
 ]
@@ -277,6 +279,29 @@ forbidden_modules = [
   "services.email.msa",
   "services.email.mta",
   "services.email.reputation",
+  "services.mcp",
+  "well_known",
+]
+
+[[tool.importlinter.contracts]]
+name = "MCP depends only on message, accounts, kms, tls and abstract"
+type = "forbidden"
+source_modules = [ "services.mcp" ]
+forbidden_modules = [
+  "alternative_to",
+  "docs",
+  "domains",
+  "know_how",
+  "legal",
+  "root",
+  "services.email.dashboard",
+  "services.email.dmarc",
+  "services.email.msa",
+  "services.email.mta",
+  "services.email.mta_sts",
+  "services.email.proxy_protocol",
+  "services.email.reputation",
+  "services.email.spam",
   "well_known",
 ]
 
@@ -408,6 +433,7 @@ forbidden_modules = [
   "services.email.msa",
   "services.email.mta",
   "services.email.reputation",
+  "services.mcp",
 ]
 
 [[tool.importlinter.contracts]]
@@ -430,3 +456,6 @@ forbidden_modules = [
   "services.email.reputation",
   "well_known",
 ]
+# The MCP provider registers the scopes each app declares beside its tools, and
+# the web process mounts that provider for its URL wiring.
+ignore_imports = [ "services.mcp.oidc -> services.mcp.components" ]
