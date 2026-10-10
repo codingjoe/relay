@@ -10,8 +10,9 @@ operations; the deployment's internals live in `deploy/k8s/`.
 
 ## Before you start
 
-`hcloud`, `aws`, `jq`, `gh`, `dotenvx`, `envsubst`, `dig` and `kubectl` are
-already on this machine. Two tools are not, and this guide needs both.
+`hcloud`, `aws`, `jq`, `gh`, `dotenvx`, `envsubst`, `openssl`, `dig` and
+`kubectl` are already on this machine. Two tools are not, and this guide needs
+both.
 
 `talosctl`, on the release `TALOS_VERSION` names (`v1.14.2` today). A client one
 minor release away still talks to the node, but keep every workstation on the
@@ -101,11 +102,31 @@ times out, rerun once the registrar has caught up.
 
 ## 3. Add the OAuth credentials
 
+Create the GitHub app and register
+`https://relays.to/social/github/login/callback/` as its authorization
+callback URL, the django-allauth `github_callback` route in `root/urls.py`.
+Then store the credentials it issues:
+
 ```bash
 dotenvx set GITHUB_CLIENT_ID "<id>" -f .env.production
 dotenvx set GITHUB_CLIENT_SECRET "<secret>" -f .env.production
 git add .env.production && git commit -m "Add OAuth credentials" && git push
 ```
+
+An existing installation must update that callback URL in its GitHub app
+before it deploys: python-social-auth answered at
+`https://relays.to/complete/github/`, and that path is gone, so GitHub refuses
+the sign-in until the app points at the new one. The `accounts` data migration
+moves every existing GitHub link into allauth and drops the leftover
+`social_auth_*` tables, so users do not re-link.
+
+A GitHub sign-in whose verified address already belongs to a relay account now
+logs into that account and links the sign-in to it, instead of routing the
+person to signup. On that path allauth clears the account's password when it
+has no verified `EmailAddress` row, which in practice means a
+Django superuser who signs in with GitHub loses the `/admin/` password login;
+set a new one with `manage.py changepassword <username>`, and signing in with
+GitHub keeps working.
 
 ## 4. Deploy
 
@@ -140,6 +161,7 @@ namespace and a Role cannot patch a cluster-scoped Namespace. See
 curl https://relays.to/health/node/        # host resources, the container probes
 curl https://relays.to/health/application/ # every dependency relay controls
 curl https://relays.to/health/pipeline/    # third-party status pages the pipeline depends on
+curl -i https://relays.to/mcp              # 401 with the discovery pointer, not a 502
 openssl s_client -connect smtp.relays.to:587 -starttls smtp
 openssl s_client -connect mx1.relays.to:25 -starttls smtp
 dig +short pg.relays.to storage.relays.to

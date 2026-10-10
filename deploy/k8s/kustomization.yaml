@@ -6,6 +6,7 @@ resources:
   - caddy.yaml
   - dns.yaml
   - web.yaml
+  - mcp.yaml
   - mail.yaml
   - data.yaml
   - dozzle.yaml
