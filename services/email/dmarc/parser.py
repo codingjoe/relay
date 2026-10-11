@@ -1,7 +1,8 @@
 import contextlib
 import datetime
-import xml.etree.ElementTree as ET
 from email import message_from_bytes
+
+from defusedxml import ElementTree
 
 from abstract.email_utils import extract_part_text
 
@@ -21,7 +22,7 @@ class NoArfFeedbackError(ValueError):
 
 def parse_dmarc_xml(data):
     """Convert a DMARC aggregate report XML into a dict."""
-    root = ET.fromstring(data)
+    root = ElementTree.fromstring(data)
 
     metadata_elem = root.find("report_metadata")
     metadata = {

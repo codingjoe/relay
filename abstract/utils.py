@@ -100,7 +100,9 @@ def md_2_html(document: str, baselevel: int = 1) -> SafeText:
         },
     )
 
-    return mark_safe(html)
+    # The Markdown lives in this repository, and the template it renders through
+    # escapes its context.
+    return mark_safe(html)  # noqa: S308
 
 
 def md_toc(document: str, depth=None) -> str:
@@ -119,4 +121,5 @@ def md_toc(document: str, depth=None) -> str:
         extension_configs={"toc": {"toc_depth": depth or 6}},
     )
     md.convert(document)
-    return mark_safe(md.toc)
+    # The table of contents repeats the headings of a repository document.
+    return mark_safe(md.toc)  # noqa: S308

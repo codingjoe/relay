@@ -392,7 +392,8 @@ async def send_via_mx(
     from services.email.message.models import Transmission
 
     source_address = (
-        (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)
+        # Spread the legs over the source IPs. No secret rides on the pick.
+        (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)  # noqa: S311
         if settings.RELAY_SMTP_SOURCE_IPS
         else None
     )

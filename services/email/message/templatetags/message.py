@@ -17,7 +17,8 @@ def render(value: str, lexer) -> str:
     """Convert a value to syntax-colored HTML with a Pygments lexer."""
     if not value:
         return ""
-    return mark_safe(highlight(value, lexer, email_formatter))
+    # Pygments escapes the message it highlights.
+    return mark_safe(highlight(value, lexer, email_formatter))  # noqa: S308
 
 
 @register.filter
