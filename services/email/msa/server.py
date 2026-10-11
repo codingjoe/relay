@@ -32,7 +32,7 @@ class SMTPServer:
 
     def __init__(
         self,
-        host="0.0.0.0",
+        host="0.0.0.0",  # noqa: S104
         ports=(587, 465),
         implicit_tls_ports=(465,),
         tls_cert_path="",
@@ -115,7 +115,7 @@ class SMTPServer:
 
 
 def run_smtp_server(
-    host="0.0.0.0",
+    host="0.0.0.0",  # noqa: S104
     ports=(587, 465),
     implicit_tls_ports=(465,),
     tls_cert_path="",

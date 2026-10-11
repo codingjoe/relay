@@ -17,12 +17,12 @@ EMAIL_DOMAIN_PATTERN = re.compile(r"@([\w.-]+)")
 
 
 class Alignment(StrEnum):
-    PASS = "pass"
+    PASS = "pass"  # noqa: S105
     FAIL = "fail"
 
 
 class AuthResult(StrEnum):
-    PASS = "pass"
+    PASS = "pass"  # noqa: S105
     FAIL = "fail"
     NEUTRAL = "neutral"
     NONE = "none"

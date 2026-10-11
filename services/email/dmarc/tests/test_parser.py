@@ -3,6 +3,7 @@ import gzip
 from email.message import EmailMessage
 
 import pytest
+from defusedxml.ElementTree import EntitiesForbidden
 
 from services.email.dmarc.parser import NoArfFeedbackError, parse_arf, parse_dmarc_xml
 
@@ -86,6 +87,16 @@ class TestParseDmarcXml:
         assert records[0]["dkim_alignment"] == "pass"
         assert records[0]["spf_alignment"] == "pass"
         assert records[0]["header_from"] == "example.com"
+
+    def test_parse_dmarc_xml__rejects_entity_expansion(self):
+        bomb = (
+            b"<!DOCTYPE feedback [<!ENTITY lol 'expanded'>]>"
+            b"<feedback><report_metadata>"
+            b"<org_name>&lol;</org_name>"
+            b"</report_metadata></feedback>"
+        )
+        with pytest.raises(EntitiesForbidden):
+            parse_dmarc_xml(bomb)
 
 
 class TestParseArf:

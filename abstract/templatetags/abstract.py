@@ -153,7 +153,8 @@ def highlight_code(value: str, language: str = "text") -> str:
         lexer = get_lexer_by_name(language)
     except ClassNotFound:
         lexer = get_lexer_by_name("text")
-    return mark_safe(highlight(value, lexer, code_formatter))
+    # Pygments escapes the source it highlights.
+    return mark_safe(highlight(value, lexer, code_formatter))  # noqa: S308
 
 
 @register.simple_tag
@@ -176,7 +177,8 @@ def percent(text, arg=-1):
     if text is None:
         return None
     text = decimal.Decimal(str(text)) * decimal.Decimal("100.00")
-    return mark_safe(
+    # A decimal renders as digits and separators only.
+    return mark_safe(  # noqa: S308
         f"{defaultfilters.floatformat(text, arg=arg)}&nbsp;&percnt;",
     )
 
