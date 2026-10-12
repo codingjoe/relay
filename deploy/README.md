@@ -448,7 +448,8 @@ kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/caddy
 ### Logs
 
 One Dozzle instance watches every namespace through the Kubernetes API. It is
-not published to the internet. Tunnel to the dashboard:
+not published to the internet. `bin/dozzle` points `KUBECONFIG` at
+`~/.kube/relay.yaml`, tunnels and opens the browser. The bare tunnel:
 
 ```bash
 kubectl port-forward svc/dozzle 5000:8080

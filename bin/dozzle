@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/relay.yaml}"
+
+kubectl port-forward svc/dozzle 5000:8080 &
+trap 'kill "$!" 2>/dev/null || true' EXIT
+
+until curl -fs --max-time 5 -o /dev/null http://127.0.0.1:5000 2>/dev/null; do
+    kill -0 "$!" 2>/dev/null || exit 1
+    sleep 0.1
+done
+
+open http://127.0.0.1:5000
+wait
