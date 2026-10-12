@@ -73,8 +73,6 @@ test = [
 "services/email/msa/handlers.py" = [ "N802" ]
 "services/email/mta/handlers.py" = [ "N802" ]
 "services/email/proxy_protocol.py" = [ "N802" ]
-# Tests assert with bare `assert`, a test double names its `password` argument,
-# and a mocked server reports the default bind address.
 "**/tests/*.py" = [ "S101", "S104", "S106" ]
 "**/test_*.py" = [ "S101" ]
 "conftest.py" = [ "S106" ]
