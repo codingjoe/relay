@@ -111,7 +111,16 @@ SECURE_CSP = {
     "media-src": [CSP.SELF],
     "connect-src": [CSP.SELF],
     "frame-src": [CSP.SELF],
-    "form-action": [CSP.SELF],
+    # An MCP client receives its authorization code by a redirect from the
+    # consent form, which this directive governs, so it admits the callbacks
+    # the MCP specification allows: HTTPS anywhere, and HTTP on loopback.
+    "form-action": [
+        CSP.SELF,
+        "https:",
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+        "http://[::1]:*",
+    ],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.NONE],
     "frame-ancestors": [CSP.NONE],
