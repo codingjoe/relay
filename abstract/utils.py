@@ -100,8 +100,7 @@ def md_2_html(document: str, baselevel: int = 1) -> SafeText:
         },
     )
 
-    # The Markdown lives in this repository, and the template it renders through
-    # escapes its context.
+    # Repository Markdown, rendered through a template that escapes its context.
     return mark_safe(html)  # noqa: S308
 
 
