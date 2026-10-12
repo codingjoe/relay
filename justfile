@@ -6,6 +6,9 @@ development_image := "ghcr.io/codingjoe/relay:local"
 # The port the local web UI is forwarded to.
 web_port := "8000"
 
+# The port the local MCP server listens on.
+mcp_port := "8001"
+
 # The CLI tools the recipes shell out to. uv ships uvx, which runs prek.
 binaries := "uv pnpm age gh dotenvx kubectl minikube"
 
@@ -79,6 +82,32 @@ serve:
 [group('local')]
 serve-mcp:
     uv run --env-file .env granian --interface asgi --host 127.0.0.1 --port "$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')" services.mcp.asgi:application
+
+# Run the web and MCP servers locally and open the MCP inspector.
+# The web port is fixed because the MCP settings derive their public origin
+# from HOSTNAME, and both servers share that origin so OAuth works.
+[group('local')]
+inspect-mcp:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export HOSTNAME="localhost:{{web_port}}"
+
+    uv run --env-file .env manage.py runserver "localhost:{{web_port}}" &
+    web_pid=$!
+    uv run --env-file .env granian --interface asgi --host 127.0.0.1 --port "{{mcp_port}}" services.mcp.asgi:application &
+    mcp_pid=$!
+    trap 'kill "$web_pid" "$mcp_pid" 2>/dev/null || true' EXIT
+
+    for url in "http://localhost:{{web_port}}/health/node/" "http://localhost:{{mcp_port}}/health"; do
+        until curl -fsS -o /dev/null "$url" 2>/dev/null; do
+            kill -0 "$web_pid" "$mcp_pid" 2>/dev/null || exit 1
+            sleep 0.2
+        done
+    done
+
+    printf 'web http://localhost:%s, MCP http://localhost:%s/mcp\n' "{{web_port}}" "{{mcp_port}}"
+    npx -y @modelcontextprotocol/inspector --web --transport http \
+        --server-url "http://localhost:{{mcp_port}}/mcp"
 
 # Install the binaries, the dependencies and the git hooks.
 [group('quality')]

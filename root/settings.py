@@ -429,7 +429,8 @@ RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T10000
 # Hosted MCP server
 # https://docs.allauth.org/en/latest/idp/oidc/configuration.html
 
-RELAY_MCP_BASE_URL = f"https://{RELAY_PLATFORM_DOMAIN}"
+# Development serves plain HTTP, so the scheme follows DEBUG.
+RELAY_MCP_BASE_URL = f"{'http' if DEBUG else 'https'}://{RELAY_PLATFORM_DOMAIN}"
 RELAY_MCP_RESOURCE_URL = f"{RELAY_MCP_BASE_URL}/mcp"
 # The issuer ends in exactly one slash, the form OIDC clients normalize to.
 RELAY_MCP_OIDC_ISSUER_URL = f"{RELAY_MCP_BASE_URL}/"
