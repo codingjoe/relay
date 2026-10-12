@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}
+  {% blocktranslate trimmed with client_name=client.name %}
+    Authorize {{ client_name }}.
+  {% endblocktranslate %}
+  | relay
+{% endblock %}
+{% block content %}
+  <div class="max-w-md">
+    <h2 class="mb-6">
+      {% blocktranslate trimmed with client_name=client.name %}
+        Authorize {{ client_name }}.
+      {% endblocktranslate %}
+    </h2>
+    <p class="mb-6 text-muted-foreground">
+      {% blocktranslate trimmed with client_name=client.name redirect_hostname=redirect_hostname %}
+        {{ client_name }} is asking for access to your mail and will return you to
+        {{ redirect_hostname }}.
+      {% endblocktranslate %}
+    </p>
+    <form method="post" action="{% url 'idp:oidc:authorization' %}">
+      {% csrf_token %}
+      {% for field in form.hidden_fields %}
+        {{ field }}
+      {% endfor %}
+      <fieldset class="fieldset">
+        <legend>
+          {% blocktranslate trimmed with client_name=client.name %}
+            {{ client_name }} will be able to:
+          {% endblocktranslate %}
+        </legend>
+        <p class="text-sm text-muted-foreground">
+          {% blocktranslate trimmed with client_name=client.name %}
+            Review the actions you allow {{ client_name }} to perform.
+          {% endblocktranslate %}
+        </p>
+        {% for scope in form.scopes %}
+          <div role="group" class="field" data-orientation="horizontal">
+            {{ scope.tag }}
+            <label for="{{ scope.id_for_label }}">{{ scope.choice_label }}</label>
+          </div>
+        {% endfor %}
+      </fieldset>
+      <div class="flex gap-2 mt-6">
+        <button type="submit" name="action" value="grant" class="btn">
+          {% translate "authorize"|capfirst context "verb" %}
+        </button>
+        <button
+          type="submit"
+          name="action"
+          value="cancel"
+          class="btn"
+          data-variant="secondary"
+        >
+          {% translate "cancel"|capfirst context "verb" %}
+        </button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

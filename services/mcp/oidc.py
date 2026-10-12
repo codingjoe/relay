@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import urlsplit
 
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
 from allauth.idp.oidc.internal.oauthlib.server import get_server
@@ -6,6 +7,7 @@ from allauth.idp.oidc.internal.oauthlib.utils import (
     extract_params,
     respond_html_error,
 )
+from allauth.idp.oidc.models import Client
 from allauth.idp.oidc.views import AuthorizationView
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
@@ -45,7 +47,23 @@ class RelayOIDCAdapter(DefaultOIDCAdapter):
 
 
 class RelayAuthorizationView(AuthorizationView):
-    """Serve allauth's consent screen, but never authorize silently."""
+    """Serve the consent screen in relay's chrome, but never authorize silently."""
+
+    template_name = "mcp/authorization_form.html"
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        kwargs = super().get_form_kwargs()
+        if not kwargs["requested_scopes"]:
+            # A client that asks for no scope still gets a screen it can act
+            # on, limited to the scopes it registered.
+            client = Client.objects.get(pk=self._request_info["client_id"])
+            kwargs["requested_scopes"] = client.get_scopes()
+        return kwargs
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        return super().get_context_data(**kwargs) | {
+            "redirect_hostname": urlsplit(self._request_info["redirect_uri"]).hostname
+        }
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         """

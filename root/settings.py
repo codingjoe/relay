@@ -119,7 +119,6 @@ SECURE_CSP = {
         "https:",
         "http://localhost:*",
         "http://127.0.0.1:*",
-        "http://[::1]:*",
     ],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.NONE],
