@@ -7,6 +7,8 @@ scripts:
     command: |
       just seed
       just serve
+  - name: MCP server
+    command: just serve-mcp
   - name: Dump test data
     command: just dump-fixtures
     disabled: true

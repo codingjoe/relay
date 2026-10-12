@@ -75,6 +75,11 @@ dev: build-image start-cluster load-image migrate
 serve:
     uv run --env-file .env manage.py runserver "localhost:$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
 
+# Run the local MCP server on a free port, without the container.
+[group('local')]
+serve-mcp:
+    uv run --env-file .env granian --interface asgi --host 127.0.0.1 --port "$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')" services.mcp.asgi:application
+
 # Install the binaries, the dependencies and the git hooks.
 [group('quality')]
 install: install-binaries
