@@ -436,7 +436,7 @@ RELAY_MCP_OIDC_ISSUER_URL = f"{RELAY_MCP_BASE_URL}/"
 RELAY_MCP_OIDC_JWKS_URL = f"{RELAY_MCP_BASE_URL}/.well-known/jwks.json"
 
 IDP_OIDC_ADAPTER = "services.mcp.oidc.RelayOIDCAdapter"
-IDP_OIDC_ACCESS_TOKEN_FORMAT = "jwt"
+IDP_OIDC_ACCESS_TOKEN_FORMAT = "jwt"  # noqa: S105 -- a format, not a secret.
 IDP_OIDC_ACCESS_TOKEN_EXPIRES_IN = env.int(
     "RELAY_MCP_OIDC_ACCESS_TOKEN_EXPIRES_IN", default=900
 )

@@ -110,7 +110,10 @@ def build_digest_context(
         "month_messages": month_messages,
         "recipients": recipients,
         "week_chart": (
-            mark_safe(chart.week(daily_counts)) if any(daily_counts) else ""
+            # The chart builder emits its own SVG.
+            mark_safe(chart.week(daily_counts))  # noqa: S308
+            if any(daily_counts)
+            else ""
         ),
         "cost": month_cost(month_messages),
         "free_monthly_messages": free_monthly_messages,

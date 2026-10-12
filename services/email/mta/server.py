@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class MXServer:
     def __init__(
         self,
-        host="0.0.0.0",
+        host="0.0.0.0",  # noqa: S104
         ports=(25,),
         tls_cert_path="",
         tls_key_path="",
@@ -61,7 +61,7 @@ class MXServer:
 
 
 def run_mx_server(
-    host="0.0.0.0",
+    host="0.0.0.0",  # noqa: S104
     ports=(25,),
     tls_cert_path="",
     tls_key_path="",

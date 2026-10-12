@@ -33,7 +33,7 @@ class ChainResult(StrEnum):
     """Validation status of the incoming ARC chain."""
 
     NONE = "none"
-    PASS = "pass"
+    PASS = "pass"  # noqa: S105
     FAIL = "fail"
     TERMINATED = "terminated"
 
