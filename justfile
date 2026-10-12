@@ -152,6 +152,7 @@ clear-migrations:
 # Regenerate the migrations and mark them applied without touching the schema.
 [group('database')]
 squash-migrations:
+    : "${LOCAL_TABLE_NAME:?set LOCAL_TABLE_NAME to the local database}"
     psql "$LOCAL_TABLE_NAME" -a -c "TRUNCATE TABLE django_migrations"
     just migrations
     uv run python manage.py migrate --fake --no-input
