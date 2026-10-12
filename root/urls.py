@@ -33,6 +33,8 @@ urlpatterns = [
             ]
         ),
     ),
+    # Org-scoped MCP
+    path("org/<slug:org_slug>/mcp/", include("services.mcp.urls")),
     # OIDC provider for MCP clients
     # https://docs.allauth.org/en/latest/idp/
     path("identity/o/authorize", RelayAuthorizationView.as_view()),
