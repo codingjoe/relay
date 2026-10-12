@@ -7,7 +7,7 @@ from allauth.idp.oidc.internal.oauthlib.utils import (
     extract_params,
     respond_html_error,
 )
-from allauth.idp.oidc.models import Client
+from allauth.idp.oidc.models import Client, Token
 from allauth.idp.oidc.views import AuthorizationView
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
@@ -34,6 +34,27 @@ class RelayOIDCAdapter(DefaultOIDCAdapter):
     def populate_server_metadata(self, data: dict[str, str | list[str]]) -> None:
         """Advertise relay's scopes so clients request them on registration."""
         data["scopes_supported"] = list(self.scope_display)
+
+    def validate_client_registration(
+        self,
+        *,
+        client: Client,
+        client_metadata: dict[str, Any],
+        token: Token | None,
+        bearer_token: str | None,
+        **kwargs: Any,
+    ) -> None:
+        """Register every scope relay advertises, not only the requested ones."""
+        super().validate_client_registration(
+            client=client,
+            client_metadata=client_metadata,
+            token=token,
+            bearer_token=bearer_token,
+            **kwargs,
+        )
+        # Registration defaults to openid, and the challenge asks clients for
+        # more, so a client that omits scopes could never honour it.
+        client.set_scopes(sorted({*client.get_scopes(), *scopes.supported()}))
 
     def get_issuer(self) -> str:
         """

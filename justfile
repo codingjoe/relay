@@ -83,17 +83,22 @@ serve-mcp:
 # Run the web and MCP servers locally and open the MCP inspector.
 # One origin, as in production, because the MCP settings derive their public
 # origin from HOSTNAME and the inspector matches it against the origin it
-# connected to.
+# connected to. The inspector keeps its state in a throwaway directory, so a
+# run always registers a client and asks for consent instead of reusing the
+# registration and token an earlier run stored.
 [group('local')]
 inspect-mcp:
     #!/usr/bin/env bash
     set -euo pipefail
     export HOSTNAME="localhost:{{web_port}}"
+    export MCP_STORAGE_DIR="$(mktemp -d)"
+    export MCP_INSPECTOR_SECRET_STORE=memory
+    export MCP_INSPECTOR_PERSIST_TOKENS=none
 
     uv run --env-file .env granian --interface asgi --host 127.0.0.1 \
         --port "{{web_port}}" services.mcp.dev:application &
     server_pid=$!
-    trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+    trap 'kill "$server_pid" 2>/dev/null || true; rm -rf "$MCP_STORAGE_DIR"' EXIT
 
     until curl -fsS -o /dev/null "http://localhost:{{web_port}}/health/node/" 2>/dev/null; do
         kill -0 "$server_pid" 2>/dev/null || exit 1

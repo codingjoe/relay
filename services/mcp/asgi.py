@@ -38,6 +38,9 @@ auth_provider = RemoteAuthProvider(
     authorization_servers=[settings.RELAY_MCP_OIDC_ISSUER_URL],
     base_url=settings.RELAY_MCP_BASE_URL,
     resource_name="relay MCP",
+    # A client asks for what the challenge names, and the components need more
+    # than the identity scope to be visible.
+    challenge_scopes=list(scopes.supported()),
 )
 mcp = FastMCP(
     name="relay",
