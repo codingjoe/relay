@@ -70,6 +70,11 @@ dev: build-image start-cluster load-image migrate
     open "http://localhost:{{web_port}}" 2>/dev/null || true
     wait
 
+# Run the local Django server on a free port.
+[group('local')]
+serve:
+    uv run --env-file .env manage.py runserver "localhost:$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+
 # Install the binaries, the dependencies and the git hooks.
 [group('quality')]
 install: install-binaries
@@ -121,6 +126,11 @@ install-binaries:
 build-assets:
     pnpm run build
 
+# Rebuild the CSS and the vendored ES modules on change.
+[group('quality')]
+watch-assets:
+    pnpm run dev
+
 # Run the test suite.
 [group('quality')]
 test:
@@ -156,3 +166,16 @@ squash-migrations:
     psql "$LOCAL_TABLE_NAME" -a -c "TRUNCATE TABLE django_migrations"
     just migrations
     uv run python manage.py migrate --fake --no-input
+
+# Recreate the local database from the test bundle.
+[group('database')]
+seed:
+    rm -f db.sqlite3
+    uv run --env-file .env manage.py migrate --noinput
+    uv run --env-file .env manage.py loaddata fixtures/initial_data.yaml
+
+# Dump the local database into the test bundle.
+[group('database')]
+dump-fixtures:
+    uv run --env-file .env manage.py dumpdata auth accounts kms domains msa \
+        --format yaml --output fixtures/initial_data.yaml
