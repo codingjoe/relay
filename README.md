@@ -5,6 +5,57 @@
 A developer-first IT infrastructure provider. We build superior products and
 enable our clients to build AAA applications on top of them.
 
+## How to develop
+
+Install [just](https://just.systems) 1.27 or newer and Docker, then set up the
+checkout. On macOS, `just install` adds uv, pnpm, age, gh, dotenvx, kubectl and
+minikube with Homebrew:
+
+```bash
+just install
+just build-assets
+uv run python manage.py collectstatic --noinput --no-esm
+uv run python manage.py migrate
+uv run python manage.py runserver
+```
+
+`pnpm run dev` rebuilds the CSS and the vendored ES modules on change.
+
+`just --list` shows every recipe, including the ones below.
+
+### Full stack on minikube
+
+Run the whole stack (PostgreSQL, Redis, the web UI, DNS, MSA, MTA, rspamd,
+ClamAV and Dozzle) on minikube with your `.env`:
+
+```bash
+just dev
+```
+
+The recipe builds the development image, starts minikube with the metrics API
+Dozzle needs, loads the image, applies `deploy/minikube`, runs the database
+migrations and opens <http://localhost:8000>. After a code change, run
+`just reload` to rebuild the image and restart every relay workload. After a
+model change, run `just migrations` to generate the migration file, then
+`just reload` and `just migrate` to run it in the cluster.
+
+### Tests and linting
+
+```bash
+just test   # pytest
+just check  # manage.py check
+```
+
+`just install` registers the git hooks with `prek`, so the linters run on every
+commit. Run `uvx prek run --all-files` to check the whole tree.
+
+### Production
+
+`just production access` installs your cluster-access kubeconfig as
+`~/.kube/relay.yaml`. `just production dozzle` opens the production log
+dashboard, and `just production threadmill` opens the task inspector. The
+cluster itself is covered in `deploy/README.md`.
+
 ## Managed Sender Domain
 
 Every organization gets a **managed sender domain**. It is a subdomain of the
@@ -280,20 +331,6 @@ The deploy workflow records each shipped release in Sentry, attaches the
 commits it carries and finalizes it once the pods are ready. Set
 `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` in `.env.production` to
 enable tracking; a deploy skips it while any of the three is unset.
-
-## Local development
-
-Run the whole stack on minikube with your `.env`, rebuild the image after each
-change, and open `http://localhost:8000`:
-
-```bash
-minikube start
-minikube addons enable metrics-server  # Dozzle needs the metrics API for stats
-docker build --target development --build-arg UV_NO_DEV=0 --build-arg DISTROLESS_FLAVOR=debug-nonroot --build-arg DOTENV_FILE=.env -t ghcr.io/codingjoe/relay:local .
-minikube image load ghcr.io/codingjoe/relay:local
-kubectl apply -k deploy/minikube
-kubectl port-forward svc/web 8000:8000
-```
 
 ## App dependencies
 

@@ -6,6 +6,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     npm install -g pnpm && pnpm ci --frozen-lockfile
 COPY --exclude=.env ./ /app
+
+# The tree-shake of mermaid and echarts grows esbuild to several gigabytes,
+# which overflows a small Docker Desktop VM. A bound keeps it in check.
+ENV GOMEMLIMIT=2GiB
 RUN mkdir -p root/static/css && pnpm run build
 
 FROM ghcr.io/astral-sh/uv:0.13.0-trixie-slim AS build

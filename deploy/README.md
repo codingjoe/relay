@@ -339,7 +339,7 @@ Keep `SMTP_FLOATING_IP_COUNT` high enough that a spare is always available.
 
 ## Access
 
-Run `bin/relay-access` to install your relay kubeconfig. The
+Run `just production access` to install your relay kubeconfig. The
 `📦 Sync Cluster Access` workflow issues it from repository membership, so a
 collaborator needs nothing handed to them. The kubeconfig is encrypted to the
 SSH keys on their GitHub profile and carries read access to the workloads, the
@@ -448,8 +448,8 @@ kubectl --kubeconfig ~/.kube/relay.yaml rollout restart deployment/caddy
 ### Logs
 
 One Dozzle instance watches every namespace through the Kubernetes API. It is
-not published to the internet. `bin/dozzle` points `KUBECONFIG` at
-`~/.kube/relay.yaml`, tunnels and opens the browser. The bare tunnel:
+not published to the internet. `just production dozzle` points `KUBECONFIG`
+at `~/.kube/relay.yaml`, tunnels and opens the browser. The bare tunnel:
 
 ```bash
 kubectl port-forward svc/dozzle 5000:8080
