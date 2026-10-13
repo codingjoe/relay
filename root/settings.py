@@ -108,7 +108,7 @@ SECURE_CSP = {
     "media-src": [CSP.SELF],
     "connect-src": [CSP.SELF],
     "frame-src": [CSP.SELF],
-    "form-action": [CSP.SELF],
+    "form-action": [CSP.SELF, "https://github.com/login/oauth/authorize"],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.NONE],
     "frame-ancestors": [CSP.NONE],
