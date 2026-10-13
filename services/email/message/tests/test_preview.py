@@ -47,7 +47,7 @@ def test_block_data_images__follows_the_client():
 
 def test_render__gmail_drops_what_it_never_applies():
     rendered = MessagePreview(client=PreviewClient.GMAIL).render(
-        "<style>.x { position: absolute; display: flex }</style>", {}
+        "<style>.x { position: absolute; display: flex }</style>",
     )
 
     assert "position" not in rendered
@@ -62,7 +62,6 @@ def test_render__outlook_drops_the_word_engine_gaps():
         " * { margin: 0 }"
         "@media (max-width: 600px) { .y { color: blue } }"
         "</style>",
-        {},
     )
 
     assert "display: flex" not in rendered
@@ -76,7 +75,6 @@ def test_render__outlook_drops_the_word_engine_gaps():
 def test_render__apple_mail_keeps_what_it_applies():
     rendered = MessagePreview(client=PreviewClient.APPLE_MAIL).render(
         "<style>.x { display: flex; border-radius: 4px } a:visited { color: red }</style>",
-        {},
     )
 
     assert "display: flex" in rendered
@@ -86,13 +84,13 @@ def test_render__apple_mail_keeps_what_it_applies():
 
 def test_render__filters_a_style_attribute():
     rendered = MessagePreview(client=PreviewClient.GMAIL).render(
-        '<p style="position: absolute; color: red">x</p>', {}
+        '<p style="position: absolute; color: red">x</p>',
     )
 
     assert 'style="color: red"' in rendered
 
 
-def test_render__answers_a_cid_image_for_a_client_that_drops_data_images():
+def test_render__resolves_a_cid_reference_for_a_client_that_drops_data_images():
     rendered = MessagePreview(client=PreviewClient.GMAIL).render(
         '<img src="cid:logo@relay">', {"logo@relay": "data:image/png;base64,aGVsbG8="}
     )
@@ -102,23 +100,15 @@ def test_render__answers_a_cid_image_for_a_client_that_drops_data_images():
 
 def test_render__drops_a_data_image_for_a_client_that_never_shows_it():
     rendered = MessagePreview(client=PreviewClient.GMAIL).render(
-        '<img src="data:image/png;base64,aGVsbG8=">', {}
+        '<img src="data:image/png;base64,aGVsbG8=">',
     )
 
     assert "aGVsbG8=" not in rendered
 
 
-def test_render__keeps_a_data_image_for_a_client_that_shows_it():
-    rendered = MessagePreview(client=PreviewClient.APPLE_MAIL).render(
-        '<img src="data:image/png;base64,aGVsbG8=">', {}
-    )
-
-    assert 'src="data:image/png;base64,aGVsbG8="' in rendered
-
-
 def test_render__resolves_the_light_theme_against_the_reader():
     body = "<style>@media (prefers-color-scheme: dark) { .x { color: #eee } }</style>"
-    rendered = MessagePreview().render(body, {})
+    rendered = MessagePreview().render(body)
 
     assert "color-scheme:light!important" in rendered
     assert "color: #eee" not in rendered
@@ -128,7 +118,7 @@ def test_render__applies_the_dark_styles_of_the_message():
     body = "<style>@media (prefers-color-scheme: dark) { .x { color: #eee } }</style>"
     rendered = MessagePreview(
         theme=PreviewTheme.DARK, client=PreviewClient.APPLE_MAIL
-    ).render(body, {})
+    ).render(body)
 
     assert "color-scheme:dark!important" in rendered
     assert "color: #eee" in rendered
@@ -138,7 +128,7 @@ def test_render__applies_the_dark_styles_a_client_reads_no_media():
     body = "<style>@media (prefers-color-scheme: dark) { .x { color: #eee } }</style>"
     rendered = MessagePreview(
         theme=PreviewTheme.DARK, client=PreviewClient.OUTLOOK
-    ).render(body, {})
+    ).render(body)
 
     assert "color-scheme:dark!important" in rendered
     assert "color: #eee" in rendered
@@ -147,7 +137,7 @@ def test_render__applies_the_dark_styles_a_client_reads_no_media():
 def test_render__inverts_the_frame_for_a_client_that_inverts():
     rendered = MessagePreview(
         theme=PreviewTheme.DARK, client=PreviewClient.GMAIL
-    ).render("<p>x</p>", {})
+    ).render("<p>x</p>")
 
     assert "color-scheme:light!important" in rendered
     assert "html{filter:invert(1) hue-rotate(180deg)!important}" in rendered
@@ -157,14 +147,14 @@ def test_render__inverts_the_frame_for_a_client_that_inverts():
 def test_render__keeps_a_client_that_applies_the_dark_styles():
     rendered = MessagePreview(
         theme=PreviewTheme.DARK, client=PreviewClient.APPLE_MAIL
-    ).render("<p>x</p>", {})
+    ).render("<p>x</p>")
 
     assert "color-scheme:dark!important" in rendered
     assert "html{filter:" not in rendered
 
 
 def test_render__adds_the_preview_stylesheet_to_the_head():
-    rendered = MessagePreview().render("<html><head></head><body>x</body></html>", {})
+    rendered = MessagePreview().render("<html><head></head><body>x</body></html>")
 
     assert (
         '<head><style id="relay-preview">html{color-scheme:light!important}</style>'
@@ -173,7 +163,7 @@ def test_render__adds_the_preview_stylesheet_to_the_head():
 
 
 def test_render__adds_the_preview_stylesheet_without_a_head():
-    rendered = MessagePreview().render("<p>x</p>", {})
+    rendered = MessagePreview().render("<p>x</p>")
 
     assert rendered == (
         '<p>x</p><style id="relay-preview">html{color-scheme:light!important}</style>'

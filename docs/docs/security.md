@@ -125,7 +125,7 @@ sender wrote it. A client preview shows the message the way that client
 shows it. Outlook holds the remote images back, Gmail and Apple Mail show
 them, and the preview loads them from the reader's browser rather than
 through a client's image proxy. An image that travels inside the message is
-no fetch at all, so it shows in every client preview.
+no fetch at all.
 
 ## Content Security Policy
 

@@ -1,4 +1,5 @@
 import re
+from email.message import EmailMessage
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -24,17 +25,6 @@ STYLED_BODY = (
     b'<p style="position: absolute; color: red">html body</p>'
 )
 
-INLINE_BODY = (
-    b"MIME-Version: 1.0\r\n"
-    b'Content-Type: multipart/related; boundary="b"\r\n\r\n'
-    b"--b\r\nContent-Type: text/html\r\n\r\n"
-    b'<img src="cid:logo@relay"><img src="data:image/gif;base64,aGVsbG8=">\r\n'
-    b"--b\r\nContent-Type: image/png\r\nContent-ID: <logo@relay>\r\n"
-    b"Content-Transfer-Encoding: base64\r\n\r\n"
-    b"aGVsbG8=\r\n"
-    b"--b--\r\n"
-)
-
 
 def tab_order(content):
     return re.findall(r'id="(message-tab-[a-z]+)"', content)
@@ -47,6 +37,16 @@ def panel_visibility(content):
             r'id="(message-panel-[a-z]+)"([^>]*)>', content
         )
     }
+
+
+def make_inline_body():
+    message = EmailMessage()
+    message.set_content(
+        '<img src="cid:logo@relay"><img src="data:image/gif;base64,aGVsbG8=">',
+        subtype="html",
+    )
+    message.add_related(b"hello", maintype="image", subtype="png", cid="<logo@relay>")
+    return message.as_bytes()
 
 
 def make_certificate(issuer_certificate=None):
@@ -392,9 +392,9 @@ class TestMessageDetailStatusCard:
                 in response.headers["Content-Security-Policy"]
             )
 
-    def test_get__answers_a_cid_image_for_every_client(self, admin_client, org):
+    def test_get__resolves_a_cid_reference_for_every_client(self, admin_client, org):
         message = make_incoming(org)
-        message.raw_body = SimpleUploadedFile("related.eml", INLINE_BODY)
+        message.raw_body = SimpleUploadedFile("related.eml", make_inline_body())
         message.save(update_fields=["raw_body"])
 
         for client in ("gmail", "apple-mail", "outlook"):
@@ -404,25 +404,22 @@ class TestMessageDetailStatusCard:
             assert "data:image/png;base64,aGVsbG8=" in response.content.decode()
             assert "cid:logo@relay" not in response.content.decode()
 
-    def test_get__drops_the_data_image_a_client_never_shows(self, admin_client, org):
+    @pytest.mark.parametrize(
+        ("preview_client", "shows_data_image"),
+        [("gmail", False), ("outlook", False), ("apple-mail", True)],
+    )
+    def test_get__keeps_a_data_image_only_for_a_client_that_shows_it(
+        self, admin_client, org, preview_client, shows_data_image
+    ):
         message = make_incoming(org)
-        message.raw_body = SimpleUploadedFile("related.eml", INLINE_BODY)
+        message.raw_body = SimpleUploadedFile("related.eml", make_inline_body())
         message.save(update_fields=["raw_body"])
 
-        response = admin_client.get(f"{message.get_body_url()}?client=gmail")
+        response = admin_client.get(f"{message.get_body_url()}?client={preview_client}")
+        content = response.content.decode()
 
         assert response.status_code == 200
-        assert "data:image/gif;base64,aGVsbG8=" not in response.content.decode()
-
-    def test_get__keeps_the_data_image_a_client_shows(self, admin_client, org):
-        message = make_incoming(org)
-        message.raw_body = SimpleUploadedFile("related.eml", INLINE_BODY)
-        message.save(update_fields=["raw_body"])
-
-        response = admin_client.get(f"{message.get_body_url()}?client=apple-mail")
-
-        assert response.status_code == 200
-        assert "data:image/gif;base64,aGVsbG8=" in response.content.decode()
+        assert ("data:image/gif;base64,aGVsbG8=" in content) is shows_data_image
 
     def test_get__emulates_the_client_the_preview_asks_for(self, admin_client, org):
         message = make_incoming(org)
