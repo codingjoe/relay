@@ -18,8 +18,11 @@ from urllib.parse import urlsplit
 
 import environ
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import serialization
 from django.tasks import DEFAULT_TASK_QUEUE_NAME
 from django.utils.csp import CSP
+
+from services.mcp.keys import development_signing_key
 
 env = environ.Env(
     # set casting, default value
@@ -108,7 +111,15 @@ SECURE_CSP = {
     "media-src": [CSP.SELF],
     "connect-src": [CSP.SELF],
     "frame-src": [CSP.SELF],
-    "form-action": [CSP.SELF],
+    # An MCP client receives its authorization code by a redirect from the
+    # consent form, which this directive governs, so it admits the callbacks
+    # the MCP specification allows: HTTPS anywhere, and HTTP on loopback.
+    "form-action": [
+        CSP.SELF,
+        "https:",
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+    ],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.NONE],
     "frame-ancestors": [CSP.NONE],
@@ -147,6 +158,7 @@ INSTALLED_APPS = [
     # Third-party apps
     "allauth",
     "allauth.account",
+    "allauth.idp.oidc",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.github",
     "django_letter",
@@ -167,6 +179,7 @@ INSTALLED_APPS = [
     "root",
     "services.email.msa",
     "services.email.message",
+    "services.mcp",
     "services.email.dashboard",
     "services.email.mta",
     "services.email.dmarc",
@@ -419,6 +432,31 @@ RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", defau
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
+
+# Hosted MCP server
+# https://docs.allauth.org/en/latest/idp/oidc/configuration.html
+
+# Development serves plain HTTP, so the scheme follows DEBUG.
+RELAY_MCP_BASE_URL = f"{'http' if DEBUG else 'https'}://{RELAY_PLATFORM_DOMAIN}"
+RELAY_MCP_RESOURCE_URL = f"{RELAY_MCP_BASE_URL}/mcp"
+# The issuer ends in exactly one slash, the form OIDC clients normalize to.
+RELAY_MCP_OIDC_ISSUER_URL = f"{RELAY_MCP_BASE_URL}/"
+RELAY_MCP_OIDC_JWKS_URL = f"{RELAY_MCP_BASE_URL}/.well-known/jwks.json"
+
+IDP_OIDC_ADAPTER = "services.mcp.oidc.RelayOIDCAdapter"
+IDP_OIDC_ACCESS_TOKEN_FORMAT = "jwt"  # noqa: S105 -- a format, not a secret.
+IDP_OIDC_ACCESS_TOKEN_EXPIRES_IN = env.int(
+    "RELAY_MCP_OIDC_ACCESS_TOKEN_EXPIRES_IN", default=900
+)
+IDP_OIDC_DCR_ENABLED = True
+IDP_OIDC_DCR_REQUIRES_INITIAL_ACCESS_TOKEN = False
+
+# Absent in the build, CI and pods that never mint a token; parse early when set.
+IDP_OIDC_PRIVATE_KEY = env("RELAY_MCP_OIDC_PRIVATE_KEY", default="")
+if IDP_OIDC_PRIVATE_KEY:
+    serialization.load_pem_private_key(IDP_OIDC_PRIVATE_KEY.encode(), password=None)
+elif DEBUG or TEST:
+    IDP_OIDC_PRIVATE_KEY = development_signing_key()
 
 
 # An empty EMAIL_URL means unset: a deployment can pass it through with no value.

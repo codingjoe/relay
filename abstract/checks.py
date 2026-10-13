@@ -1,4 +1,8 @@
-from django.apps import apps
+import sys
+from pathlib import Path
+
+from django.apps import AppConfig, apps
+from django.conf import settings
 from django.contrib import admin
 from django.core.checks import Warning, register
 from django.db.models import (
@@ -9,6 +13,19 @@ from django.db.models import (
     UniqueConstraint,
     UUIDField,
 )
+
+
+def is_first_party(app_config: AppConfig) -> bool:
+    """
+    Return whether an app ships with relay rather than with a dependency.
+
+    The virtual environment sits inside the project directory here, so the
+    project check alone counts every dependency as first party.
+    """
+    path = Path(app_config.path).resolve()
+    return path.is_relative_to(settings.BASE_DIR) and not path.is_relative_to(
+        Path(sys.prefix).resolve()
+    )
 
 
 @register()
@@ -42,18 +59,19 @@ def check_charfield_with_choices(app_configs, **kwargs):
     """Warn when a CharField has choices. The convention is to use a TextField with choices."""
     errors = []
     for model in apps.get_models():
-        errors.extend(
-            Warning(
-                f"{model._meta.label}.{field.name} uses CharField with "
-                "choices. Use a TextField with choices instead. "
-                "CharField must only be used when max_length "
-                "validation is needed.",
-                obj=model,
-                id="abstract.W002",
+        if is_first_party(model._meta.app_config):
+            errors.extend(
+                Warning(
+                    f"{model._meta.label}.{field.name} uses CharField with "
+                    "choices. Use a TextField with choices instead. "
+                    "CharField must only be used when max_length "
+                    "validation is needed.",
+                    obj=model,
+                    id="abstract.W002",
+                )
+                for field in model._meta.get_fields()
+                if type(field) is CharField and field.choices
             )
-            for field in model._meta.get_fields()
-            if type(field) is CharField and field.choices
-        )
     return errors
 
 

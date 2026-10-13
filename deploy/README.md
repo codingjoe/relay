@@ -10,8 +10,9 @@ operations; the deployment's internals live in `deploy/k8s/`.
 
 ## Before you start
 
-`hcloud`, `aws`, `jq`, `gh`, `dotenvx`, `envsubst`, `dig` and `kubectl` are
-already on this machine. Two tools are not, and this guide needs both.
+`hcloud`, `aws`, `jq`, `gh`, `dotenvx`, `envsubst`, `openssl`, `dig` and
+`kubectl` are already on this machine. Two tools are not, and this guide needs
+both.
 
 `talosctl`, on the release `TALOS_VERSION` names (`v1.14.2` today). A client one
 minor release away still talks to the node, but keep every workstation on the
@@ -152,6 +153,7 @@ namespace and a Role cannot patch a cluster-scoped Namespace. See
 curl https://relays.to/health/node/        # host resources, the container probes
 curl https://relays.to/health/application/ # every dependency relay controls
 curl https://relays.to/health/pipeline/    # third-party status pages the pipeline depends on
+curl -i https://relays.to/mcp              # 401 with the discovery pointer, not a 502
 openssl s_client -connect smtp.relays.to:587 -starttls smtp
 openssl s_client -connect mx1.relays.to:25 -starttls smtp
 dig +short pg.relays.to storage.relays.to
