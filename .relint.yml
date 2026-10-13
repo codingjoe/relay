@@ -214,3 +214,7 @@
   pattern: 'class \w+DetailView\((?=[^)]*generic\.DetailView)(?![^)]*(?:CacheControlMixin|ConditionalGetMixin|NoStoreCacheMixin))'
   hint: 'A detail view states how it caches: `ConditionalGetMixin` so the object''s `modified_at` expires the page, or `NoStoreCacheMixin` when the page renders rows that the object''s timestamp does not cover.'
   filePattern: .*\.py
+- name: Keep MCP database work on a thread the middleware cleans
+  pattern: 'thread_sensitive\s*=\s*False'
+  hint: 'An MCP request closes its database connections on the two threads it runs on: the threadpool a sync body runs in, and asgiref''s sync thread, which `sync_to_async` uses by default. A thread picked from the event loop executor is invisible to both, so a connection opened there is never closed, and a dead one is never recovered.'
+  filePattern: '^(?:services/mcp/|.*/mcp\.py$)'
