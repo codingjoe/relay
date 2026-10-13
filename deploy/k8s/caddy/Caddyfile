@@ -113,8 +113,7 @@
 
 {$HOSTNAME} {
 	cache
-	# https://bugs.webkit.org/show_bug.cgi?id=311087
-	encode br gzip
+	encode zstd br gzip
 	reverse_proxy web:8000 {
 		health_uri /health/node/
 		health_headers {

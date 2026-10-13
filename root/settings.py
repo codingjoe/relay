@@ -329,8 +329,6 @@ AWS_S3_FILE_OVERWRITE = False
 # e.g. public/favicon.ico is served at /favicon.ico.
 SERVESTATIC_ROOT = BASE_DIR / "public"
 SERVESTATIC_MAX_AGE = 60 * 60 * 24
-# https://bugs.webkit.org/show_bug.cgi?id=311087
-SERVESTATIC_USE_ZSTD = False
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
