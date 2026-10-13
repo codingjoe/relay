@@ -119,14 +119,6 @@ the sign-in until the app points at the new one. The `accounts` data migration
 moves every existing GitHub link into allauth and drops the leftover
 `social_auth_*` tables, so users do not re-link.
 
-A GitHub sign-in whose verified address already belongs to a relay account now
-logs into that account and links the sign-in to it, instead of routing the
-person to signup. On that path allauth clears the account's password when it
-has no verified `EmailAddress` row, which in practice means a
-Django superuser who signs in with GitHub loses the `/admin/` password login;
-set a new one with `manage.py changepassword <username>`, and signing in with
-GitHub keeps working.
-
 ## 4. Deploy
 
 ```bash
