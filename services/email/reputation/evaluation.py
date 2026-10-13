@@ -1,5 +1,5 @@
+import typing
 from datetime import timedelta
-from typing import TypedDict
 
 from django.conf import settings
 from django.core.mail import mail_managers
@@ -13,7 +13,7 @@ from services.email.msa.models import OutgoingMessage
 from .models import FblReport
 
 
-class ReputationStats(TypedDict):
+class ReputationStats(typing.TypedDict):
     total_sent: int
     hard_bounces: int
     soft_bounces: int

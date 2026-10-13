@@ -1,6 +1,6 @@
+import typing
 from collections.abc import Iterator
 from datetime import timedelta
-from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
@@ -17,7 +17,7 @@ from .charts import build_volume_chart, sent_per_day
 from .evaluation import ReputationSummary, build_reputation_stats
 
 
-def build_org_digest(org: Organization) -> dict[str, Any]:
+def build_org_digest(org: Organization) -> dict[str, typing.Any]:
     """Return the numbers the mail shows for one organization."""
     volume = build_volume_chart(org)
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
@@ -91,7 +91,7 @@ def build_digest_context(
     month_messages: int,
     daily_counts: list[int],
     recipients: int,
-) -> dict[str, Any]:
+) -> dict[str, typing.Any]:
     """Return the rates, their limits, and the month so far for one organization."""
     window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
     free_monthly_messages = settings.RELAY_FREE_MONTHLY_MESSAGES
@@ -121,7 +121,7 @@ def build_digest_context(
     }
 
 
-def sample_org_digest() -> dict[str, Any]:
+def sample_org_digest() -> dict[str, typing.Any]:
     """Return a busy window for the mail preview."""
     return build_digest_context(
         Organization(slug="acme"),

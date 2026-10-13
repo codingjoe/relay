@@ -31,8 +31,7 @@ urlpatterns = [
             ]
         ),
     ),
-    # Social auth + admin
-    path("", include("social_django.urls")),
+    path("social/", include("allauth.urls")),
     path("admin/", admin.site.urls),
 ]
 

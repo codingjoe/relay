@@ -120,12 +120,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Do not import with different names (no `import x as y`) unless necessary.
 - Do not import per-property. Import the module directly.
 
-## Authentication
-
-- Use `social-auth-app-django` (python-social-auth) for OAuth providers
-  instead of custom OAuth code.
-- Custom pipeline steps live in `accounts/pipelines.py`.
-
 ## Tasks
 
 - Declare the queue on the task itself, so the pipeline stage is visible at

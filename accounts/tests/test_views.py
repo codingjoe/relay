@@ -5,6 +5,7 @@ from django.urls import reverse
 from accounts.models import Membership, Organization
 
 
+@pytest.mark.django_db
 class TestLoginView:
     def test_get__no_store_cache_control_header(self, client):
         response = client.get("/account/login")
