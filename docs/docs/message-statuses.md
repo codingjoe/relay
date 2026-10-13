@@ -162,7 +162,10 @@ with the URL, response code, and a response excerpt.
   theme toggle switches the light and dark preview. A client preview drops the
   CSS that client never applies, following the support data published on
   [caniemail.com](https://www.caniemail.com/), and holds remote images back
-  where the client does, which is Outlook. The dark preview applies the dark
+  where the client does, which is Outlook. An image the message carries as a
+  part, and the body points to by `cid:` address, is no remote fetch, so every
+  client preview shows it. An image the body embeds as base64 shows only in
+  Apple Mail; Gmail and Outlook drop it. The dark preview applies the dark
   styles the message carries, and inverts it the way Gmail does.
 - Filters let you watch only failed or quarantined traffic.
 

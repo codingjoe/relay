@@ -12,7 +12,7 @@ import re
 from django.http import QueryDict
 
 from .. import styles
-from . import apple_mail, gmail, outlook
+from . import apple_mail, gmail, images, outlook
 
 
 class PreviewTheme(enum.StrEnum):
@@ -37,6 +37,9 @@ INVERTING_CLIENTS = frozenset({PreviewClient.GMAIL})
 
 # Outlook holds remote images back until the reader asks for them.
 IMAGE_BLOCKING_CLIENTS = frozenset({PreviewClient.OUTLOOK})
+
+# caniemail lists base64 images as unsupported in Gmail and Outlook for Windows.
+DATA_IMAGE_BLOCKING_CLIENTS = frozenset({PreviewClient.GMAIL, PreviewClient.OUTLOOK})
 
 LIGHT_STYLES = "html{color-scheme:light!important}"
 DARK_STYLES = "html{color-scheme:dark!important}"
@@ -94,6 +97,11 @@ class MessagePreview:
         return self.client in IMAGE_BLOCKING_CLIENTS
 
     @property
+    def block_data_images(self) -> bool:
+        """Return whether the selected client holds an embedded image back."""
+        return self.client in DATA_IMAGE_BLOCKING_CLIENTS
+
+    @property
     def inverts(self) -> bool:
         """Return whether the dark theme flips the frame."""
         return self.theme is PreviewTheme.DARK and self.client in INVERTING_CLIENTS
@@ -119,8 +127,18 @@ class MessagePreview:
             case _:
                 return LIGHT_STYLES
 
-    def render(self, html_text: str) -> str:
-        """Return the body with the mode applied."""
+    def render(
+        self, html_text: str, inline_images: dict[str, str] | None = None
+    ) -> str:
+        """
+        Return the body with the mode applied and the carried images inlined.
+
+        Each key is a Content-ID, each value the data URL that replaces a
+        cid: reference to it.
+        """
+        html_text = images.filter_images(
+            html_text, inline_images or {}, self.block_data_images
+        )
         return inject_preview_styles(
             filter_body_styles(html_text, self.restrictions, self.scheme),
             self.preview_styles,
