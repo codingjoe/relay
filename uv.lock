@@ -119,6 +119,12 @@ wheels = [
 ]
 
 [[package]]
+name = "brotli"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/16/c92ca344d646e71a43b8bb353f0a6490d7f6e06210f8554c8f874e454285/brotli-1.2.0.tar.gz", hash = "sha256:e310f77e41941c13340a95976fe66a8a95b01e783d430eeaf7a2f87e0a57dd0a", size = 7388632, upload-time = "2025-11-05T18:39:42.86Z" }
+
+[[package]]
 name = "cachetools"
 version = "7.1.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1136,7 +1142,7 @@ dependencies = [
     { name = "python-json-logger" },
     { name = "redis" },
     { name = "sentry-sdk" },
-    { name = "servestatic" },
+    { name = "servestatic", extra = ["brotli"] },
     { name = "threadmill", extra = ["redis"] },
     { name = "validators" },
 ]
@@ -1199,7 +1205,7 @@ requires-dist = [
     { name = "python-json-logger", specifier = ">=4.2" },
     { name = "redis", specifier = ">=8.1" },
     { name = "sentry-sdk", specifier = ">=2.71" },
-    { name = "servestatic", specifier = ">=4.4" },
+    { name = "servestatic", extras = ["brotli"], specifier = ">=4.4" },
     { name = "threadmill", extras = ["redis"], specifier = ">=0.8" },
     { name = "validators", specifier = ">=0.35" },
 ]
@@ -1293,6 +1299,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fa/44/c9d97449772bcb22f5dcb06eca5f2edd70882fdbaba433c4159cb722e16b/servestatic-4.4.0.tar.gz", hash = "sha256:1888da43de2d5e46960404b0ff718992053b45ee875763c2a905809d7d0b4380", size = 36523, upload-time = "2026-10-02T23:45:58.091Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7d/45/bf0422b5790712076260455006b39847978714a7930decfda95de26602b1/servestatic-4.4.0-py3-none-any.whl", hash = "sha256:78add8a928ce21c821746ab6c53df026fbcc7a105789ae2f4511241f5e7413ee", size = 43736, upload-time = "2026-10-02T23:45:56.691Z" },
+]
+
+[package.optional-dependencies]
+brotli = [
+    { name = "brotli" },
 ]
 
 [[package]]

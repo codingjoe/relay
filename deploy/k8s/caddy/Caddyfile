@@ -113,7 +113,9 @@
 
 {$HOSTNAME} {
 	cache
-	encode zstd br gzip
+	# Safari fails on Caddy's streamed zstd frames with
+	# NSURLErrorCannotDecodeRawData. Brotli covers every browser.
+	encode br gzip
 	reverse_proxy web:8000 {
 		health_uri /health/node/
 		health_headers {

@@ -329,6 +329,8 @@ AWS_S3_FILE_OVERWRITE = False
 # e.g. public/favicon.ico is served at /favicon.ico.
 SERVESTATIC_ROOT = BASE_DIR / "public"
 SERVESTATIC_MAX_AGE = 60 * 60 * 24
+# No zstd anywhere, Safari's decoder is unreliable. Brotli covers every browser.
+SERVESTATIC_USE_ZSTD = False
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
