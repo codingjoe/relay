@@ -214,3 +214,7 @@
   pattern: 'class \w+DetailView\((?=[^)]*generic\.DetailView)(?![^)]*(?:CacheControlMixin|ConditionalGetMixin|NoStoreCacheMixin))'
   hint: 'A detail view states how it caches: `ConditionalGetMixin` so the object''s `modified_at` expires the page, or `NoStoreCacheMixin` when the page renders rows that the object''s timestamp does not cover.'
   filePattern: .*\.py
+- name: Import typing as a module
+  pattern: '^from typing import'
+  hint: 'Use `import typing` and reference `typing.Any`, `typing.TypedDict`, and so on. Importing names from `typing` adds one import per name.'
+  filePattern: .*\.py

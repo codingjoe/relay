@@ -1,6 +1,6 @@
 """Authenticate relay's GitHub users through django-allauth."""
 
-from typing import Any
+import typing
 
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
@@ -16,7 +16,10 @@ class RelaySocialAccountAdapter(DefaultSocialAccountAdapter):
 
     @transaction.atomic
     def save_user(
-        self, request: HttpRequest, sociallogin: SocialLogin, form: Any | None = None
+        self,
+        request: HttpRequest,
+        sociallogin: SocialLogin,
+        form: typing.Any | None = None,
     ) -> AbstractBaseUser:
         """Create the account with its personal organization and admin membership."""
         user = super().save_user(request, sociallogin, form)
