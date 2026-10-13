@@ -115,6 +115,7 @@
 	cache
 	# Safari fails on Caddy's streamed zstd frames with
 	# NSURLErrorCannotDecodeRawData. Brotli covers every browser.
+	# https://bugs.webkit.org/show_bug.cgi?id=311087
 	encode br gzip
 	reverse_proxy web:8000 {
 		health_uri /health/node/
