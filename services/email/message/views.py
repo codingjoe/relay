@@ -16,7 +16,7 @@ from kms.models import CERTIFICATE_CHAIN_MAX_DEPTH, Certificate
 
 from .charts import MESSAGE_KINDS, build_direction_chart, build_kind_charts
 from .models import Message
-from .preview import MessagePreview
+from .preview import MessagePreview, images
 
 
 class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
@@ -187,7 +187,11 @@ class MessageBodyView(OrganizationScopedView, NoStoreCacheMixin, generic.View):
         )
         preview = MessagePreview.from_query(request.GET)
         response = HttpResponse(
-            preview.render(message.html_body), content_type="text/html; charset=utf-8"
+            preview.render(
+                message.html_body,
+                images.collect_inline_images(message.parsed_email()),
+            ),
+            content_type="text/html; charset=utf-8",
         )
         response.headers[str(CSP.HEADER_ENFORCE)] = build_policy(
             MESSAGE_BODY_BLOCKED_CSP if preview.block_images else MESSAGE_BODY_CSP
