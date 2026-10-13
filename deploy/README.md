@@ -441,7 +441,7 @@ Every deploy rolls those services, so this normally takes care of itself.
 ### Edge compression and caching
 
 Static files are served by the app through ServeStatic, with pre-compressed
-`brotli` and `gzip` variants. Caddy's `{$HOSTNAME}` block in
+`gzip` variants. Caddy's `{$HOSTNAME}` block in
 `deploy/k8s/caddy/Caddyfile` additionally compresses on the fly with `br` and
 keeps publicly cacheable responses in `caddy-redis`, so its cache survives a
 Caddy restart. On-the-fly `zstd` stays off: Caddy emits those responses as
