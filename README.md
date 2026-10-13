@@ -310,6 +310,7 @@ allowlist their report sender.
   the storage proxy with signed, expiring URLs
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
+- **django-allauth**. GitHub login
 - **Talos Linux**. Immutable single-node Kubernetes on Hetzner Cloud,
   administered with `talosctl`, with Caddy as the ingress and Layer 4 proxy. See
   `deploy/README.md`.

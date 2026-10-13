@@ -31,8 +31,9 @@ urlpatterns = [
             ]
         ),
     ),
-    # Social auth + admin
-    path("", include("social_django.urls")),
+    # Social login. The GitHub OAuth App registers its callback under /social/.
+    # https://docs.allauth.org/en/latest/installation/quickstart.html
+    path("social/", include("allauth.urls")),
     path("admin/", admin.site.urls),
 ]
 

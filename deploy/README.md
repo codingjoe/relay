@@ -101,11 +101,31 @@ times out, rerun once the registrar has caught up.
 
 ## 3. Add the OAuth credentials
 
+Create the GitHub app and register
+`https://relays.to/social/github/login/callback/` as its authorization
+callback URL, the django-allauth `github_callback` route in `root/urls.py`.
+Then store the credentials it issues:
+
 ```bash
 dotenvx set GITHUB_CLIENT_ID "<id>" -f .env.production
 dotenvx set GITHUB_CLIENT_SECRET "<secret>" -f .env.production
 git add .env.production && git commit -m "Add OAuth credentials" && git push
 ```
+
+An existing installation must update that callback URL in its GitHub app
+before it deploys: python-social-auth answered at
+`https://relays.to/complete/github/`, and that path is gone, so GitHub refuses
+the sign-in until the app points at the new one. The `accounts` data migration
+moves every existing GitHub link into allauth and drops the leftover
+`social_auth_*` tables, so users do not re-link.
+
+A GitHub sign-in whose verified address already belongs to a relay account now
+logs into that account and links the sign-in to it, instead of routing the
+person to signup. On that path allauth clears the account's password when it
+has no verified `EmailAddress` row, which in practice means a
+Django superuser who signs in with GitHub loses the `/admin/` password login;
+set a new one with `manage.py changepassword <username>`, and signing in with
+GitHub keeps working.
 
 ## 4. Deploy
 

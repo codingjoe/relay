@@ -42,9 +42,9 @@ contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
 the contracts.
 
 Key tech: Django task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis, S3
-via django-storages, social-auth-app-django, basecoat CSS (via PostCSS with
-wireit), Talos Linux on Hetzner Cloud with Caddy as ingress and Layer 4
-proxy.
+via django-storages, django-allauth for the GitHub login, basecoat CSS (via
+PostCSS with wireit), Talos Linux on Hetzner Cloud with Caddy as ingress and
+Layer 4 proxy.
 
 ## Core commands & workflows
 
@@ -181,7 +181,7 @@ so the bundle developer signs in without a password.
 ## Pointers to further documentation
 
 - `CONVENTIONS.md`. Authoritative coding conventions (URLs, PKs, model fields,
-  save patterns, control flow, imports, authentication, naming).
+  save patterns, control flow, imports, naming).
 - `README.md`. Setup guide, architecture overview, app dependency graph,
   free sender domain docs.
 - `REVIEW.md`. The reviewer's standing rules (conventions, dependency

@@ -20,7 +20,6 @@ import environ
 from cryptography.fernet import Fernet
 from django.tasks import DEFAULT_TASK_QUEUE_NAME
 from django.utils.csp import CSP
-from social_core.backends.github import GithubOAuth2
 
 env = environ.Env(
     # set casting, default value
@@ -109,7 +108,7 @@ SECURE_CSP = {
     "media-src": [CSP.SELF],
     "connect-src": [CSP.SELF],
     "frame-src": [CSP.SELF],
-    "form-action": [CSP.SELF, GithubOAuth2.AUTHORIZATION_URL],
+    "form-action": [CSP.SELF],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.NONE],
     "frame-ancestors": [CSP.NONE],
@@ -146,9 +145,12 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "django.contrib.humanize",
     # Third-party apps
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.github",
     "django_letter",
     "health_check",
-    "social_django",
     "storages",
     "threadmill",
     "crontask",
@@ -188,13 +190,13 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     *(
         ["accounts.middleware.HttpHeaderRemoteUserMiddleware"]
         if DEBUG and not TEST
         else []
     ),
     "django.contrib.messages.middleware.MessageMiddleware",
-    "social_django.middleware.SocialAuthExceptionMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -485,32 +487,30 @@ LOGOUT_REDIRECT_URL = "home"
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
 
-# python-social-auth
+# django-allauth, GitHub is the only provider.
+# https://docs.allauth.org/en/latest/socialaccount/configuration.html
 AUTHENTICATION_BACKENDS = (
     ["django.contrib.auth.backends.RemoteUserBackend"] if DEBUG and not TEST else []
 ) + [
-    "social_core.backends.github.GithubOAuth2",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
-SOCIAL_AUTH_GITHUB_KEY = GITHUB_CLIENT_ID
-SOCIAL_AUTH_GITHUB_SECRET = GITHUB_CLIENT_SECRET
-SOCIAL_AUTH_GITHUB_SCOPE = ["user:email"]
-SOCIAL_AUTH_LOGIN_ERROR_URL = "accounts:login"
-
-SOCIAL_AUTH_PIPELINE = (
-    "social_core.pipeline.social_auth.social_details",
-    "social_core.pipeline.social_auth.social_uid",
-    "social_core.pipeline.social_auth.auth_allowed",
-    "social_core.pipeline.social_auth.social_user",
-    "accounts.pipelines.attach_verified_email",
-    "social_core.pipeline.user.get_username",
-    "social_core.pipeline.user.create_user",
-    "social_core.pipeline.social_auth.associate_user",
-    "social_core.pipeline.social_auth.load_extra_data",
-    "social_core.pipeline.user.user_details",
-    "accounts.pipelines.create_default_organization",
-)
+SOCIALACCOUNT_ONLY = True
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.RelaySocialAccountAdapter"
+# Link a verified GitHub address into its relay account; no signup view is mounted.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_PROVIDERS = {
+    "github": {
+        "APP": {
+            "client_id": GITHUB_CLIENT_ID,
+            "secret": GITHUB_CLIENT_SECRET,
+        },
+        "SCOPE": ["user:email"],
+    }
+}
+ACCOUNT_EMAIL_VERIFICATION = "none"  # required by SOCIALACCOUNT_ONLY
+SOCIALACCOUNT_QUERY_EMAIL = True  # linking reads the provider's verified addresses
 
 # Logging
 # https://docs.djangoproject.com/en/stable/topics/logging/
