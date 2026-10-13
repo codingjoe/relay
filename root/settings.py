@@ -116,6 +116,7 @@ SECURE_CSP = {
     # the MCP specification allows: HTTPS anywhere, and HTTP on loopback.
     "form-action": [
         CSP.SELF,
+        "https://github.com/login/oauth/authorize",
         "https:",
         "http://localhost:*",
         "http://127.0.0.1:*",
