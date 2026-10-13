@@ -8,25 +8,50 @@ import django
 
 django.setup()
 
+from django.conf import settings  # noqa: E402
 from django.core.asgi import get_asgi_application  # noqa: E402
+from django.core.exceptions import ImproperlyConfigured  # noqa: E402
 from django_esm import asgi as esm  # noqa: E402
-from starlette.types import Receive, Scope, Send  # noqa: E402
+from starlette.types import ASGIApp, Receive, Scope, Send  # noqa: E402
 
 from .asgi import application as mcp_application  # noqa: E402
 
-web_application = esm.ESM(get_asgi_application())
 
-# The MCP app serves its own health route, so it never reaches Django's.
-MCP_PATHS = ("/health", "/mcp")
+class DevelopmentOnlyError(ImproperlyConfigured):
+    """Signal that the combined server was loaded outside development."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "The combined web and MCP server is only available with DEBUG on."
+        )
 
 
-async def application(scope: Scope, receive: Receive, send: Send) -> None:
-    """Route MCP traffic to the MCP app and everything else to Django."""
-    if scope["type"] == "lifespan":
-        await mcp_application(scope, receive, send)
-        return
-    path = scope.get("path", "")
-    if path in MCP_PATHS or path.startswith("/mcp/"):
-        await mcp_application(scope, receive, send)
-        return
-    await web_application(scope, receive, send)
+if not settings.DEBUG:
+    raise DevelopmentOnlyError
+
+
+class CombinedApplication:
+    """
+    Serve the web application and the MCP application from one origin.
+
+    A Starlette mount compiles to `/mcp/{path:path}`, which never matches the
+    endpoint itself, so the path the deployment routes is checked here instead.
+    """
+
+    def __init__(self) -> None:
+        self.web: ASGIApp = esm.ESM(get_asgi_application())
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "lifespan":
+            # Only the MCP application holds resources to start and stop.
+            await mcp_application(scope, receive, send)
+            return
+        if scope["type"] == "http" and (
+            scope["path"] == "/mcp" or scope["path"].startswith("/mcp/")
+        ):
+            await mcp_application(scope, receive, send)
+            return
+        await self.web(scope, receive, send)
+
+
+application = CombinedApplication()
