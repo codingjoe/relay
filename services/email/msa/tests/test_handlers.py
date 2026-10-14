@@ -628,6 +628,7 @@ class TestProcessMessage:
         stored = message_from_bytes(outgoing.raw_body.read())
         assert result == "250 OK"
         assert outgoing.status == OutgoingMessage.Status.PENDING
+        assert outgoing.is_sandbox
         assert stored["Feedback-ID"].startswith(f"{org.pk}::")
         assert outgoing.feedback_id == stored["Feedback-ID"]
         assert any(name == "DKIM-Signature" for name, _ in outgoing.headers)
@@ -658,6 +659,7 @@ class TestProcessMessage:
         stored = message_from_bytes(outgoing.raw_body.read())
         assert result == "250 OK"
         assert outgoing.status == OutgoingMessage.Status.PENDING
+        assert not outgoing.is_sandbox
         assert stored["Feedback-ID"].startswith(f"{org.pk}::")
         assert outgoing.feedback_id == stored["Feedback-ID"]
         assert any(name == "DKIM-Signature" for name, _ in outgoing.headers)

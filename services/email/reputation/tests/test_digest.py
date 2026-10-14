@@ -87,6 +87,13 @@ class TestCountWindowRecipients:
 
         assert count_window_recipients(org, 7) == 0
 
+    def test_count_window_recipients__leaves_out_sandbox_flagged_messages(self, org):
+        message = make_message(org, "sandbox@example.com")
+        message.is_sandbox = True
+        message.save(update_fields=["is_sandbox"])
+
+        assert count_window_recipients(org, 7) == 0
+
     def test_count_window_recipients__counts_a_failed_delivery(self, org):
         make_message(org, "failed@example.com", status=OutgoingMessage.Status.FAILED)
 

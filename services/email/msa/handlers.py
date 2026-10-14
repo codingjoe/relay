@@ -184,6 +184,10 @@ def store_outgoing_message(
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = decode_header_value(parsed.get("Subject", ""))
+    # The message carries the sandbox marker, the credential can go away later.
+    is_sandbox = (
+        credential is not None and credential.type == MsaCredential.Type.SANDBOX
+    )
     with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
         transmission.message = message = OutgoingMessage.objects.create(
             id=message_pk,
@@ -194,6 +198,7 @@ def store_outgoing_message(
             message_id=message_id,
             domain=domain,
             credential=credential,
+            is_sandbox=is_sandbox,
             feedback_id=feedback_id,
             status=status,
             headers=OutgoingMessage.headers_from_raw(raw_bytes),

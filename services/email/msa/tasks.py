@@ -104,9 +104,7 @@ def deliver_message(message_id):
     """
     from .models import OutgoingMessage
 
-    message = OutgoingMessage.objects.select_related("domain", "org", "credential").get(
-        pk=message_id
-    )
+    message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
     if message.status != OutgoingMessage.Status.PENDING:
         logger.error(
             "Message %s is %s, relay transmits pending messages only",
@@ -253,7 +251,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 transmission.details = reason
                 reasons.append((mx_host, transmission.local_ip_address, reason))
                 continue
-            if message.is_sandbox_submission:
+            if message.is_sandbox:
                 # The dry run stops at the session, so the host and the timing
                 # stay on record.
                 transmission.details = (

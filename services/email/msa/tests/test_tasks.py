@@ -405,15 +405,13 @@ class TestDeliverMessage:
         self, user, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
-        credential, _ = MsaCredential.objects.create_with_key(
-            org=org, type=MsaCredential.Type.SANDBOX
-        )
+        # The credential that submitted this message is gone, the flag holds.
         msg = OutgoingMessage.objects.create(
             org=org,
             rcpt_to="bob@example.com",
             mail_from="alice@example.com",
             domain=domain,
-            credential=credential,
+            is_sandbox=True,
         )
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
@@ -894,6 +892,7 @@ class TestCheckOutgoingSpam:
             mail_from="alice@example.com",
             domain=domain,
             credential=credential,
+            is_sandbox=True,
         )
         msg.raw_body.save("test.eml", ContentFile(b"clean body"), save=False)
         msg.save()

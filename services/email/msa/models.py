@@ -67,6 +67,15 @@ class OutgoingMessage(Message):
             "they do not echo the VERP envelope sender."
         ),
     )
+    is_sandbox = models.BooleanField(
+        _("sandbox"),
+        default=False,
+        help_text=_(
+            "Whether a sandbox credential submitted the message. relay "
+            "never transmits a sandbox message, and the flag keeps that "
+            "promise when the credential is deleted."
+        ),
+    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
@@ -77,14 +86,6 @@ class OutgoingMessage(Message):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
     url_name = "message-detail"
-
-    @property
-    def is_sandbox_submission(self) -> bool:
-        """Return whether the submission came in with a sandbox credential."""
-        return (
-            self.credential is not None
-            and self.credential.type == MsaCredential.Type.SANDBOX
-        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
