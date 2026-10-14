@@ -39,9 +39,15 @@ def test_block_images__follows_the_client():
     assert MessagePreview(client=PreviewClient.APPLE_MAIL).block_images is False
 
 
+def test_block_data_images__follows_the_client():
+    assert MessagePreview(client=PreviewClient.GMAIL).block_data_images is True
+    assert MessagePreview(client=PreviewClient.OUTLOOK).block_data_images is True
+    assert MessagePreview(client=PreviewClient.APPLE_MAIL).block_data_images is False
+
+
 def test_render__gmail_drops_what_it_never_applies():
     rendered = MessagePreview(client=PreviewClient.GMAIL).render(
-        "<style>.x { position: absolute; display: flex }</style>"
+        "<style>.x { position: absolute; display: flex }</style>",
     )
 
     assert "position" not in rendered
@@ -55,7 +61,7 @@ def test_render__outlook_drops_the_word_engine_gaps():
         ".y { color: red }"
         " * { margin: 0 }"
         "@media (max-width: 600px) { .y { color: blue } }"
-        "</style>"
+        "</style>",
     )
 
     assert "display: flex" not in rendered
@@ -68,7 +74,7 @@ def test_render__outlook_drops_the_word_engine_gaps():
 
 def test_render__apple_mail_keeps_what_it_applies():
     rendered = MessagePreview(client=PreviewClient.APPLE_MAIL).render(
-        "<style>.x { display: flex; border-radius: 4px } a:visited { color: red }</style>"
+        "<style>.x { display: flex; border-radius: 4px } a:visited { color: red }</style>",
     )
 
     assert "display: flex" in rendered
@@ -78,10 +84,26 @@ def test_render__apple_mail_keeps_what_it_applies():
 
 def test_render__filters_a_style_attribute():
     rendered = MessagePreview(client=PreviewClient.GMAIL).render(
-        '<p style="position: absolute; color: red">x</p>'
+        '<p style="position: absolute; color: red">x</p>',
     )
 
     assert 'style="color: red"' in rendered
+
+
+def test_render__resolves_a_cid_reference_for_a_client_that_drops_data_images():
+    rendered = MessagePreview(client=PreviewClient.GMAIL).render(
+        '<img src="cid:logo@relay">', {"logo@relay": "data:image/png;base64,aGVsbG8="}
+    )
+
+    assert 'src="data:image/png;base64,aGVsbG8="' in rendered
+
+
+def test_render__drops_a_data_image_for_a_client_that_never_shows_it():
+    rendered = MessagePreview(client=PreviewClient.GMAIL).render(
+        '<img src="data:image/png;base64,aGVsbG8=">',
+    )
+
+    assert "aGVsbG8=" not in rendered
 
 
 def test_render__resolves_the_light_theme_against_the_reader():
