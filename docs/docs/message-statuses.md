@@ -25,6 +25,7 @@ stateDiagram-v2
     [*] --> suppressed : recipient on the suppression list
 
     pending --> held : the spam score reaches the hold threshold or malware is found
+    pending --> sandboxed : a sandbox submission reached the delivery walk
     pending --> sent : delivery completed
     pending --> bounced : permanent rejection (5xx)
     pending --> failed : the retry schedule ended without an accepted attempt
@@ -34,12 +35,14 @@ stateDiagram-v2
     bounced --> [*]
     failed --> [*]
     suppressed --> [*]
+    sandboxed --> [*]
 ```
 
 | Status     | Trigger                                                                                                                                                | What happens next                                                          |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
 | pending    | Stored after a `250` acceptance, before the spam scan finishes                                                                                         | The worker scans, signs, and delivers, and retries keep the status pending |
 | suppressed | The recipient address is on the suppression list at submission                                                                                         | Terminal state, no delivery attempt, visible in the dashboard              |
+| sandboxed  | The submission used a sandbox credential, and the walk reached a host                                                                                  | Terminal state, no SMTP session, the walk stays on record                  |
 | sent       | At least one recipient MX host accepted the message after STARTTLS                                                                                     | Final state, the transmission records keep the SMTP transcript             |
 | bounced    | A recipient server answered with a permanent 5xx rejection                                                                                             | Final state, relay suppresses the address automatically                    |
 | failed     | The retry schedule ended without an acceptance, an MTA-STS policy blocks every MX host, or the sender domain is not a root domain of your organization | Final state, every attempt keeps its reason                                |
@@ -50,6 +53,11 @@ Notes on reading the diagram:
 - A submission puts a message into `pending`, and only a suppressed
   recipient short-circuits that path at submission time. A suppressed
   message is a successful SMTP conversation with no delivery, on purpose.
+- A sandbox submission runs the same stamp, signature, spam scan, and MX
+  walk as any other, so the timeline shows the hosts relay would have used
+  and the score the message earned. The walk stops where the SMTP session
+  would start, so nothing leaves relay. A message the scan would have held
+  ends `held` like any other, with its score and action beside it.
 - `pending` is the only state with an open movement, so every other state
   comes from the pipeline after acceptance.
 - A temporary delivery failure does not leave `pending` on its own: relay

@@ -178,7 +178,7 @@ def store_outgoing_message(
     """
     Store an outgoing message with its submission record.
 
-    Enqueues spam processing for customer submissions, and delivery directly
+    Enqueues the spam scan for customer submissions, and delivery directly
     for the system mail relay authored itself.
     """
     parsed = message_from_bytes(raw_bytes)
@@ -199,18 +199,17 @@ def store_outgoing_message(
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
             raw_body=SimpleUploadedFile("message.eml", raw_bytes),
         )
-    if status == OutgoingMessage.Status.PENDING:
-        if is_system_mail:
-            transaction.on_commit(
-                lambda: deliver_message.enqueue(message_id=str(message.id))
+    if is_system_mail:
+        transaction.on_commit(
+            lambda: deliver_message.enqueue(message_id=str(message.id))
+        )
+    elif status == OutgoingMessage.Status.PENDING:
+        transaction.on_commit(
+            lambda: check_outgoing_spam.enqueue(
+                message_pk=str(message.id),
+                client_ip=client_ip,
             )
-        else:
-            transaction.on_commit(
-                lambda: check_outgoing_spam.enqueue(
-                    message_pk=str(message.id),
-                    client_ip=client_ip,
-                )
-            )
+        )
     return message
 
 
@@ -264,9 +263,9 @@ def process_message(
     A suppressed recipient is stored without delivery, even if the
     organization is suspended. Otherwise a suspended organization is refused
     before relay stores anything.
-    A submission with a sandbox credential is stored with the sandboxed
-    status, without a signature or a relay-minted Feedback-ID, and relay makes
-    no delivery attempt for it.
+    A submission with a sandbox credential is stamped and signed like any
+    other, and its delivery walk stops before the SMTP session, so relay
+    transmits nothing for it.
     """
     if "@" not in mail_from:
         return "550 Sender domain not registered"
@@ -317,20 +316,15 @@ def process_message(
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    if credential.type == MsaCredential.Type.SANDBOX:
-        # The sandboxed status is terminal, so no spam scan or delivery follows.
-        status, feedback_id = OutgoingMessage.Status.SANDBOXED, ""
-    else:
-        raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
-        raw_bytes = sign_message(raw_bytes, domain)
-        status = OutgoingMessage.Status.PENDING
+    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
+    raw_bytes = sign_message(raw_bytes, domain)
     store_outgoing_message(
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
         domain=domain,
         credential=credential,
-        status=status,
+        status=OutgoingMessage.Status.PENDING,
         feedback_id=feedback_id,
         ssl=ssl,
         client_ip=client_ip,

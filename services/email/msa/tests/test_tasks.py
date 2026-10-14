@@ -17,7 +17,11 @@ from django.utils import timezone
 
 from domains.models import Domain
 from services.email.message.models import Transmission
-from services.email.msa.models import OutgoingMessage, SuppressionEntry
+from services.email.msa.models import (
+    MsaCredential,
+    OutgoingMessage,
+    SuppressionEntry,
+)
 from services.email.msa.tasks import (
     DELIVERY_RETRY,
     MxLookupError,
@@ -377,6 +381,58 @@ class TestDeliverMessage:
         assert transmission.status == Transmission.Status.FAILED
         assert transmission.code == 550
         assert transmission.output == "550 Account suspended due to sender reputation"
+
+    def test_deliver_message__skips_message_with_final_status(self, user, org):
+        message = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=Domain.objects.get(org=org),
+            status=OutgoingMessage.Status.SANDBOXED,
+        )
+        message.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        message.save()
+
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
+            deliver_message.func(message_id=str(message.id))
+
+        mock_smtp.assert_not_called()
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.SANDBOXED
+        assert not Transmission.objects.filter(message=message).exists()
+
+    def test_deliver_message__records_sandbox_attempt_without_transmitting(
+        self, user, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        credential, _ = MsaCredential.objects.create_with_key(
+            org=org, type=MsaCredential.Type.SANDBOX
+        )
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+            credential=credential,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
+            deliver_message.func(message_id=str(msg.id))
+
+        mock_smtp.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+        transmission = Transmission.objects.get(
+            message=msg, status=Transmission.Status.FAILED
+        )
+        assert transmission.remote_host == "mx.example.com"
+        assert transmission.details == (
+            "Sandbox submission, relay made no delivery attempt"
+        )
 
     @staticmethod
     def make_message(user, org, domain, rcpt_to="bob@example.com"):
@@ -826,6 +882,35 @@ class TestCheckOutgoingSpam:
         assert msg.status == OutgoingMessage.Status.HELD
         assert msg.spam_score == 10.0
         assert msg.spam_action == SpamAction.REJECT
+
+    def test_check_outgoing_spam__enqueues_delivery_of_sandbox_message(self, user, org):
+        domain = Domain.objects.get(org=org)
+        credential, _ = MsaCredential.objects.create_with_key(
+            org=org, type=MsaCredential.Type.SANDBOX
+        )
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+            credential=credential,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"clean body"), save=False)
+        msg.save()
+
+        with (
+            patch(
+                "services.email.msa.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
+        ):
+            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
+
+        mock_deliver.enqueue.assert_called_once_with(message_id=str(msg.pk))
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert msg.spam_score == 0.0
 
     def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
         domain = Domain.objects.get(org=org)
