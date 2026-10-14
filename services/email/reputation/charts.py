@@ -28,6 +28,7 @@ def sent_per_day(org, start):
     rows = (
         OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
         .exclude(status=OutgoingMessage.Status.SANDBOXED)
+        .exclude(is_sandbox=True)
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(count=Count("id"))
@@ -88,6 +89,7 @@ def complaints_per_day(org, start):
             created_at__date__gte=start,
             status=OutgoingMessage.Status.HELD,
         )
+        .exclude(is_sandbox=True)
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(count=Count("id"))

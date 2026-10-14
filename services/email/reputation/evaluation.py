@@ -34,8 +34,8 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     Returns zero counts and rates when the organization has no outgoing
     messages in the window. Only SMTP 5xx bounces count toward the
     bounce rate; a message whose delivery ended in a 4xx refusal counts
-    once as a soft bounce for display only. Sandboxed messages count
-    nowhere, because relay makes no delivery attempt for them.
+    once as a soft bounce for display only. A sandbox submission counts
+    nowhere, because relay never transmits it.
     """
     window_start = timezone.now() - timedelta(
         days=settings.RELAY_REPUTATION_WINDOW_DAYS
@@ -43,6 +43,7 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     total_sent = (
         OutgoingMessage.objects.filter(org=org, created_at__gte=window_start)
         .exclude(status=OutgoingMessage.Status.SANDBOXED)
+        .exclude(is_sandbox=True)
         .count()
     )
 
@@ -77,7 +78,9 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
             org=org,
             created_at__gte=window_start,
             status=OutgoingMessage.Status.HELD,
-        ).count()
+        )
+        .exclude(is_sandbox=True)
+        .count()
     )
 
     hard_bounce_rate = hard_bounces / total_sent if total_sent else 0.0

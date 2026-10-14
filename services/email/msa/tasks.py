@@ -98,12 +98,20 @@ def deliver_message(message_id):
     """
     Deliver a queued outgoing message to its recipients.
 
+    A message that already reached a final status is never transmitted.
     Drop the message instead when the org is suspended. A temporary failure
     keeps the status pending, and the last attempt ends it failed.
     """
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
+    if message.status != OutgoingMessage.Status.PENDING:
+        logger.error(
+            "Message %s is %s, relay transmits pending messages only",
+            message.id,
+            message.status,
+        )
+        return
     if message.org.suspended_at:
         record_drop(message, SUSPENSION_OUTPUT)
         return
@@ -241,6 +249,12 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 transmission.details = reason
                 reasons.append((mx_host, transmission.local_ip_address, reason))
                 continue
+            if message.is_sandbox:
+                # The dry run stops at the session, the attempt stays on record.
+                transmission.details = (
+                    "Sandbox submission, relay made no delivery attempt"
+                )
+                return OutgoingMessage.Status.SANDBOXED, ""
             try:
                 response, tls_details = async_to_sync(send_via_mx)(
                     raw_bytes,

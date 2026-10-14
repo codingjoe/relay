@@ -46,6 +46,22 @@ class TestComputeOrgReputation:
         assert stats["complaints"] == 3
         assert stats["total_sent"] == 3
 
+    def test_compute_org_reputation__leaves_out_held_sandbox_message(self, org, user):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            status=OutgoingMessage.Status.HELD,
+            is_sandbox=True,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
+        )
+
+        stats = compute_org_reputation(org)
+        assert stats["complaints"] == 0
+        assert stats["total_sent"] == 0
+
     def test_compute_org_reputation__counts_provider_fbl_as_complaint(self, org, user):
         domain = Domain.objects.create(name="reputation.test", org=org)
         OutgoingMessage.objects.create(
