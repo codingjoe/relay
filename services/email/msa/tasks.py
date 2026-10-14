@@ -222,9 +222,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
 
     Return the status the message ends in and, when no host accepted it, the
     reasons every host refused. Raise `TemporaryDeliveryError` instead when a
-    host failed for a reason that may pass, so another attempt can run. A
-    sandbox submission stops at the host it would have dialed, so the walk is
-    on record without a transmission.
+    host failed for a reason that may pass, so another attempt can run.
     """
     from services.email.message.models import Transmission
 
@@ -252,8 +250,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 reasons.append((mx_host, transmission.local_ip_address, reason))
                 continue
             if message.is_sandbox:
-                # The dry run stops at the session, so the host and the timing
-                # stay on record.
+                # The dry run stops at the session, the attempt stays on record.
                 transmission.details = (
                     "Sandbox submission, relay made no delivery attempt"
                 )

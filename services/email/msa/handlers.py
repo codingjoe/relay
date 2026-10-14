@@ -184,7 +184,7 @@ def store_outgoing_message(
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = decode_header_value(parsed.get("Subject", ""))
-    # The message carries the sandbox marker, the credential can go away later.
+    # The message carries the marker, the credential can go away later.
     is_sandbox = (
         credential is not None and credential.type == MsaCredential.Type.SANDBOX
     )
@@ -270,8 +270,7 @@ def process_message(
     organization is suspended. Otherwise a suspended organization is refused
     before relay stores anything.
     A submission with a sandbox credential is stamped and signed like any
-    other, and its delivery walk stops before the SMTP session, so relay
-    transmits nothing for it.
+    other, and its delivery walk stops before the SMTP session.
     """
     if "@" not in mail_from:
         return "550 Sender domain not registered"

@@ -14,7 +14,7 @@ from services.email.message.models import Message
 
 
 class TerminalStatusError(ValueError):
-    """A write tried to move a message out of the status that ends its life."""
+    """A write tried to move a message out of a final status."""
 
     def __init__(self, message_pk, stored_status, status):
         super().__init__(
@@ -71,9 +71,8 @@ class OutgoingMessage(Message):
         _("sandbox"),
         default=False,
         help_text=_(
-            "Whether a sandbox credential submitted the message. relay "
-            "never transmits a sandbox message, and the flag keeps that "
-            "promise when the credential is deleted."
+            "Whether a sandbox credential submitted the message, which "
+            "relay never transmits."
         ),
     )
 

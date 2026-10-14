@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name="is_sandbox",
             field=models.BooleanField(
                 default=False,
-                help_text="Whether a sandbox credential submitted the message. relay never transmits a sandbox message, and the flag keeps that promise when the credential is deleted.",
+                help_text="Whether a sandbox credential submitted the message, which relay never transmits.",
                 verbose_name="sandbox",
             ),
         ),
