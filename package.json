@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "basecoat-css": "^1.0.2",
-    "echarts": "^5.6.0",
+    "echarts": "^6.1.0",
     "lit": "^3.3.3",
     "lodash.escape": "^4.0.1",
     "mermaid": "^11.17.2",
@@ -9,14 +9,14 @@
   },
   "devDependencies": {
     "@tabler/icons-sprite": "^3.48.0",
-    "@tailwindcss/postcss": "^4.1.0",
+    "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
-    "cssnano": "^9.1.2",
+    "cssnano": "^9.2.2",
     "esimport": "^0.10.2",
-    "postcss": "^8.5.26",
-    "postcss-cli": "^11.0.0",
-    "tailwindcss": "^4.1.0",
-    "wireit": "^0.14.0"
+    "postcss": "^8.5.29",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^4.3.3",
+    "wireit": "^0.14.13"
   },
   "imports": {
     "#abstract/*": "./abstract/static/abstract/*",
