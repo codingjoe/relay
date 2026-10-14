@@ -130,12 +130,6 @@ Important details of the pipeline:
 - **relay records every SMTP leg.** The accepted submission is stored as
   the first transmission of a message, followed by one transmission per
   delivery attempt, each with the SMTP answer.
-- **A sandbox credential ends before the transmission.** relay runs the
-  whole delivery walk for a sandbox submission, from the MX lookup to the
-  MTA-STS check, and stops where the SMTP session would start. The
-  dashboard shows the hosts it would have dialed and the spam score a real
-  send would have earned. See
-  <a href="{% url 'docs:detail' slug='security' %}">Security</a>.
 
 ## Message and attempt statuses
 
@@ -148,7 +142,6 @@ The message carries one status. Every attempt carries its own:
 | sent           | At least one attempt ended with success                             |
 | bounced        | A recipient server rejected the message permanently                 |
 | suppressed     | The recipient is on the suppression list                            |
-| sandboxed      | The submission used a sandbox credential, so relay sent nothing     |
 | failed         | relay cannot deliver after its retries, the transcript shows why    |
 
 The Transmission list per message starts with the submission and shows

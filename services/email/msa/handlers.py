@@ -178,7 +178,7 @@ def store_outgoing_message(
     """
     Store an outgoing message with its submission record.
 
-    Enqueues the spam scan for customer submissions, and delivery directly
+    Enqueues spam processing for customer submissions, and delivery directly
     for the system mail relay authored itself.
     """
     parsed = message_from_bytes(raw_bytes)
@@ -199,17 +199,18 @@ def store_outgoing_message(
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
             raw_body=SimpleUploadedFile("message.eml", raw_bytes),
         )
-    if is_system_mail:
-        transaction.on_commit(
-            lambda: deliver_message.enqueue(message_id=str(message.id))
-        )
-    elif status == OutgoingMessage.Status.PENDING:
-        transaction.on_commit(
-            lambda: check_outgoing_spam.enqueue(
-                message_pk=str(message.id),
-                client_ip=client_ip,
+    if status == OutgoingMessage.Status.PENDING:
+        if is_system_mail:
+            transaction.on_commit(
+                lambda: deliver_message.enqueue(message_id=str(message.id))
             )
-        )
+        else:
+            transaction.on_commit(
+                lambda: check_outgoing_spam.enqueue(
+                    message_pk=str(message.id),
+                    client_ip=client_ip,
+                )
+            )
     return message
 
 

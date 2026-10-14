@@ -254,8 +254,8 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 reasons.append((mx_host, transmission.local_ip_address, reason))
                 continue
             if message.is_sandbox_submission:
-                # The dry run stops at the session, so the host, the policy,
-                # and the timing stay on record.
+                # The dry run stops at the session, so the host and the timing
+                # stay on record.
                 transmission.details = (
                     "Sandbox submission, relay made no delivery attempt"
                 )
