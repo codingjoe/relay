@@ -598,7 +598,7 @@ class TestProcessMessage:
         assert not any(name == "Feedback-ID" for name, _ in outgoing.headers)
         assert outgoing.feedback_id == ""
 
-    async def test_process_message__sandbox_credential_stores_sandbox_message(
+    async def test_process_message__sandbox_credential_stamps_and_signs_message(
         self,
         user,
         org,
@@ -612,13 +612,12 @@ class TestProcessMessage:
         mail_from = f"alice@{domain.name}"
         message = make_email(mail_from, user.email)
         message["Feedback-ID"] = "customer-id"
-        raw = message.as_bytes()
 
-        with patch("services.email.msa.handlers.check_outgoing_spam") as spam_task:
+        with patch("services.email.msa.handlers.check_outgoing_spam"):
             result = await process_message(
                 mail_from,
                 user.email,
-                raw,
+                message.as_bytes(),
                 credential,
                 False,
                 "",
@@ -626,13 +625,12 @@ class TestProcessMessage:
             )
 
         outgoing = await OutgoingMessage.objects.aget(org=org)
+        stored = message_from_bytes(outgoing.raw_body.read())
         assert result == "250 OK"
-        assert outgoing.status == OutgoingMessage.Status.SANDBOXED
-        assert outgoing.status_badge_variant == "outline"
-        stored = outgoing.raw_body.read()
-        assert stored == raw
-        assert outgoing.feedback_id == ""
-        spam_task.enqueue.assert_not_called()
+        assert outgoing.status == OutgoingMessage.Status.PENDING
+        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
+        assert outgoing.feedback_id == stored["Feedback-ID"]
+        assert any(name == "DKIM-Signature" for name, _ in outgoing.headers)
 
     async def test_process_message__production_credential_stamps_and_signs_message(
         self,
