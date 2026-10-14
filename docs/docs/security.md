@@ -45,7 +45,11 @@ API-key value is visible once at creation and never again. Authentication
 looks up credentials by organization and prefix and verifies the key hash.
 
 A sandbox credential exists for testing, and relay never transmits its
-messages to the recipient's mail server.
+messages to the recipient's mail server. relay stamps and signs a sandbox
+submission like any other, the spam scan runs on it, and the delivery walk
+resolves the recipient's MX hosts, so the dashboard shows the score and the
+hosts a real send would have used. The SMTP session is the one step relay
+skips.
 
 Any credential can carry a `hold` flag. A held credential fails
 authentication immediately without deletion. This buys you a pause button for
