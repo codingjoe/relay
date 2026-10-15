@@ -351,6 +351,7 @@ class Migration(migrations.Migration):
                         choices=[
                             ("received", "received"),
                             ("submitted", "submitted"),
+                            ("sandboxed", "sandboxed"),
                             ("sent", "sent"),
                             ("failed", "failed"),
                             ("retry", "retry"),
