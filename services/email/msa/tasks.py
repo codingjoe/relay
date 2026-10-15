@@ -184,6 +184,10 @@ def resolve_sender_domain(message):
 
 def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage
+
     resolve_sender_domain(message)
     raw_bytes = message.raw_body.read()
     return_path = (
@@ -200,12 +204,22 @@ def send_outgoing_message(message):
     else:
         no_hosts_reason = "" if mx_hosts else f"No MX records found for {rcpt_domain}"
 
+    if no_hosts_reason and message.is_sandbox:
+        with Transmission(
+            message=message,
+            status=Transmission.Status.SANDBOXED,
+            details=no_hosts_reason,
+            started_at=started_at,
+        ):
+            message.status = OutgoingMessage.Status.SANDBOXED
+            message.save(update_fields=["status"])
+        return
     if no_hosts_reason:
         record_failed_attempt(message, started_at, no_hosts_reason)
         # A missing record or a timed-out resolver may answer on a later attempt.
         raise TemporaryDeliveryError(no_hosts_reason)
     status, failure = deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path)
-    if failure:
+    if failure and not message.is_sandbox:
         logger.error(
             "Message %s to %s could not be delivered: %s",
             message.id,
@@ -229,13 +243,18 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
     from .models import OutgoingMessage
 
     rcpt_domain = message.rcpt_to.split("@")[-1]
+    attempt_status, outcome_status = (
+        (Transmission.Status.SANDBOXED, OutgoingMessage.Status.SANDBOXED)
+        if message.is_sandbox
+        else (Transmission.Status.FAILED, OutgoingMessage.Status.FAILED)
+    )
     reasons = []
     has_temporary_failure = False
     for mx_host in mx_hosts:
         with Transmission(message=message) as transmission:
             # An attempt is a failure until a host accepts it, so an
             # unexpected error never leaves the row without an outcome.
-            transmission.status = Transmission.Status.FAILED
+            transmission.status = attempt_status
             transmission.remote_host = mx_host
             allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
             if not allowed:
@@ -321,7 +340,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
     )
     if has_temporary_failure:
         raise TemporaryDeliveryError(failure)
-    return OutgoingMessage.Status.FAILED, failure
+    return outcome_status, failure
 
 
 def refusal_details(code):
