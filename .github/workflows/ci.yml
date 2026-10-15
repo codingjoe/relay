@@ -52,8 +52,9 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      code-quality: write
-      pull-requests: read
+      actions: read
+      pull-requests: write
+      statuses: write
       id-token: write
     steps:
       - uses: actions/checkout@v7.0.0
@@ -71,6 +72,10 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           use_oidc: true
+      - uses: getsentry/coverage-action@0.3.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          post-pr-comment: true
   vendored:
     name: Check the vendored add-ons
     # Only a Docker bump can move these tags without touching the manifests.
