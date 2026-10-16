@@ -5,11 +5,11 @@ import pytest
 from django.conf import settings
 from django.core import mail
 
-from abstract.mailauth import Disposition
+from abstract.mailauth import Alignment, AuthResult, Disposition
 from domains.models import Domain
 from services.email.mta.handlers import (
     MXHandler,
-    is_fbl_sender,
+    is_fbl_report,
     process_incoming_message,
     received_header,
 )
@@ -29,6 +29,7 @@ class TestProcessIncomingMessagePostmaster:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
         message = await IncomingMessage.objects.aget(
@@ -49,6 +50,7 @@ class TestProcessIncomingMessagePostmaster:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
         assert (
@@ -69,6 +71,7 @@ class TestProcessIncomingMessagePostmaster:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
         message = await IncomingMessage.objects.aget(domain=domain)
@@ -89,6 +92,7 @@ class TestProcessIncomingMessagePostmaster:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
         message = await IncomingMessage.objects.aget(domain=domain)
@@ -107,6 +111,7 @@ class TestProcessIncomingMessagePostmaster:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.QUARANTINED,
+                make_dmarc_evaluation(),
                 "",
             )
         message = await IncomingMessage.objects.aget(domain=domain)
@@ -232,6 +237,7 @@ class TestProcessIncomingMessageReports:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
 
@@ -361,7 +367,9 @@ class TestMXHandler:
         with (
             patch(
                 "abstract.mailauth.DmarcEvaluation.from_bytes",
-                return_value=make_dmarc_evaluation(Disposition.NONE),
+                return_value=make_dmarc_evaluation(
+                    Disposition.NONE, header_from="arf.mail.yahoo.com"
+                ),
             ),
             patch(
                 "services.email.reputation.signals.tasks.create_provider_fbl_report"
@@ -373,6 +381,40 @@ class TestMXHandler:
         report_task.enqueue.assert_called_once_with(
             message_pk=str((await IncomingMessage.objects.aget()).id)
         )
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__fbl_sender_unauthenticated_checks_spam(
+        self, org, settings
+    ):
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
+        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="staff@hotmail.com",
+            rcpt_tos=["fbl@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("198.51.100.7", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(
+                    Disposition.NONE,
+                    header_from="hotmail.com",
+                    dkim_result=AuthResult.FAIL,
+                    dkim_alignment=Alignment.FAIL,
+                    spf_result=AuthResult.FAIL,
+                    spf_alignment=Alignment.FAIL,
+                ),
+            ),
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        spam_task.enqueue.assert_called_once()
 
     @pytest.mark.django_db(transaction=True)
     async def test_handle_data__fbl_sender_sub_domain_creates_report(
@@ -392,7 +434,9 @@ class TestMXHandler:
         with (
             patch(
                 "abstract.mailauth.DmarcEvaluation.from_bytes",
-                return_value=make_dmarc_evaluation(Disposition.NONE),
+                return_value=make_dmarc_evaluation(
+                    Disposition.NONE, header_from="eu.arf.mail.yahoo.com"
+                ),
             ),
             patch(
                 "services.email.reputation.signals.tasks.create_provider_fbl_report"
@@ -551,39 +595,72 @@ class TestReceivedHeader:
         assert "([127.0.0.1])" not in received
 
 
-class TestIsFblSender:
-    def test_is_fbl_sender__listed_domain(self, settings):
+class TestIsFblReport:
+    def test_is_fbl_report__listed_domain(self, settings):
         settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
-        assert is_fbl_sender("feedback@arf.mail.yahoo.com")
+        assert is_fbl_report(make_dmarc_evaluation(header_from="arf.mail.yahoo.com"))
 
-    def test_is_fbl_sender__sub_domain(self, settings):
+    def test_is_fbl_report__sub_domain(self, settings):
         settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
 
-        assert is_fbl_sender("staff@mail.hotmail.com")
+        assert is_fbl_report(make_dmarc_evaluation(header_from="mail.hotmail.com"))
 
-    def test_is_fbl_sender__normalizes_sender(self, settings):
+    def test_is_fbl_report__normalizes_domain(self, settings):
         settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
-        assert is_fbl_sender("Feedback@ARF.MAIL.YAHOO.COM.")
+        assert is_fbl_report(
+            make_dmarc_evaluation(header_from="ARF.MAIL.YAHOO.COM."),
+        )
 
-    def test_is_fbl_sender__look_alike_domain(self, settings):
+    def test_is_fbl_report__look_alike_domain(self, settings):
         settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
-        assert not is_fbl_sender("feedback@arf.mail.yahoo.com.evil.test")
-        assert not is_fbl_sender("feedback@evil-arf.mail.yahoo.com")
+        assert not is_fbl_report(
+            make_dmarc_evaluation(header_from="arf.mail.yahoo.com.evil.test"),
+        )
+        assert not is_fbl_report(
+            make_dmarc_evaluation(header_from="evil-arf.mail.yahoo.com"),
+        )
 
-    def test_is_fbl_sender__unlisted_domain(self, settings):
+    def test_is_fbl_report__unlisted_domain(self, settings):
         settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
-        assert not is_fbl_sender("forged@example.org")
+        assert not is_fbl_report(make_dmarc_evaluation(header_from="example.org"))
 
-    def test_is_fbl_sender__empty_sender(self, settings):
+    def test_is_fbl_report__missing_domain(self, settings):
         settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
-        assert not is_fbl_sender("")
+        assert not is_fbl_report(make_dmarc_evaluation(header_from=""))
+        assert not is_fbl_report(make_dmarc_evaluation(header_from=None))
 
-    def test_is_fbl_sender__no_listed_domain(self, settings):
+    def test_is_fbl_report__no_listed_domain(self, settings):
         settings.RELAY_FBL_SENDER_DOMAINS = []
 
-        assert not is_fbl_sender("feedback@arf.mail.yahoo.com")
+        assert not is_fbl_report(
+            make_dmarc_evaluation(header_from="arf.mail.yahoo.com")
+        )
+
+    def test_is_fbl_report__unauthenticated_claimed_provider(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+
+        assert not is_fbl_report(
+            make_dmarc_evaluation(
+                header_from="hotmail.com",
+                dkim_result=AuthResult.FAIL,
+                dkim_alignment=Alignment.FAIL,
+                spf_result=AuthResult.FAIL,
+                spf_alignment=Alignment.FAIL,
+            )
+        )
+
+    def test_is_fbl_report__spf_only_authentication(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+
+        assert is_fbl_report(
+            make_dmarc_evaluation(
+                header_from="hotmail.com",
+                dkim_result=AuthResult.FAIL,
+                dkim_alignment=Alignment.FAIL,
+            )
+        )

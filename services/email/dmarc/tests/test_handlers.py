@@ -7,7 +7,7 @@ from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.mta.handlers import process_incoming_message
 from services.email.mta.models import IncomingMessage
-from services.email.mta.tests.conftest import make_raw_email
+from services.email.mta.tests.conftest import make_dmarc_evaluation, make_raw_email
 
 
 class TestProcessIncomingMessageReports:
@@ -38,6 +38,7 @@ class TestProcessIncomingMessageReports:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
 

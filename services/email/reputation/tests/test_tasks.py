@@ -16,6 +16,7 @@ from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.handlers import process_incoming_message
 from services.email.mta.models import IncomingMessage
+from services.email.mta.tests.conftest import make_dmarc_evaluation
 from services.email.reputation.models import FblReport
 from services.email.reputation.tasks import (
     parse_fbl_report,
@@ -423,6 +424,7 @@ class TestProcessIncomingMessage:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(header_from="arf.mail.yahoo.com"),
                 "",
             )
 
@@ -448,6 +450,7 @@ class TestProcessIncomingMessage:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
 
