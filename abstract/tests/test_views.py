@@ -1,10 +1,63 @@
 import datetime
+from types import SimpleNamespace
 
 import pytest
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.test import RequestFactory
+from django.views import generic
 
-from abstract.views import CacheControlMixin, MarkdownArticleMixin, MarkdownView
+from abstract.views import (
+    CacheControlMixin,
+    ConditionalGetMixin,
+    MarkdownArticleMixin,
+    MarkdownView,
+    get_release_etag,
+)
+
+
+class TestGetReleaseEtag:
+    def test_get_release_etag__namespaces_the_validator(self, settings):
+        settings.SENTRY_RELEASE = "sha-abc"
+
+        assert get_release_etag("1a-2b") == '"sha-abc:1a-2b"'
+
+    def test_get_release_etag__strips_the_quotes_and_the_weak_prefix(self, settings):
+        settings.SENTRY_RELEASE = "sha-abc"
+
+        assert get_release_etag('W/"1a-2b"') == '"sha-abc:1a-2b"'
+
+    def test_get_release_etag__keeps_the_validator_without_a_release(self, settings):
+        settings.SENTRY_RELEASE = ""
+
+        assert get_release_etag('"1a-2b"') == '"1a-2b"'
+
+
+class TestConditionalGetMixin:
+    def test_get__scopes_an_overridden_etag(self, settings, rf):
+        """A view that overrides get_etag still carries the release."""
+
+        class TestView(ConditionalGetMixin, generic.View):
+            object = SimpleNamespace(
+                pk=1, modified_at=datetime.datetime.now(datetime.UTC)
+            )
+
+            def get_object(self):
+                return self.object
+
+            def get_etag(self, obj):
+                return '"override"'
+
+            def get_context_data(self, **kwargs):
+                return {}
+
+            def render_to_response(self, context):
+                return HttpResponse("ok")
+
+        settings.SENTRY_RELEASE = "sha-abc"
+
+        response = TestView.as_view()(rf.get("/"))
+
+        assert response.headers["ETag"] == '"sha-abc:override"'
 
 
 class TestCacheControlMixin:

@@ -321,15 +321,16 @@ All five processes report to a single Sentry project. Off by default; set
 `SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
 sent automatically.
 
-| Variable                    | Default        | Description                                |
-| --------------------------- | -------------- | ------------------------------------------ |
-| `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting. |
-| `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                    |
-| `SENTRY_RELEASE`            | _(empty)_      | Release tag. CI bakes in `sha-<commit>`.   |
-| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default. |
+| Variable                    | Default        | Description                                                      |
+| --------------------------- | -------------- | ---------------------------------------------------------------- |
+| `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting.                       |
+| `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                                          |
+| `SENTRY_RELEASE`            | _(empty)_      | Release tag. `sha-<commit>` in CI. Scopes page cache validators. |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default.                       |
 
 The deploy workflow records each shipped release in Sentry, attaches the
-commits it carries and finalizes it once the pods are ready. Set
+commits it carries and finalizes it once the pods are ready. The same tag
+scopes the page cache validators, and the deploy flushes the edge cache. Set
 `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` in `.env.production` to
 enable tracking; a deploy skips it while any of the three is unset.
 

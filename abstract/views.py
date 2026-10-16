@@ -2,6 +2,7 @@ import datetime
 import pathlib
 
 import frontmatter
+from django.conf import settings
 from django.db.models import Count, Max
 from django.http import Http404, HttpResponse
 from django.template import loader
@@ -14,6 +15,16 @@ from django.views import generic
 from django.views.decorators.http import condition
 
 from abstract.utils import md_2_html, strip_frontmatter
+
+# Publicly cacheable HTML revalidates in the browser after seconds, while the
+# shared edge cache shields the origin for a minute. A deploy flushes that
+# cache, and an ETag page carries the release in its validator.
+PUBLIC_PAGE_CACHE = {
+    "public": True,
+    "max_age": datetime.timedelta(seconds=5),
+    "s_maxage": datetime.timedelta(minutes=1),
+    "must_revalidate": True,
+}
 
 
 class CacheControlMixin:
@@ -53,6 +64,14 @@ class RevalidationCacheMixin(CacheControlMixin):
     }
 
 
+def get_release_etag(etag: str) -> str:
+    """Return `etag` as a quoted ETag, scoped to the running release."""
+    validator = etag.removeprefix("W/").strip('"')
+    if release := settings.SENTRY_RELEASE:
+        return f'"{release}:{validator}"'
+    return f'"{validator}"'
+
+
 class ConditionalGetMixin(RevalidationCacheMixin):
     """Answer conditional GETs with an ETag and `Last-Modified` from the object."""
 
@@ -63,7 +82,9 @@ class ConditionalGetMixin(RevalidationCacheMixin):
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         return condition(
-            etag_func=lambda request, *a, **kw: self.get_etag(self.object),
+            etag_func=lambda request, *a, **kw: get_release_etag(
+                self.get_etag(self.object)
+            ),
             last_modified_func=lambda request, *a, **kw: self.object.modified_at,
         )(
             lambda request: self.render_to_response(
@@ -93,7 +114,9 @@ class ConditionalGetListMixin(RevalidationCacheMixin):
         self.object_list = self.get_queryset()
         count, modified_at = self.get_list_summary(self.object_list)
         return condition(
-            etag_func=lambda request, *a, **kw: self.get_list_etag(count, modified_at),
+            etag_func=lambda request, *a, **kw: get_release_etag(
+                self.get_list_etag(count, modified_at)
+            ),
             last_modified_func=lambda request, *a, **kw: modified_at,
         )(lambda request: self.render_to_response(self.get_context_data()))(request)
 
@@ -207,7 +230,7 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
     markdown_template: str = ""
     """Template name of the markdown file to render."""
     toc_levels: str = "2-3"
-    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
+    cache_control = PUBLIC_PAGE_CACHE
 
     def get_markdown_template(self):
         """Return the markdown template name for this view."""
@@ -262,7 +285,7 @@ class MarkdownListView(
 ):
     """Display all Markdown articles in a docs directory."""
 
-    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
+    cache_control = PUBLIC_PAGE_CACHE
     parent = "home"
     docs_dir: pathlib.Path
     slugs: frozenset[str]

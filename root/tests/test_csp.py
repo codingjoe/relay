@@ -4,7 +4,7 @@ import itertools
 import json
 import re
 
-from django.http import HttpResponse, StreamingHttpResponse
+from django.http import HttpResponse, HttpResponseNotModified, StreamingHttpResponse
 from django.urls import reverse
 from django.utils.csp import CSP
 from django.views.decorators.csp import csp_override
@@ -41,6 +41,14 @@ class TestContentSecurityPolicyMiddleware:
         middleware = ContentSecurityPolicyMiddleware(lambda request: response)
         response = middleware.process_response(rf.get("/"), response)
         assert "'sha512-" not in response.headers["Content-Security-Policy"]
+
+    def test_process_response__leaves_a_not_modified_response_uncovered(self, rf):
+        """A 304 keeps the policy the client cached with the body."""
+        response = HttpResponseNotModified()
+        middleware = ContentSecurityPolicyMiddleware(lambda request: response)
+        response = middleware.process_response(rf.get("/"), response)
+        assert "Content-Security-Policy" not in response.headers
+        assert "Integrity-Policy-Report-Only" not in response.headers
 
     def test_process_response__skips_a_policy_without_script_src(self, settings, rf):
         settings.SECURE_CSP = {"default-src": [CSP.SELF]}
