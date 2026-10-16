@@ -294,9 +294,11 @@ of the check it took whenever it is.
 ### Feedback loop (FBL) reports
 
 FBL complaints arrive at `RELAY_FBL_ADDRESS`. relay ingests one only when the
-report authenticates for its own `From` domain and that domain is listed in
-`RELAY_FBL_SENDER_DOMAINS`. Register the address with each provider. Yahoo
-and Microsoft send per-complaint reports, Google does not.
+report authenticates for its own `From` domain, that domain is listed in
+`RELAY_FBL_SENDER_DOMAINS`, and the report names the message it is about.
+Register the address with each provider. Yahoo and Microsoft send
+per-complaint reports, Google does not. A report that names no message stays
+on record as an inbound email only, and is not recorded as a complaint.
 
 Google reports complaints only as aggregate rates per `Feedback-ID`
 identifier, in the Postmaster Tools FBL dashboard. Verify the platform domain

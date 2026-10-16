@@ -68,12 +68,14 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
         .count()
     )
 
+    provider_reports = FblReport.objects.filter(
+        org=org,
+        created_at__gte=window_start,
+        source=FblReport.Source.PROVIDER,
+    )
+    # A message counts once however many reports name it.
     complaints = (
-        FblReport.objects.filter(
-            org=org,
-            created_at__gte=window_start,
-            source=FblReport.Source.PROVIDER,
-        ).count()
+        provider_reports.values("complained_message").distinct().count()
         + OutgoingMessage.objects.filter(
             org=org,
             created_at__gte=window_start,
