@@ -292,14 +292,15 @@ of the check it took whenever it is.
 
 ### Feedback loop (FBL) reports
 
-FBL complaints arrive at `RELAY_FBL_ADDRESS` and count only for senders
-listed in `RELAY_FBL_SENDERS`. Register the address with each provider and
-allowlist their report sender.
+FBL complaints arrive at `RELAY_FBL_ADDRESS`. relay ingests one only when the
+report authenticates for its own `From` domain and that domain is listed in
+`RELAY_FBL_SENDER_DOMAINS`. Register the address with each provider. Yahoo
+and Microsoft send per-complaint reports, Google does not.
 
-| Variable            | Default                          | Description                                                                    |
-| ------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                    |
-| `RELAY_FBL_SENDERS` | _(empty: off)_                   | Exact provider envelope addresses, one per provider. Empty disables ingestion. |
+| Variable                   | Default                                                       | Description                                                                                                      |
+| -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN`                              | The FBL ingestion mailbox. Register it with your providers.                                                      |
+| `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,aol.net,hotmail.com,outlook.com,live.com` | Provider domains whose authenticated reports are ingested, including their subdomains. Empty disables ingestion. |
 
 ### Tech Stack
 

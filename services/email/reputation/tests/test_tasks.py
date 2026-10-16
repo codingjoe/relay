@@ -16,6 +16,7 @@ from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.handlers import process_incoming_message
 from services.email.mta.models import IncomingMessage
+from services.email.mta.tests.conftest import make_dmarc_evaluation
 from services.email.reputation.models import FblReport
 from services.email.reputation.tasks import (
     parse_fbl_report,
@@ -413,16 +414,17 @@ class TestProcessIncomingMessage:
         self, org, settings
     ):
         settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         with patch("services.email.mta.handlers.check_incoming_spam"):
             result = await process_incoming_message(
-                "feedback@gmail.com",
+                "feedback@arf.mail.yahoo.com",
                 "fbl@example.com",
                 make_arf_email(),
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(header_from="arf.mail.yahoo.com"),
                 "",
             )
 
@@ -438,7 +440,7 @@ class TestProcessIncomingMessage:
         self, org, settings
     ):
         settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
             result = await process_incoming_message(
@@ -448,6 +450,7 @@ class TestProcessIncomingMessage:
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
                 "",
             )
 
