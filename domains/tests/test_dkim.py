@@ -18,7 +18,7 @@ def make_email():
     msg["Subject"] = "Test"
     msg["Date"] = "Mon, 01 Jan 2024 00:00:00 +0000"
     msg["Message-ID"] = "<test@example.com>"
-    msg["Feedback-ID"] = "9::000000000000000000000000:relay"
+    msg["Feedback-ID"] = "mail.relay.example.com:9:tx:relay"
     msg.set_content("Hello world")
     return msg
 
