@@ -292,24 +292,15 @@ of the check it took whenever it is.
 
 ### Feedback loop (FBL) reports
 
-Two mailbox providers send per-complaint reports: Yahoo, from
-`feedback@arf.mail.yahoo.com`, and Microsoft (Outlook.com, Hotmail, Live),
-from `staff@hotmail.com`. Google sends none. Gmail surfaces an aggregate spam
-rate in Postmaster Tools instead, keyed by the `Feedback-ID` header relay
-mints.
-
 FBL complaints arrive at `RELAY_FBL_ADDRESS`. relay ingests one only when the
-report passes DMARC for its own `From` domain and that domain is listed in
-`RELAY_FBL_SENDER_DOMAINS`. Register the address with each provider. Both
-known provider domains ship as defaults, so ingestion works without
-configuration. relay logs a warning when it drops a report that claims a
-registered domain without authenticating, so a genuine report lost this way
-is visible.
+report authenticates for its own `From` domain and that domain is listed in
+`RELAY_FBL_SENDER_DOMAINS`. Register the address with each provider. Yahoo
+and Microsoft send per-complaint reports, Google does not.
 
-| Variable                   | Default                          | Description                                                                                                                           |
-| -------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                                                                           |
-| `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,hotmail.com` | Provider domains whose authenticated reports are ingested. A domain matches an entry or a subdomain of one. Empty disables ingestion. |
+| Variable                   | Default                                                       | Description                                                                                                      |
+| -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN`                              | The FBL ingestion mailbox. Register it with your providers.                                                      |
+| `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,aol.net,hotmail.com,outlook.com,live.com` | Provider domains whose authenticated reports are ingested, including their subdomains. Empty disables ingestion. |
 
 ### Tech Stack
 

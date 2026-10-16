@@ -402,7 +402,13 @@ RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
 RELAY_FBL_ADDRESS = env("RELAY_FBL_ADDRESS", default=f"fbl@{RELAY_PLATFORM_DOMAIN}")
 RELAY_FBL_SENDER_DOMAINS = env.list(
     "RELAY_FBL_SENDER_DOMAINS",
-    default=["arf.mail.yahoo.com", "hotmail.com"],
+    default=[
+        "arf.mail.yahoo.com",
+        "aol.net",
+        "hotmail.com",
+        "outlook.com",
+        "live.com",
+    ],
 )
 RELAY_POSTMASTER_LOCAL_PART = "postmaster"
 RELAY_BOUNCE_LOCAL_PART = "bounce"
