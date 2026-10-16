@@ -373,6 +373,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - One test per scenario. Do not write parametrised mega-tests that obscure individual
   assertions.
 
+- No method means no test. Do not pin framework defaults that no code in the
+  app implements. A test asserts behavior this codebase owns, like a
+  `get_success_url` override or a `form_invalid` redirect, not what
+  `CreateView` does on its own.
+
 - Group related tests in classes. No comment headlines (`# ── … ──`).
   Use plain `class TestSomething:` with no decorator unless a class-level
   `@pytest.mark.django_db` is needed.
