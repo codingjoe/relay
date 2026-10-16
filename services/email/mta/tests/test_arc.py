@@ -43,7 +43,7 @@ def register_dkim_key_record(
 
 def register_dkim_record(resolver: StubResolver, domain: Domain) -> None:
     """Serve the domain's RSA-2048 DKIM public key record from the stub."""
-    selector, key = domain.dkim_ciphers[0]
+    _field, selector, key = domain.dkim_ciphers[0]
     register_dkim_key_record(resolver, selector, domain.name, key)
 
 
@@ -539,7 +539,7 @@ class TestVerifyArcChain:
     @pytest.mark.django_db
     def test_verify_arc_chain__fail_for_non_dkim_key_record(self, org, dns_resolver):
         domain = Domain.objects.create(name="example.com", org=org)
-        selector, _ = domain.dkim_ciphers[0]
+        _field, selector, _key = domain.dkim_ciphers[0]
         dns_resolver.add(f"{selector}._domainkey.{domain.name}", "TXT", '"v=spf1 -all"')
 
         sealed = seal_message(make_raw_email(), make_dmarc_evaluation(), domain)

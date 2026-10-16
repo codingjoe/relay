@@ -68,11 +68,14 @@ class MtaStsPolicy:
         if any(fnmatch(mx_hostname.lower(), p.lower()) for p in self.mx_patterns):
             return True, "MX matches MTA-STS pattern"
 
+        patterns = ", ".join(self.mx_patterns) or "none declared"
         match self.mode:
             case "testing":
-                logger.warning("MTA-STS testing: MX %r not in policy", mx_hostname)
+                logger.warning(
+                    "MTA-STS testing: MX %r not in %r", mx_hostname, patterns
+                )
                 return True, "MTA-STS testing mode, MX not in policy"
             case "enforce":
-                return False, f"MTA-STS enforce: MX {mx_hostname} not allowed"
+                return False, f"MTA-STS enforce: MX {mx_hostname} is not in {patterns}"
             case _:
                 return True, f"MTA-STS mode {self.mode or 'none'} permits all MX"

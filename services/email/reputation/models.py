@@ -1,11 +1,13 @@
 import uuid
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from accounts.models import OrganizationOwned
+from services.email.message.models import Message
 
 from .parser import parse_fbl
 
@@ -19,9 +21,9 @@ class FblReport(OrganizationOwned):
     (for example, a user clicked "mark as spam") rather than authentication
     failure details.
 
-    Reports are records only. Relay does not send reports anywhere. The
-    `message` foreign key references the report email received from a
-    provider, or the message Relay flagged itself.
+    Reports are records only. Relay does not send reports anywhere. A
+    provider report is two messages, the ARF email the provider sent and the
+    message Relay sent that was complained about, so it references both.
     """
 
     id = models.UUIDField(
@@ -36,9 +38,17 @@ class FblReport(OrganizationOwned):
         on_delete=models.CASCADE,
         related_name="+",
         help_text=_(
-            "Referenced message: the ARF email received from a provider for "
-            "provider reports, or the message Relay flagged for "
-            "relay-generated reports."
+            "ARF email the provider sent, or the message Relay flagged. Not "
+            "the message complained about, see complained_message."
+        ),
+    )
+    complained_message = models.ForeignKey(
+        "message.Message",
+        on_delete=models.CASCADE,
+        related_name="+",
+        help_text=_(
+            "Message the recipient complained about, not the report email. "
+            "Repeated reports about one message count once."
         ),
     )
     domain = models.ForeignKey(
@@ -154,53 +164,52 @@ class FblReport(OrganizationOwned):
 
     def get_absolute_url(self):
         return reverse(
-            "reputation:fbl-report-detail",
+            "monitoring:fbl-report-detail",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
     @classmethod
     def parse_from_email(cls, raw_bytes):
         """
-        Return an unsaved FblReport and the claimed Feedback-ID string.
+        Return an unsaved FblReport.
 
         Raises `ValueError` if no ARF feedback-report content is found.
         """
         parsed = parse_fbl(raw_bytes)
-        return (
-            cls(
-                feedback_type=parsed["feedback_type"],
-                user_agent=parsed["user_agent"],
-                version=parsed["version"],
-                reporting_org=parsed["reporting_org"],
-                reporting_email=parsed["reporting_email"],
-                source_ip_address=parsed["source_ip_address"] or None,
-                arrival_at=parsed["arrival_at"],
-                original_mail_from=parsed["original_mail_from"],
-                original_rcpt_to=parsed["original_rcpt_to"],
-                original_message_id=parsed["original_message_id"],
-                authentication_results=parsed["authentication_results"],
-                original_headers=parsed["original_headers"],
-            ),
-            parsed["feedback_id"],
+        return cls(
+            feedback_type=parsed["feedback_type"],
+            user_agent=parsed["user_agent"],
+            version=parsed["version"],
+            reporting_org=parsed["reporting_org"],
+            reporting_email=parsed["reporting_email"],
+            source_ip_address=parsed["source_ip_address"] or None,
+            arrival_at=parsed["arrival_at"],
+            original_mail_from=parsed["original_mail_from"],
+            original_rcpt_to=parsed["original_rcpt_to"],
+            original_message_id=parsed["original_message_id"],
+            authentication_results=parsed["authentication_results"],
+            original_headers=parsed["original_headers"],
         )
 
     @classmethod
-    def create_for_incoming(cls, message):
-        """
-        Store an FBL report email received at the FBL reporting address.
-
-        Reports usually arrive on a single reporting address such as
-        `fbl@relays.to`, regardless of the original recipient. The report
-        is stored un-parsed and filled in later by the `parse_fbl_report`
-        task, which attributes it only when the provider echoes the exact
-        VERP envelope sender or the message's Feedback-ID.
-        """
-        return cls.objects.create(
-            source=cls.Source.PROVIDER,
-            org=message.org,
-            domain=message.domain,
-            message=message,
-        )
+    def create_for_incoming(cls, message, complained_message):
+        """Store an FBL report email against the message it complains about."""
+        with transaction.atomic():
+            report = cls.objects.create(
+                source=cls.Source.PROVIDER,
+                org=complained_message.org,
+                domain=complained_message.domain,
+                message=message,
+                complained_message=complained_message,
+            )
+            # Attached parent messages carry child statuses; save() would
+            # reject them, so move the email with a queryset update.
+            Message.objects.filter(pk=message.pk).update(
+                org=complained_message.org,
+                domain=complained_message.domain,
+                modified_at=timezone.now(),
+            )
+        return report
 
     @classmethod
     def create_for_spam(cls, message):
@@ -216,6 +225,7 @@ class FblReport(OrganizationOwned):
             org=message.org,
             domain=message.domain,
             message=message,
+            complained_message=message,
             feedback_type=cls.FeedbackType.ABUSE,
             user_agent="relay",
             version="1",

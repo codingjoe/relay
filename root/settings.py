@@ -14,9 +14,12 @@ import base64
 import datetime
 import hashlib
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import environ
 from cryptography.fernet import Fernet
+from django.tasks import DEFAULT_TASK_QUEUE_NAME
+from django.utils.csp import CSP
 
 env = environ.Env(
     # set casting, default value
@@ -44,6 +47,11 @@ DEBUG = env("DEBUG")
 # True when running under pytest (see pyproject.toml TEST env var).
 TEST = env.bool("TEST", default=False)
 
+SENTRY_DSN = env("SENTRY_DSN", default="").strip()
+
+# The image release, `sha-<commit>`, scoping the page cache validators.
+SENTRY_RELEASE = env("SENTRY_RELEASE", default="").strip()
+
 ALLOWED_HOSTS = [
     h.strip()
     for h in env.list(
@@ -54,8 +62,67 @@ ALLOWED_HOSTS = [
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Probes keep speaking plain HTTP; HSTS covers every subdomain.
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=not (DEBUG or TEST))
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not (DEBUG or TEST))
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not (DEBUG or TEST))
+SECURE_HSTS_SECONDS = env.int(
+    "SECURE_HSTS_SECONDS", default=0 if DEBUG or TEST else 31536000
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not (DEBUG or TEST)
+)
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=not (DEBUG or TEST))
+# Probes and Caddy's on-demand TLS permission check arrive over plain HTTP.
+SECURE_REDIRECT_EXEMPT = [r"^health/", r"^internal/mta-sts/authorize/"]
+
 # Show django-debug-toolbar for local development requests.
 INTERNAL_IPS = ["127.0.0.1"]
+
+
+def show_debug_toolbar(request):
+    # Headless browsers (e.g. Playwright MCP) get clean pages without the
+    # toolbar markup, so screenshots show the UI as users see it.
+    agent = request.META.get("HTTP_USER_AGENT", "").lower()
+    return (
+        DEBUG
+        and request.META.get("REMOTE_ADDR") in INTERNAL_IPS
+        and "headless" not in agent
+        and "playwright" not in agent
+        and "puppeteer" not in agent
+    )
+
+
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": show_debug_toolbar,
+    "SHOW_COLLAPSED": True,
+}
+
+
+# Content Security Policy
+# https://docs.djangoproject.com/en/6.1/howto/csp/
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    "img-src": [CSP.SELF, "data:", "https://www.gravatar.com"],
+    "font-src": [CSP.SELF],
+    "media-src": [CSP.SELF],
+    "connect-src": [CSP.SELF],
+    "frame-src": [CSP.SELF],
+    "form-action": [CSP.SELF, "https://github.com/login/oauth/authorize"],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.NONE],
+    "frame-ancestors": [CSP.NONE],
+}
+
+if SENTRY_DSN and not (TEST or DEBUG):
+    dsn = urlsplit(SENTRY_DSN)
+    host = dsn.netloc.rpartition("@")[2]
+    SECURE_CSP["report-uri"] = [
+        f"{dsn.scheme}://{host}/api{dsn.path}/security/?sentry_key={dsn.username}"
+    ]
 
 # Application definition
 
@@ -64,9 +131,13 @@ INTERNAL_IPS = ["127.0.0.1"]
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 INSTALLED_APPS = [
+    # Ahead of staticfiles so ServeStatic serves them in development too.
+    "servestatic",
     # First-party apps (abstract first so its widget overrides win)
     "abstract",
     "django.forms",
+    # Before staticfiles so its `collectstatic` override wins.
+    "django_esm",
     # Django
     "django.contrib.admin",
     "django.contrib.auth",
@@ -77,11 +148,15 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "django.contrib.humanize",
     # Third-party apps
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.github",
+    "django_letter",
     "health_check",
-    "social_django",
     "storages",
-    "rest_framework",
     "threadmill",
+    "crontask",
     *(["debug_toolbar"] if DEBUG else []),
     # First-party apps
     "accounts",
@@ -103,6 +178,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "root.middleware.ContentSecurityPolicyMiddleware",
     *(
         [
             "django_devbar.DevBarMiddleware",
@@ -111,12 +187,13 @@ MIDDLEWARE = [
         if DEBUG
         else []
     ),
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "servestatic.middleware.ServeStaticMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "domains.middleware.MtaStsHostMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     *(
         ["accounts.middleware.HttpHeaderRemoteUserMiddleware"]
         if DEBUG and not TEST
@@ -151,8 +228,10 @@ TEMPLATES = [
                 "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "root.context_processors.settings_context",
+                "services.email.dashboard.context_processors.onboarding_context",
             ],
-            "debug": DEBUG,
+            "debug": DEBUG or TEST,
             "loaders": (
                 _TEMPLATES_LOADERS
                 if DEBUG
@@ -176,6 +255,11 @@ WSGI_APPLICATION = "root.wsgi.application"
 DATABASES = {
     "default": env.db(default="sqlite:///:memory:" if TEST else "sqlite:///db.sqlite3")
 }
+if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+    DATABASES["default"].setdefault("OPTIONS", {}).setdefault("pool", True)
+
+# https://docs.djangoproject.com/en/stable/ref/settings/#conn-health-checks
+CONN_HEALTH_CHECKS = True
 
 # Caches
 # https://docs.djangoproject.com/en/stable/ref/settings/#caches
@@ -184,6 +268,9 @@ CACHES = {"default": env.cache("REDIS_URL", default="locmemcache://")}
 
 
 REDIS_URL = env("REDIS_URL", default="redis:///")
+
+# Queued work needs a noeviction Redis of its own: acquire.lua drops evicted tasks.
+TASK_REDIS_URL = env("TASK_REDIS_URL", default=REDIS_URL)
 
 
 # Password validation
@@ -225,25 +312,26 @@ STORAGES = {
         else "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "servestatic.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
 # S3 / django-storages
+# https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
 AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="")
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="us-east-1")
 AWS_S3_ACCESS_KEY_ID = env("AWS_S3_ACCESS_KEY_ID", default="")
 AWS_S3_SECRET_ACCESS_KEY = env("AWS_S3_SECRET_ACCESS_KEY", default="")
 AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default="")
 AWS_S3_ADDRESSING_STYLE = env("AWS_S3_ADDRESSING_STYLE", default="auto")
-AWS_S3_MESSAGE_PREFIX = env("AWS_S3_MESSAGE_PREFIX", default="messages/")
+AWS_S3_FILE_OVERWRITE = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
-# Files under `public/` are served from the domain root by WhiteNoise,
+# Files under `public/` are served from the domain root by ServeStatic,
 # e.g. public/favicon.ico is served at /favicon.ico.
-WHITENOISE_ROOT = BASE_DIR / "public"
-WHITENOISE_MAX_AGE = 60 * 60 * 24
+SERVESTATIC_ROOT = BASE_DIR / "public"
+SERVESTATIC_MAX_AGE = 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
@@ -253,19 +341,31 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 RELAY_PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
 
+RELAY_STORAGE_DOMAIN = env(
+    "RELAY_STORAGE_DOMAIN", default=f"storage.{RELAY_PLATFORM_DOMAIN}"
+)
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_S3_ENDPOINT_URL = f"https://{RELAY_STORAGE_DOMAIN}"
+
 RELAY_SENDER_SUBDOMAIN_PREFIX = env(
     "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"
 )
 
-RELAY_DNS_NS_NAMESERVERS = [
-    f"ns1.{RELAY_PLATFORM_DOMAIN}",
-    f"ns2.{RELAY_PLATFORM_DOMAIN}",
-]
-RELAY_DNS_SMTP_IPS = [
-    ip.strip() for ip in env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
-]
+RELAY_DNS_NS_NAMESERVERS = env.list(
+    "RELAY_DNS_NS_NAMESERVERS",
+    default=[
+        f"ns1.{RELAY_PLATFORM_DOMAIN}",
+        f"ns2.{RELAY_PLATFORM_DOMAIN}",
+    ],
+)
+RELAY_DNS_MX_HOSTNAMES = env.list(
+    "RELAY_DNS_MX_HOSTNAMES",
+    default=[f"mx1.{RELAY_PLATFORM_DOMAIN}", f"mx2.{RELAY_PLATFORM_DOMAIN}"],
+)
+RELAY_DNS_SMTP_IPS = env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
+# Egress pool for the worker's outgoing SMTP; empty sends from the primary IP.
+RELAY_SMTP_SOURCE_IPS = env.list("RELAY_SMTP_SOURCE_IPS", default=[])
 RELAY_SMTP_PUBLIC_HOSTNAME = f"smtp.{RELAY_PLATFORM_DOMAIN}"
-RELAY_DNS_SPF_INCLUDE = f"spf.{RELAY_PLATFORM_DOMAIN}"
 RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")
 
 RELAY_MANAGED_SENDER_DOMAIN = f"open.{RELAY_PLATFORM_DOMAIN}"
@@ -277,8 +377,8 @@ RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
 RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
 
 RELAY_MX_PORTS = (25,)
-RELAY_MX_TLS_CERT_PATH = env("RELAY_MX_TLS_CERT_PATH", default="")
-RELAY_MX_TLS_KEY_PATH = env("RELAY_MX_TLS_KEY_PATH", default="")
+RELAY_MX_TLS_CERT_PATH = env.list("RELAY_MX_TLS_CERT_PATH", default=[])
+RELAY_MX_TLS_KEY_PATH = env.list("RELAY_MX_TLS_KEY_PATH", default=[])
 
 # Timeout in seconds for reading the PROXY protocol header. None disables
 # the expectation; a positive value is required where enabled.
@@ -289,7 +389,11 @@ RELAY_PROXY_PROTOCOL_TIMEOUT = (
     else None
 )
 
-RELAY_RSPAMD_URL = env("RELAY_RSPAMD_URL", default="http://rspamd:11334")
+rspamd_url = env.url("RELAY_RSPAMD_URL", default="http://rspamd:11334")
+RELAY_RSPAMD_PASSWORD = rspamd_url.password or ""
+RELAY_RSPAMD_URL = rspamd_url._replace(
+    netloc=rspamd_url.netloc.rpartition("@")[2]
+).geturl()
 RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)
 RELAY_RSPAMD_HOLD_SCORE = env.float("RELAY_RSPAMD_HOLD_SCORE", default=6.0)
 
@@ -299,7 +403,16 @@ RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dm
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
 RELAY_FBL_ADDRESS = env("RELAY_FBL_ADDRESS", default=f"fbl@{RELAY_PLATFORM_DOMAIN}")
-RELAY_FBL_SENDERS = env.list("RELAY_FBL_SENDERS", default=[])
+RELAY_FBL_SENDER_DOMAINS = env.list(
+    "RELAY_FBL_SENDER_DOMAINS",
+    default=[
+        "arf.mail.yahoo.com",
+        "aol.net",
+        "hotmail.com",
+        "outlook.com",
+        "live.com",
+    ],
+)
 RELAY_POSTMASTER_LOCAL_PART = "postmaster"
 RELAY_BOUNCE_LOCAL_PART = "bounce"
 
@@ -312,17 +425,18 @@ RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
 RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7)
 RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
 
+RELAY_FREE_MONTHLY_MESSAGES = env.int("RELAY_FREE_MONTHLY_MESSAGES", default=1000)
+RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.69)
+
 RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 
-_email = env.email_url(
-    "EMAIL_URL",
-    default="consolemail://" if DEBUG or TEST else "smtp://localhost:25",
-)
-MAILERS = {
-    "default": {
+# An empty EMAIL_URL means unset: a deployment can pass it through with no value.
+if email_url := env("EMAIL_URL", default=""):
+    _email = env.email_url_config(email_url)
+    _mailer = {
         "BACKEND": _email["EMAIL_BACKEND"],
         "OPTIONS": {
             key: value
@@ -337,69 +451,111 @@ MAILERS = {
             }.items()
             if value
         },
-    },
-}
+    }
+else:
+    # Prints the plain-text body alone, see
+    # https://github.com/codingjoe/django-letter#readme
+    _mailer = {
+        "BACKEND": "django_letter.backends.ConsoleEmailBackend",
+        "OPTIONS": {},
+    }
+MAILERS = {"default": _mailer}
 DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
 
 
 # Django task framework
 # Production uses Threadmill with a Redis backend and a worker process.
 # Tests use ImmediateRetryBackend, which runs tasks synchronously.
+# Queues split the mail pipeline so each stage runs on its own worker:
+# ingress (received mail), egress (submissions), delivery (SMTP to remote
+# MX hosts, which needs its own outbound addresses), default (the rest).
+TASK_QUEUES = ["ingress", "egress", "delivery", DEFAULT_TASK_QUEUE_NAME]
+
 if TEST:
     TASKS = {
         "default": {
             "BACKEND": "root.backends.ImmediateRetryBackend",
+            "QUEUES": TASK_QUEUES,
         },
     }
 else:
     TASKS = {
         "default": {
             "BACKEND": "threadmill.backends.redis.RedisTaskBackend",
-            "REDIS_URL": REDIS_URL,
+            "QUEUES": TASK_QUEUES,
+            "REDIS_URL": TASK_REDIS_URL,
         },
     }
 
+# One scheduler across replicas, locked in Redis, see
+# https://github.com/codingjoe/django-crontask
+CRONTASK = {"REDIS_URL": TASK_REDIS_URL}
+
 # Authentication
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "accounts:org-list"
+LOGIN_REDIRECT_URL = "accounts:org-start"
 LOGOUT_REDIRECT_URL = "home"
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
 
-# python-social-auth
+# django-allauth, GitHub is the only provider.
+# https://docs.allauth.org/en/latest/socialaccount/configuration.html
 AUTHENTICATION_BACKENDS = (
     ["django.contrib.auth.backends.RemoteUserBackend"] if DEBUG and not TEST else []
 ) + [
-    "social_core.backends.github.GithubOAuth2",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
-SOCIAL_AUTH_GITHUB_KEY = GITHUB_CLIENT_ID
-SOCIAL_AUTH_GITHUB_SECRET = GITHUB_CLIENT_SECRET
-
-SOCIAL_AUTH_PIPELINE = (
-    "social_core.pipeline.social_auth.social_details",
-    "social_core.pipeline.social_auth.social_uid",
-    "social_core.pipeline.social_auth.auth_allowed",
-    "social_core.pipeline.social_auth.social_user",
-    "social_core.pipeline.user.get_username",
-    "social_core.pipeline.user.create_user",
-    "social_core.pipeline.social_auth.associate_user",
-    "social_core.pipeline.social_auth.load_extra_data",
-    "social_core.pipeline.user.user_details",
-    "accounts.pipelines.create_default_organization",
-)
+SOCIALACCOUNT_ONLY = True
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.RelaySocialAccountAdapter"
+# Link a verified GitHub address into its relay account; no signup view is mounted.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_PROVIDERS = {
+    "github": {
+        "APP": {
+            "client_id": GITHUB_CLIENT_ID,
+            "secret": GITHUB_CLIENT_SECRET,
+        },
+        "SCOPE": ["user:email"],
+    }
+}
+ACCOUNT_EMAIL_VERIFICATION = "none"  # required by SOCIALACCOUNT_ONLY
+SOCIALACCOUNT_QUERY_EMAIL = True  # linking reads the provider's verified addresses
 
 # Logging
 # https://docs.djangoproject.com/en/stable/topics/logging/
 
+# Mirrors granian.log.config.json.
+JSON_LOG_FORMATTER = {
+    "()": "pythonjsonlogger.json.JsonFormatter",
+    "fmt": ["levelname", "name", "message"],
+    "rename_fields": {"levelname": "level", "name": "logger"},
+    "timestamp": True,
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "json": JSON_LOG_FORMATTER,
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+    },
+    "loggers": {
+        "mail.log": {
+            "level": "WARNING",
+        },
+        # threadmill logs through this logger.
+        "multiprocessing": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
     "root": {
@@ -408,13 +564,9 @@ LOGGING = {
     },
 }
 
-THREADMILL = {
-    "REDIS_URL": REDIS_URL,
-}
-
 
 # Error monitoring (Sentry)
-if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DEBUG:
+if SENTRY_DSN and not TEST and not DEBUG:
     import sentry_sdk
     from sentry_sdk.integrations.asyncio import AsyncioIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -428,6 +580,7 @@ if (SENTRY_DSN := env("SENTRY_DSN", default="").strip()) and not TEST and not DE
             AsyncioIntegration(),
             ThreadingIntegration(),
         ],
+        release=SENTRY_RELEASE or None,
         send_default_pii=False,
         traces_sample_rate=float(
             env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "0.0"

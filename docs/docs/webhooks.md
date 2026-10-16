@@ -16,17 +16,14 @@ schedule. This page is the reference for everything on the wire.
 A webhook belongs to a receiving domain, matches recipient addresses with a
 glob pattern, and points at one HTTPS URL:
 
-- **Receiving domain**. The domain whose MX points at your sender subdomain,
-  for example `app.acme.com`.
+- **Receiving domain**. The domain whose MX points at the relay MX
+  hostnames, for example `app.acme.com`.
 - **Address pattern**. A glob over the recipient address, for example
   `*@app.acme.com`, `support@acme.com`, or `bill+*@acme.com`. A pattern is
   optional. A webhook without a pattern receives everything for its domain.
 - **URL**. Must use HTTPS.
 - **One keypair per webhook**. Each webhook derives its own Ed25519 signing
   key. Public keys display in `whpk_` form, and you use them to verify.
-
-relay checks the MX record of the webhook automatically. A broken MX record is
-visible on the webhook page.
 
 ## The payload
 
@@ -42,7 +39,7 @@ The body is flat JSON, and the raw message body is never inlined:
   "rfc822_message_id": "<ab12@example.net>",
   "received_with_tls": true,
   "receiving_domain": "app.acme.com",
-  "body_url": "https://storage.relay.example.com/msg-0199....eml",
+  "body_url": "https://storage.relays.to/messages/0199....eml?signature=...",
   "spam_score": 1.5,
   "spam_action": "no action",
   "received_at": "2026-08-29T09:41:18Z"
@@ -50,7 +47,7 @@ The body is flat JSON, and the raw message body is never inlined:
 ```
 
 `message_id` is the relay message id. `spam_score` and `spam_action` carry
-the rspamd result. Test deliveries (from the dashboard button) use type
+the scan result. Test deliveries (from the dashboard button) use type
 `email.test`, with most fields empty, so you can build your endpoint before
 real mail arrives.
 

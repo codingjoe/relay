@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from abstract.admin import TimeStampedAdminMixin
 
-from .models import MsaCredential, OutgoingMessage, Transmission
+from .models import MsaCredential, OutgoingMessage
 
 
 @admin.register(OutgoingMessage)
@@ -21,14 +21,7 @@ class OutgoingMessageAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "subject",
         "message_id",
     ]
-    readonly_fields = ["id", "created_at"]
-
-
-@admin.register(Transmission)
-class TransmissionAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = ["message", "status", "code", "tls_mode", "created_at"]
-    list_filter = ["status", "tls_mode"]
-    search_fields = ["message__mail_from", "message__rcpt_to", "log_id"]
+    autocomplete_fields = ["org", "domain", "credential"]
     readonly_fields = ["id", "created_at"]
 
 
@@ -44,4 +37,5 @@ class MsaCredentialAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ["type", "hold"]
     search_fields = ["org__name", "key_prefix", "name"]
+    autocomplete_fields = ["org"]
     readonly_fields = ["key_hash", "key_prefix", "last_used_at"]

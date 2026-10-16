@@ -1,4 +1,6 @@
+import pytest
 from django.contrib import admin
+from django.urls import reverse
 
 from accounts.admin import MembershipAdmin, OrganizationAdmin
 from accounts.models import Membership, Organization
@@ -25,3 +27,11 @@ class TestMembershipAdmin:
         assert "org" in MembershipAdmin.list_display
         assert "user" in MembershipAdmin.list_display
         assert "role" in MembershipAdmin.list_display
+
+    @pytest.mark.django_db
+    def test_get__add_form_renders_autocomplete_widget(self, client, admin_user):
+        client.force_login(admin_user)
+        response = client.get(reverse("admin:accounts_membership_add"))
+
+        assert response.status_code == 200
+        assert "admin-autocomplete" in response.content.decode()

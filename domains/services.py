@@ -1,15 +1,28 @@
 """DNS verification services. Validates NS delegation and DMARC on root domain."""
 
 import re
+from functools import partial
 
 import dns.resolver
 from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from .models import Domain
 
 MTA_STS_EXTENSION_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,31}")
 MTA_STS_EXTENSION_VALUE = re.compile(r"[\x21-\x3A\x3C\x3E-\x7E]+")
+
+CHECK_LABELS = {
+    "nameserver": "NS",
+    "spf": "SPF",
+    "dkim_rsa2048": "RSA-2048 DKIM",
+    "dkim_ed25519": "Ed25519 DKIM",
+    "dmarc": "DMARC",
+    "mx": "MX",
+    "mta_sts": "MTA-STS",
+    "tls_rpt": "TLS-RPT",
+}
 
 
 def parse_mta_sts_txt_record(value):
@@ -47,7 +60,12 @@ def verify_nameserver_delegation(domain):
         return False
     our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
     their_ns = {str(r.target).rstrip(".").lower() for r in ns_records}
-    return our_ns == their_ns
+    # A chased CNAME answers with the target's records, so the owner name of
+    # the answer is what proves a zone cut, and the nameserver set alone does not.
+    return (
+        str(ns_records.rrset.name).rstrip(".").lower() == domain.sender_domain.lower()
+        and our_ns == their_ns
+    )
 
 
 def check_dmarc(domain):
@@ -75,31 +93,36 @@ def check_spf(domain):
         return False
 
 
-def check_dkim_cname(domain):
+def check_dkim_cname(domain, field):
+    name, target = domain.dkim_cnames[field]
     try:
-        return all(
-            bool(dns.resolver.resolve(cname_name, "CNAME"))
-            for cname_name, _ in domain.dkim_cnames
-        )
+        cname_records = dns.resolver.resolve(name, "CNAME")
     except dns.exception.DNSException:
         return False
+    # relay serves the key at the documented target and nowhere else, so the
+    # record's own name, a loop, leaves the signature unverifiable.
+    return any(
+        str(record.target).lower() == f"{target}.".lower() for record in cname_records
+    )
 
 
 def check_mx(domain):
     try:
         mx_records = dns.resolver.resolve(domain.name, "MX")
-        expected_exchange = domain.sender_domain.lower()
-        return any(
-            str(record.exchange).rstrip(".").lower() == expected_exchange
-            for record in mx_records
-        )
     except dns.exception.DNSException:
         return False
+    expected_exchanges = {
+        hostname.rstrip(".").lower() for hostname in settings.RELAY_DNS_MX_HOSTNAMES
+    }
+    return any(
+        str(record.exchange).rstrip(".").lower() in expected_exchanges
+        for record in mx_records
+    )
 
 
 def check_mta_sts(domain):
     try:
-        txt_records = dns.resolver.resolve(f"_mta-sts.{domain.name}", "TXT")
+        txt_records = dns.resolver.resolve(domain.mta_sts_record_name, "TXT")
         candidate_records = []
         for txt_record in txt_records:
             value = "".join(
@@ -116,8 +139,8 @@ def check_mta_sts(domain):
         ):
             return False
 
-        cname_records = dns.resolver.resolve(f"mta-sts.{domain.name}", "CNAME")
-        expected_target = f"mta-sts.{domain.sender_domain}."
+        cname_records = dns.resolver.resolve(domain.mta_sts_hostname, "CNAME")
+        expected_target = f"{domain.mta_sts_cname_target}."
         return any(
             str(record.target).lower() == expected_target.lower()
             for record in cname_records
@@ -128,7 +151,7 @@ def check_mta_sts(domain):
 
 def check_tls_rpt(domain):
     try:
-        txt_records = dns.resolver.resolve(f"_smtp._tls.{domain.name}", "TXT")
+        txt_records = dns.resolver.resolve(domain.tls_rpt_record_name, "TXT")
     except dns.exception.DNSException:
         return False
     expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
@@ -159,12 +182,11 @@ def verify_domain_dns(domain):
     checks = {
         "nameserver": verify_nameserver_delegation,
         "spf": check_spf,
-        "dkim": check_dkim_cname,
         "dmarc": check_dmarc,
         "mx": check_mx,
         "mta_sts": check_mta_sts,
         "tls_rpt": check_tls_rpt,
-    }
+    } | {field: partial(check_dkim_cname, field=field) for field in domain.dkim_cnames}
 
     for field, check_fn in checks.items():
         try:
@@ -177,7 +199,10 @@ def verify_domain_dns(domain):
             setattr(
                 domain,
                 f"{field}_error",
-                "" if ok else f"{field} record not found or incorrect",
+                ""
+                if ok
+                else _("%(name)s record not found or incorrect.")
+                % {"name": CHECK_LABELS[field]},
             )
         except dns.exception.DNSException as error:
             setattr(domain, f"{field}_status", Domain.Status.ERROR)
@@ -185,34 +210,17 @@ def verify_domain_dns(domain):
 
     domain.dns_checked_at = timezone.now()
 
-    if (
-        all(
-            getattr(domain, f"{field}_status") == Domain.Status.OK
-            for field in (
-                *Domain.SENDING_CHECK_FIELDS,
-                *Domain.RECEIVING_CHECK_FIELDS,
-            )
-        )
-        and domain.verified_at is None
-    ):
+    # Only the quick start group gates sending, so the rest stay optional.
+    if domain.is_sending_verified and domain.verified_at is None:
         domain.verified_at = timezone.now()
 
     domain.save(
         update_fields=[
-            "nameserver_status",
-            "nameserver_error",
-            "spf_status",
-            "spf_error",
-            "dkim_status",
-            "dkim_error",
-            "dmarc_status",
-            "dmarc_error",
-            "mx_status",
-            "mx_error",
-            "mta_sts_status",
-            "mta_sts_error",
-            "tls_rpt_status",
-            "tls_rpt_error",
+            *(
+                attribute
+                for field in checks
+                for attribute in (f"{field}_status", f"{field}_error")
+            ),
             "dns_checked_at",
             "verified_at",
         ]

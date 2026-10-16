@@ -1,0 +1,12 @@
+{% load i18n %}
+<input
+  type="text"
+  readonly
+  value="{% if quote %}&quot;{{ record_value }}&quot;{% else %}{{ record_value }}.{% endif %}"
+  data-select
+>
+{% if trailing_dot %}
+  {% include "abstract/copy_button.html" with value=record_value|add:"." size="icon-xs" label=_("copy value")|capfirst %}
+{% else %}
+  {% include "abstract/copy_button.html" with value=record_value size="icon-xs" label=_("copy value")|capfirst %}
+{% endif %}

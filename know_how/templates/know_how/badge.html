@@ -1,3 +1,4 @@
+{% load abstract %}
 <a
   href="{{ url }}"
   target="_blank"
@@ -5,5 +6,5 @@
   class="inline-flex items-center align-middle text-muted-foreground hover:text-foreground transition-colors"
   aria-label="{{ aria_label }}. Know how"
 >
-  <i data-lucide="info" class="size-3.5" aria-hidden="true"></i>
+  {% tabler name="info-circle" size="3.5" %}
 </a>

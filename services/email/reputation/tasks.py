@@ -1,44 +1,37 @@
 import logging
 
-from django.db import transaction
-from django.tasks import task
-from django.utils import timezone
+from crontask import cron
+from django.conf import settings
+from django.core.mail import mailers
+from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 
 from accounts.models import Organization
-from domains.models import Domain
-from services.email.message.models import Message
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 
 from . import evaluation
+from .digest import build_org_digest, iter_digest_members
+from .emails import WeeklyDigestEmail
 from .models import FblReport
 
 logger = logging.getLogger(__name__)
 
 
-def resolve_fbl_owner(feedback_id: str) -> tuple[Organization, Domain] | None:
+def resolve_fbl_message(original_mail_from: str) -> OutgoingMessage | None:
     """
-    Return the org and domain a Feedback-ID attributes a report to.
+    Return the message a report is about, or `None`.
 
-    Every outgoing message carries the Feedback-ID relay minted when the
-    message was submitted, and the provider echoes it in the report.
-    Anything else returns `None`.
+    The per-message proof the provider echoes is the full VERP envelope
+    sender (`bounce+<token>@<sender-domain>`) relay minted when the
+    message was submitted. Only relay can mint the token signature, so
+    a message id alone names nothing. Anything else returns `None`.
     """
-    try:
-        original = (
-            OutgoingMessage.objects.select_related(
-                "org",
-                "domain",
-            ).get(feedback_id=feedback_id)
-            if feedback_id
-            else None
-        )
-    except OutgoingMessage.DoesNotExist:
-        original = None
-    return None if original is None else (original.org, original.domain)
+    from services.email.msa.tasks import resolve_bounce_owner
+
+    return resolve_bounce_owner(original_mail_from)
 
 
-@task
+@task()
 def create_held_outgoing_fbl_report(message_pk, org_id):
     """
     Store a relay-generated FBL report for a held outgoing message.
@@ -48,45 +41,45 @@ def create_held_outgoing_fbl_report(message_pk, org_id):
     report is stored.
     """
     message = OutgoingMessage.objects.get(pk=message_pk)
-    report = FblReport.create_for_spam(message)
+    FblReport.create_for_spam(message)
     check_org_reputation.enqueue(org_id=org_id)
-    return report.pk
 
 
-@task
+@task()
 def create_quarantined_incoming_fbl_report(message_pk):
     """Store a visibility-only relay FBL report for a quarantined message."""
     message = IncomingMessage.objects.get(pk=message_pk)
-    return FblReport.create_for_spam(message)
+    FblReport.create_for_spam(message)
 
 
-@task
+@task()
 def create_provider_fbl_report(message_pk):
     """Store a provider FBL report for an ingested message and queue parsing."""
     message = IncomingMessage.objects.get(pk=message_pk)
-    report = FblReport.create_for_incoming(message)
-    parse_fbl_report.enqueue(report_pk=str(report.pk))
-    return report
-
-
-@task
-def parse_fbl_report(report_pk):
-    """
-    Fill the stored fields from the referenced message's raw ARF body.
-
-    Attribute the report to the sending organization only when the
-    provider echoes the message's Feedback-ID, then queue an org
-    evaluation.
-
-    Logs and keeps the stored fields when the body is not an ARF email.
-    """
-    report = FblReport.objects.select_related("message").get(pk=report_pk)
-    feedback_id = ""
     try:
-        parsed, feedback_id = FblReport.parse_from_email(report.message.raw_body.read())
+        parsed = FblReport.parse_from_email(message.raw_body.read())
+    except ValueError:
+        logger.warning("FBL report %r is not an ARF email", message_pk)
+        return
+    complained_message = resolve_fbl_message(parsed.original_mail_from)
+    if complained_message is None:
+        logger.warning(
+            "FBL report %r names no message relay sent, kept as a message only",
+            message_pk,
+        )
+        return
+    report = FblReport.create_for_incoming(message, complained_message)
+    parse_fbl_report.enqueue(report_pk=str(report.pk))
+
+
+@task()
+def parse_fbl_report(report_pk):
+    """Fill the stored fields from the referenced message's raw ARF body."""
+    report = FblReport.objects.select_related("message").get(pk=report_pk)
+    try:
+        parsed = FblReport.parse_from_email(report.message.raw_body.read())
     except ValueError:
         logger.warning("FBL report %r is not an ARF email", report_pk)
-        parsed = None
     else:
         report.feedback_type = parsed.feedback_type
         report.user_agent = parsed.user_agent
@@ -100,39 +93,67 @@ def parse_fbl_report(report_pk):
         report.original_message_id = parsed.original_message_id
         report.authentication_results = parsed.authentication_results
         report.original_headers = parsed.original_headers
-
-    owner = resolve_fbl_owner(feedback_id)
-    update_fields = [
-        "org",
-        "domain",
-        "feedback_type",
-        "user_agent",
-        "version",
-        "reporting_org",
-        "reporting_email",
-        "source_ip_address",
-        "arrival_at",
-        "original_mail_from",
-        "original_rcpt_to",
-        "original_message_id",
-        "authentication_results",
-        "original_headers",
-        "modified_at",
-    ]
-    with transaction.atomic():
-        if owner is not None:
-            report.org, report.domain = owner
-            # Attached parent messages carry child statuses; save() would
-            # reject them, so rebind org and domain with a queryset update.
-            Message.objects.filter(pk=report.message_id).update(
-                org=owner[0], domain=owner[1], modified_at=timezone.now()
-            )
-        report.save(update_fields=update_fields)
+        report.save(
+            update_fields=[
+                "feedback_type",
+                "user_agent",
+                "version",
+                "reporting_org",
+                "reporting_email",
+                "source_ip_address",
+                "arrival_at",
+                "original_mail_from",
+                "original_rcpt_to",
+                "original_message_id",
+                "authentication_results",
+                "original_headers",
+                "modified_at",
+            ]
+        )
 
     check_org_reputation.enqueue(org_id=report.org_id)
 
 
-@task
+@task()
 def check_org_reputation(org_id):
     """Evaluate rates for an organization and suspend it on a threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))
+
+
+@cron("0 8 * * Mon")
+@task(queue_name=DEFAULT_TASK_QUEUE_NAME)
+def send_weekly_digests():
+    """Queue one task per organization that is not suspended."""
+    for org_id in (
+        Organization.objects.filter(suspended_at__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
+    ):
+        send_org_weekly_digest.enqueue(org_id=org_id)
+
+
+@task(queue_name=DEFAULT_TASK_QUEUE_NAME)
+def send_org_weekly_digest(org_id):
+    """Mail the window's numbers to the members the digest reaches."""
+    org = Organization.objects.get(pk=org_id)
+    if org.suspended_at:
+        logger.info("Dropped the weekly digest for suspended organization %r", org_id)
+    else:
+        digest = build_org_digest(org)
+        mailer = mailers.default
+        with mailer:
+            for membership in iter_digest_members(org):
+                try:
+                    mailer.send_messages(
+                        [
+                            WeeklyDigestEmail.to_user(
+                                membership.user,
+                                digest=digest,
+                                language=settings.LANGUAGE_CODE,
+                            )
+                        ]
+                    )
+                except OSError:
+                    logger.exception(
+                        "Weekly digest for user %r failed", membership.user_id
+                    )

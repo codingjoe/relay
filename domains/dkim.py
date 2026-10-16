@@ -40,17 +40,10 @@ def sign_message(raw_bytes, domain):
         "dkim_key_ed25519",
     ).filter(Q(name=settings.RELAY_PLATFORM_DOMAIN) | Q(pk=domain.pk))
     for sign_domain in signing_domains:
-        for selector, key in sign_domain.dkim_ciphers:
+        # RSA-2048 goes last: prepending puts the last signature on top, and the
+        # topmost one is what naive verifiers and relay's inbound evaluation read.
+        for _field, selector, key in reversed(sign_domain.dkim_ciphers):
             signed = add_dkim_signature(
                 signed, selector, sign_domain.name, key, INCLUDE_HEADERS
             )
     return signed
-
-
-def parse_signature_tags(value: str) -> dict[str, str]:
-    """Split a DKIM-Signature header value into its key=value fields."""
-    return dict(
-        parsed
-        for field in value.split(";")
-        if "=" in field.strip() and (parsed := field.strip().split("=", 1))
-    )

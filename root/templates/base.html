@@ -1,4 +1,4 @@
-{% load static i18n accounts %}
+{% load static i18n accounts esm %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
   <head>
@@ -6,11 +6,14 @@
     <title>{% block title %}relay{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
-    <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+    {% if DEBUG %}
+      <link rel="icon" href="{% static 'img/favicon-development.svg' %}" type="image/svg+xml">
+    {% else %}
+      <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+    {% endif %}
     <link rel="icon" href="/favicon.ico" sizes="32x32">
     <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6200d1">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#bb80ff">
+    <meta name="theme-color" content="#6200d1">
     {% block meta_tags %}
       <meta
         name="description"
@@ -37,21 +40,12 @@
       >
     {% endblock meta_tags %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/all.min.js" defer></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
-    <script defer>
-      document.addEventListener("DOMContentLoaded", () => {
-        if (window.lucide) window.lucide.createIcons();
-      });
-      (() => {
-        try {
-          const stored = localStorage.getItem("themeMode");
-          if (stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches) {
-            document.documentElement.classList.add("dark");
-          }
-        } catch (_) {}
-      })();
+    <script type="importmap">
+      {% importmap %}
     </script>
+    {% esm '#js/app.js' %}
+    {% esm '#js/snippets.js' %}
+    {% esm '#js/amount.js' %}
   </head>
   <body class="min-h-screen flex">
     {% if current_org and request.resolver_match.namespace != 'accounts' %}
@@ -64,7 +58,7 @@
           {% include "partials/breadcrumbs.html" %}
         </div>
       {% endblock chrome %}
-      <div class="flex-1 px-6 max-w-7xl w-full mx-auto">
+      <div class="flex-1 px-6 pb-10 max-w-7xl w-full mx-auto">
         {% block content %}{% endblock %}
       </div>
       {% include "partials/footer.html" %}

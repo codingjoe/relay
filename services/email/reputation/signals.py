@@ -2,7 +2,8 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from services.email.msa.models import OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 from services.email.mta.signals import fbl_report_received
 

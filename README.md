@@ -1,7 +1,60 @@
+[![relay - Communication as a Serivce](https://github.com/codingjoe/relay/raw/main/root/static/img/og-image.png)](https://relays.to)
+
 # relay: Developer-First IT Infrastructure
 
 A developer-first IT infrastructure provider. We build superior products and
 enable our clients to build AAA applications on top of them.
+
+## How to develop
+
+Install [just](https://just.systems) 1.27 or newer and Docker, then set up the
+checkout. On macOS, `just install` adds uv, pnpm, age, gh, dotenvx, kubectl and
+minikube with Homebrew:
+
+```bash
+just install
+just build-assets
+uv run python manage.py collectstatic --noinput --no-esm
+uv run python manage.py migrate
+uv run python manage.py runserver
+```
+
+`pnpm run dev` rebuilds the CSS and the vendored ES modules on change.
+
+`just --list` shows every recipe, including the ones below.
+
+### Full stack on minikube
+
+Run the whole stack (PostgreSQL, Redis, the web UI, DNS, MSA, MTA, rspamd,
+ClamAV and Dozzle) on minikube with your `.env`:
+
+```bash
+just dev
+```
+
+The recipe builds the development image, starts minikube with the metrics API
+Dozzle needs, loads the image, applies `deploy/minikube`, runs the database
+migrations and opens <http://localhost:8000>. After a code change, run
+`just reload` to rebuild the image and restart every relay workload. After a
+model change, run `just migrations` to generate the migration file, then
+`just reload` and `just migrate` to run it in the cluster.
+
+### Tests and linting
+
+```bash
+just test   # pytest
+just check  # manage.py check
+```
+
+`just install` registers the git hooks with `prek`, so the linters run on every
+commit. Run `uvx prek run --all-files` to check the whole tree.
+
+### Production
+
+`just production access` installs your cluster-access kubeconfig as
+`~/.kube/relay.yaml`. `just production dozzle` opens the production log
+dashboard, and `just production threadmill` opens the task inspector. The
+cluster itself is covered in `deploy/README.md`.
 
 ## Managed Sender Domain
 
@@ -24,20 +77,25 @@ The platform operator must set up the following records on the
 1. **NS delegation for `open.{platform_domain}`**. Add NS records for the
    `open` subdomain pointing to `RELAY_DNS_NS_NAMESERVERS` (for example,
    `ns1.{platform_domain}`, `ns2.{platform_domain}`).
-1. **A/AAAA record for the web server**. The platform domain itself needs
+2. **A/AAAA record for the web server**. The platform domain itself needs
    an A/AAAA record for the web UI.
-1. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
+3. **A/AAAA record for the storage host**. Caddy serves signed message body
+   URLs on `storage.{platform_domain}`, and the certificate for that name
+   needs a record that resolves. Point it at the web server, or set
+   `RELAY_STORAGE_DOMAIN` to serve bodies from a different name.
+4. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
    public hostname (`smtp.{platform_domain}`) and sender subdomains resolve
-   to the SMTP server IPs.
-1. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
+   to the SMTP server IPs, and the SPF record of each sender subdomain
+   authorizes every one of them.
+5. **Reverse DNS for every SMTP server IP**. Configure each IP owner's PTR
    record with the hosting provider. Outbound SMTP must use the corresponding
    hostname for EHLO.
-1. **SPF include**. The `spf.{platform_domain}` TXT record must list the
+6. **SPF include**. The `spf.{platform_domain}` TXT record must list the
    SMTP server IP addresses.
-1. **DMARC**. `_dmarc.{platform_domain}` TXT record.
-1. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
+7. **DMARC**. `_dmarc.{platform_domain}` TXT record.
+8. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
    `mta-sts.{platform_domain}` CNAME.
-1. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
+9. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
 
 All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No
@@ -46,9 +104,10 @@ per-domain delegation is necessary.
 Outgoing mail is dual-signed with DKIM: once for the sender's own domain
 and once for the platform domain. The platform domain is the `Domain`
 row whose name equals `RELAY_PLATFORM_DOMAIN`; until you register it,
-relay signs with the sending domain only. Each signature covers a per-message
-`Feedback-ID` header so FBL complaints attribute to the sending
-organization.
+relay signs with the sending domain only. Each signature covers the
+`Feedback-ID` header, which names the sending domain, the organization,
+the mail type, and the platform, so Gmail can group its complaint rates
+per stream.
 
 ## Architecture
 
@@ -59,28 +118,45 @@ Organization → Domain, SmtpCredential
 - **Organization**: Owns resources (domains, credentials). Each user gets a personal org on signup.
 - **Domain**: Root domain verified once with NS delegation + DMARC. Holds shared DKIM keys.
 - **SendingDomain**: Envelope-from domain (for example, acme.com or app.acme.com) with SPF + DKIM CNAME. Shares the root domain's NS delegation.
-- **ReceivingDomain**: Receiving domain with MX record pointing to the root domain's sender subdomain
+- **ReceivingDomain**: Receiving domain with MX record pointing to the relay MX hostnames
 - **SmtpCredential**: Per-org API key used to authenticate outgoing SMTP submissions
 - **Webhook**: Per-org HTTPS endpoint with Ed25519 keypair for signing incoming-mail deliveries
 - **DmarcReport**: Aggregate DMARC report (RUA) received from external organizations, parsed from XML
 - **DmarcFailureReport**: Forensic DMARC report (RUF) received from external organizations, parsed from ARF
 - **FblReport**: Feedback Loop complaint report, received from email providers as ARF (RFC 5965) or generated by relay for spam-flagged messages
-- **TlsReport**: TLS-RPT report received from external organizations, parsed from JSON via DRF serializers
+- **TlsReport**: TLS-RPT report received from external organizations, parsed from JSON
 
 All report models use multi-table inheritance with `IncomingMessage` so they
 inherit the UUIDv7 primary key and inbound email metadata.
 
 ### Services
 
-| Service | Port         | Description                                                |
-| ------- | ------------ | ---------------------------------------------------------- |
-| Web     | 8000         | Django web UI (Granian)                                    |
-| dnsdist | 53 (UDP+TCP) | DNS proxy with caching (production)                        |
-| DNS     | 5353         | Authoritative nameserver (dnslib, internal only)           |
-| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)      |
-| MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS) |
-| rspamd  | 11334        | Spam detection (internal only)                             |
-| Worker  | N/A          | Threadmill task worker                                     |
+Every service below runs as a Kubernetes workload in the `default` namespace on
+a single-node Talos Linux cluster, administered with `talosctl`. Stateless
+services run two replicas; `postgres`, `redis-tasks` and the `crontask`
+scheduler run one. Two independent replicas of a database or a task queue would
+hold divergent data rather than provide redundancy, and the scheduler already
+elects one active instance through a Redis lock. The manifests are in
+`deploy/k8s/`, and `deploy/README.md` is the operator guide.
+
+| Service | Port         | Description                                                    |
+| ------- | ------------ | -------------------------------------------------------------- |
+| Web     | 8000         | Django web UI (Granian), 2 replicas                            |
+| dnsdist | 53 (UDP+TCP) | DNS proxy with caching, on the host network                    |
+| DNS     | 5353         | Authoritative nameserver (dnslib, internal only), 2 replicas   |
+| SMTP    | 587, 465     | Outgoing SMTP submissions (aiosmtpd, behind Caddy L4)          |
+| MX      | 25           | Incoming MX delivery (aiosmtpd, behind Caddy L4, STARTTLS)     |
+| rspamd  | 11334        | Spam detection (internal only), 2 replicas                     |
+| clamav  | 3310         | Malware scanning (internal only), 2 replicas                   |
+| Worker  | N/A          | Threadmill task worker for ingress, egress, and default queues |
+| Sender  | N/A          | Threadmill task worker for delivery to remote MX hosts         |
+| Cron    | N/A          | django-crontask scheduler for recurring work                   |
+| Storage | 8080         | Message body proxy with signed, expiring URLs, 2 replicas      |
+
+Caddy and dnsdist publish on the node's ports directly, through host
+networking, so the mail path sees the real client address: the MX and
+submission servers read it from the PROXY protocol v2 header Caddy sends them.
+That is also why neither can run more than one replica on a single node.
 
 ```mermaid
 flowchart TD
@@ -91,8 +167,8 @@ flowchart TD
     end
 
     subgraph caddy[Caddy reverse proxy + L4 balancer]
-        caddy_proxy[Caddy docker-proxy]
-        caddy_l4[Caddy layer4]
+        caddy_proxy[Caddy :80 :443]
+        caddy_l4[Caddy layer4 :25 :465 :587]
     end
 
     subgraph app[app network]
@@ -100,13 +176,20 @@ flowchart TD
         msa[SMTP aiosmtpd :587 :2465]
         mta[MX aiosmtpd :25]
         worker[Worker Threadmill]
-        rspamd[rspamd :11334]
-        minio[MinIO S3 :9000]
+        mail_sender[Sender Threadmill]
+        scheduler[Cron django-crontask]
+        rspamd[rspamd :11334, 2 replicas]
+        clamav[clamav :3310]
+        s3proxy[Storage s3proxy :8080]
     end
 
     subgraph data[data services]
         pg[PostgreSQL 18+]
         redis[Redis]
+    end
+
+    subgraph storage[object storage]
+        s3[S3-compatible bucket]
     end
 
     subgraph dns[dnsdist network]
@@ -116,56 +199,138 @@ flowchart TD
 
     browser --> caddy_proxy
     caddy_proxy --> web
+    caddy_proxy -->|signed body URL| s3proxy
     client -->|STARTTLS :587 / TLS :465| caddy_l4
     sender -->|STARTTLS :25| caddy_l4
     caddy_l4 --> msa
     caddy_l4 --> mta
-    msa --> rspamd
-    mta --> rspamd
+    msa -->|enqueue| worker
+    mta -->|enqueue| worker
+    worker -->|enqueue delivery| mail_sender
+    scheduler -->|enqueue| worker
+    mail_sender -->|STARTTLS :25| sender
+    worker -->|scan| caddy_proxy
+    caddy_proxy --> rspamd
     rspamd --> redis
+    rspamd --> clamav
     web --> pg
     web --> redis
-    web --> minio
+    web --> s3proxy
     msa --> pg
-    msa --> minio
+    msa --> s3proxy
     mta --> pg
-    mta --> minio
+    mta --> s3proxy
+    s3proxy --> s3
     dnsdist --> dns_ns
     sender -->|DNS :53| dnsdist
 ```
 
 The MX server receives incoming email (port 25, STARTTLS by default) and
 dispatches it to configurable per-organization webhooks. Clients configure
-receiving domains (for example, `app.acme.com`) by pointing an MX record to their
-sender subdomain (for example, `MX app.acme.com → mail.relay.acme.com`). Webhooks
+receiving domains (for example, `app.acme.com`) by pointing an MX record to the
+relay MX hostnames (for example, `MX app.acme.com → mx1.relays.to`). Webhooks
 follow the [Standard Webhooks](https://standardwebhooks.com) specification -
 each delivery includes `webhook-id`, `webhook-timestamp`, and
 `webhook-signature` headers with an Ed25519 (`v1a`) signature. Each webhook
 has its own keypair, so clients verify with the webhook's public key
 (`whpk_` format) using any Standard Webhooks SDK. The payload is flat event
-data with a storage URL for the raw message body. The payload never includes
-the raw body inline. You can filter webhooks by receiving domain and recipient
-address glob pattern.
+data with a signed storage URL for the raw message body, which expires after
+an hour. The payload never includes the raw body inline. You can filter
+webhooks by receiving domain and recipient address glob pattern.
+
+### Task queues
+
+Async work is split across four queues, so each pipeline stage can run on its
+own worker and scale on its own:
+
+- `ingress`: tasks that process received mail, so the inbound spam scan,
+  webhook delivery, and TLS-RPT parsing.
+- `egress`: tasks that process outgoing submissions, so the outbound spam
+  scan and the postmaster forward.
+- `delivery`: SMTP delivery to remote MX hosts. The sender worker is the only
+  consumer, so it can be given dedicated outbound addresses.
+- `default`: everything else, so DMARC and reputation reporting.
+
+`TASKS["default"]["QUEUES"]` in `root/settings.py` holds the queue list. A task
+whose queue is missing there fails at import time.
+
+### Spam and virus scanning
+
+The egress and ingress workers scan every stored message with rspamd before
+delivery or webhook dispatch, and record the score, the action, and the
+antivirus verdict on the message.
+
+| Variable                    | Default               | Description                                                     |
+| --------------------------- | --------------------- | --------------------------------------------------------------- |
+| `RELAY_RSPAMD_URL`          | `http://rspamd:11334` | Controller address, the password may ride along as URL userinfo |
+| `RELAY_RSPAMD_PASSWORD`     | _(from the URL)_      | Controller password                                             |
+| `RELAY_RSPAMD_HOLD_SCORE`   | `6.0`                 | Outbound score at which a message is held                       |
+| `RELAY_RSPAMD_REJECT_SCORE` | `15.0`                | Inbound score at which a message is quarantined                 |
+
+ClamAV reports one symbol per outcome, and the client maps them: `CLAM_VIRUS`
+with the virus name for a detection, `CLAM_VIRUS_ENCRYPTED` and
+`CLAM_VIRUS_MACRO` for content the scanner cannot read, `CLAM_VIRUS_LIMITS`
+for a part that exceeded the scanner's working limits, and `CLAM_VIRUS_FAIL`
+when clamd did not answer, which retries the scan instead of storing a
+verdict.
+
+A clean scan carries no symbol at all, so rspamd never confirms that
+ClamAV ran. The `clamav` block of `deploy/k8s/rspamd/antivirus.conf` sets
+`log_clean`, which logs every part ClamAV reports clean, and the controller
+statistics behind `RELAY_RSPAMD_PASSWORD` count the messages rspamd
+scanned. To exercise the whole path, send an EICAR test attachment through
+submission or the MX: it must land held (outbound) or quarantined (inbound)
+with `CLAM_VIRUS` in the stored symbols.
+
+The client asks for a profiled reply, so the check record also keeps the
+duration rspamd measured for the task and, for the messages rspamd chooses
+to profile, the per-symbol breakdown and the share the antivirus took.
+rspamd profiles a sample rather than every task: the first task per worker
+process per minute, about a percent of the rest, anything of 2 MiB or more,
+and rules that have already run slow. The antivirus timing is therefore
+present on a minority of checks, and the message timeline shades the share
+of the check it took whenever it is.
 
 ### Feedback loop (FBL) reports
 
-FBL complaints arrive at `RELAY_FBL_ADDRESS` and count only for senders
-listed in `RELAY_FBL_SENDERS`. Register the address with each provider and
-allowlist their report sender.
+FBL complaints arrive at `RELAY_FBL_ADDRESS`. relay ingests one only when the
+report authenticates for its own `From` domain, that domain is listed in
+`RELAY_FBL_SENDER_DOMAINS`, and the report names the message it is about.
+Register the address with each provider. Yahoo and Microsoft send
+per-complaint reports, Google does not. A report that names no message stays
+on record as an inbound email only, and is not recorded as a complaint.
 
-| Variable            | Default                          | Description                                                                    |
-| ------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                    |
-| `RELAY_FBL_SENDERS` | _(empty: off)_                   | Exact provider envelope addresses, one per provider. Empty disables ingestion. |
+Google reports complaints only as aggregate rates per `Feedback-ID`
+identifier, in the Postmaster Tools FBL dashboard. Verify the platform domain
+there once. Then the `relay` SenderId reports for every customer, because
+relay cosigns with that domain. The header relay mints has the form
+`{sending-domain}:{org-pk}:tx:relay`. The SenderId and the identifiers need no
+registration.
+
+The identifiers are stable on purpose. Google aggregates the first four
+fields counted from the right side. It reports an identifier only when that
+identifier appears in enough mail, so a per-message value is never reported.
+As a result, the header is not a proof for a complaint. Only the per-message
+Return-Path is.
+
+| Variable                   | Default                                                       | Description                                                                                                      |
+| -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN`                              | The FBL ingestion mailbox. Register it with your providers.                                                      |
+| `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,aol.net,hotmail.com,outlook.com,live.com` | Provider domains whose authenticated reports are ingested, including their subdomains. Empty disables ingestion. |
 
 ### Tech Stack
 
 - **Django** with the task framework for async message delivery
 - **PostgreSQL**. Primary database
 - **Redis**. Caching and rate limiting
-- **S3**. Raw message body storage via django-storages
+- **S3**. Raw message body storage via django-storages, published through
+  the storage proxy with signed, expiring URLs
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
+- **django-allauth**. GitHub login
+- **Talos Linux**. Immutable single-node Kubernetes on Hetzner Cloud,
+  administered with `talosctl`, with Caddy as the ingress and Layer 4 proxy. See
+  `deploy/README.md`.
 
 ### Error monitoring (Sentry)
 
@@ -173,11 +338,18 @@ All five processes report to a single Sentry project. Off by default; set
 `SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
 sent automatically.
 
-| Variable                    | Default        | Description                                |
-| --------------------------- | -------------- | ------------------------------------------ |
-| `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting. |
-| `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                    |
-| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default. |
+| Variable                    | Default        | Description                                                      |
+| --------------------------- | -------------- | ---------------------------------------------------------------- |
+| `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting.                       |
+| `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                                          |
+| `SENTRY_RELEASE`            | _(empty)_      | Release tag. `sha-<commit>` in CI. Scopes page cache validators. |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default.                       |
+
+The deploy workflow records each shipped release in Sentry, attaches the
+commits it carries and finalizes it once the pods are ready. The same tag
+scopes the page cache validators, and the deploy flushes the edge cache. Set
+`SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` in `.env.production` to
+enable tracking; a deploy skips it while any of the three is unset.
 
 ## App dependencies
 
@@ -234,6 +406,7 @@ graph BT
  msa --> kms
  msa --> mta
  mta --> message
+ mta --> msa
  mta --> accounts
  mta --> domains
  mta --> kms

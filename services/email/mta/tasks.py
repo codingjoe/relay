@@ -11,13 +11,15 @@ from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.tasks import task
-from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
-from threadmill.retry import ExponentialBackoff
+from django_letter.exceptions import InvalidUserError
 
-from services.email.spam import SpamAction, check_message
+from services.email.message.models import Transmission
+from services.email.msa.handlers import submit_relay_message
+from services.email.spam.client import SpamAction, check_message
+from services.email.spam.retry import SPAM_SCAN_RETRY
 
+from .emails import PostmasterForwardEmail
 from .models import IncomingMessage, TlsFailure, TlsReport, Webhook, WebhookDelivery
 
 logger = logging.getLogger(__name__)
@@ -49,15 +51,13 @@ class WebhookDeliveryError(Exception):
 
 def webhook_retry(context):
     if context.attempt >= len(WEBHOOK_RETRY_DELAYS) - 1:
-        message_id = context.task_result.kwargs.get("message_id")
-        if message_id:
-            mark_failed_if_pending(message_id)
+        mark_failed_if_pending(context.task_result.kwargs.get("message_id"))
         return None
     delay = WEBHOOK_RETRY_DELAYS[context.attempt + 1] + secrets.randbelow(30)
     return datetime.timedelta(seconds=delay)
 
 
-@task
+@task(queue_name="ingress")
 def dispatch_webhook(message_id):
     """Distribute an incoming message to all matching active webhooks."""
     message = IncomingMessage.objects.get(pk=message_id)
@@ -81,7 +81,7 @@ def dispatch_webhook(message_id):
                 )
 
 
-@task(retry=webhook_retry)
+@task(queue_name="ingress", retry=webhook_retry)
 def deliver_webhook(message_id, webhook_id):
     """Deliver to a single webhook and retry per the Standard Webhooks schedule."""
     message = IncomingMessage.objects.get(pk=message_id)
@@ -93,11 +93,15 @@ def deliver_webhook(message_id, webhook_id):
     ok, status_code = deliver_to_webhook(message, webhook)
     match ok, status_code:
         case (True, _):
-            Webhook.objects.filter(pk=webhook.pk).update(last_used_at=timezone.now())
+            Webhook.objects.filter(pk=webhook.pk).update(
+                last_used_at=timezone.now(), modified_at=timezone.now()
+            )
             message.status = IncomingMessage.Status.WEBHOOK_SENT
             message.save(update_fields=["status"])
         case (False, 410):
-            Webhook.objects.filter(pk=webhook.pk).update(is_active=False)
+            Webhook.objects.filter(pk=webhook.pk).update(
+                is_active=False, modified_at=timezone.now()
+            )
             mark_failed_if_pending(message_id)
         case (False, _):
             raise WebhookDeliveryError(status_code)
@@ -107,7 +111,7 @@ def mark_failed_if_pending(message_id):
     """Set `WEBHOOK_FAILED` only if the message is not yet delivered."""
     IncomingMessage.objects.filter(
         pk=message_id, status=IncomingMessage.Status.RECEIVED
-    ).update(status=IncomingMessage.Status.WEBHOOK_FAILED)
+    ).update(status=IncomingMessage.Status.WEBHOOK_FAILED, modified_at=timezone.now())
 
 
 @dataclass
@@ -144,6 +148,10 @@ class WebhookEvent:
                 receiving_domain="",
                 body_url=None,
             )
+        try:
+            reception = message.transmissions.get(status=Transmission.Status.RECEIVED)
+        except Transmission.DoesNotExist:
+            reception = None
         return cls(
             type="email.test" if is_test else "email.received",
             message_id=str(message.id),
@@ -151,7 +159,10 @@ class WebhookEvent:
             recipient=message.rcpt_to,
             subject=message.subject,
             rfc822_message_id=message.message_id,
-            received_with_tls=message.received_with_tls,
+            received_with_tls=(
+                reception is not None
+                and reception.tls_mode != Transmission.TlsMode.PLAINTEXT
+            ),
             receiving_domain=message.receiving_domain,
             body_url=message.raw_body.url if message.raw_body else None,
             spam_score=message.spam_score,
@@ -173,43 +184,31 @@ def deliver_to_webhook(message, webhook, is_test=False):
     payload_bytes = json.dumps(payload, sort_keys=True, cls=WebhookJSONEncoder).encode()
     signature = webhook.sign(msg_id, timestamp, payload_bytes)
 
-    try:
-        response = httpx.post(
-            webhook.url,
-            content=payload_bytes,
-            headers={
-                "Content-Type": "application/json",
-                "webhook-id": msg_id,
-                "webhook-timestamp": str(timestamp),
-                "webhook-signature": signature,
-            },
-            timeout=settings.RELAY_WEBHOOK_TIMEOUT,
-        )
-        ok = response.is_success
-        status_code = response.status_code
-        WebhookDelivery.objects.create(
-            message=message,
-            webhook=webhook,
-            is_test=is_test,
-            status=WebhookDelivery.Status.SENT if ok else WebhookDelivery.Status.FAILED,
-            response_code=status_code,
-            response_body=response.text[:2000],
-        )
-    except httpx.HTTPError as e:
-        logger.exception("Webhook delivery to %s failed", webhook.url)
-        WebhookDelivery.objects.create(
-            message=message,
-            webhook=webhook,
-            is_test=is_test,
-            status=WebhookDelivery.Status.FAILED,
-            response_body=str(e)[:2000],
-        )
-        return False, 0
-
-    return ok, status_code
+    with WebhookDelivery(message=message, webhook=webhook, is_test=is_test) as timer:
+        try:
+            response = httpx.post(
+                webhook.url,
+                content=payload_bytes,
+                headers={
+                    "Content-Type": "application/json",
+                    "webhook-id": msg_id,
+                    "webhook-timestamp": str(timestamp),
+                    "webhook-signature": signature,
+                },
+                timeout=settings.RELAY_WEBHOOK_TIMEOUT,
+            )
+        except httpx.HTTPError as e:
+            logger.exception("Webhook delivery to %s failed", webhook.url)
+            timer.status = timer.Status.FAILED
+            timer.response_body = str(e)[:2000]
+            return False, 0
+        timer.status = timer.Status.SENT if response.is_success else timer.Status.FAILED
+        timer.response_code = response.status_code
+        timer.response_body = response.text[:2000]
+        return response.is_success, response.status_code
 
 
-@task
+@task(queue_name="ingress")
 def parse_tls_report(report_pk):
     """Parse a received TLS-RPT report and store its failures."""
     report = TlsReport.objects.get(pk=report_pk)
@@ -240,63 +239,84 @@ def parse_tls_report(report_pk):
     TlsFailure.objects.bulk_create(failures)
 
 
-@task
-def notify_postmaster_recipients(message_pk):
-    """Email all org members with a link to the received message."""
-    message = IncomingMessage.objects.get(pk=message_pk)
-    memberships = message.org.memberships.exclude(user__email="").select_related("user")
+@task(queue_name="egress")
+def forward_postmaster_message(message_pk):
+    """
+    Submit every member of the receiving organization a replyable copy.
 
-    scheme = "http" if settings.DEBUG or settings.TEST else "https"
-    detail_url = (
-        f"{scheme}://{settings.RELAY_PLATFORM_DOMAIN}{message.get_absolute_url()}"
-    )
-    context = {
-        "subject": message.subject or _("(no subject)"),
-        "mail_from": message.mail_from,
-        "rcpt_to": message.rcpt_to,
-        "detail_url": detail_url,
-    }
-    body = render_to_string("mta/postmaster_notification.txt", context)
-    subject = _("Postmaster message received: %(subject)s") % {
-        "subject": message.subject
-    }
+    Each copy leaves relay from the domain the message arrived at, so it
+    lands in the organization's dashboard and counts toward their usage.
+    The copy names the recipient, links to the stored message in the relay
+    dashboard, and replies reach the original author. A member who cannot
+    receive mail is skipped, so one bad account never fails the forward.
+    """
+    message = IncomingMessage.objects.get(pk=message_pk)
+    memberships = message.org.memberships.select_related("user")
+    mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{message.domain_name}"
+    started_at = timezone.now()
     for membership in memberships:
         try:
-            membership.user.email_user(
-                subject=subject,
-                message=body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            email = PostmasterForwardEmail.to_user(
+                membership.user,
+                message=message,
+                from_email=mail_from,
+                language=settings.LANGUAGE_CODE,
             )
-        except OSError:
-            logger.exception(
-                "Postmaster notification to %s failed",
-                membership.user.email,
+        except InvalidUserError:
+            email = None
+        if email is not None:
+            submit_relay_message(
+                org=message.org,
+                domain=message.domain,
+                email=email,
+                mail_from=mail_from,
+                rcpt_to=membership.user.email,
+                started_at=started_at,
             )
 
 
-@task(
-    retry=ExponentialBackoff(
-        base_delay=datetime.timedelta(seconds=1),
-        max_delay=datetime.timedelta(minutes=5),
-        max_retries=5,
-        expected_exceptions=(httpx.HTTPError, OSError),
-    )
-)
+@task(queue_name="ingress", retry=SPAM_SCAN_RETRY)
 def check_incoming_spam(message_pk, client_ip):
-    """Check an incoming message for spam and dispatch webhook if clean."""
+    """
+    Evaluate the stored mail and dispatch what the scan clears.
+
+    Clean mail reaches the matching webhooks, and mail addressed to postmaster
+    reaches every organization member.
+    """
+    from services.email.message.models import SpamCheck
+
     message = IncomingMessage.objects.get(pk=message_pk)
     raw_bytes = message.raw_body.read()
-    spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+    with SpamCheck(message=message) as check:
+        spam = async_to_sync(check_message)(raw_bytes, client_ip=client_ip)
+        check.score = spam.score
+        check.scan_ms = spam.scan_ms
+        check.antivirus_ms = spam.antivirus_ms
+        check.profile_ms = spam.profile_ms
     is_spam = (
         spam.action == SpamAction.REJECT
         or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
     )
     message.spam_score = spam.score
     message.spam_action = spam.action
-    update_fields = ["spam_score", "spam_action"]
+    message.virus_action = spam.virus_action
+    message.virus_name = spam.virus_name
+    message.virus_symbols = spam.virus_symbols
+    update_fields = [
+        "spam_score",
+        "spam_action",
+        "virus_action",
+        "virus_name",
+        "virus_symbols",
+    ]
     if is_spam:
         message.status = IncomingMessage.Status.QUARANTINED
         update_fields.append("status")
     message.save(update_fields=update_fields)
     if not is_spam and message.status != IncomingMessage.Status.QUARANTINED:
         dispatch_webhook.enqueue(message_id=str(message.pk))
+        if (
+            message.rcpt_to.partition("@")[0].partition("+")[0].lower()
+            == settings.RELAY_POSTMASTER_LOCAL_PART
+        ):
+            forward_postmaster_message.enqueue(message_pk=str(message.pk))

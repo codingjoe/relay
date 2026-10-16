@@ -1,11 +1,13 @@
 import datetime
 import decimal
+from datetime import timedelta
 
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
 from django.template.defaulttags import register
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
+from humanize import naturaldelta
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
@@ -71,15 +73,20 @@ def param_replace(context, **kwargs):
     Preserves existing GET parameters and overrides the ones passed as kwargs.
     Empty values are removed.
 
+    Reads the request from the context attribute, not from the context
+    dictionary. Inclusion tags render with an isolated context that drops
+    context processor values, such as `request`, but keeps the attribute.
+    This matches Django's built-in `{% querystring %}` tag.
+
     Args:
-        context: The template context (must contain `request`).
+        context: The template context (must carry a `request`).
         **kwargs: Query parameters to set or override.
 
     Returns:
         A URL-encoded query string with the updated parameters.
 
     """
-    d = context["request"].GET.copy()
+    d = context.request.GET.copy()
     for k, v in kwargs.items():
         d[k] = v
     for k in [k for k, v in d.items() if not v]:
@@ -108,6 +115,29 @@ def pagination(context, page_obj=None):
     return {"page_obj": page_obj or context.get("page_obj")}
 
 
+@register.inclusion_tag("abstract/tabler.html")
+def tabler(name, size="4", **attributes):
+    """Render a Tabler icon from the vendored sprite."""
+    return {
+        "name": name,
+        "classes": " ".join(
+            filter(
+                None,
+                (
+                    "tabler",
+                    f"size-{size}" if size else None,
+                    attributes.pop("class", None),
+                ),
+            )
+        ),
+        "attrs": {
+            key.replace("_", "-"): value
+            for key, value in attributes.items()
+            if value is not None and value is not False
+        },
+    }
+
+
 code_formatter = HtmlFormatter(cssclass="codehilite")
 
 
@@ -123,7 +153,8 @@ def highlight_code(value: str, language: str = "text") -> str:
         lexer = get_lexer_by_name(language)
     except ClassNotFound:
         lexer = get_lexer_by_name("text")
-    return mark_safe(highlight(value, lexer, code_formatter))
+    # Pygments escapes the source it highlights.
+    return mark_safe(highlight(value, lexer, code_formatter))  # noqa: S308
 
 
 @register.simple_tag
@@ -146,6 +177,34 @@ def percent(text, arg=-1):
     if text is None:
         return None
     text = decimal.Decimal(str(text)) * decimal.Decimal("100.00")
-    return mark_safe(
+    # A decimal renders as digits and separators only.
+    return mark_safe(  # noqa: S308
         f"{defaultfilters.floatformat(text, arg=arg)}&nbsp;&percnt;",
     )
+
+
+@register.filter
+def human_duration(value: timedelta) -> str:
+    """Render a duration in words, so a card reads at a glance."""
+    return naturaldelta(value, minimum_unit="milliseconds")
+
+
+@register.filter
+def relative_record_name(record_name: str, domain) -> str:
+    """Return the name as a DNS provider expects it, `@` at the apex."""
+    match record_name:
+        case name if name == domain.name:
+            relative_name = "@"
+        case name if name.endswith(f".{domain.name}"):
+            relative_name = name.removesuffix(f".{domain.name}")
+        case name:
+            relative_name = name
+    return relative_name
+
+
+@register.filter
+def apex_suffix(record_name: str, domain) -> str:
+    """Return the zone a relative record name sits in, empty at the apex."""
+    if not record_name.endswith(f".{domain.name}"):
+        return ""
+    return f".{domain.name}"

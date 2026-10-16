@@ -1,11 +1,11 @@
 {
   "mcpServers": {
-    "cloudfleet": {
-      "args": [
-        "mcp"
+    "dozzle": {
+      "tools": [
+        "*"
       ],
-      "command": "cloudfleet",
-      "type": "local"
+      "type": "http",
+      "url": "http://127.0.0.1:5000/api/mcp"
     },
     "playwright": {
       "args": [

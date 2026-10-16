@@ -1,0 +1,265 @@
+{% extends "emails/base.html" %}
+{% load django_letter i18n humanize static %}
+
+{% block extra_header %}
+  {{ block.super }}
+  <style media="all" type="text/css">
+    /* The layout classes, inlined by django-letter. The two media queries
+       stay in the head: they restyle cards for a phone and for dark mode. */
+    .digest-cards {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .digest-card {
+      padding: 0 4px;
+      vertical-align: top;
+    }
+
+    .digest-card-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .digest-card-body {
+      padding: 14px;
+      border-radius: 10px;
+      background-color: #e7f5ec;
+    }
+
+    .digest-card-body--bad {
+      background-color: #fbeaea;
+    }
+
+    .digest-card-label,
+    .digest-card-caption {
+      margin: 0;
+      color: #5d5d5d;
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .digest-card-value {
+      margin: 2px 0 0;
+      color: #157a3f;
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 30px;
+    }
+
+    .digest-card-value--bad {
+      color: #b3261e;
+    }
+
+    .digest-card-caption {
+      margin-top: 4px;
+    }
+
+    .digest-count {
+      margin: 24px 0 0;
+      color: #6200d1;
+      font-weight: 700;
+      font-size: 46px;
+      line-height: 52px;
+      text-align: center;
+    }
+
+    .digest-count-caption {
+      margin: 0 0 24px;
+      color: #5d5d5d;
+      font-size: 14px;
+      line-height: 20px;
+      text-align: center;
+    }
+
+    .digest-chart {
+      margin: 0 0 8px;
+    }
+
+    .digest-art {
+      width: 56%;
+      height: auto;
+    }
+
+    .digest-art--dark {
+      display: none;
+    }
+
+    @media only screen and (max-width: 640px) {
+      .digest-card {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 0 8px !important;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .digest-card-body {
+        background-color: #123222 !important;
+      }
+
+      .digest-card-body--bad {
+        background-color: #3a1a1c !important;
+      }
+
+      .digest-card-label,
+      .digest-card-caption,
+      .digest-count-caption {
+        color: #9ca3af !important;
+      }
+
+      .digest-card-value {
+        color: #6ee7a8 !important;
+      }
+
+      .digest-card-value--bad {
+        color: #fca5a5 !important;
+      }
+
+      .digest-count {
+        color: #c480ff !important;
+      }
+
+      .digest-art--light {
+        display: none !important;
+      }
+
+      .digest-art--dark {
+        display: inline-block !important;
+      }
+    }
+  </style>
+{% endblock extra_header %}
+
+{% block content %}
+  <h1 class="first">{{ headline }}</h1>
+  <p>{{ verdict }}</p>
+  <p class="digest-count">{{ sent }}</p>
+  <p class="digest-count-caption">
+    {% blocktranslate with phrase=window_phrase trimmed %}
+      Messages out the door in the {{ phrase }}.
+    {% endblocktranslate %}
+  </p>
+  {% if stats.hard_bounce_over_limit or stats.complaint_over_limit %}
+    <p>
+      {% blocktranslate trimmed %}
+        When a rate passes its limit and the window carries enough volume, relay suspends the organization. Fix the
+        source of the bounces or the complaints, and relay staff will review the account.
+      {% endblocktranslate %}
+    </p>
+  {% endif %}
+  {% translate "cost" as cost_label %}
+  {% if cost %}
+    {% blocktranslate with amount=cost|intcomma asvar cost_value trimmed %}
+      {{ amount }} EUR
+    {% endblocktranslate %}
+  {% else %}
+    {% translate "free"|capfirst as cost_value %}
+  {% endif %}
+  {% blocktranslate with limit=free_monthly_messages|intcomma asvar cost_caption trimmed %}
+    {{ limit }} a month on the house.
+  {% endblocktranslate %}
+  {% translate "hard bounce rate" as bounce_label %}
+  {% blocktranslate with limit=bounce_threshold|percent:"2" asvar bounce_caption trimmed %}
+    We allow up to {{ limit }}.
+  {% endblocktranslate %}
+  {% translate "complaint rate" as complaint_label %}
+  {% blocktranslate with limit=complaint_threshold|percent:"2" asvar complaint_caption trimmed %}
+    We allow up to {{ limit }}.
+  {% endblocktranslate %}
+  <table role="presentation" class="digest-cards" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      {% with label=cost_label|capfirst value=cost_value caption=cost_caption tone="good" %}
+        {% partial card %}
+      {% endwith %}
+      {% if stats.hard_bounce_over_limit %}
+        {% with label=bounce_label|capfirst value=stats.hard_bounce_rate|percent:"2" caption=bounce_caption tone="bad" %}
+          {% partial card %}
+        {% endwith %}
+      {% else %}
+        {% with label=bounce_label|capfirst value=stats.hard_bounce_rate|percent:"2" caption=bounce_caption tone="good" %}
+          {% partial card %}
+        {% endwith %}
+      {% endif %}
+      {% if stats.complaint_over_limit %}
+        {% with label=complaint_label|capfirst value=stats.complaint_rate|percent:"2" caption=complaint_caption tone="bad" %}
+          {% partial card %}
+        {% endwith %}
+      {% else %}
+        {% with label=complaint_label|capfirst value=stats.complaint_rate|percent:"2" caption=complaint_caption tone="good" %}
+          {% partial card %}
+        {% endwith %}
+      {% endif %}
+    </tr>
+  </table>
+  {% if week_chart %}
+    <h2>{% translate "the week, bar by bar"|capfirst %}</h2>
+    <div
+      class="digest-chart"
+      role="img"
+      aria-label="{% translate 'Each bar is one day of the window.' %}"
+    >
+      {{ week_chart }}
+    </div>
+  {% endif %}
+  <p>
+    {% if message_interval %}
+      {% blocktranslate count counter=daily_average with average=daily_average|intcomma trimmed %}
+        That is about {{ average }} message a day, {{ message_interval }}.
+      {% plural %}
+        That is about {{ average }} messages a day, {{ message_interval }}.
+      {% endblocktranslate %}
+    {% endif %}
+    {% if recipients %}
+      {% blocktranslate count counter=recipients with total=recipients|intcomma trimmed %}
+        Those messages were addressed to {{ total }} distinct recipient.
+      {% plural %}
+        Those messages were addressed to {{ total }} distinct recipients.
+      {% endblocktranslate %}
+    {% endif %}
+    {% blocktranslate with month=month_messages|intcomma trimmed %}
+      {{ month }} messages this month.
+    {% endblocktranslate %}
+  </p>
+  {% translate "Open monitoring" as button_label %}
+  {% button href=dashboard_path value=button_label primary=True %}
+  {% if illustration_light %}
+    {% table class="align-center" %}
+    <tr>
+      <td align="center" class="pb16">
+        <img
+          class="digest-art digest-art--light"
+          src="{% static illustration_light %}"
+          alt=""
+          width="360"
+        >
+        <img
+          class="digest-art digest-art--dark"
+          src="{% static illustration_dark %}"
+          alt=""
+          width="360"
+        >
+      </td>
+    </tr>
+    {% endtable %}
+  {% endif %}
+  <p class="last">
+    {% blocktranslate trimmed %}
+      Back next Monday with a fresh set. Keep on sending!
+    {% endblocktranslate %}
+  </p>
+{% endblock content %}
+
+{% partialdef card %}
+  <td width="33%" class="digest-card">
+    <table role="presentation" class="digest-card-table" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td class="digest-card-body{% if tone == 'bad' %} digest-card-body--bad{% endif %}">
+          <p class="digest-card-label">{{ label }}</p>
+          <p class="digest-card-value{% if tone == 'bad' %} digest-card-value--bad{% endif %}">{{ value }}</p>
+          <p class="digest-card-caption">{{ caption }}</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+{% endpartialdef %}

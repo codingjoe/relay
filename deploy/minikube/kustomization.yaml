@@ -1,0 +1,81 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../k8s
+  - namespace.yaml
+  - dozzle-rbac.yaml
+secretGenerator:
+  - name: relay-infra
+    literals:
+      - HOSTNAME=localhost
+      - RELAY_STORAGE_DOMAIN=storage.localhost
+      - POSTGRES_PASSWORD=postgres
+      - REDIS_PASSWORD=redis
+      - RELAY_RSPAMD_PASSWORD=rspamd
+      - AWS_S3_ACCESS_KEY_ID=local
+      - AWS_S3_SECRET_ACCESS_KEY=local
+      - AWS_S3_ENDPOINT_URL=http://localhost:9000
+      - AWS_S3_REGION_NAME=fsn1
+  - name: relay-cluster-env
+    literals:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - REDIS_URL=redis://:redis@redis:6379/0
+      - TASK_REDIS_URL=redis://:redis@redis-tasks:6379/0
+      - RELAY_RSPAMD_URL=http://:rspamd@rspamd:11334
+      - RELAY_SMTP_TLS_CERT_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.crt
+      - RELAY_SMTP_TLS_KEY_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.key
+      - RELAY_MX_TLS_CERT_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.crt,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.crt
+      - RELAY_MX_TLS_KEY_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.key,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.key
+  - name: dotenvx-key
+    literals:
+      - DOTENV_PRIVATE_KEY_PRODUCTION=unused
+  - name: redis-config
+    literals:
+      - |-
+        redis.conf=requirepass redis
+        maxmemory 384mb
+        maxmemory-policy allkeys-lru
+      - |-
+        redis-tasks.conf=requirepass redis
+        maxmemory 384mb
+        maxmemory-policy noeviction
+      - |-
+        caddy.conf=requirepass redis
+        maxmemory 96mb
+        maxmemory-policy allkeys-lru
+        save ""
+        appendonly no
+  - name: rspamd-config
+    literals:
+      - worker-controller.inc=password = "rspamd";
+patches:
+  - target:
+      kind: PersistentVolumeClaim
+    patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: standard
+  - target:
+      kind: Deployment
+    patch: &size |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+  - target:
+      kind: StatefulSet
+    patch: *size
+  - target:
+      kind: Job
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+  - target:
+      kind: ConfigMap
+      name: relay-config
+    patch: |-
+      - op: remove
+        path: /data/DEBUG  # .env carries DEBUG

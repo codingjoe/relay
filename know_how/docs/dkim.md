@@ -29,16 +29,16 @@ The DKIM signing and verification process has two sides:
 ### Signing (sending server)
 
 1. The sending mail server generates a hash of selected message headers and the message body.
-1. The server signs the hash with a private key.
-1. The server adds a `DKIM-Signature` header to the message. This header contains the signature, the selector name, the signing algorithm, and the list of headers that were signed.
+2. The server signs the hash with a private key.
+3. The server adds a `DKIM-Signature` header to the message. This header contains the signature, the selector name, the signing algorithm, and the list of headers that were signed.
 
 ### Verification (receiving server)
 
 1. The receiving server extracts the selector and signing domain from the `DKIM-Signature` header.
-1. The server looks up the public key in DNS at `<selector>._domainkey.<domain>`.
-1. The server computes a hash of the same headers and body.
-1. The server verifies the signature with the public key.
-1. If the verification succeeds, the message passes DKIM. If it fails, the message is tampered with or the key is invalid.
+2. The server looks up the public key in DNS at `<selector>._domainkey.<domain>`.
+3. The server computes a hash of the same headers and body.
+4. The server verifies the signature with the public key.
+5. If the verification succeeds, the message passes DKIM. If it fails, the message is tampered with or the key is invalid.
 
 ### The selector
 
@@ -83,9 +83,9 @@ Each key type gets its own selector and DNS record. The DNS record you publish d
 ## How to set up DKIM
 
 1. Generate a public and private key pair for the domain.
-1. Store the private key on the server that signs the messages.
-1. Publish the public key in a TXT record at `<selector>._domainkey.<domain>`.
-1. Enable DKIM signing in the mail server configuration.
+2. Store the private key on the server that signs the messages.
+3. Publish the public key in a TXT record at `<selector>._domainkey.<domain>`.
+4. Enable DKIM signing in the mail server configuration.
 
 If you use a shared sending service, publish the CNAME record that the service provides. The record points to a DNS record that the service controls.
 

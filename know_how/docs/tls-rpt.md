@@ -34,8 +34,8 @@ TLS-RPT works with <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS<
 The TLS-RPT process has three steps:
 
 1. The receiving domain publishes a TLS-RPT DNS record. The record tells senders where to send reports.
-1. When a sending server fails to establish a TLS connection, it generates a report.
-1. The sending server sends the report to the destination in the DNS record.
+2. When a sending server fails to establish a TLS connection, it generates a report.
+3. The sending server sends the report to the destination in the DNS record.
 
 ### The DNS record
 
@@ -76,8 +76,8 @@ The report specifies one of these failure reasons:
 ## How to set up TLS-RPT
 
 1. Publish a TXT record at `_smtp._tls.<domain>`.
-1. Set the `rua` tag to the email address or HTTPS endpoint that receives the reports.
-1. Configure the endpoint to collect and store the JSON reports.
+2. Set the `rua` tag to the email address or HTTPS endpoint that receives the reports.
+3. Configure the endpoint to collect and store the JSON reports.
 
 The reports show which senders had TLS failures and the reason for each failure. Monitor the reports to find certificate and protocol issues before they affect your users.
 

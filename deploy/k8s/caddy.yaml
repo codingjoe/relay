@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: caddy
+        dev.dozzle.name: caddy
+        dev.dozzle.group: infra
+        dev.dozzle.icon: caddy
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: caddy
+          image: ghcr.io/codingjoe/the-box-caddy:main
+          args: ["run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: HOSTNAME}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
+            - name: RELAY_STORAGE_DOMAIN
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: RELAY_STORAGE_DOMAIN}
+          ports:
+            - {name: smtp, containerPort: 25}
+            - {name: http, containerPort: 80}
+            - {name: https, containerPort: 443}
+            - {name: submissions, containerPort: 465}
+            - {name: submission, containerPort: 587}
+            - {name: smtps, containerPort: 2465}
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              # /usr/bin/caddy carries cap_net_bind_service as a file
+              # capability, so an exec with an empty bounding set fails outright
+              # with "operation not permitted". Kubernetes does not set Docker's
+              # ip_unprivileged_port_start=0 either, so 25, 80, 443, 465 and 587
+              # all need the capability back.
+              add: [NET_ADMIN, NET_BIND_SERVICE]
+              drop: [ALL]
+          volumeMounts:
+            - {name: caddy-config, mountPath: /etc/caddy, readOnly: true}
+            - {name: caddy-data, mountPath: /data}
+            - {name: caddy-run, mountPath: /config}
+          readinessProbe: &caddyProbe
+            httpGet: {path: /caddy-health, port: 80}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *caddyProbe
+            periodSeconds: 15
+          resources:
+            requests: {cpu: 100m}
+            limits: {cpu: "1", memory: 256Mi}
+      volumes:
+        - name: caddy-config
+          configMap:
+            name: caddy-config
+        - name: caddy-data
+          persistentVolumeClaim:
+            claimName: caddy-data
+        - name: caddy-run
+          emptyDir: {}

@@ -1,19 +1,32 @@
-from email import message_from_bytes
+import re
+from email import message_from_bytes, policy
 from email.message import EmailMessage
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
+from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
+from django.templatetags.static import static
+from django.urls import reverse
+from django.utils.html import escape
 from django.utils.http import http_date
 
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
     SuppressionEntry,
-    Transmission,
 )
+
+
+def copy_button(content, value):
+    """Return the copy button tag that carries `value`, or None."""
+    return re.search(
+        rf'<button[^>]*data-copy="{re.escape(value)}"[^>]*>',
+        content,
+    )
 
 
 def make_message(org, user, **kwargs):
@@ -54,7 +67,9 @@ class TestMessageDetailView:
         assert response.headers["Last-Modified"] == http_date(
             msg.modified_at.timestamp()
         )
-        assert response.headers["Cache-Control"] == "private, no-cache"
+        assert (
+            response.headers["Cache-Control"] == "private, max-age=5, must-revalidate"
+        )
 
     def test_get__not_modified_when_etag_matches(self, admin_client, org, user):
         msg = make_message(org, user)
@@ -88,7 +103,7 @@ class TestMessageDetailView:
         assert "headers" in response.context
         assert "transmissions" in response.context
 
-    def test_get__shows_stored_headers_and_dkim_signatures(
+    def test_get__shows_stored_headers_including_dkim_signatures(
         self, admin_client, org, user
     ):
         msg = make_message(org, user)
@@ -106,22 +121,16 @@ class TestMessageDetailView:
         msg.save(update_fields=["headers"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
-        # DKIM-Signature rows have their own card and are excluded from the
-        # generic headers table.
         assert response.context["headers"] == [
             ["From", "alice@example.com"],
             ["Subject", "Test"],
-        ]
-        assert response.context["dkim_signatures"] == [
-            {
-                "v": "1",
-                "a": "ed25519-sha256",
-                "d": "acme.com",
-                "s": "relay",
-                "h": "from:subject",
-                "bh": "AAAA",
-                "b": "BBBB",
-            }
+            [
+                "DKIM-Signature",
+                (
+                    "v=1; a=ed25519-sha256; d=acme.com; s=relay; h=from:subject; "
+                    "bh=AAAA; b=BBBB"
+                ),
+            ],
         ]
 
     def test_get__malformed_dkim_signature_does_not_crash(
@@ -137,8 +146,9 @@ class TestMessageDetailView:
         msg.save(update_fields=["raw_body"])
         response = admin_client.get(f"/org/{org.slug}/email/messages/{msg.id}")
         assert response.status_code == 200
-        assert response.context["dkim_signatures"] == [
-            {"v": "1", "a": "ed25519-sha256"}
+        assert response.context["headers"][-1] == [
+            "DKIM-Signature",
+            "v=1; a=ed25519-sha256; b",
         ]
 
 
@@ -149,80 +159,182 @@ class TestTestEmailView:
         admin_client,
         django_capture_on_commit_callbacks,
         org,
-        user,
     ):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+        domain = Domain.objects.get(org=org, is_managed=True)
         with (
-            patch("services.email.msa.handlers.check_outgoing_spam") as spam_task,
+            patch("services.email.msa.handlers.deliver_message") as delivery_task,
             django_capture_on_commit_callbacks(execute=True),
         ):
-            response = admin_client.post(
-                f"/org/{org.slug}/email/messages/test",
-                {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
-            )
+            response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, subject="Test")
-        assert msg.subject == "Test"
-        assert msg.domain == domain
-        spam_task.enqueue.assert_called_once_with(
-            message_pk=str(msg.id), client_ip="127.0.0.1"
+        assert response.url == reverse(
+            "message:message-list", kwargs={"org_slug": org.slug}
         )
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.domain == domain
+        delivery_task.enqueue.assert_called_once_with(message_id=str(msg.id))
 
-    def test_post__signs_message_and_mints_feedback_id(self, admin_client, org, user):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
+    def test_post__sets_templated_headers(self, admin_client, org, user):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+        assert response.status_code == 302
+        stored = message_from_bytes(
+            OutgoingMessage.objects.get(org=org).raw_body.read(),
+            policy=policy.default,
+        )
+        assert stored["Subject"] == f"Test email from {domain.name}"
+        assert stored["From"] == f"postmaster@{domain.name}"
+        assert stored["To"] == user.email
+        assert stored["Reply-To"] is None
+
+    def test_post__stores_html_and_plain_parts(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+        assert response.status_code == 302
+        message = OutgoingMessage.objects.get(org=org)
+        stored = message_from_bytes(message.raw_body.read(), policy=policy.default)
+        parts = {
+            part.get_content_type(): part.get_content()
+            for part in stored.walk()
+            if part.get_content_maintype() == "text"
+        }
+        assert set(parts) == {"text/html", "text/plain"}
+        for part in parts.values():
+            assert f"This test message left {domain.name}." in part
+        link = f"http://testserver/org/{org.slug}/email/messages/{message.pk}"
+        assert f'href="{link}"' in parts["text/html"]
+        assert f"<{link}>" in parts["text/plain"]
+        assert static("img/word-brand.svg") in parts["text/html"]
+
+    def test_post__ignores_submitted_content(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
+            {"domain": "", "subject": "Injected", "body": "Injected"},
         )
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.subject == f"Test email from {domain.name}"
+        assert b"Injected" not in msg.raw_body.read()
+
+    def test_post__stamps_feedback_id_and_signs_message(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org)
         stored = message_from_bytes(msg.raw_body.read())
         assert any(name == "Feedback-ID" for name, _ in msg.headers)
         assert any(name == "DKIM-Signature" for name, _ in msg.headers)
-        assert msg.feedback_id
-        assert msg.feedback_id == stored["Feedback-ID"]
+        assert stored["Feedback-ID"] == f"{domain.sender_domain}:{org.pk}:tx:relay"
 
-    def test_post__records_submission(self, admin_client, org, user):
-        domain = Domain.objects.filter(org=org).first()  # noqa: multiple domains per org
-        response = admin_client.post(
-            f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Test", "body": "Hello"},
-        )
+    def test_post__records_submission(self, admin_client, org):
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org)
         transmission = Transmission.objects.get(message=msg)
         assert transmission.status == Transmission.Status.SUBMITTED
 
-    def test_post__with_real_domain(self, admin_client, org, user):
-        domain = Domain.objects.create(name="example.com", org=org)
+    def test_post__uses_managed_domain(self, admin_client, org):
+        Domain.objects.create(name="example.com", org=org)
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.domain == Domain.objects.get(org=org, is_managed=True)
+
+    def test_post__uses_selected_domain(self, admin_client, org):
+        domain = Domain.objects.create(
+            name="example.com",
+            org=org,
+            nameserver_status=Domain.Status.OK,
+            spf_status=Domain.Status.OK,
+            dkim_rsa2048_status=Domain.Status.OK,
+            dmarc_status=Domain.Status.OK,
+        )
+
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Hi", "body": "World"},
+            {"domain": str(domain.pk)},
         )
+
         assert response.status_code == 302
-        msg = OutgoingMessage.objects.get(org=org, subject="Hi")
+        msg = OutgoingMessage.objects.get(org=org)
         assert msg.domain == domain
+        assert msg.mail_from == f"postmaster@{domain.name}"
 
     def test_post__does_not_use_domain_from_other_org(
         self,
         admin_client,
         org,
         write_org,
-        user,
     ):
-        domain = Domain.objects.create(name="other.com", org=write_org)
-        admin_client.raise_request_exception = False
+        other_domain = Domain.objects.get(org=write_org, is_managed=True)
 
         response = admin_client.post(
             f"/org/{org.slug}/email/messages/test",
-            {"domain": str(domain.pk), "subject": "Cross-org", "body": "Hello"},
+            {"domain": str(other_domain.pk)},
         )
 
-        assert response.status_code == 404
-        assert not OutgoingMessage.objects.filter(
-            org=org,
-            subject="Cross-org",
-        ).exists()
+        assert response.status_code == 302
+        msg = OutgoingMessage.objects.get(org=org)
+        assert msg.domain == Domain.objects.get(org=org, is_managed=True)
+        assert msg.domain != other_domain
+
+    def test_post__without_managed_domain(self, admin_client, org):
+        Domain.objects.filter(org=org, is_managed=True).delete()
+
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "message:message-list", kwargs={"org_slug": org.slug}
+        )
+        assert not OutgoingMessage.objects.filter(org=org).exists()
+        assert any(
+            "Add a sending domain first." in str(message)
+            for message in get_messages(response.wsgi_request)
+        )
+
+    def test_post__refuses_suppressed_recipient(self, admin_client, org, user):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email=user.email, reason=SuppressionEntry.Reason.MANUAL
+        )
+
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+
+        assert response.status_code == 302
+        assert not OutgoingMessage.objects.filter(org=org).exists()
+        assert any(
+            "Recipient is on the suppression list." in str(message)
+            for message in get_messages(response.wsgi_request)
+        )
+
+    def test_post__refuses_recipient_without_address(self, admin_client, org, user):
+        user.email = ""
+        user.save(update_fields=["email"])
+
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+
+        assert response.status_code == 302
+        assert not OutgoingMessage.objects.filter(org=org).exists()
+        assert any(
+            "Your account cannot receive email." in str(message)
+            for message in get_messages(response.wsgi_request)
+        )
+
+    def test_post__stores_body_for_long_message_id(
+        self, admin_client, org, monkeypatch
+    ):
+        # Long enough to outgrow the raw body file field, as the FQDN of a
+        # CI runner does.
+        monkeypatch.setattr(
+            "django.core.mail.message.DNS_NAME",
+            "runnervmlun5p.hiyczbto55aehk554uscjghr2a.gx.internal.cloudapp.net",
+        )
+
+        response = admin_client.post(f"/org/{org.slug}/email/messages/test")
+
+        assert response.status_code == 302
+        assert OutgoingMessage.objects.get(org=org).raw_body
 
 
 @pytest.mark.django_db
@@ -236,6 +348,9 @@ class TestCredentialListView:
     def test_get__ok_for_member(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
+        content = response.content.decode()
+        assert 'class="empty"' in content
+        assert "No credentials yet." in content
 
     @pytest.mark.django_db
     def test_get__filters_by_org(self, admin_client, org, write_org):
@@ -247,11 +362,137 @@ class TestCredentialListView:
         assert len(creds) == 1
         assert creds[0].name == "mine"
 
-    def test_get__context_has_smtp_info(self, admin_client, org):
+    @pytest.mark.django_db
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.headers["Cache-Control"] == "no-store"
+
+    def test_get__context_has_smtp_info(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
         assert "smtp_starttls_ports" in response.context
         assert "smtp_implicit_tls_ports" in response.context
+        assert response.context["smtp_hostname"] == "smtp.relay.example"
+        assert response.context["smtp_uri"] == (
+            "smtps://test-org:<credential key>@smtp.relay.example"
+        )
+        assert response.context["smtp_django_uri"] == (
+            "smtp+ssl://test-org:<credential key>@smtp.relay.example:465"
+        )
+
+    def test_get__offers_the_sandbox_choice(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="id_sandbox"' in content
+        assert 'name="sandbox" value="true"' not in content
+
+    def test_get__renders_connection_uri(self, admin_client, org, settings):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "smtps://test-org:&lt;credential key&gt;@smtp.relay.example" in content
+        assert (
+            "smtp+ssl://test-org:&lt;credential key&gt;@smtp.relay.example:465"
+            in content
+        )
+
+    def test_get__opens_the_key_dialog_after_creation(
+        self, admin_client, org, settings
+    ):
+        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' in content
+        assert raw_key in content
+        assert f"smtps://{org.slug}:{raw_key}@smtp.relay.example" in content
+        assert f"smtp+ssl://{org.slug}:{raw_key}@smtp.relay.example:465" in content
+
+    def test_get__renders_copy_buttons_in_the_key_dialog(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        uri_button = copy_button(content, escape(response.context["smtp_uri_with_key"]))
+        key_button = copy_button(content, raw_key)
+        assert uri_button is not None
+        assert 'data-size="icon-xs"' in uri_button.group()
+        assert re.search(
+            r"aria-label=[\"']Copy connection URI[\"']", uri_button.group()
+        )
+        assert key_button is not None
+        assert 'data-size="icon"' in key_button.group()
+        assert re.search(r"aria-label=[\"']Copy key[\"']", key_button.group())
+
+    def test_get__key_row_carries_the_key_only_while_it_is_pending(
+        self, admin_client, org
+    ):
+        """The static table points at the key; the dialog is where it is shown."""
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+        raw_key = admin_client.session["raw_key"]
+
+        dialog = admin_client.get(f"/org/{org.slug}/email/credentials/")
+        dialog_content = dialog.content.decode()
+        dialog_table = dialog_content.split('id="dlg-credential-key"', 1)[1]
+        assert raw_key in dialog_table
+
+        admin_client.get(f"/org/{org.slug}/email/credentials/")
+        again = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        assert raw_key not in again.content.decode()
+        assert "your credential key" in again.content.decode()
+
+    def test_get__key_dialog_carries_the_connection_values(self, admin_client, org):
+        admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
+
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert content.index('id="dlg-credential-key"') < content.index(
+            'class="accordion"'
+        )
+        assert content.index('class="accordion"') < content.index("<table")
+
+    def test_get__hides_the_values_until_a_key_is_pending(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        assert 'id="dlg-credential-key"' not in content
+        assert "<table" in content
+
+    def test_get__renders_copy_buttons_in_the_connection_table(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
+
+        content = response.content.decode()
+        buttons = [
+            ("Copy server", response.context["smtp_hostname"]),
+            ("Copy port", ", ".join(map(str, response.context["smtp_starttls_ports"]))),
+            (
+                "Copy port",
+                ", ".join(map(str, response.context["smtp_implicit_tls_ports"])),
+            ),
+            ("Copy username", org.slug),
+        ]
+        for label, value in buttons:
+            button = copy_button(content, value)
+            assert button is not None, value
+            assert 'data-size="icon"' in button.group(), value
+            label_pattern = rf"aria-label=(?P<q>[\"']){re.escape(label)}(?P=q)"
+            assert re.search(label_pattern, button.group()), value
+
+        uri = escape(response.context["smtp_uri"])
+        uri_button = copy_button(content, uri)
+        assert uri_button is not None
+        assert 'data-size="icon-xs"' in uri_button.group()
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):
@@ -263,11 +504,39 @@ class TestCredentialListView:
 class TestCredentialCreateView:
     def test_post__creates_credential(self, admin_client, org):
         response = admin_client.post(
-            f"/org/{org.slug}/email/credentials/new", {"name": "Production"}
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Production", "sandbox": "false"},
         )
         assert response.status_code == 302
         cred = MsaCredential.objects.get(org=org)
         assert cred.name == "Production"
+        assert cred.type == MsaCredential.Type.SMTP
+
+    def test_post__creates_sandbox_credential(self, admin_client, org):
+        admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Sandbox", "sandbox": "true"},
+        )
+        cred = MsaCredential.objects.get(org=org)
+        assert cred.type == MsaCredential.Type.SANDBOX
+
+    def test_post__returns_to_the_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": f"/org/{org.slug}/email/"},
+        )
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/email/"
+
+    def test_post__ignores_an_external_next_page(self, admin_client, org):
+        response = admin_client.post(
+            f"/org/{org.slug}/email/credentials/new",
+            {"name": "Prod", "next": "https://evil.example/steal"},
+        )
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "msa:credential-list", kwargs={"org_slug": org.slug}
+        )
 
     def test_post__stores_raw_key_in_session(self, admin_client, org):
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
@@ -326,6 +595,76 @@ class TestSuppressionListView:
         assert entries[0].address_hash == SuppressionEntry.hash_address(
             "mine@example.com"
         )
+
+    @pytest.mark.django_db
+    def test_get__leads_with_the_chart(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert content.index('id="chart-suppression"') < content.index(
+            'id="form-suppression"'
+        )
+
+    @pytest.mark.django_db
+    def test_get__counts_the_addresses_atop_the_card(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="one@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="two@example.com", reason=SuppressionEntry.Reason.BOUNCE
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "two addresses on the suppression list" in content
+        assert 'data-dialog="dlg-clear-suppression"' in content
+        assert content.index('class="empty"') < content.index('id="form-suppression"')
+        assert content.index('id="form-suppression"') < content.index(
+            'id="dlg-clear-suppression"'
+        )
+
+    @pytest.mark.django_db
+    def test_get__counts_no_addresses(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "0 addresses on the suppression list" in content
+        assert 'data-dialog="dlg-clear-suppression"' not in content
+
+    @pytest.mark.django_db
+    def test_post__clears_the_list(self, admin_client, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org, email="mine@example.com", reason=SuppressionEntry.Reason.MANUAL
+        )
+
+        response = admin_client.post(f"/org/{org.slug}/email/suppression/clear")
+
+        assert response.status_code == 302
+        assert not SuppressionEntry.objects.filter(org=org).exists()
+
+    @pytest.mark.django_db
+    def test_get__renders_one_address_form_for_all_actions(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/email/suppression/")
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'id="form-suppression"' in content
+        assert (
+            f'formaction="{reverse("msa:suppression-check", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert (
+            f'formaction="{reverse("msa:suppression-remove", kwargs={"org_slug": org.slug})}"'
+            in content
+        )
+        assert 'id="suppression-address"' in content
 
     @pytest.mark.django_db
     def test_get__context_has_chart(self, admin_client, org):

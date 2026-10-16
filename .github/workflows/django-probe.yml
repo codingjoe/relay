@@ -1,0 +1,14 @@
+name: Django Probe
+on:
+  schedule:
+    - cron: "11 11 1 * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  django-probe:
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.4.0
+    with:
+      path: "."
+    secrets:
+      DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}

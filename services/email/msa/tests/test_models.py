@@ -2,10 +2,16 @@ import secrets
 
 import pytest
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import MsaCredential, OutgoingMessage, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import (
+    MsaCredential,
+    OutgoingMessage,
+    TerminalStatusError,
+)
 
 
 def make_message(org, user, **kwargs):
@@ -42,22 +48,108 @@ class TestOutgoingMessageDefaults:
         msg = make_message(org, user)
         assert msg.status == OutgoingMessage.Status.PENDING
 
-    def test_default_received_with_tls__false(self):
-        user = User.objects.create_user(username="alice", email="a@example.com")
-        org = Organization.objects.create(slug="o")
-        msg = make_message(org, user)
-        assert msg.received_with_tls is False
-
-
-@pytest.mark.django_db
-class TestTransmissionStr:
     def test_str__includes_message_and_status(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="o")
         msg = make_message(org, user)
-        t = Transmission.objects.create(message=msg, status=Transmission.Status.SENT)
+        t = Transmission.objects.create(
+            message=msg,
+            status=Transmission.Status.SENT,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
         assert str(msg) in str(t)
         assert "sent" in str(t)
+
+
+@pytest.mark.django_db
+class TestOutgoingMessageSave:
+    def test_save__refuses_to_leave_a_final_status(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.SANDBOXED)
+
+        msg.status = OutgoingMessage.Status.SENT
+
+        with pytest.raises(TerminalStatusError):
+            msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+
+    def test_save__refuses_to_leave_a_final_status_on_a_full_write(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.BOUNCED)
+
+        msg.status = OutgoingMessage.Status.PENDING
+
+        with pytest.raises(TerminalStatusError):
+            msg.save()
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.BOUNCED
+
+    def test_save__allows_a_late_bounce_report_to_bounce_a_sent_message(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.SENT)
+
+        msg.status = OutgoingMessage.Status.BOUNCED
+        msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.BOUNCED
+
+    def test_save__allows_a_late_bounce_report_to_bounce_a_failed_message(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.FAILED)
+
+        msg.status = OutgoingMessage.Status.BOUNCED
+        msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.BOUNCED
+
+    def test_save__allows_a_write_that_keeps_the_final_status(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.SANDBOXED)
+
+        msg.subject = "Kept"
+        msg.save(update_fields=["subject", "status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+        assert msg.subject == "Kept"
+
+    def test_save__allows_a_pending_message_to_move_on(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user)
+
+        msg.status = OutgoingMessage.Status.HELD
+        msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.HELD
+
+    def test_save__refuses_a_second_status_change(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user)
+
+        msg.status = OutgoingMessage.Status.HELD
+        msg.save(update_fields=["status"])
+
+        msg.status = OutgoingMessage.Status.SENT
+
+        with pytest.raises(TerminalStatusError):
+            msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.HELD
 
 
 @pytest.mark.django_db
@@ -71,7 +163,7 @@ class TestMsaCredential:
         org = Organization.objects.create(slug="o")
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="prod")
         assert cred.key_hash
-        assert cred.key_prefix == raw_key[:8]
+        assert cred.key_prefix == raw_key[:4]
         assert cred.salt == "services.email.msa.models.MsaCredential"
         assert cred.org == org
 
@@ -86,7 +178,7 @@ class TestMsaCredential:
         raw_key = secrets.token_urlsafe(15)
         cred.set_key(raw_key)
         assert cred.key_hash != raw_key
-        assert cred.key_prefix == raw_key[:8]
+        assert cred.key_prefix == raw_key[:4]
 
     def test_verify_key__correct_key(self):
         org = Organization.objects.create(slug="o")
@@ -113,7 +205,7 @@ class TestMsaCredential:
         cred.hold = True
         cred.save(update_fields=["hold"])
         qs = MsaCredential.objects.select_related("org").filter(
-            key_prefix=raw_key[:8],
+            key_prefix=raw_key[:4],
             org__memberships__user__username=user.username,
             type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
             hold=False,
@@ -123,7 +215,7 @@ class TestMsaCredential:
     def test_not_hold__included_in_query(self, user, org):
         _cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="test")
         qs = MsaCredential.objects.select_related("org").filter(
-            key_prefix=raw_key[:8],
+            key_prefix=raw_key[:4],
             org__memberships__user__username=user.username,
             type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
             hold=False,
@@ -134,7 +226,7 @@ class TestMsaCredential:
         org = Organization.objects.create(slug="o")
         cred, raw_key = MsaCredential.objects.create_with_key(org=org, name="prod")
         assert cred.pk is not None
-        assert cred.key_prefix == raw_key[:8]
+        assert cred.key_prefix == raw_key[:4]
         assert cred.org == org
         assert cred.name == "prod"
 

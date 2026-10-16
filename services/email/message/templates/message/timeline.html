@@ -1,0 +1,19 @@
+{% load i18n esm %}
+{% translate "duration" as duration_label %}
+{% translate "click the bar to open the transcript" as transcript_hint %}
+{% translate "score" as score_label %}
+{% translate "antivirus" as antivirus_label %}
+<article class="card">
+  <div
+    id="transmission-profile"
+    role="img"
+    aria-label='{% translate "timeline of transmissions and processing stages"|capfirst %}'
+    data-duration="{{ duration_label }}"
+    data-score="{{ score_label }}"
+    data-antivirus="{{ antivirus_label }}"
+    data-transcript="{{ transcript_hint }}"
+  >
+  </div>
+  {{ timeline|json_script:"transmission-timeline" }}
+  {% esm '#message/timeline.js' %}
+</article>

@@ -22,7 +22,7 @@ one:
 | Check         | Where relay looks                  | What it wants to see                                 |
 | ------------- | ---------------------------------- | ---------------------------------------------------- |
 | NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
-| SPF           | root and sender subdomain TEXT     | a record that authorizes the relay sender host       |
+| SPF           | root and sender subdomain TXT      | a record that authorizes each relay sending IP       |
 | DKIM          | two CNAME records                  | `{selector}._domainkey` pointing into the relay zone |
 | DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
 | MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
@@ -37,9 +37,15 @@ Your message carries one more identity besides your domain keys. relay
 cosigns customers' messages with the keys of the platform domain. The cosign
 carries the platform domain's name, so a receiver can tell the platform
 apart from your domain. Your domain signatures and the cosign cover the same
-headers: From, To, Subject, Date, Message-ID, and `Feedback-ID`. A mailbox
-provider copies `Feedback-ID` into spam complaints, so the complaint points
-back at one message. The complaint path is on the
+headers: From, To, Subject, Date, Message-ID, and `Feedback-ID`.
+
+relay sets that header for you from the sending domain, your organization,
+the mail type, and the platform's own identifier last. Gmail groups its
+complaint rates by those identifiers. It reports an identifier only when that
+identifier appears in enough mail, so every message of a stream carries the
+same four values. The format is on the
+<a href="{% url 'know_how:detail' slug='feedback-id' %}">Feedback-ID</a>
+page. The complaint path is on the
 <a href="{% url 'docs:detail' slug='reputation' %}">Sender
 reputation</a> page.
 
@@ -57,20 +63,25 @@ equation above.
 sequenceDiagram
     participant App as Your application
     participant MSA as relay SMTP (587/465)
-    participant Scan as rspamd
+    participant Worker as relay worker
+    participant Scan as Scanner
     participant Sign as DKIM signer
     participant Remote as Recipient MX
 
     App->>MSA: STARTTLS, AUTH, message
     MSA->>MSA: sender-domain, suppression, billing checks
     MSA-->>App: 250 OK enqueued
-    MSA->>Scan: full message scan
-    Scan-->>MSA: score and action
-    MSA->>MSA: held if spammy, else continue
-    MSA->>Sign: sign with RSA-2048, Ed25519
-    Sign-->>MSA: signed message
-    MSA->>Remote: STARTTLS on 25, per-MX attempts
-    Remote-->>MSA: SMTP response, recorded in the dashboard
+    MSA->>Worker: enqueue spam scan for the stored message
+    Worker->>Scan: scan the stored message
+    Scan-->>Worker: score and action
+    alt score reaches the hold threshold
+        Worker->>Worker: status held, stop
+    else clean
+        Worker->>Sign: sign with RSA-2048, Ed25519
+        Sign-->>Worker: signed message
+        Worker->>Remote: STARTTLS on 25, per-MX attempts
+        Remote-->>Worker: SMTP response, recorded in the dashboard
+    end
 ```
 
 Each step has a user-visible consequence in the dashboard, listed in the next
@@ -93,35 +104,55 @@ relay stores the message as suppressed, so your application sees no error
 and no retry loop.
 
 You can add entries manually, for example before a large import.
-If the address returns, remove the entry. Addresses store as salted SHA-256 hashes
+If the address returns, remove the entry. Clearing the whole list is a
+separate action, and it warns first: every address that bounced starts
+receiving mail again, and those bounces count against your sender
+reputation. Addresses store as salted SHA-256 hashes
 only. See <a href="{% url 'docs:detail' slug='data-privacy' %}">Data
 privacy</a> for what that means.
 
 ## Content quality: the outbound spam gate
 
-Before delivery, rspamd scores each outgoing message. A message whose score
-reaches the hold threshold stays HELD and does not reach the recipient. You
-see the score, the spam action, and the message content in the dashboard, so
-you can fix the template, not fight the queue. This gate catches compromised
-credentials, broken templates, and spamtraps before they hurt your domain.
+Before delivery, relay scores each outgoing message and scans it for
+malware. A message whose score reaches the hold threshold, or that the scan
+rejects, stays HELD and does not reach the recipient. If the scanner cannot
+run, the message stays pending instead of being held. You see the score,
+the spam action, the malware verdict, and the message content in the
+dashboard, so you can fix the template, not fight the queue. This gate
+catches compromised credentials, broken templates, and spamtraps before
+they hurt your domain.
 
 ## When delivery fails
 
 relay tries every MX host of the recipient domain in preference order and
-records one transmission per attempt with the remote answer. The outcomes:
+records one transmission per attempt, with the host and the reason on each
+row. The outcomes:
 
 - **5xx answer**. The remote server rejects the message permanently.
   relay marks the message as bounced and suppresses the address. The
   dashboard shows the exact SMTP answer.
+- **4xx answer**. The remote server is not accepting the message right now.
+  relay records the answer for that host and tries the next one. When no
+  host accepted the message, relay keeps it pending and retries the whole
+  list on a backoff schedule: 2, 4, 8, 16 and 32 minutes between attempts,
+  about an hour in total. The sixth failed attempt ends the message failed,
+  and every host keeps its own answer from every attempt.
 - **Bounce report after acceptance**. The remote accepted the message and
   failed it permanently later. relay marks the message as bounced and
   suppresses the address, and the dashboard shows the remote's answer.
   A report that only announces a delay records a retry and changes no
   status.
-- **No reachable MX or all hosts fail and no MTA-STS fallback**. relay
-  fails the message, and the transcript shows why.
-- **Transport or storage problems**. relay fails the message, and the
-  transcript shows where it stopped.
+- **No MX records or a failed lookup**. relay records why there was nothing
+  to try, and separates a domain without MX records from a lookup that
+  failed, for example a resolver timeout. Both are retried like a temporary
+  answer, because a delegation or a resolver may recover.
+- **MTA-STS rejection**. relay skips the host and records which policy
+  pattern rejected it. A policy that blocks every host is final: relay
+  cannot talk its way past a published policy.
+- **Transport or storage problems**. relay records the failing host and the
+  error, for example a connection timeout or a dropped connection, and
+  retries the message. A fault inside relay, for example a storage error,
+  is recorded and retried the same way.
 
 A 250 acceptance from your submission is not a delivery confirmation. The
 dashboard's transmissions are the confirmation path.

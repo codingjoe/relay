@@ -3,12 +3,6 @@ on:
   schedule:
     - cron: '0 0 * * *' # Sync daily at midnight
   workflow_dispatch: # Allow manual trigger
-    inputs:
-      environment:
-        description: 'Target environment for deployment'
-        required: true
-        type: environment
-        default: 'production'
 concurrency:
   group: backup
   cancel-in-progress: false
@@ -17,10 +11,31 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: codingjoe/the-box/actions/backup@main
+      - uses: actions/checkout@v7
+      - name: Authenticate to the cluster
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          mkdir -p ~/.kube
+          printf '%s\n' "$KUBECONFIG_CONTENT" > ~/.kube/config
+          chmod 600 ~/.kube/config
+      - name: Capture Postgres backup
+        run: |
+          kubectl exec postgres-0 -- /usr/bin/pg_dump -Fc -U postgres postgres > backup.dump
+          test -s backup.dump
+      - name: Encrypt backup
+        env:
+          BACKUP_PUBLIC_KEY_PATH: .box/backup.pub
+        run: |
+          if [ ! -s "$BACKUP_PUBLIC_KEY_PATH" ]; then
+            echo "::error::Public key file '$BACKUP_PUBLIC_KEY_PATH' is missing or empty. Generate a GPG key pair and commit the public key to the repository."
+            exit 1
+          fi
+          gpg --import "$BACKUP_PUBLIC_KEY_PATH"
+          recipient=$(gpg --list-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')
+          gpg --batch --yes --trust-model always --encrypt --recipient "$recipient" --output backup.dump.gpg backup.dump && rm backup.dump
+      - name: Upload Postgres backup artifact
+        uses: actions/upload-artifact@v7
         with:
-          ssh-host: ${{ vars.SSH_HOSTNAME }}
-          ssh-known-hosts: ${{ vars.SSH_KNOWN_HOSTS }}
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          dotenv-private-key: ${{ secrets.DOTENV_PRIVATE_KEY_PRODUCTION }}
-          environment: ${{ github.event.inputs.environment || 'production' }}
+          name: backup.dump.gpg
+          path: backup.dump.gpg

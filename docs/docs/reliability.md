@@ -1,6 +1,6 @@
 ---
 name: Reliability
-description: Queued delivery, transmission records, retry schedules, and health monitoring
+description: Queued delivery, transmission records, retry schedules, and the maintenance window
 author: Johannes Maron
 ---
 
@@ -17,16 +17,19 @@ relay stores your submission before any processing:
 
 ```mermaid
 flowchart TD
-    A[250 OK: message stored as pending] --> B[rspamd outbound scan]
+    A[250 OK: message stored as pending] --> B[Outbound spam scan]
     B -- held --> C[Status held]
     B -- clean --> D[DKIM sign all keys]
     D --> E[MX lookup, MTA-STS filter]
-    E --> F[Attempt 1]
-    F --> G[Status sent, transcript stored]
-    G -- late bounce report --> I
-    E -- all hosts fail --> H[Status failed, transcript stored]
-    H -- late bounce report --> I
-    E -- permanent 5xx --> I[Status bounced + suppression]
+    E --> F[Attempt at every MX host]
+    F -- accepted --> G[Status sent, transcript stored]
+    F -- 5xx permanent --> H[Status bounced + suppression]
+    F -- late bounce report --> H
+    F -- temporary failure, or no host to try --> I[Status stays pending through the backoff]
+    I --> F
+    I -- sixth attempt failed --> J[Status failed, transcript stored]
+    J -- late bounce report --> H
+    F -- every host blocked by MTA-STS --> K[Status failed, transcript stored]
 ```
 
 Message storage comes before any delivery logic. If a process dies between
@@ -37,6 +40,9 @@ from the queue state, performs through an attempt, and records the attempt.
 
 Every accepted submission and every delivery attempt produces one immutable
 transmission row with:
+
+- the time the leg started and the time it finished, so the dashboard can
+  plot real attempt durations,
 
 - the submission row records the acceptance answer and whether the
   submission arrived over TLS,
@@ -51,10 +57,14 @@ transmission row with:
 
 - the SMTP status code and the complete answer text,
 
-- a log reference for later inspection.
+- a failed attempt records the MX host and the reason relay saw: the SMTP
+  answer, the MTA-STS policy that rejected the host, the transport error, or
+  the lookup that found no host to try at all.
 
-Failures become visible with their reasons instead of disappearing. Support
-starts from those facts, not from memories.
+Failures become visible with their reasons instead of disappearing. relay
+also logs every delivery outcome with the message ID, the recipient, the
+host it reached, and the reason, so a support thread is traceable in the
+log. Support starts from those facts, not from memories.
 
 ## How failure path work
 
@@ -62,54 +72,61 @@ starts from those facts, not from memories.
 flowchart TD
     A[Attempt to MX host 1, preference order] -- fail --> B[Attempt host 2]
     B -- fail --> C[Attempt host n]
-    C -- fail --> D[Mark failed]
-    D -- late bounce report --> E
-    A -- 5xx permanent --> E[Mark bounced, suppress the address]
-    A -- 2xx-ish success --> F[Mark sent]
-    F -- late bounce report --> E
+    A -- 5xx permanent --> D[Mark bounced, suppress the address]
+    A -- accepted --> E[Mark sent]
+    E -- late bounce report --> D
+    C -- temporary failure --> F[Stay pending, wait for the backoff]
+    F --> A
+    F -- budget spent --> G[Mark failed]
+    G -- late bounce report --> D
+    C -- every host blocked by MTA-STS --> G
 ```
 
 - **Multiple MX hosts.** relay walks the MX list by preference and skips
   hosts that MTA-STS rejects, so a single broken host does not block
-  delivery.
-- **No MX records found** results in a clear failure, not in a silent drop.
+  delivery. Every host it tried or skipped keeps its own row with the reason,
+  so a failed message never hides which host said what.
+- **No MX records found** never drops the message silently: the lookup is
+  recorded and retried with the schedule, because a delegation that has not
+  propagated yet may resolve on a later attempt. A lookup that fails instead
+  of answering, for example a resolver timeout, is recorded as a lookup
+  failure and never as a missing record, and is retried the same way.
 - **Permanent (5xx) answers bounce immediately** and feed the automatic
-  suppression list, and a permanent failure in a late bounce report does
-  the same. No retry storm at an unwilling receiver.
-- **Transient failures** surface in the transcript list, and the message
-  ending in failed keeps the last answer for diagnosis.
+- **Permanent (5xx) answers bounce immediately** and feed the automatic
+  suppression list. A permanent failure in a late bounce report does the
+  same. No retry storm at an unwilling receiver.
+- **Temporary answers and transport errors** are recorded against the host
+  that gave them, and relay tries the next MX host. When no host accepted the
+  message, relay keeps the message pending and retries the whole list on the
+  backoff schedule. Every attempt files its own rows, so the message ends
+  failed only when the schedule is spent, with the answer of every host on
+  every attempt kept for diagnosis. An MTA-STS policy that blocks every host
+  is final instead: relay cannot talk its way past a policy.
 
 ## Automatic retry schedules
 
 relay defines explicit retry behavior for external systems:
 
-| Action             | Schedule                                                 | Notes                                   |
-| ------------------ | -------------------------------------------------------- | --------------------------------------- |
-| Outbound spam scan | Backoff 1 s to 5 min, up to 5 attempts                   | Only network errors (HTTP and OS) retry |
-| Webhook delivery   | 10 attempts, immediate up to 24 h gaps, about 75 h total | 0 to 29 s jitter on every retry         |
-| Inbound spam scan  | 1 s to 5 min backoff, up to 5 attempts                   | Same error classes as outbound          |
+| Action                | Schedule                                                     | Notes                                              |
+| --------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
+| Delivery to MX hosts  | 6 attempts, waits of 2, 4, 8, 16 and 32 min, about 1 h total | 5xx bounces immediately, an MTA-STS block is final |
+| Spam and malware scan | Retried for about a day                                      | Delays mail instead of losing it                   |
+| Webhook delivery      | 10 attempts, immediate up to 24 h gaps, about 75 h total     | 0 to 29 s jitter on every retry                    |
+
+Delivery retries keep the message pending and record every attempt. The
+schedule stops early the moment a host accepts the message, and the message
+ends failed after the sixth unsuccessful attempt.
 
 Webhook retries stop early on success. Every delivery attempt carries its
 URL, response code, and a response excerpt of 2,000 characters, so an
 endpoint misbehavior shows as data.
 
-## Health endpoints
-
-The web process exposes two health endpoints for load balancers and uptime
-monitors:
-
-| Endpoint          | Checks                               | Use                    |
-| ----------------- | ------------------------------------ | ---------------------- |
-| `/health/`        | Disk, memory                         | Lightweight outer loop |
-| `/health/django/` | Cache, database, Redis, disk, memory | Full stack probe       |
-
-Both answer with a status and an HTTP 200 when healthy. Monitor them with
-whatever you use elsewhere. You need no special headers.
-
 ## Observability of failures
 
 - **Errors go to Sentry**, all processes share one project, off by default.
   No message bodies, no credentials, no tokens travel there.
+- **Releases are tracked in Sentry**, every deploy names the revision it ships
+  and attaches its commits, so an error points at the release that produced it.
 - **Dashboard transmissions** show each outbound attempt with its SMTP
   conversation.
 - **Webhook delivery rows** show inbound webhook status.
@@ -122,6 +139,18 @@ whatever you use elsewhere. You need no special headers.
 - Distinguish bounce types where it matters: a "550 mailbox unknown" answer
   in the dashboard transcript is final, do not wait it out. The suppression
   already protects you.
+
+## Maintenance window
+
+relay upgrades its host and Kubernetes on Wednesdays between 01:00 and 03:00
+UTC, when mail traffic is lowest. The window is skipped when Hetzner, the
+hosting provider, reports an incident or maintenance of its own: relay reads
+Hetzner's status page before it starts, and only then touches the host.
+
+An upgrade reboots the host, so open SMTP connections drop and an attempt in
+flight fails. The queue model above covers that gap: every message is stored
+before delivery starts, and an interrupted attempt is retried on its schedule.
+Expect a delivery delay during the window, never a lost message.
 
 ## Related pages
 

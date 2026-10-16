@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         sys.stdout.reconfigure(line_buffering=True)
-        host = options["host"] or "0.0.0.0"
+        host = options["host"] or "0.0.0.0"  # noqa: S104
         port = options["port"] or 53
 
         resolver = DNSResolver()

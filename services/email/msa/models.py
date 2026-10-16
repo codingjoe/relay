@@ -1,6 +1,5 @@
 import datetime
 import hashlib
-import uuid
 from enum import nonmember
 
 from django.core.validators import validate_email
@@ -14,6 +13,15 @@ from accounts.models import Credential, OrganizationOwned
 from services.email.message.models import Message
 
 
+class TerminalStatusError(ValueError):
+    """A write tried to move a message out of a final status."""
+
+    def __init__(self, message_pk, stored_status, status):
+        super().__init__(
+            f"Message {message_pk} reached {stored_status} and cannot become {status}"
+        )
+
+
 class OutgoingMessage(Message):
     """Deliver outbound email submitted via the SMTP server."""
 
@@ -24,6 +32,7 @@ class OutgoingMessage(Message):
         BOUNCED = "bounced", _("bounced")
         DROPPED = "dropped", _("dropped")
         SUPPRESSED = "suppressed", _("suppressed")
+        SANDBOXED = "sandboxed", _("sandboxed")
         FAILED = "failed", _("failed")
         DEFAULT = nonmember("pending")
 
@@ -47,15 +56,12 @@ class OutgoingMessage(Message):
         blank=True,
         related_name="outgoing_messages",
     )
-    feedback_id = models.TextField(
-        _("Feedback-ID"),
-        blank=True,
-        default="",
-        db_index=True,
+    is_sandbox = models.BooleanField(
+        _("sandbox"),
+        default=False,
         help_text=_(
-            "Feedback-ID header relay minted for this message. Providers "
-            "echo it in FBL complaints, proving per-message identity when "
-            "they do not echo the VERP envelope sender."
+            "Whether a sandbox credential submitted the message, which "
+            "relay never transmits."
         ),
     )
 
@@ -69,130 +75,27 @@ class OutgoingMessage(Message):
 
     url_name = "message-detail"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__status = self.status
 
-class Transmission(TimeStamped):
-    """
-    Track a single SMTP leg of an outgoing message.
+    def save(self, *args, **kwargs):
+        """
+        Refuse a status change on a message that already left pending.
 
-    Each message starts with the submission to relay's MSA and can gain
-    multiple delivery transmissions (for example, retry attempts).
-    """
-
-    class Status(models.TextChoices):
-        SUBMITTED = "submitted", _("submitted")
-        SENT = "sent", _("sent")
-        FAILED = "failed", _("failed")
-        RETRY = "retry", _("retry")
-        BOUNCED = "bounced", _("bounced")
-
-    class TlsMode(models.TextChoices):
-        PLAINTEXT = "plaintext", "plaintext"
-        STARTTLS = "starttls", "STARTTLS"
-        TLS = "tls", "TLS"
-
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid7,
-        editable=False,
-    )
-    message = models.ForeignKey(
-        OutgoingMessage,
-        on_delete=models.CASCADE,
-        related_name="transmissions",
-    )
-    mx_host = models.TextField(
-        _("MX host"),
-        blank=True,
-        help_text=_("MX hostname this delivery attempt dialed."),
-    )
-    sending_mta_ip_address = models.GenericIPAddressField(
-        _("sending MTA IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address relay sent this delivery attempt from."),
-    )
-    receiving_mx_ip_address = models.GenericIPAddressField(
-        _("receiving MX IP address"),
-        null=True,
-        blank=True,
-        help_text=_("IP address of the MX that handled this delivery attempt."),
-    )
-    status = models.TextField(
-        _("status"),
-        choices=Status,
-        help_text=_("Outcome of this delivery attempt."),
-    )
-    code = models.PositiveIntegerField(
-        _("code"),
-        null=True,
-        blank=True,
-        help_text=_("SMTP response code from the remote server."),
-    )
-    output = models.TextField(
-        _("output"),
-        blank=True,
-        help_text=_("Raw SMTP transcript from the remote server."),
-    )
-    details = models.TextField(
-        _("details"),
-        blank=True,
-        help_text=_("Human-readable explanation of the outcome."),
-    )
-    tls_mode = models.TextField(
-        _("TLS mode"),
-        choices=TlsMode,
-        default=TlsMode.PLAINTEXT,
-        help_text=_("TLS transport negotiated for this delivery attempt."),
-    )
-    tls_version = models.TextField(
-        _("TLS version"),
-        blank=True,
-        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
-    )
-    tls_cipher = models.TextField(
-        _("TLS cipher"),
-        blank=True,
-        help_text=_("Negotiated TLS cipher suite."),
-    )
-    tls_certificate = models.ForeignKey(
-        "kms.Certificate",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="transmissions",
-    )
-    log_id = models.TextField(
-        _("log ID"),
-        blank=True,
-        help_text=_("Remote server log identifier."),
-    )
-
-    class Meta(TimeStamped.Meta):
-        ordering = ["-created_at"]
-
-    @classmethod
-    def record_submission(cls, message, ssl):
-        """Record the submission relay accepted for a message."""
-        cls.objects.create(
-            message=message,
-            status=cls.Status.SUBMITTED,
-            code=250,
-            output="250 OK",
-            tls_mode=cls.TlsMode.TLS if ssl else cls.TlsMode.PLAINTEXT,
-        )
-
-    @property
-    def status_badge_variant(self) -> str:
-        match self.status:
-            case self.Status.SENT:
-                return "success"
-            case self.Status.FAILED | self.Status.BOUNCED:
-                return "destructive"
-            case _:
-                return "outline"
-
-    def __str__(self):
-        return f"{self.message} → {self.status}"
+        A late bounce DSN is the one exception. A DSN proves the recipient
+        server accepted the message, so relay only learns after a message
+        ended sent or failed that the remote refused it after all.
+        """
+        if self.status != self.__status and self.__status != self.Status.PENDING:
+            allowed = (self.__status, self.status) in (
+                (self.Status.SENT, self.Status.BOUNCED),
+                (self.Status.FAILED, self.Status.BOUNCED),
+            )
+            if not allowed:
+                raise TerminalStatusError(self.pk, self.__status, self.status)
+        super().save(*args, **kwargs)
+        self.__status = self.status
 
 
 class MsaCredential(Credential):
@@ -201,12 +104,16 @@ class MsaCredential(Credential):
     class Type(models.TextChoices):
         SMTP = "smtp", _("SMTP")
         SMTP_IP = "smtp-ip", _("SMTP-IP")
+        SANDBOX = "sandbox", _("Sandbox")
 
     type = models.TextField(
         _("type"),
         choices=Type,
         default=Type.SMTP,
-        help_text=_("SMTP authentication method."),
+        help_text=_(
+            "Purpose of the credential. Sandbox credentials accept "
+            "submissions without a delivery attempt."
+        ),
     )
 
 

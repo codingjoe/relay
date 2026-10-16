@@ -1,6 +1,9 @@
-# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed
+# Hidden files (dev/secrets/tooling) - exclude all, re-include if ever needed.
+# .env.production ships with the production image, which decrypts it at start.
+# A local build passes .env with DOTENV_FILE.
 .*
-!.env.example
+!.env.production
+!.env
 
 # Python
 venv/
@@ -28,8 +31,14 @@ root/locale/*.mo
 fixtures/
 
 # CI / tooling
-Makefile
+justfile
+*.just
 conftest.py
+
+# Deployment tooling - manifests, cluster scripts and the git-ignored
+# deploy/.state with the Talos and kubeconfig secrets, none of which the
+# image reads
+deploy/
 
 # Documentation (not needed in the image)
 README.md
@@ -37,6 +46,7 @@ AGENTS.md
 CLAUDE.md
 REVIEW.md
 CONVENTIONS.md
+PRODUCT.md
 
 # Misc
 backups/

@@ -35,9 +35,9 @@ Two things matter in that graph:
 - **Your domain carries your reputation.** Other relay customers cannot
   harm your domain's grade, because signatures are not shared and the sending
   identity differs.
-- **The infrastructure identity stays consistent.** The relay SMTP servers
-  identify with hostnames that match their PTR records, so receivers see one
-  stable, verified platform identity, which also protects your domain from
+- **The infrastructure identity stays consistent.** Every relay sending IP
+  carries a hostname that matches its PTR record, so receivers see stable,
+  verified platform identities, which also protects your domain from
   strangers sending as "you".
 
 Consequences for migration: a domain that switches to relay does inherit its
@@ -103,41 +103,53 @@ Four report types arrive:
 - **TLS-RPT.** JSON with the success and failure counts of sender TLS
   attempts against your MTA-STS surface.
 - **Feedback loop (FBL).** An abuse report in the ARF format. A provider
-  sends it when a recipient marks one of your messages as spam.
+  sends it when a recipient marks one of your messages as spam. Gmail does
+  not send these reports.
 
 The dashboard surfaces each report type, per domain, and records whether a
 report arrived over TLS.
 
-FBL complaints need a proof before they count against your organization.
-The report carries the per-message `Feedback-ID` header of the reported
-message. relay matches that id, so a complaint maps to one message, one
-domain, and one organization. A complaint without this proof stays on
-record, and it does not count into the rates.
+FBL complaints need a proof before relay records them. The report carries the
+per-message Return-Path of the reported message, and relay matches that
+address. Only relay can mint the address, so a message id alone names
+nothing. A complaint therefore maps to one message, one domain, and one
+organization, and a message counts one complaint however many reports name
+it. A report that names no message is kept as an inbound email only, and is
+not recorded as a complaint.
+
+Gmail groups its complaint rates by the
+<a href="{% url 'know_how:detail' slug='feedback-id' %}">Feedback-ID</a>
+identifiers that relay puts on every message. The rates appear in Google
+Postmaster Tools for a domain that you verified there.
 
 ## Reputation limits
 
-relay computes hard-bounce and complaint rates for your organization over a
-rolling window. Two rates drive the decision: the hard-bounce rate and the
-complaint rate. If one of the rates goes above its threshold, and the
-message volume in the window is large enough, relay suspends the
-organization. A suspension rejects new submissions with a 550 answer, and
-drops queued messages. The suspension never lifts by itself. relay sends
-mail to the organization admins and to relay staff when it suspends an
-organization.
+relay computes hard-bounce, soft-bounce, and complaint rates for your
+organization over a rolling window. Two rates drive the decision: the
+hard-bounce rate and the complaint rate. If one of the rates goes above its
+threshold, and the message volume in the window is large enough, relay
+suspends the organization. A suspension rejects new submissions with a 550
+answer, and drops queued messages. The suspension never lifts by itself.
+relay sends mail to the organization admins and to relay staff when it
+suspends an organization.
+
+The monitoring page charts the soft-bounce rate as well. That line is
+display-only: a 4xx refusal is a temporary condition, so it never suspends
+an organization.
 
 ## The reputation loop in practice
 
 1. Send under your domain. relay signs, aligns the envelope, and scores
    content.
-1. Suppression keeps the bounce rate low, and the spam gate keeps the content
+2. Suppression keeps the bounce rate low, and the spam gate keeps the content
    clean.
-1. A recipient marks a message as spam, and the provider sends a complaint to
+3. A recipient marks a message as spam, and the provider sends a complaint to
    the FBL address. relay matches the complaint to your message through the
-   per-message `Feedback-ID` header.
-1. Providers send aggregate reports every day. relay parses them.
-1. You read your report rows, and correct what you see. Policy updates and
+   per-message id on the Return-Path.
+4. Providers send aggregate reports every day. relay parses them.
+5. You read your report rows, and correct what you see. Policy updates and
    key rotation are dashboard operations.
-1. Misconfigured senders become visible quickly. Fix or block them early.
+6. Misconfigured senders become visible quickly. Fix or block them early.
 
 Reputation is a set of boring signals, done consistently. relay runs the
 boring parts.

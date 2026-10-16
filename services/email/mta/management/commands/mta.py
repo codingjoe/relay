@@ -10,7 +10,11 @@ class Command(BaseCommand):
     help = __doc__
 
     def add_arguments(self, parser):
-        parser.add_argument("--host", default="0.0.0.0", help="Listen host")
+        parser.add_argument(
+            "--host",
+            default="0.0.0.0",  # noqa: S104
+            help="Listen host",
+        )
         parser.add_argument(
             "--ports",
             nargs="+",

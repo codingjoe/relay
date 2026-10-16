@@ -29,10 +29,14 @@ relay speaks SMTP AUTH PLAIN. The username is the organization slug, and the
 password is an SMTP credential key. No session and no TLS means no AUTH: the
 server refuses AUTH over plaintext on port 587.
 
+The credentials page shows the same values as a `smtps://` URI, with the
+organization slug as the user and a `<credential key>` placeholder for the
+password. Clients that accept a URI take it once you put the key in.
+
 The submission exchange:
 
 ```text
-openssl s_client -starttls smtp -connect smtp.relay.example.com:587
+openssl s_client -starttls smtp -connect smtp.relays.to:587
   EHLO your-app.example.com
   AUTH PLAIN <base64 of \0org-slug\0api-key>
   MAIL FROM: <billing@acme.com>
@@ -81,7 +85,7 @@ over:
 sequenceDiagram
     participant MSA as MSA
     participant Queue as Task worker
-    participant Scan as rspamd
+    participant Scan as Scanner
     participant DNS as DNS resolvers
     participant Remote as Recipient MX
 
@@ -107,14 +111,22 @@ Important details of the pipeline:
   signature relay applied in its own card, next to the signing domain,
   selector, and algorithm. The raw tag list is one click away.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
-  keys of the platform domain. relay also sets a `Feedback-ID` header with
-  its own token. This token replaces a customer-supplied `Feedback-ID`, so
-  complaint reports echo relay's key and the complaint maps to one message.
+  keys of the platform domain. relay also sets a `Feedback-ID` header from
+  the sending domain, your organization, the mail type, and the platform's
+  own identifier last. Every message of a stream carries the same value,
+  because Gmail groups its complaint rates by those identifiers. relay
+  replaces a customer-supplied `Feedback-ID`.
+- **The envelope differs from the From header.** The Return-Path becomes
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{token}@{sender-subdomain}` with a short signed token that names
   one message, so each bounce identifies one message, the envelope domain
   aligns with your DKIM, and only relay can mint the token a bounce report
   must carry.
+- **Sending spreads across an IP pool.** Each outgoing connection leaves
+  through a randomly picked relay sending IP. Every pool IP has matching
+  forward and reverse DNS, and a blacklisted IP can rotate out without an
+  outage. Every delivery attempt records the sending IP it used, so a
+  refusal names the address the receiver blocked.
 - **EHLO identifies the relay sending host**, whose name matches its
   reverse DNS record. Receivers grade that consistency.
 - **Enforced MTA-STS.** For recipient domains with a policy, relay skips
@@ -131,11 +143,11 @@ The message carries one status. Every attempt carries its own:
 | Message status | Meaning                                                                                             |
 | -------------- | --------------------------------------------------------------------------------------------------- |
 | pending        | Stored, spam scan or delivery not finished yet                                                      |
-| held           | rspamd held the message, and it never left                                                          |
+| held           | the scanner held the message for spam or malware, and it never left                                 |
 | sent           | At least one attempt ended with success                                                             |
 | bounced        | A recipient server rejected the message permanently, in the SMTP answer or in a later bounce report |
 | suppressed     | The recipient is on the suppression list                                                            |
-| failed         | relay cannot deliver, the transcript shows why                                                      |
+| failed         | relay cannot deliver after its retries, the transcript shows why                                    |
 
 The Transmission list per message starts with the submission and shows
 every delivery attempt: the MX host context, the SMTP status code, the
@@ -159,7 +171,7 @@ Python with the standard library:
 ```python
 import smtplib, ssl
 
-with smtplib.SMTP("smtp.relay.example.com", 587) as server:
+with smtplib.SMTP("smtp.relays.to", 587) as server:
     server.starttls(context=ssl.create_default_context())
     server.login("acme", "your-smtp-credential-key")
     server.sendmail(

@@ -25,12 +25,12 @@ The MX record also enables load balancing and redundancy. You can list multiple 
 The MX lookup and delivery process follows these steps:
 
 1. The sending mail server needs to deliver a message to `user@example.com`.
-1. The server queries DNS for the MX records of `example.com`.
-1. DNS returns a list of MX records, each with a priority and a hostname.
-1. The sending server sorts the records by priority (lowest number first).
-1. The server connects to the first MX host on <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> port 25.
-1. If the connection fails, the server tries the next MX host in the sorted list.
-1. If all MX hosts fail, the server queues the message for later retry.[^retry-behavior]
+2. The server queries DNS for the MX records of `example.com`.
+3. DNS returns a list of MX records, each with a priority and a hostname.
+4. The sending server sorts the records by priority (lowest number first).
+5. The server connects to the first MX host on <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> port 25.
+6. If the connection fails, the server tries the next MX host in the sorted list.
+7. If all MX hosts fail, the server queues the message for later retry.[^retry-behavior]
 
 ### Priority values
 
@@ -52,9 +52,9 @@ If a domain has no MX records, some sending servers try to deliver to the A reco
 ## How to set up MX
 
 1. Decide which server receives messages for your domain.
-1. Publish an MX record that points to that server.
-1. Use priority 10 for the primary server.
-1. Add a backup server with a higher priority value for redundancy.
+2. Publish an MX record that points to that server.
+3. Use priority 10 for the primary server.
+4. Add a backup server with a higher priority value for redundancy.
 
 The MX record routes incoming deliveries only. Outgoing submissions use a separate <a href="{% url 'know_how:detail' slug='smtp' %}">SMTP</a> server and do not use the MX record.
 

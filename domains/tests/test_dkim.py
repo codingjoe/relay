@@ -18,7 +18,7 @@ def make_email():
     msg["Subject"] = "Test"
     msg["Date"] = "Mon, 01 Jan 2024 00:00:00 +0000"
     msg["Message-ID"] = "<test@example.com>"
-    msg["Feedback-ID"] = "9::000000000000000000000000:relay"
+    msg["Feedback-ID"] = "mail.relay.example.com:9:tx:relay"
     msg.set_content("Hello world")
     return msg
 
@@ -87,6 +87,22 @@ class TestSignMessage:
         signed = sign_message(make_email().as_bytes(), domain)
         assert b"s=relay-rsa2048" in signed
         assert b"s=relay-ed25519" in signed
+        assert b"a=rsa-sha256" in signed
+        assert b"a=ed25519-sha256" in signed
+
+    @pytest.mark.django_db
+    def test_sign_message__signs_required_cipher_on_top(self):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        signatures = parse_signatures(sign_message(make_email().as_bytes(), domain))
+
+        # Relay's own inbound evaluation and naive verifiers read the topmost
+        # signature only, so the RSA-2048 one has to lead.
+        assert [signature["s"] for signature in signatures] == [
+            "relay-rsa2048",
+            "relay-ed25519",
+        ]
 
     @pytest.mark.django_db
     def test_sign_message__includes_domain(self):
@@ -102,14 +118,14 @@ class TestSignMessage:
         platform = make_platform_domain(platform_org, **make_platform_keys())
         domain = Domain.objects.create(name="example.com", org=org)
 
-        signed = sign_message(make_email().as_bytes(), domain)
+        signatures = parse_signatures(sign_message(make_email().as_bytes(), domain))
 
         # Signatures are prepended, so the platform cosign sits above the
         # body while the customer's own signatures stay on top, the way
         # SES dual-signs for FBL attribution. The queryset order decides
         # which family signs first, so assert the pairs as a set.
         assert sorted(
-            (signature["d"], signature["s"]) for signature in parse_signatures(signed)
+            (signature["d"], signature["s"]) for signature in signatures
         ) == sorted(
             [
                 ("example.com", "relay-ed25519"),
@@ -118,6 +134,11 @@ class TestSignMessage:
                 (platform.name, "relay-rsa2048"),
             ]
         )
+        # Whichever family signs last, its RSA-2048 signature lands on top.
+        assert [signature["s"] for signature in signatures] == [
+            "relay-rsa2048",
+            "relay-ed25519",
+        ] * 2
 
     @pytest.mark.django_db
     def test_sign_message__no_cosign_without_platform_domain(self):
@@ -172,7 +193,7 @@ class TestSignMessage:
 
 class TestAddDkimSignature:
     def test_add_dkim_signature__prepends_signature(self):
-        key = make_signing_key(kms_keys.Algorithm.RSA_2048)
+        key = make_signing_key(SigningKey.Algorithm.RSA_2048)
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(
@@ -187,7 +208,9 @@ class TestAddDkimSignature:
         assert signed.endswith(original)
 
     def test_add_dkim_signature__returns_original_on_signing_failure(self):
-        key = make_signing_key(kms_keys.Algorithm.ED25519, kms_keys.Algorithm.RSA_2048)
+        key = make_signing_key(
+            SigningKey.Algorithm.ED25519, SigningKey.Algorithm.RSA_2048
+        )
         original = make_email().as_bytes()
 
         signed = add_dkim_signature(

@@ -1,0 +1,31 @@
+{% load i18n %}
+<div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-1">
+    <p class="m-0 text-sm text-muted-foreground">smtps</p>
+    <div class="input-group">
+      <input
+        class="break-all"
+        type="text"
+        readonly
+        value="{{ smtp_uri }}"
+        data-select
+        aria-label='{% translate "connection URI"|capfirst %}'
+      >
+      {% include "abstract/copy_button.html" with value=smtp_uri size="icon-xs" label=_("copy connection URI")|capfirst %}
+    </div>
+  </div>
+  <div class="flex flex-col gap-1">
+    <p class="m-0 text-sm text-muted-foreground">Django (EMAIL_URL)</p>
+    <div class="input-group">
+      <input
+        class="break-all"
+        type="text"
+        readonly
+        value="{{ smtp_django_uri }}"
+        data-select
+        aria-label='{% translate "django connection URI"|capfirst %}'
+      >
+      {% include "abstract/copy_button.html" with value=smtp_django_uri size="icon-xs" label=_("copy django connection URI")|capfirst %}
+    </div>
+  </div>
+</div>

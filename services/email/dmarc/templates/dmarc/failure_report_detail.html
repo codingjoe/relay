@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n abstract message %}
+{% load abstract i18n message %}
 {% block title %}{% translate "DMARC failure report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="mb-6">
@@ -32,11 +32,7 @@
       <div class="flex flex-wrap items-center gap-4 mb-4">
         {% for entry in report.parsed_authentication_results %}
           <span class="flex items-center gap-1.5 font-medium">
-            <i
-              data-lucide="{{ entry.icon }}"
-              class="size-4 {{ entry.icon_class }}"
-              aria-hidden="true"
-            ></i>
+            {% tabler name=entry.icon class=entry.icon_class %}
             {{ entry.method }}
             <span class="{{ entry.icon_class }} font-normal">{{ entry.verdict }}</span>
           </span>
@@ -104,7 +100,7 @@
           <span class="flex items-center gap-2">
             {% translate "original headers"|capfirst %}
           </span>
-          <i data-lucide="chevron-down" class="size-4" aria-hidden="true"></i>
+          {% tabler name="chevron-down" %}
         </summary>
         <section>
           <div class="border rounded-md p-4">

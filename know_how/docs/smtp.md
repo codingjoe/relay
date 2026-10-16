@@ -78,12 +78,12 @@ Port 465 is the legacy implicit TLS submission port. Some providers still use it
 STARTTLS is an SMTP extension that upgrades a plain-text connection to TLS. The process works as follows:
 
 1. The client connects in plain text.
-1. The server advertises STARTTLS support in the `EHLO` response.
-1. The client sends the `STARTTLS` command.
-1. The server responds with `220 Ready to start TLS`.
-1. Both sides negotiate the TLS handshake.
-1. The client sends `EHLO` again over the encrypted connection.
-1. All subsequent commands, including authentication, are encrypted.
+2. The server advertises STARTTLS support in the `EHLO` response.
+3. The client sends the `STARTTLS` command.
+4. The server responds with `220 Ready to start TLS`.
+5. Both sides negotiate the TLS handshake.
+6. The client sends `EHLO` again over the encrypted connection.
+7. All subsequent commands, including authentication, are encrypted.
 
 STARTTLS is opportunistic by default. If the server does not advertise STARTTLS, or if the TLS handshake fails, the client can fall back to plain text. <a href="{% url 'know_how:detail' slug='mta-sts' %}">MTA-STS</a> solves this problem by requiring TLS.
 
@@ -92,9 +92,9 @@ STARTTLS is opportunistic by default. If the server does not advertise STARTTLS,
 To submit a message to a submission server:
 
 1. Connect to the server on port 587.
-1. Upgrade the connection with STARTTLS.
-1. Authenticate with your account credentials.
-1. Send the message.
+2. Upgrade the connection with STARTTLS.
+3. Authenticate with your account credentials.
+4. Send the message.
 
 The server queues the message for delivery and reports the result back to the client. Submission servers require authentication so that they do not forward messages for unknown senders.
 

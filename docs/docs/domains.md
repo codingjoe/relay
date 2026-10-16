@@ -15,12 +15,16 @@ verification works.
 
 ## The domain model
 
-| Kind                  | Example                       | Who creates it   | Purpose                                               |
-| --------------------- | ----------------------------- | ---------------- | ----------------------------------------------------- |
-| Managed sender domain | `acme.open.relay.example.com` | relay, at signup | Delegate with zero setup, pre-verified                |
-| Your root domain      | `acme.com`                    | You              | Your own domain for From, envelope, and reporting     |
-| Sending subdomain     | `mail.relay.acme.com`         | relay, derived   | The envelope and DKIM zone. NS delegation points here |
-| Receiving domain      | `app.acme.com`                | You, as domain   | MX record points at the sender subdomain              |
+| Kind                  | Example               | Who creates it   | Purpose                                                   |
+| --------------------- | --------------------- | ---------------- | --------------------------------------------------------- |
+| Platform domain       | `relays.to`           | The operator     | The relay infrastructure zone: MX, SMTP, and policy hosts |
+| Managed sender domain | `acme.open.relays.to` | relay, at signup | Delegate with zero setup, pre-verified                    |
+| Your root domain      | `acme.com`            | You              | Your own domain for From, envelope, and reporting         |
+| Sending subdomain     | `mail.relay.acme.com` | relay, derived   | The envelope and DKIM zone. NS delegation points here     |
+| Receiving domain      | `app.acme.com`        | You, as domain   | MX record points at the relay MX hostnames                |
+
+In the examples, `acme.com` is your domain and `relays.to` is the relay
+platform domain.
 
 Facts to understand about this model:
 
@@ -90,29 +94,34 @@ identifiable. Re-check at any time.
 
 For a delegated domain the authoritative nameserver answers:
 
-| Query name (for acme.com)                 | Type  | Value served                              |
-| ----------------------------------------- | ----- | ----------------------------------------- |
-| `acme.com`                                | MX    | `mail.relay.acme.com`, preference 10      |
-| `mail.relay.acme.com`                     | TXT   | SPF record for the relay sender addresses |
-| `a.relay-acme._domainkey...` (both zones) | TXT   | DKIM public keys, one per algorithm       |
-| `acme.com`                                | TXT   | root SPF include of the sender subdomain  |
-| `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses      |
-| `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                |
-| `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                       |
-| `mta-sts.acme.com`                        | CNAME | the relay policy host                     |
-| `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector          |
-| `mail.relay.acme.com`                     | NS    | the relay nameservers                     |
+| Query name (for acme.com)                 | Type  | Value served                                       |
+| ----------------------------------------- | ----- | -------------------------------------------------- |
+| `acme.com`                                | MX    | `mx1.relays.to` and `mx2.relays.to`, preference 10 |
+| `mail.relay.acme.com`                     | TXT   | SPF record authorizing each relay sending IP       |
+| `a.relay-acme._domainkey...` (both zones) | TXT   | DKIM public keys, one per algorithm                |
+| `acme.com`                                | TXT   | root SPF include of the sender subdomain           |
+| `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses               |
+| `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                         |
+| `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                                |
+| `mta-sts.acme.com`                        | CNAME | `mta-sts.mail.relay.acme.com`                      |
+| `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector                   |
+| `mail.relay.acme.com`                     | NS    | the relay nameservers                              |
 
 The dashboard always shows the current record set with concrete names and
 the check state per record, so you never hand-edit names here.
+
+The MTA-STS CNAME points at `mta-sts.mail.relay.acme.com`. That name sits
+in the sender subdomain `mail.relay.acme.com`, which the relay nameserver
+already serves. relay serves the policy over HTTPS and issues the
+certificate for `mta-sts.acme.com` on the first fetch. You add no record
+and no certificate for that name.
 
 ## Receiving-domain notes
 
 A domain can send and receive independently of each other. `app.acme.com` as
 a receiving domain needs only its MX record to point at your sender
 subdomain. Verification reflects this split: a setup without receiving
-records reads as not set up, not as a failure. The webhook health check
-shows the observed MX. Read the
+records reads as not set up, not as a failure. Read the
 <a href="{% url 'docs:detail' slug='receiving' %}">receiving</a> page for
 the acceptance flow.
 

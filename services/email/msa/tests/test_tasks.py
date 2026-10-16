@@ -6,7 +6,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiosmtplib
+import dns.exception
 import pytest
+from botocore.exceptions import ClientError
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -19,12 +21,21 @@ from django.utils import timezone
 
 from abstract.mailauth import Disposition
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, SuppressionEntry, Transmission
+from services.email.message.models import Transmission
+from services.email.msa.models import (
+    MsaCredential,
+    OutgoingMessage,
+    SuppressionEntry,
+)
 from services.email.msa.tasks import (
+    DELIVERY_RETRY,
     DeliveryStatus,
+    MxLookupError,
+    TemporaryDeliveryError,
     bounce_signer,
     check_outgoing_spam,
     deliver_message,
+    delivery_retry,
     fetch_mx_hosts,
     mint_bounce_address,
     parse_bounce_report,
@@ -40,7 +51,7 @@ from services.email.mta.tests.conftest import (
     make_dsn_email,
     make_raw_email,
 )
-from services.email.spam import SpamAction, SpamResult
+from services.email.spam.client import SpamAction, SpamResult
 
 
 def make_certificate(common_name):
@@ -64,8 +75,10 @@ def make_certificate(common_name):
     )
 
 
-def make_outgoing_message(org, domain, status=OutgoingMessage.Status.SENT):
-    """Store an outgoing message a bounce DSN can report about."""
+def make_outgoing_message(org, domain=None, status=OutgoingMessage.Status.PENDING):
+    """Return a stored outgoing message without a deliverable sender."""
+    if domain is None:
+        domain = Domain.objects.get(org=org)
     msg = OutgoingMessage.objects.create(
         org=org,
         rcpt_to="bob@example.net",
@@ -119,8 +132,15 @@ class TestFetchMxHosts:
         hosts = fetch_mx_hosts("example.com")
         assert hosts == ["mx.example.com"]
 
-    def test_fetch_mx_hosts__empty_on_error(self):
+    def test_fetch_mx_hosts__empty_when_domain_is_unknown(self):
         assert fetch_mx_hosts("nonexistent.invalid") == []
+
+    def test_fetch_mx_hosts__raises_lookup_error_when_the_resolver_fails(
+        self, dns_resolver
+    ):
+        dns_resolver.fail("example.com", "MX", dns.exception.Timeout())
+        with pytest.raises(MxLookupError, match="MX lookup for example.com failed"):
+            fetch_mx_hosts("example.com")
 
 
 @pytest.mark.django_db(transaction=True)
@@ -136,17 +156,18 @@ class TestDeliverMessage:
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
 
-        deliver_message.func(message_id=str(msg.id))
+        with pytest.raises(TemporaryDeliveryError, match="No MX"):
+            deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
-        assert msg.status == OutgoingMessage.Status.FAILED
+        assert msg.status == OutgoingMessage.Status.PENDING
         assert Transmission.objects.filter(message=msg).count() == 1
         t = Transmission.objects.get(message=msg)
         assert t.status == Transmission.Status.FAILED
         assert "No MX" in t.details
 
     def test_deliver_message__sends_with_bounce_return_path(
-        self, user, org, dns_resolver
+        self, user, org, dns_resolver, caplog
     ):
 
         domain = Domain.objects.create(name="example.com", org=org)
@@ -160,6 +181,7 @@ class TestDeliverMessage:
         msg.save()
 
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        caplog.set_level(logging.INFO)
         certificate = make_certificate("mx.example.com")
         ssl_object = MagicMock()
         ssl_object.get_unverified_chain.return_value = [
@@ -193,12 +215,12 @@ class TestDeliverMessage:
         transmission = Transmission.objects.get(
             message=msg, status=Transmission.Status.SENT
         )
-        assert transmission.mx_host == "mx.example.com"
+        assert transmission.remote_host == "mx.example.com"
         assert transmission.tls_mode == Transmission.TlsMode.STARTTLS
         assert transmission.tls_version == "TLSv1.3"
         assert transmission.tls_cipher == "TLS_AES_256_GCM_SHA384"
-        assert transmission.sending_mta_ip_address == "198.51.100.25"
-        assert transmission.receiving_mx_ip_address == "203.0.113.10"
+        assert transmission.local_ip_address == "198.51.100.25"
+        assert transmission.remote_ip_address == "203.0.113.10"
         stored_certificate = transmission.tls_certificate
         assert (
             stored_certificate.fingerprint
@@ -214,6 +236,10 @@ class TestDeliverMessage:
         assert stored_certificate.not_after == certificate.not_valid_after_utc
         assert stored_certificate.issuer_certificate is None
         assert list(stored_certificate.chain()) == [stored_certificate]
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} delivered via 'mx.example.com' "
+            "from 198.51.100.25: '250 OK'" in caplog.messages
+        )
 
     def test_deliver_message__permanent_failure_marks_bounced(
         self, user, org, dns_resolver
@@ -242,6 +268,122 @@ class TestDeliverMessage:
         assert Transmission.objects.filter(
             message=msg, status=Transmission.Status.BOUNCED
         ).exists()
+
+    def test_deliver_message__failed_dial_records_pool_address(
+        self, user, org, dns_resolver, settings, caplog
+    ):
+        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=OSError("Network is unreachable"),
+            ),
+            caplog.at_level(logging.WARNING),
+            pytest.raises(TemporaryDeliveryError, match="Network is unreachable"),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.local_ip_address == "198.51.100.7"
+        assert transmission.remote_ip_address is None
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} failed, relay retries: "
+            "mx.example.com from 198.51.100.7: OSError: Network is unreachable"
+            in caplog.messages
+        )
+
+    def test_deliver_message__bounce_records_pool_address(
+        self, user, org, dns_resolver, settings, caplog
+    ):
+        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="reject@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        refusal = aiosmtplib.SMTPRecipientRefused(
+            550, b"5.1.1 User unknown", msg.rcpt_to
+        )
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=aiosmtplib.SMTPRecipientsRefused([refusal]),
+            ),
+            caplog.at_level(logging.WARNING),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert transmission.local_ip_address == "198.51.100.7"
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} bounced at 'mx.example.com' "
+            "from 198.51.100.7: '550 5.1.1 User unknown'" in caplog.messages
+        )
+
+    def test_deliver_message__dials_from_the_pool_address(
+        self, user, org, dns_resolver, settings, caplog
+    ):
+        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+
+        domain = Domain.objects.get(org=org)
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        msg.save()
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        smtp_client = MagicMock()
+        smtp_client.sendmail = AsyncMock(return_value="250 OK")
+        smtp_client.__aenter__.return_value = smtp_client
+        smtp_client.get_transport_info.side_effect = {
+            "sockname": ("198.51.100.7", 40000),
+            "peername": ("203.0.113.10", 25),
+        }.get
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                return_value=smtp_client,
+            ) as mock_smtp,
+            caplog.at_level(logging.INFO),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        assert mock_smtp.call_args.kwargs["source_address"] == ("198.51.100.7", 0)
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.SENT
+        assert transmission.local_ip_address == "198.51.100.7"
+        assert transmission.remote_ip_address == "203.0.113.10"
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} delivered via 'mx.example.com' "
+            "from 198.51.100.7: '250 OK'" in caplog.messages
+        )
 
     def test_deliver_message__fails_closed_for_ambiguous_cross_org_domain(
         self,
@@ -302,13 +444,152 @@ class TestDeliverMessage:
         assert transmission.code == 550
         assert transmission.output == "550 Account suspended due to sender reputation"
 
+    def test_deliver_message__skips_message_with_final_status(self, user, org):
+        message = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=Domain.objects.get(org=org),
+            status=OutgoingMessage.Status.SANDBOXED,
+        )
+        message.raw_body.save("test.eml", ContentFile(b"test"), save=False)
+        message.save()
+
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
+            deliver_message.func(message_id=str(message.id))
+
+        mock_smtp.assert_not_called()
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.SANDBOXED
+        assert not Transmission.objects.filter(message=message).exists()
+
+    def test_deliver_message__records_sandbox_attempt_without_transmitting(
+        self, user, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        # The credential that submitted this message is gone, the flag holds.
+        msg = self.make_message(user, org, domain, is_sandbox=True)
+
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
+            deliver_message.func(message_id=str(msg.id))
+
+        mock_smtp.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+        transmission = Transmission.objects.get(
+            message=msg, status=Transmission.Status.SANDBOXED
+        )
+        assert transmission.remote_host == "mx.example.com"
+        assert transmission.details == (
+            "Sandbox submission, relay made no delivery attempt"
+        )
+        assert not Transmission.objects.filter(
+            message=msg, status=Transmission.Status.FAILED
+        ).exists()
+
+    def test_deliver_message__records_sandbox_attempt_without_a_host(
+        self, user, org, dns_resolver
+    ):
+        msg = self.make_message(
+            user,
+            org,
+            Domain.objects.create(name="example.com", org=org),
+            is_sandbox=True,
+        )
+
+        with patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp:
+            deliver_message.func(message_id=str(msg.id))
+
+        mock_smtp.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.SANDBOXED
+        assert transmission.remote_host == ""
+        assert transmission.details == "No MX records found for example.com"
+
+    def test_deliver_message__records_sandbox_attempt_blocked_by_mta_sts(
+        self, user, org, dns_resolver
+    ):
+        msg = self.make_message(
+            user,
+            org,
+            Domain.objects.create(name="example.com", org=org),
+            is_sandbox=True,
+        )
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+
+        with (
+            patch("services.email.msa.tasks.MtaStsPolicy") as mock_policy,
+            patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp,
+        ):
+            mock_policy.get.return_value.allows.return_value = (
+                False,
+                "STS policy blocked",
+            )
+            deliver_message.func(message_id=str(msg.id))
+
+        mock_smtp.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.SANDBOXED
+        assert transmission.remote_host == "mx.example.com"
+        assert transmission.details == "STS policy blocked"
+
+    def test_deliver_message__records_sandbox_attempt_at_the_allowed_host(
+        self, user, org, dns_resolver
+    ):
+        msg = self.make_message(
+            user,
+            org,
+            Domain.objects.create(name="example.com", org=org),
+            is_sandbox=True,
+        )
+        dns_resolver.add(
+            "example.com", "MX", "10 mx1.example.com.", "20 mx2.example.com."
+        )
+
+        with (
+            patch("services.email.msa.tasks.MtaStsPolicy") as mock_policy,
+            patch("services.email.msa.tasks.aiosmtplib.SMTP") as mock_smtp,
+        ):
+            mock_policy.get.return_value.allows.side_effect = [
+                (False, "STS policy blocked"),
+                (True, "STS policy allows"),
+            ]
+            deliver_message.func(message_id=str(msg.id))
+
+        mock_smtp.assert_not_called()
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+        assert set(
+            Transmission.objects.filter(message=msg).values_list(
+                "remote_host", "status", "details"
+            )
+        ) == {
+            (
+                "mx1.example.com",
+                Transmission.Status.SANDBOXED,
+                "STS policy blocked",
+            ),
+            (
+                "mx2.example.com",
+                Transmission.Status.SANDBOXED,
+                "Sandbox submission, relay made no delivery attempt",
+            ),
+        }
+
     @staticmethod
-    def make_message(user, org, domain, rcpt_to="bob@example.com"):
+    def make_message(user, org, domain, rcpt_to="bob@example.com", is_sandbox=False):
         msg = OutgoingMessage.objects.create(
             org=org,
             rcpt_to=rcpt_to,
             mail_from="alice@example.com",
             domain=domain,
+            is_sandbox=is_sandbox,
         )
         msg.raw_body.save("test.eml", ContentFile(b"test"), save=False)
         msg.save()
@@ -354,13 +635,12 @@ class TestDeliverMessage:
         mock_smtp.assert_not_called()
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.FAILED
-        assert Transmission.objects.filter(
-            message=msg,
-            status=Transmission.Status.FAILED,
-            details__contains="All MX hosts failed",
-        ).exists()
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.remote_host == "mx.example.com"
+        assert transmission.details == "STS policy blocked"
 
-    def test_deliver_message__temporary_smtp_error_fails_message(
+    def test_deliver_message__temporary_smtp_error_keeps_message_pending(
         self, user, org, dns_resolver
     ):
 
@@ -369,17 +649,24 @@ class TestDeliverMessage:
         dns_resolver.add("example.com", "MX", "10 mx.example.com.")
 
         exc = aiosmtplib.SMTPResponseException(450, b"Try again later")
-        with patch(
-            "services.email.msa.tasks.aiosmtplib.SMTP",
-            side_effect=exc,
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=exc,
+            ),
+            pytest.raises(TemporaryDeliveryError, match="450 Try again later"),
         ):
             deliver_message.func(message_id=str(msg.id))
 
         msg.refresh_from_db()
-        assert msg.status == OutgoingMessage.Status.FAILED
-        assert Transmission.objects.filter(
-            message=msg, status=Transmission.Status.FAILED
-        ).exists()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.remote_host == "mx.example.com"
+        assert transmission.code == 450
+        assert transmission.output == "450 Try again later"
+        assert "Temporary failure" in transmission.details
+        assert not SuppressionEntry.objects.filter(org=org).exists()
 
     def test_deliver_message__exhausts_all_mx_hosts_on_smtp_exception(
         self, user, org, dns_resolver
@@ -391,20 +678,292 @@ class TestDeliverMessage:
             "example.com", "MX", "10 mx1.example.com.", "20 mx2.example.com."
         )
 
-        with patch(
-            "services.email.msa.tasks.aiosmtplib.SMTP",
-            side_effect=aiosmtplib.SMTPException("nope"),
-        ) as mock_smtp:
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=aiosmtplib.SMTPException("nope"),
+            ) as mock_smtp,
+            pytest.raises(TemporaryDeliveryError, match="SMTPException: nope"),
+        ):
             deliver_message.func(message_id=str(msg.id))
 
         assert mock_smtp.call_count == 2
         msg.refresh_from_db()
-        assert msg.status == OutgoingMessage.Status.FAILED
-        assert Transmission.objects.filter(
-            message=msg,
-            status=Transmission.Status.FAILED,
-            details__contains="All MX hosts failed for example.com",
-        ).exists()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert set(
+            Transmission.objects.filter(message=msg).values_list(
+                "remote_host", "status", "details"
+            )
+        ) == {
+            ("mx1.example.com", Transmission.Status.FAILED, "SMTPException: nope"),
+            ("mx2.example.com", Transmission.Status.FAILED, "SMTPException: nope"),
+        }
+
+    def test_deliver_message__refused_recipient_bounces_and_suppresses(
+        self, user, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add(
+            "example.com", "MX", "10 mx1.example.com.", "20 mx2.example.com."
+        )
+        refusal = aiosmtplib.SMTPRecipientRefused(
+            550, b"5.1.1 User unknown", msg.rcpt_to
+        )
+
+        with patch(
+            "services.email.msa.tasks.aiosmtplib.SMTP",
+            side_effect=aiosmtplib.SMTPRecipientsRefused([refusal]),
+        ) as mock_smtp:
+            deliver_message.func(message_id=str(msg.id))
+
+        assert mock_smtp.call_count == 1
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.BOUNCED
+        assert Transmission.objects.filter(message=msg).count() == 1
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.BOUNCED
+        assert transmission.remote_host == "mx1.example.com"
+        assert transmission.code == 550
+        assert transmission.output == "550 5.1.1 User unknown"
+        assert "suppressed" in transmission.details
+        entry = SuppressionEntry.objects.get(org=org, address_hash__email=msg.rcpt_to)
+        assert entry.reason == SuppressionEntry.Reason.BOUNCE
+
+    def test_deliver_message__temporary_recipient_refusal_tries_next_host(
+        self, user, org, dns_resolver, caplog
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add(
+            "example.com", "MX", "10 mx1.example.com.", "20 mx2.example.com."
+        )
+        refusal = aiosmtplib.SMTPRecipientRefused(
+            451, b"4.2.1 Try again later", msg.rcpt_to
+        )
+
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=aiosmtplib.SMTPRecipientsRefused([refusal]),
+            ) as mock_smtp,
+            caplog.at_level(logging.WARNING),
+            pytest.raises(TemporaryDeliveryError),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        assert [call.kwargs["hostname"] for call in mock_smtp.call_args_list] == [
+            "mx1.example.com",
+            "mx2.example.com",
+        ]
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert set(
+            Transmission.objects.filter(message=msg).values_list(
+                "remote_host", "status", "code", "output"
+            )
+        ) == {
+            (
+                "mx1.example.com",
+                Transmission.Status.FAILED,
+                451,
+                "451 4.2.1 Try again later",
+            ),
+            (
+                "mx2.example.com",
+                Transmission.Status.FAILED,
+                451,
+                "451 4.2.1 Try again later",
+            ),
+        }
+        assert (
+            f"Message {msg.id} to {msg.rcpt_to} failed, relay retries: "
+            "mx1.example.com: 451 4.2.1 Try again later; "
+            "mx2.example.com: 451 4.2.1 Try again later"
+        ) in caplog.messages
+
+    def test_deliver_message__unexpected_refusal_retries(self, user, org, dns_resolver):
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        # aiosmtplib refuses any RCPT answer but 250 and 251, so a server
+        # answering 354 reaches the generic wording, not the temporary one.
+        refusal = aiosmtplib.SMTPRecipientRefused(354, "Start mail input", msg.rcpt_to)
+
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=aiosmtplib.SMTPRecipientsRefused([refusal]),
+            ),
+            pytest.raises(TemporaryDeliveryError, match="354 Start mail input"),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.code == 354
+        assert transmission.output == "354 Start mail input"
+        assert transmission.details == "The remote server did not accept the message"
+
+    def test_deliver_message__failed_lookup_reports_the_resolver_error(
+        self, user, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.fail("example.com", "MX", dns.exception.Timeout())
+
+        with pytest.raises(TemporaryDeliveryError, match="MX lookup for example.com"):
+            deliver_message.func(message_id=str(msg.id))
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert Transmission.objects.filter(message=msg).count() == 1
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.remote_host == ""
+        assert transmission.details.startswith("MX lookup for example.com failed:")
+        assert "No MX records" not in transmission.details
+
+    def test_deliver_message__unexpected_error_repeats_on_the_fallback_row(
+        self, user, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+
+        with (
+            patch(
+                "services.email.msa.tasks.aiosmtplib.SMTP",
+                side_effect=ValueError("error parsing asn1 value"),
+            ),
+            pytest.raises(TemporaryDeliveryError, match="error parsing asn1 value"),
+        ):
+            deliver_message.func(message_id=str(msg.id))
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert set(
+            Transmission.objects.filter(message=msg).values_list(
+                "remote_host", "status", "details"
+            )
+        ) == {
+            (
+                "mx.example.com",
+                Transmission.Status.FAILED,
+                "ValueError: error parsing asn1 value",
+            ),
+            ("", Transmission.Status.FAILED, "error parsing asn1 value"),
+        }
+
+    def test_deliver_message__storage_error_keeps_message_pending(
+        self, user, org, dns_resolver, caplog
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        msg = self.make_message(user, org, domain)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        # The object store answers with botocore's own exception, not an OSError.
+        error = ClientError(
+            {
+                "Error": {"Code": "SlowDown"},
+                "ResponseMetadata": {"HTTPStatusCode": 503},
+            },
+            "GetObject",
+        )
+        message_id = str(msg.id)
+
+        with (
+            patch(
+                "django.core.files.storage.FileSystemStorage.open",
+                side_effect=error,
+            ),
+            caplog.at_level(logging.WARNING),
+            pytest.raises(TemporaryDeliveryError, match="SlowDown"),
+        ):
+            deliver_message.func(message_id=message_id)
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        transmission = Transmission.objects.get(message=msg)
+        assert transmission.status == Transmission.Status.FAILED
+        assert transmission.details == (
+            "An error occurred (SlowDown) when calling the GetObject operation: Unknown"
+        )
+        assert (
+            f"Storage error for message {message_id!r}: ClientError('An error occurred "
+            "(SlowDown) when calling the GetObject operation: Unknown')"
+        ) in caplog.messages
+
+
+def make_delivery_retry_context(attempt, message_id, error=TemporaryDeliveryError):
+    exception = SimpleNamespace(exception_class=error)
+    return SimpleNamespace(
+        attempt=attempt,
+        task_result=SimpleNamespace(
+            kwargs={"message_id": message_id}, errors=[exception]
+        ),
+    )
+
+
+class TestDeliveryRetry:
+    def test_delivery_retry__doubles_the_delay_up_to_the_last_attempt(self):
+        # No attempt here is the last one, so the callback never reads the message.
+        no_such_message = "00000000-0000-0000-0000-000000000000"
+        delays = [
+            delivery_retry(make_delivery_retry_context(attempt, no_such_message))
+            for attempt in range(1, DELIVERY_RETRY.max_retries)
+        ]
+        assert delays == [
+            datetime.timedelta(minutes=wait_minutes)
+            for wait_minutes in (2, 4, 8, 16, 32)
+        ]
+
+    @pytest.mark.django_db(transaction=True)
+    def test_delivery_retry__stops_retrying_an_unexpected_error(self, org):
+        message = make_outgoing_message(org)
+        context = make_delivery_retry_context(
+            attempt=1, message_id=str(message.pk), error=ValueError
+        )
+
+        assert delivery_retry(context) is None
+
+    @pytest.mark.django_db(transaction=True)
+    def test_delivery_retry__fails_the_message_of_the_last_attempt(self, org):
+        message = make_outgoing_message(org)
+        context = make_delivery_retry_context(
+            attempt=DELIVERY_RETRY.max_retries, message_id=str(message.pk)
+        )
+
+        assert delivery_retry(context) is None
+
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.FAILED
+
+    @pytest.mark.django_db(transaction=True)
+    def test_delivery_retry__keeps_a_delivered_message_sent(self, org):
+        message = make_outgoing_message(org, status=OutgoingMessage.Status.SENT)
+        context = make_delivery_retry_context(
+            attempt=DELIVERY_RETRY.max_retries, message_id=str(message.pk)
+        )
+
+        delivery_retry(context)
+
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.SENT
+
+    @pytest.mark.django_db(transaction=True)
+    def test_delivery_retry__bumps_the_modified_at_of_the_failed_message(self, org):
+        message = make_outgoing_message(org)
+        modified_at = message.modified_at
+        context = make_delivery_retry_context(
+            attempt=DELIVERY_RETRY.max_retries, message_id=str(message.pk)
+        )
+
+        delivery_retry(context)
+
+        message.refresh_from_db()
+        assert message.modified_at > modified_at
 
 
 @pytest.mark.django_db(transaction=True)
@@ -461,6 +1020,36 @@ class TestCheckOutgoingSpam:
         assert msg.status == OutgoingMessage.Status.HELD
         assert msg.spam_score == 10.0
         assert msg.spam_action == SpamAction.REJECT
+
+    def test_check_outgoing_spam__enqueues_delivery_of_sandbox_message(self, user, org):
+        domain = Domain.objects.get(org=org)
+        credential, _ = MsaCredential.objects.create_with_key(
+            org=org, type=MsaCredential.Type.SANDBOX
+        )
+        msg = OutgoingMessage.objects.create(
+            org=org,
+            rcpt_to="bob@example.com",
+            mail_from="alice@example.com",
+            domain=domain,
+            credential=credential,
+            is_sandbox=True,
+        )
+        msg.raw_body.save("test.eml", ContentFile(b"clean body"), save=False)
+        msg.save()
+
+        with (
+            patch(
+                "services.email.msa.tasks.check_message",
+                return_value=SpamResult(score=0.0),
+            ),
+            patch("services.email.msa.tasks.deliver_message") as mock_deliver,
+        ):
+            check_outgoing_spam.func(message_pk=str(msg.id), client_ip="")
+
+        mock_deliver.enqueue.assert_called_once_with(message_id=str(msg.pk))
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert msg.spam_score == 0.0
 
     def test_check_outgoing_spam__enqueues_delivery_of_clean_message(self, user, org):
         domain = Domain.objects.get(org=org)
@@ -614,13 +1203,13 @@ class TestParseDeliveryStatus:
 class TestResolveBounceOwner:
     def test_resolve_bounce_owner__returns_message_for_verp_address(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        original = make_outgoing_message(org, domain)
+        original = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
 
         assert resolve_bounce_owner(mint_bounce_address(original)) == original
 
     def test_resolve_bounce_owner__matches_uppercased_sender_domain(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        original = make_outgoing_message(org, domain)
+        original = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         local_part = mint_bounce_address(original).partition("@")[0]
 
         assert (
@@ -630,14 +1219,14 @@ class TestResolveBounceOwner:
 
     def test_resolve_bounce_owner__rejects_wrong_sender_domain(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        original = make_outgoing_message(org, domain)
+        original = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         local_part = mint_bounce_address(original).partition("@")[0]
 
         assert resolve_bounce_owner(f"{local_part}@evil.test") is None
 
     def test_resolve_bounce_owner__returns_none_for_missing_signature(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        original = make_outgoing_message(org, domain)
+        original = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
 
         assert (
             resolve_bounce_owner(
@@ -649,7 +1238,7 @@ class TestResolveBounceOwner:
 
     def test_resolve_bounce_owner__returns_none_for_forged_signature(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        original = make_outgoing_message(org, domain)
+        original = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         local_part = mint_bounce_address(original).partition("@")[0]
         rcpt_to = (
             f"{local_part[:-1]}{'B' if local_part[-1] == 'A' else 'A'}"
@@ -701,7 +1290,7 @@ class TestResolveBounceOwner:
         self, org, monkeypatch
     ):
         domain = Domain.objects.create(name="example.com", org=org)
-        original = make_outgoing_message(org, domain)
+        original = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         old_key = settings.SECRET_KEY + "pre-rotation"
         value = base64.urlsafe_b64encode(original.pk.bytes).rstrip(b"=").decode()
         signature = bounce_signer.signature(value, key=old_key)[:20]
@@ -723,7 +1312,7 @@ class TestResolveBounceOwner:
 class TestParseBounceReport:
     def test_parse_bounce_report__failed_action_bounces_and_suppresses(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -747,7 +1336,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__delayed_action_records_retry_only(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -767,7 +1356,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__delivered_action_records_nothing(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -784,7 +1373,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__unknown_owner_records_nothing(self, org, caplog):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -805,7 +1394,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__unparseable_dsn_records_nothing(self, org, caplog):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -887,7 +1476,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__uppercased_sender_domain_bounces(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         local_part = mint_bounce_address(outgoing).partition("@")[0]
         dsn = make_bounce_dsn(
             org,
@@ -906,7 +1495,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__dsn_without_reporting_mta_bounces(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -925,7 +1514,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__forged_token_records_nothing(self, org, caplog):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -946,7 +1535,7 @@ class TestParseBounceReport:
         self, org, caplog
     ):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -965,7 +1554,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__angle_addr_final_recipient_records_bounce(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -987,7 +1576,7 @@ class TestParseBounceReport:
         self, org, caplog
     ):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         dsn = make_bounce_dsn(
             org,
             domain,
@@ -1008,7 +1597,7 @@ class TestParseBounceReport:
         self, org, caplog
     ):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         first_dsn = make_bounce_dsn(
             org,
             domain,
@@ -1039,7 +1628,7 @@ class TestParseBounceReport:
         self, org, caplog
     ):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         first_dsn = make_bounce_dsn(
             org,
             domain,
@@ -1075,7 +1664,7 @@ class TestParseBounceReport:
 
     def test_parse_bounce_report__delayed_dsn_after_bounce_records_nothing(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         failed_dsn = make_bounce_dsn(
             org,
             domain,
@@ -1105,7 +1694,7 @@ class TestParseBounceReport:
 class TestBounceReportChain:
     async def test_handle_data__failed_dsn_bounces_sent_message(self, org):
         domain = Domain.objects.get(org=org)
-        outgoing = make_outgoing_message(org, domain)
+        outgoing = make_outgoing_message(org, domain, OutgoingMessage.Status.SENT)
         rcpt_to = mint_bounce_address(outgoing)
         envelope = SimpleNamespace(
             mail_from="mailer-daemon@mx.remote.example",

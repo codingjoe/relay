@@ -1,7 +1,15 @@
 import pytest
 from django.contrib.auth.models import User
+from django.urls import reverse
 
 from accounts.models import Membership, Organization
+
+
+@pytest.mark.django_db
+class TestLoginView:
+    def test_get__no_store_cache_control_header(self, client):
+        response = client.get("/account/login")
+        assert response.headers["Cache-Control"] == "no-store"
 
 
 @pytest.mark.django_db
@@ -11,10 +19,14 @@ class TestOrganizationListView:
         assert response.status_code == 302
         assert "/account/login" in response.url
 
-    def test_get__redirects_single_org_user(self, admin_client, org):
+    def test_get__no_store_cache_control_header(self, admin_client, org):
         response = admin_client.get("/organizations/")
-        assert response.status_code == 302
-        assert response.url == f"/org/{org.slug}/"
+        assert response.headers["Cache-Control"] == "no-store"
+
+    def test_get__shows_single_org_user(self, admin_client, org):
+        response = admin_client.get("/organizations/")
+        assert response.status_code == 200
+        assert list(response.context["organizations"]) == [org]
 
     def test_get__shows_user_orgs(self, admin_client, user, org):
         second_org = Organization.objects.create(slug="second-org")
@@ -57,6 +69,40 @@ class TestOrganizationListView:
 
 
 @pytest.mark.django_db
+class TestOrganizationStartView:
+    def test_get__requires_login(self, client, org):
+        response = client.get("/organizations/start")
+        assert response.status_code == 302
+        assert "/account/login" in response.url
+
+    def test_get__redirects_single_org_user(self, admin_client, org):
+        response = admin_client.get("/organizations/start")
+        assert response.status_code == 302
+        assert response.url == f"/org/{org.slug}/"
+
+    def test_get__redirects_multiple_org_user(self, admin_client, user, org):
+        second_org = Organization.objects.create(slug="second-org")
+        Membership.objects.create(
+            org=second_org,
+            user=user,
+            role=Membership.Role.ADMIN,
+        )
+        response = admin_client.get("/organizations/start")
+        assert response.status_code == 302
+        assert response.url == "/organizations/"
+
+
+@pytest.mark.django_db
+class TestOrganizationHomeView:
+    def test_get__redirects_to_get_started(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/")
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "email-dashboard:get-started", kwargs={"org_slug": org.slug}
+        )
+
+
+@pytest.mark.django_db
 class TestOrganizationDetailView:
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/settings/")
@@ -71,6 +117,10 @@ class TestOrganizationDetailView:
     def test_get__not_found_for_non_member(self, admin_client, write_org):
         response = admin_client.get(f"/org/{write_org.slug}/settings/")
         assert response.status_code == 404
+
+    def test_get__no_store_cache_control_header(self, admin_client, org):
+        response = admin_client.get(f"/org/{org.slug}/settings/")
+        assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__context_has_memberships_and_is_admin(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/settings/")

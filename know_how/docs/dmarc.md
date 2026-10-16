@@ -25,9 +25,9 @@ Email spoofing is one of the most common attack vectors in phishing and spam. An
 When a receiving mail server gets a message, it performs these steps:
 
 1. The server runs the SPF check on the envelope sender domain.
-1. The server runs the DKIM check on the message signature.
-1. The server checks DMARC alignment. The domain in the visible From header must match the domain that SPF or DKIM verified.
-1. The server reads the DMARC policy from DNS and applies it to the result.
+2. The server runs the DKIM check on the message signature.
+3. The server checks DMARC alignment. The domain in the visible From header must match the domain that SPF or DKIM verified.
+4. The server reads the DMARC policy from DNS and applies it to the result.
 
 ### The DMARC DNS record
 
@@ -82,10 +82,10 @@ Not all mail servers send forensic reports because of privacy concerns. Some ser
 ## How to set up DMARC
 
 1. Publish a DMARC TXT record at `_dmarc.<domain>`.
-1. Start with `p=none` to monitor the messages that use your domain.
-1. Review the aggregate reports for unauthorized senders and configuration errors.
-1. Move to `p=quarantine`, then `p=reject`, as your confidence grows.
-1. Use the `pct` tag to apply the policy to a percentage of messages during rollout.
+2. Start with `p=none` to monitor the messages that use your domain.
+3. Review the aggregate reports for unauthorized senders and configuration errors.
+4. Move to `p=quarantine`, then `p=reject`, as your confidence grows.
+5. Use the `pct` tag to apply the policy to a percentage of messages during rollout.
 
 The policy applies to the root domain and all subdomains. You do not need a separate DMARC record for each subdomain. Use the `sp` tag to set a different policy for subdomains.
 

@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 
-from kms import keys
+from kms import keys, keystore
 
 
 class TestGenerateRsaPrivateKey:
@@ -110,7 +110,7 @@ class TestDecrypt:
     def test_decrypt__roundtrip(self):
         pair = keys.generate("ed25519")
         # decrypt must yield a valid private-key PEM.
-        pem = keys.decrypt(pair.ciphertext)
+        pem = keystore.decrypt(pair.ciphertext)
         assert pem.startswith("-----BEGIN PRIVATE KEY-----")
         private = serialization.load_pem_private_key(pem.encode(), None)
         assert isinstance(private, Ed25519PrivateKey)

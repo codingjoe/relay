@@ -1,37 +1,40 @@
-"""SMTP handlers for outgoing mail submissions."""
+"""Store and submit outgoing mail."""
 
 import base64
 import logging
-import secrets
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, transaction
+from django.utils import timezone
 
+from abstract.email_utils import decode_header_value
+from abstract.signals import request_scoped
 from accounts.models import Organization
 from domains.dkim import sign_message
 from domains.models import Domain, canonicalize_domain_name
+from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
 
-from .models import MsaCredential, OutgoingMessage, SuppressionEntry, Transmission
-from .tasks import check_outgoing_spam
+from .models import MsaCredential, OutgoingMessage, SuppressionEntry
+from .tasks import check_outgoing_spam, deliver_message
 
 logger = logging.getLogger(__name__)
 
 
-def add_feedback_id(raw_bytes: bytes, org: Organization) -> tuple[bytes, str]:
+def add_feedback_id(raw_bytes: bytes, org: Organization, domain: Domain) -> bytes:
     """
-    Prepend a relay Feedback-ID header for FBL complaint attribution per org.
+    Prepend the relay Feedback-ID header, replacing customer-supplied ones.
 
-    relay's token replaces any customer-supplied Feedback-ID because the
-    token is the attribution key for complaint reports. Return the
-    message bytes and the minted Feedback-ID.
+    The identifiers are the sending domain, the organization, and the mail
+    type, followed by the SenderId that stays the same for every message.
+    Providers aggregate FBL data per identifier, so a value that changes
+    with each message would never be reported.
     """
-    feedback_id = f"{org.pk}::{secrets.token_hex(12)}:relay"
-    header = f"Feedback-ID: {feedback_id}\015\012".encode("ascii")
-    return header + remove_feedback_id_headers(raw_bytes), feedback_id
+    header = f"Feedback-ID: {domain.sender_domain}:{org.pk}:tx:relay\015\012"
+    return header.encode("ascii") + remove_feedback_id_headers(raw_bytes)
 
 
 def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
@@ -76,6 +79,7 @@ class SMTPHandler(ProxyProtocolMixin):
             credential,
             getattr(session, "ssl", False),
             client_ip,
+            timezone.now(),
         )
         logger.info("Message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
@@ -136,6 +140,7 @@ class BalancerHandler(ImplicitTLSHandler):
 
 
 @sync_to_async
+@request_scoped
 def authenticate(username: str, key: str):
     """
     Authenticate an org by its slug and SMTP credential key.
@@ -143,9 +148,8 @@ def authenticate(username: str, key: str):
     Return the credential, or `None` if authentication fails.
     """
     api_keys = MsaCredential.objects.select_related("org").filter(
-        key_prefix=key[:8],
+        key_prefix=key[:4],
         org__slug=username,
-        type__in=[MsaCredential.Type.SMTP, MsaCredential.Type.SMTP_IP],
         hold=False,
     )
     for api_key in api_keys:
@@ -162,50 +166,107 @@ def store_outgoing_message(
     domain,
     credential,
     status,
-    feedback_id,
     ssl,
     client_ip,
     raw_bytes,
+    started_at,
+    is_system_mail=False,
+    message_pk=None,
 ):
     """
     Store an outgoing message with its submission record.
 
-    Enqueues spam processing for deliverable messages.
+    Enqueues spam processing for customer submissions, and delivery directly
+    for the system mail relay authored itself.
     """
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
-    subject = parsed.get("Subject", "")
-    message = OutgoingMessage.objects.create(
-        org=org,
-        rcpt_to=rcpt_to,
-        mail_from=mail_from,
-        subject=subject,
-        message_id=message_id,
-        domain=domain,
-        credential=credential,
-        feedback_id=feedback_id,
-        received_with_tls=bool(ssl),
-        status=status,
-        headers=OutgoingMessage.headers_from_raw(raw_bytes),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
+    subject = decode_header_value(parsed.get("Subject", ""))
+    # The message carries the marker, the credential can go away later.
+    is_sandbox = (
+        credential is not None and credential.type == MsaCredential.Type.SANDBOX
     )
-    Transmission.record_submission(message, ssl)
-    if status == OutgoingMessage.Status.PENDING:
-        transaction.on_commit(
-            lambda: check_outgoing_spam.enqueue(
-                message_pk=str(message.id),
-                client_ip=client_ip,
-            )
+    with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
+        transmission.message = message = OutgoingMessage.objects.create(
+            id=message_pk,
+            org=org,
+            rcpt_to=rcpt_to,
+            mail_from=mail_from,
+            subject=subject,
+            message_id=message_id,
+            domain=domain,
+            credential=credential,
+            is_sandbox=is_sandbox,
+            status=status,
+            headers=OutgoingMessage.headers_from_raw(raw_bytes),
+            raw_body=SimpleUploadedFile("message.eml", raw_bytes),
         )
+    if status == OutgoingMessage.Status.PENDING:
+        if is_system_mail:
+            transaction.on_commit(
+                lambda: deliver_message.enqueue(message_id=str(message.id))
+            )
+        else:
+            transaction.on_commit(
+                lambda: check_outgoing_spam.enqueue(
+                    message_pk=str(message.id),
+                    client_ip=client_ip,
+                )
+            )
     return message
 
 
+def submit_relay_message(
+    *,
+    org,
+    domain,
+    email,
+    mail_from,
+    rcpt_to,
+    started_at,
+    message_pk=None,
+    ssl=None,
+    client_ip=None,
+):
+    """
+    Stamp, sign and queue one message relay generated for an organization.
+
+    The message leaves relay from the organization's own domain, which is
+    what puts it in their dashboard and on their bill. A caller that passes
+    message_pk renders the body against the ID the message will carry, so a
+    message can link to its own transmission trace.
+    """
+    raw_bytes = add_feedback_id(email.message().as_bytes(), org, domain)
+    raw_bytes = sign_message(raw_bytes, domain)
+    return store_outgoing_message(
+        org=org,
+        rcpt_to=rcpt_to,
+        mail_from=mail_from,
+        domain=domain,
+        credential=None,
+        status=OutgoingMessage.Status.PENDING,
+        ssl=ssl,
+        client_ip=client_ip,
+        raw_bytes=raw_bytes,
+        started_at=started_at,
+        is_system_mail=True,
+        message_pk=message_pk,
+    )
+
+
 @sync_to_async
-def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
+@request_scoped
+def process_message(
+    mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip, started_at
+):
     """
     Store a submitted outgoing message and enqueue its delivery.
 
-    Delivery is not enqueued when the org is suspended.
+    A suppressed recipient is stored without delivery, even if the
+    organization is suspended. Otherwise a suspended organization is refused
+    before relay stores anything.
+    A submission with a sandbox credential is stamped and signed like any
+    other, and its delivery walk stops before the SMTP session.
     """
     if "@" not in mail_from:
         return "550 Sender domain not registered"
@@ -228,10 +289,8 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
         return "550 Sender domain not registered"
 
     if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
-        # Suppressed mail is never sent, so relay mints no Feedback-ID and
-        # FBL complaints can never be attributed to it. Strip customer
-        # Feedback-ID headers so only the Feedback-ID relay actually
-        # forwarded with ever persists.
+        # Suppressed mail never leaves relay, so relay mints no Feedback-ID
+        # and the stored copy carries none.
         raw_bytes = remove_feedback_id_headers(raw_bytes)
         store_outgoing_message(
             org=credential.org,
@@ -240,10 +299,10 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
             domain=domain,
             credential=credential,
             status=OutgoingMessage.Status.SUPPRESSED,
-            feedback_id="",
             ssl=ssl,
             client_ip=client_ip,
             raw_bytes=raw_bytes,
+            started_at=started_at,
         )
         logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
         return "250 OK"
@@ -257,7 +316,7 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
+    raw_bytes = add_feedback_id(raw_bytes, credential.org, domain)
     raw_bytes = sign_message(raw_bytes, domain)
     store_outgoing_message(
         org=credential.org,
@@ -266,9 +325,9 @@ def process_message(mail_from, rcpt_to, raw_bytes, credential, ssl, client_ip):
         domain=domain,
         credential=credential,
         status=OutgoingMessage.Status.PENDING,
-        feedback_id=feedback_id,
         ssl=ssl,
         client_ip=client_ip,
         raw_bytes=raw_bytes,
+        started_at=started_at,
     )
     return "250 OK"

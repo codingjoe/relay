@@ -20,6 +20,14 @@ class TestMtaStsPolicyAllows:
         assert allowed is False
         assert "enforce" in reason
 
+    def test_allows__names_the_policy_patterns_in_the_enforce_reason(self):
+        policy = MtaStsPolicy(
+            mode="enforce", mx_patterns=["*.good.com", "*.better.com"], loaded=True
+        )
+        allowed, reason = policy.allows("mail.evil.com")
+        assert allowed is False
+        assert "*.good.com, *.better.com" in reason
+
     def test_allows__returns_true_when_testing_and_no_match(self):
         policy = MtaStsPolicy(mode="testing", mx_patterns=["*.good.com"], loaded=True)
         allowed, reason = policy.allows("mail.evil.com")

@@ -1,19 +1,28 @@
 # Imprint
 
-Information according to § 5 TMG / DDG.
+Information according to § 5 DDG.
 
-**{{ site_name }}**
+## Service provider
 
-Provider of this service.
+**Johannes Maron**
+
+Lennéstr. 19
+
+D-14469 Potsdam
+
+Germany
+
+VAT identification number according to § 27a UStG: DE284754038
 
 ## Contact
 
-- Email: \[{{ contact_email }}\]({{ contact_email }})
-- Web: {{ site_domain }}
+- Email: [postmaster@relays.to](mailto:postmaster@relays.to)
+- Signal: [signal.me](https://signal.me/#eu/Jjz57AkYRM1n1BRSH4jqMSIgSJS3Cy7kkINAXCbB2GX-EjfW_x9Iz4_bo4ivaxc5)
+- Mastodon: [@codingjoe@fosstodon.org](https://fosstodon.org/@codingjoe)
 
 ## Responsible for content
 
-The operator is responsible for the content of this website according to § 18 para. 2 MStV.
+Johannes Maron, Lennéstr. 19, D-14469 Potsdam, Germany.
 
 ## Disclaimer
 

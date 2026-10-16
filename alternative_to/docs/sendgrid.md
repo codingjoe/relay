@@ -4,36 +4,39 @@ description: A fair 2025 comparison of relay and SendGrid (Twilio) for email sen
 author: Johannes Maron
 ---
 
+{% load abstract %}
+
 # Alternative to SendGrid
 
 > SendGrid is one of the most popular email APIs, with strong marketing tools. relay focuses on sending, receiving, and reputation monitoring in one EU-hosted service.
 
 <div class="not-prose my-6 rounded-lg border border-border bg-card p-4 text-sm">
   <p class="m-0 mb-2">
-    <i data-lucide="circle-check" class="size-4 text-primary align-middle" aria-hidden="true"></i>
+    {% tabler name="circle-check" class="text-primary align-middle" %}
     <strong>Best for marketing campaigns and a large integration ecosystem:</strong> SendGrid
   </p>
   <p class="m-0">
-    <i data-lucide="circle-check" class="size-4 text-primary align-middle" aria-hidden="true"></i>
+    {% tabler name="circle-check" class="text-primary align-middle" %}
     <strong>Best for sending, receiving, and monitoring in one EU-hosted service:</strong> relay
   </p>
 </div>
 
 ## Quick comparison
 
-| Feature                                                                                                                                                                                                                | relay                                                                                                    | SendGrid                                                                                                           |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| SPF <a href="{% url 'know_how:detail' slug='spf' %}" target="_blank" rel="noopener" aria-label="SPF. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                         | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record          |
-| DKIM <a href="{% url 'know_how:detail' slug='dkim' %}" target="_blank" rel="noopener" aria-label="DKIM. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                      | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> RSA-2048, Ed25519      | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> RSA only               |
-| DMARC <a href="{% url 'know_how:detail' slug='dmarc' %}" target="_blank" rel="noopener" aria-label="DMARC. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>                   | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record          |
-| MTA-STS <a href="{% url 'know_how:detail' slug='mta-sts' %}" target="_blank" rel="noopener" aria-label="MTA-STS. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>             | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Self-hosted            |
-| TLS-RPT <a href="{% url 'know_how:detail' slug='tls-rpt' %}" target="_blank" rel="noopener" aria-label="TLS-RPT. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a>             | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual record          |
-| Return-Path <a href="{% url 'know_how:detail' slug='return-path' %}" target="_blank" rel="noopener" aria-label="Return-Path. Know how"><i data-lucide="info" class="size-3.5 align-middle" aria-hidden="true"></i></a> | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Auto-served            | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Manual CNAME           |
-| Reputation monitoring                                                                                                                                                                                                  | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> DMARC + TLS-RPT parsed | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Separate product       |
-| Incoming mail                                                                                                                                                                                                          | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> MX + webhooks          | <i data-lucide="circle-dashed" class="size-4 text-muted-foreground" aria-hidden="true"></i> Inbound Parse (add-on) |
-| EU data sovereignty                                                                                                                                                                                                    | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> EU, GDPR               | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> US-owned (EU on higher tiers)    |
-| Free test domain                                                                                                                                                                                                       | <i data-lucide="circle-check" class="size-4 text-primary" aria-hidden="true"></i> Yes                    | <i data-lucide="circle-x" class="size-4 text-destructive" aria-hidden="true"></i> No                               |
-| Pricing                                                                                                                                                                                                                | Flat per message                                                                                         | Tiered plans                                                                                                       |
+| Feature                                                                                                                                                                                                    | relay                                                                          | SendGrid                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| SPF <a href="{% url 'know_how:detail' slug='spf' %}" target="_blank" rel="noopener" aria-label="SPF. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>                         | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual record                |
+| DKIM <a href="{% url 'know_how:detail' slug='dkim' %}" target="_blank" rel="noopener" aria-label="DKIM. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>                      | {% tabler name="circle-check" class="text-primary" %} RSA-2048, Ed25519        | {% tabler name="circle-dashed" class="text-muted-foreground" %} RSA only                     |
+| DMARC <a href="{% url 'know_how:detail' slug='dmarc' %}" target="_blank" rel="noopener" aria-label="DMARC. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>                   | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual record                |
+| MTA-STS <a href="{% url 'know_how:detail' slug='mta-sts' %}" target="_blank" rel="noopener" aria-label="MTA-STS. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>             | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Self-hosted                  |
+| TLS-RPT <a href="{% url 'know_how:detail' slug='tls-rpt' %}" target="_blank" rel="noopener" aria-label="TLS-RPT. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a>             | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual record                |
+| Return-Path <a href="{% url 'know_how:detail' slug='return-path' %}" target="_blank" rel="noopener" aria-label="Return-Path. Know how">{% tabler name="info-circle" size="3.5" class="align-middle" %}</a> | {% tabler name="circle-check" class="text-primary" %} Auto-served              | {% tabler name="circle-dashed" class="text-muted-foreground" %} Manual CNAME                 |
+| Reputation monitoring                                                                                                                                                                                      | {% tabler name="circle-check" class="text-primary" %} DMARC + TLS-RPT parsed   | {% tabler name="circle-dashed" class="text-muted-foreground" %} Separate product             |
+| Incoming mail                                                                                                                                                                                              | {% tabler name="circle-check" class="text-primary" %} MX + webhooks            | {% tabler name="circle-dashed" class="text-muted-foreground" %} Inbound Parse (add-on)       |
+| EU data sovereignty                                                                                                                                                                                        | {% tabler name="circle-check" class="text-primary" %} EU, GDPR                 | {% tabler name="circle-x" class="text-destructive" %} US-owned (EU on higher tiers)          |
+| Free test domain                                                                                                                                                                                           | {% tabler name="circle-check" class="text-primary" %} Yes                      | {% tabler name="circle-x" class="text-destructive" %} No                                     |
+| Sandbox                                                                                                                                                                                                    | {% tabler name="circle-check" class="text-primary" %} Credentials, no delivery | {% tabler name="circle-dashed" class="text-muted-foreground" %} Sandbox mode, validates only |
+| Pricing                                                                                                                                                                                                    | Flat per message                                                               | Tiered plans                                                                                 |
 
 ## What SendGrid does well
 
@@ -76,6 +79,6 @@ SendGrid is a strong all-round email API with deep marketing features. relay is 
 ## Migrating from SendGrid to relay
 
 1. Add your domain in relay. Delegate NS to the relay nameservers.
-1. Set the DMARC record that relay gives you.
-1. Switch your app to relay with a per-org credential.
-1. Point inbound webhooks at relay instead of SendGrid Inbound Parse.
+2. Set the DMARC record that relay gives you.
+3. Switch your app to relay with a per-org credential.
+4. Point inbound webhooks at relay instead of SendGrid Inbound Parse.

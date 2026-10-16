@@ -8,7 +8,17 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from abstract.models import TimeStamped
+from abstract.email_utils import decode_payload
+from abstract.models import FetchPeersManager, TimeStamped, Timing
+from kms.models import Certificate
+from services.email.tls import parse_peer_certificates
+
+
+def create_raw_body_path(instance, filename: str) -> str:
+    """Return the storage path of a message body."""
+    # The primary key is the parent link on multi-table inheritance children
+    # and is unset while the body is written, so read the message ID instead.
+    return f"messages/{instance.id}.eml"
 
 
 class Message(TimeStamped):
@@ -25,7 +35,7 @@ class Message(TimeStamped):
     """
 
     icon = ""
-    """Lucide icon name of the concrete subclass. Falls back to the direction icons."""
+    """Tabler icon name of the concrete subclass. Falls back to the direction icons."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -54,7 +64,7 @@ class Message(TimeStamped):
     subject = models.TextField(
         _("subject"),
         blank=True,
-        help_text=_("RFC 5322 Subject header value."),
+        help_text=_("Subject header value with RFC 2047 encoded-words decoded."),
     )
     message_id = models.TextField(
         _("message ID"),
@@ -63,7 +73,7 @@ class Message(TimeStamped):
     )
     raw_body = models.FileField(
         _("raw body"),
-        upload_to="messages/",
+        upload_to=create_raw_body_path,
         blank=True,
         help_text=_("Raw RFC 822 message bytes."),
     )
@@ -72,11 +82,6 @@ class Message(TimeStamped):
         default=list,
         blank=True,
         help_text=_("RFC 5322 header fields of the message, as [name, value] pairs."),
-    )
-    received_with_tls = models.BooleanField(
-        _("received with TLS"),
-        default=False,
-        help_text=_("Submission received over TLS."),
     )
     spam_score = models.FloatField(
         _("spam score"),
@@ -89,7 +94,7 @@ class Message(TimeStamped):
         blank=True,
         choices=[
             ("pass", _("pass")),
-            ("no action", _("no action")),
+            ("no action", _("pass")),
             ("greylist", _("greylist")),
             ("add header", _("add header")),
             ("rewrite subject", _("rewrite subject")),
@@ -98,6 +103,33 @@ class Message(TimeStamped):
             ("drop", _("drop")),
         ],
         help_text=_("rspamd action assigned to the message."),
+    )
+    # Values mirror services.email.spam.client.VirusAction. The client is a
+    # shared module that must not import this app, so both sides keep the list.
+    virus_action = models.TextField(
+        _("virus action"),
+        blank=True,
+        choices=[
+            ("clean", _("no virus")),
+            ("infected", _("virus")),
+            ("encrypted", _("encrypted part")),
+            ("macro", _("macro")),
+            ("limits", _("scan limits")),
+        ],
+        help_text=_(
+            "Antivirus verdict derived from the rspamd symbols, empty until a check completes."
+        ),
+    )
+    virus_name = models.TextField(
+        _("virus name"),
+        blank=True,
+        help_text=_("Name of the virus rspamd detected, empty when it found none."),
+    )
+    virus_symbols = models.JSONField(
+        _("virus symbols"),
+        default=dict,
+        blank=True,
+        help_text=_("Antivirus symbols rspamd reported for the message."),
     )
 
     class Status(models.TextChoices):
@@ -119,6 +151,13 @@ class Message(TimeStamped):
         indexes = [
             models.Index(fields=["status"]),
             models.Index(fields=["domain", "status"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["raw_body"],
+                condition=~models.Q(raw_body=""),
+                name="unique_message_body",
+            ),
         ]
 
     def save(self, *args, **kwargs):
@@ -152,7 +191,7 @@ class Message(TimeStamped):
     @property
     def kind_icon(self) -> str:
         """
-        Return the matching Lucide icon name.
+        Return the matching Tabler icon name.
 
         Reads the icon from the concrete class because multi-table
         inheritance returns base instances in shared querysets.
@@ -185,6 +224,43 @@ class Message(TimeStamped):
             case _:
                 return "outline"
 
+    @property
+    def spam_icon(self) -> str:
+        """Return the icon that matches the rspamd verdict."""
+        match self.spam_action:
+            case "pass" | "no action":
+                return "message-check"
+            case _:
+                return "message-exclamation"
+
+    @property
+    def virus_badge_variant(self) -> str:
+        """Map the antivirus verdict to a badge variant."""
+        match self.virus_action:
+            case "clean":
+                return "success"
+            case "infected":
+                return "destructive"
+            case "encrypted" | "macro" | "limits":
+                return "warning"
+            case _:
+                return "outline"
+
+    @property
+    def virus_icon(self) -> str:
+        """Return the icon that matches the antivirus verdict."""
+        match self.virus_action:
+            case "infected":
+                return "virus"
+            case _:
+                return "virus-off"
+
+    @property
+    def virus_display(self) -> str:
+        """Return the antivirus verdict with the virus name when one was found."""
+        label = self.get_virus_action_display()
+        return f"{label}: {self.virus_name}" if self.virus_name else label
+
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
@@ -207,6 +283,13 @@ class Message(TimeStamped):
             return self.get_absolute_url()
         return reverse(
             model.email_url_name,
+            kwargs={"org_slug": self.org.slug, "pk": self.pk},
+        )
+
+    def get_body_url(self) -> str:
+        """Return the URL of the view serving the HTML body to a sandboxed frame."""
+        return reverse(
+            "message:message-body",
             kwargs={"org_slug": self.org.slug, "pk": self.pk},
         )
 
@@ -259,6 +342,26 @@ class Message(TimeStamped):
             b"",
         )
 
+    @property
+    def html_body(self) -> str:
+        """
+        Return the decoded HTML payload of the stored body.
+
+        Messages whose raw body is pruned or unreadable, and messages that
+        carry no HTML part, have no HTML payload. Callers render it in a
+        sandboxed frame, because a body from the outside is untrusted.
+        """
+        return next(
+            (
+                decode_payload(payload, part.get_content_charset())
+                for part in self.parsed_email().walk()
+                if not part.is_multipart()
+                and part.get_content_type() == "text/html"
+                and (payload := part.get_payload(decode=True)) is not None
+            ),
+            "",
+        )
+
     @classmethod
     def headers_from_raw(cls, raw_bytes):
         """Return the message headers as JSON-serializable [name, value] pairs."""
@@ -305,3 +408,271 @@ class Message(TimeStamped):
             return self.headers_from_raw(self.raw_body.read())
         except FileNotFoundError, ValueError:
             return []
+
+    @property
+    def headers_text(self) -> str:
+        """Return the message headers as RFC 5322 header lines."""
+        return "\n".join(f"{name}: {value}" for name, value in self.parsed_headers)
+
+
+TIMELINE_COLORS = {
+    "submitted": "var(--color-chart-blue)",
+    "received": "var(--color-chart-blue)",
+    "sent": "var(--color-chart-green)",
+    "retry": "var(--color-chart-yellow)",
+    "failed": "var(--color-chart-red)",
+    "bounced": "var(--color-chart-red)",
+    "sandboxed": "var(--color-chart-gray)",
+}
+
+
+class Transmission(Timing):
+    """
+    Track a single SMTP leg of a message.
+
+    An incoming message starts with the reception on relay's MTA, an
+    outgoing message starts with the submission to relay's MSA and can
+    gain multiple delivery transmissions (for example, retry attempts).
+    """
+
+    class Status(models.TextChoices):
+        RECEIVED = "received", _("received")
+        SUBMITTED = "submitted", _("submitted")
+        SANDBOXED = "sandboxed", _("sandboxed")
+        SENT = "sent", _("sent")
+        FAILED = "failed", _("failed")
+        RETRY = "retry", _("retry")
+        BOUNCED = "bounced", _("bounced")
+
+    class TlsMode(models.TextChoices):
+        PLAINTEXT = "plaintext", "plaintext"
+        STARTTLS = "starttls", "STARTTLS"
+        TLS = "tls", "TLS"
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="transmissions",
+    )
+    remote_host = models.TextField(
+        _("remote host"),
+        blank=True,
+        help_text=_("Hostname of the remote peer of this leg, when known."),
+    )
+    local_ip_address = models.GenericIPAddressField(
+        _("local IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address relay used for this leg."),
+    )
+    remote_ip_address = models.GenericIPAddressField(
+        _("remote IP address"),
+        null=True,
+        blank=True,
+        help_text=_("IP address of the remote peer of this leg."),
+    )
+    status = models.TextField(
+        _("status"),
+        choices=Status,
+        help_text=_("Outcome of this delivery attempt."),
+    )
+    code = models.PositiveIntegerField(
+        _("code"),
+        null=True,
+        blank=True,
+        help_text=_("SMTP response code from the remote server."),
+    )
+    output = models.TextField(
+        _("output"),
+        blank=True,
+        help_text=_("Raw SMTP transcript from the remote server."),
+    )
+    details = models.TextField(
+        _("details"),
+        blank=True,
+        help_text=_("Human-readable explanation of the outcome."),
+    )
+    tls_mode = models.TextField(
+        _("TLS mode"),
+        choices=TlsMode,
+        default=TlsMode.PLAINTEXT,
+        help_text=_("TLS transport negotiated for this leg."),
+    )
+    tls_version = models.TextField(
+        _("TLS version"),
+        blank=True,
+        help_text=_("Negotiated TLS protocol version, for example TLSv1.3."),
+    )
+    tls_cipher = models.TextField(
+        _("TLS cipher"),
+        blank=True,
+        help_text=_("Negotiated TLS cipher suite."),
+    )
+    tls_certificate = models.ForeignKey(
+        "kms.Certificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="transmissions",
+    )
+
+    objects = FetchPeersManager()
+
+    @classmethod
+    def tls_session_fields(cls, ssl):
+        """Return the TLS field values negotiated for an SMTP session."""
+        ssl_object = ssl.get("ssl_object") if isinstance(ssl, dict) else None
+        cipher = ssl_object.cipher() if ssl_object else None
+        if isinstance(ssl, dict):
+            tls_mode = cls.TlsMode.STARTTLS
+        elif ssl:
+            tls_mode = cls.TlsMode.TLS
+        else:
+            tls_mode = cls.TlsMode.PLAINTEXT
+        return {
+            "tls_mode": tls_mode,
+            "tls_version": cipher[1] if cipher else "",
+            "tls_cipher": cipher[0] if cipher else "",
+            "tls_certificate": (
+                Certificate.store_presented_chain(parse_peer_certificates(ssl_object))
+                if ssl_object
+                else None
+            ),
+        }
+
+    @classmethod
+    def record_submission(cls, ssl, started_at, client_ip=None):
+        """Return the unpersisted submission transmission for a message."""
+        return cls(
+            status=cls.Status.SUBMITTED,
+            code=250,
+            output="250 OK",
+            **cls.tls_session_fields(ssl),
+            remote_ip_address=client_ip,
+            started_at=started_at,
+        )
+
+    @classmethod
+    def record_reception(cls, ssl, started_at, client_ip=None):
+        """Return the unpersisted reception transmission for a message."""
+        return cls(
+            status=cls.Status.RECEIVED,
+            **cls.tls_session_fields(ssl),
+            remote_ip_address=client_ip or None,
+            started_at=started_at,
+        )
+
+    @property
+    def status_badge_variant(self) -> str:
+        match self.status:
+            case self.Status.SENT | self.Status.RECEIVED:
+                return "success"
+            case self.Status.FAILED | self.Status.BOUNCED:
+                return "destructive"
+            case _:
+                return "outline"
+
+    @property
+    def label(self) -> str:
+        target = self.remote_host or self.remote_ip_address or ""
+        name = self.get_status_display()
+        return f"{name} ({target})" if target else name
+
+    @property
+    def event(self) -> dict:
+        tls = " · ".join(
+            part
+            for part in (
+                self.get_tls_mode_display(),
+                self.tls_version,
+                self.tls_cipher,
+            )
+            if part
+        )
+        return {
+            "name": self.label,
+            "color": TIMELINE_COLORS[self.status],
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": (
+                f"{self.local_ip_address or '-'} → {self.remote_ip_address or '-'}"
+                if (self.local_ip_address or self.remote_ip_address)
+                else ""
+            ),
+            "tls": tls,
+            "transcript": (
+                f"transcript-{self.pk}"
+                if self.output or self.details or self.status == self.Status.RECEIVED
+                else ""
+            ),
+        }
+
+    def __str__(self):
+        return f"{self.message} → {self.status}"
+
+
+class SpamCheck(Timing):
+    """Record the wall-clock duration of a spam check."""
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+    )
+    score = models.FloatField(
+        _("score"),
+        null=True,
+        blank=True,
+        help_text=_("rspamd score the check returned, or null when the check failed."),
+    )
+    scan_ms = models.FloatField(
+        _("scan time"),
+        null=True,
+        blank=True,
+        help_text=_("Milliseconds rspamd measured for the check itself."),
+    )
+    antivirus_ms = models.FloatField(
+        _("antivirus time"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Milliseconds the antivirus took, or null when rspamd did not profile the check."
+        ),
+    )
+    profile_ms = models.JSONField(
+        _("profile"),
+        default=dict,
+        blank=True,
+        help_text=_(
+            "Milliseconds rspamd spent per symbol, empty when it did not profile the check."
+        ),
+    )
+
+    class Meta(Timing.Meta):
+        verbose_name = _("spam check")
+
+    @property
+    def label(self) -> str:
+        name = str(self._meta.verbose_name)
+        return f"{name} ({self.score})" if self.score is not None else name
+
+    TIMELINE_VARIANT_COLORS = {
+        "success": "var(--color-chart-green)",
+        "warning": "var(--color-chart-yellow)",
+        "destructive": "var(--color-chart-red)",
+    }
+
+    @property
+    def event(self) -> dict:
+        return {
+            "name": self.label,
+            "color": self.TIMELINE_VARIANT_COLORS.get(
+                self.message.spam_badge_variant, "var(--color-chart-gray)"
+            ),
+            "start": int(self.started_at.timestamp() * 1000),
+            "end": int(self.finished_at.timestamp() * 1000),
+            "ips": "",
+            "tls": "",
+            "transcript": "",
+            "score": self.score,
+            "antivirus": self.antivirus_ms,
+        }

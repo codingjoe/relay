@@ -1,17 +1,21 @@
 import logging
+import re
 from email import message_from_bytes
 from email.message import Message
+from email.utils import formatdate
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
+from django.utils import timezone
 
+from abstract.email_utils import decode_header_value
 from abstract.mailauth import Disposition, DmarcEvaluation
+from abstract.signals import request_scoped
 from domains.models import Domain
-from kms.models import Certificate
+from services.email.message.models import Transmission
 from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
-from services.email.tls import parse_peer_certificates
 
 from .arc import seal_message
 from .models import (
@@ -19,9 +23,44 @@ from .models import (
     TlsReport,
 )
 from .signals import bounce_report_received, fbl_report_received, report_received
-from .tasks import check_incoming_spam, notify_postmaster_recipients, parse_tls_report
+from .tasks import check_incoming_spam, parse_tls_report
 
 logger = logging.getLogger(__name__)
+
+# HELO names are attacker-controlled; only these characters may reach the
+# Received header so they cannot inject header lines or Received clauses.
+HELO_ALLOWED_CHARS = re.compile(r"[A-Za-z0-9.\-:\[\]]")
+
+
+def received_header(session) -> bytes:
+    """Return the Received header line for an inbound message (RFC 5321 §4.4)."""
+    helo = "".join(HELO_ALLOWED_CHARS.findall(getattr(session, "host_name", "") or ""))
+    protocol = "ESMTPS" if getattr(session, "ssl", None) else "ESMTP"
+    received = f"from {helo or 'unknown'}"
+    if ip := get_client_ip(session):
+        received += f" ([{ip}])"
+    received += (
+        f"\r\n\tby {settings.RELAY_DNS_MX_HOSTNAMES[0]} with {protocol};\r\n\t"
+        + formatdate(usegmt=True)
+    )
+    return f"Received: {received}".encode()
+
+
+def is_fbl_report(evaluation: DmarcEvaluation) -> bool:
+    """Return whether a message is a genuine complaint from a registered provider."""
+    domain = (evaluation.header_from or "").lower().rstrip(".")
+    if not any(
+        domain == allowed or domain.endswith(f".{allowed}")
+        for allowed in settings.RELAY_FBL_SENDER_DOMAINS
+    ):
+        return False
+    if evaluation.dmarc_authenticated:
+        return True
+    logger.warning(
+        "Ignored an unauthenticated FBL report claiming %r",
+        evaluation.header_from,
+    )
+    return False
 
 
 class MXHandler(ProxyProtocolMixin):
@@ -55,6 +94,7 @@ class MXHandler(ProxyProtocolMixin):
             if evaluation.disposition == Disposition.QUARANTINE
             else IncomingMessage.Status.RECEIVED
         )
+        raw_bytes = received_header(session) + b"\r\n" + raw_bytes
         raw_bytes = await sync_to_async(seal_message, thread_sensitive=False)(
             raw_bytes, evaluation, domain
         )
@@ -65,6 +105,7 @@ class MXHandler(ProxyProtocolMixin):
             getattr(session, "ssl", None),
             domain,
             status,
+            evaluation,
             client_ip,
         )
         logger.info("Incoming message from %r to %r: %r", mail_from, rcpt_to, result)
@@ -83,26 +124,17 @@ def is_delivery_status_notification(msg: Message) -> bool:
 
 
 @sync_to_async
+@request_scoped
 def process_incoming_message(
-    mail_from, rcpt_to, raw_bytes, tls, domain, status, client_ip
+    mail_from, rcpt_to, raw_bytes, tls, domain, status, evaluation, client_ip
 ):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
-    subject = msg.get("Subject", "")
+    is_fbl_recipient = rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
+    subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
-    ssl_object = (tls or {}).get("ssl_object")
-    cipher = ssl_object.cipher() if ssl_object else None
-    tls_fields = {
-        "received_with_tls": bool(tls),
-        "tls_version": cipher[1] if cipher else "",
-        "tls_cipher": cipher[0] if cipher else "",
-        "tls_certificate": (
-            Certificate.store_presented_chain(parse_peer_certificates(ssl_object))
-            if ssl_object
-            else None
-        ),
-    }
+    started_at = timezone.now()
 
     match local_part:
         case (
@@ -120,98 +152,84 @@ def process_incoming_message(
                 subject=subject,
                 message_id=message_id,
                 raw_bytes=raw_bytes,
-                tls_fields=tls_fields,
+                tls=tls,
+                client_ip=client_ip,
+                started_at=started_at,
             )
             if any(r is not None for _, r in responses):
                 return "250 OK"
 
         case settings.RELAY_TLS_REPORT_LOCAL_PART:
-            report = TlsReport.objects.create(
-                org=domain.org,
-                domain=domain,
-                receiving_domain=rcpt_domain,
-                mail_from=mail_from,
-                rcpt_to=rcpt_to,
-                subject=subject,
-                message_id=message_id,
-                report_id="",
-                headers=TlsReport.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
-                **tls_fields,
-            )
+            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+                reception.message = report = TlsReport.objects.create(
+                    org=domain.org,
+                    domain=domain,
+                    receiving_domain=rcpt_domain,
+                    mail_from=mail_from,
+                    rcpt_to=rcpt_to,
+                    subject=subject,
+                    message_id=message_id,
+                    report_id="",
+                    headers=TlsReport.headers_from_raw(raw_bytes),
+                    raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+                )
             transaction.on_commit(
                 lambda: parse_tls_report.enqueue(report_pk=str(report.pk))
             )
             return "250 OK"
 
-        case _ if (
-            rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
-            and mail_from.lower() in settings.RELAY_FBL_SENDERS
-        ):
-            message = IncomingMessage.objects.create(
-                org=domain.org,
-                domain=domain,
-                receiving_domain=rcpt_domain,
-                mail_from=mail_from,
-                rcpt_to=rcpt_to,
-                subject=subject,
-                message_id=message_id,
-                status=status,
-                headers=IncomingMessage.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
-                **tls_fields,
-            )
+        case _ if is_fbl_recipient and is_fbl_report(evaluation):
+            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+                reception.message = message = IncomingMessage.objects.create(
+                    org=domain.org,
+                    domain=domain,
+                    receiving_domain=rcpt_domain,
+                    mail_from=mail_from,
+                    rcpt_to=rcpt_to,
+                    subject=subject,
+                    message_id=message_id,
+                    status=status,
+                    headers=IncomingMessage.headers_from_raw(raw_bytes),
+                    raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+                )
             fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
         case _ if local_part.startswith(
             f"{settings.RELAY_BOUNCE_LOCAL_PART}+"
         ) and is_delivery_status_notification(msg):
-            message = IncomingMessage.objects.create(
-                org=domain.org,
-                domain=domain,
-                receiving_domain=rcpt_domain,
-                mail_from=mail_from,
-                rcpt_to=rcpt_to,
-                subject=subject,
-                message_id=message_id,
-                status=status,
-                headers=IncomingMessage.headers_from_raw(raw_bytes),
-                raw_body=SimpleUploadedFile(
-                    f"{message_id or 'message'}.eml", raw_bytes
-                ),
-                **tls_fields,
-            )
+            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+                reception.message = message = IncomingMessage.objects.create(
+                    org=domain.org,
+                    domain=domain,
+                    receiving_domain=rcpt_domain,
+                    mail_from=mail_from,
+                    rcpt_to=rcpt_to,
+                    subject=subject,
+                    message_id=message_id,
+                    status=status,
+                    headers=IncomingMessage.headers_from_raw(raw_bytes),
+                    raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+                )
             bounce_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
-    is_postmaster_recipient = local_part == settings.RELAY_POSTMASTER_LOCAL_PART or (
-        local_part.startswith(f"{settings.RELAY_POSTMASTER_LOCAL_PART}+")
-    )
-    message = IncomingMessage.objects.create(
-        org=domain.org,
-        domain=domain,
-        receiving_domain=rcpt_domain,
-        mail_from=mail_from,
-        rcpt_to=rcpt_to,
-        subject=subject,
-        message_id=message_id,
-        status=status,
-        headers=IncomingMessage.headers_from_raw(raw_bytes),
-        raw_body=SimpleUploadedFile(f"{message_id or 'message'}.eml", raw_bytes),
-        **tls_fields,
-    )
+    with Transmission.record_reception(tls, started_at, client_ip) as reception:
+        reception.message = message = IncomingMessage.objects.create(
+            org=domain.org,
+            domain=domain,
+            receiving_domain=rcpt_domain,
+            mail_from=mail_from,
+            rcpt_to=rcpt_to,
+            subject=subject,
+            message_id=message_id,
+            status=status,
+            headers=IncomingMessage.headers_from_raw(raw_bytes),
+            raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+        )
     transaction.on_commit(
         lambda: check_incoming_spam.enqueue(
             message_pk=str(message.id), client_ip=client_ip
         )
     )
-    if is_postmaster_recipient:
-        transaction.on_commit(
-            lambda: notify_postmaster_recipients.enqueue(message_pk=str(message.id))
-        )
     return "250 OK"

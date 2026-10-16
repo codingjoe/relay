@@ -1,4 +1,3 @@
-from django.contrib.sitemaps.views import sitemap
 from django.urls import path
 
 from . import views
@@ -26,7 +25,7 @@ urlpatterns = [
     path("llms-full.txt", views.LlmsFullTxtView.as_view(), name="llms-full-txt"),
     path(
         "sitemap.xml",
-        sitemap,
+        views.SitemapView.as_view(),
         {"sitemaps": sitemaps},
         name="sitemap",
     ),

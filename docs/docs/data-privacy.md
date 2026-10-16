@@ -25,11 +25,20 @@ Germany:
 | Task worker              | Asynchronous delivery, scans, webhooks | Threadmill task runner                                        |
 | PostgreSQL               | Message metadata, org and domain state | Postgres 18+                                                  |
 | Redis                    | Caching and rate limiting              | Redis                                                         |
-| Object storage           | Raw message bodies                     | S3-compatible storage in the same region                      |
-| Spam scoring             | Content filter                         | rspamd, cluster-internal                                      |
+| Object storage           | Raw message bodies                     | S3-compatible bucket, behind a proxy that serves signed links |
+| Spam and virus scanning  | Content filter                         | rspamd with ClamAV, cluster-internal                          |
 
 No component of this stack belongs to a provider in a third country. There
 are no third-country data transfers.
+
+The node's first-boot configuration is stored with Hetzner as the server's user
+data, because that is how the node's operating system receives it. That document
+holds the cluster's private keys, and Hetzner serves it back to anything running
+on the node. relay treats the node as inside the trust boundary for its own
+cluster credentials, and it accepts the risk deliberately: the alternative is a
+hand-rolled install that gives up repeatable provisioning. See
+<a href="{% url 'docs:detail' slug='security' %}">Security</a> for the full
+limitation.
 
 ## What relay stores, and for how long
 
@@ -50,12 +59,13 @@ policy</a>. This table describes how the platform implements it.
 - **Plain suppressed addresses.** A suppression entry is a salted SHA-256
   hash of the lowercased address. relay can compare, but not read back.
 - **The message body inside webhook payloads.** A delivery carries the event
-  and a storage URL. The body never travels inline.
+  and a signed, expiring storage URL. The link grants read access to that one
+  message for an hour. The body never travels inline.
 - **Passwords.** GitHub OAuth signs in, and relay stores no password at all.
 - **API keys in plain form.** The database holds prefixes and hashes. The
   plain key is visible once at creation.
-- **Customer-supplied Feedback-IDs.** relay replaces them with its own token
-  at submission. Only the token relay actually forwarded with is stored.
+- **Customer-supplied Feedback-IDs.** relay replaces them with its own header
+  at submission. The message does not carry your campaign identifiers.
 
 ## Error monitoring with boundaries
 
@@ -76,7 +86,8 @@ decision, not a hidden default.
 ## Data flows
 
 - **GitHub OAuth** provides your identity at sign-in. relay stores your
-  GitHub identity and your email address.
+  GitHub identity and your email address, and requests the email addresses
+  scope only.
 - **Sending requires the platform** to talk to receiving mail servers and to
   DNS resolvers. Delivery is the product.
 - **Reports come in** from mailbox providers to the addresses your DMARC

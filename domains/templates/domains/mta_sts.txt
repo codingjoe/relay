@@ -1,4 +1,4 @@
 version: STSv1
 mode: {{ mta_sts_mode }}
-mx: {{ domain.sender_domain }}
-max_age: {{ mta_sts_max_age }}
+{% for mx_hostname in mx_hostnames %}mx: {{ mx_hostname }}
+{% endfor %}max_age: {{ mta_sts_max_age }}

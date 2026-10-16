@@ -1,29 +1,35 @@
 from django.conf import settings
 from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.views import (
+    ConditionalGetListMixin,
+    ConditionalGetMixin,
+    NoStoreCacheMixin,
+)
 from accounts.views import OrganizationScopedView
 
-from .models import Domain
+from . import resolver
+from .forms import DomainCreateForm
+from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
 
 
-class DomainListView(OrganizationScopedView, generic.ListView):
+class DomainListView(OrganizationScopedView, ConditionalGetListMixin, generic.ListView):
     context_object_name = "domains"
     title = _("Domains")
-    parent = "email-dashboard:dashboard"
+    parent = "accounts:org-home"
 
     def get_queryset(self):
         return Domain.objects.filter(org=self.org)
 
 
 class DomainCreateView(OrganizationScopedView, generic.CreateView):
-    model = Domain
-    fields = ["name"]
+    form_class = DomainCreateForm
     title = _("New domain")
     parent = "domains:domain-list"
 
@@ -50,7 +56,7 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
         return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
 
 
-class DomainDetailView(OrganizationScopedView, generic.DetailView):
+class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.DetailView):
     context_object_name = "domain"
     parent = "domains:domain-list"
 
@@ -62,20 +68,19 @@ class DomainDetailView(OrganizationScopedView, generic.DetailView):
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
-            "sending_passing": sum(
-                getattr(self.object, f"{field}_status") == Domain.Status.OK
-                for field in Domain.SENDING_CHECK_FIELDS
-            ),
-            "sending_total": len(Domain.SENDING_CHECK_FIELDS),
-            "receiving_passing": sum(
-                getattr(self.object, f"{field}_status") == Domain.Status.OK
-                for field in Domain.RECEIVING_CHECK_FIELDS
-            ),
-            "receiving_total": len(Domain.RECEIVING_CHECK_FIELDS),
+            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
+            "mx_priority": resolver.DNSResolver.MX_PRIORITY,
         }
 
 
 class DomainVerifyView(OrganizationScopedView, generic.View):
+    # The three exclusive record groups, in badge order.
+    TIERS = (
+        (_("sending"), Domain.SENDING_CHECK_FIELDS),
+        (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
+        (_("production"), Domain.PRODUCTION_CHECK_FIELDS),
+    )
+
     def post(self, request, org_slug, pk, *args, **kwargs):
         domain = get_object_or_404(
             Domain,
@@ -85,22 +90,27 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
         )
         verify_domain_dns(domain)
 
-        for label, fields in (
-            (_("sending"), Domain.SENDING_CHECK_FIELDS),
-            (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
-        ):
-            passing = sum(
-                getattr(domain, f"{field}_status") == Domain.Status.OK
-                for field in fields
-            )
-            total = len(fields)
-            if passing == total:
-                messages.success(
+        tiers = [
+            (label, domain.checks_passing(fields), len(fields))
+            for label, fields in self.TIERS
+        ]
+        unfinished = next(
+            (
+                (label, passing, total)
+                for label, passing, total in tiers
+                if passing < total
+            ),
+            None,
+        )
+        match unfinished:
+            case None:
+                messages.success(request, _("Verification passed: every check passes."))
+            case (label, 0, _):
+                messages.info(
                     request,
-                    _("%(label)s verification passed: all %(total)d checks pass.")
-                    % {"label": label, "total": total},
+                    _("%(label)s verification is not set up yet.") % {"label": label},
                 )
-            else:
+            case (label, passing, total):
                 messages.error(
                     request,
                     _(
@@ -150,6 +160,7 @@ class MtaStsPolicyView(generic.DetailView):
         return super().get_context_data(**kwargs) | {
             "mta_sts_mode": settings.RELAY_MTA_STS_MODE,
             "mta_sts_max_age": settings.RELAY_MTA_STS_MAX_AGE,
+            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
         }
 
     def get(self, request, *args, **kwargs):
@@ -157,3 +168,28 @@ class MtaStsPolicyView(generic.DetailView):
         response["Cache-Control"] = f"public, max-age={settings.RELAY_MTA_STS_MAX_AGE}"
         response["Vary"] = "Host"
         return response
+
+
+class MtaStsAuthorizeView(NoStoreCacheMixin, generic.View):
+    """Approve on-demand TLS issuance for the MTA-STS host of a registered domain."""
+
+    def get(self, request, *args, **kwargs):
+        host = request.GET.get("domain", "")
+        name = host.removeprefix("mta-sts.")
+        match name:
+            case "":
+                domain = None
+            case _:
+                try:
+                    domain = Domain.objects.get(name=name)
+                except Domain.DoesNotExist:
+                    domain = None
+        # A row below the platform domain bypasses the name validation, so
+        # only relay's own managed domains are valid hosts there.
+        platform = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+        authorized = (
+            domain is not None
+            and host == f"mta-sts.{domain.name}"
+            and (domain.is_managed or not name.endswith(f".{platform}"))
+        )
+        return HttpResponse(status=200 if authorized else 403)

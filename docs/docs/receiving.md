@@ -13,11 +13,9 @@ the result to your webhooks. This page explains each stage.
 
 ## The one-time receiving-domain setup
 
-Point the MX record of your receiving domain at your sender subdomain, for
-example `MX app.acme.com` to `mail.relay.acme.com`. The relay nameserver
-serves that subdomain's zone, so the MX host and its TLS records exist
-without further work. The dashboard's webhook check shows a wrong MX
-record, with the observed value and the time of the last check.
+Point the MX record of your receiving domain at the relay MX hostnames, for
+example `MX app.acme.com` to `mx1.relays.to` and `mx2.relays.to`. After you
+publish the record, run verification on the domain page.
 
 Inbound flow:
 
@@ -26,7 +24,8 @@ sequenceDiagram
     participant Sender as Any mail server
     participant MX as relay MX (25)
     participant Store as Storage
-    participant Scan as rspamd
+    participant Worker as relay worker
+    participant Scan as Scanner
     participant Hook as Your webhook
 
     Sender->>MX: STARTTLS on 25, RCPT TO
@@ -37,9 +36,10 @@ sequenceDiagram
     MX->>MX: ARC seal of the evaluation
     MX-->>Sender: 250 accepted (or 550 per policy)
     MX->>Store: store message and metadata
-    MX->>Scan: spam scan
-    Scan-->>MX: score and action
-    MX->>Hook: signed webhook per configured endpoint
+    MX->>Worker: enqueue spam scan for the stored message
+    Worker->>Scan: scan the stored message
+    Scan-->>Worker: score and action
+    Worker->>Hook: signed webhook per configured endpoint
 ```
 
 ## The acceptance gates
@@ -57,10 +57,19 @@ and it protects your inbox from spoofing attempts. relay signs outgoing mail
 with RSA-2048 and Ed25519 keys, but inbound DKIM verification still accepts
 signatures from older senders that use RSA-1024 keys.
 
-**Spam scan.** rspamd scores every accepted message. A message whose
-score reaches the reject threshold, or whose action is reject, lands as
-quarantined and never reaches your webhook. You can see the score in the
-dashboard.
+**Spam scan.** relay scores every accepted message, and you can see the
+score in the dashboard. A message whose score reaches the reject
+threshold, or whose action is reject, lands as quarantined and never
+reaches your webhook. The same scan checks for malware, so an infected
+message is quarantined too, and the message detail page names the virus it
+found. Scanning happens after relay has answered
+`250`, so a busy scanner delays the webhook, not acceptance.
+
+**Received header.** relay stamps every accepted message with a
+`Received` header before sealing. It records the sending host's HELO
+name and IP address, the receiving MX host, the transport protocol
+(ESMTP or ESMTPS), and the reception time. The ARC seal covers the
+header, so downstream receivers can trust the recorded hop.
 
 ## ARC sealing
 
@@ -106,7 +115,7 @@ Your delegated domain receives report traffic automatically:
 | `ruf@{sender-subdomain}`            | DMARC failure reports (RUF/ARF)         | Store, parse, show in the dashboard          |
 | `tls@{sender-subdomain}`            | TLS-RPT reports                         | Store, parse the JSON, show in the dashboard |
 | `bounce+{token}@{sender-subdomain}` | Bounce reports for one outgoing message | Store, parse, mark that message bounced      |
-| `postmaster` (+extensions)          | Human mail to postmaster                | Store, and notify your team                  |
+| `postmaster` (+extensions)          | Human mail to postmaster                | Store, then forward a summary to your team   |
 
 The DMARC and TLS report addresses exist because your DMARC and DNS
 records must name a collector, and relay is that collector. You see who
@@ -143,9 +152,24 @@ you can still read it in the dashboard.
 
 ## Postmaster handling
 
-relay stores messages to `postmaster@{your-domain}` and dispatches them
-like any other, with one addition: relay notifies the organization's members about
-postmaster mail, because [RFC 5321][rfc-5321] requires postmaster to be reachable.
+relay stores messages to `postmaster@{your-domain}` and forwards each one to
+every organization member with an email address, because [RFC 5321][rfc-5321]
+requires postmaster to remain reachable. Each copy is a real, replyable
+message, sent from the postmaster address of the domain that received it, so
+it leaves relay from your own domain: replies go to the original author, and
+the subject carries a `Fwd:` prefix. The body names the address that received
+the message, lists the original sender, subject, and recipient in a small
+table, and offers a button that opens the stored message in the relay
+dashboard, where the full message stays readable. The copy is an HTML mail
+with a plain-text alternative. A worker sends it, so it is written in the
+platform's default language.
+
+The copy is an outgoing message like any other, so it is listed with the
+messages your applications send and counts toward your usage.
+
+Forwarding happens after the spam scan, so a slow scanner delays the copy, not
+acceptance. A message that arrives under DMARC quarantine, or that the scan
+quarantines, is never forwarded and stays readable in the dashboard only.
 
 ## Reading arriving mail
 

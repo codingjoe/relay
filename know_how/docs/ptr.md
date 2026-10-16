@@ -57,7 +57,7 @@ This is different from most other DNS records (A, MX, TXT), which you control th
 PTR records are controlled by the owner of the IP address range. This is usually the internet service provider (ISP) or cloud hosting provider. You cannot set a PTR record in your domain's DNS zone.
 
 1. Ask your provider to set a PTR record for the sending IP address.
-1. Use a hostname that resolves back to the same IP address.
+2. Use a hostname that resolves back to the same IP address.
 
 The hostname must match the sending domain so that the PTR record passes the FCrDNS check.
 

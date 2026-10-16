@@ -1,0 +1,254 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+data:
+  10-pg_stat_statements.sql: |
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        dev.dozzle.name: postgres
+        dev.dozzle.group: data
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18.6
+          args: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: POSTGRES_PASSWORD}
+          ports:
+            - {name: postgres, containerPort: 5432}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql}
+            - {name: init, mountPath: /docker-entrypoint-initdb.d}
+          startupProbe:
+            exec: &pgIsReady
+              command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe: &pgProbe
+            exec: *pgIsReady
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *pgProbe
+            failureThreshold: 5
+            initialDelaySeconds: 30
+          resources:
+            requests: {cpu: 250m}
+            limits: {cpu: "2", memory: 1Gi}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres
+        - name: init
+          configMap:
+            name: postgres-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - {name: postgres, port: 5432, targetPort: postgres}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        dev.dozzle.name: redis
+        dev.dozzle.group: data
+    spec:
+      containers:
+        - name: redis
+          image: redis:8.10.2-alpine
+          args: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+          env:
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
+          ports:
+            - {name: redis, containerPort: 6379}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: config, mountPath: /usr/local/etc/redis, readOnly: true}
+          readinessProbe: &redisProbe
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *redisProbe
+            failureThreshold: 5
+            initialDelaySeconds: 30
+          resources:
+            requests: {cpu: 50m}
+            limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis
+        - name: config
+          secret:
+            secretName: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - {name: redis, port: 6379, targetPort: redis}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-tasks
+spec:
+  serviceName: redis-tasks
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis-tasks
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis-tasks
+        dev.dozzle.name: redis-tasks
+        dev.dozzle.group: data
+    spec:
+      containers:
+        - name: redis-tasks
+          image: redis:8.10.2-alpine
+          args: ["redis-server", "/usr/local/etc/redis/redis-tasks.conf"]
+          env:
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
+          ports:
+            - {name: redis, containerPort: 6379}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: config, mountPath: /usr/local/etc/redis, readOnly: true}
+          readinessProbe: &redisProbe
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *redisProbe
+            failureThreshold: 5
+            initialDelaySeconds: 30
+          resources:
+            requests: {cpu: 100m}
+            limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-tasks
+        - name: config
+          secret:
+            secretName: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-tasks
+spec:
+  selector:
+    app.kubernetes.io/name: redis-tasks
+  ports:
+    - {name: redis, port: 6379, targetPort: redis}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: caddy-redis
+        dev.dozzle.name: caddy-redis
+        dev.dozzle.group: data
+    spec:
+      containers:
+        - name: caddy-redis
+          image: redis:8.10.2-alpine
+          args: ["redis-server", "/usr/local/etc/redis/caddy.conf"]
+          env:
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
+          ports:
+            - {name: redis, containerPort: 6379}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: config, mountPath: /usr/local/etc/redis, readOnly: true}
+          readinessProbe: &redisProbe
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            !!merge <<: *redisProbe
+            failureThreshold: 5
+            initialDelaySeconds: 30
+          resources:
+            requests: {cpu: 50m}
+            limits: {cpu: "1", memory: 256Mi}
+      volumes:
+        # The cache is disposable: no volume, a restart leaves it cold.
+        - name: data
+          emptyDir: {}
+        - name: config
+          secret:
+            secretName: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-redis
+spec:
+  selector:
+    app.kubernetes.io/name: caddy-redis
+  ports:
+    - {name: redis, port: 6379, targetPort: redis}

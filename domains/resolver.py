@@ -9,6 +9,7 @@ from dnslib import CNAME, MX, NS, RR, TXT, A, DNSLabel, DNSRecord
 from dnslib.dns import QTYPE, RCODE, DNSError
 from dnslib.server import BaseResolver
 
+from abstract.signals import request_scope
 from kms.models import SigningKey
 
 from .models import Domain
@@ -44,7 +45,10 @@ class DNSResolver(BaseResolver):
         reply = request.reply(ra=0)
 
         try:
-            reply.add_answer(*self.resolve_records(request.q.qname, request.q.qtype))
+            with request_scope(type(self)):
+                reply.add_answer(
+                    *self.resolve_records(request.q.qname, request.q.qtype)
+                )
         except DNSError, DatabaseError:
             reply.header.rcode = RCODE.SERVFAIL
 
@@ -54,8 +58,9 @@ class DNSResolver(BaseResolver):
         """Return matching DNS records."""
         query_name = str(qname).strip().rstrip(".").lower()
         match qtype:
-            case QTYPE.A | QTYPE.ANY if (
-                query_name == settings.RELAY_SMTP_PUBLIC_HOSTNAME
+            case QTYPE.A | QTYPE.ANY if query_name in (
+                settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+                *settings.RELAY_DNS_MX_HOSTNAMES,
             ):
                 return [
                     RR(
@@ -89,18 +94,22 @@ class DNSResolver(BaseResolver):
             return
 
         match qtype:
-            case QTYPE.A | QTYPE.ANY if query_name == domain.sender_domain:
+            case QTYPE.A | QTYPE.ANY if query_name in (
+                domain.sender_domain,
+                f"mta-sts.{domain.sender_domain}",
+            ):
                 for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS:
                     yield RR(
                         qname, QTYPE.A, rdata=A(smtp_ip_address), ttl=self.RECORD_TTL
                     )
             case QTYPE.MX | QTYPE.ANY:
-                yield RR(
-                    qname,
-                    QTYPE.MX,
-                    rdata=MX(domain.sender_domain, self.MX_PRIORITY),
-                    ttl=self.RECORD_TTL,
-                )
+                for hostname in settings.RELAY_DNS_MX_HOSTNAMES:
+                    yield RR(
+                        qname,
+                        QTYPE.MX,
+                        rdata=MX(hostname, self.MX_PRIORITY),
+                        ttl=self.RECORD_TTL,
+                    )
             case QTYPE.TXT | QTYPE.ANY:
                 yield from self.resolve_txt(qname, qtype, query_name, domain)
             case QTYPE.NS | QTYPE.ANY:
@@ -123,14 +132,14 @@ class DNSResolver(BaseResolver):
                 yield RR(
                     qname, QTYPE.TXT, rdata=txt(domain.spf_record), ttl=self.RECORD_TTL
                 )
-            case name if name == f"_dmarc.{domain.name}":
+            case name if name == domain.dmarc_record_name:
                 yield RR(
                     qname,
                     QTYPE.TXT,
                     rdata=txt(domain.dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
-            case name if name == f"_mta-sts.{domain.name}":
+            case name if name == domain.mta_sts_record_name:
                 yield RR(
                     qname,
                     QTYPE.TXT,
@@ -155,7 +164,7 @@ class DNSResolver(BaseResolver):
         domain: Domain,
     ) -> Iterator[RR]:
         """Build DKIM TXT records. Serve each cipher's public key at its selector."""
-        for selector, key in domain.dkim_ciphers:
+        for _field, selector, key in domain.dkim_ciphers:
             if key:
                 dkim_names = [
                     f"{selector}._domainkey.{domain.sender_domain}",
@@ -191,7 +200,7 @@ class DNSResolver(BaseResolver):
                     rdata=txt(domain.sender_dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
-            case name if name == f"_smtp._tls.{domain.name}":
+            case name if name == domain.tls_rpt_record_name:
                 yield RR(
                     qname,
                     QTYPE.TXT,
@@ -207,16 +216,10 @@ class DNSResolver(BaseResolver):
     ) -> Iterator[RR]:
         """Build CNAME records for MTA-STS."""
         match query_name:
-            case name if name == f"mta-sts.{domain.name}":
-                target = f"mta-sts.{domain.sender_domain}"
-            case name if name == f"mta-sts.{domain.sender_domain}":
-                target = f"mta-sts.{settings.RELAY_PLATFORM_DOMAIN}"
-            case _:
-                return
-
-        yield RR(
-            qname,
-            QTYPE.CNAME,
-            rdata=CNAME(DNSLabel(target)),
-            ttl=self.RECORD_TTL,
-        )
+            case name if name == domain.mta_sts_hostname:
+                yield RR(
+                    qname,
+                    QTYPE.CNAME,
+                    rdata=CNAME(DNSLabel(domain.mta_sts_cname_target)),
+                    ttl=self.RECORD_TTL,
+                )

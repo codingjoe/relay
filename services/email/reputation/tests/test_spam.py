@@ -1,13 +1,22 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
+import aiosmtplib
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, Transmission
-from services.email.msa.tasks import check_outgoing_spam
+from services.email.message.models import Transmission
+from services.email.msa.models import OutgoingMessage
+from services.email.msa.tasks import (
+    DELIVERY_RETRY,
+    TemporaryDeliveryError,
+    check_outgoing_spam,
+    deliver_message,
+    delivery_retry,
+)
 from services.email.mta.models import IncomingMessage
 from services.email.mta.tasks import check_incoming_spam
 from services.email.reputation.charts import build_reputation_chart
@@ -16,7 +25,7 @@ from services.email.reputation.evaluation import (
     compute_org_reputation,
 )
 from services.email.reputation.models import FblReport
-from services.email.spam import SpamAction, SpamResult
+from services.email.spam.client import SpamAction, SpamResult
 
 
 @pytest.mark.django_db
@@ -37,9 +46,25 @@ class TestComputeOrgReputation:
         assert stats["complaints"] == 3
         assert stats["total_sent"] == 3
 
+    def test_compute_org_reputation__leaves_out_held_sandbox_message(self, org, user):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            status=OutgoingMessage.Status.HELD,
+            is_sandbox=True,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
+        )
+
+        stats = compute_org_reputation(org)
+        assert stats["complaints"] == 0
+        assert stats["total_sent"] == 0
+
     def test_compute_org_reputation__counts_provider_fbl_as_complaint(self, org, user):
         domain = Domain.objects.create(name="reputation.test", org=org)
-        OutgoingMessage.objects.create(
+        sender = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -57,6 +82,7 @@ class TestComputeOrgReputation:
             org=org,
             domain=domain,
             message=message,
+            complained_message=sender,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.PROVIDER,
         )
@@ -79,6 +105,7 @@ class TestComputeOrgReputation:
             org=org,
             domain=domain,
             message=message,
+            complained_message=message,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.RELAY,
         )
@@ -108,16 +135,110 @@ class TestComputeOrgReputation:
     def test_compute_org_reputation__counts_bounced_without_code_as_hard_bounce(
         self, org, user
     ):
-        message = make_sent_message(org)
+        message = make_message(org)
         Transmission.objects.create(
             message=message,
             status=Transmission.Status.BOUNCED,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         stats = compute_org_reputation(org)
 
         assert stats["hard_bounces"] == 1
         assert stats["hard_bounce_rate"] == 1.0
+        assert stats["soft_bounces"] == 0
+
+    def test_compute_org_reputation__counts_soft_bounces(self, org, user):
+        message = make_message(org, OutgoingMessage.Status.FAILED)
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.FAILED,
+            code=450,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["soft_bounces"] == 1
+        assert stats["hard_bounces"] == 0
+
+    def test_compute_org_reputation__counts_multiple_refusals_once(self, org, user):
+        message = make_message(org, OutgoingMessage.Status.FAILED)
+        started_at = timezone.now()
+        for code in (450, 451):
+            Transmission.objects.create(
+                message=message,
+                status=Transmission.Status.FAILED,
+                code=code,
+                started_at=started_at,
+                finished_at=timezone.now(),
+            )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["soft_bounces"] == 1
+
+    def test_compute_org_reputation__counts_hard_bounces(self, org, user):
+        message = make_message(org)
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["hard_bounces"] == 1
+        assert stats["soft_bounces"] == 0
+
+
+@pytest.mark.django_db(transaction=True)
+class TestSoftBounceAfterRetries:
+    def test_soft_bounce__counts_only_after_the_retry_budget_is_spent(
+        self, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+        message = OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            raw_body=SimpleUploadedFile("message.eml", b"body"),
+        )
+        message_id = str(message.id)
+        dns_resolver.add("example.com", "MX", "10 mx.example.com.")
+        refusal = aiosmtplib.SMTPResponseException(450, b"Try again later")
+
+        # The first attempt of a refused message, as the worker runs it.
+        with (
+            patch("services.email.msa.tasks.aiosmtplib.SMTP", side_effect=refusal),
+            pytest.raises(TemporaryDeliveryError),
+        ):
+            deliver_message.func(message_id=message_id)
+
+        # A refused attempt keeps the message pending, so it is not a bounce yet.
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.PENDING
+        assert compute_org_reputation(org)["soft_bounces"] == 0
+
+        # The last attempt, as the retry callback runs it for the executor.
+        error = SimpleNamespace(exception_class=TemporaryDeliveryError)
+        delivery_retry(
+            SimpleNamespace(
+                attempt=DELIVERY_RETRY.max_retries,
+                task_result=SimpleNamespace(
+                    kwargs={"message_id": message_id}, errors=[error]
+                ),
+            )
+        )
+
+        message.refresh_from_db()
+        assert message.status == OutgoingMessage.Status.FAILED
+        assert compute_org_reputation(org)["soft_bounces"] == 1
 
 
 @pytest.mark.django_db
@@ -139,6 +260,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -150,16 +273,19 @@ class TestCheckOrgReputation:
 
     def test_check_org_reputation__ignores_soft_bounces(self, org, user, settings):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = make_sent_message(org)
+        message = make_message(org, OutgoingMessage.Status.FAILED)
         Transmission.objects.create(
             message=message,
-            status=Transmission.Status.RETRY,
+            status=Transmission.Status.FAILED,
             code=450,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
-        check_org_reputation(org)
+        stats = check_org_reputation(org)
 
         org.refresh_from_db()
+        assert stats["soft_bounces"] == 1
         assert org.suspended_at is None
 
     def test_check_org_reputation__skips_notification_when_already_locked(
@@ -180,6 +306,8 @@ class TestCheckOrgReputation:
             message=message,
             status=Transmission.Status.BOUNCED,
             code=550,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
         )
 
         check_org_reputation(org)
@@ -189,14 +317,14 @@ class TestCheckOrgReputation:
         assert len(mailoutbox) == 0
 
 
-def make_sent_message(org):
+def make_message(org, status=OutgoingMessage.Status.SENT):
     domain = Domain.objects.create(name="reputation.test", org=org)
     return OutgoingMessage.objects.create(
         org=org,
         mail_from="sender@acme.com",
         rcpt_to="rcpt@example.com",
         domain=domain,
-        status=OutgoingMessage.Status.SENT,
+        status=status,
         raw_body=SimpleUploadedFile("test.eml", b"x"),
     )
 
@@ -207,13 +335,15 @@ class TestCheckReputationOnHardBounce:
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = make_sent_message(org)
+        message = make_message(org)
 
         with django_capture_on_commit_callbacks(execute=True):
             Transmission.objects.create(
                 message=message,
                 status=Transmission.Status.BOUNCED,
                 code=550,
+                started_at=timezone.now(),
+                finished_at=timezone.now(),
             )
 
         org.refresh_from_db()
@@ -224,13 +354,15 @@ class TestCheckReputationOnHardBounce:
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
-        message = make_sent_message(org)
+        message = make_message(org)
 
         with django_capture_on_commit_callbacks(execute=True):
             Transmission.objects.create(
                 message=message,
                 status=Transmission.Status.RETRY,
                 code=450,
+                started_at=timezone.now(),
+                finished_at=timezone.now(),
             )
 
         org.refresh_from_db()
@@ -267,7 +399,7 @@ class TestCheckReputationOnHeldMessage:
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
 
         with django_capture_on_commit_callbacks(execute=True):
-            make_sent_message(org)
+            make_message(org)
 
         org.refresh_from_db()
         assert org.suspended_at is None
@@ -372,10 +504,69 @@ class TestBuildReputationChart:
             org=org,
             domain=domain,
             message=report_email,
+            complained_message=message,
             original_mail_from="sender@acme.com",
         )
 
-        rows = build_reputation_chart(org)["rows"]
+        chart = build_reputation_chart(org)
 
-        assert rows[-1]["complained"] == 2
+        assert "2 complaints of 1 sent" in chart["complaint_chart"]["subtitle"]
         assert compute_org_reputation(org)["complaints"] == 2
+
+    def test_build_reputation_chart__counts_one_complaint_per_message(self, org):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        original = OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
+        )
+        for _index in range(2):
+            FblReport.objects.create(
+                org=org,
+                domain=domain,
+                message=IncomingMessage.objects.create(
+                    org=org,
+                    domain=domain,
+                    mail_from="feedback@gmail.com",
+                    rcpt_to="postmaster@acme.com",
+                ),
+                complained_message=original,
+                original_mail_from="sender@acme.com",
+            )
+
+        chart = build_reputation_chart(org)
+
+        assert "1 complaint of 1 sent" in chart["complaint_chart"]["subtitle"]
+        assert compute_org_reputation(org)["complaints"] == 1
+
+    def test_compute_org_reputation__counts_repeated_reports_once(self, org, user):
+        domain = Domain.objects.create(name="reputation.test", org=org)
+        original = OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
+        )
+        for _index in range(3):
+            FblReport.objects.create(
+                org=org,
+                domain=domain,
+                message=IncomingMessage.objects.create(
+                    org=org,
+                    domain=domain,
+                    mail_from="feedback@gmail.com",
+                    rcpt_to="postmaster@acme.com",
+                ),
+                complained_message=original,
+                original_mail_from="sender@acme.com",
+                source=FblReport.Source.PROVIDER,
+            )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["complaints"] == 1

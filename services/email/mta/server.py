@@ -9,7 +9,7 @@ import time
 from aiosmtpd.controller import Controller
 
 from services.email.proxy_protocol import proxy_protocol_timeout_seconds
-from services.email.tls import build_tls_context
+from services.email.tls import build_tls_context, wait_for_certificate_and_key
 
 from .handlers import MXHandler
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class MXServer:
     def __init__(
         self,
-        host="0.0.0.0",
+        host="0.0.0.0",  # noqa: S104
         ports=(25,),
         tls_cert_path="",
         tls_key_path="",
@@ -34,15 +34,7 @@ class MXServer:
 
     def start(self):
         handler = MXHandler()
-        try:
-            tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
-        except OSError:
-            logger.warning(
-                "TLS certificate (%s) or key (%s) not found; starting without STARTTLS",
-                self.tls_cert_path,
-                self.tls_key_path,
-            )
-            tls_context = None
+        tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
         for port in self.ports:
             controller = Controller(
                 handler,
@@ -69,7 +61,7 @@ class MXServer:
 
 
 def run_mx_server(
-    host="0.0.0.0",
+    host="0.0.0.0",  # noqa: S104
     ports=(25,),
     tls_cert_path="",
     tls_key_path="",
@@ -82,6 +74,7 @@ def run_mx_server(
         tls_key_path=tls_key_path,
         proxy_protocol_timeout=proxy_protocol_timeout,
     )
+    wait_for_certificate_and_key(tls_cert_path, tls_key_path)
     server.start()
 
     def signal_handler(sig, frame):

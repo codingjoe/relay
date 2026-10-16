@@ -27,10 +27,10 @@ SPF is one of the two authentication methods that <a href="{% url 'know_how:deta
 The SPF check follows these steps:
 
 1. The sending mail server connects to the receiving server and sends the `MAIL FROM` command with the envelope sender address.
-1. The receiving server extracts the domain from the envelope sender address.
-1. The receiving server looks up the SPF TXT record for that domain.
-1. The receiving server evaluates the SPF record against the sending IP address.
-1. The result is one of: `pass`, `fail`, `softfail`, `neutral`, `permerror`, or `temperror`.
+2. The receiving server extracts the domain from the envelope sender address.
+3. The receiving server looks up the SPF TXT record for that domain.
+4. The receiving server evaluates the SPF record against the sending IP address.
+5. The result is one of: `pass`, `fail`, `softfail`, `neutral`, `permerror`, or `temperror`.
 
 The check happens during the SMTP transaction, before the message body is accepted. This means the receiving server can reject a failing message before it enters the mail system.
 
@@ -77,10 +77,10 @@ SPF has a DNS lookup limit of 10. Each `include`, `a`, `mx`, `exists`, or `redir
 ## How to set up SPF
 
 1. Collect the IP addresses of all servers that send email for your domain.
-1. Create a TXT record that starts with `v=spf1`.
-1. Add the `a` and `mx` mechanisms to authorize your mail servers.
-1. Add `ip4:` and `ip6:` mechanisms for each additional sending IP address.
-1. End the record with `~all` to soft-fail all other senders.
+2. Create a TXT record that starts with `v=spf1`.
+3. Add the `a` and `mx` mechanisms to authorize your mail servers.
+4. Add `ip4:` and `ip6:` mechanisms for each additional sending IP address.
+5. End the record with `~all` to soft-fail all other senders.
 
 Use `-all` for hard fail only after you confirm that all legitimate senders pass SPF.[^softfail-vs-fail]
 
