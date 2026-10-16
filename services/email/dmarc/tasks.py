@@ -11,7 +11,7 @@ from .models import DmarcFailureReport, DmarcReport
 logger = logging.getLogger(__name__)
 
 
-@task
+@task()
 def parse_dmarc_report(report_pk):
     """Parse a received DMARC aggregate report and store its records."""
     report = DmarcReport.objects.get(pk=report_pk)
@@ -40,7 +40,7 @@ def parse_dmarc_report(report_pk):
         DmarcRecord.objects.bulk_create(records)
 
 
-@task
+@task()
 def parse_dmarc_failure_report(report_pk):
     """Parse a received DMARC forensic (RUF) report."""
     report = DmarcFailureReport.objects.get(pk=report_pk)
@@ -67,7 +67,7 @@ def parse_dmarc_failure_report(report_pk):
     )
 
 
-@task
+@task()
 def evaluate_incoming_message(message_pk):
     """Evaluate DMARC for an incoming message. If the evaluation fails, generate a RUF report."""
     from domains.models import Domain
@@ -91,7 +91,7 @@ def evaluate_incoming_message(message_pk):
                 DmarcFailureReport.send_ruf_report(message, evaluation)
 
 
-@task
+@task()
 def generate_daily_rua_reports():
     """Generate and send daily DMARC RUA reports for all verified domains."""
     from domains.models import Domain
