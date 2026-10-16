@@ -108,11 +108,12 @@ Four report types arrive:
 The dashboard surfaces each report type, per domain, and records whether a
 report arrived over TLS.
 
-FBL complaints need a proof before they count against your organization.
-The report carries the per-message Return-Path of the reported message. relay
-matches that address, so a complaint maps to one message, one domain, and one
-organization. A complaint that carries no such proof stays on record without
-a sending organization, so it never reaches your rates.
+FBL complaints need a proof before relay records them. The report carries the
+per-message Return-Path of the reported message, and relay matches that
+address. A complaint therefore maps to one message, one domain, and one
+organization, and a message counts one complaint however many reports name
+it. A report that names no message is kept as an inbound email only, and is
+not recorded as a complaint.
 
 Gmail groups its complaint rates by the
 <a href="{% url 'know_how:detail' slug='feedback-id' %}">Feedback-ID</a>

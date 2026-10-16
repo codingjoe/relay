@@ -4,13 +4,9 @@ from crontask import cron
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail import mailers
-from django.db import transaction
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
-from django.utils import timezone
 
 from accounts.models import Organization
-from domains.models import Domain
-from services.email.message.models import Message
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.models import IncomingMessage
 
@@ -22,9 +18,9 @@ from .models import FblReport
 logger = logging.getLogger(__name__)
 
 
-def resolve_fbl_owner(original_mail_from: str) -> tuple[Organization, Domain] | None:
+def resolve_fbl_message(original_mail_from: str) -> OutgoingMessage | None:
     """
-    Return the org and domain that sent the message a report is about.
+    Return the message a report is about, or `None`.
 
     The per-message proof the provider echoes is the full VERP envelope
     sender (`bounce+<message-id>@<sender-domain>`). Anything else returns
@@ -32,10 +28,7 @@ def resolve_fbl_owner(original_mail_from: str) -> tuple[Organization, Domain] | 
     """
     token = original_mail_from.partition("@")[0].partition("+")[2]
     try:
-        original = OutgoingMessage.objects.select_related(
-            "org",
-            "domain",
-        ).get(pk=token)
+        original = OutgoingMessage.objects.select_related("org", "domain").get(pk=token)
     except ValidationError, OutgoingMessage.DoesNotExist:
         return None
     if original_mail_from != (
@@ -43,7 +36,7 @@ def resolve_fbl_owner(original_mail_from: str) -> tuple[Organization, Domain] | 
         f"@{original.domain.sender_domain}"
     ):
         return None
-    return original.org, original.domain
+    return original
 
 
 @task()
@@ -71,27 +64,30 @@ def create_quarantined_incoming_fbl_report(message_pk):
 def create_provider_fbl_report(message_pk):
     """Store a provider FBL report for an ingested message and queue parsing."""
     message = IncomingMessage.objects.get(pk=message_pk)
-    report = FblReport.create_for_incoming(message)
+    try:
+        parsed = FblReport.parse_from_email(message.raw_body.read())
+    except ValueError:
+        logger.warning("FBL report %r is not an ARF email", message_pk)
+        return
+    complained_message = resolve_fbl_message(parsed.original_mail_from)
+    if complained_message is None:
+        logger.warning(
+            "FBL report %r names no message relay sent, kept as a message only",
+            message_pk,
+        )
+        return
+    report = FblReport.create_for_incoming(message, complained_message)
     parse_fbl_report.enqueue(report_pk=str(report.pk))
 
 
 @task()
 def parse_fbl_report(report_pk):
-    """
-    Fill the stored fields from the referenced message's raw ARF body.
-
-    Attribute the report to the sending organization only when the
-    provider echoes the exact original VERP envelope sender, then queue
-    an org evaluation.
-
-    Logs and keeps the stored fields when the body is not an ARF email.
-    """
+    """Fill the stored fields from the referenced message's raw ARF body."""
     report = FblReport.objects.select_related("message").get(pk=report_pk)
     try:
         parsed = FblReport.parse_from_email(report.message.raw_body.read())
     except ValueError:
         logger.warning("FBL report %r is not an ARF email", report_pk)
-        parsed = None
     else:
         report.feedback_type = parsed.feedback_type
         report.user_agent = parsed.user_agent
@@ -105,34 +101,23 @@ def parse_fbl_report(report_pk):
         report.original_message_id = parsed.original_message_id
         report.authentication_results = parsed.authentication_results
         report.original_headers = parsed.original_headers
-
-    owner = resolve_fbl_owner(original_mail_from=report.original_mail_from)
-    update_fields = [
-        "org",
-        "domain",
-        "feedback_type",
-        "user_agent",
-        "version",
-        "reporting_org",
-        "reporting_email",
-        "source_ip_address",
-        "arrival_at",
-        "original_mail_from",
-        "original_rcpt_to",
-        "original_message_id",
-        "authentication_results",
-        "original_headers",
-        "modified_at",
-    ]
-    with transaction.atomic():
-        if owner is not None:
-            report.org, report.domain = owner
-            # Attached parent messages carry child statuses; save() would
-            # reject them, so rebind org and domain with a queryset update.
-            Message.objects.filter(pk=report.message_id).update(
-                org=owner[0], domain=owner[1], modified_at=timezone.now()
-            )
-        report.save(update_fields=update_fields)
+        report.save(
+            update_fields=[
+                "feedback_type",
+                "user_agent",
+                "version",
+                "reporting_org",
+                "reporting_email",
+                "source_ip_address",
+                "arrival_at",
+                "original_mail_from",
+                "original_rcpt_to",
+                "original_message_id",
+                "authentication_results",
+                "original_headers",
+                "modified_at",
+            ]
+        )
 
     check_org_reputation.enqueue(org_id=report.org_id)
 

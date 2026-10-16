@@ -14,6 +14,16 @@ from services.email.mta.models import IncomingMessage
 from services.email.reputation.models import FblReport
 
 
+def make_complained_message(org, domain):
+    return OutgoingMessage.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="sender@acme.com",
+        rcpt_to="rcpt@example.com",
+        status=OutgoingMessage.Status.SENT,
+    )
+
+
 def make_report(org, **kwargs):
     domain = kwargs.pop("domain", None) or Domain.objects.create(
         name="reports.test", org=org
@@ -28,6 +38,7 @@ def make_report(org, **kwargs):
         "org": org,
         "domain": domain,
         "message": message,
+        "complained_message": make_complained_message(org, domain),
         "reporting_org": "gmail",
         "feedback_type": "abuse",
         "original_mail_from": "sender@acme.com",
@@ -114,6 +125,7 @@ class TestFblReportDetailView:
             org=org,
             domain=domain,
             message=message,
+            complained_message=make_complained_message(org, domain),
             reporting_org="gmail",
             arrival_at=timezone.now(),
             original_mail_from="sender@acme.com",

@@ -63,6 +63,7 @@ class TestFblReport:
             org=org,
             domain=domain,
             message=message,
+            complained_message=self.make_outgoing_message(org, domain=domain),
             reporting_org="gmail",
         )
         assert report.get_absolute_url() == reverse(
@@ -132,10 +133,22 @@ class TestFblReport:
             status=IncomingMessage.Status.RECEIVED,
         )
 
-        report = FblReport.create_for_incoming(message)
+        complained_message = self.make_outgoing_message(org, domain=domain)
+
+        report = FblReport.create_for_incoming(message, complained_message)
 
         assert report is not None
         assert report.source == "provider"
         assert report.org == org
         assert report.domain == domain
         assert report.message == message
+        assert report.complained_message_id == complained_message.pk
+
+    @pytest.mark.django_db
+    def test_create_for_spam__records_complained_message(self, org):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        message = self.make_outgoing_message(org, domain=domain)
+
+        report = FblReport.create_for_spam(message)
+
+        assert report.complained_message == message
