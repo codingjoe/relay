@@ -49,6 +49,9 @@ TEST = env.bool("TEST", default=False)
 
 SENTRY_DSN = env("SENTRY_DSN", default="").strip()
 
+# The image release, `sha-<commit>`, scoping the page cache validators.
+SENTRY_RELEASE = env("SENTRY_RELEASE", default="").strip()
+
 ALLOWED_HOSTS = [
     h.strip()
     for h in env.list(
@@ -577,7 +580,7 @@ if SENTRY_DSN and not TEST and not DEBUG:
             AsyncioIntegration(),
             ThreadingIntegration(),
         ],
-        release=env("SENTRY_RELEASE", default="").strip() or None,
+        release=SENTRY_RELEASE or None,
         send_default_pii=False,
         traces_sample_rate=float(
             env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "0.0"

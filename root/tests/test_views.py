@@ -73,7 +73,10 @@ class TestPublicChrome:
     def test_get__short_public_cache(self, client):
         for url in self.public_urls:
             response = client.get(url)
-            assert response.headers["Cache-Control"] == "public, max-age=60"
+            assert (
+                response.headers["Cache-Control"]
+                == "public, max-age=5, s-maxage=60, must-revalidate"
+            )
 
     def test_get__no_vary_cookie(self, client):
         for url in self.public_urls:

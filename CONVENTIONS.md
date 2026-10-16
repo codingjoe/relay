@@ -328,8 +328,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
   (`request.public_cache`): no user menu, no toasts, no org switcher. The
   response carries no `Vary: Cookie` and no queries.
 - Forms, redirects, and template views answer `no-store`. A response without a
-  `Cache-Control` header is stored by the Caddy edge cache for its 120s
-  default and then served to every visitor.
+  `Cache-Control` header is not stored by the Caddy edge cache at all.
 - Revalidate with `ConditionalGetListMixin` when the page renders one queryset
   and nothing else, `ConditionalGetMixin` when a single object's `modified_at`
   covers the page. Both answer `private, max-age=5, must-revalidate`: the

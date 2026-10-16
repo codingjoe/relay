@@ -191,6 +191,8 @@ jobs:
               exit 1
           fi
           echo "every pod is running and ready"
+      - name: Flush the edge cache
+        run: kubectl exec deployment/caddy-redis -- redis-cli flushdb
       - name: Track the Sentry release
         continue-on-error: true
         env:
@@ -235,3 +237,7 @@ jobs:
           for deployment in $(kubectl get deployment --output name); do
               kubectl rollout status "$deployment" --timeout=15m
           done
+          # Entries the failed release stored point at assets the rolled-back
+          # images do not carry either.
+          kubectl exec deployment/caddy-redis -- redis-cli flushdb ||
+              echo "::warning::the edge cache still holds entries of the failed release"

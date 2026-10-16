@@ -124,6 +124,25 @@ class TestDomainListView:
 
         assert response.status_code == 304
 
+    def test_get__fresh_response_after_a_release(self, admin_client, org, settings):
+        url = f"/org/{org.slug}/email/domains/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        settings.SENTRY_RELEASE = "sha-next"
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
+
+    def test_get__keeps_the_cached_policy_when_not_modified(self, admin_client, org):
+        url = f"/org/{org.slug}/email/domains/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+
+        assert response.status_code == 304
+        assert "Content-Security-Policy" not in response.headers
+
     def test_get__fresh_response_when_domain_added(self, admin_client, org):
         url = f"/org/{org.slug}/email/domains/"
         etag = admin_client.get(url).headers["ETag"]
@@ -231,6 +250,17 @@ class TestDomainDetailView:
         response = admin_client.get(url, headers={"If-None-Match": etag})
 
         assert response.status_code == 304
+
+    def test_get__fresh_response_after_a_release(self, admin_client, org, settings):
+        domain = Domain.objects.create(name="example.com", org=org)
+        url = f"/org/{org.slug}/email/domains/{domain.pk}/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        settings.SENTRY_RELEASE = "sha-next"
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
 
     def test_get__fresh_response_when_verification_changes_status(
         self, admin_client, org, dns_resolver

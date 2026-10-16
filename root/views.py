@@ -1,10 +1,8 @@
-import datetime
-
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import BreadcrumbViewMixin, CacheControlMixin
+from abstract.views import PUBLIC_PAGE_CACHE, BreadcrumbViewMixin, CacheControlMixin
 
 # Wordmarks of companies that back relay, with owner-attested endorsement.
 # Optional keys: "url" (endorser link) and "logo" (static image path).
@@ -48,7 +46,7 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
 
     template_name = "start.html"
     title = _("Home")
-    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
+    cache_control = PUBLIC_PAGE_CACHE
 
     def get_context_data(self, **kwargs):
         platform = self.request.get_host().split(":")[0]
@@ -67,4 +65,4 @@ class OpenSourceView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateVie
     template_name = "open_source.html"
     title = _("the open-source pledge")
     parent = "home"
-    cache_control = {"public": True, "max_age": datetime.timedelta(minutes=1)}
+    cache_control = PUBLIC_PAGE_CACHE
