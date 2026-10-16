@@ -448,7 +448,7 @@ Caddy restart. Pages carry a short `max-age` (5 seconds for HTML, 5 minutes
 for generated text files) and stay in the edge cache for a minute
 (`s-maxage`). Private pages answer `no-store` or revalidate with an ETag under
 `private, max-age=5, must-revalidate`. A response without a `Cache-Control`
-header is stored for Caddy's 120s default.
+header is not stored at all.
 
 Caddy creates its cache storer once at startup. If it starts before
 `caddy-redis` answers, it logs a Redis init error and keeps cache entries in
