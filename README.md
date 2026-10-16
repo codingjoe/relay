@@ -292,14 +292,21 @@ of the check it took whenever it is.
 
 ### Feedback loop (FBL) reports
 
-FBL complaints arrive at `RELAY_FBL_ADDRESS` and count only for senders
-listed in `RELAY_FBL_SENDERS`. Register the address with each provider and
-allowlist their report sender.
+Two mailbox providers send per-complaint reports: Yahoo, from
+`feedback@arf.mail.yahoo.com`, and Microsoft (Outlook.com, Hotmail, Live),
+from `staff@hotmail.com`. Google sends none. Gmail surfaces an aggregate spam
+rate in Postmaster Tools instead, keyed by the `Feedback-ID` header relay
+mints.
 
-| Variable            | Default                          | Description                                                                    |
-| ------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                    |
-| `RELAY_FBL_SENDERS` | _(empty: off)_                   | Exact provider envelope addresses, one per provider. Empty disables ingestion. |
+FBL complaints arrive at `RELAY_FBL_ADDRESS` and count only for senders whose
+domain is listed in `RELAY_FBL_SENDER_DOMAINS`. Register the address with each
+provider. Both known provider domains ship as defaults, so ingestion works
+without configuration.
+
+| Variable                   | Default                          | Description                                                                                                                    |
+| -------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                                                                    |
+| `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,hotmail.com` | Provider domains whose reports are ingested. A sender domain matches an entry or a subdomain of one. Empty disables ingestion. |
 
 ### Tech Stack
 

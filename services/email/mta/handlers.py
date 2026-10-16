@@ -45,6 +45,15 @@ def received_header(session) -> bytes:
     return f"Received: {received}".encode()
 
 
+def is_fbl_sender(mail_from: str) -> bool:
+    """Return whether an envelope sender belongs to a registered FBL provider."""
+    domain = mail_from.rpartition("@")[2].lower().rstrip(".")
+    return any(
+        domain == allowed or domain.endswith(f".{allowed}")
+        for allowed in settings.RELAY_FBL_SENDER_DOMAINS
+    )
+
+
 class MXHandler(ProxyProtocolMixin):
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
@@ -101,6 +110,7 @@ def process_incoming_message(
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
+    is_fbl_recipient = rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
     subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
     started_at = timezone.now()
@@ -147,10 +157,7 @@ def process_incoming_message(
             )
             return "250 OK"
 
-        case _ if (
-            rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
-            and mail_from.lower() in settings.RELAY_FBL_SENDERS
-        ):
+        case _ if is_fbl_recipient and is_fbl_sender(mail_from):
             with Transmission.record_reception(tls, started_at, client_ip) as reception:
                 reception.message = message = IncomingMessage.objects.create(
                     org=domain.org,

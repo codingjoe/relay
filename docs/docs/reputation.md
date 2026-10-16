@@ -101,8 +101,10 @@ Four report types arrive:
   per policy.
 - **TLS-RPT.** JSON with the success and failure counts of sender TLS
   attempts against your MTA-STS surface.
-- **Feedback loop (FBL).** An abuse report in the ARF format. A provider
-  sends it when a recipient marks one of your messages as spam.
+- **Feedback loop (FBL).** An abuse report in the ARF format. Yahoo and
+  Microsoft send one when a recipient marks one of your messages as spam.
+  Google sends none. Gmail reports an aggregate spam rate instead, keyed by
+  the `Feedback-ID` header of the message.
 
 The dashboard surfaces each report type, per domain, and records whether a
 report arrived over TLS.

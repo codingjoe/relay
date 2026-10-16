@@ -9,6 +9,7 @@ from abstract.mailauth import Disposition
 from domains.models import Domain
 from services.email.mta.handlers import (
     MXHandler,
+    is_fbl_sender,
     process_incoming_message,
     received_header,
 )
@@ -347,10 +348,10 @@ class TestMXHandler:
         self, org, settings
     ):
         settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
-            mail_from="feedback@gmail.com",
+            mail_from="feedback@arf.mail.yahoo.com",
             rcpt_tos=["fbl@example.com"],
             content=make_raw_email(),
             recipient_domain=domain,
@@ -374,11 +375,40 @@ class TestMXHandler:
         )
 
     @pytest.mark.django_db(transaction=True)
+    async def test_handle_data__fbl_sender_sub_domain_creates_report(
+        self, org, settings
+    ):
+        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        domain = Domain.objects.create(name="example.com", org=org)
+        envelope = SimpleNamespace(
+            mail_from="scomp-feedback@eu.arf.mail.yahoo.com",
+            rcpt_tos=["fbl@example.com"],
+            content=make_raw_email(),
+            recipient_domain=domain,
+        )
+        session = SimpleNamespace(peer=("127.0.0.1", 1234), ssl=False)
+
+        with (
+            patch(
+                "abstract.mailauth.DmarcEvaluation.from_bytes",
+                return_value=make_dmarc_evaluation(Disposition.NONE),
+            ),
+            patch(
+                "services.email.reputation.signals.tasks.create_provider_fbl_report"
+            ) as report_task,
+        ):
+            result = await MXHandler().handle_DATA(None, session, envelope)
+
+        assert result == "250 OK"
+        report_task.enqueue.assert_called_once()
+
+    @pytest.mark.django_db(transaction=True)
     async def test_handle_data__fbl_recipient_unknown_sender_checks_spam(
         self, org, settings
     ):
         settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="forged@example.org",
@@ -403,10 +433,10 @@ class TestMXHandler:
     @pytest.mark.django_db(transaction=True)
     async def test_handle_data__fbl_on_customer_domain_checks_spam(self, org, settings):
         settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
-            mail_from="feedback@gmail.com",
+            mail_from="feedback@arf.mail.yahoo.com",
             rcpt_tos=["fbl@example.com"],
             content=make_raw_email(),
             recipient_domain=domain,
@@ -519,3 +549,41 @@ class TestReceivedHeader:
 
         assert received.startswith("Received: from mx.example\r\n")
         assert "([127.0.0.1])" not in received
+
+
+class TestIsFblSender:
+    def test_is_fbl_sender__listed_domain(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+
+        assert is_fbl_sender("feedback@arf.mail.yahoo.com")
+
+    def test_is_fbl_sender__sub_domain(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+
+        assert is_fbl_sender("staff@mail.hotmail.com")
+
+    def test_is_fbl_sender__normalizes_sender(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+
+        assert is_fbl_sender("Feedback@ARF.MAIL.YAHOO.COM.")
+
+    def test_is_fbl_sender__look_alike_domain(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+
+        assert not is_fbl_sender("feedback@arf.mail.yahoo.com.evil.test")
+        assert not is_fbl_sender("feedback@evil-arf.mail.yahoo.com")
+
+    def test_is_fbl_sender__unlisted_domain(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+
+        assert not is_fbl_sender("forged@example.org")
+
+    def test_is_fbl_sender__empty_sender(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+
+        assert not is_fbl_sender("")
+
+    def test_is_fbl_sender__no_listed_domain(self, settings):
+        settings.RELAY_FBL_SENDER_DOMAINS = []
+
+        assert not is_fbl_sender("feedback@arf.mail.yahoo.com")

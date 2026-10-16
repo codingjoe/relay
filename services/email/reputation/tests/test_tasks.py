@@ -413,11 +413,11 @@ class TestProcessIncomingMessage:
         self, org, settings
     ):
         settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         with patch("services.email.mta.handlers.check_incoming_spam"):
             result = await process_incoming_message(
-                "feedback@gmail.com",
+                "feedback@arf.mail.yahoo.com",
                 "fbl@example.com",
                 make_arf_email(),
                 {"ssl_object": None},
@@ -438,7 +438,7 @@ class TestProcessIncomingMessage:
         self, org, settings
     ):
         settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDERS = ["feedback@gmail.com"]
+        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
             result = await process_incoming_message(
