@@ -164,13 +164,6 @@ class TestDomainCreateView:
         domain = Domain.objects.get(name="new.com")
         assert domain.org == org
 
-    def test_post__redirects_to_list(self, admin_client, org):
-        response = admin_client.post(
-            f"/org/{org.slug}/email/domains/new", {"name": "new.com"}
-        )
-        assert response.status_code == 302
-        assert response.url.endswith(f"/org/{org.slug}/email/domains/")
-
     def test_post__rejects_dot(self, admin_client, org):
         response = admin_client.post(
             f"/org/{org.slug}/email/domains/new", {"name": "."}

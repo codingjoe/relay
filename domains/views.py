@@ -52,9 +52,6 @@ class DomainCreateView(OrganizationScopedView, generic.CreateView):
             messages.error(self.request, error)
         return redirect("domains:domain-list", org_slug=self.org.slug)
 
-    def get_success_url(self):
-        return reverse_lazy("domains:domain-list", kwargs={"org_slug": self.org.slug})
-
 
 class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.DetailView):
     context_object_name = "domain"
