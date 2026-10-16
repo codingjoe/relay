@@ -65,7 +65,7 @@ policy</a>. This table describes how the platform implements it.
 - **API keys in plain form.** The database holds prefixes and hashes. The
   plain key is visible once at creation.
 - **Customer-supplied Feedback-IDs.** relay replaces them with its own header
-  at submission, so your campaign identifiers never leave with the message.
+  at submission. The message does not carry your campaign identifiers.
 
 ## Error monitoring with boundaries
 

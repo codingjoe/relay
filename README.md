@@ -300,15 +300,15 @@ and Microsoft send per-complaint reports, Google does not.
 
 Google reports complaints only as aggregate rates per `Feedback-ID`
 identifier, in the Postmaster Tools FBL dashboard. Verify the platform domain
-there once and the `relay` SenderId reports for every customer, because relay
-cosigns with that domain. The header relay mints has the form
-`{sending-domain}:{org-pk}:tx:relay`. Nothing has to be registered for the
-SenderId or for the identifiers themselves.
+there once. Then the `relay` SenderId reports for every customer, because
+relay cosigns with that domain. The header relay mints has the form
+`{sending-domain}:{org-pk}:tx:relay`. The SenderId and the identifiers need no
+registration.
 
 The identifiers are stable on purpose. Google aggregates the first four
-fields counted from the right side and reports an identifier only once it
-appears in enough mail, so a per-message value could never be reported. That
-is also why the header is not a proof for a complaint: only the per-message
+fields counted from the right side. It reports an identifier only when that
+identifier appears in enough mail, so a per-message value is never reported.
+As a result, the header is not a proof for a complaint. Only the per-message
 Return-Path is.
 
 | Variable                   | Default                                                       | Description                                                                                                      |

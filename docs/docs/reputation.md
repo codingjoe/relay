@@ -102,22 +102,22 @@ Four report types arrive:
 - **TLS-RPT.** JSON with the success and failure counts of sender TLS
   attempts against your MTA-STS surface.
 - **Feedback loop (FBL).** An abuse report in the ARF format. A provider
-  sends it when a recipient marks one of your messages as spam. Gmail sends
-  none, and keeps its complaint data for Postmaster Tools.
+  sends it when a recipient marks one of your messages as spam. Gmail does
+  not send these reports.
 
 The dashboard surfaces each report type, per domain, and records whether a
 report arrived over TLS.
 
 FBL complaints need a proof before they count against your organization.
-The report echoes the per-message Return-Path of the reported message. relay
+The report carries the per-message Return-Path of the reported message. relay
 matches that address, so a complaint maps to one message, one domain, and one
 organization. A complaint that carries no such proof stays on record without
 a sending organization, so it never reaches your rates.
 
-Gmail does not send these reports at all. It groups its complaint rates by
-the <a href="{% url 'know_how:detail' slug='feedback-id' %}">Feedback-ID</a>
-identifiers relay puts on every message, and shows them in Google Postmaster
-Tools for a domain you have verified there.
+Gmail groups its complaint rates by the
+<a href="{% url 'know_how:detail' slug='feedback-id' %}">Feedback-ID</a>
+identifiers that relay puts on every message. The rates appear in Google
+Postmaster Tools for a domain that you verified there.
 
 ## Reputation limits
 

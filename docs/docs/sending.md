@@ -114,8 +114,8 @@ Important details of the pipeline:
   keys of the platform domain. relay also sets a `Feedback-ID` header from
   the sending domain, your organization, the mail type, and the platform's
   own identifier last. Every message of a stream carries the same value,
-  because Gmail groups its aggregate complaint rates by those identifiers. A
-  customer-supplied `Feedback-ID` is replaced.
+  because Gmail groups its complaint rates by those identifiers. relay
+  replaces a customer-supplied `Feedback-ID`.
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
   message and the envelope domain aligns with your DKIM.
