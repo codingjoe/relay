@@ -331,7 +331,8 @@ class TestForwardPostmasterMessage:
 
         copy = OutgoingMessage.objects.get(org=org)
         assert any(name == "DKIM-Signature" for name, _ in copy.headers)
-        assert copy.feedback_id.startswith(f"{org.pk}::")
+        sender_domain = copy.domain.sender_domain
+        assert ["Feedback-ID", f"{sender_domain}:{org.pk}:tx:relay"] in copy.headers
 
     def test_forward_postmaster_message__records_the_submission(self, org):
         message = make_postmaster_message(org)

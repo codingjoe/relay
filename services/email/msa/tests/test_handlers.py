@@ -1,5 +1,4 @@
 import base64
-import re
 import secrets
 from email import message_from_bytes
 from email.message import EmailMessage
@@ -35,31 +34,44 @@ def make_email(mail_from, rcpt_to):
     return message
 
 
+ORG = SimpleNamespace(pk=9)
+SENDER_DOMAIN = SimpleNamespace(sender_domain="mail.relay.example.com")
+FEEDBACK_ID_HEADER = b"Feedback-ID: mail.relay.example.com:9:tx:relay\r\n"
+
+
 class TestAddFeedbackId:
-    def test_add_feedback_id__prepends_org_feedback_id(self):
-        message = make_email("alice@example.com", "bob@example.com")
-        original = message.as_bytes()
+    def test_add_feedback_id__prepends_the_relay_header(self):
+        original = make_email("alice@example.com", "bob@example.com").as_bytes()
 
-        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+        result = add_feedback_id(original, ORG, SENDER_DOMAIN)
 
-        assert result.endswith(original)
-        header = re.fullmatch(
-            rb"Feedback-ID: (9::[0-9a-f]{24}:relay)\r\n" + re.escape(original),
-            result,
+        assert result == FEEDBACK_ID_HEADER + original
+
+    def test_add_feedback_id__stays_the_same_for_every_message(self):
+        first = add_feedback_id(
+            make_email("alice@example.com", "bob@example.com").as_bytes(),
+            ORG,
+            SENDER_DOMAIN,
         )
-        assert header
-        assert feedback_id == header.group(1).decode()
+        second = add_feedback_id(
+            make_email("carol@example.com", "dave@example.com").as_bytes(),
+            ORG,
+            SENDER_DOMAIN,
+        )
+
+        assert first.startswith(FEEDBACK_ID_HEADER)
+        assert second.startswith(FEEDBACK_ID_HEADER)
 
     def test_add_feedback_id__replaces_customer_header(self):
         message = make_email("alice@example.com", "bob@example.com")
         message["Feedback-ID"] = "customer-id"
         original = message.as_bytes()
 
-        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+        result = add_feedback_id(original, ORG, SENDER_DOMAIN)
 
         assert result.count(b"Feedback-ID:") == 1
         assert b"customer-id" not in result
-        assert feedback_id.startswith("9::")
+        assert result.startswith(FEEDBACK_ID_HEADER)
         body = original.split(b"\n\n", 1)[1]
         assert result.endswith(b"\n\n" + body)
 
@@ -72,12 +84,12 @@ class TestAddFeedbackId:
             b"Hello"
         )
 
-        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+        result = add_feedback_id(original, ORG, SENDER_DOMAIN)
 
         assert result.count(b"Feedback-ID:") == 1
         assert b"customer" not in result
         assert b" one" not in result
-        assert feedback_id.startswith("9::")
+        assert result.startswith(FEEDBACK_ID_HEADER)
         assert result.endswith(b"To: bob@example.com\r\n\r\nHello")
 
     def test_add_feedback_id__removes_every_customer_header(self):
@@ -90,12 +102,12 @@ class TestAddFeedbackId:
             b"Hello"
         )
 
-        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+        result = add_feedback_id(original, ORG, SENDER_DOMAIN)
 
         assert result.count(b"Feedback-ID:") == 1
         assert b"first" not in result
         assert b"second" not in result
-        assert feedback_id.startswith("9::")
+        assert result.startswith(FEEDBACK_ID_HEADER)
         assert result.endswith(
             b"From: alice@example.com\r\nTo: bob@example.com\r\n\r\nHello"
         )
@@ -110,12 +122,11 @@ class TestAddFeedbackId:
             b"Hello"
         )
 
-        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+        result = add_feedback_id(original, ORG, SENDER_DOMAIN)
 
         assert b"tenant" not in result
         assert b"continuation" not in result
-        assert b"Feedback-ID: 9::" in result
-        assert feedback_id.startswith("9::")
+        assert FEEDBACK_ID_HEADER in result
         assert result.endswith(b"To: bob@example.com\r\n\r\nHello")
 
     def test_add_feedback_id__keeps_lookalike_headers(self):
@@ -128,12 +139,11 @@ class TestAddFeedbackId:
             b"Hello"
         )
 
-        result, feedback_id = add_feedback_id(original, SimpleNamespace(pk=9))
+        result = add_feedback_id(original, ORG, SENDER_DOMAIN)
 
+        assert result.startswith(FEEDBACK_ID_HEADER)
         assert b"X-Feedback-ID: x-tenant\r\n" in result
         assert b"Feedback-ID-Legacy: legacy\r\n" in result
-        assert result.count(b"Feedback-ID: 9::") == 1
-        assert feedback_id.startswith("9::")
         assert result.endswith(b"To: bob@example.com\r\n\r\nHello")
 
 
@@ -178,8 +188,7 @@ class TestHandleData:
         assert result == "250 OK"
         assert outgoing.transmissions.get().tls_mode != Transmission.TlsMode.PLAINTEXT
         stored = message_from_bytes(outgoing.raw_body.read())
-        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
-        assert outgoing.feedback_id == stored["Feedback-ID"]
+        assert stored["Feedback-ID"] == f"{domain.sender_domain}:{org.pk}:tx:relay"
         assert outgoing.headers
         assert any(k == "Feedback-ID" for k, _ in outgoing.headers)
         assert any(k == "DKIM-Signature" for k, _ in outgoing.headers)
@@ -248,8 +257,9 @@ class TestHandleData:
         stored = message_from_bytes(raw)
         assert b"customer-id" not in raw
         assert raw.count(b"Feedback-ID") == 1
-        assert stored.get_all("Feedback-ID") == [outgoing.feedback_id]
-        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
+        assert stored.get_all("Feedback-ID") == [
+            f"{domain.sender_domain}:{org.pk}:tx:relay"
+        ]
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(outgoing.id), client_ip="127.0.0.1"
         )
@@ -560,7 +570,6 @@ class TestProcessMessage:
         outgoing = await OutgoingMessage.objects.aget(org=org)
         assert result == "250 OK"
         assert outgoing.status == OutgoingMessage.Status.SUPPRESSED
-        assert outgoing.feedback_id == ""
         assert b"Feedback-ID" not in outgoing.raw_body.read()
         assert outgoing.domain == domain
         spam_task.enqueue.assert_not_called()
@@ -596,7 +605,6 @@ class TestProcessMessage:
         assert b"customer-id" not in raw
         assert b"Feedback-ID" not in raw
         assert not any(name == "Feedback-ID" for name, _ in outgoing.headers)
-        assert outgoing.feedback_id == ""
 
     async def test_process_message__sandbox_credential_stamps_and_signs_message(
         self,
@@ -629,8 +637,7 @@ class TestProcessMessage:
         assert result == "250 OK"
         assert outgoing.status == OutgoingMessage.Status.PENDING
         assert outgoing.is_sandbox
-        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
-        assert outgoing.feedback_id == stored["Feedback-ID"]
+        assert stored["Feedback-ID"] == f"{domain.sender_domain}:{org.pk}:tx:relay"
         assert any(name == "DKIM-Signature" for name, _ in outgoing.headers)
 
     async def test_process_message__production_credential_stamps_and_signs_message(
@@ -660,8 +667,7 @@ class TestProcessMessage:
         assert result == "250 OK"
         assert outgoing.status == OutgoingMessage.Status.PENDING
         assert not outgoing.is_sandbox
-        assert stored["Feedback-ID"].startswith(f"{org.pk}::")
-        assert outgoing.feedback_id == stored["Feedback-ID"]
+        assert stored["Feedback-ID"] == f"{domain.sender_domain}:{org.pk}:tx:relay"
         assert any(name == "DKIM-Signature" for name, _ in outgoing.headers)
 
 
@@ -687,7 +693,6 @@ class TestStoreOutgoingMessage:
                 domain=domain,
                 credential=None,
                 status=OutgoingMessage.Status.PENDING,
-                feedback_id="1::abc:relay",
                 ssl=True,
                 client_ip="192.0.2.1",
                 raw_bytes=raw_bytes,
@@ -720,7 +725,6 @@ class TestStoreOutgoingMessage:
                 domain=domain,
                 credential=None,
                 status=OutgoingMessage.Status.SUPPRESSED,
-                feedback_id="",
                 ssl=False,
                 client_ip="192.0.2.1",
                 raw_bytes=raw_bytes,
@@ -752,7 +756,6 @@ class TestStoreOutgoingMessage:
                 domain=domain,
                 credential=None,
                 status=OutgoingMessage.Status.PENDING,
-                feedback_id="1::abc:relay",
                 ssl=False,
                 client_ip="",
                 raw_bytes=raw_bytes,
@@ -778,7 +781,6 @@ class TestStoreOutgoingMessage:
             domain=domain,
             credential=None,
             status=OutgoingMessage.Status.PENDING,
-            feedback_id="1::abc:relay",
             ssl=False,
             client_ip="",
             raw_bytes=message.as_bytes(),
