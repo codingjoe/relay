@@ -7,7 +7,11 @@ from django.utils import timezone
 from accounts.models import Organization
 from domains.models import Domain
 from services.email.message.models import Transmission
-from services.email.msa.models import MsaCredential, OutgoingMessage
+from services.email.msa.models import (
+    MsaCredential,
+    OutgoingMessage,
+    TerminalStatusError,
+)
 
 
 def make_message(org, user, **kwargs):
@@ -56,6 +60,74 @@ class TestOutgoingMessageDefaults:
         )
         assert str(msg) in str(t)
         assert "sent" in str(t)
+
+
+@pytest.mark.django_db
+class TestOutgoingMessageSave:
+    def test_save__refuses_to_leave_a_final_status(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.SANDBOXED)
+
+        msg.status = OutgoingMessage.Status.SENT
+
+        with pytest.raises(TerminalStatusError):
+            msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+
+    def test_save__refuses_to_leave_a_final_status_on_a_full_write(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.BOUNCED)
+
+        msg.status = OutgoingMessage.Status.PENDING
+
+        with pytest.raises(TerminalStatusError):
+            msg.save()
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.BOUNCED
+
+    def test_save__allows_a_write_that_keeps_the_final_status(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.SANDBOXED)
+
+        msg.subject = "Kept"
+        msg.save(update_fields=["subject", "status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.SANDBOXED
+        assert msg.subject == "Kept"
+
+    def test_save__allows_a_pending_message_to_move_on(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user)
+
+        msg.status = OutgoingMessage.Status.HELD
+        msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.HELD
+
+    def test_save__refuses_a_second_status_change(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user)
+
+        msg.status = OutgoingMessage.Status.HELD
+        msg.save(update_fields=["status"])
+
+        msg.status = OutgoingMessage.Status.SENT
+
+        with pytest.raises(TerminalStatusError):
+            msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.HELD
 
 
 @pytest.mark.django_db

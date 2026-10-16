@@ -184,6 +184,10 @@ def store_outgoing_message(
     parsed = message_from_bytes(raw_bytes)
     message_id = parsed.get("Message-ID", "")
     subject = decode_header_value(parsed.get("Subject", ""))
+    # The message carries the marker, the credential can go away later.
+    is_sandbox = (
+        credential is not None and credential.type == MsaCredential.Type.SANDBOX
+    )
     with Transmission.record_submission(ssl, started_at, client_ip) as transmission:
         transmission.message = message = OutgoingMessage.objects.create(
             id=message_pk,
@@ -194,6 +198,7 @@ def store_outgoing_message(
             message_id=message_id,
             domain=domain,
             credential=credential,
+            is_sandbox=is_sandbox,
             feedback_id=feedback_id,
             status=status,
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
@@ -264,9 +269,8 @@ def process_message(
     A suppressed recipient is stored without delivery, even if the
     organization is suspended. Otherwise a suspended organization is refused
     before relay stores anything.
-    A submission with a sandbox credential is stored with the sandboxed
-    status, without a signature or a relay-minted Feedback-ID, and relay makes
-    no delivery attempt for it.
+    A submission with a sandbox credential is stamped and signed like any
+    other, and its delivery walk stops before the SMTP session.
     """
     if "@" not in mail_from:
         return "550 Sender domain not registered"
@@ -317,20 +321,15 @@ def process_message(
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    if credential.type == MsaCredential.Type.SANDBOX:
-        # The sandboxed status is terminal, so no spam scan or delivery follows.
-        status, feedback_id = OutgoingMessage.Status.SANDBOXED, ""
-    else:
-        raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
-        raw_bytes = sign_message(raw_bytes, domain)
-        status = OutgoingMessage.Status.PENDING
+    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
+    raw_bytes = sign_message(raw_bytes, domain)
     store_outgoing_message(
         org=credential.org,
         rcpt_to=rcpt_to,
         mail_from=mail_from,
         domain=domain,
         credential=credential,
-        status=status,
+        status=OutgoingMessage.Status.PENDING,
         feedback_id=feedback_id,
         ssl=ssl,
         client_ip=client_ip,

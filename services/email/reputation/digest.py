@@ -37,13 +37,14 @@ def build_org_digest(org: Organization) -> dict[str, typing.Any]:
 
 def count_window_recipients(org: Organization, window_days: int) -> int:
     """Return how many distinct addresses the window's messages were addressed to."""
-    # Keep the window and statuses in step with `compute_org_reputation`.
+    # Keep the window and the filters in step with `compute_org_reputation`.
     return (
         OutgoingMessage.objects.filter(
             org=org,
             created_at__gte=timezone.now() - timedelta(days=window_days),
         )
         .exclude(status=OutgoingMessage.Status.SANDBOXED)
+        .exclude(is_sandbox=True)
         .values("rcpt_to")
         .distinct()
         .count()

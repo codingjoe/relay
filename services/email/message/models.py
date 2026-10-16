@@ -422,6 +422,7 @@ TIMELINE_COLORS = {
     "retry": "var(--color-chart-yellow)",
     "failed": "var(--color-chart-red)",
     "bounced": "var(--color-chart-red)",
+    "sandboxed": "var(--color-chart-gray)",
 }
 
 
@@ -437,6 +438,7 @@ class Transmission(Timing):
     class Status(models.TextChoices):
         RECEIVED = "received", _("received")
         SUBMITTED = "submitted", _("submitted")
+        SANDBOXED = "sandboxed", _("sandboxed")
         SENT = "sent", _("sent")
         FAILED = "failed", _("failed")
         RETRY = "retry", _("retry")

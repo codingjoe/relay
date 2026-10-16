@@ -9,8 +9,8 @@ importers:
         specifier: ^1.0.2
         version: 1.0.2
       echarts:
-        specifier: ^5.6.0
-        version: 5.6.0
+        specifier: ^6.1.0
+        version: 6.1.0
       lit:
         specifier: ^3.3.3
         version: 3.3.3
@@ -28,28 +28,28 @@ importers:
         specifier: ^3.48.0
         version: 3.48.0
       '@tailwindcss/postcss':
-        specifier: ^4.1.0
+        specifier: ^4.3.3
         version: 4.3.3
       '@tailwindcss/typography':
         specifier: ^0.5.20
         version: 0.5.20(tailwindcss@4.3.3)
       cssnano:
-        specifier: ^9.1.2
+        specifier: ^9.2.2
         version: 9.2.2(postcss@8.5.29)
       esimport:
         specifier: ^0.10.2
         version: 0.10.2
       postcss:
-        specifier: ^8.5.26
+        specifier: ^8.5.29
         version: 8.5.29
       postcss-cli:
-        specifier: ^11.0.0
+        specifier: ^11.0.1
         version: 11.0.1(jiti@2.7.0)(postcss@8.5.29)
       tailwindcss:
-        specifier: ^4.1.0
+        specifier: ^4.3.3
         version: 4.3.3
       wireit:
-        specifier: ^0.14.0
+        specifier: ^0.14.13
         version: 0.14.13
 packages:
   '@alloc/quick-lru@5.2.0':
@@ -406,8 +406,8 @@ packages:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
   brace-expansion@1.1.21:
     resolution: {integrity: sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==}
-  brace-expansion@5.0.9:
-    resolution: {integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==}
+  brace-expansion@5.0.12:
+    resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
     engines: {node: 20 || >=22}
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
@@ -626,8 +626,8 @@ packages:
     resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
-  echarts@5.6.0:
-    resolution: {integrity: sha512-oTbVTsXfKuEhxftHqL5xprgLoc0k7uScAwtryCgWF6hPYFLRwOUHiFmHGCBKP5NPFNkDVopOieyUqYGH8Fa3kA==}
+  echarts@6.1.0:
+    resolution: {integrity: sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==}
   electron-to-chromium@1.5.452:
     resolution: {integrity: sha512-cVvk1YBSj6571VmV6hdJTqj94Y79xSu8cj6Y9t6ae4Y4431z8/7EJFvu3rVp90xhfuv9BpPKUmaLfTo4+FOGBg==}
   emoji-regex@8.0.0:
@@ -1170,8 +1170,8 @@ packages:
   yargs@17.7.3:
     resolution: {integrity: sha512-GZtjxm/J/4TSxuL3FNYjCmLktBTnIw/rVmKSIyKeYAZpmJB2ig9VauCC5xsa82GNKVKDAqpOn3KVzNt0zmrU0g==}
     engines: {node: '>=12'}
-  zrender@5.6.1:
-    resolution: {integrity: sha512-OFXkDJKcrlx5su2XbzJvj/34Q3m6PvyCZkVPHGYpcCJ52ek4U/ymZyfuV1nKE23AyBJ51E/6Yr0mhZ7xGTO4ag==}
+  zrender@6.1.0:
+    resolution: {integrity: sha512-oEGMDB6pOP2S6OwRR4PdVv610zrjnA3Bh+JnSG12fYJlBKjtNAoEb5fSUoCOOINlH96I2fU38/A2UpRKs67xYQ==}
 snapshots:
   '@alloc/quick-lru@5.2.0': {}
   '@antfu/install-pkg@2.1.0':
@@ -1442,7 +1442,7 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
       concat-map: 0.0.1
-  brace-expansion@5.0.9:
+  brace-expansion@5.0.12:
     dependencies:
       balanced-match: 4.0.4
   braces@3.0.3:
@@ -1721,10 +1721,10 @@ snapshots:
       dom-serializer: 2.0.0
       domelementtype: 2.3.0
       domhandler: 5.0.3
-  echarts@5.6.0:
+  echarts@6.1.0:
     dependencies:
       tslib: 2.3.0
-      zrender: 5.6.1
+      zrender: 6.1.0
   electron-to-chromium@1.5.452: {}
   emoji-regex@8.0.0: {}
   enhanced-resolve@5.24.5:
@@ -1931,7 +1931,7 @@ snapshots:
       mime-db: 1.33.0
   minimatch@10.2.6:
     dependencies:
-      brace-expansion: 5.0.9
+      brace-expansion: 5.0.12
   minimatch@3.1.5:
     dependencies:
       brace-expansion: 1.1.21
@@ -2225,7 +2225,7 @@ snapshots:
   uuid@14.0.2: {}
   wireit@0.14.13:
     dependencies:
-      brace-expansion: 5.0.9
+      brace-expansion: 5.0.12
       chokidar: 3.6.0
       fast-glob: 3.3.3
       jsonc-parser: 3.3.1
@@ -2247,6 +2247,6 @@ snapshots:
       string-width: 4.2.3
       y18n: 5.0.8
       yargs-parser: 21.1.1
-  zrender@5.6.1:
+  zrender@6.1.0:
     dependencies:
       tslib: 2.3.0

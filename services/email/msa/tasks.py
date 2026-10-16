@@ -98,12 +98,20 @@ def deliver_message(message_id):
     """
     Deliver a queued outgoing message to its recipients.
 
+    A message that already reached a final status is never transmitted.
     Drop the message instead when the org is suspended. A temporary failure
     keeps the status pending, and the last attempt ends it failed.
     """
     from .models import OutgoingMessage
 
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
+    if message.status != OutgoingMessage.Status.PENDING:
+        logger.error(
+            "Message %s is %s, relay transmits pending messages only",
+            message.id,
+            message.status,
+        )
+        return
     if message.org.suspended_at:
         record_drop(message, SUSPENSION_OUTPUT)
         return
@@ -176,6 +184,10 @@ def resolve_sender_domain(message):
 
 def send_outgoing_message(message):
     """Send the message via the recipient domain's MX hosts and record the outcome."""
+    from services.email.message.models import Transmission
+
+    from .models import OutgoingMessage
+
     resolve_sender_domain(message)
     raw_bytes = message.raw_body.read()
     return_path = (
@@ -192,12 +204,22 @@ def send_outgoing_message(message):
     else:
         no_hosts_reason = "" if mx_hosts else f"No MX records found for {rcpt_domain}"
 
+    if no_hosts_reason and message.is_sandbox:
+        with Transmission(
+            message=message,
+            status=Transmission.Status.SANDBOXED,
+            details=no_hosts_reason,
+            started_at=started_at,
+        ):
+            message.status = OutgoingMessage.Status.SANDBOXED
+            message.save(update_fields=["status"])
+        return
     if no_hosts_reason:
         record_failed_attempt(message, started_at, no_hosts_reason)
         # A missing record or a timed-out resolver may answer on a later attempt.
         raise TemporaryDeliveryError(no_hosts_reason)
     status, failure = deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path)
-    if failure:
+    if failure and not message.is_sandbox:
         logger.error(
             "Message %s to %s could not be delivered: %s",
             message.id,
@@ -221,13 +243,18 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
     from .models import OutgoingMessage
 
     rcpt_domain = message.rcpt_to.split("@")[-1]
+    attempt_status, outcome_status = (
+        (Transmission.Status.SANDBOXED, OutgoingMessage.Status.SANDBOXED)
+        if message.is_sandbox
+        else (Transmission.Status.FAILED, OutgoingMessage.Status.FAILED)
+    )
     reasons = []
     has_temporary_failure = False
     for mx_host in mx_hosts:
         with Transmission(message=message) as transmission:
             # An attempt is a failure until a host accepts it, so an
             # unexpected error never leaves the row without an outcome.
-            transmission.status = Transmission.Status.FAILED
+            transmission.status = attempt_status
             transmission.remote_host = mx_host
             allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
             if not allowed:
@@ -241,6 +268,12 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 transmission.details = reason
                 reasons.append((mx_host, transmission.local_ip_address, reason))
                 continue
+            if message.is_sandbox:
+                # The dry run stops at the session, the attempt stays on record.
+                transmission.details = (
+                    "Sandbox submission, relay made no delivery attempt"
+                )
+                return OutgoingMessage.Status.SANDBOXED, ""
             try:
                 response, tls_details = async_to_sync(send_via_mx)(
                     raw_bytes,
@@ -307,7 +340,7 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
     )
     if has_temporary_failure:
         raise TemporaryDeliveryError(failure)
-    return OutgoingMessage.Status.FAILED, failure
+    return outcome_status, failure
 
 
 def refusal_details(code):

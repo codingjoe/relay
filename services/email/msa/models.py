@@ -13,6 +13,15 @@ from accounts.models import Credential, OrganizationOwned
 from services.email.message.models import Message
 
 
+class TerminalStatusError(ValueError):
+    """A write tried to move a message out of a final status."""
+
+    def __init__(self, message_pk, stored_status, status):
+        super().__init__(
+            f"Message {message_pk} reached {stored_status} and cannot become {status}"
+        )
+
+
 class OutgoingMessage(Message):
     """Deliver outbound email submitted via the SMTP server."""
 
@@ -58,6 +67,14 @@ class OutgoingMessage(Message):
             "they do not echo the VERP envelope sender."
         ),
     )
+    is_sandbox = models.BooleanField(
+        _("sandbox"),
+        default=False,
+        help_text=_(
+            "Whether a sandbox credential submitted the message, which "
+            "relay never transmits."
+        ),
+    )
 
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
@@ -68,6 +85,17 @@ class OutgoingMessage(Message):
         return f"{self.mail_from} → {self.rcpt_to} ({self.status})"
 
     url_name = "message-detail"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__status = self.status
+
+    def save(self, *args, **kwargs):
+        """Refuse a status change on a message that already left pending."""
+        if self.status != self.__status and self.__status != self.Status.PENDING:
+            raise TerminalStatusError(self.pk, self.__status, self.status)
+        super().save(*args, **kwargs)
+        self.__status = self.status
 
 
 class MsaCredential(Credential):
