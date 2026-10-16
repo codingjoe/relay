@@ -62,7 +62,7 @@ def resolve_fbl_owner(
     return original.org, original.domain
 
 
-@task
+@task()
 def create_held_outgoing_fbl_report(message_pk, org_id):
     """
     Store a relay-generated FBL report for a held outgoing message.
@@ -76,14 +76,14 @@ def create_held_outgoing_fbl_report(message_pk, org_id):
     check_org_reputation.enqueue(org_id=org_id)
 
 
-@task
+@task()
 def create_quarantined_incoming_fbl_report(message_pk):
     """Store a visibility-only relay FBL report for a quarantined message."""
     message = IncomingMessage.objects.get(pk=message_pk)
     FblReport.create_for_spam(message)
 
 
-@task
+@task()
 def create_provider_fbl_report(message_pk):
     """Store a provider FBL report for an ingested message and queue parsing."""
     message = IncomingMessage.objects.get(pk=message_pk)
@@ -91,7 +91,7 @@ def create_provider_fbl_report(message_pk):
     parse_fbl_report.enqueue(report_pk=str(report.pk))
 
 
-@task
+@task()
 def parse_fbl_report(report_pk):
     """
     Fill the stored fields from the referenced message's raw ARF body.
@@ -157,7 +157,7 @@ def parse_fbl_report(report_pk):
     check_org_reputation.enqueue(org_id=report.org_id)
 
 
-@task
+@task()
 def check_org_reputation(org_id):
     """Evaluate rates for an organization and suspend it on a threshold breach."""
     evaluation.check_org_reputation(Organization.objects.get(pk=org_id))
