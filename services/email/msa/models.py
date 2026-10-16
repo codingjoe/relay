@@ -56,17 +56,6 @@ class OutgoingMessage(Message):
         blank=True,
         related_name="outgoing_messages",
     )
-    feedback_id = models.TextField(
-        _("Feedback-ID"),
-        blank=True,
-        default="",
-        db_index=True,
-        help_text=_(
-            "Feedback-ID header relay minted for this message. Providers "
-            "echo it in FBL complaints, proving per-message identity when "
-            "they do not echo the VERP envelope sender."
-        ),
-    )
     is_sandbox = models.BooleanField(
         _("sandbox"),
         default=False,

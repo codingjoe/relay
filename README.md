@@ -104,9 +104,10 @@ per-domain delegation is necessary.
 Outgoing mail is dual-signed with DKIM: once for the sender's own domain
 and once for the platform domain. The platform domain is the `Domain`
 row whose name equals `RELAY_PLATFORM_DOMAIN`; until you register it,
-relay signs with the sending domain only. Each signature covers a per-message
-`Feedback-ID` header so FBL complaints attribute to the sending
-organization.
+relay signs with the sending domain only. Each signature covers the
+`Feedback-ID` header, which names the sending domain, the organization,
+the mail type, and the platform, so Gmail can group its complaint rates
+per stream.
 
 ## Architecture
 
@@ -296,6 +297,19 @@ FBL complaints arrive at `RELAY_FBL_ADDRESS`. relay ingests one only when the
 report authenticates for its own `From` domain and that domain is listed in
 `RELAY_FBL_SENDER_DOMAINS`. Register the address with each provider. Yahoo
 and Microsoft send per-complaint reports, Google does not.
+
+Google reports complaints only as aggregate rates per `Feedback-ID`
+identifier, in the Postmaster Tools FBL dashboard. Verify the platform domain
+there once. Then the `relay` SenderId reports for every customer, because
+relay cosigns with that domain. The header relay mints has the form
+`{sending-domain}:{org-pk}:tx:relay`. The SenderId and the identifiers need no
+registration.
+
+The identifiers are stable on purpose. Google aggregates the first four
+fields counted from the right side. It reports an identifier only when that
+identifier appears in enough mail, so a per-message value is never reported.
+As a result, the header is not a proof for a complaint. Only the per-message
+Return-Path is.
 
 | Variable                   | Default                                                       | Description                                                                                                      |
 | -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |

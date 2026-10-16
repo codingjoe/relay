@@ -19,7 +19,6 @@ FBL_FIELD_MAP = {
     "original-message-id": "original_message_id",
     "user-agent": "user_agent",
     "version": "version",
-    "feedback-id": "feedback_id",
 }
 VALID_FEEDBACK_TYPES = frozenset(
     {"abuse", "fraud", "virus", "not-spam", "other", "opt-out"}
@@ -34,10 +33,8 @@ def parse_fbl(raw_bytes):
     """
     Return the report fields of an ARF (RFC 5965) message as a dict.
 
-    Feedback-Type defaults to "abuse" when absent or unrecognized, and
-    Feedback-ID falls back to the echoed original message headers, stripped
-    of all whitespace either way. Raises `NoArfFeedbackError` if the message
-    contains no feedback-report content.
+    Feedback-Type defaults to "abuse" when absent or unrecognized. Raises
+    `NoArfFeedbackError` if the message contains no feedback-report content.
     """
     msg = message_from_bytes(raw_bytes)
     report_data = {
@@ -53,7 +50,6 @@ def parse_fbl(raw_bytes):
         "original_message_id": "",
         "authentication_results": "",
         "original_headers": "",
-        "feedback_id": "",
     }
 
     for part in msg.walk():
@@ -64,11 +60,6 @@ def parse_fbl(raw_bytes):
             case "text/rfc822-headers" | "message/rfc822":
                 if body := extract_part_text(part):
                     report_data["original_headers"] = body
-
-    if not report_data["feedback_id"] and report_data["original_headers"]:
-        echoed = message_from_bytes(report_data["original_headers"].encode())
-        report_data["feedback_id"] = echoed.get("Feedback-ID", "")
-    report_data["feedback_id"] = "".join(report_data["feedback_id"].split())
 
     if not report_data["source_ip_address"] and not report_data["original_mail_from"]:
         raise NoArfFeedbackError

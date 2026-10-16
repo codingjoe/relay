@@ -2,7 +2,6 @@
 
 import base64
 import logging
-import secrets
 from email import message_from_bytes
 
 from asgiref.sync import sync_to_async
@@ -25,17 +24,17 @@ from .tasks import check_outgoing_spam, deliver_message
 logger = logging.getLogger(__name__)
 
 
-def add_feedback_id(raw_bytes: bytes, org: Organization) -> tuple[bytes, str]:
+def add_feedback_id(raw_bytes: bytes, org: Organization, domain: Domain) -> bytes:
     """
-    Prepend a relay Feedback-ID header for FBL complaint attribution per org.
+    Prepend the relay Feedback-ID header, replacing customer-supplied ones.
 
-    relay's token replaces any customer-supplied Feedback-ID because the
-    token is the attribution key for complaint reports. Return the
-    message bytes and the minted Feedback-ID.
+    The identifiers are the sending domain, the organization, and the mail
+    type, followed by the SenderId that stays the same for every message.
+    Providers aggregate FBL data per identifier, so a value that changes
+    with each message would never be reported.
     """
-    feedback_id = f"{org.pk}::{secrets.token_hex(12)}:relay"
-    header = f"Feedback-ID: {feedback_id}\015\012".encode("ascii")
-    return header + remove_feedback_id_headers(raw_bytes), feedback_id
+    header = f"Feedback-ID: {domain.sender_domain}:{org.pk}:tx:relay\015\012"
+    return header.encode("ascii") + remove_feedback_id_headers(raw_bytes)
 
 
 def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
@@ -167,7 +166,6 @@ def store_outgoing_message(
     domain,
     credential,
     status,
-    feedback_id,
     ssl,
     client_ip,
     raw_bytes,
@@ -199,7 +197,6 @@ def store_outgoing_message(
             domain=domain,
             credential=credential,
             is_sandbox=is_sandbox,
-            feedback_id=feedback_id,
             status=status,
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
             raw_body=SimpleUploadedFile("message.eml", raw_bytes),
@@ -239,7 +236,7 @@ def submit_relay_message(
     message_pk renders the body against the ID the message will carry, so a
     message can link to its own transmission trace.
     """
-    raw_bytes, feedback_id = add_feedback_id(email.message().as_bytes(), org)
+    raw_bytes = add_feedback_id(email.message().as_bytes(), org, domain)
     raw_bytes = sign_message(raw_bytes, domain)
     return store_outgoing_message(
         org=org,
@@ -248,7 +245,6 @@ def submit_relay_message(
         domain=domain,
         credential=None,
         status=OutgoingMessage.Status.PENDING,
-        feedback_id=feedback_id,
         ssl=ssl,
         client_ip=client_ip,
         raw_bytes=raw_bytes,
@@ -303,7 +299,6 @@ def process_message(
             domain=domain,
             credential=credential,
             status=OutgoingMessage.Status.SUPPRESSED,
-            feedback_id="",
             ssl=ssl,
             client_ip=client_ip,
             raw_bytes=raw_bytes,
@@ -321,7 +316,7 @@ def process_message(
     if credential.org.suspended_at:
         return "550 Account suspended due to sender reputation"
 
-    raw_bytes, feedback_id = add_feedback_id(raw_bytes, credential.org)
+    raw_bytes = add_feedback_id(raw_bytes, credential.org, domain)
     raw_bytes = sign_message(raw_bytes, domain)
     store_outgoing_message(
         org=credential.org,
@@ -330,7 +325,6 @@ def process_message(
         domain=domain,
         credential=credential,
         status=OutgoingMessage.Status.PENDING,
-        feedback_id=feedback_id,
         ssl=ssl,
         client_ip=client_ip,
         raw_bytes=raw_bytes,

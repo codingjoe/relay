@@ -64,8 +64,8 @@ policy</a>. This table describes how the platform implements it.
 - **Passwords.** GitHub OAuth signs in, and relay stores no password at all.
 - **API keys in plain form.** The database holds prefixes and hashes. The
   plain key is visible once at creation.
-- **Customer-supplied Feedback-IDs.** relay replaces them with its own token
-  at submission. Only the token relay actually forwarded with is stored.
+- **Customer-supplied Feedback-IDs.** relay replaces them with its own header
+  at submission. The message does not carry your campaign identifiers.
 
 ## Error monitoring with boundaries
 

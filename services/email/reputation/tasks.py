@@ -22,16 +22,13 @@ from .models import FblReport
 logger = logging.getLogger(__name__)
 
 
-def resolve_fbl_owner(
-    original_mail_from: str, feedback_id: str = ""
-) -> tuple[Organization, Domain] | None:
+def resolve_fbl_owner(original_mail_from: str) -> tuple[Organization, Domain] | None:
     """
     Return the org and domain that sent the message a report is about.
 
-    The per-message proof the provider echoes is either the full VERP
-    envelope sender (`bounce+<message-id>@<sender-domain>`) or the
-    Feedback-ID that relay minted when the message was submitted.
-    Anything else returns `None`.
+    The per-message proof the provider echoes is the full VERP envelope
+    sender (`bounce+<message-id>@<sender-domain>`). Anything else returns
+    `None`.
     """
     token = original_mail_from.partition("@")[0].partition("+")[2]
     try:
@@ -40,25 +37,12 @@ def resolve_fbl_owner(
             "domain",
         ).get(pk=token)
     except ValidationError, OutgoingMessage.DoesNotExist:
-        original = None
-    else:
-        if original_mail_from != (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-            f"@{original.domain.sender_domain}"
-        ):
-            original = None
-    if original is None:
-        try:
-            original = (
-                OutgoingMessage.objects.select_related(
-                    "org",
-                    "domain",
-                )
-                .exclude(feedback_id="")
-                .get(feedback_id=feedback_id)
-            )
-        except OutgoingMessage.DoesNotExist:
-            return None
+        return None
+    if original_mail_from != (
+        f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
+        f"@{original.domain.sender_domain}"
+    ):
+        return None
     return original.org, original.domain
 
 
@@ -97,15 +81,14 @@ def parse_fbl_report(report_pk):
     Fill the stored fields from the referenced message's raw ARF body.
 
     Attribute the report to the sending organization only when the
-    provider echoes the exact original VERP envelope sender or the
-    message's Feedback-ID, then queue an org evaluation.
+    provider echoes the exact original VERP envelope sender, then queue
+    an org evaluation.
 
     Logs and keeps the stored fields when the body is not an ARF email.
     """
     report = FblReport.objects.select_related("message").get(pk=report_pk)
-    feedback_id = ""
     try:
-        parsed, feedback_id = FblReport.parse_from_email(report.message.raw_body.read())
+        parsed = FblReport.parse_from_email(report.message.raw_body.read())
     except ValueError:
         logger.warning("FBL report %r is not an ARF email", report_pk)
         parsed = None
@@ -123,10 +106,7 @@ def parse_fbl_report(report_pk):
         report.authentication_results = parsed.authentication_results
         report.original_headers = parsed.original_headers
 
-    owner = resolve_fbl_owner(
-        original_mail_from=report.original_mail_from,
-        feedback_id=feedback_id,
-    )
+    owner = resolve_fbl_owner(original_mail_from=report.original_mail_from)
     update_fields = [
         "org",
         "domain",

@@ -37,9 +37,15 @@ Your message carries one more identity besides your domain keys. relay
 cosigns customers' messages with the keys of the platform domain. The cosign
 carries the platform domain's name, so a receiver can tell the platform
 apart from your domain. Your domain signatures and the cosign cover the same
-headers: From, To, Subject, Date, Message-ID, and `Feedback-ID`. A mailbox
-provider copies `Feedback-ID` into spam complaints, so the complaint points
-back at one message. The complaint path is on the
+headers: From, To, Subject, Date, Message-ID, and `Feedback-ID`.
+
+relay sets that header for you from the sending domain, your organization,
+the mail type, and the platform's own identifier last. Gmail groups its
+complaint rates by those identifiers. It reports an identifier only when that
+identifier appears in enough mail, so every message of a stream carries the
+same four values. The format is on the
+<a href="{% url 'know_how:detail' slug='feedback-id' %}">Feedback-ID</a>
+page. The complaint path is on the
 <a href="{% url 'docs:detail' slug='reputation' %}">Sender
 reputation</a> page.
 
