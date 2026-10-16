@@ -32,10 +32,12 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     Return bounce and complaint rates for an organization over the rolling window.
 
     Returns zero counts and rates when the organization has no outgoing
-    messages in the window. Only SMTP 5xx bounces count toward the
-    bounce rate; a message whose delivery ended in a 4xx refusal counts
-    once as a soft bounce for display only. A sandbox submission counts
-    nowhere, because relay never transmits it.
+    messages in the window. Bounced transmissions are permanent
+    rejections, whether relay saw the SMTP code or a DSN reported the
+    failure, and count toward the bounce rate. A message whose delivery
+    ended in a 4xx refusal counts once as a soft bounce for display
+    only. A sandbox submission counts nowhere, because relay never
+    transmits it.
     """
     window_start = timezone.now() - timedelta(
         days=settings.RELAY_REPUTATION_WINDOW_DAYS
@@ -47,14 +49,11 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
         .count()
     )
 
-    hard_bounces = Transmission.objects.filter(
+    transmissions = Transmission.objects.filter(
         message__org=org,
         message__created_at__gte=window_start,
-        status=Transmission.Status.BOUNCED,
-        code__gte=500,
-    ).count()
-    # A 4xx refusal leaves the attempt failed; only a 5xx rejection bounces.
-    # Several hosts can refuse one message, so count each message once.
+    )
+    hard_bounces = transmissions.filter(status=Transmission.Status.BOUNCED).count()
     soft_bounces = (
         OutgoingMessage.objects.filter(
             org=org,

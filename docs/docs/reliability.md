@@ -24,9 +24,11 @@ flowchart TD
     E --> F[Attempt at every MX host]
     F -- accepted --> G[Status sent, transcript stored]
     F -- 5xx permanent --> H[Status bounced + suppression]
+    F -- late bounce report --> H
     F -- temporary failure, or no host to try --> I[Status stays pending through the backoff]
     I --> F
     I -- sixth attempt failed --> J[Status failed, transcript stored]
+    J -- late bounce report --> H
     F -- every host blocked by MTA-STS --> K[Status failed, transcript stored]
 ```
 
@@ -72,9 +74,11 @@ flowchart TD
     B -- fail --> C[Attempt host n]
     A -- 5xx permanent --> D[Mark bounced, suppress the address]
     A -- accepted --> E[Mark sent]
+    E -- late bounce report --> D
     C -- temporary failure --> F[Stay pending, wait for the backoff]
     F --> A
     F -- budget spent --> G[Mark failed]
+    G -- late bounce report --> D
     C -- every host blocked by MTA-STS --> G
 ```
 
@@ -88,8 +92,9 @@ flowchart TD
   of answering, for example a resolver timeout, is recorded as a lookup
   failure and never as a missing record, and is retried the same way.
 - **Permanent (5xx) answers bounce immediately** and feed the automatic
-  suppression list, including a rejected recipient on the envelope. No retry
-  storm at an unwilling receiver.
+- **Permanent (5xx) answers bounce immediately** and feed the automatic
+  suppression list. A permanent failure in a late bounce report does the
+  same. No retry storm at an unwilling receiver.
 - **Temporary answers and transport errors** are recorded against the host
   that gave them, and relay tries the next MX host. When no host accepted the
   message, relay keeps the message pending and retries the whole list on the

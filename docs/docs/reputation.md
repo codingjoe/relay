@@ -51,6 +51,7 @@ yours low:
 
 - every Return-Path carries a per-message id, so bounces map to one message,
 - a permanent 5xx adds the address to the suppression list immediately,
+  and a permanent failure in a late bounce report does the same,
 - all further submissions to that address store as suppressed, with no error
   back to your application, so retry loops cannot amplify the bounce rate,
 
@@ -110,7 +111,8 @@ report arrived over TLS.
 
 FBL complaints need a proof before relay records them. The report carries the
 per-message Return-Path of the reported message, and relay matches that
-address. A complaint therefore maps to one message, one domain, and one
+address. Only relay can mint the address, so a message id alone names
+nothing. A complaint therefore maps to one message, one domain, and one
 organization, and a message counts one complaint however many reports name
 it. A report that names no message is kept as an inbound email only, and is
 not recorded as a complaint.

@@ -14,6 +14,7 @@ from accounts.models import Membership, Organization
 from domains.models import Domain
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
+from services.email.msa.tasks import mint_bounce_address
 from services.email.mta.handlers import process_incoming_message
 from services.email.mta.models import IncomingMessage
 from services.email.mta.tests.conftest import make_dmarc_evaluation
@@ -175,12 +176,7 @@ class TestCreateProviderFblReport:
         report_email = make_report_email(
             org,
             Domain.objects.create(name="fbl.example", org=org),
-            make_arf_email(
-                original_mail_from=(
-                    f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-                    f"@{domain.sender_domain}"
-                )
-            ),
+            make_arf_email(original_mail_from=mint_bounce_address(original)),
         )
 
         create_provider_fbl_report.func(message_pk=str(report_email.pk))
@@ -245,9 +241,7 @@ class TestCreateProviderFblReport:
         sender_org = Organization.objects.create(slug="sender")
         domain = Domain.objects.create(name="sender.test", org=sender_org)
         original = make_outgoing_message(sender_org, domain)
-        return_path = (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@{domain.sender_domain}"
-        )
+        return_path = mint_bounce_address(original)
         fbl_domain = Domain.objects.create(name="fbl.example", org=org)
         for _index in range(2):
             report_email = make_report_email(
@@ -275,13 +269,7 @@ class TestResolveFblMessage:
             raw_body=SimpleUploadedFile("sent.eml", b"body"),
         )
 
-        assert (
-            resolve_fbl_message(
-                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-                f"@{domain.sender_domain}"
-            )
-            == original
-        )
+        assert resolve_fbl_message(mint_bounce_address(original)) == original
 
     def test_resolve_fbl_message__rejects_mismatched_return_path(self, org):
         domain = Domain.objects.create(name="sender.test", org=org)
@@ -332,7 +320,7 @@ class TestResolveFblMessage:
     def test_resolve_fbl_message__returns_none_for_malformed_token(self, org):
         assert resolve_fbl_message("bounce+not-a-uuid@sender.test") is None
 
-    def test_resolve_fbl_message__rejects_case_shifted_return_path(self, org):
+    def test_resolve_fbl_message__rejects_case_shifted_token(self, org):
         domain = Domain.objects.create(name="sender.test", org=org)
         original = OutgoingMessage.objects.create(
             org=org,
@@ -342,14 +330,24 @@ class TestResolveFblMessage:
             status=OutgoingMessage.Status.SENT,
             raw_body=SimpleUploadedFile("sent.eml", b"body"),
         )
+        # The token is base64url, so an upper-cased echo mangles the
+        # signature and fails closed.
+        assert resolve_fbl_message(mint_bounce_address(original).upper()) is None
 
-        assert (
-            resolve_fbl_message(
-                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-                f"@{domain.sender_domain.upper()}"
-            )
-            is None
+    def test_resolve_fbl_message__accepts_case_shifted_return_path_domain(self, org):
+        domain = Domain.objects.create(name=" sender.test".strip(), org=org)
+        original = OutgoingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="sender@sender.test",
+            rcpt_to="rcpt@gmail.com",
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("sent.eml", b"body"),
         )
+        minted = mint_bounce_address(original)
+        value, _, host = minted.partition("@")
+
+        assert resolve_fbl_message(f"{value}@{host.upper()}") == original
 
     def test_resolve_fbl_message__returns_none_without_a_return_path(self, org):
         assert resolve_fbl_message("") is None
@@ -364,9 +362,7 @@ class TestProcessIncomingMessage:
         settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         original = make_outgoing_message(org, domain)
-        return_path = (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}@{domain.sender_domain}"
-        )
+        return_path = mint_bounce_address(original)
         with patch("services.email.mta.handlers.check_incoming_spam"):
             result = await process_incoming_message(
                 "feedback@arf.mail.yahoo.com",

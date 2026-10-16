@@ -2,7 +2,6 @@ import logging
 
 from crontask import cron
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 
@@ -23,20 +22,13 @@ def resolve_fbl_message(original_mail_from: str) -> OutgoingMessage | None:
     Return the message a report is about, or `None`.
 
     The per-message proof the provider echoes is the full VERP envelope
-    sender (`bounce+<message-id>@<sender-domain>`). Anything else returns
-    `None`.
+    sender (`bounce+<token>@<sender-domain>`) relay minted when the
+    message was submitted. Only relay can mint the token signature, so
+    a message id alone names nothing. Anything else returns `None`.
     """
-    token = original_mail_from.partition("@")[0].partition("+")[2]
-    try:
-        original = OutgoingMessage.objects.select_related("org", "domain").get(pk=token)
-    except ValidationError, OutgoingMessage.DoesNotExist:
-        return None
-    if original_mail_from != (
-        f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-        f"@{original.domain.sender_domain}"
-    ):
-        return None
-    return original
+    from services.email.msa.tasks import resolve_bounce_owner
+
+    return resolve_bounce_owner(original_mail_from)
 
 
 @task()

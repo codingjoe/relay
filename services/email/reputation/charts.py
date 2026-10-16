@@ -37,13 +37,17 @@ def sent_per_day(org, start):
 
 
 def bounced_per_day(org, start):
-    """Return the hard bounce count per day since `start`."""
+    """
+    Return the hard bounce count per day since `start`.
+
+    Bounced transmissions count regardless of the recorded SMTP code, so
+    a bounce a DSN reported without a code still shows.
+    """
     rows = (
         Transmission.objects.filter(
             message__org=org,
             message__created_at__date__gte=start,
             status=Transmission.Status.BOUNCED,
-            code__gte=500,  # 5xx is a hard bounce, 4xx a soft one
         )
         .annotate(day=TruncDate("message__created_at"))
         .values("day")

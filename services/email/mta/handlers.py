@@ -1,6 +1,7 @@
 import logging
 import re
 from email import message_from_bytes
+from email.message import Message
 from email.utils import formatdate
 
 from asgiref.sync import sync_to_async
@@ -21,7 +22,7 @@ from .models import (
     IncomingMessage,
     TlsReport,
 )
-from .signals import fbl_report_received, report_received
+from .signals import bounce_report_received, fbl_report_received, report_received
 from .tasks import check_incoming_spam, parse_tls_report
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,17 @@ class MXHandler(ProxyProtocolMixin):
         return result
 
 
+def is_delivery_status_notification(msg: Message) -> bool:
+    """Determine whether a message is an RFC 3464 delivery status notification."""
+    return (
+        msg.get_content_type() == "multipart/report"
+        and str(msg.get_param("report-type", "")).lower() == "delivery-status"
+        and any(
+            part.get_content_type() == "message/delivery-status" for part in msg.walk()
+        )
+    )
+
+
 @sync_to_async
 @request_scoped
 def process_incoming_message(
@@ -181,6 +193,25 @@ def process_incoming_message(
                     raw_body=SimpleUploadedFile("message.eml", raw_bytes),
                 )
             fbl_report_received.send(sender=IncomingMessage, message=message)
+            return "250 OK"
+
+        case _ if local_part.startswith(
+            f"{settings.RELAY_BOUNCE_LOCAL_PART}+"
+        ) and is_delivery_status_notification(msg):
+            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+                reception.message = message = IncomingMessage.objects.create(
+                    org=domain.org,
+                    domain=domain,
+                    receiving_domain=rcpt_domain,
+                    mail_from=mail_from,
+                    rcpt_to=rcpt_to,
+                    subject=subject,
+                    message_id=message_id,
+                    status=status,
+                    headers=IncomingMessage.headers_from_raw(raw_bytes),
+                    raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+                )
+            bounce_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
     with Transmission.record_reception(tls, started_at, client_ip) as reception:

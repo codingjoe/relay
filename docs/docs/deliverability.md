@@ -90,12 +90,18 @@ sections.
 ## Address hygiene: the suppression list
 
 Every message gets a fresh Return-Path of the form
-`bounce+{message-id}@{sender-subdomain}`, so every bounce points at one
-message. When a recipient server rejects a message permanently, relay records
+`bounce+{token}@{sender-subdomain}` with a short signed token that names one
+message, and only relay can mint the address a bounce report must carry. When
+a recipient server rejects a message permanently, relay records
 the bounce, marks the message as bounced, and adds the address to your
-suppression list. relay then refuses further sends to that address. The
-submission still succeeds, and relay stores the message as suppressed, so
-your application sees no error and no retry loop.
+suppression list. The rejection does not have to happen during the SMTP
+conversation. A recipient server can also accept the message first and fail
+it later, for example on a full mailbox or on its own content filter. Its
+bounce report comes back to the per-message bounce address, and relay marks
+the message bounced and suppresses the address the same way. relay then
+refuses further sends to that address. The submission still succeeds, and
+relay stores the message as suppressed, so your application sees no error
+and no retry loop.
 
 You can add entries manually, for example before a large import.
 If the address returns, remove the entry. Clearing the whole list is a
@@ -122,15 +128,20 @@ relay tries every MX host of the recipient domain in preference order and
 records one transmission per attempt, with the host and the reason on each
 row. The outcomes:
 
-- **5xx answer**. The remote server rejects the message or the recipient
-  permanently. relay marks the message as bounced and suppresses the
-  address. The dashboard shows the exact SMTP answer.
+- **5xx answer**. The remote server rejects the message permanently.
+  relay marks the message as bounced and suppresses the address. The
+  dashboard shows the exact SMTP answer.
 - **4xx answer**. The remote server is not accepting the message right now.
   relay records the answer for that host and tries the next one. When no
   host accepted the message, relay keeps it pending and retries the whole
   list on a backoff schedule: 2, 4, 8, 16 and 32 minutes between attempts,
   about an hour in total. The sixth failed attempt ends the message failed,
   and every host keeps its own answer from every attempt.
+- **Bounce report after acceptance**. The remote accepted the message and
+  failed it permanently later. relay marks the message as bounced and
+  suppresses the address, and the dashboard shows the remote's answer.
+  A report that only announces a delay records a retry and changes no
+  status.
 - **No MX records or a failed lookup**. relay records why there was nothing
   to try, and separates a domain without MX records from a lookup that
   failed, for example a resolver timeout. Both are retried like a temporary
@@ -138,10 +149,10 @@ row. The outcomes:
 - **MTA-STS rejection**. relay skips the host and records which policy
   pattern rejected it. A policy that blocks every host is final: relay
   cannot talk its way past a published policy.
-- **Transport problems**. relay records the failing host and the error, for
-  example a connection timeout or a dropped connection, and retries the
-  message. A fault inside relay, for example a storage error, is recorded and
-  retried the same way.
+- **Transport or storage problems**. relay records the failing host and the
+  error, for example a connection timeout or a dropped connection, and
+  retries the message. A fault inside relay, for example a storage error,
+  is recorded and retried the same way.
 
 A 250 acceptance from your submission is not a delivery confirmation. The
 dashboard's transmissions are the confirmation path.
