@@ -218,3 +218,7 @@
   pattern: '^from typing import'
   hint: 'Use `import typing` and reference `typing.Any`, `typing.TypedDict`, and so on. Importing names from `typing` adds one import per name.'
   filePattern: .*\.py
+- name: Keep MCP database work on a thread the middleware cleans
+  pattern: 'thread_sensitive\s*=\s*False'
+  hint: 'An MCP request closes its database connections on the two threads it runs on: the threadpool a sync body runs in, and asgiref''s sync thread, which `sync_to_async` uses by default. A thread picked from the event loop executor is invisible to both, so a connection opened there is never closed, and a dead one is never recovered.'
+  filePattern: '^(?:services/mcp/|.*/mcp\.py$)'

@@ -18,3 +18,8 @@
 
 {% for page in legal_pages %}- [{{ page.title }}]({{ page.url }})
 {% endfor %}
+## MCP
+
+- [MCP discovery document]({{ mcp.discovery_url }})
+- Endpoint: {{ mcp.endpoint }}
+- Scopes: {{ mcp.scopes|join:", " }}
