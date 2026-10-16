@@ -31,6 +31,11 @@ class TestGetReleaseEtag:
 
         assert get_release_etag('"1a-2b"') == '"1a-2b"'
 
+    def test_get_release_etag__serves_no_etag_for_none(self, settings):
+        settings.SENTRY_RELEASE = "sha-abc"
+
+        assert get_release_etag(None) is None
+
 
 class TestConditionalGetMixin:
     def test_get__scopes_an_overridden_etag(self, settings, rf):

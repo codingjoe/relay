@@ -64,8 +64,10 @@ class RevalidationCacheMixin(CacheControlMixin):
     }
 
 
-def get_release_etag(etag: str) -> str:
+def get_release_etag(etag: str | None) -> str | None:
     """Return `etag` as a quoted ETag, scoped to the running release."""
+    if etag is None:
+        return None
     validator = etag.removeprefix("W/").strip('"')
     if release := settings.SENTRY_RELEASE:
         return f'"{release}:{validator}"'
