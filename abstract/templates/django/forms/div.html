@@ -1,0 +1,19 @@
+{{ errors }}
+{% if errors and not fields %}
+  <div>{% for field in hidden_fields %}{{ field }}{% endfor %}</div>
+{% endif %}
+{% for field, errors in fields %}
+  {% if field.use_fieldset %}
+    {{ field.as_field_group }}
+  {% else %}
+    <div role="group" class="field {{ field.css_classes }}">
+      {{ field.as_field_group }}
+      {% if forloop.last %}
+        {% for field in hidden_fields %}{{ field }}{% endfor %}
+      {% endif %}
+    </div>
+  {% endif %}
+{% endfor %}
+{% if not fields and not errors %}
+  {% for field in hidden_fields %}{{ field }}{% endfor %}
+{% endif %}
