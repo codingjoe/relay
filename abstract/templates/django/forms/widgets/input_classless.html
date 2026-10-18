@@ -3,7 +3,7 @@
   name="{{ widget.name }}"
   {% if widget.value != None %}value="{{ widget.value|stringformat:'s' }}"{% endif %}
   {% for name, value in widget.attrs.items %}
-    {% if name != 'class' and value is not False %}
+    {% if name != 'class' and name != 'input_group' and name != 'input_icon' and name != 'leading_icon' and name != 'icon_align' and value is not False %}
       {% if value is True %}{{ name }}{% else %}{{ name }}="{{ value|stringformat:'s' }}"{% endif %}
     {% endif %}
   {% endfor %}

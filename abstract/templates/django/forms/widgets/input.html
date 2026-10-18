@@ -1,5 +1,12 @@
 {% load abstract %}
-{% if widget.type == "email" or widget.type == "url" or widget.type == "search" or widget.type == "tel" or widget.type == "date" or widget.type == "datetime-local" or widget.type == "time" or widget.type == "number" or widget.type == "color" or widget.type == "password" %}
+{% if widget.attrs.leading_icon %}
+  <div class="input-group">
+    {% include "django/forms/widgets/input_classless.html" %}
+    <span data-align="{{ widget.attrs.icon_align|default:'start' }}" aria-hidden="true">{% tabler name=widget.attrs.leading_icon %}</span>
+  </div>
+{% elif widget.attrs.input_group == False or widget.attrs.input_group == "false" or widget.attrs.input_group == "no" or widget.attrs.input_icon == False or widget.attrs.input_icon == "false" or widget.attrs.input_icon == "none" %}
+  {% include "django/forms/widgets/input_core.html" %}
+{% elif widget.type == "email" or widget.type == "url" or widget.type == "search" or widget.type == "tel" or widget.type == "date" or widget.type == "datetime-local" or widget.type == "time" or widget.type == "number" or widget.type == "color" or widget.type == "password" %}
   <div class="input-group">
     {% include "django/forms/widgets/input_classless.html" %}
     {% if widget.type == "email" %}<span data-align="start" aria-hidden="true">{% tabler name="at" %}</span>{% endif %}
@@ -12,6 +19,10 @@
     {% if widget.type == "number" %}<span data-align="start" aria-hidden="true">{% tabler name="numbers" %}</span>{% endif %}
     {% if widget.type == "color" %}<span data-align="start" aria-hidden="true">{% tabler name="palette" %}</span>{% endif %}
     {% if widget.type == "password" %}<span data-align="start" aria-hidden="true">{% tabler name="password" %}</span>{% endif %}
+  </div>
+{% elif widget.attrs.input_group == True or widget.attrs.input_group == "true" or widget.attrs.input_group == "yes" %}
+  <div class="input-group">
+    {% include "django/forms/widgets/input_classless.html" %}
   </div>
 {% else %}
   {% include "django/forms/widgets/input_core.html" %}
