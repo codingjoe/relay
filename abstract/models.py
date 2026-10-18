@@ -75,9 +75,8 @@ class Timing(TimeStamped):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type is None:
-            self.finished_at = timezone.now()
-            self.save(force_insert=True)
+        self.finished_at = timezone.now()
+        self.save(force_insert=True)
 
     @property
     def label(self) -> str:
