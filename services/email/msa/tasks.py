@@ -315,6 +315,8 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 # The attempt row has to explain what the pipeline reports,
                 # because the fallback row repeats this exception.
                 transmission.details = f"{type(error).__name__}: {error}"
+                transmission.finished_at = timezone.now()
+                transmission.save(force_insert=True)
                 raise
             else:
                 transmission.status = Transmission.Status.SENT
