@@ -2,7 +2,7 @@ from functools import reduce
 from operator import or_
 
 import idna
-import validators as domain_validators
+import validators
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -26,7 +26,7 @@ def canonicalize_domain_name(value):
 
 def validate_domain_name(value):
     """Validate that *value* is a syntactically valid domain name."""
-    if domain_validators.domain(canonicalize_domain_name(value)) is not True:
+    if validators.domain(canonicalize_domain_name(value)) is not True:
         raise ValidationError(_("Enter a valid domain name, for example acme.com"))
 
 

@@ -3,6 +3,7 @@ import re
 from email import message_from_bytes
 from email.utils import formatdate
 
+from aiosmtpd.smtp import TLSSetupException
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -63,6 +64,15 @@ def is_fbl_report(evaluation: DmarcEvaluation) -> bool:
 
 
 class MXHandler(ProxyProtocolMixin):
+    async def handle_exception(self, error):
+        session = getattr(self, "session", None)
+        peer = getattr(session, "peer", None)
+        if isinstance(error, TLSSetupException):
+            logger.debug("%r TLS error during SMTP session", peer, exc_info=error)
+            return f"500 Error: ({error.__class__.__name__}) {error}"
+        logger.exception("%r SMTP session exception", peer)
+        return f"500 Error: ({error.__class__.__name__}) {str(error)}"
+
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
         try:

@@ -1,7 +1,9 @@
+import logging
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from aiosmtpd.smtp import TLSSetupException
 from django.conf import settings
 from django.core import mail
 
@@ -664,3 +666,23 @@ class TestIsFblReport:
                 dkim_alignment=Alignment.FAIL,
             )
         )
+
+
+class TestHandleException:
+    async def test__tls_setup_exception_muted(self, caplog):
+        caplog.set_level(logging.DEBUG, logger="services.email.mta.handlers")
+        result = await MXHandler().handle_exception(TLSSetupException())
+
+        assert result == "500 Error: (TLSSetupException) "
+        records = [r for r in caplog.records if r.name == "services.email.mta.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
+
+    async def test__other_exception_logged(self, caplog):
+        caplog.set_level(logging.WARNING, logger="services.email.mta.handlers")
+        result = await MXHandler().handle_exception(ValueError("boom"))
+
+        assert result == "500 Error: (ValueError) boom"
+        records = [r for r in caplog.records if r.name == "services.email.mta.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.ERROR

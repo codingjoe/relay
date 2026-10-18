@@ -6,7 +6,7 @@ from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.db import connections
 from django.http import HttpResponse
-from django.template import engines as template_engines
+from django.template import engines
 from django.test import RequestFactory
 from django.urls import reverse
 from django.utils.module_loading import import_string
@@ -187,7 +187,7 @@ class TestNoIO:
             itertools.chain(
                 *(
                     backend.engine.template_context_processors
-                    for backend in template_engines.all()
+                    for backend in engines.all()
                 )
             )
         ),

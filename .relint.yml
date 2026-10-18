@@ -218,6 +218,30 @@
   pattern: '^from typing import'
   hint: 'Use `import typing` and reference `typing.Any`, `typing.TypedDict`, and so on. Importing names from `typing` adds one import per name.'
   filePattern: .*\.py
+- name: Import views as a module in URL configs
+  pattern: 'from \.views import'
+  hint: 'Import views as `from . import views` in URL configs, then reference `views.MyView.as_view()`.'
+  filePattern: '.*/urls\.py$'
+- name: No import aliases
+  pattern: '(?m)^\s*(?:from\s+\S+\s+import|import)\b.*\bas\s+(?!_)\w+'
+  hint: 'Do not import with different names (no `import x as y`) unless necessary. `gettext_lazy as _` is the only accepted alias.'
+  filePattern: '.*\.py$'
+- name: Use data-tooltip, not title attributes
+  pattern: '(?s)<(?!iframe\b)(?!input\b)(?!textarea\b)(?!select\b)[^>]*\btitle\s*='
+  hint: 'Use basecoat `data-tooltip` for tooltips. Do not use native `title` attributes.'
+  filePattern: '.*\.html$'
+- name: No unicode emoji in templates
+  pattern: '[\U0001F300-\U0001F9FF]'
+  hint: 'Use Tabler icons with semantic color classes instead of unicode emoji.'
+  filePattern: '.*\.html$'
+- name: Do not send Host localhost from a probe
+  pattern: '(?i)\bhost:\s*localhost\b'
+  hint: 'Django validates `Host` in `CommonMiddleware`. Send the pinned `HOSTNAME` from the probe.'
+  filePattern: '^deploy/.*\.ya?ml$'
+- name: No comment headline separators
+  pattern: '#.*──'
+  hint: 'Group related tests in classes. Do not use comment headline separators.'
+  filePattern: '(^|.*/)(?:tests(?:/.*|\.py)|test_[^/]*\.py)$'
 - name: Keep MCP database work on a thread the middleware cleans
   pattern: 'thread_sensitive\s*=\s*False'
   hint: 'An MCP request closes its database connections on the two threads it runs on: the threadpool a sync body runs in, and asgiref''s sync thread, which `sync_to_async` uses by default. A thread picked from the event loop executor is invisible to both, so a connection opened there is never closed, and a dead one is never recovered.'
