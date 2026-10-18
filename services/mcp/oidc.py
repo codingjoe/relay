@@ -1,6 +1,7 @@
 import typing
 from urllib.parse import urlsplit
 
+from allauth.idp.oidc import views
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
 from allauth.idp.oidc.internal.oauthlib.server import get_server
 from allauth.idp.oidc.internal.oauthlib.utils import (
@@ -8,7 +9,6 @@ from allauth.idp.oidc.internal.oauthlib.utils import (
     respond_html_error,
 )
 from allauth.idp.oidc.models import Client, Token
-from allauth.idp.oidc.views import AuthorizationView as BaseAuthorizationView
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ValidationError
@@ -55,7 +55,7 @@ class OIDCAdapter(DefaultOIDCAdapter):
         return settings.MCP_OIDC_ISSUER_URL
 
 
-class AuthorizationView(BaseAuthorizationView):
+class AuthorizationView(views.AuthorizationView):
     """Serve the consent screen, but never authorize silently."""
 
     template_name = "mcp/authorization_form.html"

@@ -1,4 +1,4 @@
-from allauth.idp.oidc import views as oidc_views
+from allauth.idp.oidc.views import configuration
 from django.urls import include, path
 
 from . import views
@@ -39,7 +39,7 @@ urlpatterns = [
                 # https://datatracker.ietf.org/doc/html/rfc8414
                 path(
                     "oauth-authorization-server",
-                    oidc_views.configuration,
+                    configuration,
                     name="oauth-authorization-server",
                 ),
                 # https://datatracker.ietf.org/doc/html/rfc9728

@@ -13,7 +13,7 @@ django.setup()
 from django.conf import settings  # noqa: E402
 from django.core.asgi import get_asgi_application  # noqa: E402
 from django.core.exceptions import ImproperlyConfigured  # noqa: E402
-from django_esm import asgi as esm  # noqa: E402
+from django_esm import asgi  # noqa: E402
 from starlette.applications import Starlette  # noqa: E402
 from starlette.routing import Mount, Route  # noqa: E402
 
@@ -37,7 +37,7 @@ class ASGIEndpoint:
         await self.app(scope, receive, send)
 
 
-web_application = esm.ESM(get_asgi_application())
+web_application = asgi.ESM(get_asgi_application())
 
 application = Starlette(
     routes=[
