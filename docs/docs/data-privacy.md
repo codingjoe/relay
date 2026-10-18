@@ -16,18 +16,18 @@ relay runs, what relay stores, and what relay will not do.
 All relay services run on Hetzner, in the Falkenstein data center (fsn1) in
 Germany:
 
-| Component                | Role                                   | Processes                                                     |
-| ------------------------ | -------------------------------------- | ------------------------------------------------------------- |
-| Web dashboard and API    | Your browser and your OAuth sign-in    | Django web application behind a TLS-terminating reverse proxy |
-| MCP server               | Message access for AI assistants       | FastMCP ASGI application behind the same reverse proxy        |
-| Authoritative nameserver | DNS for your sender domains            | DNS proxy (dnsdist) and dnslib nameserver                     |
-| SMTP submission          | Your message submissions               | aiosmtpd on 587 and 465                                       |
-| MX                       | Inbound delivery on 25                 | aiosmtpd, STARTTLS                                            |
-| Task worker              | Asynchronous delivery, scans, webhooks | Threadmill task runner                                        |
-| PostgreSQL               | Message metadata, org and domain state | Postgres 18+                                                  |
-| Redis                    | Caching and rate limiting              | Redis                                                         |
-| Object storage           | Raw message bodies                     | S3-compatible bucket, behind a proxy that serves signed links |
-| Spam and virus scanning  | Content filter                         | rspamd with ClamAV, cluster-internal                          |
+| Component                | Role                                         | Processes                                                     |
+| ------------------------ | -------------------------------------------- | ------------------------------------------------------------- |
+| Web dashboard and API    | Your browser and your OAuth sign-in          | Django web application behind a TLS-terminating reverse proxy |
+| MCP server               | Message access and sending for AI assistants | FastMCP ASGI application behind the same reverse proxy        |
+| Authoritative nameserver | DNS for your sender domains                  | DNS proxy (dnsdist) and dnslib nameserver                     |
+| SMTP submission          | Your message submissions                     | aiosmtpd on 587 and 465                                       |
+| MX                       | Inbound delivery on 25                       | aiosmtpd, STARTTLS                                            |
+| Task worker              | Asynchronous delivery, scans, webhooks       | Threadmill task runner                                        |
+| PostgreSQL               | Message metadata, org and domain state       | Postgres 18+                                                  |
+| Redis                    | Caching and rate limiting                    | Redis                                                         |
+| Object storage           | Raw message bodies                           | S3-compatible bucket, behind a proxy that serves signed links |
+| Spam and virus scanning  | Content filter                               | rspamd with ClamAV, cluster-internal                          |
 
 No component of this stack belongs to a provider in a third country. There
 are no third-country data transfers.

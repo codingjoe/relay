@@ -35,7 +35,10 @@ auth_provider = RemoteAuthProvider(
 )
 mcp = FastMCP(
     name="relay",
-    instructions="Use relay to view email messages.",
+    instructions=(
+        "Use relay to view and send email messages. Read the relay documentation "
+        "and know-how articles as resources."
+    ),
     auth=auth_provider,
     list_page_size=50,
     mask_error_details=not settings.DEBUG,

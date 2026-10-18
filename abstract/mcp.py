@@ -1,6 +1,14 @@
 from django.db.models import QuerySet
+from django.template import loader
 from fastmcp.exceptions import ValidationError
 from fastmcp.utilities.pagination import CursorState
+
+from .utils import strip_frontmatter
+
+
+def render_markdown_template(name: str) -> str:
+    """Render a Markdown template and return it without frontmatter."""
+    return strip_frontmatter(loader.get_template(name).render())
 
 
 class InvalidCursorError(ValidationError):
