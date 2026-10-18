@@ -40,6 +40,6 @@ async def authenticated_user(
         user = await sync_to_async(User.objects.get)(id=user_id)
     except User.DoesNotExist as error:
         raise UnknownUserError from error
-    if not user.is_active:
-        raise InactiveUserError
-    return user
+    if user.is_active:
+        return user
+    raise InactiveUserError
