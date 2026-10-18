@@ -518,6 +518,10 @@ class Transmission(Timing):
 
     objects = FetchPeersManager()
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None or self.message_id is not None:
+            super().__exit__(exc_type, exc_value, traceback)
+
     @classmethod
     def tls_session_fields(cls, ssl):
         """Return the TLS field values negotiated for an SMTP session."""
