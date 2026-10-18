@@ -3,6 +3,9 @@ from urllib.parse import urlsplit
 
 from allauth.idp.oidc import views
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
+from allauth.idp.oidc.internal.oauthlib.request_validator import (
+    OAuthLibRequestValidator,
+)
 from allauth.idp.oidc.internal.oauthlib.server import get_server
 from allauth.idp.oidc.internal.oauthlib.utils import (
     extract_params,
@@ -16,6 +19,7 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from oauthlib.oauth2.rfc6749.errors import FatalClientError, OAuth2Error
 from oauthlib.openid.connect.core.exceptions import ConsentRequired
 
+import abstract.scopes
 from abstract.scopes import MCP_REQUIRED_SCOPES, scopes
 
 # Imported for its registration side effect: every app advertises scopes in its own `mcp` module.
@@ -105,3 +109,35 @@ class AuthorizationView(views.AuthorizationView):
             return HttpResponseRedirect(error.in_uri(error.redirect_uri))
         error = ConsentRequired(state=request_info.get("state"))
         return HttpResponseRedirect(error.in_uri(request_info["redirect_uri"]))
+
+
+# Existing clients can predate newly advertised MCP scopes and fail with `invalid_scope`; accept any advertised scope and persist it on the client.
+SUPPORTED_OIDC_SCOPES = {"openid", "profile", "email"}
+
+
+def validate_scopes(
+    self,
+    client_id: str,
+    scopes: list[str],
+    client: typing.Any,
+    request: typing.Any,
+    *args: typing.Any,
+    **kwargs: typing.Any,
+) -> bool:
+    if client is None:
+        return False
+    requested = set(scopes)
+
+    advertised = SUPPORTED_OIDC_SCOPES | set(abstract.scopes.scopes.supported())
+    if not requested.issubset(advertised):
+        return False
+    allowed = set(client.get_scopes())
+    if requested.issubset(allowed):
+        return True
+    client.set_scopes(sorted(allowed | requested))
+    client.set_default_scopes(sorted(set(client.get_default_scopes()) | requested))
+    client.save(update_fields=["scopes", "default_scopes"])
+    return True
+
+
+OAuthLibRequestValidator.validate_scopes = validate_scopes
