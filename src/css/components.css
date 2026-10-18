@@ -137,14 +137,3 @@
 .tabs:has(> .preview-controls) > [role="tabpanel"] {
   grid-column: 1 / -1;
 }
-
-/* Basecoat does not normalize the line height of date and time inputs
-   when they are wrapped in an input group, so they render shorter than
-   their text siblings. */
-.field .input-group > input[type="date"],
-.field .input-group > input[type="datetime-local"],
-.field .input-group > input[type="time"],
-.field .input-group > input[type="month"],
-.field .input-group > input[type="week"] {
-  line-height: 1.5;
-}
