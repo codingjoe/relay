@@ -115,14 +115,6 @@ A late bounce report adds a row of its own:
 | bounced             | A permanent rejection, during this attempt or in a later bounce report                            |
 | failed              | This attempt failed, and the row names the MX host and the reason                                 |
 | retry               | A bounce report announced a delay; the remote keeps trying and the message status stays unchanged |
-| Transmission status | Meaning                                                                                           |
-| ------------------- | -----------------------------------------------------------------                                 |
-| received            | relay accepted the message over inbound SMTP                                                      |
-| submitted           | relay accepted the message for delivery                                                           |
-| sent                | This attempt reached a recipient MX host that answered success                                    |
-| bounced             | This attempt revealed a permanent rejection                                                       |
-| failed              | This attempt failed, and the row names the MX host and the reason                                 |
-| retry               | Reserved for future automatic retry tracking                                                      |
 
 One delivery walk produces one row per MX host it reached. A failed
 delivery therefore keeps the answer of every host it tried, including the

@@ -92,7 +92,6 @@ flowchart TD
   of answering, for example a resolver timeout, is recorded as a lookup
   failure and never as a missing record, and is retried the same way.
 - **Permanent (5xx) answers bounce immediately** and feed the automatic
-- **Permanent (5xx) answers bounce immediately** and feed the automatic
   suppression list. A permanent failure in a late bounce report does the
   same. No retry storm at an unwilling receiver.
 - **Temporary answers and transport errors** are recorded against the host
