@@ -4,6 +4,7 @@ import base64
 import logging
 from email import message_from_bytes
 
+from aiosmtpd.smtp import TLSSetupException
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -60,6 +61,15 @@ def remove_feedback_id_headers(raw_bytes: bytes) -> bytes:
 
 class SMTPHandler(ProxyProtocolMixin):
     """Receive authenticated outgoing mail submissions from SMTP clients."""
+
+    async def handle_exception(self, error):
+        session = getattr(self, "session", None)
+        peer = getattr(session, "peer", None)
+        if isinstance(error, TLSSetupException):
+            logger.debug("%r TLS error during SMTP session", peer, exc_info=error)
+            return f"500 Error: ({error.__class__.__name__}) {error}"
+        logger.exception("%r SMTP session exception", peer)
+        return f"500 Error: ({error.__class__.__name__}) {str(error)}"
 
     async def handle_DATA(self, server, session, envelope):
         """Store a submitted outgoing message."""
