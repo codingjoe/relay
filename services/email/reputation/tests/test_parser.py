@@ -399,87 +399,18 @@ class TestParseFbl:
         result = parse_fbl(msg.as_bytes())
         assert result["authentication_results"] == "spf=fail"
 
-    def test_parse_fbl__extracts_feedback_id_from_report_field(self):
+    def test_parse_fbl__joins_folded_continuation_lines(self):
         result = parse_fbl(
             make_report_message(
                 "Feedback-Type: abuse\n"
-                "Feedback-ID: 9::aabbccddeeff001122334455:relay\n"
-                "Source-IP: 10.0.0.1\n"
-                "Original-Mail-From: sender@acme.com\n"
-            )
-        )
-        assert result["feedback_id"] == "9::aabbccddeeff001122334455:relay"
-
-    def test_parse_fbl__prefers_report_feedback_id_over_echoed_header(self):
-        result = parse_fbl(
-            make_report_message(
-                "Feedback-Type: abuse\n"
-                "Feedback-ID: 9::aabbccddeeff001122334455:relay\n"
-                "Source-IP: 10.0.0.1\n"
-                "Original-Mail-From: sender@acme.com\n",
-                b"From: sender@acme.com\r\nFeedback-ID: 1::customer-id:relay\r\n",
-            )
-        )
-        assert result["feedback_id"] == "9::aabbccddeeff001122334455:relay"
-
-    def test_parse_fbl__extracts_feedback_id_from_echoed_original_headers(self):
-        result = parse_fbl(
-            make_report_message(
-                "Feedback-Type: abuse\n"
-                "Source-IP: 10.0.0.1\n"
-                "Original-Mail-From: sender@acme.com\n",
-                b"From: sender@acme.com\r\n"
-                b"Feedback-ID: 9::aabbccddeeff001122334455:relay\r\n",
-            )
-        )
-        assert result["feedback_id"] == "9::aabbccddeeff001122334455:relay"
-
-    def test_parse_fbl__extracts_feedback_id_from_uppercase_report_field(self):
-        result = parse_fbl(
-            make_report_message(
-                "Feedback-Type: abuse\n"
-                "FEEDBACK-ID: 9::aabbccddeeff001122334455:relay\n"
-                "Source-IP: 10.0.0.1\n"
-            )
-        )
-        assert result["feedback_id"] == "9::aabbccddeeff001122334455:relay"
-
-    def test_parse_fbl__folds_whitespace_in_echoed_feedback_id(self):
-        result = parse_fbl(
-            make_report_message(
-                "Feedback-Type: abuse\n"
-                "Source-IP: 10.0.0.1\n"
-                "Original-Mail-From: sender@acme.com\n",
-                b"From: sender@acme.com\r\n"
-                b"feedback-id: 9::aabbccddeeff\r\n"
-                b"  001122334455:relay\r\n",
-            )
-        )
-        assert result["feedback_id"] == "9::aabbccddeeff001122334455:relay"
-
-    def test_parse_fbl__joins_folded_feedback_id_continuation(self):
-        result = parse_fbl(
-            make_report_message(
-                "Feedback-Type: abuse\n"
-                "Feedback-ID: 9::aabbccddeeff\n"
-                "  001122334455:relay\n"
+                "Auth-Failure: spf=fail\n"
+                "  dkim=fail\n"
                 "Source-IP: 10.0.0.1\n"
                 "Original-Mail-From: sender@acme.com\n"
             )
         )
 
-        assert result["feedback_id"] == "9::aabbccddeeff001122334455:relay"
-
-    def test_parse_fbl__keeps_feedback_id_empty_when_absent_everywhere(self):
-        result = parse_fbl(
-            make_report_message(
-                "Feedback-Type: abuse\n"
-                "Source-IP: 10.0.0.1\n"
-                "Original-Mail-From: sender@acme.com\n",
-                b"From: sender@acme.com\r\nTo: victim@gmail.com\r\n",
-            )
-        )
-        assert result["feedback_id"] == ""
+        assert result["authentication_results"] == "spf=fail dkim=fail"
 
     def test_parse_fbl__raises_when_only_feedback_id_is_present(self):
         with pytest.raises(NoArfFeedbackError):

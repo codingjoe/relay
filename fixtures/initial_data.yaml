@@ -456,21 +456,18 @@
   fields:
     domain: 1
     credential: 1
-    feedback_id: 1::5e1c9b3a7d2f4e8c6b0a3d9f:relay
     status: sent
 - model: msa.outgoingmessage
   pk: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
   fields:
     domain: 1
     credential: 1
-    feedback_id: 1::2b8f4d6c9a1e5c3b7d2f8e4a:relay
     status: sent
 - model: msa.outgoingmessage
   pk: 019fbe8f-5edc-75f9-a9ed-9c379741e432
   fields:
     domain: 1
     credential: 1
-    feedback_id: 1::7c3d9e4f8a2b6d5c0f1e3a4b:relay
     status: sent
 - model: message.transmission
   pk: 019fbe8f-5ede-773a-8790-f0386847a6ac
@@ -1065,7 +1062,6 @@
   fields:
     domain: 1
     credential: 1
-    feedback_id: 1::301d85669c62796893c02fb8:relay
     status: pending
 - model: message.message
   pk: 019fbe8f-5f7c-7267-b1e0-75d4c40b0a7e
@@ -1124,7 +1120,6 @@
   fields:
     domain: 1
     credential: 1
-    feedback_id: 1::da12eb0b1ee5dad6e2e9495c:relay
     status: bounced
 - model: message.message
   pk: 019fbe8f-5f8c-7318-bba9-3ec7d2f5701f
@@ -1183,7 +1178,6 @@
   fields:
     domain: 2
     credential: 1
-    feedback_id: 1::dc61cda0a6cda9780ba870b2:relay
     status: failed
 - model: mta.webhookdelivery
   pk: 019fbe8f-5f9c-7328-8cc2-6ea752104818
@@ -1501,6 +1495,7 @@
     modified_at: 2026-08-27 12:00:12+00:00
     created_at: 2026-08-27 12:00:00+00:00
     message: 019fbe8f-602c-73e0-9a10-6d5d082a0001
+    complained_message: 019fbe8f-5edc-75f9-a9ed-9c379741e432
     domain: 1
     source: provider
     feedback_type: abuse
@@ -1519,6 +1514,7 @@
     modified_at: 2026-08-28 08:30:12+00:00
     created_at: 2026-08-28 08:30:00+00:00
     message: 019fbe8f-602c-73e0-9a10-6d5d082a0002
+    complained_message: 019fbe8f-5edf-7553-8ee9-34e82e131c8f
     domain: 1
     source: provider
     feedback_type: abuse

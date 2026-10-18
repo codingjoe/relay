@@ -124,6 +124,25 @@ class TestDomainListView:
 
         assert response.status_code == 304
 
+    def test_get__fresh_response_after_a_release(self, admin_client, org, settings):
+        url = f"/org/{org.slug}/email/domains/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        settings.SENTRY_RELEASE = "sha-next"
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
+
+    def test_get__keeps_the_cached_policy_when_not_modified(self, admin_client, org):
+        url = f"/org/{org.slug}/email/domains/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+
+        assert response.status_code == 304
+        assert "Content-Security-Policy" not in response.headers
+
     def test_get__fresh_response_when_domain_added(self, admin_client, org):
         url = f"/org/{org.slug}/email/domains/"
         etag = admin_client.get(url).headers["ETag"]
@@ -144,13 +163,6 @@ class TestDomainCreateView:
         assert response.status_code == 302
         domain = Domain.objects.get(name="new.com")
         assert domain.org == org
-
-    def test_post__redirects_to_list(self, admin_client, org):
-        response = admin_client.post(
-            f"/org/{org.slug}/email/domains/new", {"name": "new.com"}
-        )
-        assert response.status_code == 302
-        assert response.url.endswith(f"/org/{org.slug}/email/domains/")
 
     def test_post__rejects_dot(self, admin_client, org):
         response = admin_client.post(
@@ -231,6 +243,17 @@ class TestDomainDetailView:
         response = admin_client.get(url, headers={"If-None-Match": etag})
 
         assert response.status_code == 304
+
+    def test_get__fresh_response_after_a_release(self, admin_client, org, settings):
+        domain = Domain.objects.create(name="example.com", org=org)
+        url = f"/org/{org.slug}/email/domains/{domain.pk}/"
+        etag = admin_client.get(url).headers["ETag"]
+
+        settings.SENTRY_RELEASE = "sha-next"
+
+        response = admin_client.get(url, headers={"If-None-Match": etag})
+        assert response.status_code == 200
+        assert response.headers["ETag"] != etag
 
     def test_get__fresh_response_when_verification_changes_status(
         self, admin_client, org, dns_resolver

@@ -52,6 +52,9 @@ TEST = env.bool("TEST", default=False)
 
 SENTRY_DSN = env("SENTRY_DSN", default="").strip()
 
+# The image release, `sha-<commit>`, scoping the page cache validators.
+SENTRY_RELEASE = env("SENTRY_RELEASE", default="").strip()
+
 ALLOWED_HOSTS = [
     h.strip()
     for h in env.list(
@@ -410,7 +413,16 @@ RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dm
 RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
 RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
 RELAY_FBL_ADDRESS = env("RELAY_FBL_ADDRESS", default=f"fbl@{RELAY_PLATFORM_DOMAIN}")
-RELAY_FBL_SENDERS = env.list("RELAY_FBL_SENDERS", default=[])
+RELAY_FBL_SENDER_DOMAINS = env.list(
+    "RELAY_FBL_SENDER_DOMAINS",
+    default=[
+        "arf.mail.yahoo.com",
+        "aol.net",
+        "hotmail.com",
+        "outlook.com",
+        "live.com",
+    ],
+)
 RELAY_POSTMASTER_LOCAL_PART = "postmaster"
 RELAY_BOUNCE_LOCAL_PART = "bounce"
 
@@ -601,7 +613,7 @@ if SENTRY_DSN and not TEST and not DEBUG:
             AsyncioIntegration(),
             ThreadingIntegration(),
         ],
-        release=env("SENTRY_RELEASE", default="").strip() or None,
+        release=SENTRY_RELEASE or None,
         send_default_pii=False,
         traces_sample_rate=float(
             env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "0.0"

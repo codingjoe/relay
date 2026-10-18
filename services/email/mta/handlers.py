@@ -45,6 +45,23 @@ def received_header(session) -> bytes:
     return f"Received: {received}".encode()
 
 
+def is_fbl_report(evaluation: DmarcEvaluation) -> bool:
+    """Return whether a message is a genuine complaint from a registered provider."""
+    domain = (evaluation.header_from or "").lower().rstrip(".")
+    if not any(
+        domain == allowed or domain.endswith(f".{allowed}")
+        for allowed in settings.RELAY_FBL_SENDER_DOMAINS
+    ):
+        return False
+    if evaluation.dmarc_authenticated:
+        return True
+    logger.warning(
+        "Ignored an unauthenticated FBL report claiming %r",
+        evaluation.header_from,
+    )
+    return False
+
+
 class MXHandler(ProxyProtocolMixin):
     async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
         rcpt_domain = address.split("@")[-1] if "@" in address else ""
@@ -87,6 +104,7 @@ class MXHandler(ProxyProtocolMixin):
             getattr(session, "ssl", None),
             domain,
             status,
+            evaluation,
             client_ip,
         )
         logger.info("Incoming message from %r to %r: %r", mail_from, rcpt_to, result)
@@ -96,11 +114,12 @@ class MXHandler(ProxyProtocolMixin):
 @sync_to_async
 @request_scoped
 def process_incoming_message(
-    mail_from, rcpt_to, raw_bytes, tls, domain, status, client_ip
+    mail_from, rcpt_to, raw_bytes, tls, domain, status, evaluation, client_ip
 ):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
+    is_fbl_recipient = rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
     subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
     started_at = timezone.now()
@@ -147,10 +166,7 @@ def process_incoming_message(
             )
             return "250 OK"
 
-        case _ if (
-            rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
-            and mail_from.lower() in settings.RELAY_FBL_SENDERS
-        ):
+        case _ if is_fbl_recipient and is_fbl_report(evaluation):
             with Transmission.record_reception(tls, started_at, client_ip) as reception:
                 reception.message = message = IncomingMessage.objects.create(
                     org=domain.org,

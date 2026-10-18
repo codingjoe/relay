@@ -27,11 +27,11 @@ repos:
     hooks:
       - id: esupgrade
   - repo: https://github.com/oxc-project/mirrors-oxlint
-    rev: v1.60.0
+    rev: v1.88.0
     hooks:
       - id: oxlint
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.71.0
+    rev: v0.73.0
     hooks:
       - id: oxfmt
   - repo: https://github.com/asottile/pyupgrade

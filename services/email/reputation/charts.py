@@ -80,7 +80,7 @@ def complaints_per_day(org, start):
         )
         .annotate(day=TruncDate("created_at"))
         .values("day")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("complained_message", distinct=True))
     )
     complaints = {row["day"]: row["count"] for row in reports}
     held = (

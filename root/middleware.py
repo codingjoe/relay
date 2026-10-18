@@ -9,7 +9,12 @@ from django.middleware.csp import (
 
 
 class ContentSecurityPolicyMiddleware(DjangoContentSecurityPolicyMiddleware):
-    """Serve the enforced policy with the ESM import map hash added."""
+    """
+    Serve the enforced policy with the ESM import map hash added.
+
+    A `304` carries no policy: the revalidating client keeps the one it cached
+    with the body, import map hash included.
+    """
 
     IMPORTMAP_PATTERN = re.compile(
         rb'<script[^>]*type="importmap"[^>]*>(?P<map>.*?)</script>', re.DOTALL
@@ -26,6 +31,11 @@ class ContentSecurityPolicyMiddleware(DjangoContentSecurityPolicyMiddleware):
         return f"'sha512-{b64encode(digest).decode()}'"
 
     def process_response(self, request, response):
+        if response.status_code == 304:
+            # A `304` has no body to hash, so the client keeps its cached policy.
+            response._csp_config = None
+            response._csp_ro_config = None
+            return super().process_response(request, response)
         policy = settings.SECURE_CSP
         # A policy without script-src lets the browser fall back to
         # default-src. Appending to it would block every external script.

@@ -104,9 +104,10 @@ per-domain delegation is necessary.
 Outgoing mail is dual-signed with DKIM: once for the sender's own domain
 and once for the platform domain. The platform domain is the `Domain`
 row whose name equals `RELAY_PLATFORM_DOMAIN`; until you register it,
-relay signs with the sending domain only. Each signature covers a per-message
-`Feedback-ID` header so FBL complaints attribute to the sending
-organization.
+relay signs with the sending domain only. Each signature covers the
+`Feedback-ID` header, which names the sending domain, the organization,
+the mail type, and the platform, so Gmail can group its complaint rates
+per stream.
 
 ## Architecture
 
@@ -295,14 +296,30 @@ of the check it took whenever it is.
 
 ### Feedback loop (FBL) reports
 
-FBL complaints arrive at `RELAY_FBL_ADDRESS` and count only for senders
-listed in `RELAY_FBL_SENDERS`. Register the address with each provider and
-allowlist their report sender.
+FBL complaints arrive at `RELAY_FBL_ADDRESS`. relay ingests one only when the
+report authenticates for its own `From` domain, that domain is listed in
+`RELAY_FBL_SENDER_DOMAINS`, and the report names the message it is about.
+Register the address with each provider. Yahoo and Microsoft send
+per-complaint reports, Google does not. A report that names no message stays
+on record as an inbound email only, and is not recorded as a complaint.
 
-| Variable            | Default                          | Description                                                                    |
-| ------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| `RELAY_FBL_ADDRESS` | `fbl@` + `RELAY_PLATFORM_DOMAIN` | The FBL ingestion mailbox. Register it with your providers.                    |
-| `RELAY_FBL_SENDERS` | _(empty: off)_                   | Exact provider envelope addresses, one per provider. Empty disables ingestion. |
+Google reports complaints only as aggregate rates per `Feedback-ID`
+identifier, in the Postmaster Tools FBL dashboard. Verify the platform domain
+there once. Then the `relay` SenderId reports for every customer, because
+relay cosigns with that domain. The header relay mints has the form
+`{sending-domain}:{org-pk}:tx:relay`. The SenderId and the identifiers need no
+registration.
+
+The identifiers are stable on purpose. Google aggregates the first four
+fields counted from the right side. It reports an identifier only when that
+identifier appears in enough mail, so a per-message value is never reported.
+As a result, the header is not a proof for a complaint. Only the per-message
+Return-Path is.
+
+| Variable                   | Default                                                       | Description                                                                                                      |
+| -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN`                              | The FBL ingestion mailbox. Register it with your providers.                                                      |
+| `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,aol.net,hotmail.com,outlook.com,live.com` | Provider domains whose authenticated reports are ingested, including their subdomains. Empty disables ingestion. |
 
 ### Tech Stack
 
@@ -327,15 +344,16 @@ Every process reports to a single Sentry project. Off by default; set
 `SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
 sent automatically.
 
-| Variable                    | Default        | Description                                |
-| --------------------------- | -------------- | ------------------------------------------ |
-| `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting. |
-| `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                    |
-| `SENTRY_RELEASE`            | _(empty)_      | Release tag. CI bakes in `sha-<commit>`.   |
-| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default. |
+| Variable                    | Default        | Description                                                      |
+| --------------------------- | -------------- | ---------------------------------------------------------------- |
+| `SENTRY_DSN`                | _(empty: off)_ | Project DSN. Required to enable reporting.                       |
+| `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                                          |
+| `SENTRY_RELEASE`            | _(empty)_      | Release tag. `sha-<commit>` in CI. Scopes page cache validators. |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default.                       |
 
 The deploy workflow records each shipped release in Sentry, attaches the
-commits it carries and finalizes it once the pods are ready. Set
+commits it carries and finalizes it once the pods are ready. The same tag
+scopes the page cache validators, and the deploy flushes the edge cache. Set
 `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` in `.env.production` to
 enable tracking; a deploy skips it while any of the three is unset.
 

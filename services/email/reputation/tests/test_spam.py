@@ -64,7 +64,7 @@ class TestComputeOrgReputation:
 
     def test_compute_org_reputation__counts_provider_fbl_as_complaint(self, org, user):
         domain = Domain.objects.create(name="reputation.test", org=org)
-        OutgoingMessage.objects.create(
+        sender = OutgoingMessage.objects.create(
             org=org,
             mail_from="sender@acme.com",
             rcpt_to="rcpt@example.com",
@@ -82,6 +82,7 @@ class TestComputeOrgReputation:
             org=org,
             domain=domain,
             message=message,
+            complained_message=sender,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.PROVIDER,
         )
@@ -104,6 +105,7 @@ class TestComputeOrgReputation:
             org=org,
             domain=domain,
             message=message,
+            complained_message=message,
             original_mail_from="sender@acme.com",
             source=FblReport.Source.RELAY,
         )
@@ -466,6 +468,7 @@ class TestBuildReputationChart:
             org=org,
             domain=domain,
             message=report_email,
+            complained_message=message,
             original_mail_from="sender@acme.com",
         )
 
@@ -473,3 +476,61 @@ class TestBuildReputationChart:
 
         assert "2 complaints of 1 sent" in chart["complaint_chart"]["subtitle"]
         assert compute_org_reputation(org)["complaints"] == 2
+
+    def test_build_reputation_chart__counts_one_complaint_per_message(self, org):
+        domain = Domain.objects.create(name="acme.com", org=org)
+        original = OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
+        )
+        for _index in range(2):
+            FblReport.objects.create(
+                org=org,
+                domain=domain,
+                message=IncomingMessage.objects.create(
+                    org=org,
+                    domain=domain,
+                    mail_from="feedback@gmail.com",
+                    rcpt_to="postmaster@acme.com",
+                ),
+                complained_message=original,
+                original_mail_from="sender@acme.com",
+            )
+
+        chart = build_reputation_chart(org)
+
+        assert "1 complaint of 1 sent" in chart["complaint_chart"]["subtitle"]
+        assert compute_org_reputation(org)["complaints"] == 1
+
+    def test_compute_org_reputation__counts_repeated_reports_once(self, org, user):
+        domain = Domain.objects.create(name="reputation.test", org=org)
+        original = OutgoingMessage.objects.create(
+            org=org,
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
+            domain=domain,
+            status=OutgoingMessage.Status.SENT,
+            raw_body=SimpleUploadedFile("test.eml", b"x"),
+        )
+        for _index in range(3):
+            FblReport.objects.create(
+                org=org,
+                domain=domain,
+                message=IncomingMessage.objects.create(
+                    org=org,
+                    domain=domain,
+                    mail_from="feedback@gmail.com",
+                    rcpt_to="postmaster@acme.com",
+                ),
+                complained_message=original,
+                original_mail_from="sender@acme.com",
+                source=FblReport.Source.PROVIDER,
+            )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["complaints"] == 1

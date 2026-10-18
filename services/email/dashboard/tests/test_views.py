@@ -272,6 +272,13 @@ class TestReportListView:
             org=org,
             domain=domain,
             message=message,
+            complained_message=OutgoingMessage.objects.create(
+                org=org,
+                domain=domain,
+                mail_from="sender@acme.com",
+                rcpt_to="rcpt@example.com",
+                status=OutgoingMessage.Status.SENT,
+            ),
             source_ip_address="10.0.0.3",
         )
 

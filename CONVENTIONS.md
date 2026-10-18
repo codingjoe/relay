@@ -328,8 +328,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
   (`request.public_cache`): no user menu, no toasts, no org switcher. The
   response carries no `Vary: Cookie` and no queries.
 - Forms, redirects, and template views answer `no-store`. A response without a
-  `Cache-Control` header is stored by the Caddy edge cache for its 120s
-  default and then served to every visitor.
+  `Cache-Control` header is not stored by the Caddy edge cache at all.
 - Revalidate with `ConditionalGetListMixin` when the page renders one queryset
   and nothing else, `ConditionalGetMixin` when a single object's `modified_at`
   covers the page. Both answer `private, max-age=5, must-revalidate`: the
@@ -373,6 +372,11 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - One test per scenario. Do not write parametrised mega-tests that obscure individual
   assertions.
+
+- No method means no test. Do not pin framework defaults that no code in the
+  app implements. A test asserts behavior this codebase owns, like a
+  `get_success_url` override or a `form_invalid` redirect, not what
+  `CreateView` does on its own.
 
 - Group related tests in classes. No comment headlines (`# ── … ──`).
   Use plain `class TestSomething:` with no decorator unless a class-level

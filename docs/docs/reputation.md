@@ -102,16 +102,23 @@ Four report types arrive:
 - **TLS-RPT.** JSON with the success and failure counts of sender TLS
   attempts against your MTA-STS surface.
 - **Feedback loop (FBL).** An abuse report in the ARF format. A provider
-  sends it when a recipient marks one of your messages as spam.
+  sends it when a recipient marks one of your messages as spam. Gmail does
+  not send these reports.
 
 The dashboard surfaces each report type, per domain, and records whether a
 report arrived over TLS.
 
-FBL complaints need a proof before they count against your organization.
-The report carries the per-message Return-Path, or the per-message
-`Feedback-ID` header of the reported message. relay matches that id, so a
-complaint maps to one message, one domain, and one organization. A complaint
-without this proof stays on record, and it does not count into the rates.
+FBL complaints need a proof before relay records them. The report carries the
+per-message Return-Path of the reported message, and relay matches that
+address. A complaint therefore maps to one message, one domain, and one
+organization, and a message counts one complaint however many reports name
+it. A report that names no message is kept as an inbound email only, and is
+not recorded as a complaint.
+
+Gmail groups its complaint rates by the
+<a href="{% url 'know_how:detail' slug='feedback-id' %}">Feedback-ID</a>
+identifiers that relay puts on every message. The rates appear in Google
+Postmaster Tools for a domain that you verified there.
 
 ## Reputation limits
 
@@ -136,7 +143,7 @@ an organization.
    clean.
 3. A recipient marks a message as spam, and the provider sends a complaint to
    the FBL address. relay matches the complaint to your message through the
-   per-message ids on the Return-Path and the `Feedback-ID` header.
+   per-message id on the Return-Path.
 4. Providers send aggregate reports every day. relay parses them.
 5. You read your report rows, and correct what you see. Policy updates and
    key rotation are dashboard operations.

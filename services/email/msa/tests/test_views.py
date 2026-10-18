@@ -217,15 +217,15 @@ class TestTestEmailView:
         assert msg.subject == f"Test email from {domain.name}"
         assert b"Injected" not in msg.raw_body.read()
 
-    def test_post__signs_message_and_mints_feedback_id(self, admin_client, org):
+    def test_post__stamps_feedback_id_and_signs_message(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
         response = admin_client.post(f"/org/{org.slug}/email/messages/test")
         assert response.status_code == 302
         msg = OutgoingMessage.objects.get(org=org)
         stored = message_from_bytes(msg.raw_body.read())
         assert any(name == "Feedback-ID" for name, _ in msg.headers)
         assert any(name == "DKIM-Signature" for name, _ in msg.headers)
-        assert msg.feedback_id
-        assert msg.feedback_id == stored["Feedback-ID"]
+        assert stored["Feedback-ID"] == f"{domain.sender_domain}:{org.pk}:tx:relay"
 
     def test_post__records_submission(self, admin_client, org):
         response = admin_client.post(f"/org/{org.slug}/email/messages/test")

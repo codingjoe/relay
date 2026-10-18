@@ -111,9 +111,11 @@ Important details of the pipeline:
   signature relay applied in its own card, next to the signing domain,
   selector, and algorithm. The raw tag list is one click away.
 - **Customers' messages carry a platform cosign.** relay cosigns with the
-  keys of the platform domain. relay also sets a `Feedback-ID` header with
-  its own token. This token replaces a customer-supplied `Feedback-ID`, so
-  complaint reports echo relay's key and the complaint maps to one message.
+  keys of the platform domain. relay also sets a `Feedback-ID` header from
+  the sending domain, your organization, the mail type, and the platform's
+  own identifier last. Every message of a stream carries the same value,
+  because Gmail groups its complaint rates by those identifiers. relay
+  replaces a customer-supplied `Feedback-ID`.
 - **The envelope differs from the From header.** The Return-Path becomes
   `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
   message and the envelope domain aligns with your DKIM.
