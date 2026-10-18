@@ -6,7 +6,9 @@
     <h2 class="mb-6">{% translate "debug form" %}</h2>
     <form method="post">
       {% csrf_token %}
-      {{ form }}
+      <fieldset class="fieldset">
+        {{ form }}
+      </fieldset>
       <div class="flex gap-2 mt-6">
         <button type="submit" class="btn">{% translate "submit" %}</button>
       </div>
