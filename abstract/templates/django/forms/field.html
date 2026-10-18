@@ -1,23 +1,17 @@
 {% if field.use_fieldset %}
   <fieldset class="fieldset" {% if field.aria_describedby %}aria-describedby="{{ field.aria_describedby }}"{% endif %}>
     {% if field.label %}<legend data-variant="label">{{ field.label }}</legend>{% endif %}
-    {% if field.help_text %}<p
-        class="text-sm text-muted-foreground"
-        {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}
-      >
+    {% if field.help_text %}<p {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}>
         {{ field.help_text|safe }}
       </p>{% endif %}
     {{ field }}
-    {% for error in field.errors %}<p role="alert" class="text-sm text-destructive">{{ error }}</p>{% endfor %}
+    {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
   </fieldset>
 {% else %}
   {% if field.label %}{{ field.label_tag }}{% endif %}
   {{ field }}
-  {% for error in field.errors %}<p role="alert" class="text-sm text-destructive">{{ error }}</p>{% endfor %}
-  {% if field.help_text %}<p
-      class="text-sm text-muted-foreground"
-      {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}
-    >
+  {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
+  {% if field.help_text %}<p {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}>
       {{ field.help_text|safe }}
     </p>{% endif %}
 {% endif %}
