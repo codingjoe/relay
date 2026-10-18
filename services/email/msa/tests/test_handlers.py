@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from aiosmtpd.smtp import TLSSetupException
 from django.utils import timezone
 
 from domains.models import Domain
@@ -849,3 +850,21 @@ class TestImplicitTLSHandler:
         result = await handler.handle_DATA(None, session, SimpleNamespace())
         assert result == "530 Authentication required"
         assert session.ssl is True
+
+
+class TestHandleException:
+    async def test__tls_setup_exception_muted(self):
+        with patch("services.email.msa.handlers.logger") as mocked_logger:
+            result = await SMTPHandler().handle_exception(TLSSetupException())
+
+        assert result == "500 Error: (TLSSetupException) "
+        mocked_logger.debug.assert_called_once()
+        mocked_logger.exception.assert_not_called()
+
+    async def test__other_exception_logged(self):
+        with patch("services.email.msa.handlers.logger") as mocked_logger:
+            result = await SMTPHandler().handle_exception(ValueError("boom"))
+
+        assert result == "500 Error: (ValueError) boom"
+        mocked_logger.exception.assert_called_once()
+        mocked_logger.debug.assert_not_called()

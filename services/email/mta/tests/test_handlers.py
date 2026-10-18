@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from aiosmtpd.smtp import TLSSetupException
 from django.conf import settings
 from django.core import mail
 
@@ -664,3 +665,21 @@ class TestIsFblReport:
                 dkim_alignment=Alignment.FAIL,
             )
         )
+
+
+class TestHandleException:
+    async def test__tls_setup_exception_muted(self):
+        with patch("services.email.mta.handlers.logger") as mocked_logger:
+            result = await MXHandler().handle_exception(TLSSetupException())
+
+        assert result == "500 Error: (TLSSetupException) "
+        mocked_logger.debug.assert_called_once()
+        mocked_logger.exception.assert_not_called()
+
+    async def test__other_exception_logged(self):
+        with patch("services.email.mta.handlers.logger") as mocked_logger:
+            result = await MXHandler().handle_exception(ValueError("boom"))
+
+        assert result == "500 Error: (ValueError) boom"
+        mocked_logger.exception.assert_called_once()
+        mocked_logger.debug.assert_not_called()
