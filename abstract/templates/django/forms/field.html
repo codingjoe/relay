@@ -1,23 +1,23 @@
 {% if field.use_fieldset %}
   <fieldset {% if field.aria_describedby %}aria-describedby="{{ field.aria_describedby }}"{% endif %}>
     {% if field.label %}{{ field.legend_tag }}{% endif %}
+    {{ field }}
+    {% for error in field.errors %}<p role="alert" class="text-sm text-destructive">{{ error }}</p>{% endfor %}
     {% if field.help_text %}<p
         class="text-sm text-muted-foreground"
         {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}
       >
         {{ field.help_text|safe }}
       </p>{% endif %}
-    {{ field.errors }}
-    {{ field }}
   </fieldset>
 {% else %}
   {% if field.label %}{{ field.label_tag }}{% endif %}
+  {{ field }}
+  {% for error in field.errors %}<p role="alert" class="text-sm text-destructive">{{ error }}</p>{% endfor %}
   {% if field.help_text %}<p
       class="text-sm text-muted-foreground"
       {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}
     >
       {{ field.help_text|safe }}
     </p>{% endif %}
-  {{ field.errors }}
-  {{ field }}
 {% endif %}
