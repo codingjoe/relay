@@ -3,15 +3,15 @@
   <div class="input-group">
     {% include "django/forms/widgets/input_classless.html" %}
     {% if widget.type == "email" %}<span data-align="start" aria-hidden="true">{% tabler name="at" %}</span>{% endif %}
-    {% if widget.type == "url" %}<span data-align="start" aria-hidden="true">{% tabler name="link" %}</span>{% endif %}
+    {% if widget.type == "url" %}<span data-align="start" aria-hidden="true">{% tabler name="world-www" %}</span>{% endif %}
     {% if widget.type == "search" %}<span data-align="start" aria-hidden="true">{% tabler name="search" %}</span>{% endif %}
     {% if widget.type == "tel" %}<span data-align="start" aria-hidden="true">{% tabler name="phone" %}</span>{% endif %}
     {% if widget.type == "date" %}<span data-align="start" aria-hidden="true">{% tabler name="calendar" %}</span>{% endif %}
     {% if widget.type == "datetime-local" %}<span data-align="start" aria-hidden="true">{% tabler name="calendar-time" %}</span>{% endif %}
     {% if widget.type == "time" %}<span data-align="start" aria-hidden="true">{% tabler name="clock" %}</span>{% endif %}
-    {% if widget.type == "number" %}<span data-align="start" aria-hidden="true">{% tabler name="hash" %}</span>{% endif %}
+    {% if widget.type == "number" %}<span data-align="start" aria-hidden="true">{% tabler name="numbers" %}</span>{% endif %}
     {% if widget.type == "color" %}<span data-align="start" aria-hidden="true">{% tabler name="palette" %}</span>{% endif %}
-    {% if widget.type == "password" %}<span data-align="start" aria-hidden="true">{% tabler name="lock" %}</span>{% endif %}
+    {% if widget.type == "password" %}<span data-align="start" aria-hidden="true">{% tabler name="password" %}</span>{% endif %}
   </div>
 {% else %}
   {% include "django/forms/widgets/input_core.html" %}
