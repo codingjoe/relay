@@ -1,11 +1,18 @@
-<input
-  type="{{ widget.type }}"
-  name="{{ widget.name }}"
-  class="input{% for name, value in widget.attrs.items %}{% if name == 'class' %} {{ value }}{% endif %}{% endfor %}"
-  {% if widget.value != None %}value="{{ widget.value|stringformat:'s' }}"{% endif %}
-  {% for name, value in widget.attrs.items %}
-    {% if name != 'class' and value is not False %}
-      {% if value is True %}{{ name }}{% else %}{{ name }}="{{ value|stringformat:'s' }}"{% endif %}
-    {% endif %}
-  {% endfor %}
->
+{% load abstract %}
+{% if widget.type == "email" or widget.type == "url" or widget.type == "search" or widget.type == "tel" or widget.type == "date" or widget.type == "datetime-local" or widget.type == "time" or widget.type == "number" or widget.type == "color" or widget.type == "password" %}
+  <div class="input-group border rounded-md">
+    {% if widget.type == "email" %}<span data-align="start" aria-hidden="true">{% tabler name="at" %}</span>{% endif %}
+    {% if widget.type == "url" %}<span data-align="start" aria-hidden="true">{% tabler name="link" %}</span>{% endif %}
+    {% if widget.type == "search" %}<span data-align="start" aria-hidden="true">{% tabler name="search" %}</span>{% endif %}
+    {% if widget.type == "tel" %}<span data-align="start" aria-hidden="true">{% tabler name="phone" %}</span>{% endif %}
+    {% if widget.type == "date" %}<span data-align="start" aria-hidden="true">{% tabler name="calendar" %}</span>{% endif %}
+    {% if widget.type == "datetime-local" %}<span data-align="start" aria-hidden="true">{% tabler name="calendar-time" %}</span>{% endif %}
+    {% if widget.type == "time" %}<span data-align="start" aria-hidden="true">{% tabler name="clock" %}</span>{% endif %}
+    {% if widget.type == "number" %}<span data-align="start" aria-hidden="true">{% tabler name="hash" %}</span>{% endif %}
+    {% if widget.type == "color" %}<span data-align="start" aria-hidden="true">{% tabler name="palette" %}</span>{% endif %}
+    {% if widget.type == "password" %}<span data-align="start" aria-hidden="true">{% tabler name="lock" %}</span>{% endif %}
+    {% include "django/forms/widgets/input_core.html" %}
+  </div>
+{% else %}
+  {% include "django/forms/widgets/input_core.html" %}
+{% endif %}
