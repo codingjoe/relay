@@ -1,3 +1,4 @@
+import logging
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -668,18 +669,20 @@ class TestIsFblReport:
 
 
 class TestHandleException:
-    async def test__tls_setup_exception_muted(self):
-        with patch("services.email.mta.handlers.logger") as mocked_logger:
-            result = await MXHandler().handle_exception(TLSSetupException())
+    async def test__tls_setup_exception_muted(self, caplog):
+        caplog.set_level(logging.DEBUG, logger="services.email.mta.handlers")
+        result = await MXHandler().handle_exception(TLSSetupException())
 
         assert result == "500 Error: (TLSSetupException) "
-        mocked_logger.debug.assert_called_once()
-        mocked_logger.exception.assert_not_called()
+        records = [r for r in caplog.records if r.name == "services.email.mta.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
 
-    async def test__other_exception_logged(self):
-        with patch("services.email.mta.handlers.logger") as mocked_logger:
-            result = await MXHandler().handle_exception(ValueError("boom"))
+    async def test__other_exception_logged(self, caplog):
+        caplog.set_level(logging.WARNING, logger="services.email.mta.handlers")
+        result = await MXHandler().handle_exception(ValueError("boom"))
 
         assert result == "500 Error: (ValueError) boom"
-        mocked_logger.exception.assert_called_once()
-        mocked_logger.debug.assert_not_called()
+        records = [r for r in caplog.records if r.name == "services.email.mta.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.ERROR

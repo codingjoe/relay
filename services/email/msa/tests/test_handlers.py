@@ -1,4 +1,5 @@
 import base64
+import logging
 import secrets
 from email import message_from_bytes
 from email.message import EmailMessage
@@ -853,18 +854,20 @@ class TestImplicitTLSHandler:
 
 
 class TestHandleException:
-    async def test__tls_setup_exception_muted(self):
-        with patch("services.email.msa.handlers.logger") as mocked_logger:
-            result = await SMTPHandler().handle_exception(TLSSetupException())
+    async def test__tls_setup_exception_muted(self, caplog):
+        caplog.set_level(logging.DEBUG, logger="services.email.msa.handlers")
+        result = await SMTPHandler().handle_exception(TLSSetupException())
 
         assert result == "500 Error: (TLSSetupException) "
-        mocked_logger.debug.assert_called_once()
-        mocked_logger.exception.assert_not_called()
+        records = [r for r in caplog.records if r.name == "services.email.msa.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
 
-    async def test__other_exception_logged(self):
-        with patch("services.email.msa.handlers.logger") as mocked_logger:
-            result = await SMTPHandler().handle_exception(ValueError("boom"))
+    async def test__other_exception_logged(self, caplog):
+        caplog.set_level(logging.WARNING, logger="services.email.msa.handlers")
+        result = await SMTPHandler().handle_exception(ValueError("boom"))
 
         assert result == "500 Error: (ValueError) boom"
-        mocked_logger.exception.assert_called_once()
-        mocked_logger.debug.assert_not_called()
+        records = [r for r in caplog.records if r.name == "services.email.msa.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.ERROR
