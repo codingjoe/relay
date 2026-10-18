@@ -11,7 +11,7 @@
     {% if widget.type == "number" %}<span data-align="start" aria-hidden="true">{% tabler name="hash" %}</span>{% endif %}
     {% if widget.type == "color" %}<span data-align="start" aria-hidden="true">{% tabler name="palette" %}</span>{% endif %}
     {% if widget.type == "password" %}<span data-align="start" aria-hidden="true">{% tabler name="lock" %}</span>{% endif %}
-    {% include "django/forms/widgets/input_core.html" %}
+    {% include "django/forms/widgets/input_classless.html" %}
   </div>
 {% else %}
   {% include "django/forms/widgets/input_core.html" %}
