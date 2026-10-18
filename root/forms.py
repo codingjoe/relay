@@ -33,8 +33,8 @@ class DebugForm(forms.Form):
         widget=forms.SelectMultiple,
     )
     textarea = forms.CharField(widget=forms.Textarea)
-    file = forms.FileField()
-    image = forms.ImageField()
+    file = forms.FileField(required=False)
+    image = forms.ImageField(required=False)
     hidden = forms.CharField(widget=forms.HiddenInput)
     color = forms.CharField(widget=forms.TextInput(attrs={"type": "color"}))
     search = forms.CharField(widget=forms.TextInput(attrs={"type": "search"}))

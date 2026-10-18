@@ -87,7 +87,31 @@ class DebugFormView(NoStoreCacheMixin, BreadcrumbViewMixin, generic.FormView):
 
     def get_form(self, form_class=None):
         if self.request.method == "GET":
-            return DebugForm({})
+            return DebugForm(
+                {
+                    "email": "valid@example.com",
+                    "password": "password",
+                    "url": "https://example.com",
+                    "number": "1",
+                    "float_number": "1.5",
+                    "decimal_number": "1.25",
+                    "date": "2026-10-18",
+                    "datetime": "2026-10-18T12:00",
+                    "time": "12:00",
+                    "boolean": "on",
+                    "single_choice": "a",
+                    "radio_choice": "a",
+                    "multiple_choice": ["a"],
+                    "multiple_select": ["a"],
+                    "textarea": "valid text",
+                    "hidden": "hidden value",
+                    "color": "#000000",
+                    "search": "query",
+                    "tel": "+123456789",
+                    "slug": "valid-slug",
+                    "ip_address": "127.0.0.1",
+                }
+            )
         return super().get_form(form_class)
 
     def form_valid(self, form):
