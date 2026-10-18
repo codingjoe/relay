@@ -1,4 +1,4 @@
-{% if field.field.widget.input_type == "checkbox" %}
+{% if field.field.widget.input_type == "checkbox" and not field.field.widget.allow_multiple_selected %}
   <div role="group" class="field" data-orientation="horizontal">
     {{ field }}
     <section>
