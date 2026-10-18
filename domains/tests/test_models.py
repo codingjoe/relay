@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from accounts.models import Organization
 from domains.models import Domain, canonicalize_domain_name, validate_domain_name
-from kms import keys as kms_keys
+from kms import keys
 
 
 class TestValidateDomainName:
@@ -43,10 +43,10 @@ class TestValidateDomainName:
 
 class TestGenerateRsaPrivateKey:
     def test_generate_rsa_private_key__returns_pem(self):
-        pem = kms_keys.generate_rsa_private_key(2048)
+        pem = keys.generate_rsa_private_key(2048)
         assert pem.startswith("-----BEGIN PRIVATE KEY-----")
         assert isinstance(
-            kms_keys.load(kms_keys.keystore.encrypt(pem)),
+            keys.load(keys.keystore.encrypt(pem)),
             rsa.RSAPrivateKey,
         )
 
