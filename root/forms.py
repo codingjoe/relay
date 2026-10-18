@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from abstract.widgets import BasecoatSelect, BasecoatSelectMultiple
 
@@ -6,61 +7,62 @@ from abstract.widgets import BasecoatSelect, BasecoatSelectMultiple
 class DebugForm(forms.Form):
     """Form exposing every common input kind and its validation errors."""
 
-    text = forms.CharField(help_text="Short plain text.")
-    email = forms.EmailField(help_text="An email address.")
+    text = forms.CharField(help_text=_("Short plain text."))
+    email = forms.EmailField(help_text=_("An email address."))
     password = forms.CharField(
-        widget=forms.PasswordInput, help_text="A secret password."
+        widget=forms.PasswordInput, help_text=_("A secret password.")
     )
-    url = forms.URLField(help_text="A full URL.")
-    number = forms.IntegerField(help_text="An integer.")
-    float_number = forms.FloatField(help_text="A floating point number.")
-    decimal_number = forms.DecimalField(help_text="A decimal number.")
+    url = forms.URLField(help_text=_("A full URL."))
+    number = forms.IntegerField(help_text=_("An integer."))
+    float_number = forms.FloatField(help_text=_("A floating point number."))
+    decimal_number = forms.DecimalField(help_text=_("A decimal number."))
     date = forms.DateField(
-        widget=forms.DateInput(attrs={"type": "date"}), help_text="A calendar date."
+        widget=forms.DateInput(attrs={"type": "date"}), help_text=_("A calendar date.")
     )
     datetime = forms.DateTimeField(
         widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
-        help_text="A date and time.",
+        help_text=_("A date and time."),
     )
     time = forms.TimeField(
-        widget=forms.TimeInput(attrs={"type": "time"}), help_text="A time of day."
+        widget=forms.TimeInput(attrs={"type": "time"}), help_text=_("A time of day.")
     )
-    boolean = forms.BooleanField(required=False, help_text="A boolean flag.")
+    boolean = forms.BooleanField(required=False, help_text=_("A boolean flag."))
     single_choice = forms.ChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
         widget=BasecoatSelect,
-        help_text="Choose one option.",
+        help_text=_("Choose one option."),
     )
     radio_choice = forms.ChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
         widget=forms.RadioSelect,
-        help_text="Choose one option by radio.",
+        help_text=_("Choose one option by radio."),
     )
     multiple_choice = forms.MultipleChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
         widget=forms.CheckboxSelectMultiple,
-        help_text="Choose several options.",
+        help_text=_("Choose several options."),
     )
     multiple_select = forms.MultipleChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
         widget=BasecoatSelectMultiple,
-        help_text="Choose several options from a list.",
+        help_text=_("Choose several options from a list."),
     )
-    textarea = forms.CharField(widget=forms.Textarea, help_text="Multiline text.")
-    file = forms.FileField(required=False, help_text="A file upload.")
-    image = forms.ImageField(required=False, help_text="An image upload.")
-    hidden = forms.CharField(widget=forms.HiddenInput, help_text="A hidden value.")
+    textarea = forms.CharField(widget=forms.Textarea, help_text=_("Multiline text."))
+    file = forms.FileField(required=False, help_text=_("A file upload."))
+    image = forms.ImageField(required=False, help_text=_("An image upload."))
+    hidden = forms.CharField(widget=forms.HiddenInput, help_text=_("A hidden value."))
     color = forms.CharField(
-        widget=forms.TextInput(attrs={"type": "color"}), help_text="A color picker."
+        widget=forms.TextInput(attrs={"type": "color"}), help_text=_("A color picker.")
     )
     search = forms.CharField(
-        widget=forms.TextInput(attrs={"type": "search"}), help_text="A search term."
+        widget=forms.TextInput(attrs={"type": "search"}), help_text=_("A search term.")
     )
     tel = forms.CharField(
-        widget=forms.TextInput(attrs={"type": "tel"}), help_text="A telephone number."
+        widget=forms.TextInput(attrs={"type": "tel"}),
+        help_text=_("A telephone number."),
     )
-    slug = forms.SlugField(help_text="A slug.")
-    ip_address = forms.GenericIPAddressField(help_text="An IP address.")
+    slug = forms.SlugField(help_text=_("A slug."))
+    ip_address = forms.GenericIPAddressField(help_text=_("An IP address."))
 
     def full_clean(self):
         super().full_clean()
@@ -70,5 +72,5 @@ class DebugForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        self.add_error(None, "Form-level error.")
+        self.add_error(None, _("Form-level error."))
         return cleaned_data
