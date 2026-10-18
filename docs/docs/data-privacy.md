@@ -19,6 +19,7 @@ Germany:
 | Component                | Role                                   | Processes                                                     |
 | ------------------------ | -------------------------------------- | ------------------------------------------------------------- |
 | Web dashboard and API    | Your browser and your OAuth sign-in    | Django web application behind a TLS-terminating reverse proxy |
+| MCP server               | Message access for AI assistants       | FastMCP ASGI application behind the same reverse proxy        |
 | Authoritative nameserver | DNS for your sender domains            | DNS proxy (dnsdist) and dnslib nameserver                     |
 | SMTP submission          | Your message submissions               | aiosmtpd on 587 and 465                                       |
 | MX                       | Inbound delivery on 25                 | aiosmtpd, STARTTLS                                            |

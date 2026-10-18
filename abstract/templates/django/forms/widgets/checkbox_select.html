@@ -1,0 +1,3 @@
+<div id="{{ widget.attrs.id }}" role="group" data-slot="checkbox-group">
+  {% for group, options, index in widget.optgroups %}{% if group %}<div><label>{{ group }}</label>{% endif %}{% for widget in options %}{% include widget.template_name %}{% endfor %}{% if group %}</div>{% endif %}{% endfor %}
+</div>

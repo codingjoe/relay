@@ -11,7 +11,7 @@ automatically. GitHub OAuth handles authentication.
 
 ## Architecture & tech stack
 
-Three services from one codebase, each a separate container. Production runs
+Four services from one codebase, each a separate container. Production runs
 them on a single-node Talos Linux cluster in the `default` namespace: the
 manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and
 the place to look for how deployments, probes and certificates work.
@@ -31,6 +31,9 @@ views), `kms` (SigningKey, Fernet ciphertext, public/private keypair
 generation, signing. No app-specific knowledge), `msa` (OutgoingMessage, Transmission, MsaCredential, delivery
 task, handler/server, message + credential views), `mta` (IncomingMessage, Webhook,
 WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
+`services.mcp` (MCP server app: FastMCP ASGI entrypoint, OAuth consent,
+explicit tool binding, user-bound OAuth connections that read every
+organization the member is active in),
 `services.email.dashboard` (the unified
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
@@ -42,9 +45,9 @@ contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
 the contracts.
 
 Key tech: Django task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis, S3
-via django-storages, django-allauth for the GitHub login, basecoat CSS (via
-PostCSS with wireit), Talos Linux on Hetzner Cloud with Caddy as ingress and
-Layer 4 proxy.
+via django-storages, django-allauth for the GitHub login and the MCP OIDC
+provider, basecoat CSS (via PostCSS with wireit), Talos Linux on Hetzner
+Cloud with Caddy as ingress and Layer 4 proxy.
 
 ## Core commands & workflows
 

@@ -43,6 +43,14 @@
           data-variant="ghost"
           {% if request.path == email_url %}aria-current="page"{% endif %}
         >{% translate "email"|capfirst context "noun" %}</a>
+        {% url 'mcp:setup' current_org.slug as mcp_url %}
+        <a
+          href="{{ mcp_url }}"
+          class="btn"
+          data-size="sm"
+          data-variant="ghost"
+          {% if request.path == mcp_url %}aria-current="page"{% endif %}
+        >MCP</a>
       {% endif %}
       <a
         href="{% url 'docs:list' %}"

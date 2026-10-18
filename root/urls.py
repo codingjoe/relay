@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
+from services.mcp.oidc import AuthorizationView
+
 from . import views
 
 urlpatterns = [
@@ -14,7 +16,7 @@ urlpatterns = [
     path("docs/", include("docs.urls")),
     path("know-how/", include("know_how.urls")),
     path("alternative-to/", include("alternative_to.urls")),
-    # Well-known endpoints. Robots.txt, llms.txt, sitemap.xml
+    # Site-root crawler files and the discovery documents under /.well-known/
     path("", include("well_known.urls")),
     # Org-scoped email
     path(
@@ -31,6 +33,12 @@ urlpatterns = [
             ]
         ),
     ),
+    # Org-scoped MCP
+    path("org/<slug:org_slug>/mcp/", include("services.mcp.urls")),
+    # OIDC provider for MCP clients
+    # https://docs.allauth.org/en/latest/idp/
+    path("identity/o/authorize", AuthorizationView.as_view()),
+    path("", include("allauth.idp.urls")),
     path("social/", include("allauth.urls")),
     path("admin/", admin.site.urls),
 ]
