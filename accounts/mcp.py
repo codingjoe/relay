@@ -28,7 +28,7 @@ class InactiveUserError(AuthorizationError):
         super().__init__("The account is inactive.")
 
 
-async def authenticated_user(
+async def get_authenticated_user(
     access_token: AccessToken = CurrentAccessToken(),  # noqa: B008 -- dependency
 ) -> User:
     """Return the active account an access token was issued for."""

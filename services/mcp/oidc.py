@@ -16,12 +16,10 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from oauthlib.oauth2.rfc6749.errors import FatalClientError, OAuth2Error
 from oauthlib.openid.connect.core.exceptions import ConsentRequired
 
-from abstract.scopes import scopes
+from abstract.scopes import MCP_REQUIRED_SCOPES, scopes
 
 # Imported for its registration side effect: every app advertises scopes in its own `mcp` module.
-from services.mcp import components  # noqa: F401
-
-from .forms import ConsentAuthorizationForm
+from services.mcp import bindings  # noqa: F401
 
 
 class OIDCAdapter(DefaultOIDCAdapter):
@@ -50,8 +48,8 @@ class OIDCAdapter(DefaultOIDCAdapter):
             bearer_token=bearer_token,
             **kwargs,
         )
-        # Registration defaults to openid, yet the challenge needs more, so clients that omit scopes could never honour it.
-        client.set_scopes(sorted({*client.get_scopes(), *scopes.supported()}))
+        # Only required scopes are granted implicitly; clients must declare any extra scopes they request.
+        client.set_scopes(sorted({*client.get_scopes(), *MCP_REQUIRED_SCOPES}))
 
     def get_issuer(self) -> str:
         return settings.MCP_OIDC_ISSUER_URL
@@ -61,7 +59,6 @@ class AuthorizationView(BaseAuthorizationView):
     """Serve the consent screen, but never authorize silently."""
 
     template_name = "mcp/authorization_form.html"
-    form_class = ConsentAuthorizationForm
 
     def get_form_kwargs(self) -> dict[str, typing.Any]:
         kwargs = super().get_form_kwargs()

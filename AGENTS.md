@@ -17,21 +17,6 @@ manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and
 the place to look for how deployments, probes and certificates work.
 
 - **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
-- **MCP**: Hosted MCP server for AI assistants (FastMCP on Granian ASGI,
-  `services.mcp.asgi:application`, which builds the server, its auth provider
-  and the ASGI application). Caddy routes `/mcp` to it. Tools and resources are
-  declared with fastmcp's standalone decorators next to the data they read, for
-  example in `services/email/message/mcp.py`, and
-  `services/mcp/components.py` binds every component to the server.
-  `services/mcp/middleware.py` hands each MCP request Django's request signals
-  through the threadpool the bodies run in, so a pooled database connection is
-  closed after the call that opened it while requests run one at a time. A
-  connection is bound to the user who approved it and reads every organization
-  that user is an active member of. Each app declares its scopes on an
-  `abstract.scopes.Scope` enum, which is how the discovery documents and the
-  consent screen list every scope, without loading the MCP stack.
-  `services/mcp/oidc.py` adds the MCP scopes to allauth's consent screen and
-  discovery metadata, and handles the `prompt` parameter.
 - **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
   builds DNS records from `Domain` model properties. No zone files.
 - **MSA**: Outgoing mail submissions (aiosmtpd). `msa/handlers.py`

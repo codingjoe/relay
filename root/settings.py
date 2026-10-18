@@ -442,10 +442,8 @@ RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
 RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
 RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
 
-# Hosted MCP server
 # https://docs.allauth.org/en/latest/idp/oidc/configuration.html
 
-# Development serves plain HTTP, so the scheme follows DEBUG.
 MCP_BASE_URL = f"{'http' if DEBUG else 'https'}://{RELAY_PLATFORM_DOMAIN}"
 MCP_RESOURCE_URL = f"{MCP_BASE_URL}/mcp"
 # The issuer ends in exactly one slash, the form OIDC clients normalize to.

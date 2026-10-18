@@ -17,7 +17,7 @@ from pydantic import Field
 
 from abstract.mcp import paginate_queryset
 from abstract.scopes import Scope, scopes
-from accounts.mcp import authenticated_user
+from accounts.mcp import get_authenticated_user
 
 from .events import MessageEvent
 from .models import Message
@@ -28,7 +28,6 @@ class MessageScope(Scope):
     """Grant access to one organization's mail."""
 
     read = "messages:read", _("View sent and received messages.")
-    write = "messages:write", _("Send new messages.")
 
 
 class InvalidStatusError(ValidationError):
@@ -56,6 +55,8 @@ class MessageDirection(StrEnum):
 def describe_message(message: Message) -> dict[str, object]:
     """Return the flat fields plus the kind and status labels."""
     return MessageEvent.from_message(message).__dict__ | {
+        # Expose the org-scoped body view rather than the raw storage URL.
+        "body_url": message.get_body_url() if message.raw_body else None,
         "kind": message.kind,
         "kind_display": str(message.kind_display),
         "status": message.status,
@@ -70,7 +71,7 @@ def list_messages(
     status: str | None = None,
     cursor: str | None = None,
     page_size: typing.Annotated[int, Field(ge=1, le=100)] = 25,
-    user: User = Depends(authenticated_user),  # noqa: B008 -- dependency
+    user: User = Depends(get_authenticated_user),  # noqa: B008 -- dependency
 ) -> tuple[list[dict[str, object]], str | None]:
     """
     Return the sent and received mail of the user's organizations, newest first.
@@ -123,7 +124,7 @@ def list_messages(
 )
 def get_message(
     message_id: UUID,
-    user: User = Depends(authenticated_user),  # noqa: B008 -- dependency
+    user: User = Depends(get_authenticated_user),  # noqa: B008 -- dependency
 ) -> str:
     """
     Return one mail with its headers, scan verdicts, and delivery summary.

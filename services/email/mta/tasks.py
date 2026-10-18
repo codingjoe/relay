@@ -43,8 +43,6 @@ WEBHOOK_RETRY_DELAYS: tuple[int, ...] = (
 
 
 class WebhookDeliveryError(Exception):
-    """A webhook endpoint responded with a retryable failure."""
-
     def __init__(self, status_code):
         super().__init__(f"Webhook returned status {status_code}")
 
@@ -116,8 +114,6 @@ def mark_failed_if_pending(message_id):
 
 @dataclass
 class WebhookEvent(MessageEvent):
-    """A flat webhook event payload, without the raw message body."""
-
     type: str = ""
     received_at: str = field(
         default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())

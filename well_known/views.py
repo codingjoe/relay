@@ -147,7 +147,7 @@ class SitemapView(CacheControlMixin, generic.View):
         return sitemap(request, sitemaps=sitemaps)
 
 
-class OauthProtectedResourceView(CacheControlMixin, generic.View):
+class OAuthProtectedResourceView(CacheControlMixin, generic.View):
     """Serve RFC 9728 metadata for the MCP server."""
 
     cache_control = {"public": True, "max_age": datetime.timedelta(minutes=5)}

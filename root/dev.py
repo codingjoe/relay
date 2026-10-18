@@ -2,6 +2,7 @@
 
 import importlib
 import os
+import typing
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "root.settings")
 
@@ -20,23 +21,16 @@ from starlette.routing import Mount, Route  # noqa: E402
 mcp_application = importlib.import_module("services.mcp.asgi").application
 
 
-class DevelopmentOnlyError(ImproperlyConfigured):
-    """Signal use of the combined server with DEBUG disabled."""
-
-    def __init__(self) -> None:
-        super().__init__(
-            "The combined web and MCP server is only available with DEBUG on."
-        )
-
-
 if not settings.DEBUG:
-    raise DevelopmentOnlyError
+    raise ImproperlyConfigured(  # noqa: TRY003
+        "The combined web and MCP server is only available with DEBUG on."
+    )
 
 
 class ASGIEndpoint:
     """Wrap an application so Starlette can serve it as a route."""
 
-    def __init__(self, app) -> None:
+    def __init__(self, app: typing.Any) -> None:
         self.app = app
 
     async def __call__(self, scope, receive, send) -> None:

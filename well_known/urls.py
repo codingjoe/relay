@@ -45,12 +45,12 @@ urlpatterns = [
                 # https://datatracker.ietf.org/doc/html/rfc9728
                 path(
                     "oauth-protected-resource",
-                    views.OauthProtectedResourceView.as_view(),
+                    views.OAuthProtectedResourceView.as_view(),
                     name="oauth-protected-resource",
                 ),
                 path(
                     "oauth-protected-resource/mcp",
-                    views.OauthProtectedResourceView.as_view(),
+                    views.OAuthProtectedResourceView.as_view(),
                     name="oauth-protected-resource-mcp",
                 ),
                 path(

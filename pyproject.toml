@@ -464,4 +464,4 @@ forbidden_modules = [
 ]
 # The MCP provider registers the scopes each app declares beside its tools, and
 # the web process mounts that provider for its URL wiring.
-ignore_imports = [ "services.mcp.oidc -> services.mcp.components" ]
+ignore_imports = [ "services.mcp.oidc -> services.mcp.bindings" ]
