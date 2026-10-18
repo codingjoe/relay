@@ -21,9 +21,6 @@
     </p>
     <form method="post" action="{% url 'idp:oidc:authorization' %}">
       {% csrf_token %}
-      {% for field in form.hidden_fields %}
-        {{ field }}
-      {% endfor %}
       <fieldset class="fieldset">
         <legend>
           {% blocktranslate trimmed with client_name=client.name %}
@@ -35,17 +32,7 @@
             Review the actions you allow {{ client_name }} to perform.
           {% endblocktranslate %}
         </p>
-        <div role="group" aria-label='{% translate "permissions"|capfirst %}' data-slot="checkbox-group">
-          {% for scope in form.scopes %}
-            <div role="group" class="field" data-orientation="horizontal">
-              {{ scope.tag }}
-              <section>
-                <label for="{{ scope.id_for_label }}">{{ scope.data.value }}</label>
-                <p class="text-sm text-muted-foreground">{{ scope.choice_label }}</p>
-              </section>
-            </div>
-          {% endfor %}
-        </div>
+        {{ form }}
       </fieldset>
       <div class="flex gap-2 mt-6">
         <button type="submit" name="action" value="grant" class="btn">

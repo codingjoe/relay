@@ -21,6 +21,8 @@ from abstract.scopes import scopes
 # Imported for its registration side effect: every app advertises scopes in its own `mcp` module.
 from services.mcp import components  # noqa: F401
 
+from .forms import ConsentAuthorizationForm
+
 
 class OIDCAdapter(DefaultOIDCAdapter):
     """Advertise registered scopes and issuer to MCP clients."""
@@ -68,6 +70,7 @@ class AuthorizationView(BaseAuthorizationView):
     """Serve the consent screen, but never authorize silently."""
 
     template_name = "mcp/authorization_form.html"
+    form_class = ConsentAuthorizationForm
 
     def get_form_kwargs(self) -> dict[str, typing.Any]:
         kwargs = super().get_form_kwargs()
