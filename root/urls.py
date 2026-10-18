@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
-from services.mcp.oidc import RelayAuthorizationView
+from services.mcp.oidc import AuthorizationView
 
 from . import views
 
@@ -37,7 +37,7 @@ urlpatterns = [
     path("org/<slug:org_slug>/mcp/", include("services.mcp.urls")),
     # OIDC provider for MCP clients
     # https://docs.allauth.org/en/latest/idp/
-    path("identity/o/authorize", RelayAuthorizationView.as_view()),
+    path("identity/o/authorize", AuthorizationView.as_view()),
     path("", include("allauth.idp.urls")),
     path("social/", include("allauth.urls")),
     path("admin/", admin.site.urls),

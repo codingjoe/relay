@@ -11,7 +11,7 @@ django.setup()
 from django.conf import settings  # noqa: E402
 from fastmcp import FastMCP  # noqa: E402
 from fastmcp.server.auth import RemoteAuthProvider  # noqa: E402
-from fastmcp.server.auth.providers.jwt import JWTVerifier  # noqa: E402
+from fastmcp.server.auth.providers.jwt import JWTVerifier as BaseJWTVerifier  # noqa: E402
 
 from abstract.scopes import MCP_REQUIRED_SCOPES, scopes  # noqa: E402
 
@@ -19,7 +19,7 @@ from .components import bind  # noqa: E402
 from .middleware import DjangoRequestSignalsMiddleware  # noqa: E402
 
 
-class RelayJWTVerifier(JWTVerifier):
+class JWTVerifier(BaseJWTVerifier):
     """Advertise the registered scopes as supported."""
 
     @property
@@ -27,19 +27,18 @@ class RelayJWTVerifier(JWTVerifier):
         return list(scopes.supported())
 
 
-token_verifier = RelayJWTVerifier(
-    audience=settings.RELAY_MCP_RESOURCE_URL,
-    jwks_uri=settings.RELAY_MCP_OIDC_JWKS_URL,
-    issuer=settings.RELAY_MCP_OIDC_ISSUER_URL,
+token_verifier = JWTVerifier(
+    audience=settings.MCP_RESOURCE_URL,
+    jwks_uri=settings.MCP_OIDC_JWKS_URL,
+    issuer=settings.MCP_OIDC_ISSUER_URL,
     required_scopes=list(MCP_REQUIRED_SCOPES),
 )
 auth_provider = RemoteAuthProvider(
     token_verifier=token_verifier,
-    authorization_servers=[settings.RELAY_MCP_OIDC_ISSUER_URL],
-    base_url=settings.RELAY_MCP_BASE_URL,
+    authorization_servers=[settings.MCP_OIDC_ISSUER_URL],
+    base_url=settings.MCP_BASE_URL,
     resource_name="relay MCP",
-    # A client asks for what the challenge names, and the components need more
-    # than the identity scope to be visible.
+    # Clients request what the challenge names, so components need more than the identity scope.
     challenge_scopes=list(scopes.supported()),
 )
 mcp = FastMCP(

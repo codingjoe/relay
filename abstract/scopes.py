@@ -8,7 +8,7 @@ MCP_REQUIRED_SCOPES = ("openid",)
 
 class Scope(models.TextChoices):
     """
-    Base class for OAuth scope enums. Members are `value, label` pairs.
+    Declare an app's OAuth scopes. Members are `value, label` pairs.
 
     ```python
     class OrgScope(Scope):
@@ -25,20 +25,20 @@ class DuplicateScopesError(ValueError):
 
 
 class ScopeRegistry:
-    """Collect what relay advertises to OAuth clients."""
+    """Collect the scopes advertised to OAuth clients."""
 
     def __init__(self) -> None:
         self.scopes: dict[str, str] = {}
 
     def register(self, scope_class: type[Scope]) -> type[Scope]:
-        """Add one enum's members and return the enum for decorator use."""
+        """Add one enum's members and return the enum."""
         if duplicates := set(self.scopes) & {member.value for member in scope_class}:
             raise DuplicateScopesError(duplicates)
         self.scopes.update((member.value, member.label) for member in scope_class)
         return scope_class
 
     def supported(self) -> tuple[str, ...]:
-        """Return every value relay may advertise."""
+        """Return every registered scope value."""
         return (*MCP_REQUIRED_SCOPES, *self.scopes)
 
     def display(self) -> dict[str, str]:

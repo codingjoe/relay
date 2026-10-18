@@ -1,4 +1,4 @@
-"""Hand Django's per-request connection cleanup to every thread an MCP request uses."""
+"""Run Django request signals and connection cleanup around each MCP request."""
 
 import typing
 
@@ -10,17 +10,7 @@ from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 
 
 class DjangoRequestSignalsMiddleware(Middleware):
-    """
-    Run Django's request signals, and its connection cleanup, around each request.
-
-    Django ties `close_old_connections` to both signals and keeps its
-    connections per thread, so the signals go through the threadpool a sync body
-    runs in rather than the event loop. Code that reaches for `sync_to_async`,
-    as the access token dependency does, runs on asgiref's own sync thread
-    instead, which no signal reaches, so that thread is cleaned directly. The
-    pool keeps its idle worker while requests run one at a time, but a busy pool
-    may signal a sibling thread.
-    """
+    """Run Django's request signals and connection cleanup around each request."""
 
     async def on_request(
         self,

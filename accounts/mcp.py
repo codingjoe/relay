@@ -1,4 +1,4 @@
-"""Resolve the relay user an MCP access token was issued for."""
+"""Resolve the user an MCP access token was issued for."""
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
@@ -22,7 +22,7 @@ class UnknownUserError(AuthorizationError):
 
 
 class InactiveUserError(AuthorizationError):
-    """Signal a lookup for a deactivated account."""
+    """Signal that the account is inactive."""
 
     def __init__(self):
         super().__init__("The account is inactive.")

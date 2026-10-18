@@ -8,6 +8,6 @@ __all__ = ["bind"]
 
 
 def bind(mcp: FastMCP) -> None:
-    """Add every component relay offers MCP clients to the server."""
+    """Register every component offered to MCP clients."""
     mcp.add_tool(list_messages)
     mcp.add_resource(get_message)

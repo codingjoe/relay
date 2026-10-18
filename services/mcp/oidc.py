@@ -8,7 +8,7 @@ from allauth.idp.oidc.internal.oauthlib.utils import (
     respond_html_error,
 )
 from allauth.idp.oidc.models import Client, Token
-from allauth.idp.oidc.views import AuthorizationView
+from allauth.idp.oidc.views import AuthorizationView as BaseAuthorizationView
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ValidationError
@@ -18,21 +18,19 @@ from oauthlib.openid.connect.core.exceptions import ConsentRequired
 
 from abstract.scopes import scopes
 
-# Imported for the registration side effect: the web process advertises the
-# scopes every app declares in its own `mcp` module.
+# Imported for its registration side effect: every app advertises scopes in its own `mcp` module.
 from services.mcp import components  # noqa: F401
 
 
-class RelayOIDCAdapter(DefaultOIDCAdapter):
-    """Advertise relay's registered scopes and issuer to MCP clients."""
+class OIDCAdapter(DefaultOIDCAdapter):
+    """Advertise registered scopes and issuer to MCP clients."""
 
     @property
     def scope_display(self) -> dict[str, str]:
-        """Show relay's registered values on the consent screen."""
         return {**DefaultOIDCAdapter.scope_display, **scopes.display()}
 
     def populate_server_metadata(self, data: dict[str, str | list[str]]) -> None:
-        """Advertise relay's scopes so clients request them on registration."""
+        """Advertise registered scopes so clients request them on registration."""
         data["scopes_supported"] = list(self.scope_display)
 
     def validate_client_registration(
@@ -44,7 +42,7 @@ class RelayOIDCAdapter(DefaultOIDCAdapter):
         bearer_token: str | None,
         **kwargs: typing.Any,
     ) -> None:
-        """Register every scope relay advertises, not only the requested ones."""
+        """Register every advertised scope, not only the requested ones."""
         super().validate_client_registration(
             client=client,
             client_metadata=client_metadata,
@@ -52,31 +50,29 @@ class RelayOIDCAdapter(DefaultOIDCAdapter):
             bearer_token=bearer_token,
             **kwargs,
         )
-        # Registration defaults to openid, and the challenge asks clients for
-        # more, so a client that omits scopes could never honour it.
+        # Registration defaults to openid, yet the challenge needs more, so clients that omit scopes could never honour it.
         client.set_scopes(sorted({*client.get_scopes(), *scopes.supported()}))
 
     def get_issuer(self) -> str:
         """
-        Return the issuer every MCP access token is minted with.
+        Return the origin minted into every MCP access token.
 
-        `RELAY_MCP_OIDC_ISSUER_URL` keeps the single trailing slash that
+        `MCP_OIDC_ISSUER_URL` keeps the single trailing slash that
         allauth strips, so the derived JWKS URL stays fetchable and the
         verifier matches the claim.
         """
-        return settings.RELAY_MCP_OIDC_ISSUER_URL
+        return settings.MCP_OIDC_ISSUER_URL
 
 
-class RelayAuthorizationView(AuthorizationView):
-    """Serve the consent screen in relay's chrome, but never authorize silently."""
+class AuthorizationView(BaseAuthorizationView):
+    """Serve the consent screen, but never authorize silently."""
 
     template_name = "mcp/authorization_form.html"
 
     def get_form_kwargs(self) -> dict[str, typing.Any]:
         kwargs = super().get_form_kwargs()
         if not kwargs["requested_scopes"]:
-            # A client that asks for no scope still gets a screen it can act
-            # on, limited to the scopes it registered.
+            # Clients that request no scope still get an actionable consent screen limited to registered scopes.
             client = Client.objects.get(pk=self._request_info["client_id"])
             kwargs["requested_scopes"] = client.get_scopes()
         return kwargs

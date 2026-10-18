@@ -222,3 +222,7 @@
   pattern: 'thread_sensitive\s*=\s*False'
   hint: 'An MCP request closes its database connections on the two threads it runs on: the threadpool a sync body runs in, and asgiref''s sync thread, which `sync_to_async` uses by default. A thread picked from the event loop executor is invisible to both, so a connection opened there is never closed, and a dead one is never recovered.'
   filePattern: '^(?:services/mcp/|.*/mcp\.py$)'
+- name: Render Tabler icons through the tabler tag
+  pattern: '<svg[^>]*>\s*<use[^>]*tabler-sprite\.svg#tabler-'
+  hint: 'Render the icon with `{% tabler name="..." size="..." %}` instead of a hand-written `<svg>` that references the sprite.'
+  filePattern: '(?!.*abstract/templates/abstract/tabler\.html$).*\.html$'

@@ -13,26 +13,43 @@
     {% endblocktranslate %}
   </p>
 
-  <article class="card max-w-3xl">
-    <h3>{% translate "endpoint"|capfirst %}</h3>
-    <div class="flex items-center gap-2">
-      <code>{{ endpoint }}</code>
-      {% include "abstract/copy_button.html" with value=endpoint label=_("copy endpoint")|capfirst %}
-    </div>
+  <section class="accordion max-w-3xl" aria-label='{% translate "mcp setup"|capfirst %}'>
+    <details open>
+      <summary>
+        {% translate "endpoint"|capfirst %}
+        {% tabler name="chevron-down" size="4" %}>
+      </summary>
+      <section>
+        <div class="flex items-center gap-2">
+          <code>{{ endpoint }}</code>
+          {% include "abstract/copy_button.html" with value=endpoint label=_("copy endpoint")|capfirst %}
+        </div>
+      </section>
+    </details>
 
-    <hr>
+    <details>
+      <summary>
+        {% translate "command line clients"|capfirst %}
+        {% tabler name="chevron-down" size="4" %}>
+      </summary>
+      <section>
+        <div class="flex items-center gap-2">
+          <code>{{ codex_command }}</code>
+          {% include "abstract/copy_button.html" with value=codex_command label=_("copy command")|capfirst %}
+        </div>
+      </section>
+    </details>
 
-    <h3>{% translate "command line clients"|capfirst %}</h3>
-    <div class="flex items-center gap-2">
-      <code>{{ codex_command }}</code>
-      {% include "abstract/copy_button.html" with value=codex_command label=_("copy command")|capfirst %}
-    </div>
-
-    <hr>
-
-    <h3>{% translate "JSON clients" %}</h3>
-    {{ client_config|highlight_code:"json" }}
-  </article>
+    <details>
+      <summary>
+        {% translate "JSON clients" %}
+        {% tabler name="chevron-down" size="4" %}>
+      </summary>
+      <section>
+        {{ client_config|highlight_code:"json" }}
+      </section>
+    </details>
+  </section>
 
   <p class="max-w-3xl text-muted-foreground">
     {% blocktranslate trimmed %}

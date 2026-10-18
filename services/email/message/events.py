@@ -1,4 +1,4 @@
-"""Build the flat payload webhook receivers and MCP clients read."""
+"""Build the flat payload that webhook receivers and MCP clients read."""
 
 from dataclasses import dataclass
 

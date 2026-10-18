@@ -16,7 +16,7 @@ from know_how.views import KnowHowListView
 
 
 class RobotsTxtView(CacheControlMixin, generic.TemplateView):
-    """Serve robots.txt with a sitemap reference."""
+    """Serve the crawler exclusion file with a sitemap reference."""
 
     template_name = "well_known/robots.txt"
     content_type = "text/plain; charset=utf-8"
@@ -31,7 +31,7 @@ class RobotsTxtView(CacheControlMixin, generic.TemplateView):
 
 
 class LlmsTxtView(CacheControlMixin, generic.TemplateView):
-    """Serve llms.txt following the llmstxt.org spec."""
+    """Serve the LLM discovery file following the llmstxt.org spec."""
 
     template_name = "well_known/llms.txt"
     content_type = "text/plain; charset=utf-8"
@@ -82,14 +82,14 @@ class LlmsTxtView(CacheControlMixin, generic.TemplateView):
                 "discovery_url": self.request.build_absolute_uri(
                     reverse("well_known:mcp-discovery")
                 ),
-                "endpoint": settings.RELAY_MCP_RESOURCE_URL,
+                "endpoint": settings.MCP_RESOURCE_URL,
                 "scopes": scopes.supported(),
             },
         }
 
 
 class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
-    """Serve llms-full.txt with the full content of all documentation articles."""
+    """Serve the LLM discovery file with every article's full text."""
 
     template_name = "well_known/llms-full.txt"
     content_type = "text/plain; charset=utf-8"
@@ -139,7 +139,7 @@ class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
 
 
 class SitemapView(CacheControlMixin, generic.View):
-    """Serve the XML sitemap with a short public cache."""
+    """Serve the site index with a short public cache."""
 
     cache_control = {"public": True, "max_age": datetime.timedelta(minutes=5)}
 
@@ -155,8 +155,8 @@ class OauthProtectedResourceView(CacheControlMixin, generic.View):
     def get(self, request, *args, **kwargs):
         response = JsonResponse(
             {
-                "resource": settings.RELAY_MCP_RESOURCE_URL,
-                "authorization_servers": [settings.RELAY_MCP_OIDC_ISSUER_URL],
+                "resource": settings.MCP_RESOURCE_URL,
+                "authorization_servers": [settings.MCP_OIDC_ISSUER_URL],
                 "scopes_supported": scopes.supported(),
                 "resource_name": "relay MCP",
                 "bearer_methods_supported": ["header"],
@@ -179,10 +179,10 @@ class McpDiscoveryView(CacheControlMixin, generic.View):
                     {
                         "name": "relay",
                         "description": "relay communication as a service: search the inbound and outbound message timeline.",
-                        "endpoint": settings.RELAY_MCP_RESOURCE_URL,
+                        "endpoint": settings.MCP_RESOURCE_URL,
                         "auth": {
                             "type": "oauth",
-                            "authorization_server": settings.RELAY_MCP_OIDC_ISSUER_URL,
+                            "authorization_server": settings.MCP_OIDC_ISSUER_URL,
                             "protected_resource": request.build_absolute_uri(
                                 reverse("well_known:oauth-protected-resource-mcp")
                             ),

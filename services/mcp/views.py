@@ -8,14 +8,14 @@ from accounts.views import OrganizationScopedView
 
 
 class SetupView(OrganizationScopedView, NoStoreCacheMixin, generic.TemplateView):
-    """Walk a person through connecting an MCP client to relay."""
+    """Walk a person through connecting an MCP client."""
 
     template_name = "mcp/setup.html"
     title = "MCP"
     parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
-        endpoint = settings.RELAY_MCP_RESOURCE_URL
+        endpoint = settings.MCP_RESOURCE_URL
         return super().get_context_data(**kwargs) | {
             "endpoint": endpoint,
             "codex_command": f"codex mcp add relay --url {endpoint}",

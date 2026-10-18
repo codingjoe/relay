@@ -1,11 +1,11 @@
-"""Development signing key for the hosted MCP OIDC provider."""
+"""Provide a development signing key for the hosted MCP OIDC provider."""
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 def development_signing_key() -> str:
-    """Generate a disposable RSA-2048 PEM string."""
+    """Generate a disposable RSA-2048 private key in PEM form."""
     return (
         rsa.generate_private_key(public_exponent=65537, key_size=2048)
         .private_bytes(

@@ -161,7 +161,7 @@ def get_message(
             ),
             "created_at": message.created_at,
             # The MCP base URL is the public origin that also serves the web app.
-            "web_url": f"{settings.RELAY_MCP_BASE_URL}{message.get_absolute_url()}",
+            "web_url": f"{settings.MCP_BASE_URL}{message.get_absolute_url()}",
         },
         cls=DjangoJSONEncoder,
     )

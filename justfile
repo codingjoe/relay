@@ -84,7 +84,7 @@ serve:
     uv run --env-file .env granian --interface asgi --host 127.0.0.1 \
         --port "$port" --reload --reload-ignore-patterns 'db\.sqlite3' \
         --reload-ignore-dirs storage --reload-ignore-dirs staticfiles \
-        services.mcp.dev:application
+        root.dev:application
 
 # Install the binaries, the dependencies and the git hooks.
 [group('quality')]

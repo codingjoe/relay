@@ -229,10 +229,10 @@ done
 # of the loop above: the MCP OIDC provider needs an RSA-2048 PEM. Keep an
 # existing key, because rotating it invalidates every access token already
 # issued and the web pod republishes its JWKS only on the next start.
-if dotenvx get RELAY_MCP_OIDC_PRIVATE_KEY -f .env.production >/dev/null 2>&1; then
-    note "RELAY_MCP_OIDC_PRIVATE_KEY is already set, leaving it alone"
+if dotenvx get MCP_OIDC_PRIVATE_KEY -f .env.production >/dev/null 2>&1; then
+    note "MCP_OIDC_PRIVATE_KEY is already set, leaving it alone"
 else
-    dotenvx set RELAY_MCP_OIDC_PRIVATE_KEY "$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048)" -f .env.production
+    dotenvx set MCP_OIDC_PRIVATE_KEY "$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048)" -f .env.production
 fi
 
 gh secret set DOTENV_PRIVATE_KEY_PRODUCTION --body "$(dotenvx get DOTENV_PRIVATE_KEY_PRODUCTION -f .env.keys)"
