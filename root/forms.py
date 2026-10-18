@@ -1,8 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from abstract.widgets import BasecoatSelect, BasecoatSelectMultiple
-
 
 class DebugForm(forms.Form):
     """Form exposing every common input kind and its validation errors."""
@@ -29,7 +27,6 @@ class DebugForm(forms.Form):
     boolean = forms.BooleanField(required=False, help_text=_("A boolean flag."))
     single_choice = forms.ChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
-        widget=BasecoatSelect,
         help_text=_("Choose one option."),
     )
     radio_choice = forms.ChoiceField(
@@ -44,7 +41,6 @@ class DebugForm(forms.Form):
     )
     multiple_select = forms.MultipleChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
-        widget=BasecoatSelectMultiple,
         help_text=_("Choose several options from a list."),
     )
     textarea = forms.CharField(widget=forms.Textarea, help_text=_("Multiline text."))
