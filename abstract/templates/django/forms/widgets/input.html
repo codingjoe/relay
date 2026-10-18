@@ -1,6 +1,7 @@
 {% load abstract %}
 {% if widget.type == "email" or widget.type == "url" or widget.type == "search" or widget.type == "tel" or widget.type == "date" or widget.type == "datetime-local" or widget.type == "time" or widget.type == "number" or widget.type == "color" or widget.type == "password" %}
-  <div class="input-group border rounded-md">
+  <div class="input-group">
+    {% include "django/forms/widgets/input_classless.html" %}
     {% if widget.type == "email" %}<span data-align="start" aria-hidden="true">{% tabler name="at" %}</span>{% endif %}
     {% if widget.type == "url" %}<span data-align="start" aria-hidden="true">{% tabler name="link" %}</span>{% endif %}
     {% if widget.type == "search" %}<span data-align="start" aria-hidden="true">{% tabler name="search" %}</span>{% endif %}
@@ -11,7 +12,6 @@
     {% if widget.type == "number" %}<span data-align="start" aria-hidden="true">{% tabler name="hash" %}</span>{% endif %}
     {% if widget.type == "color" %}<span data-align="start" aria-hidden="true">{% tabler name="palette" %}</span>{% endif %}
     {% if widget.type == "password" %}<span data-align="start" aria-hidden="true">{% tabler name="lock" %}</span>{% endif %}
-    {% include "django/forms/widgets/input_classless.html" %}
   </div>
 {% else %}
   {% include "django/forms/widgets/input_core.html" %}
