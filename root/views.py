@@ -1,8 +1,16 @@
 from django.conf import settings
+from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import PUBLIC_PAGE_CACHE, BreadcrumbViewMixin, CacheControlMixin
+from abstract.views import (
+    PUBLIC_PAGE_CACHE,
+    BreadcrumbViewMixin,
+    CacheControlMixin,
+    NoStoreCacheMixin,
+)
+
+from .forms import DebugForm
 
 # Wordmarks of companies that back relay, with owner-attested endorsement.
 # Optional keys: "url" (endorser link) and "logo" (static image path).
@@ -66,3 +74,21 @@ class OpenSourceView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateVie
     title = _("the open-source pledge")
     parent = "home"
     cache_control = PUBLIC_PAGE_CACHE
+
+
+class DebugFormView(NoStoreCacheMixin, BreadcrumbViewMixin, generic.FormView):
+    """Render a debug form exposing every input kind and its validation errors."""
+
+    template_name = "debug_form.html"
+    form_class = DebugForm
+    title = _("debug form")
+    parent = "home"
+    success_url = reverse_lazy("debug-form")
+
+    def get_form(self, form_class=None):
+        if self.request.method == "GET":
+            return DebugForm({})
+        return super().get_form(form_class)
+
+    def form_valid(self, form):
+        return self.form_invalid(form)
