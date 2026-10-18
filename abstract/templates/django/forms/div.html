@@ -8,10 +8,10 @@
   {% else %}
     <div role="group" class="field {{ field.css_classes }}">
       {{ field.as_field_group }}
-      {% if forloop.last %}
-        {% for field in hidden_fields %}{{ field }}{% endfor %}
-      {% endif %}
     </div>
+  {% endif %}
+  {% if forloop.last %}
+    {% for field in hidden_fields %}{{ field }}{% endfor %}
   {% endif %}
 {% endfor %}
 {% if not fields and not errors %}
