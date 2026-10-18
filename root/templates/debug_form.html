@@ -7,7 +7,15 @@
     <form method="post">
       {% csrf_token %}
       <fieldset class="fieldset">
-        {{ form }}
+        {{ form.non_field_errors }}
+        {% for field in form.visible_fields %}
+          <div role="group" class="field" {% if field.errors %}data-invalid{% endif %}>
+            {{ field.label_tag }}
+            {{ field }}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+        {{ form.hidden_fields }}
       </fieldset>
       <div class="flex gap-2 mt-6">
         <button type="submit" class="btn">{% translate "submit" %}</button>

@@ -42,6 +42,12 @@ class DebugForm(forms.Form):
     slug = forms.SlugField()
     ip_address = forms.GenericIPAddressField()
 
+    def full_clean(self):
+        super().full_clean()
+        for name in self.errors:
+            if name in self.fields:
+                self.fields[name].widget.attrs["aria-invalid"] = "true"
+
     def clean(self):
         cleaned_data = super().clean()
         self.add_error(None, "Form-level error.")
