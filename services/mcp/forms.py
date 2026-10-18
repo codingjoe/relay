@@ -3,6 +3,7 @@ import typing
 from allauth.idp.oidc.adapter import get_adapter
 from allauth.idp.oidc.forms import AuthorizationForm
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 
 class ConsentAuthorizationForm(AuthorizationForm):
@@ -40,6 +41,6 @@ class ConsentAuthorizationForm(AuthorizationForm):
             if cleaned_data.get(field_name)
         ]
         if not selected:
-            raise forms.ValidationError("Select at least one permission.")
+            raise forms.ValidationError(_("Select at least one permission."))
         cleaned_data["scopes"] = selected
         return cleaned_data

@@ -32,7 +32,6 @@ class OIDCAdapter(DefaultOIDCAdapter):
         return {**DefaultOIDCAdapter.scope_display, **scopes.display()}
 
     def populate_server_metadata(self, data: dict[str, str | list[str]]) -> None:
-        """Advertise registered scopes so clients request them on registration."""
         data["scopes_supported"] = list(self.scope_display)
 
     def validate_client_registration(
@@ -44,7 +43,6 @@ class OIDCAdapter(DefaultOIDCAdapter):
         bearer_token: str | None,
         **kwargs: typing.Any,
     ) -> None:
-        """Register every advertised scope, not only the requested ones."""
         super().validate_client_registration(
             client=client,
             client_metadata=client_metadata,
@@ -56,13 +54,6 @@ class OIDCAdapter(DefaultOIDCAdapter):
         client.set_scopes(sorted({*client.get_scopes(), *scopes.supported()}))
 
     def get_issuer(self) -> str:
-        """
-        Return the origin minted into every MCP access token.
-
-        `MCP_OIDC_ISSUER_URL` keeps the single trailing slash that
-        allauth strips, so the derived JWKS URL stays fetchable and the
-        verifier matches the claim.
-        """
         return settings.MCP_OIDC_ISSUER_URL
 
 
@@ -88,13 +79,6 @@ class AuthorizationView(BaseAuthorizationView):
     def get(
         self, request: HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> HttpResponse:
-        """
-        Handle the `prompt` parameter before allauth does.
-
-        `prompt=none` is refused: allauth honors it for any scope granted to
-        any token of the user, so a self-registered client could authorize
-        itself with no UI. Anonymous `prompt=login` goes to relay's login page.
-        """
         prompts = request.GET.get("prompt", "").split()
         if "none" in prompts:
             return self.refuse_silent_authorization(request)

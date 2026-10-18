@@ -125,7 +125,6 @@ class WebhookEvent(MessageEvent):
 
     @classmethod
     def from_message(cls, message=None, *, is_test=False):
-        """Build a webhook event payload from a stored message (or a test ping)."""
         if message is None:
             return cls(
                 type="email.test",
