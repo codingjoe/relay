@@ -138,13 +138,15 @@
   grid-column: 1 / -1;
 }
 
-/* Basecoat does not normalize the line height of date and time inputs
-   when they are wrapped in an input group, so they render shorter than
-   their text siblings. */
+/* Basecoat does not normalize the height and vertical rhythm of date and time
+   inputs when they are wrapped in an input group, so they render shorter
+   and misaligned next to their siblings' icons. */
 .field .input-group > input[type="date"],
 .field .input-group > input[type="datetime-local"],
 .field .input-group > input[type="time"],
 .field .input-group > input[type="month"],
 .field .input-group > input[type="week"] {
+  min-height: calc(var(--spacing) * 10);
+  padding-block: calc(var(--spacing) * 2);
   line-height: 1.5;
 }
