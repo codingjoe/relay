@@ -1,5 +1,7 @@
 from django import forms
 
+from abstract.widgets import BasecoatSelect, BasecoatSelectMultiple
+
 
 class DebugForm(forms.Form):
     """Form exposing every common input kind and its validation errors."""
@@ -18,7 +20,8 @@ class DebugForm(forms.Form):
     time = forms.TimeField(widget=forms.TimeInput(attrs={"type": "time"}))
     boolean = forms.BooleanField(required=False)
     single_choice = forms.ChoiceField(
-        choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")]
+        choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
+        widget=BasecoatSelect,
     )
     radio_choice = forms.ChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
@@ -30,7 +33,7 @@ class DebugForm(forms.Form):
     )
     multiple_select = forms.MultipleChoiceField(
         choices=[("a", "Alpha"), ("b", "Beta"), ("c", "Gamma")],
-        widget=forms.SelectMultiple,
+        widget=BasecoatSelectMultiple,
     )
     textarea = forms.CharField(widget=forms.Textarea)
     file = forms.FileField(required=False)
