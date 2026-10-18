@@ -9,6 +9,7 @@ from django.core import mail
 
 from abstract.mailauth import Alignment, AuthResult, Disposition
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.mta.handlers import (
     MXHandler,
     is_fbl_report,
@@ -119,6 +120,31 @@ class TestProcessIncomingMessagePostmaster:
         message = await IncomingMessage.objects.aget(domain=domain)
         assert result == "250 OK"
         assert message.status == IncomingMessage.Status.QUARANTINED
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_postmaster__message_creation_failure__does_not_mask_integrity_error(
+        self, org
+    ):
+        """A storage failure propagates instead of an IntegrityError."""
+        domain = Domain.objects.create(name="example.com", org=org)
+        with (
+            patch(
+                "services.email.mta.models.IncomingMessage.objects.create",
+                side_effect=RuntimeError("storage unavailable"),
+            ),
+            pytest.raises(RuntimeError, match="storage unavailable"),
+        ):
+            await process_incoming_message(
+                "external@example.org",
+                "postmaster@example.com",
+                make_raw_email(),
+                {"ssl_object": None},
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
+                "",
+            )
+        assert await Transmission.objects.acount() == 0
 
 
 class TestHandleRcpt:
