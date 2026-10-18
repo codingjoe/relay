@@ -1,4 +1,4 @@
-{% load static %}
+{% load static abstract %}
 <div
   id="{{ widget.attrs.id }}"
   class="select w-full"
@@ -13,9 +13,7 @@
     class="w-full"
   >
     <span class="truncate"></span>
-    <svg class="tabler size-4" aria-hidden="true">
-      <use href="{% static 'img/tabler-icons/tabler-sprite.svg' %}#tabler-chevron-down" />
-    </svg>
+    {% tabler name="chevron-down" %}
   </button>
   <div data-popover aria-hidden="true">
     <div
