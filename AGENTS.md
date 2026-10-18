@@ -99,11 +99,6 @@ one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
   carry; do not invent new ones. Feature requests keep `enhancement`, and
   Dependabot's own labels stay spelled the way the bot writes them. Each label's
   description on GitHub says what it means.
-- **`root/views.py` must not import models from other first-party apps.**
-  Cross-app views belong in their corresponding app.
-- **`Model.save()` must include `update_fields=`** to avoid race conditions.
-- **No private functions** (underscore prefix). This project is not for
-  redistribution.
 - **Follow `CONVENTIONS.md`** for all coding patterns (URLs, PKs, fields,
   control flow, imports, naming).
 

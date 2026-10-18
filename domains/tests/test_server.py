@@ -10,7 +10,7 @@ from dnslib.dns import QTYPE, DNSError
 from accounts.models import Organization
 from domains.models import Domain
 from domains.resolver import DNSResolver
-from kms import keys as kms_keys
+from kms import keys
 from kms.models import SigningKey
 
 
@@ -69,7 +69,7 @@ class TestResolve:
 
 def make_domain_with_dkim_key(algorithm):
     """Create an unsaved Domain with a single DKIM signing key."""
-    pair = kms_keys.generate(algorithm)
+    pair = keys.generate(algorithm)
     key = SigningKey(
         algorithm=algorithm,
         encrypted_private_key=pair.ciphertext,
