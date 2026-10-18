@@ -1,4 +1,15 @@
-{% if field.use_fieldset %}
+{% if field.field.widget.input_type == "checkbox" %}
+  <div role="group" class="field" data-orientation="horizontal">
+    {{ field }}
+    <section>
+      {% if field.label %}<label for="{{ field.id_for_label }}" class="font-normal">{{ field.label }}</label>{% endif %}
+      {% if field.help_text %}<p {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}>
+          {{ field.help_text|safe }}
+        </p>{% endif %}
+    </section>
+  </div>
+  {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
+{% elif field.use_fieldset %}
   <fieldset class="fieldset" {% if field.aria_describedby %}aria-describedby="{{ field.aria_describedby }}"{% endif %}>
     {% if field.label %}<legend data-variant="label">{{ field.label }}</legend>{% endif %}
     {% if field.help_text %}<p {% if field.auto_id %}id="{{ field.auto_id }}_helptext"{% endif %}>
