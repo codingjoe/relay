@@ -1,7 +1,3 @@
-{% load i18n %}{% if errors %}<fieldset
-    class="fieldset"
-    {% if errors.field_id %}id="{{ errors.field_id }}_error"{% endif %}
-  >
-    <legend role="alert">{% translate "error"|capfirst %}</legend>
+{% load i18n %}{% if errors %}<div class="field">
     {% for error in errors %}<p role="alert">{{ error }}</p>{% endfor %}
-  </fieldset>{% endif %}
+  </div>{% endif %}
