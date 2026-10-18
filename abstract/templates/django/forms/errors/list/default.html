@@ -1,0 +1,3 @@
+{% if errors %}<fieldset class="fieldset" {% if errors.field_id %}id="{{ errors.field_id }}_error"{% endif %}>
+    {% for error in errors %}<p role="alert">{{ error }}</p>{% endfor %}
+  </fieldset>{% endif %}
