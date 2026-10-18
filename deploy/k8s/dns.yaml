@@ -21,7 +21,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: dnsdist
-          image: powerdns/dnsdist-21:2.1.2
+          image: powerdns/dnsdist-21:2.1.3
           securityContext:
             # Root, like caddy and the mail servers. A non-root user cannot use
             # an added capability: the runtime puts it in the bounding set but
