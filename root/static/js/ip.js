@@ -1,7 +1,7 @@
 import { LitElement, html } from "lit";
 
 const cache = new Map();
-const ENDPOINT = "https://ipapi.co/";
+const ENDPOINT = "https://ipwho.is/";
 
 /** Show the network behind an address, with an optional map. */
 export class NetworkLocation extends LitElement {
@@ -82,10 +82,13 @@ export class NetworkLocation extends LitElement {
     this.loading = true;
     this.error = false;
     try {
-      const response = await fetch(`${ENDPOINT}${encodeURIComponent(address)}/json/`);
+      const response = await fetch(`${ENDPOINT}${encodeURIComponent(address)}`, {
+        referrerPolicy: "no-referrer",
+        signal: AbortSignal.timeout(8000),
+      });
       const data = await response.json();
-      if (data.error) {
-        throw new Error(data.reason || "lookup failed");
+      if (!data.success) {
+        throw new Error(data.message || "lookup failed");
       }
       cache.set(address, data);
       if (this.address === address) {
@@ -104,13 +107,13 @@ export class NetworkLocation extends LitElement {
   }
 
   get location() {
-    return [
-      this.details?.city,
-      this.details?.region,
-      this.details?.country_name ?? this.details?.country,
-    ]
+    return [this.details?.city, this.details?.region, this.details?.country]
       .filter(Boolean)
       .join(", ");
+  }
+
+  get network() {
+    return this.details?.connection?.org || this.details?.connection?.isp;
   }
 
   renderMap() {
@@ -176,10 +179,8 @@ export class NetworkLocation extends LitElement {
             : ""
         }
         ${
-          this.details.org || this.details.isp
-            ? html`<span class="badge" data-variant="secondary"
-                >${this.details.org || this.details.isp}</span
-              >`
+          this.network
+            ? html`<span class="badge" data-variant="secondary">${this.network}</span>`
             : ""
         }
       </div>
@@ -203,11 +204,9 @@ export class NetworkLocation extends LitElement {
           <h3><code>${this.address}</code></h3>
           ${this.location ? html`<p>${this.location}</p>` : ""}
           ${
-            this.details.org || this.details.isp
+            this.network
               ? html`<div class="card-action">
-                  <span class="badge" data-variant="secondary"
-                    >${this.details.org || this.details.isp}</span
-                  >
+                  <span class="badge" data-variant="secondary">${this.network}</span>
                 </div>`
               : ""
           }

@@ -36,7 +36,6 @@ class LocationMap extends HTMLElement {
         style: dark ? DARK_STYLE : LIGHT_STYLE,
         center: [longitude, latitude],
         zoom,
-        minZoom: -2,
         interactive: false,
         attributionControl: true,
       });

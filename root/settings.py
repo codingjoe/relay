@@ -112,7 +112,7 @@ SECURE_CSP = {
     "img-src": [CSP.SELF, "data:", "https://www.gravatar.com"],
     "font-src": [CSP.SELF],
     "media-src": [CSP.SELF],
-    "connect-src": [CSP.SELF, "https://ipapi.co", "https://tiles.openfreemap.org"],
+    "connect-src": [CSP.SELF, "https://ipwho.is", "https://tiles.openfreemap.org"],
     "worker-src": [CSP.SELF],
     "frame-src": [CSP.SELF],
     "form-action": [
