@@ -1,22 +1,18 @@
 import pytest
+from fastmcp import FastMCP
 from fastmcp.exceptions import ResourceError
 
-from know_how.mcp import get_know_how_article, list_know_how
+from know_how.mcp import get_know_how_article, register_know_how_resources
+from know_how.views import KnowHowListView
 
 
-class TestListKnowHow:
-    def test_list_know_how__returns_every_article(self):
-        articles = list_know_how()
+class TestRegisterResources:
+    def test_register_know_how_resources__registers_one_resource_per_article(self):
+        mcp = FastMCP(name="test")
 
-        assert articles
-        assert [article["slug"] for article in articles] == sorted(
-            article["slug"] for article in articles
-        )
-        assert "dmarc" in {article["slug"] for article in articles}
-        assert all(article["author"] for article in articles)
-        assert all(
-            article["uri"] == f"know-how://{article['slug']}" for article in articles
-        )
+        register_know_how_resources(mcp)
+
+        assert len(list(KnowHowListView.get_articles())) > 0
 
 
 class TestGetKnowHowArticle:

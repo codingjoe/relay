@@ -1,10 +1,9 @@
 """Expose the product documentation to MCP clients."""
 
 from django.http import Http404
-from django.urls import reverse
+from fastmcp import FastMCP
 from fastmcp.exceptions import ResourceError
 from fastmcp.resources import resource
-from fastmcp.tools import tool
 
 from abstract.mcp import render_markdown_template
 
@@ -18,27 +17,6 @@ class DocsArticleError(ResourceError):
         super().__init__(f"Documentation article not found: {slug}")
 
 
-@tool
-def list_docs() -> list[dict[str, object]]:
-    """
-    Return the product documentation index.
-
-    Each entry names its slug and the URI to read the article body.
-    """
-    return [
-        {
-            "slug": slug,
-            "title": metadata["name"],
-            "description": metadata.get("description", ""),
-            "author": metadata.get("author", ""),
-            "uri": f"docs://{slug}",
-            "url": reverse("docs:detail", args=[slug]),
-        }
-        for slug, metadata in DocsListView.get_articles()
-    ]
-
-
-@resource("docs://{slug}", mime_type="text/markdown")
 def get_docs_article(slug: str) -> str:
     """
     Return one product documentation article as Markdown.
@@ -52,3 +30,26 @@ def get_docs_article(slug: str) -> str:
     except Http404 as error:
         raise DocsArticleError(slug) from error
     return render_markdown_template(f"{slug}.md")
+
+
+def docs_resource(uri: str, slug: str, metadata: dict[str, object]):
+    """Build a resource object for one documentation article."""
+
+    @resource(
+        uri,
+        mime_type="text/markdown",
+        name=f"docs-{slug}",
+        title=metadata["name"],
+        description=metadata.get("description", ""),
+    )
+    def reader() -> str:
+        return get_docs_article(slug)
+
+    return reader
+
+
+def register_docs_resources(mcp: FastMCP) -> None:
+    """Register one resource for each documentation article."""
+    for slug, metadata in DocsListView.get_articles():
+        uri = f"docs://{slug}"
+        mcp.add_resource(docs_resource(uri=uri, slug=slug, metadata=metadata))

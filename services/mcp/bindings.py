@@ -2,8 +2,8 @@
 
 from fastmcp import FastMCP
 
-from docs.mcp import get_docs_article, list_docs
-from know_how.mcp import get_know_how_article, list_know_how
+from docs.mcp import register_docs_resources
+from know_how.mcp import register_know_how_resources
 from services.email.message.mcp import get_message, list_messages
 from services.email.msa.mcp import send_message
 
@@ -14,9 +14,7 @@ def bind(mcp: FastMCP) -> None:
     """Register every component offered to MCP clients."""
     mcp.add_tool(list_messages)
     mcp.add_tool(send_message)
-    mcp.add_tool(list_docs)
-    mcp.add_tool(list_know_how)
     mcp.add_resource(get_message)
-    # Content may be read one article at a time.
-    mcp.add_resource(get_docs_article)
-    mcp.add_resource(get_know_how_article)
+    # Content is exposed as one resource per article so clients enumerate them.
+    register_docs_resources(mcp)
+    register_know_how_resources(mcp)

@@ -1,10 +1,9 @@
 """Expose the know-how articles to MCP clients."""
 
 from django.http import Http404
-from django.urls import reverse
+from fastmcp import FastMCP
 from fastmcp.exceptions import ResourceError
 from fastmcp.resources import resource
-from fastmcp.tools import tool
 
 from abstract.mcp import render_markdown_template
 
@@ -18,27 +17,6 @@ class KnowHowArticleError(ResourceError):
         super().__init__(f"Know-how article not found: {slug}")
 
 
-@tool
-def list_know_how() -> list[dict[str, object]]:
-    """
-    Return the know-how index.
-
-    Each entry names its slug and the URI to read the article body.
-    """
-    return [
-        {
-            "slug": slug,
-            "title": metadata["name"],
-            "description": metadata.get("description", ""),
-            "author": metadata.get("author", ""),
-            "uri": f"know-how://{slug}",
-            "url": reverse("know_how:detail", args=[slug]),
-        }
-        for slug, metadata in KnowHowListView.get_articles()
-    ]
-
-
-@resource("know-how://{slug}", mime_type="text/markdown")
 def get_know_how_article(slug: str) -> str:
     """
     Return one know-how article as Markdown.
@@ -52,3 +30,26 @@ def get_know_how_article(slug: str) -> str:
     except Http404 as error:
         raise KnowHowArticleError(slug) from error
     return f"{render_markdown_template(f'{slug}.md')}\n\n---\n\n{LICENSE_MARKDOWN}"
+
+
+def register_know_how_resources(mcp: FastMCP) -> None:
+    """Register one resource for each know-how article."""
+    for slug, metadata in KnowHowListView.get_articles():
+        uri = f"know-how://{slug}"
+        mcp.add_resource(know_how_resource(uri=uri, slug=slug, metadata=metadata))
+
+
+def know_how_resource(uri: str, slug: str, metadata: dict[str, object]):
+    """Build a resource object for one know-how article."""
+
+    @resource(
+        uri,
+        mime_type="text/markdown",
+        name=f"know-how-{slug}",
+        title=metadata["name"],
+        description=metadata.get("description", ""),
+    )
+    def reader() -> str:
+        return get_know_how_article(slug)
+
+    return reader

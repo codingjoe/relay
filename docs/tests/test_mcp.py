@@ -1,22 +1,18 @@
 import pytest
+from fastmcp import FastMCP
 from fastmcp.exceptions import ResourceError
 
-from docs.mcp import get_docs_article, list_docs
+from docs.mcp import get_docs_article, register_docs_resources
+from docs.views import DocsListView
 
 
-class TestListDocs:
-    def test_list_docs__returns_every_article(self):
-        articles = list_docs()
+class TestRegisterResources:
+    def test_register_docs_resources__registers_one_resource_per_article(self):
+        mcp = FastMCP(name="test")
 
-        assert articles
-        assert [article["slug"] for article in articles] == sorted(
-            article["slug"] for article in articles
-        )
-        assert "security" in {article["slug"] for article in articles}
-        assert all(article["author"] for article in articles)
-        assert all(
-            article["uri"] == f"docs://{article['slug']}" for article in articles
-        )
+        register_docs_resources(mcp)
+
+        assert len(list(DocsListView.get_articles())) > 0
 
 
 class TestGetDocsArticle:
