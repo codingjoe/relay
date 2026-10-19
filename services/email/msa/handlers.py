@@ -1,7 +1,6 @@
 """Store and submit outgoing mail."""
 
 import base64
-import datetime
 import logging
 from email import message_from_bytes
 
@@ -24,31 +23,6 @@ from .models import MsaCredential, OutgoingMessage, SuppressionEntry
 from .tasks import check_outgoing_spam, deliver_message
 
 logger = logging.getLogger(__name__)
-
-
-class SubmissionRejectedError(ValueError):
-    """Signal a submission relay refuses before it stores anything."""
-
-
-class SenderDomainNotRegisteredError(SubmissionRejectedError):
-    """Signal a sender domain that does not belong to the organization."""
-
-    def __init__(self) -> None:
-        super().__init__("550 Sender domain not registered")
-
-
-class BillingInactiveError(SubmissionRejectedError):
-    """Signal a recipient outside the organization without active billing."""
-
-    def __init__(self) -> None:
-        super().__init__("550 Recipient not allowed without active billing")
-
-
-class OrganizationSuspendedError(SubmissionRejectedError):
-    """Signal an organization that cannot send due to its reputation."""
-
-    def __init__(self) -> None:
-        super().__init__("550 Account suspended due to sender reputation")
 
 
 def add_feedback_id(raw_bytes: bytes, org: Organization, domain: Domain) -> bytes:
@@ -290,77 +264,6 @@ def submit_relay_message(
     )
 
 
-def submit_outgoing_message(
-    *,
-    org: Organization,
-    mail_from: str,
-    rcpt_to: str,
-    raw_bytes: bytes,
-    credential: MsaCredential | None,
-    ssl: bool | dict | None,
-    client_ip: str,
-    started_at: datetime.datetime,
-) -> OutgoingMessage:
-    """
-    Validate and store one outgoing submission.
-
-    Raise `SubmissionRejectedError` when relay refuses the message before
-    storing it.
-    """
-    if "@" not in mail_from:
-        raise SenderDomainNotRegisteredError
-
-    try:
-        from_domain = canonicalize_domain_name(mail_from.rsplit("@", 1)[1])
-        domain = Domain.objects.get(name=from_domain, org=org)
-        resolved_domain = Domain.objects.root_for(
-            from_domain,
-            include_managed=True,
-        )
-    except Domain.DoesNotExist, ValidationError:
-        raise SenderDomainNotRegisteredError
-
-    if (
-        resolved_domain.pk != domain.pk
-        or resolved_domain.org_id != domain.org_id
-        or resolved_domain.name != domain.name
-    ):
-        raise SenderDomainNotRegisteredError
-
-    if SuppressionEntry.objects.is_suppressed(org, rcpt_to):
-        # Suppressed mail never leaves relay, so relay mints no Feedback-ID
-        # and the stored copy carries none.
-        raw_bytes = remove_feedback_id_headers(raw_bytes)
-        status = OutgoingMessage.Status.SUPPRESSED
-    elif (
-        not org.billing_is_active
-        and not org.members.filter(email__iexact=rcpt_to).exists()
-    ):
-        raise BillingInactiveError
-    elif org.suspended_at:
-        raise OrganizationSuspendedError
-    else:
-        raw_bytes = add_feedback_id(raw_bytes, org, domain)
-        raw_bytes = sign_message(raw_bytes, domain)
-        status = OutgoingMessage.Status.PENDING
-
-    if status == OutgoingMessage.Status.SUPPRESSED:
-        logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
-
-    return store_outgoing_message(
-        org=org,
-        rcpt_to=rcpt_to,
-        mail_from=mail_from,
-        domain=domain,
-        credential=credential,
-        status=status,
-        ssl=ssl,
-        client_ip=client_ip,
-        raw_bytes=raw_bytes,
-        started_at=started_at,
-    )
-
-
 @sync_to_async
 @request_scoped
 def process_message(
@@ -369,19 +272,72 @@ def process_message(
     """
     Store a submitted outgoing message and enqueue its delivery.
 
-    Return the SMTP answer relay sends back to the client.
+    A suppressed recipient is stored without delivery, even if the
+    organization is suspended. Otherwise a suspended organization is refused
+    before relay stores anything.
+    A submission with a sandbox credential is stamped and signed like any
+    other, and its delivery walk stops before the SMTP session.
     """
+    if "@" not in mail_from:
+        return "550 Sender domain not registered"
+
     try:
-        submit_outgoing_message(
+        from_domain = canonicalize_domain_name(mail_from.rsplit("@", 1)[1])
+        domain = Domain.objects.get(name=from_domain, org=credential.org)
+        resolved_domain = Domain.objects.root_for(
+            from_domain,
+            include_managed=True,
+        )
+    except Domain.DoesNotExist, ValidationError:
+        return "550 Sender domain not registered"
+
+    if (
+        resolved_domain.pk != domain.pk
+        or resolved_domain.org_id != domain.org_id
+        or resolved_domain.name != domain.name
+    ):
+        return "550 Sender domain not registered"
+
+    if SuppressionEntry.objects.is_suppressed(credential.org, rcpt_to):
+        # Suppressed mail never leaves relay, so relay mints no Feedback-ID
+        # and the stored copy carries none.
+        raw_bytes = remove_feedback_id_headers(raw_bytes)
+        store_outgoing_message(
             org=credential.org,
-            mail_from=mail_from,
             rcpt_to=rcpt_to,
-            raw_bytes=raw_bytes,
+            mail_from=mail_from,
+            domain=domain,
             credential=credential,
+            status=OutgoingMessage.Status.SUPPRESSED,
             ssl=ssl,
             client_ip=client_ip,
+            raw_bytes=raw_bytes,
             started_at=started_at,
         )
-    except SubmissionRejectedError as error:
-        return str(error)
+        logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
+        return "250 OK"
+
+    if (
+        not credential.org.billing_is_active
+        and not credential.org.members.filter(email__iexact=rcpt_to).exists()
+    ):
+        return "550 Recipient not allowed without active billing"
+
+    if credential.org.suspended_at:
+        return "550 Account suspended due to sender reputation"
+
+    raw_bytes = add_feedback_id(raw_bytes, credential.org, domain)
+    raw_bytes = sign_message(raw_bytes, domain)
+    store_outgoing_message(
+        org=credential.org,
+        rcpt_to=rcpt_to,
+        mail_from=mail_from,
+        domain=domain,
+        credential=credential,
+        status=OutgoingMessage.Status.PENDING,
+        ssl=ssl,
+        client_ip=client_ip,
+        raw_bytes=raw_bytes,
+        started_at=started_at,
+    )
     return "250 OK"

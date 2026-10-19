@@ -290,17 +290,22 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "MCP depends only on message, msa, docs, know_how and their shared dependencies"
+name = "MCP depends only on message, docs, know_how, accounts, kms, tls and abstract"
 type = "forbidden"
 source_modules = [ "services.mcp" ]
 forbidden_modules = [
   "alternative_to",
+  "domains",
   "legal",
   "root",
   "services.email.dashboard",
   "services.email.dmarc",
+  "services.email.msa",
   "services.email.mta",
+  "services.email.mta_sts",
+  "services.email.proxy_protocol",
   "services.email.reputation",
+  "services.email.spam",
   "well_known",
 ]
 
