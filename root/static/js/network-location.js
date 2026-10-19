@@ -40,7 +40,7 @@ export class NetworkLocation extends LitElement {
         this.visible = true;
         if (this.map) {
           try {
-            await import("#js/map.js");
+            await import("#js/location-map.js");
             this.mapReady = true;
           } catch {
             this.map = false;
