@@ -3,9 +3,10 @@ import re
 
 from django.urls import reverse
 
-from alternative_to.views import ALTERNATIVE_TO_DIR
-from docs.views import DOCS_DIR, SLUGS, DocsDetailView, DocsListView
-from know_how.views import KNOW_HOW_DIR
+from alternative_to.content import ALTERNATIVE_TO_DIR
+from docs.content import DOCS_DIR, SLUGS, DocsContent
+from docs.views import DocsDetailView
+from know_how.content import KNOW_HOW_DIR
 
 LEGAL_SLUGS = frozenset({"imprint", "terms", "privacy"})
 MERMAID_TAG = re.compile(r'src="[^"]*abstract/mermaid-[^"]+\.js"')
@@ -17,7 +18,7 @@ class TestSlugUniqueness:
         The template loader resolves markdown by filename across all DIRS.
 
         Markdown template DIRS are flat, so a slug that exists in two apps
-        renders the wrong file. See abstract.views.MarkdownArticleMixin.
+        renders the wrong file. See abstract.content.MarkdownContent.
         """
         other_slugs = (
             {p.stem for p in pathlib.Path(ALTERNATIVE_TO_DIR).glob("*.md")}
@@ -30,13 +31,13 @@ class TestSlugUniqueness:
 
 class TestListArticles:
     def test_list_articles__returns_sorted_articles(self):
-        slugs = [slug for slug, _ in DocsListView.get_articles()]
+        slugs = [slug for slug, _ in DocsContent.get_articles()]
         assert slugs == sorted(slugs)
         assert "security" in slugs
         assert "deliverability" in slugs
 
     def test_list_articles__each_has_title_and_description(self):
-        for slug, metadata in DocsListView.get_articles():
+        for slug, metadata in DocsContent.get_articles():
             assert metadata["name"]
             assert metadata.get("description")
             assert metadata["author"]

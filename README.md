@@ -436,7 +436,6 @@ graph BT
  mcp --> docs
  mcp --> know_how
  mcp --> message
- mcp --> msa
  subgraph voip
  direction BT
  end

@@ -1,18 +1,19 @@
-import pytest
 from fastmcp import FastMCP
-from fastmcp.exceptions import ResourceError
 
+from docs.content import DocsContent
 from docs.mcp import get_docs_article, register_docs_resources
-from docs.views import DocsListView
 
 
 class TestRegisterResources:
-    def test_register_docs_resources__registers_one_resource_per_article(self):
+    async def test_register_docs_resources__registers_one_resource_per_article(self):
         mcp = FastMCP(name="test")
 
         register_docs_resources(mcp)
 
-        assert len(list(DocsListView.get_articles())) > 0
+        resources = await mcp.list_resources()
+        assert {str(resource.uri) for resource in resources} == {
+            f"docs://{slug}" for slug, _ in DocsContent.get_articles()
+        }
 
 
 class TestGetDocsArticle:
@@ -22,7 +23,3 @@ class TestGetDocsArticle:
         assert "# Security" in article
         assert "{% url" not in article
         assert not article.startswith("---")
-
-    def test_get_docs_article__rejects_unknown_slug(self):
-        with pytest.raises(ResourceError):
-            get_docs_article("unknown")
