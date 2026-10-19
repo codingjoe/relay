@@ -5,20 +5,28 @@ repo root.
 
 ## Before you start
 
-- [ ] Install `talosctl` (`TALOS_VERSION`, `v1.14.2`).
-- [ ] Install `hcloud-upload-image` (`v1.5.0`).
+- [ ] Install `talosctl` (`TALOS_VERSION`, `v1.14.2`):
+  ```bash
+  brew tap siderolabs/tap
+  brew install siderolabs/tap/talosctl@1.14
+  brew link --force siderolabs/tap/talosctl@1.14
+  ```
+- [ ] Install `hcloud-upload-image` (`v1.5.0`):
+  ```bash
+  go install github.com/apricote/hcloud-upload-image@v1.5.0
+  ```
 - [ ] Create the Hetzner context:
   ```bash
   HCLOUD_TOKEN="<token>" hcloud context create relay --token-from-env
   export HCLOUD_TOKEN="<token>"
   ```
-- [ ] Restore `.env.keys` in the repo root.
+- [ ] Restore `.env.keys` in the repo root (file is git ignored; get it from backup).
 - [ ] Export Object Storage credentials for the first run:
   ```bash
   export AWS_ACCESS_KEY_ID="<key>"
   export AWS_SECRET_ACCESS_KEY="<secret>"
   ```
-- [ ] Open outbound ports 25 and 465.
+- [ ] Open outbound ports 25 and 465 in the Hetzner Console.
 
 ## Provision
 
