@@ -12,8 +12,12 @@
     data-score="{{ score_label }}"
     data-antivirus="{{ antivirus_label }}"
     data-transcript="{{ transcript_hint }}"
+    data-unavailable='{% translate "location unavailable" %}'
+    data-retry='{% translate "retry"|capfirst %}'
+    data-map='{% translate "map"|capfirst %}'
   >
   </div>
+  {% esm '#js/ip.js' %}
   {{ timeline|json_script:"transmission-timeline" }}
   {% esm '#message/timeline.js' %}
 </article>

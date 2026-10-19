@@ -79,6 +79,11 @@ class Timing(TimeStamped):
         self.save(force_insert=True)
 
     @property
+    def duration(self) -> timezone.timedelta:
+        """Return the elapsed time the timing recorded."""
+        return self.finished_at - self.started_at
+
+    @property
     def label(self) -> str:
         """Return the display name of this timing."""
         raise NotImplementedError
