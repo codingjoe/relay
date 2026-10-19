@@ -136,7 +136,10 @@ check, because the scanner reports how long the scan ran and not when it
 started. Hover a bar to see its duration in milliseconds, its exact start
 and end times, the IP path, and the negotiated TLS settings. The spam check
 bar adds the spam score and the share the malware scan took. Click a bar to
-open the full SMTP transcript.
+open the full SMTP transcript. When the drawer shows a remote peer address,
+it resolves that address to an approximate location and draws a small map.
+The lookup runs in your browser against ipwho.is and the map tiles come from
+OpenFreeMap, so the address never passes through relay's servers.
 
 The same applies for inbound messages: one delivery record per webhook POST
 with the URL, response code, and a response excerpt.

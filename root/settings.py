@@ -112,7 +112,8 @@ SECURE_CSP = {
     "img-src": [CSP.SELF, "data:", "https://www.gravatar.com"],
     "font-src": [CSP.SELF],
     "media-src": [CSP.SELF],
-    "connect-src": [CSP.SELF],
+    "connect-src": [CSP.SELF, "https://ipwho.is", "https://tiles.openfreemap.org"],
+    "worker-src": [CSP.SELF],
     "frame-src": [CSP.SELF],
     "form-action": [
         CSP.SELF,
@@ -341,7 +342,7 @@ AWS_S3_FILE_OVERWRITE = False
 # Files under `public/` are served from the domain root by ServeStatic,
 # e.g. public/favicon.ico is served at /favicon.ico.
 SERVESTATIC_ROOT = BASE_DIR / "public"
-SERVESTATIC_MAX_AGE = 60 * 60 * 24
+SERVESTATIC_MAX_AGE = 0 if DEBUG else 60 * 60 * 24
 
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"

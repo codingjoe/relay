@@ -4,59 +4,91 @@
   {% for transmission in transmissions %}
     <dialog
       id="transcript-{{ transmission.pk }}"
+      aria-labelledby="transcript-title-{{ transmission.pk }}"
       class="drawer"
-      data-side="bottom"
+      data-side="right"
       data-backdrop-close
     >
-      <article>
-        <header>
-          <h2>{% translate "reception"|capfirst %}</h2>
-          <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+      <article class="w-full max-w-lg sm:w-3/4">
+        <header class="flex-row items-start justify-between gap-4">
+          <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <h2 id="transcript-title-{{ transmission.pk }}" class="text-lg font-semibold leading-none tracking-tight">
+              {% translate "reception"|capfirst %}
+            </h2>
+            <p class="m-0 text-sm text-muted-foreground">{% timestamp transmission.created_at %}</p>
+          </div>
+          <button
+            type="button"
+            class="btn shrink-0"
+            data-variant="ghost"
+            data-size="icon-sm"
+            data-dialog-close
+            aria-label='{% translate "close"|capfirst %}'
+          >
+            {% tabler name="x" size="4" %}
+          </button>
         </header>
-        <section class="flex flex-col gap-4">
-          <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
-            <span
-              class="badge"
-              data-size="sm"
-              data-variant="{{ transmission.status_badge_variant }}"
-            >
+        <section class="flex flex-col gap-6 px-4 pb-4">
+          <p class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span class="badge" data-variant="{{ transmission.status_badge_variant }}">
               {{ transmission.get_status_display }}
             </span>
-            {{ transmission.get_tls_mode_display }}
-            {% if transmission.tls_version %}
-              <span>{{ transmission.tls_version }}{% if transmission.tls_cipher %}
-                  · {{ transmission.tls_cipher }}{% endif %}</span>
-            {% endif %}
-          </p>
-          {% if message.receiving_domain %}
-            <p class="m-0 text-sm"><code>{{ message.receiving_domain }}</code></p>
-          {% endif %}
-          {% if transmission.local_ip_address or transmission.remote_ip_address or transmission.remote_host %}
-            <p class="m-0 text-sm text-muted-foreground break-all">
-              {{ transmission.local_ip_address|default:"-" }} →
-              {% if transmission.remote_host %}
-                {{ transmission.remote_host }}{% if transmission.remote_ip_address %}
-                  ({{ transmission.remote_ip_address }}){% endif %}
-              {% else %}
-                {{ transmission.remote_ip_address|default:"-" }}
-              {% endif %}
-            </p>
-          {% endif %}
-          {% if transmission.tls_certificate %}
-            <p class="m-0 text-sm">
+            {% if transmission.tls_certificate %}
               <a
                 class="link"
                 href="{% url 'message:certificate-detail' org.slug transmission.tls_certificate.fingerprint %}"
                 data-tooltip="sha256:{{ transmission.tls_certificate.fingerprint }} · {{ transmission.tls_certificate.subject_alternative_names|default:transmission.tls_certificate.subject }}"
-              >{% translate "view certificate"|capfirst %}</a>
-            </p>
+              >{{ transmission.get_tls_mode_display }}</a>
+            {% else %}
+              <span class="text-muted-foreground">{{ transmission.get_tls_mode_display }}</span>
+            {% endif %}
+            {% if transmission.tls_version %}
+              <span class="font-mono text-xs text-muted-foreground">{{ transmission.tls_version }}</span>
+            {% endif %}
+            {% if transmission.tls_cipher %}
+              <code class="text-xs text-muted-foreground">{{ transmission.tls_cipher }}</code>
+            {% endif %}
+          </p>
+          <dl class="m-0 grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2 text-sm">
+            {% if message.receiving_domain %}
+              <dt class="text-muted-foreground">{% translate "receiving domain"|capfirst %}</dt>
+              <dd class="m-0 break-all"><code>{{ message.receiving_domain }}</code></dd>
+            {% endif %}
+            {% if transmission.remote_host %}
+              <dt class="text-muted-foreground">{% translate "remote host"|capfirst %}</dt>
+              <dd class="m-0 break-all">{{ transmission.remote_host }}</dd>
+            {% endif %}
+            {% if transmission.code is not None %}
+              <dt class="text-muted-foreground">{% translate "SMTP code"|capfirst %}</dt>
+              <dd class="m-0 font-mono">{{ transmission.code }}</dd>
+            {% endif %}
+            {% if transmission.started_at and transmission.finished_at %}
+              <dt class="text-muted-foreground">{% translate "duration"|capfirst %}</dt>
+              <dd class="m-0">{{ transmission.duration|human_duration }}</dd>
+            {% endif %}
+          </dl>
+          {% if transmission.local_ip_address or transmission.remote_ip_address %}
+            <section class="flex flex-col gap-4">
+              <h3 class="m-0 text-sm font-medium">{% translate "route"|capfirst %}</h3>
+              {% if transmission.remote_ip_address %}
+                <div class="flex flex-col gap-1.5">
+                  <span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    {% translate "remote peer"|capfirst %}
+                  </span>
+                  <network-location address="{{ transmission.remote_ip_address }}" map></network-location>
+                </div>
+              {% endif %}
+              {% if transmission.local_ip_address %}
+                <div class="flex flex-col gap-1.5">
+                  <span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    {% translate "relay" %}
+                  </span>
+                  <code class="text-sm font-medium break-all">{{ transmission.local_ip_address }}</code>
+                </div>
+              {% endif %}
+            </section>
           {% endif %}
         </section>
-        <footer>
-          <button type="button" class="btn" data-variant="outline" data-dialog-close>
-            {% translate "close"|capfirst %}
-          </button>
-        </footer>
       </article>
     </dialog>
   {% endfor %}
@@ -64,35 +96,41 @@
     {% if delivery.response_code or delivery.response_body %}
       <dialog
         id="delivery-{{ delivery.pk }}"
+        aria-labelledby="delivery-title-{{ delivery.pk }}"
         class="drawer"
-        data-side="bottom"
+        data-side="right"
         data-backdrop-close
       >
-        <article>
-          <header>
-            <h2>{% translate "delivery to your app"|capfirst %}</h2>
-            <p class="m-0 text-sm text-muted-foreground">{% timestamp delivery.created_at %}</p>
+        <article class="w-full max-w-lg sm:w-3/4">
+          <header class="flex-row items-start justify-between gap-4">
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <h2 id="delivery-title-{{ delivery.pk }}" class="text-lg font-semibold leading-none tracking-tight">
+                {% translate "delivery to your app"|capfirst %}
+              </h2>
+              <p class="m-0 text-sm text-muted-foreground">{% timestamp delivery.created_at %}</p>
+            </div>
+            <button
+              type="button"
+              class="btn shrink-0"
+              data-variant="ghost"
+              data-size="icon-sm"
+              data-dialog-close
+              aria-label='{% translate "close"|capfirst %}'
+            >
+              {% tabler name="x" size="4" %}
+            </button>
           </header>
-          <section class="flex flex-col gap-4">
-            <p class="m-0 flex flex-wrap items-center gap-2 text-sm">
-              <span
-                class="badge"
-                data-size="sm"
-                data-variant="{{ delivery.status_badge_variant }}"
-              >
+          <section class="flex flex-col gap-6 px-4 pb-4">
+            <p class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span class="badge" data-variant="{{ delivery.status_badge_variant }}">
                 {{ delivery.get_status_display }}
               </span>
-              <span>HTTP {{ delivery.response_code|default:"-" }}</span>
+              <span class="font-mono text-xs text-muted-foreground">HTTP {{ delivery.response_code|default:"-" }}</span>
             </p>
             {% if delivery.response_body %}
-              <pre class="m-0 text-sm whitespace-pre-wrap break-words">{{ delivery.response_body }}</pre>
+              <pre class="m-0 rounded-xl bg-muted p-3 font-mono text-xs whitespace-pre-wrap break-words">{{ delivery.response_body }}</pre>
             {% endif %}
           </section>
-          <footer>
-            <button type="button" class="btn" data-variant="outline" data-dialog-close>
-              {% translate "close"|capfirst %}
-            </button>
-          </footer>
         </article>
       </dialog>
     {% endif %}

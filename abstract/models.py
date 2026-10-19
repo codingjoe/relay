@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from django.db import models
@@ -77,6 +78,11 @@ class Timing(TimeStamped):
     def __exit__(self, exc_type, exc_value, traceback):
         self.finished_at = timezone.now()
         self.save(force_insert=True)
+
+    @property
+    def duration(self) -> datetime.timedelta:
+        """Return the elapsed time the timing recorded."""
+        return self.finished_at - self.started_at
 
     @property
     def label(self) -> str:

@@ -4,6 +4,7 @@
     "echarts": "^6.1.0",
     "lit": "^3.3.3",
     "lodash.escape": "^4.0.1",
+    "maplibre-gl": "^6.15.0",
     "mermaid": "^11.17.2",
     "microlighter": "^2.2.0"
   },
@@ -61,13 +62,14 @@
     },
     "esm": {
       "clean": false,
-      "command": "esimport . staticfiles/esm --treeshake",
+      "command": "esimport . staticfiles/esm --treeshake && cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs staticfiles/esm/",
       "files": [
         "package.json",
         "pnpm-lock.yaml",
         "abstract/static/**/*.js",
         "root/static/js/**/*.js",
-        "services/email/message/static/**/*.js"
+        "services/email/message/static/**/*.js",
+        "node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs"
       ],
       "output": [
         "staticfiles/esm/**"

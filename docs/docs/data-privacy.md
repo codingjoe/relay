@@ -29,8 +29,9 @@ Germany:
 | Object storage           | Raw message bodies                     | S3-compatible bucket, behind a proxy that serves signed links |
 | Spam and virus scanning  | Content filter                         | rspamd with ClamAV, cluster-internal                          |
 
-No component of this stack belongs to a provider in a third country. There
-are no third-country data transfers.
+No component of this stack belongs to a provider in a third country. relay's
+servers make no third-country data transfers. Location lookups run in your
+browser, not on relay's servers, and are described under Data flows.
 
 The node's first-boot configuration is stored with Hetzner as the server's user
 data, because that is how the node's operating system receives it. That document
@@ -91,6 +92,11 @@ decision, not a hidden default.
   scope only.
 - **Sending requires the platform** to talk to receiving mail servers and to
   DNS resolvers. Delivery is the product.
+- **IP location lookups happen in your browser**, and only when you open a
+  transmission drawer that carries an IP address. Your browser sends that
+  address to ipwho.is for an approximate location and loads map tiles from
+  OpenFreeMap. relay does not proxy these requests, does not store the
+  result, and does not send message data to either service.
 - **Reports come in** from mailbox providers to the addresses your DMARC
   and TLS-RPT records name. relay parses them for your dashboards.
 
