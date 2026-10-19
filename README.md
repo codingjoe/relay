@@ -331,7 +331,8 @@ Return-Path is.
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
 - **FastMCP**. Model Context Protocol server framework behind the `/mcp`
-  endpoint
+  endpoint, with tools to list mail and resources for the product
+  documentation and know-how articles
 - **django-allauth** with the OIDC identity provider. Authorization server that
   registers MCP clients and issues their access tokens
 - **Talos Linux**. Immutable single-node Kubernetes on Hetzner Cloud,
@@ -432,6 +433,8 @@ graph BT
  mcp
  mcp --> abstract
  mcp --> accounts
+ mcp --> docs
+ mcp --> know_how
  mcp --> message
  subgraph voip
  direction BT

@@ -1,15 +1,13 @@
 import datetime
 from types import SimpleNamespace
 
-import pytest
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from django.test import RequestFactory
 from django.views import generic
 
 from abstract.views import (
     CacheControlMixin,
     ConditionalGetMixin,
-    MarkdownArticleMixin,
     MarkdownView,
     get_release_etag,
 )
@@ -77,51 +75,6 @@ class TestCacheControlMixin:
             cache_control = {"private": True, "max_age": 60}
 
         assert TestView().get_cache_directives() == {"private": True, "max_age": 60}
-
-
-class TestMarkdownArticleMixin:
-    def test_get_article_path__returns_existing_file(self, tmp_path):
-        (tmp_path / "exists.md").write_text("Body.")
-
-        class TestArticleView(MarkdownArticleMixin):
-            docs_dir = tmp_path
-            slugs = frozenset({"exists"})
-
-        assert TestArticleView.get_article_path("exists") == tmp_path / "exists.md"
-
-    def test_get_article_path__stale_slug_raises_404(self, tmp_path):
-        """
-        A slug in the allowlist whose file is gone must 404, not 500.
-
-        The slugs frozenset is a module-level cache. A server that
-        outlives a file rename must degrade to 404.
-        """
-
-        class TestArticleView(MarkdownArticleMixin):
-            docs_dir = tmp_path
-            slugs = frozenset({"renamed"})
-
-        with pytest.raises(Http404):
-            TestArticleView.get_article_path("renamed")
-
-    def test_get_article_path__unknown_slug_raises_404(self, tmp_path):
-        class TestArticleView(MarkdownArticleMixin):
-            docs_dir = tmp_path
-            slugs = frozenset()
-
-        with pytest.raises(Http404):
-            TestArticleView.get_article_path("unknown")
-
-    def test_get_articles__skips_stale_slugs(self, tmp_path):
-        (tmp_path / "exists.md").write_text("---\nname: Exists\n---\nBody.")
-
-        class TestArticleView(MarkdownArticleMixin):
-            docs_dir = tmp_path
-            slugs = frozenset({"exists", "renamed"})
-
-        articles = dict(TestArticleView.get_articles())
-        assert list(articles) == ["exists"]
-        assert articles["exists"]["name"] == "Exists"
 
 
 class TestMarkdownView:

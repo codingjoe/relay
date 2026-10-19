@@ -1,13 +1,12 @@
-import pytest
-from django.http import Http404
 from django.urls import reverse
 
-from alternative_to.views import AlternativeToDetailView, AlternativeToListView
+from alternative_to.content import AlternativeToContent
+from alternative_to.views import AlternativeToDetailView
 
 
 class TestListComparisons:
     def test_list_comparisons__returns_sorted_articles(self):
-        slugs = [slug for slug, _ in AlternativeToListView.get_articles()]
+        slugs = [slug for slug, _ in AlternativeToContent.get_articles()]
         assert slugs == sorted(slugs)
         assert "ses" in slugs
         assert "sendgrid" in slugs
@@ -17,27 +16,17 @@ class TestListComparisons:
         assert "mailchimp" in slugs
 
     def test_list_comparisons__each_has_title(self):
-        for slug, metadata in AlternativeToListView.get_articles():
+        for slug, metadata in AlternativeToContent.get_articles():
             assert metadata["name"]
             assert slug
 
     def test_list_comparisons__includes_description(self):
         ses = next(
             metadata
-            for slug, metadata in AlternativeToListView.get_articles()
+            for slug, metadata in AlternativeToContent.get_articles()
             if slug == "ses"
         )
         assert ses.get("description")
-
-
-class TestComparisonPath:
-    def test_comparison_path__resolves_existing_slug(self):
-        path = AlternativeToDetailView.get_article_path("ses")
-        assert path.exists()
-
-    def test_comparison_path__raises_404_for_missing_slug(self):
-        with pytest.raises(Http404):
-            AlternativeToDetailView.get_article_path("nonexistent")
 
 
 class TestAlternativeToListView:

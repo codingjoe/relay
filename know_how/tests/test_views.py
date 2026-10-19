@@ -1,25 +1,26 @@
 import frontmatter
 from django.urls import reverse
 
-from know_how.views import KnowHowDetailView, KnowHowListView
+from know_how.content import KnowHowContent
+from know_how.views import KnowHowDetailView
 
 
 class TestListArticles:
     def test_list_articles__returns_sorted_articles(self):
-        slugs = [slug for slug, _ in KnowHowListView.get_articles()]
+        slugs = [slug for slug, _ in KnowHowContent.get_articles()]
         assert slugs == sorted(slugs)
         assert "dmarc" in slugs
         assert "spf" in slugs
 
     def test_list_articles__each_has_title(self):
-        for slug, metadata in KnowHowListView.get_articles():
+        for slug, metadata in KnowHowContent.get_articles():
             assert metadata["name"]
             assert slug
 
     def test_list_articles__includes_description(self):
         dmarc = next(
             metadata
-            for slug, metadata in KnowHowListView.get_articles()
+            for slug, metadata in KnowHowContent.get_articles()
             if slug == "dmarc"
         )
         assert dmarc.get("description")

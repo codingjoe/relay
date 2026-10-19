@@ -10,9 +10,9 @@ from django.views import generic
 from abstract.scopes import scopes
 from abstract.utils import strip_frontmatter
 from abstract.views import CacheControlMixin
-from alternative_to.views import AlternativeToListView
-from docs.views import DocsListView
-from know_how.views import KnowHowListView
+from alternative_to.content import AlternativeToContent
+from docs.content import DocsContent
+from know_how.content import KnowHowContent
 
 
 class RobotsTxtView(CacheControlMixin, generic.TemplateView):
@@ -45,7 +45,7 @@ class LlmsTxtView(CacheControlMixin, generic.TemplateView):
                     reverse("docs:detail", args=[slug])
                 ),
             }
-            for slug, metadata in DocsListView.get_articles()
+            for slug, metadata in DocsContent.get_articles()
         ]
         articles = [
             {
@@ -54,7 +54,7 @@ class LlmsTxtView(CacheControlMixin, generic.TemplateView):
                     reverse("know_how:detail", args=[slug])
                 ),
             }
-            for slug, metadata in KnowHowListView.get_articles()
+            for slug, metadata in KnowHowContent.get_articles()
         ]
         legal_pages = [
             {"title": label, "url": self.request.build_absolute_uri(reverse(name))}
@@ -71,7 +71,7 @@ class LlmsTxtView(CacheControlMixin, generic.TemplateView):
                     reverse("alternative_to:detail", args=[slug])
                 ),
             }
-            for slug, metadata in AlternativeToListView.get_articles()
+            for slug, metadata in AlternativeToContent.get_articles()
         ]
         return super().get_context_data(**kwargs) | {
             "docs_articles": docs_articles,
@@ -106,7 +106,7 @@ class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
                     loader.get_template(f"{slug}.md").render(request=self.request)
                 ),
             }
-            for slug, metadata in DocsListView.get_articles()
+            for slug, metadata in DocsContent.get_articles()
         ]
         articles = [
             {
@@ -118,7 +118,7 @@ class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
                     loader.get_template(f"{slug}.md").render(request=self.request)
                 ),
             }
-            for slug, metadata in KnowHowListView.get_articles()
+            for slug, metadata in KnowHowContent.get_articles()
         ]
         return super().get_context_data(**kwargs) | {
             "docs_articles": docs_articles,
@@ -133,7 +133,7 @@ class LlmsFullTxtView(CacheControlMixin, generic.TemplateView):
                         loader.get_template(f"{slug}.md").render(request=self.request)
                     ),
                 }
-                for slug, metadata in AlternativeToListView.get_articles()
+                for slug, metadata in AlternativeToContent.get_articles()
             ],
         }
 

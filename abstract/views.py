@@ -1,10 +1,8 @@
 import datetime
-import pathlib
 
-import frontmatter
 from django.conf import settings
 from django.db.models import Count, Max
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from django.template import loader
 from django.urls import resolve, reverse
 from django.utils.cache import (
@@ -15,6 +13,8 @@ from django.views import generic
 from django.views.decorators.http import condition
 
 from abstract.utils import md_2_html, strip_frontmatter
+
+from .content import MarkdownContent
 
 # Publicly cacheable HTML revalidates in the browser after seconds, while the
 # shared edge cache shields the origin for a minute. A deploy flushes that
@@ -124,43 +124,6 @@ class NoStoreCacheMixin(CacheControlMixin):
     """Prevent caching entirely with `no-store`."""
 
     cache_control = {"no_store": True}
-
-
-class MarkdownArticleMixin:
-    """
-    Mixin for views that serve Markdown articles from a docs directory.
-
-    Subclasses must set:
-    - `docs_dir`: pathlib.Path to the docs directory.
-    - `slugs`: frozenset of allowed article slugs (filenames without .md).
-    """
-
-    docs_dir: pathlib.Path
-    slugs: frozenset[str]
-
-    @classmethod
-    def get_articles(cls):
-        """Yield (slug, metadata) for each article that exists on disk."""
-        slugs = cls.slugs & {p.stem for p in cls.docs_dir.glob("*.md")}
-        for slug in sorted(slugs):
-            metadata, _ = frontmatter.parse((cls.docs_dir / f"{slug}.md").read_text())
-            yield slug, metadata
-
-    @classmethod
-    def get_article_path(cls, slug: str) -> pathlib.Path:
-        """Resolve the filesystem path for an article or raise Http404."""
-        path = cls.docs_dir / f"{slug}.md"
-        if slug in cls.slugs and path.is_file():
-            return path
-        raise Http404
-
-    @classmethod
-    def get_article_metadata(cls, slug: str) -> dict[str, str]:
-        """Return the frontmatter metadata for an article."""
-        path = cls.get_article_path(slug)
-        text = path.read_text()
-        metadata, _ = frontmatter.parse(text)
-        return metadata
 
 
 class BreadcrumbViewMixin:
@@ -279,15 +242,12 @@ class MarkdownView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView)
         }
 
 
-class MarkdownListView(
-    MarkdownArticleMixin, CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView
-):
+class MarkdownListView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
     """Display all Markdown articles in a docs directory."""
 
     cache_control = PUBLIC_PAGE_CACHE
     parent = "home"
-    docs_dir: pathlib.Path
-    slugs: frozenset[str]
+    content: type[MarkdownContent]
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -297,26 +257,26 @@ class MarkdownListView(
                     "title": metadata["name"],
                     "description": md_2_html(metadata.get("description", "")),
                 }
-                for slug, metadata in self.get_articles()
+                for slug, metadata in self.content.get_articles()
             ],
         }
 
 
-class MarkdownArticleDetailView(MarkdownArticleMixin, MarkdownView):
+class MarkdownArticleDetailView(MarkdownView):
     """Render a single Markdown article from a docs directory."""
 
-    docs_dir: pathlib.Path
-    slugs: frozenset[str]
+    content: type[MarkdownContent]
 
     @classmethod
     def get_title(cls, request):
-        return cls.get_article_metadata(request.resolver_match.kwargs["slug"])["name"]
+        slug = request.resolver_match.kwargs["slug"]
+        return cls.content.get_article_metadata(slug)["name"]
 
     def get_markdown_template(self):
         return f"{self.kwargs['slug']}.md"
 
     def get_context_data(self, **kwargs):
-        metadata = self.get_article_metadata(self.kwargs["slug"])
+        metadata = self.content.get_article_metadata(self.kwargs["slug"])
         return super().get_context_data(**kwargs) | {
             "title": metadata["name"],
             "meta_description": metadata.get("description", ""),
