@@ -11,10 +11,10 @@ automatically. GitHub OAuth handles authentication.
 
 ## Architecture & tech stack
 
-Three services from one codebase, each a separate container. Production runs
+Four services from one codebase, each a separate container. Production runs
 them on a single-node Talos Linux cluster in the `default` namespace: the
-manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and
-the place to look for how deployments, probes and certificates work.
+manifests are in `deploy/k8s/`, and `deploy/README.md` holds the deployment
+checklist.
 
 - **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
 - **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
@@ -31,6 +31,9 @@ views), `kms` (SigningKey, Fernet ciphertext, public/private keypair
 generation, signing. No app-specific knowledge), `msa` (OutgoingMessage, Transmission, MsaCredential, delivery
 task, handler/server, message + credential views), `mta` (IncomingMessage, Webhook,
 WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
+`services.mcp` (MCP server app: FastMCP ASGI entrypoint, OAuth consent,
+explicit tool binding, user-bound OAuth connections that read every
+organization the member is active in),
 `services.email.dashboard` (the unified
 transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
@@ -42,9 +45,9 @@ contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
 the contracts.
 
 Key tech: Django task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis, S3
-via django-storages, django-allauth for the GitHub login, basecoat CSS (via
-PostCSS with wireit), Talos Linux on Hetzner Cloud with Caddy as ingress and
-Layer 4 proxy.
+via django-storages, django-allauth for the GitHub login and the MCP OIDC
+provider, basecoat CSS (via PostCSS with wireit), Talos Linux on Hetzner
+Cloud with Caddy as ingress and Layer 4 proxy.
 
 ## Core commands & workflows
 
@@ -59,8 +62,8 @@ Layer 4 proxy.
 - `uv run python manage.py dns`. Start DNS server.
 - `uv run python manage.py msa`. Start MSA (SMTP submission) server.
 - `uv run python manage.py mta`. Start MTA (MX receiving) server.
-- `uv run pre-commit run --all-files`. Lint/format (ruff, djangofmt, pyupgrade,
-  mdformat, dockerfmt).
+- `prek run --all-files`. Lint/format (ruff, djangofmt, pyupgrade, mdformat,
+  dockerfmt). (automatically executed when committing)
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
 - `deploy/minikube`. Run the full stack on minikube with `.env`. See
   `README.md`.
@@ -99,11 +102,10 @@ one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
   carry; do not invent new ones. Feature requests keep `enhancement`, and
   Dependabot's own labels stay spelled the way the bot writes them. Each label's
   description on GitHub says what it means.
-- **`root/views.py` must not import models from other first-party apps.**
-  Cross-app views belong in their corresponding app.
-- **`Model.save()` must include `update_fields=`** to avoid race conditions.
-- **No private functions** (underscore prefix). This project is not for
-  redistribution.
+- **Do not run tests or pre-commit unless explicitly requested.** Never run any
+  test or pre-commit lint run unless the user asks for it. Running `uv run python manage.py check`
+  and `uv run python manage.py makemigrations --check --dry-run` is still fine
+  as part of finishing a change.
 - **Follow `CONVENTIONS.md`** for all coding patterns (URLs, PKs, fields,
   control flow, imports, naming).
 
@@ -112,7 +114,8 @@ one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
 Before you finish, always:
 
 - Run `uv run python manage.py check`. Must pass with zero issues.
-- Run `uv run pre-commit run --all-files`. Must pass (ruff, djangofmt, and more).
+- Do not run pre-commit or the test suite unless the user explicitly requests
+  it. `uv run python manage.py check` and `uv run python manage.py makemigrations --check --dry-run` can still be run.
 - Run `uv run python manage.py makemigrations --check --dry-run`. Verify no
   missing migrations for model changes.
 - Verify that URL reversals work for any changed or added routes.
@@ -124,14 +127,14 @@ Before you finish, always:
 
 ## Running tests
 
+Do not run any of the commands below unless the user explicitly requests
+testing or linting.
+
 - `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput --no-esm`
   must run in advance; the Django checks and templates tests fail without it.
   ES modules are vendored by `pnpm run build`, so collectstatic must skip the
   esimport step (`--no-esm`).
-- `uv run --group test pytest`. The last line is always the outcome summary, e.g.
-  `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
-  to assert results. Nothing is measured by default.
-- `--maxfail=3` stops after three failures.
+- Nothing is measured by default.
 
 ## Browser automation
 

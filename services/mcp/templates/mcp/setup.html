@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load abstract i18n %}
+{% block title %}MCP | relay{% endblock %}
+{% block content %}
+  <header class="flex items-center justify-between mb-6">
+    <h2 class="m-0">MCP</h2>
+  </header>
+
+  <p class="max-w-3xl text-muted-foreground">
+    {% blocktranslate trimmed %}
+      Connect an AI assistant to relay with the Model Context Protocol. The assistant reads the mail of every
+      organization you belong to, and never holds a credential of yours.
+    {% endblocktranslate %}
+  </p>
+
+  <section class="accordion max-w-3xl" aria-label='{% translate "mcp setup"|capfirst %}'>
+    <details open>
+      <summary>
+        {% translate "endpoint"|capfirst %}
+        {% tabler name="chevron-down" size="4" %}
+      </summary>
+      <section>
+        <div class="flex items-center gap-2">
+          <code>{{ endpoint }}</code>
+          {% include "abstract/copy_button.html" with value=endpoint label=_("copy endpoint")|capfirst %}
+        </div>
+      </section>
+    </details>
+
+    <details>
+      <summary>
+        {% translate "command line clients"|capfirst %}
+        {% tabler name="chevron-down" size="4" %}
+      </summary>
+      <section>
+        <div class="flex items-center gap-2">
+          <code>{{ codex_command }}</code>
+          {% include "abstract/copy_button.html" with value=codex_command label=_("copy command")|capfirst %}
+        </div>
+      </section>
+    </details>
+
+    <details>
+      <summary>
+        {% translate "JSON clients" %}
+        {% tabler name="chevron-down" size="4" %}
+      </summary>
+      <section>
+        {{ client_config|highlight_code:"json" }}
+      </section>
+    </details>
+  </section>
+
+  <p class="max-w-3xl text-muted-foreground">
+    {% blocktranslate trimmed %}
+      The first time a client connects, relay opens a browser window. Sign in with GitHub there and approve the
+      connection. The client asks for the permissions shown on the consent screen. Relay also exposes additional content
+      as resources.
+    {% endblocktranslate %}
+  </p>
+{% endblock %}

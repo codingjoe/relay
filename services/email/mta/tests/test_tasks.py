@@ -19,7 +19,7 @@ from django_letter.exceptions import EmailImproperlyConfigured
 from accounts.models import Membership
 from domains.models import Domain
 from kms.models import SigningKey
-from services.email.message.models import Transmission
+from services.email.message.models import SpamCheck, Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.emails import PostmasterForwardEmail
 from services.email.mta.models import (
@@ -43,7 +43,11 @@ from services.email.mta.tasks import (
     parse_tls_report,
     webhook_retry,
 )
-from services.email.spam.client import SpamAction, SpamResult
+from services.email.spam.client import (
+    ScannerUnavailableError,
+    SpamAction,
+    SpamResult,
+)
 
 
 class TestWebhookEventFromTest:
@@ -472,6 +476,21 @@ def make_incoming_message(
 
 @pytest.mark.django_db(transaction=True)
 class TestCheckIncomingSpam:
+    def test_check_incoming_spam__records_failed_scan(self, org):
+        msg = make_incoming_message(org)
+        with (
+            patch(
+                "services.email.mta.tasks.check_message",
+                side_effect=ScannerUnavailableError,
+            ),
+            pytest.raises(ScannerUnavailableError),
+        ):
+            check_incoming_spam.func(message_pk=str(msg.pk), client_ip="")
+
+        check = SpamCheck.objects.get(message=msg)
+        assert check.score is None
+        assert check.finished_at is not None
+
     def test_check_incoming_spam__quarantines_spam(self, org):
         msg = make_incoming_message(org, rcpt_to="postmaster@example.com")
         with (

@@ -3,9 +3,9 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 
-from alternative_to.views import AlternativeToListView
-from docs.views import DocsListView
-from know_how.views import KnowHowListView
+from alternative_to.content import AlternativeToContent
+from docs.content import DocsContent
+from know_how.content import KnowHowContent
 
 
 class HomeSitemap(Sitemap):
@@ -41,7 +41,7 @@ class DocsSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return [slug for slug, _ in DocsListView.get_articles()]
+        return [slug for slug, _ in DocsContent.get_articles()]
 
     def location(self, slug):
         return reverse("docs:detail", args=[slug])
@@ -54,7 +54,7 @@ class KnowHowSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return [slug for slug, _ in KnowHowListView.get_articles()]
+        return [slug for slug, _ in KnowHowContent.get_articles()]
 
     def location(self, slug):
         return reverse("know_how:detail", args=[slug])
@@ -67,7 +67,7 @@ class AlternativeToSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return [slug for slug, _ in AlternativeToListView.get_articles()]
+        return [slug for slug, _ in AlternativeToContent.get_articles()]
 
     def location(self, slug):
         return reverse("alternative_to:detail", args=[slug])

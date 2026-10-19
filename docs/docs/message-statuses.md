@@ -120,7 +120,9 @@ One delivery walk produces one row per MX host it reached. A failed
 delivery therefore keeps the answer of every host it tried, including the
 hosts MTA-STS rejected and the lookup that found no host at all. An attempt
 that dials a host also keeps the sending IP it used, so a receiver that
-blocked one address of the pool is visible on the attempt. Every retry
+blocked one address of the pool is visible on the attempt. A reception keeps
+both ends of the inbound connection: the local IP that accepted the message,
+and the remote IP with its reverse-DNS hostname. Every retry
 walks the list again and files its own rows, so the timeline shows each
 attempt with the wait that came before it.
 

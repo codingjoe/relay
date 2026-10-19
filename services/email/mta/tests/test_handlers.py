@@ -1,18 +1,22 @@
+import logging
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from aiosmtpd.smtp import TLSSetupException
 from django.conf import settings
 from django.core import mail
 
 from abstract.mailauth import Alignment, AuthResult, Disposition
 from domains.models import Domain
+from services.email.message.models import Transmission
 from services.email.mta.handlers import (
     MXHandler,
     is_fbl_report,
     process_incoming_message,
     received_header,
+    resolve_remote_host,
 )
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.mta.tests.conftest import (
@@ -122,6 +126,31 @@ class TestProcessIncomingMessagePostmaster:
         message = await IncomingMessage.objects.aget(domain=domain)
         assert result == "250 OK"
         assert message.status == IncomingMessage.Status.QUARANTINED
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_postmaster__message_creation_failure__does_not_mask_integrity_error(
+        self, org
+    ):
+        """A storage failure propagates instead of an IntegrityError."""
+        domain = Domain.objects.create(name="example.com", org=org)
+        with (
+            patch(
+                "services.email.mta.models.IncomingMessage.objects.create",
+                side_effect=RuntimeError("storage unavailable"),
+            ),
+            pytest.raises(RuntimeError, match="storage unavailable"),
+        ):
+            await process_incoming_message(
+                "external@example.org",
+                "postmaster@example.com",
+                make_raw_email(),
+                {"ssl_object": None},
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
+                "",
+            )
+        assert await Transmission.objects.acount() == 0
 
 
 class TestHandleRcpt:
@@ -249,6 +278,47 @@ class TestProcessIncomingMessageReports:
         report = await TlsReport.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
+
+
+class TestResolveRemoteHost:
+    def test_resolve_remote_host__returns_ptr_hostname(self, dns_resolver):
+        dns_resolver.add("8.8.8.8.in-addr.arpa", "PTR", "dns.google.")
+        assert resolve_remote_host("8.8.8.8") == "dns.google"
+
+    def test_resolve_remote_host__returns_empty_string_without_ptr(self, dns_resolver):
+        assert resolve_remote_host("8.8.8.8") == ""
+
+    def test_resolve_remote_host__skips_private_addresses(self, dns_resolver):
+        assert resolve_remote_host("10.244.0.1") == ""
+        assert dns_resolver.lookups == []
+
+    def test_resolve_remote_host__skips_malformed_addresses(self, dns_resolver):
+        assert resolve_remote_host("not-an-ip") == ""
+        assert dns_resolver.lookups == []
+
+
+class TestProcessIncomingMessageTransmission:
+    @pytest.mark.django_db(transaction=True)
+    async def test_reception__stores_addresses_and_remote_host(self, org, dns_resolver):
+        dns_resolver.add("8.8.8.8.in-addr.arpa", "PTR", "dns.google.")
+        domain = Domain.objects.create(name="example.com", org=org)
+        with patch("services.email.mta.handlers.check_incoming_spam"):
+            await process_incoming_message(
+                "external@example.org",
+                "info@example.com",
+                make_raw_email(),
+                {"ssl_object": None},
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
+                "8.8.8.8",
+                "188.245.198.157",
+            )
+        message = await IncomingMessage.objects.aget(domain=domain)
+        transmission = await Transmission.objects.aget(message_id=message.pk)
+        assert transmission.local_ip_address == "188.245.198.157"
+        assert transmission.remote_ip_address == "8.8.8.8"
+        assert transmission.remote_host == "dns.google"
 
 
 class TestProcessIncomingMessageBounces:
@@ -797,3 +867,23 @@ class TestIsFblReport:
                 dkim_alignment=Alignment.FAIL,
             )
         )
+
+
+class TestHandleException:
+    async def test__tls_setup_exception_muted(self, caplog):
+        caplog.set_level(logging.DEBUG, logger="services.email.mta.handlers")
+        result = await MXHandler().handle_exception(TLSSetupException())
+
+        assert result == "500 Error: (TLSSetupException) "
+        records = [r for r in caplog.records if r.name == "services.email.mta.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
+
+    async def test__other_exception_logged(self, caplog):
+        caplog.set_level(logging.WARNING, logger="services.email.mta.handlers")
+        result = await MXHandler().handle_exception(ValueError("boom"))
+
+        assert result == "500 Error: (ValueError) boom"
+        records = [r for r in caplog.records if r.name == "services.email.mta.handlers"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.ERROR

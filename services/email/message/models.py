@@ -518,6 +518,10 @@ class Transmission(Timing):
 
     objects = FetchPeersManager()
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None or self.message_id is not None:
+            super().__exit__(exc_type, exc_value, traceback)
+
     @classmethod
     def tls_session_fields(cls, ssl):
         """Return the TLS field values negotiated for an SMTP session."""
@@ -553,12 +557,21 @@ class Transmission(Timing):
         )
 
     @classmethod
-    def record_reception(cls, ssl, started_at, client_ip=None):
+    def record_reception(
+        cls,
+        ssl,
+        started_at,
+        client_ip=None,
+        local_ip=None,
+        remote_host="",
+    ):
         """Return the unpersisted reception transmission for a message."""
         return cls(
             status=cls.Status.RECEIVED,
             **cls.tls_session_fields(ssl),
+            local_ip_address=local_ip or None,
             remote_ip_address=client_ip or None,
+            remote_host=remote_host,
             started_at=started_at,
         )
 

@@ -31,7 +31,7 @@ repos:
     hooks:
       - id: oxlint
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.71.0
+    rev: v0.74.0
     hooks:
       - id: oxfmt
   - repo: https://github.com/asottile/pyupgrade
@@ -54,7 +54,7 @@ repos:
           - mdformat-frontmatter
         args: ["--number"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.0
+    rev: v0.17.1
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
@@ -106,6 +106,18 @@ repos:
         language: python
   - repo: local
     hooks:
+      - id: django-check
+        name: django-check
+        language: system
+        entry: uv run python manage.py check
+        pass_filenames: false
+        always_run: true
+      - id: django-makemigrations-check
+        name: django-makemigrations-check
+        language: system
+        entry: uv run python manage.py makemigrations --check --dry-run
+        pass_filenames: false
+        always_run: true
       - id: svgo
         name: svgo
         language: node
@@ -125,3 +137,5 @@ ci:
   skip:
     - no-commit-to-branch
     - shellcheck
+    - django-check
+    - django-makemigrations-check

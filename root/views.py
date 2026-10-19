@@ -2,7 +2,11 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
-from abstract.views import PUBLIC_PAGE_CACHE, BreadcrumbViewMixin, CacheControlMixin
+from abstract.views import (
+    PUBLIC_PAGE_CACHE,
+    BreadcrumbViewMixin,
+    CacheControlMixin,
+)
 
 # Wordmarks of companies that back relay, with owner-attested endorsement.
 # Optional keys: "url" (endorser link) and "logo" (static image path).

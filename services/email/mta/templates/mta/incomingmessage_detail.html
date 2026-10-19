@@ -31,6 +31,17 @@
           {% if message.receiving_domain %}
             <p class="m-0 text-sm"><code>{{ message.receiving_domain }}</code></p>
           {% endif %}
+          {% if transmission.local_ip_address or transmission.remote_ip_address or transmission.remote_host %}
+            <p class="m-0 text-sm text-muted-foreground break-all">
+              {{ transmission.local_ip_address|default:"-" }} →
+              {% if transmission.remote_host %}
+                {{ transmission.remote_host }}{% if transmission.remote_ip_address %}
+                  ({{ transmission.remote_ip_address }}){% endif %}
+              {% else %}
+                {{ transmission.remote_ip_address|default:"-" }}
+              {% endif %}
+            </p>
+          {% endif %}
           {% if transmission.tls_certificate %}
             <p class="m-0 text-sm">
               <a

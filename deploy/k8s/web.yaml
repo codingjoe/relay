@@ -78,7 +78,7 @@ spec:
       labels:
         app.kubernetes.io/name: worker
         dev.dozzle.name: worker
-        dev.dozzle.group: web
+        dev.dozzle.group: tasks
         dev.dozzle.icon: django
     spec:
       containers:
@@ -139,7 +139,7 @@ spec:
       labels:
         app.kubernetes.io/name: sender
         dev.dozzle.name: sender
-        dev.dozzle.group: web
+        dev.dozzle.group: tasks
         dev.dozzle.icon: django
     spec:
       hostNetwork: true
@@ -200,7 +200,7 @@ spec:
       labels:
         app.kubernetes.io/name: crontask
         dev.dozzle.name: crontask
-        dev.dozzle.group: web
+        dev.dozzle.group: tasks
         dev.dozzle.icon: django
     spec:
       containers:

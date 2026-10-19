@@ -1,7 +1,4 @@
-import pathlib
-
 import frontmatter
-from django.conf import settings
 from django.http import HttpResponse
 from django.template import loader
 from django.utils.translation import gettext_lazy as _
@@ -9,16 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from abstract.utils import md_2_html
 from abstract.views import MarkdownArticleDetailView, MarkdownListView
 
-KNOW_HOW_DIR = pathlib.Path(settings.BASE_DIR) / "know_how" / "docs"
-SLUGS = frozenset(p.stem for p in KNOW_HOW_DIR.glob("*.md"))
-
-LICENSE_MARKDOWN = (
-    "This work is licensed under a "
-    "[Creative Commons Attribution-ShareAlike 4.0 International License]"
-    "(https://creativecommons.org/licenses/by-sa/4.0/)."
-)
-
-LICENSE_YAML = "CC-BY-SA-4.0"
+from .content import LICENSE_MARKDOWN, LICENSE_YAML, KnowHowContent
 
 
 class KnowHowListView(MarkdownListView):
@@ -26,8 +14,7 @@ class KnowHowListView(MarkdownListView):
 
     template_name = "know_how/list.html"
     title = _("Know how")
-    docs_dir = KNOW_HOW_DIR
-    slugs = SLUGS
+    content = KnowHowContent
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -39,8 +26,7 @@ class KnowHowDetailView(MarkdownArticleDetailView):
     """Render a single know-how article."""
 
     parent = "know_how:list"
-    docs_dir = KNOW_HOW_DIR
-    slugs = SLUGS
+    content = KnowHowContent
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {

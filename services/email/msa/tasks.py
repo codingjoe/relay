@@ -19,7 +19,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.tasks import task
 from django.utils import timezone
-from threadmill.exceptions import AcknowledgementTimeout
+from threadmill.exceptions import AcknowledgementTimeoutError
 from threadmill.retry import ExponentialBackoff
 
 from services.email.mta.models import IncomingMessage
@@ -91,7 +91,7 @@ DELIVERY_RETRY = ExponentialBackoff(
     # The base delay doubles before the first retry, so the five retries wait
     # 2, 4, 8, 16 and 32 minutes and the six attempts span about an hour.
     max_retries=6,
-    expected_exceptions=(TemporaryDeliveryError, AcknowledgementTimeout),
+    expected_exceptions=(TemporaryDeliveryError, AcknowledgementTimeoutError),
 )
 
 

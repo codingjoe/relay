@@ -70,10 +70,21 @@ dev: build-image start-cluster load-image migrate
     open "http://localhost:{{web_port}}" 2>/dev/null || true
     wait
 
-# Run the local Django server on a free port.
+# Run the local development server, serving the web app and the MCP app.
+# The MCP settings derive their public origin from HOSTNAME, so the free port
+# and that origin come from the same value. Everything the server writes at
+# runtime is ignored by the reloader, which would otherwise restart the server
+# and invalidate the access tokens on every request that stores a row.
 [group('local')]
 serve:
-    uv run --env-file .env manage.py runserver "localhost:$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    port="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+    export HOSTNAME="localhost:$port"
+    uv run --env-file .env granian --interface asgi --host 127.0.0.1 \
+        --port "$port" --reload --reload-ignore-patterns 'db\.sqlite3' \
+        --reload-ignore-dirs storage --reload-ignore-dirs staticfiles \
+        root.dev:application
 
 # Install the binaries, the dependencies and the git hooks.
 [group('quality')]

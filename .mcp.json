@@ -19,6 +19,10 @@
         "*"
       ],
       "type": "local"
+    },
+    "relay-production": {
+      "type": "http",
+      "url": "https://relays.to/mcp"
     }
   }
 }

@@ -7,7 +7,7 @@ from django.conf import settings
 from accounts.models import Organization
 from domains.dkim import INCLUDE_HEADERS, add_dkim_signature, sign_message
 from domains.models import Domain, canonicalize_domain_name
-from kms import keys as kms_keys
+from kms import keys
 from kms.models import SigningKey
 
 
@@ -24,7 +24,7 @@ def make_email():
 
 
 def make_signing_key(algorithm, private_algorithm=None):
-    pair = kms_keys.generate(private_algorithm or algorithm)
+    pair = keys.generate(private_algorithm or algorithm)
     return SigningKey(algorithm=algorithm, encrypted_private_key=pair.ciphertext)
 
 

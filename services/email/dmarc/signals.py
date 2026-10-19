@@ -23,12 +23,16 @@ def create_report(
     raw_bytes,
     tls,
     client_ip,
+    local_ip,
+    remote_host,
     started_at,
     **kwargs,
 ):
     """Create a DMARC report from an incoming report email."""
     if local_part == settings.RELAY_DMARC_REPORT_LOCAL_PART:
-        with Transmission.record_reception(tls, started_at, client_ip) as reception:
+        with Transmission.record_reception(
+            tls, started_at, client_ip, local_ip, remote_host
+        ) as reception:
             reception.message = report = DmarcReport.objects.create(
                 org=domain.org,
                 domain=domain,
@@ -43,7 +47,9 @@ def create_report(
             )
         parse_task = parse_dmarc_report
     else:
-        with Transmission.record_reception(tls, started_at, client_ip) as reception:
+        with Transmission.record_reception(
+            tls, started_at, client_ip, local_ip, remote_host
+        ) as reception:
             reception.message = report = DmarcFailureReport.objects.create(
                 org=domain.org,
                 domain=domain,

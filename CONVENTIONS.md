@@ -108,17 +108,22 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Prefer `match`/`case` statements over if-chains where applicable.
 - No early returns. Exit a function from a single `return` statement at the
-  end. `.relint.yml` enforces the bare `return` and `continue` subset.
-- Use `.get()` with EAFP (try/except) instead of `.first()` with a `None`
-  check. Use `get_object_or_404()` in views to convert `DoesNotExist` to
-  `Http404` automatically.
+  end.
+- Use `get_object_or_404()` in views to convert `DoesNotExist` to `Http404`
+  automatically.
 
 ## Imports
 
-- Import views as `from . import views` in URL configs, then reference
-  `views.MyView.as_view()`.
-- Do not import with different names (no `import x as y`) unless necessary.
+- Reference `views.MyView.as_view()` in URL configs.
 - Do not import per-property. Import the module directly.
+
+## MCP Components
+
+- Declare a tool, resource, or prompt in the `mcp` module of the app that owns
+  the data. Use FastMCP's standalone `@tool`, `@resource`, or `@prompt`
+  decorator.
+- A module that generates resources from content may expose a
+  `register_components(provider)` function instead.
 
 ## Tasks
 
@@ -190,10 +195,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Dialogs: `<dialog class="dialog"><div><header>…<section>…<footer>…</div></dialog>`,
     open with `.showModal()` and close with `.close()`.
   - Translatable strings. Msgids start lowercase. `|capfirst` and `|title`
-    set the display casing. A msgid that renders without a casing filter is a
-    sentence, so it starts with a capital letter. Sentences after the first
-    inside a msgid also start with a capital letter, because no filter reaches
-    them.
+    set the display casing.
   - Form controls: `<input class="input">`, `<select class="select w-full">`,
     `<textarea class="textarea">`. Always pair form controls with `w-full` so
     they fill the field width inside dialogs and filter rows. Wrap each form
@@ -214,7 +216,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
   - Avatars: `<span class="avatar" data-size="sm"><img …><span>CN</span></span>`.
   - Badges: `<span class="badge" data-size="sm" data-variant="primary|outline|destructive">`.
   - Tooltips: use the basecoat `data-tooltip` attribute on any element.
-    Do not use native `title` attributes for tooltips.
   - Items: use basecoat's `<a class="item" data-variant="outline">` (or
     `<article class="item">`) inside a `<div class="item-group">` for list
     pages that show selectable entities (for example, organizations). Prefer items
@@ -234,8 +235,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
   Tailwind scale on the icon (`size-3`=12px, `3.5`=14px, `4`=16px, `5`=20px,
   `6`=24px, `8`=32px); `src/css/base.css` keeps `svg.tabler` inline with its
   label. Never inline Tabler SVGs by hand and never ship a placeholder
-  attribute for the client to replace. Never use unicode emoji (✅, ❌, ⏳, 📬)
-  for status or decorative icons - use Tabler icons with semantic color
+  attribute for the client to replace. Use Tabler icons with semantic color
   classes instead (for example, `#tabler-circle-check` with `text-primary`,
   `#tabler-circle-x` with `text-destructive`, `#tabler-circle-dashed` with
   `text-muted-foreground`).
@@ -292,18 +292,14 @@ A rule lives either in this document or in `.relint.yml`, never both.
   them. The template pulls one in with
   `{% filter force_escape %}{% include "snippets/name.py" %}{% endfilter %}`.
 
-- Scripts live in static ES modules, never inline in a template. A page loads
-  its module with `{% esm '#js/app.js' %}` (load the `esm` tag library in that
-  template), which resolves the specifier through the import map and writes the
-  bundle URL with the integrity hash the browser verifies. A form that needs a
-  module puts `django_esm.forms.ESM` in its `Media`, never a hand-written tag.
+- A form that needs a module puts `django_esm.forms.ESM` in its `Media`.
   Pass per-render data with `json_script` or `data-*` attributes. Shared UI
   behavior lives in `root/static/js/app.js` and is driven by data hooks on the
   markup: `data-dialog`, `data-dialog-close`, `data-backdrop-close`,
   `data-auto-open`, `data-confirm`, `data-copy`, `data-share`, `data-href`,
   `data-toggle`, `data-select`, `data-mirror`.
 
-- Third-party JavaScript comes from npm, never from a CDN. Import it by
+- Third-party JavaScript comes from npm. Import it by
   package name (`import { html } from "lit"`) and let the import map
   (`{% importmap %}` in `base.html`) resolve it: `pnpm run build` vendors the
   `dependencies` from `package.json` into `staticfiles/esm` via
@@ -373,16 +369,18 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - One test per scenario. Do not write parametrised mega-tests that obscure individual
   assertions.
 
-- Group related tests in classes. No comment headlines (`# ── … ──`).
-  Use plain `class TestSomething:` with no decorator unless a class-level
+- No method means no test. Do not pin framework defaults that no code in the
+  app implements. A test asserts behavior this codebase owns, like a
+  `get_success_url` override or a `form_invalid` redirect, not what
+  `CreateView` does on its own.
+
+- Group related tests in classes. Use plain `class TestSomething:` with no decorator unless a class-level
   `@pytest.mark.django_db` is needed.
 
 - Avoid mocking and patching unless the code under test performs external I/O
   (DNS lookups, SMTP delivery, HTTP requests). Mocks can diverge from the real
   implementation. Tests pass but production fails. Prefer real objects and
   real database state.
-
-- Test modules do not need module docstrings.
 
 - Use `pytest.mark.asyncio` for async test methods (pytest-asyncio is
   installed).
@@ -426,14 +424,12 @@ A rule lives either in this document or in `.relint.yml`, never both.
   resolves `<slug>.md` against every TEMPLATES DIRS entry in order, so a
   duplicate slug renders the wrong file.
 
-- Keep `know_how/docs` brand-agnostic. Write relay-specific user docs in
-  `docs/docs`.
+- Write relay-specific user docs in `docs/docs`.
 
-- Write `docs/docs` for relay users, not developers. Environment variable
-  names, setting keys, and other code references have no place there.
-  Describe behavior and configuration in product terms: the platform
-  domain, the dashboard, a submission host. Internal names such as
-  `RELAY_*` belong in `README.md`.
+- Write `docs/docs` for relay users, not developers. Describe behavior and
+  configuration in product terms: the platform domain, the dashboard, a
+  submission host. Internal names such as `RELAY_*` belong in
+  `README.md`.
 
 ## Kubernetes manifests
 
@@ -452,12 +448,12 @@ A rule lives either in this document or in `.relint.yml`, never both.
   the Job condition the deploy workflow already waits on; a probe would kill
   work in progress.
 
-- Do not send `Host: localhost` from a probe. Django validates the header in
-  `CommonMiddleware`, so a disallowed host answers 400 with a fully healthy app
-  behind it, and the pod never becomes Ready. `web` is the only probe that
-  reaches Django, and it sends the pinned `HOSTNAME`. Note that an `exec` probe
-  does not run through the image entrypoint, so it sees the kubelet's
-  environment and never a decrypted one.
+Django validates the `Host` header in `CommonMiddleware`, so a disallowed host
+answers 400 with a fully healthy app behind it, and the pod never becomes
+Ready. `web` is the only probe that
+reaches Django, and it sends the pinned `HOSTNAME`. Note that an `exec` probe
+does not run through the image entrypoint, so it sees the kubelet's
+environment and never a decrypted one.
 
 - Give every container resource requests and limits.
 

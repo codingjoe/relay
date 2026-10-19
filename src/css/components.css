@@ -137,3 +137,16 @@
 .tabs:has(> .preview-controls) > [role="tabpanel"] {
   grid-column: 1 / -1;
 }
+
+/* Native date and time controls do not vertically center their value like
+   their text siblings when placed inside an input group. */
+.field .input-group > input {
+  &[type="date"],
+  &[type="datetime-local"],
+  &[type="time"],
+  &[type="month"],
+  &[type="week"] {
+    display: flex;
+    align-items: center;
+  }
+}

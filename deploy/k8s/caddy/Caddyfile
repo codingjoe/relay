@@ -13,6 +13,10 @@
 		key {
 			headers Accept-Encoding
 		}
+		# MCP responses are per-user; the cache key ignores Authorization.
+		regex {
+			exclude ^/mcp
+		}
 		redis {
 			configuration {
 				InitAddress caddy-redis:6379
@@ -96,11 +100,17 @@
 		respond "OK" 200
 	}
 
+	@websocket {
+		header_regexp Connection "(?i)upgrade"
+		header_regexp Upgrade "(?i)websocket"
+	}
+
 	@mta_sts {
 		path /.well-known/mta-sts.txt
 		protocol https
 	}
 	handle @mta_sts {
+		respond @websocket "WebSocket is not supported." 400
 		reverse_proxy web:8000
 	}
 
@@ -116,6 +126,25 @@
 {$HOSTNAME} {
 	cache
 	encode zstd br gzip
+
+	# Django and MCP serve no WebSocket endpoints. Reject upgrades at the edge.
+	@websocket {
+		header_regexp Connection "(?i)upgrade"
+		header_regexp Upgrade "(?i)websocket"
+	}
+	handle @websocket {
+		respond "WebSocket is not supported." 400
+	}
+
+	route /mcp* {
+		request_body {
+			max_size 30MB
+		}
+		reverse_proxy mcp:8000 {
+			# Stream MCP responses instead of holding them in the proxy buffer.
+			flush_interval -1
+		}
+	}
 	reverse_proxy web:8000 {
 		health_uri /health/node/
 		health_headers {
