@@ -1,7 +1,7 @@
 from services.mcp.provider import AppMCPProvider
 
 
-class TestAppMCPModules:
+class TestAppMCPProvider:
     def test_app_mcp_modules__imports_component_modules(self):
         modules = list(AppMCPProvider.app_mcp_modules())
 
@@ -11,9 +11,7 @@ class TestAppMCPModules:
             "services.email.message.mcp",
         } <= {module.__name__ for module in modules}
 
-
-class TestAppMCPProvider:
-    async def test_app_mcp_provider__registers_tools_and_resources(self):
+    async def test_init__registers_tools_and_resources(self):
         provider = AppMCPProvider()
 
         tools = await provider.list_tools()
