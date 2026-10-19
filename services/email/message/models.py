@@ -557,12 +557,21 @@ class Transmission(Timing):
         )
 
     @classmethod
-    def record_reception(cls, ssl, started_at, client_ip=None):
+    def record_reception(
+        cls,
+        ssl,
+        started_at,
+        client_ip=None,
+        local_ip=None,
+        remote_host="",
+    ):
         """Return the unpersisted reception transmission for a message."""
         return cls(
             status=cls.Status.RECEIVED,
             **cls.tls_session_fields(ssl),
+            local_ip_address=local_ip or None,
             remote_ip_address=client_ip or None,
+            remote_host=remote_host,
             started_at=started_at,
         )
 
