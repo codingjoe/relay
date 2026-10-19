@@ -62,8 +62,8 @@ Cloud with Caddy as ingress and Layer 4 proxy.
 - `uv run python manage.py dns`. Start DNS server.
 - `uv run python manage.py msa`. Start MSA (SMTP submission) server.
 - `uv run python manage.py mta`. Start MTA (MX receiving) server.
-- `uv run pre-commit run --all-files`. Lint/format (ruff, djangofmt, pyupgrade,
-  mdformat, dockerfmt).
+- `prek run --all-files`. Lint/format (ruff, djangofmt, pyupgrade, mdformat,
+  dockerfmt). (automatically executed when committing)
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
 - `deploy/minikube`. Run the full stack on minikube with `.env`. See
   `README.md`.
@@ -102,6 +102,10 @@ one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
   carry; do not invent new ones. Feature requests keep `enhancement`, and
   Dependabot's own labels stay spelled the way the bot writes them. Each label's
   description on GitHub says what it means.
+- **Do not run tests or pre-commit unless explicitly requested.** Never run any
+  test or pre-commit lint run unless the user asks for it. Running `uv run python manage.py check`
+  and `uv run python manage.py makemigrations --check --dry-run` is still fine
+  as part of finishing a change.
 - **Follow `CONVENTIONS.md`** for all coding patterns (URLs, PKs, fields,
   control flow, imports, naming).
 
@@ -110,7 +114,8 @@ one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
 Before you finish, always:
 
 - Run `uv run python manage.py check`. Must pass with zero issues.
-- Run `uv run pre-commit run --all-files`. Must pass (ruff, djangofmt, and more).
+- Do not run pre-commit or the test suite unless the user explicitly requests
+  it. `uv run python manage.py check` and `uv run python manage.py makemigrations --check --dry-run` can still be run.
 - Run `uv run python manage.py makemigrations --check --dry-run`. Verify no
   missing migrations for model changes.
 - Verify that URL reversals work for any changed or added routes.
@@ -122,14 +127,14 @@ Before you finish, always:
 
 ## Running tests
 
+Do not run any of the commands below unless the user explicitly requests
+testing or linting.
+
 - `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput --no-esm`
   must run in advance; the Django checks and templates tests fail without it.
   ES modules are vendored by `pnpm run build`, so collectstatic must skip the
   esimport step (`--no-esm`).
-- `uv run --group test pytest`. The last line is always the outcome summary, e.g.
-  `13 passed, 2 warnings in 4.20s`. Grep for `[0-9]+ (passed|failed|error)`
-  to assert results. Nothing is measured by default.
-- `--maxfail=3` stops after three failures.
+- Nothing is measured by default.
 
 ## Browser automation
 
