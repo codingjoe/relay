@@ -137,3 +137,5 @@ ci:
   skip:
     - no-commit-to-branch
     - shellcheck
+    - django-check
+    - django-makemigrations-check
