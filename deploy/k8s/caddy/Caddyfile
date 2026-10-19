@@ -13,6 +13,10 @@
 		key {
 			headers Accept-Encoding
 		}
+		# MCP responses are per-user; the cache key ignores Authorization.
+		regex {
+			exclude ^/mcp
+		}
 		redis {
 			configuration {
 				InitAddress caddy-redis:6379
@@ -120,7 +124,10 @@
 		request_body {
 			max_size 30MB
 		}
-		reverse_proxy mcp:8000
+		reverse_proxy mcp:8000 {
+			# Stream MCP responses instead of holding them in the proxy buffer.
+			flush_interval -1
+		}
 	}
 	reverse_proxy web:8000 {
 		health_uri /health/node/
