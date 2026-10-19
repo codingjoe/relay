@@ -27,11 +27,11 @@ repos:
     hooks:
       - id: esupgrade
   - repo: https://github.com/oxc-project/mirrors-oxlint
-    rev: v1.88.0
+    rev: v1.60.0
     hooks:
       - id: oxlint
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.73.0
+    rev: v0.74.0
     hooks:
       - id: oxfmt
   - repo: https://github.com/asottile/pyupgrade
@@ -54,7 +54,7 @@ repos:
           - mdformat-frontmatter
         args: ["--number"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.0
+    rev: v0.17.1
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
