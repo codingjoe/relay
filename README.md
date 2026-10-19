@@ -331,7 +331,7 @@ Return-Path is.
 - **basecoat CSS**. Component-based CSS framework for the web UI
 - **Granian**: Rust-based ASGI server
 - **FastMCP**. Model Context Protocol server framework behind the `/mcp`
-  endpoint, with tools to list and send mail and resources for the product
+  endpoint, with tools to list mail and resources for the product
   documentation and know-how articles
 - **django-allauth** with the OIDC identity provider. Authorization server that
   registers MCP clients and issues their access tokens

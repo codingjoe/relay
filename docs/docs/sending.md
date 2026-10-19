@@ -181,14 +181,6 @@ with smtplib.SMTP("smtp.relays.to", 587) as server:
 Libraries that speak SMTP natively set the same four things: host, port,
 STARTTLS, and the credential pair.
 
-## Send from an MCP client
-
-An AI assistant connected to the relay MCP server sends through the same
-acceptance checks. It calls the `send_message` tool with a sender address on a
-domain of an organization you belong to, a recipient, a subject, and a body.
-The server returns the message id and status. The client needs the
-`messages:send` scope.
-
 ## Related pages
 
 - <a href="{% url 'docs:detail' slug='deliverability' %}">Deliverability</a>.

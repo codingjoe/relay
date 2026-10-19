@@ -28,7 +28,6 @@ class MessageScope(Scope):
     """Grant access to one organization's mail."""
 
     read = "messages:read", _("View sent and received messages.")
-    send = "messages:send", _("Send email from your organizations.")
 
 
 class InvalidStatusError(ValidationError):
