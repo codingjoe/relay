@@ -6,9 +6,10 @@ import signal
 import sys
 import time
 
-from aiosmtpd.controller import Controller
-
-from services.email.proxy_protocol import proxy_protocol_timeout_seconds
+from services.email.proxy_protocol import (
+    ProxyProtocolController,
+    proxy_protocol_timeout_seconds,
+)
 from services.email.tls import (
     MissingTlsCertificateError,
     build_tls_context,
@@ -58,7 +59,7 @@ class SMTPServer:
             raise MissingTlsCertificateError
         for port in self.ports:
             if port in self.implicit_tls_ports:
-                controller = Controller(
+                controller = ProxyProtocolController(
                     ImplicitTLSHandler(),
                     hostname=self.host,
                     port=port,
@@ -69,7 +70,7 @@ class SMTPServer:
                     ),
                 )
             else:
-                controller = Controller(
+                controller = ProxyProtocolController(
                     SMTPHandler(),
                     hostname=self.host,
                     port=port,
@@ -88,7 +89,7 @@ class SMTPServer:
             self.controllers.append(controller)
             logger.info("SMTP server listening on %s:%s", self.host, port)
         if self.balancer_port:
-            controller = Controller(
+            controller = ProxyProtocolController(
                 BalancerHandler(),
                 hostname=self.host,
                 port=self.balancer_port,

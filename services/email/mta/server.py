@@ -6,9 +6,10 @@ import signal
 import sys
 import time
 
-from aiosmtpd.controller import Controller
-
-from services.email.proxy_protocol import proxy_protocol_timeout_seconds
+from services.email.proxy_protocol import (
+    ProxyProtocolController,
+    proxy_protocol_timeout_seconds,
+)
 from services.email.tls import build_tls_context, wait_for_certificate_and_key
 
 from .handlers import MXHandler
@@ -36,7 +37,7 @@ class MXServer:
         handler = MXHandler()
         tls_context = build_tls_context(self.tls_cert_path, self.tls_key_path)
         for port in self.ports:
-            controller = Controller(
+            controller = ProxyProtocolController(
                 handler,
                 hostname=self.host,
                 port=port,

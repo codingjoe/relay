@@ -1,8 +1,11 @@
+import ipaddress
 import logging
 import re
 from email import message_from_bytes
 from email.utils import formatdate
 
+import dns.exception
+import dns.resolver
 from aiosmtpd.smtp import TLSSetupException
 from asgiref.sync import sync_to_async
 from django.conf import settings
@@ -15,7 +18,11 @@ from abstract.mailauth import Disposition, DmarcEvaluation
 from abstract.signals import request_scoped
 from domains.models import Domain
 from services.email.message.models import Transmission
-from services.email.proxy_protocol import ProxyProtocolMixin, get_client_ip
+from services.email.proxy_protocol import (
+    ProxyProtocolMixin,
+    get_client_ip,
+    get_local_ip,
+)
 
 from .arc import seal_message
 from .models import (
@@ -30,6 +37,33 @@ logger = logging.getLogger(__name__)
 # HELO names are attacker-controlled; only these characters may reach the
 # Received header so they cannot inject header lines or Received clauses.
 HELO_ALLOWED_CHARS = re.compile(r"[A-Za-z0-9.\-:\[\]]")
+
+
+def resolve_remote_host(ip: str) -> str:
+    """Return the reverse-DNS hostname of a public IP address, if one exists."""
+    hostname = ""
+    try:
+        address = ipaddress.ip_address(ip)
+    except ValueError:
+        address = None
+    if address is not None and address.is_global:
+        try:
+            answer = dns.resolver.resolve(address.reverse_pointer, "PTR", lifetime=2.0)
+        except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
+            answer = None
+        except dns.exception.Timeout, dns.resolver.NoNameservers:
+            logger.warning("Reverse DNS lookup failed for %r", ip, exc_info=True)
+            answer = None
+        except dns.exception.DNSException:
+            logger.warning(
+                "Reverse DNS lookup failed for malformed address %r",
+                ip,
+                exc_info=True,
+            )
+            answer = None
+        if answer is not None:
+            hostname = str(answer[0]).rstrip(".")
+    return hostname
 
 
 def received_header(session) -> bytes:
@@ -92,6 +126,7 @@ class MXHandler(ProxyProtocolMixin):
         raw_data = envelope.content
         raw_bytes = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
         client_ip = get_client_ip(session)
+        local_ip = get_local_ip(session, getattr(server, "transport", None))
         domain = envelope.recipient_domain
         evaluation = await sync_to_async(
             DmarcEvaluation.from_bytes, thread_sensitive=False
@@ -116,6 +151,7 @@ class MXHandler(ProxyProtocolMixin):
             status,
             evaluation,
             client_ip,
+            local_ip,
         )
         logger.info("Incoming message from %r to %r: %r", mail_from, rcpt_to, result)
         return result
@@ -124,7 +160,15 @@ class MXHandler(ProxyProtocolMixin):
 @sync_to_async
 @request_scoped
 def process_incoming_message(
-    mail_from, rcpt_to, raw_bytes, tls, domain, status, evaluation, client_ip
+    mail_from,
+    rcpt_to,
+    raw_bytes,
+    tls,
+    domain,
+    status,
+    evaluation,
+    client_ip,
+    local_ip="",
 ):
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
@@ -133,6 +177,7 @@ def process_incoming_message(
     subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
     started_at = timezone.now()
+    remote_host = resolve_remote_host(client_ip)
 
     match local_part:
         case (
@@ -152,13 +197,17 @@ def process_incoming_message(
                 raw_bytes=raw_bytes,
                 tls=tls,
                 client_ip=client_ip,
+                local_ip=local_ip,
+                remote_host=remote_host,
                 started_at=started_at,
             )
             if any(r is not None for _, r in responses):
                 return "250 OK"
 
         case settings.RELAY_TLS_REPORT_LOCAL_PART:
-            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+            with Transmission.record_reception(
+                tls, started_at, client_ip, local_ip, remote_host
+            ) as reception:
                 reception.message = report = TlsReport.objects.create(
                     org=domain.org,
                     domain=domain,
@@ -177,7 +226,9 @@ def process_incoming_message(
             return "250 OK"
 
         case _ if is_fbl_recipient and is_fbl_report(evaluation):
-            with Transmission.record_reception(tls, started_at, client_ip) as reception:
+            with Transmission.record_reception(
+                tls, started_at, client_ip, local_ip, remote_host
+            ) as reception:
                 reception.message = message = IncomingMessage.objects.create(
                     org=domain.org,
                     domain=domain,
@@ -193,7 +244,9 @@ def process_incoming_message(
             fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
 
-    with Transmission.record_reception(tls, started_at, client_ip) as reception:
+    with Transmission.record_reception(
+        tls, started_at, client_ip, local_ip, remote_host
+    ) as reception:
         reception.message = message = IncomingMessage.objects.create(
             org=domain.org,
             domain=domain,

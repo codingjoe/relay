@@ -21,7 +21,7 @@ class TestSmtpServerInit:
 
 class TestSmtpServerLifecycle:
     @patch("services.email.msa.server.build_tls_context")
-    @patch("services.email.msa.server.Controller")
+    @patch("services.email.msa.server.ProxyProtocolController")
     def test_start__creates_controller(self, mock_controller_cls, mock_build_tls):
         mock_controller = MagicMock()
         mock_controller_cls.return_value = mock_controller
@@ -32,7 +32,7 @@ class TestSmtpServerLifecycle:
         assert mock_controller.start.call_count == 2
 
     @patch("services.email.msa.server.build_tls_context")
-    @patch("services.email.msa.server.Controller")
+    @patch("services.email.msa.server.ProxyProtocolController")
     def test_stop__calls_controller_stop(self, mock_controller_cls, mock_build_tls):
         mock_controller = MagicMock()
         mock_controller_cls.return_value = mock_controller
@@ -53,7 +53,7 @@ class TestSmtpServerLifecycle:
             server.start()
 
     @patch("services.email.msa.server.build_tls_context")
-    @patch("services.email.msa.server.Controller")
+    @patch("services.email.msa.server.ProxyProtocolController")
     def test_start__does_not_raise_when_no_implicit_tls_ports(
         self, mock_controller_cls, mock_build_tls
     ):

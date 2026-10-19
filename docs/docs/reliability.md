@@ -45,6 +45,9 @@ transmission row with:
 - the submission row records the acceptance answer and whether the
   submission arrived over TLS,
 
+- a reception records both ends of the inbound connection: the local IP
+  that accepted the message and the remote IP with its reverse-DNS hostname,
+
 - a sent attempt records the attempted MX host, the TLS details of the
   connection: STARTTLS or TLS, the protocol version, the cipher suite, and
   the certificate the remote server presented, identified by its SHA-256
