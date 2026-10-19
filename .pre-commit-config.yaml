@@ -106,6 +106,18 @@ repos:
         language: python
   - repo: local
     hooks:
+      - id: django-check
+        name: django-check
+        language: system
+        entry: uv run python manage.py check
+        pass_filenames: false
+        always_run: true
+      - id: django-makemigrations-check
+        name: django-makemigrations-check
+        language: system
+        entry: uv run python manage.py makemigrations --check --dry-run
+        pass_filenames: false
+        always_run: true
       - id: svgo
         name: svgo
         language: node
@@ -125,3 +137,5 @@ ci:
   skip:
     - no-commit-to-branch
     - shellcheck
+    - django-check
+    - django-makemigrations-check
