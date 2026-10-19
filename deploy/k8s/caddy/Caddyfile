@@ -123,8 +123,7 @@
 	cache
 	encode zstd br gzip
 
-	# Django and the MCP app serve no WebSocket endpoints. Reject upgrades at
-	# the edge so Granian never hands Django a WebSocket scope.
+	# Django and MCP serve no WebSocket endpoints. Reject upgrades at the edge.
 	@websocket {
 		header_regexp Connection "(?i)upgrade"
 		header_regexp Upgrade "(?i)websocket"
