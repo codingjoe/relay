@@ -38,7 +38,7 @@ def register_docs_resources(mcp: FastMCP) -> None:
         mcp.add_resource(
             TextResource(
                 uri=f"docs://{slug}",
-                name=f"docs-{slug}",
+                name=slug,
                 title=metadata["name"],
                 description=metadata.get("description", ""),
                 mime_type="text/markdown",

@@ -38,7 +38,7 @@ def register_know_how_resources(mcp: FastMCP) -> None:
         mcp.add_resource(
             TextResource(
                 uri=f"know-how://{slug}",
-                name=f"know-how-{slug}",
+                name=slug,
                 title=metadata["name"],
                 description=metadata.get("description", ""),
                 mime_type="text/markdown",
