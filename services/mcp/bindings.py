@@ -1,6 +1,7 @@
 """Gather the MCP components every app declares in its own `mcp` module."""
 
 from fastmcp import FastMCP
+from fastmcp.server.transforms.search import BM25SearchTransform
 
 from docs.mcp import register_docs_resources
 from know_how.mcp import register_know_how_resources
@@ -16,3 +17,4 @@ def bind(mcp: FastMCP) -> None:
     # Content is exposed as one resource per article so clients enumerate them.
     register_docs_resources(mcp)
     register_know_how_resources(mcp)
+    mcp.add_transform(BM25SearchTransform())
