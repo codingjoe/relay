@@ -66,8 +66,11 @@ async def health(_: Request) -> JSONResponse:
 
 application = mcp.http_app(
     path="/mcp",
+    # No shared session state across replicas and workers, so requests are independent.
     stateless_http=True,
     json_response=True,
     host_origin_protection=True,
     allowed_hosts=[*settings.ALLOWED_HOSTS, "localhost"],
+    # Caddy terminates TLS, so trust the public origin rather than the ASGI scheme.
+    allowed_origins=[settings.MCP_BASE_URL],
 )

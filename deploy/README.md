@@ -153,7 +153,7 @@ namespace and a Role cannot patch a cluster-scoped Namespace. See
 curl https://relays.to/health/node/        # host resources, the container probes
 curl https://relays.to/health/application/ # every dependency relay controls
 curl https://relays.to/health/pipeline/    # third-party status pages the pipeline depends on
-curl -i https://relays.to/mcp              # 401 with the discovery pointer, not a 502
+curl -i -X POST https://relays.to/mcp -d '{}'  # 401 with the discovery pointer, not a 502
 openssl s_client -connect smtp.relays.to:587 -starttls smtp
 openssl s_client -connect mx1.relays.to:25 -starttls smtp
 dig +short pg.relays.to storage.relays.to
@@ -450,7 +450,10 @@ Caddy restart. Pages carry a short `max-age` (5 seconds for HTML, 5 minutes
 for generated text files) and stay in the edge cache for a minute
 (`s-maxage`). Private pages answer `no-store` or revalidate with an ETag under
 `private, max-age=5, must-revalidate`. A response without a `Cache-Control`
-header is not stored at all.
+header is not stored at all. The MCP endpoint at `/mcp` is excluded from the
+cache entirely: its responses are per-user, and the cache key does not include
+the Authorization header. Caddy also flushes the MCP route immediately, so a
+response is not held in the proxy buffer.
 
 Caddy creates its cache storer once at startup. If it starts before
 `caddy-redis` answers, it logs a Redis init error and keeps cache entries in

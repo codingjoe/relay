@@ -19,6 +19,7 @@ spec:
       containers:
         - name: mcp
           image: ghcr.io/codingjoe/relay
+          # `asgi` sends lifespan events; FastMCP starts its session manager from them.
           args: ["-m", "granian", "--interface", "asgi", "--port", "8000", "--host", "0.0.0.0", "services.mcp.asgi:application"]
           env:
             - name: HOSTNAME
