@@ -60,7 +60,8 @@ repo root.
 
 - [ ] `curl https://relays.to/health/node/` answers 200.
 - [ ] `curl https://relays.to/health/application/` answers 200.
-- [ ] `curl https://relays.to/health/pipeline/` answers 200.
+- [ ] `curl https://relays.to/health/pipeline/` answers 200. A failure can
+  come from a third-party incident.
 - [ ] `curl -i -X POST https://relays.to/mcp -d '{}'` answers 401 with a
   discovery pointer, not 502.
 - [ ] `openssl s_client -connect smtp.relays.to:587 -starttls smtp` completes
