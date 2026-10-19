@@ -14,8 +14,9 @@ def bind(mcp: FastMCP) -> None:
     """Register every component offered to MCP clients."""
     mcp.add_tool(list_messages)
     mcp.add_tool(send_message)
+    mcp.add_tool(list_docs)
+    mcp.add_tool(list_know_how)
     mcp.add_resource(get_message)
-    mcp.add_resource(list_docs)
+    # Content may be read one article at a time.
     mcp.add_resource(get_docs_article)
-    mcp.add_resource(list_know_how)
     mcp.add_resource(get_know_how_article)

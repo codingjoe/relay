@@ -1,5 +1,3 @@
-import json
-
 import pytest
 from fastmcp.exceptions import ResourceError
 
@@ -8,7 +6,7 @@ from docs.mcp import get_docs_article, list_docs
 
 class TestListDocs:
     def test_list_docs__returns_every_article(self):
-        articles = json.loads(list_docs())["articles"]
+        articles = list_docs()
 
         assert articles
         assert [article["slug"] for article in articles] == sorted(
@@ -17,7 +15,7 @@ class TestListDocs:
         assert "security" in {article["slug"] for article in articles}
         assert all(article["author"] for article in articles)
         assert all(
-            article["uri"] == f"relay://docs/{article['slug']}" for article in articles
+            article["uri"] == f"docs://{article['slug']}" for article in articles
         )
 
 

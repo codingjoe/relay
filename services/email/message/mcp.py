@@ -119,7 +119,7 @@ def list_messages(
 
 
 @resource(
-    "relay://email/messages/{message_id}",
+    "email://messages/{message_id}",
     mime_type="application/json",
     auth=require_scopes(MessageScope.read),
 )

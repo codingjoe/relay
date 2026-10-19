@@ -1,5 +1,3 @@
-import json
-
 import pytest
 from fastmcp.exceptions import ResourceError
 
@@ -8,7 +6,7 @@ from know_how.mcp import get_know_how_article, list_know_how
 
 class TestListKnowHow:
     def test_list_know_how__returns_every_article(self):
-        articles = json.loads(list_know_how())["articles"]
+        articles = list_know_how()
 
         assert articles
         assert [article["slug"] for article in articles] == sorted(
@@ -17,8 +15,7 @@ class TestListKnowHow:
         assert "dmarc" in {article["slug"] for article in articles}
         assert all(article["author"] for article in articles)
         assert all(
-            article["uri"] == f"relay://know-how/{article['slug']}"
-            for article in articles
+            article["uri"] == f"know-how://{article['slug']}" for article in articles
         )
 
 

@@ -1,11 +1,10 @@
 """Expose the know-how articles to MCP clients."""
 
-import json
-
 from django.http import Http404
 from django.urls import reverse
 from fastmcp.exceptions import ResourceError
 from fastmcp.resources import resource
+from fastmcp.tools import tool
 
 from abstract.mcp import render_markdown_template
 
@@ -19,27 +18,27 @@ class KnowHowArticleError(ResourceError):
         super().__init__(f"Know-how article not found: {slug}")
 
 
-@resource("relay://know-how", mime_type="application/json")
-def list_know_how() -> str:
-    """Return the know-how index."""
-    return json.dumps(
+@tool
+def list_know_how() -> list[dict[str, object]]:
+    """
+    Return the know-how index.
+
+    Each entry names its slug and the URI to read the article body.
+    """
+    return [
         {
-            "articles": [
-                {
-                    "slug": slug,
-                    "title": metadata["name"],
-                    "description": metadata.get("description", ""),
-                    "author": metadata.get("author", ""),
-                    "uri": f"relay://know-how/{slug}",
-                    "url": reverse("know_how:detail", args=[slug]),
-                }
-                for slug, metadata in KnowHowListView.get_articles()
-            ]
+            "slug": slug,
+            "title": metadata["name"],
+            "description": metadata.get("description", ""),
+            "author": metadata.get("author", ""),
+            "uri": f"know-how://{slug}",
+            "url": reverse("know_how:detail", args=[slug]),
         }
-    )
+        for slug, metadata in KnowHowListView.get_articles()
+    ]
 
 
-@resource("relay://know-how/{slug}", mime_type="text/markdown")
+@resource("know-how://{slug}", mime_type="text/markdown")
 def get_know_how_article(slug: str) -> str:
     """
     Return one know-how article as Markdown.

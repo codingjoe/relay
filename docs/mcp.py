@@ -1,11 +1,10 @@
 """Expose the product documentation to MCP clients."""
 
-import json
-
 from django.http import Http404
 from django.urls import reverse
 from fastmcp.exceptions import ResourceError
 from fastmcp.resources import resource
+from fastmcp.tools import tool
 
 from abstract.mcp import render_markdown_template
 
@@ -19,27 +18,27 @@ class DocsArticleError(ResourceError):
         super().__init__(f"Documentation article not found: {slug}")
 
 
-@resource("relay://docs", mime_type="application/json")
-def list_docs() -> str:
-    """Return the product documentation index."""
-    return json.dumps(
+@tool
+def list_docs() -> list[dict[str, object]]:
+    """
+    Return the product documentation index.
+
+    Each entry names its slug and the URI to read the article body.
+    """
+    return [
         {
-            "articles": [
-                {
-                    "slug": slug,
-                    "title": metadata["name"],
-                    "description": metadata.get("description", ""),
-                    "author": metadata.get("author", ""),
-                    "uri": f"relay://docs/{slug}",
-                    "url": reverse("docs:detail", args=[slug]),
-                }
-                for slug, metadata in DocsListView.get_articles()
-            ]
+            "slug": slug,
+            "title": metadata["name"],
+            "description": metadata.get("description", ""),
+            "author": metadata.get("author", ""),
+            "uri": f"docs://{slug}",
+            "url": reverse("docs:detail", args=[slug]),
         }
-    )
+        for slug, metadata in DocsListView.get_articles()
+    ]
 
 
-@resource("relay://docs/{slug}", mime_type="text/markdown")
+@resource("docs://{slug}", mime_type="text/markdown")
 def get_docs_article(slug: str) -> str:
     """
     Return one product documentation article as Markdown.
