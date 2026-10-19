@@ -3,7 +3,7 @@
 from django.http import Http404
 from fastmcp import FastMCP
 from fastmcp.exceptions import ResourceError
-from fastmcp.resources import resource
+from fastmcp.resources.types import TextResource
 
 from abstract.mcp import render_markdown_template
 
@@ -32,24 +32,16 @@ def get_docs_article(slug: str) -> str:
     return render_markdown_template(f"{slug}.md")
 
 
-def docs_resource(uri: str, slug: str, metadata: dict[str, object]):
-    """Build a resource object for one documentation article."""
-
-    @resource(
-        uri,
-        mime_type="text/markdown",
-        name=f"docs-{slug}",
-        title=metadata["name"],
-        description=metadata.get("description", ""),
-    )
-    def reader() -> str:
-        return get_docs_article(slug)
-
-    return reader
-
-
 def register_docs_resources(mcp: FastMCP) -> None:
-    """Register one resource for each documentation article."""
+    """Register one text resource for each documentation article."""
     for slug, metadata in DocsListView.get_articles():
-        uri = f"docs://{slug}"
-        mcp.add_resource(docs_resource(uri=uri, slug=slug, metadata=metadata))
+        mcp.add_resource(
+            TextResource(
+                uri=f"docs://{slug}",
+                name=f"docs-{slug}",
+                title=metadata["name"],
+                description=metadata.get("description", ""),
+                mime_type="text/markdown",
+                text=get_docs_article(slug),
+            )
+        )
