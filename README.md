@@ -54,7 +54,6 @@ commit. Run `uvx prek run --all-files` to check the whole tree.
 `just production access` installs your cluster-access kubeconfig as
 `~/.kube/relay.yaml`. `just production dozzle` opens the production log
 dashboard, and `just production threadmill` opens the task inspector.
-Deployment and upgrades are covered in `deploy/README.md`.
 
 ## Managed Sender Domain
 
