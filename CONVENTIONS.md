@@ -117,6 +117,14 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Reference `views.MyView.as_view()` in URL configs.
 - Do not import per-property. Import the module directly.
 
+## MCP Components
+
+- Declare a tool, resource, or prompt in the `mcp` module of the app that owns
+  the data. Use FastMCP's standalone `@tool`, `@resource`, or `@prompt`
+  decorator.
+- A module that generates resources from content may expose a
+  `register_components(provider)` function instead.
+
 ## Tasks
 
 - Declare the queue on the task itself, so the pipeline stage is visible at

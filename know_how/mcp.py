@@ -1,8 +1,8 @@
 """Expose the know-how articles to MCP clients."""
 
 from django.template import Context, Engine
-from fastmcp import FastMCP
 from fastmcp.resources.types import TextResource
+from fastmcp.server.providers import LocalProvider
 
 from abstract.utils import strip_frontmatter
 
@@ -17,10 +17,10 @@ def get_know_how_article(slug: str) -> str:
     return f"{strip_frontmatter(text)}\n\n---\n\n{LICENSE_MARKDOWN}"
 
 
-def register_know_how_resources(mcp: FastMCP) -> None:
+def register_components(provider: LocalProvider) -> None:
     """Expose one text resource per know-how article."""
     for slug, metadata in KnowHowContent.get_articles():
-        mcp.add_resource(
+        provider.add_resource(
             TextResource(
                 uri=f"know-how://{slug}",
                 name=slug,

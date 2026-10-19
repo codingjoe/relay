@@ -12,11 +12,15 @@ from django.conf import settings  # noqa: E402
 from fastmcp import FastMCP  # noqa: E402
 from fastmcp.server.auth import RemoteAuthProvider  # noqa: E402
 from fastmcp.server.auth.providers.jwt import JWTVerifier  # noqa: E402
+from fastmcp.server.transforms.search import BM25SearchTransform  # noqa: E402
 
 from abstract.scopes import MCP_REQUIRED_SCOPES, scopes  # noqa: E402
 
-from .bindings import bind  # noqa: E402
 from .middleware import DjangoRequestSignalsMiddleware  # noqa: E402
+from .provider import AppMCPProvider  # noqa: E402
+
+# Construct first: importing each app's `mcp` module registers the scopes advertised below.
+mcp_provider = AppMCPProvider()
 
 token_verifier = JWTVerifier(
     audience=settings.MCP_RESOURCE_URL,
@@ -44,9 +48,10 @@ mcp = FastMCP(
     list_page_size=50,
     mask_error_details=not settings.DEBUG,
     strict_input_validation=True,
+    providers=[mcp_provider],
 )
 mcp.add_middleware(DjangoRequestSignalsMiddleware())
-bind(mcp)
+mcp.add_transform(BM25SearchTransform())
 
 
 @mcp.custom_route("/health", methods=["GET"], include_in_schema=False)
