@@ -601,6 +601,7 @@ if SENTRY_DSN and not TEST and not DEBUG:
     import sentry_sdk
     from sentry_sdk.integrations.asyncio import AsyncioIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.mcp import MCPIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
     sentry_sdk.init(
@@ -610,6 +611,7 @@ if SENTRY_DSN and not TEST and not DEBUG:
             DjangoIntegration(),
             AsyncioIntegration(),
             ThreadingIntegration(),
+            MCPIntegration(),
         ],
         release=SENTRY_RELEASE or None,
         send_default_pii=False,

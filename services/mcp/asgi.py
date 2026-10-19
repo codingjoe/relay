@@ -1,5 +1,8 @@
 import os
 
+# Send FastMCP records to the project logger instead of its Rich console handler.
+os.environ.setdefault("FASTMCP_LOG_ENABLED", "false")
+
 import django
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -12,6 +15,7 @@ from django.conf import settings  # noqa: E402
 from fastmcp import FastMCP  # noqa: E402
 from fastmcp.server.auth import RemoteAuthProvider  # noqa: E402
 from fastmcp.server.auth.providers.jwt import JWTVerifier  # noqa: E402
+from fastmcp.server.middleware.logging import StructuredLoggingMiddleware  # noqa: E402
 from fastmcp.server.transforms.search import BM25SearchTransform  # noqa: E402
 
 from abstract.scopes import MCP_REQUIRED_SCOPES, scopes  # noqa: E402
@@ -51,6 +55,7 @@ mcp = FastMCP(
     providers=[mcp_provider],
 )
 mcp.add_middleware(DjangoRequestSignalsMiddleware())
+mcp.add_middleware(StructuredLoggingMiddleware())
 mcp.add_transform(BM25SearchTransform())
 
 
