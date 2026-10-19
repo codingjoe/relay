@@ -19,6 +19,9 @@ from abstract.scopes import MCP_REQUIRED_SCOPES, scopes  # noqa: E402
 from .middleware import DjangoRequestSignalsMiddleware  # noqa: E402
 from .provider import AppMCPProvider  # noqa: E402
 
+# Construct first: importing each app's `mcp` module registers the scopes advertised below.
+mcp_provider = AppMCPProvider()
+
 token_verifier = JWTVerifier(
     audience=settings.MCP_RESOURCE_URL,
     jwks_uri=settings.MCP_OIDC_JWKS_URL,
@@ -45,7 +48,7 @@ mcp = FastMCP(
     list_page_size=50,
     mask_error_details=not settings.DEBUG,
     strict_input_validation=True,
-    providers=[AppMCPProvider()],
+    providers=[mcp_provider],
 )
 mcp.add_middleware(DjangoRequestSignalsMiddleware())
 mcp.add_transform(BM25SearchTransform())

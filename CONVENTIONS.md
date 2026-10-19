@@ -122,6 +122,8 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Declare a tool, resource, or prompt in the `mcp` module of the app that owns
   the data. Use FastMCP's standalone `@tool`, `@resource`, or `@prompt`
   decorator.
+- A module that generates resources from content may expose a
+  `register_components(provider)` function instead.
 
 ## Tasks
 
