@@ -22,8 +22,10 @@ from oauthlib.openid.connect.core.exceptions import ConsentRequired
 import abstract.scopes
 from abstract.scopes import MCP_REQUIRED_SCOPES, scopes
 
-# Imported for its registration side effect: every app advertises scopes in its own `mcp` module.
-from services.mcp import bindings  # noqa: F401
+from .provider import AppMCPProvider
+
+# Importing each app's `mcp` module registers the scopes declared beside its components.
+list(AppMCPProvider.app_mcp_modules())
 
 
 class OIDCAdapter(DefaultOIDCAdapter):

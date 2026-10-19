@@ -460,6 +460,3 @@ forbidden_modules = [
   "services.email.reputation",
   "well_known",
 ]
-# The MCP provider registers the scopes each app declares beside its tools, and
-# the web process mounts that provider for its URL wiring.
-ignore_imports = [ "services.mcp.oidc -> services.mcp.bindings" ]

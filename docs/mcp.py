@@ -1,8 +1,8 @@
 """Expose the product documentation to MCP clients."""
 
 from django.template import Context, Engine
-from fastmcp import FastMCP
 from fastmcp.resources.types import TextResource
+from fastmcp.server.providers import LocalProvider
 
 from abstract.utils import strip_frontmatter
 
@@ -17,10 +17,10 @@ def get_docs_article(slug: str) -> str:
     return strip_frontmatter(text)
 
 
-def register_docs_resources(mcp: FastMCP) -> None:
+def register_components(provider: LocalProvider) -> None:
     """Expose one text resource per documentation article."""
     for slug, metadata in DocsContent.get_articles():
-        mcp.add_resource(
+        provider.add_resource(
             TextResource(
                 uri=f"docs://{slug}",
                 name=slug,
