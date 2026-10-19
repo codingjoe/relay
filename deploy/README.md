@@ -37,6 +37,8 @@ repo root.
 - [ ] Run `RELAY_HOSTNAME="relays.to" ./deploy/provision.sh`.
 - [ ] Add the printed nameservers to the registrar.
 - [ ] Rerun `./deploy/provision.sh`.
+- [ ] Back up `deploy/.state/talos/`. It holds the only copy of the cluster
+  secrets.
 
 ## OAuth credentials
 
