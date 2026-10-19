@@ -53,8 +53,8 @@ commit. Run `uvx prek run --all-files` to check the whole tree.
 
 `just production access` installs your cluster-access kubeconfig as
 `~/.kube/relay.yaml`. `just production dozzle` opens the production log
-dashboard, and `just production threadmill` opens the task inspector. The
-cluster itself is covered in `deploy/README.md`.
+dashboard, and `just production threadmill` opens the task inspector.
+Deployment and upgrades are covered in `deploy/README.md`.
 
 ## Managed Sender Domain
 
@@ -137,7 +137,7 @@ services run two replicas; `postgres`, `redis-tasks` and the `crontask`
 scheduler run one. Two independent replicas of a database or a task queue would
 hold divergent data rather than provide redundancy, and the scheduler already
 elects one active instance through a Redis lock. The manifests are in
-`deploy/k8s/`, and `deploy/README.md` is the operator guide.
+`deploy/k8s/`, and `deploy/README.md` is the deployment checklist.
 
 | Service | Port         | Description                                                    |
 | ------- | ------------ | -------------------------------------------------------------- |
