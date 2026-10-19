@@ -13,8 +13,8 @@ automatically. GitHub OAuth handles authentication.
 
 Four services from one codebase, each a separate container. Production runs
 them on a single-node Talos Linux cluster in the `default` namespace: the
-manifests are in `deploy/k8s/`, and `deploy/README.md` is the operator guide and
-the place to look for how deployments, probes and certificates work.
+manifests are in `deploy/k8s/`, and `deploy/README.md` holds the deployment
+checklist.
 
 - **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
 - **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
