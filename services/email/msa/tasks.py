@@ -724,25 +724,19 @@ def parse_bounce_report(message_pk):
                         message_pk,
                         owner.pk,
                     )
-                case DsnAction.FAILED:
-                    with Transmission(
-                        message=owner,
-                        status=Transmission.Status.BOUNCED,
-                        code=delivery_status.code,
-                        output=delivery_status.output,
-                    ):
-                        owner.status = OutgoingMessage.Status.BOUNCED
-                        owner.save(update_fields=["status"])
-                        SuppressionEntry.objects.create_or_update(
-                            org=owner.org,
-                            email=owner.rcpt_to,
-                            reason=SuppressionEntry.Reason.BOUNCE,
-                        )
-                case DsnAction.DELAYED:
-                    with Transmission(
-                        message=owner,
-                        status=Transmission.Status.RETRY,
-                        code=delivery_status.code,
-                        output=delivery_status.output,
-                    ):
-                        pass
+                case DsnAction.FAILED | DsnAction.DELAYED as action:
+                    with Transmission(message=owner) as transmission:
+                        transmission.code = delivery_status.code
+                        transmission.output = delivery_status.output
+                        match action:
+                            case DsnAction.FAILED:
+                                transmission.status = Transmission.Status.BOUNCED
+                                owner.status = OutgoingMessage.Status.BOUNCED
+                                owner.save(update_fields=["status"])
+                                SuppressionEntry.objects.create_or_update(
+                                    org=owner.org,
+                                    email=owner.rcpt_to,
+                                    reason=SuppressionEntry.Reason.BOUNCE,
+                                )
+                            case DsnAction.DELAYED:
+                                transmission.status = Transmission.Status.RETRY
