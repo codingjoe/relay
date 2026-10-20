@@ -1,4 +1,5 @@
 import pytest
+from django.templatetags.static import static
 from django.urls import reverse
 
 
@@ -10,3 +11,12 @@ class TestAdminSite:
 
         assert response.status_code == 200
         assert "/static/admin/" in response.content.decode()
+        assert static("css/app.css") in response.content.decode()
+
+    def test_get__login_uses_stock_widgets(self, client):
+        response = client.get(reverse("admin:login"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert 'class="input"' not in content
+        assert "input-group" not in content

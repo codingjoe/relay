@@ -150,3 +150,43 @@
     align-items: center;
   }
 }
+
+/* Restore the admin shell and native controls after basecoat's resets. */
+:where(html:has(body.admin), body.admin, body.admin *, body.admin *::before, body.admin *::after) {
+  box-sizing: content-box;
+}
+
+body.admin {
+  line-height: normal;
+
+  & :is(select, button, input[type="checkbox"], input[type="radio"], input[type="file"], input[type="submit"], input[type="button"], input[type="reset"]) {
+    box-sizing: border-box;
+  }
+
+  & img {
+    display: inline;
+    vertical-align: middle;
+  }
+
+  & :is(input:not([type="submit"], [type="button"], [type="reset"]), select, textarea) {
+    line-height: normal;
+    outline-color: auto;
+    outline-color: -webkit-focus-ring-color;
+  }
+
+  & summary {
+    display: list-item;
+  }
+
+  & select {
+    appearance: auto;
+    background-image: none;
+  }
+}
+
+/* Restore Django's --primary, --secondary, and --accent palette on admin pages. */
+html:has(body.admin) {
+  --primary: light-dark(#79aec8, #264b5d);
+  --secondary: #417690;
+  --accent: #f5dd5d;
+}

@@ -6,6 +6,23 @@ from django.conf import settings
 from django.middleware.csp import (
     ContentSecurityPolicyMiddleware as DjangoContentSecurityPolicyMiddleware,
 )
+from django.urls import reverse
+
+from .renderers import admin_rendering
+
+
+class AdminFormRendererMiddleware:
+    """Render admin form widgets with Django's stock templates."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        token = admin_rendering.set(request.path.startswith(reverse("admin:index")))
+        try:
+            return self.get_response(request)
+        finally:
+            admin_rendering.reset(token)
 
 
 class ContentSecurityPolicyMiddleware(DjangoContentSecurityPolicyMiddleware):
