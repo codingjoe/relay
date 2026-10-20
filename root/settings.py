@@ -135,9 +135,9 @@ if SENTRY_DSN and not (TEST or DEBUG):
 
 # Application definition
 
-# Render Django forms (and widgets) using the project's template engine,
-# so per-project overrides under `templates/django/forms/...` take effect.
-FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
+# Render app forms through the project template engine so the basecoat widget
+# overrides apply. Admin requests switch to Django's stock widgets.
+FORM_RENDERER = "root.renderers.RelayFormRenderer"
 
 INSTALLED_APPS = [
     # Ahead of staticfiles so ServeStatic serves them in development too.
@@ -188,6 +188,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "root.middleware.AdminFormRendererMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "root.middleware.ContentSecurityPolicyMiddleware",
     *(
@@ -225,6 +226,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
+            BASE_DIR / "root" / "templates",
             BASE_DIR / "legal" / "docs",
             BASE_DIR / "know_how" / "docs",
             BASE_DIR / "alternative_to" / "docs",

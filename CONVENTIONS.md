@@ -257,6 +257,16 @@ A rule lives either in this document or in `.relint.yml`, never both.
   for component styling. Use basecoat classes instead. If a utility is
   missing, prefer a Tailwind utility before adding a custom rule.
 
+- The Django admin renders through the app template engine but uses Django's
+  stock widgets. `root.middleware.AdminFormRendererMiddleware` marks admin
+  requests, and `root.renderers.RelayFormRenderer` then loads the stock widget
+  templates while app forms keep the basecoat overrides under
+  `abstract/templates/django/forms/widgets/`. The admin still loads
+  `css/app.css` from `root/templates/admin/base_site.html`, so
+  `components.css` restores the preflight box model, the native select arrow,
+  and Django's `--primary`, `--secondary`, and `--accent` tokens on admin
+  pages. Keep admin-only rules scoped to `.admin` or `html:has(body.admin)`.
+
 - Django form widgets are styled by overriding templates under
   `abstract/templates/django/forms/widgets/{input,checkbox,select,textarea}.html`.
   Each override adds the matching basecoat class
