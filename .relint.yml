@@ -251,6 +251,6 @@
   hint: 'Render the icon with `{% tabler name="..." size="..." %}` instead of a hand-written `<svg>` that references the sprite.'
   filePattern: '(?!.*abstract/templates/abstract/tabler\.html$).*\.html$'
 - name: Nest admin CSS rules under the admin scope
-  pattern: '(?m)^(?:body\.admin|\.admin)[ \t]+\S[^{\n]*\{'
+  pattern: '(?m)^[ \t]*(?:body\.admin|\.admin)[ \t]+\S[^{\n]*\{'
   hint: 'Nest admin-only rules inside the `body.admin` block with `&` instead of repeating the `body.admin` prefix. Native CSS nesting keeps the scope and its overrides together.'
   filePattern: '^src/css/.*\.css$'
