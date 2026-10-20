@@ -1,0 +1,18 @@
+{% load i18n static %}
+<link rel="stylesheet" href="{% static 'hijack/hijack.css' %}" media="screen">
+<div class="djhj" id="djhj" role="status">
+  <div class="djhj-notification">
+    <div class="djhj-message">
+      {% blocktranslate trimmed with user=request.user %}
+        You are currently working on behalf of <em>{{ user }}</em>.
+      {% endblocktranslate %}
+    </div>
+    <form action="{% url 'hijack:release' %}" method="post" class="djhj-actions">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button class="djhj-button" type="submit">
+        {% translate "stop impersonating" %}
+      </button>
+    </form>
+  </div>
+</div>
