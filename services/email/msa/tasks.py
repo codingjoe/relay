@@ -696,53 +696,53 @@ def parse_bounce_report(message_pk):
                 )
                 .get(pk=owner.pk)
             )
-            tracked = delivery_status.action in (
-                DsnAction.FAILED,
-                DsnAction.DELAYED,
-            )
-            if tracked and owner.status not in (
-                OutgoingMessage.Status.SENT,
-                OutgoingMessage.Status.FAILED,
-            ):
-                logger.warning(
-                    "Bounce DSN %r does not apply to outgoing message %r in status %r",
-                    message_pk,
-                    owner.pk,
-                    owner.status,
-                )
-            elif tracked and (
-                delivery_status.final_recipient.lower() != owner.rcpt_to.lower()
-            ):
-                logger.warning(
-                    "Bounce DSN %r does not report recipient %r of outgoing message %r",
-                    message_pk,
-                    owner.rcpt_to,
-                    owner.pk,
-                )
-            elif (
-                delivery_status.action == DsnAction.DELAYED
-                and Transmission.objects.filter(
+            match delivery_status.action:
+                case DsnAction.FAILED | DsnAction.DELAYED if owner.status not in (
+                    OutgoingMessage.Status.SENT,
+                    OutgoingMessage.Status.FAILED,
+                ):
+                    logger.warning(
+                        "Bounce DSN %r does not apply to outgoing message %r in status %r",
+                        message_pk,
+                        owner.pk,
+                        owner.status,
+                    )
+                case DsnAction.FAILED | DsnAction.DELAYED if (
+                    delivery_status.final_recipient.lower() != owner.rcpt_to.lower()
+                ):
+                    logger.warning(
+                        "Bounce DSN %r does not report recipient %r of outgoing message %r",
+                        message_pk,
+                        owner.rcpt_to,
+                        owner.pk,
+                    )
+                case DsnAction.DELAYED if Transmission.objects.filter(
                     message=owner, status=Transmission.Status.RETRY
-                ).exists()
-            ):
-                logger.warning(
-                    "Bounce DSN %r repeats a recorded retry for outgoing message %r",
-                    message_pk,
-                    owner.pk,
-                )
-            elif tracked:
-                with Transmission(message=owner) as transmission:
-                    transmission.code = delivery_status.code
-                    transmission.output = delivery_status.output
-                    match delivery_status.action:
-                        case DsnAction.FAILED:
-                            transmission.status = Transmission.Status.BOUNCED
-                            owner.status = OutgoingMessage.Status.BOUNCED
-                            owner.save(update_fields=["status"])
-                            SuppressionEntry.objects.create_or_update(
-                                org=owner.org,
-                                email=owner.rcpt_to,
-                                reason=SuppressionEntry.Reason.BOUNCE,
-                            )
-                        case DsnAction.DELAYED:
-                            transmission.status = Transmission.Status.RETRY
+                ).exists():
+                    logger.warning(
+                        "Bounce DSN %r repeats a recorded retry for outgoing message %r",
+                        message_pk,
+                        owner.pk,
+                    )
+                case DsnAction.FAILED:
+                    with Transmission(
+                        message=owner,
+                        status=Transmission.Status.BOUNCED,
+                        code=delivery_status.code,
+                        output=delivery_status.output,
+                    ):
+                        owner.status = OutgoingMessage.Status.BOUNCED
+                        owner.save(update_fields=["status"])
+                        SuppressionEntry.objects.create_or_update(
+                            org=owner.org,
+                            email=owner.rcpt_to,
+                            reason=SuppressionEntry.Reason.BOUNCE,
+                        )
+                case DsnAction.DELAYED:
+                    with Transmission(
+                        message=owner,
+                        status=Transmission.Status.RETRY,
+                        code=delivery_status.code,
+                        output=delivery_status.output,
+                    ):
+                        pass
