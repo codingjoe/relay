@@ -583,7 +583,8 @@ def parse_delivery_status(raw_bytes: bytes) -> DeliveryStatus:
     Return the delivery status parsed from a DSN's first recipient block.
 
     Raise `ValueError` when the message has no `message/delivery-status`
-    part or no per-recipient block.
+    part, no per-recipient block, or an action outside RFC 3464's
+    vocabulary.
     """
     msg = message_from_bytes(raw_bytes)
     status_part = next(
