@@ -2,12 +2,12 @@ import logging
 
 from crontask import cron
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 
 from accounts.models import Organization
 from services.email.msa.models import OutgoingMessage
+from services.email.msa.tasks import resolve_bounce_owner
 from services.email.mta.models import IncomingMessage
 
 from . import evaluation
@@ -16,27 +16,6 @@ from .emails import WeeklyDigestEmail
 from .models import FblReport
 
 logger = logging.getLogger(__name__)
-
-
-def resolve_fbl_message(original_mail_from: str) -> OutgoingMessage | None:
-    """
-    Return the message a report is about, or `None`.
-
-    The per-message proof the provider echoes is the full VERP envelope
-    sender (`bounce+<message-id>@<sender-domain>`). Anything else returns
-    `None`.
-    """
-    token = original_mail_from.partition("@")[0].partition("+")[2]
-    try:
-        original = OutgoingMessage.objects.select_related("org", "domain").get(pk=token)
-    except ValidationError, OutgoingMessage.DoesNotExist:
-        return None
-    if original_mail_from != (
-        f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-        f"@{original.domain.sender_domain}"
-    ):
-        return None
-    return original
 
 
 @task()
@@ -69,7 +48,7 @@ def create_provider_fbl_report(message_pk):
     except ValueError:
         logger.warning("FBL report %r is not an ARF email", message_pk)
         return
-    complained_message = resolve_fbl_message(parsed.original_mail_from)
+    complained_message = resolve_bounce_owner(parsed.original_mail_from)
     if complained_message is None:
         logger.warning(
             "FBL report %r names no message relay sent, kept as a message only",

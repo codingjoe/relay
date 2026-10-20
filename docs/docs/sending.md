@@ -117,8 +117,10 @@ Important details of the pipeline:
   because Gmail groups its complaint rates by those identifiers. relay
   replaces a customer-supplied `Feedback-ID`.
 - **The envelope differs from the From header.** The Return-Path becomes
-  `bounce+{message-id}@{sender-subdomain}`, so each bounce identifies one
-  message and the envelope domain aligns with your DKIM.
+  `bounce+{token}@{sender-subdomain}` with a short signed token that names
+  one message, so each bounce identifies one message, the envelope domain
+  aligns with your DKIM, and only relay can mint the token a bounce report
+  must carry.
 - **Sending spreads across an IP pool.** Each outgoing connection leaves
   through a randomly picked relay sending IP. Every pool IP has matching
   forward and reverse DNS, and a blacklisted IP can rotate out without an
@@ -137,14 +139,14 @@ Important details of the pipeline:
 
 The message carries one status. Every attempt carries its own:
 
-| Message status | Meaning                                                             |
-| -------------- | ------------------------------------------------------------------- |
-| pending        | Stored, spam scan or delivery not finished yet                      |
-| held           | the scanner held the message for spam or malware, and it never left |
-| sent           | At least one attempt ended with success                             |
-| bounced        | A recipient server rejected the message permanently                 |
-| suppressed     | The recipient is on the suppression list                            |
-| failed         | relay cannot deliver after its retries, the transcript shows why    |
+| Message status | Meaning                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| pending        | Stored, spam scan or delivery not finished yet                                                                    |
+| held           | the scanner held the message for spam or malware, and it never left                                               |
+| sent           | At least one attempt ended with success, unless a late bounce report flips it to bounced                          |
+| bounced        | A recipient server rejected the message permanently, in the SMTP answer or in a later bounce report               |
+| suppressed     | The recipient is on the suppression list                                                                          |
+| failed         | relay cannot deliver after its retries, the transcript shows why, unless a late bounce report flips it to bounced |
 
 The Transmission list per message starts with the submission and shows
 every delivery attempt: the MX host context, the SMTP status code, the
@@ -154,9 +156,12 @@ answer text, and whether TLS was in use.
 
 On a permanent 5xx rejection relay records the bounce and adds the
 recipient's address as a suppressions entry with the reason *bounce*.
-Suppressed addresses reject silently on later submissions. There is no
-automatic removal. A human can release an address again in the
-dashboard. Manual entries can carry reason *manual*.
+The rejection can also arrive after acceptance: a recipient server that
+accepted the message can still send a bounce report to the per-message
+bounce address, and the outcome is the same. Suppressed addresses reject
+silently on later submissions. There is no automatic removal. A human can
+release an address again in the dashboard. Manual entries can carry reason
+*manual*.
 
 ## A minimal client
 

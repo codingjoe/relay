@@ -80,9 +80,20 @@ class OutgoingMessage(Message):
         self.__status = self.status
 
     def save(self, *args, **kwargs):
-        """Refuse a status change on a message that already left pending."""
+        """
+        Refuse a status change on a message that already left pending.
+
+        A late bounce DSN is the one exception. A DSN proves the recipient
+        server accepted the message, so relay only learns after a message
+        ended sent or failed that the remote refused it after all.
+        """
         if self.status != self.__status and self.__status != self.Status.PENDING:
-            raise TerminalStatusError(self.pk, self.__status, self.status)
+            allowed = (self.__status, self.status) in (
+                (self.Status.SENT, self.Status.BOUNCED),
+                (self.Status.FAILED, self.Status.BOUNCED),
+            )
+            if not allowed:
+                raise TerminalStatusError(self.pk, self.__status, self.status)
         super().save(*args, **kwargs)
         self.__status = self.status
 

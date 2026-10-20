@@ -90,6 +90,28 @@ class TestOutgoingMessageSave:
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.BOUNCED
 
+    def test_save__allows_a_late_bounce_report_to_bounce_a_sent_message(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.SENT)
+
+        msg.status = OutgoingMessage.Status.BOUNCED
+        msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.BOUNCED
+
+    def test_save__allows_a_late_bounce_report_to_bounce_a_failed_message(self):
+        user = User.objects.create_user(username="alice", email="a@example.com")
+        org = Organization.objects.create(slug="o")
+        msg = make_message(org, user, status=OutgoingMessage.Status.FAILED)
+
+        msg.status = OutgoingMessage.Status.BOUNCED
+        msg.save(update_fields=["status"])
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.BOUNCED
+
     def test_save__allows_a_write_that_keeps_the_final_status(self):
         user = User.objects.create_user(username="alice", email="a@example.com")
         org = Organization.objects.create(slug="o")

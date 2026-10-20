@@ -111,16 +111,26 @@ background.
 
 Your delegated domain receives report traffic automatically:
 
-| Address                    | Purpose                         | What relay does                              |
-| -------------------------- | ------------------------------- | -------------------------------------------- |
-| `dmarc@{sender-subdomain}` | DMARC aggregate reports (RUA)   | Store, parse the XML, show in the dashboard  |
-| `ruf@{sender-subdomain}`   | DMARC failure reports (RUF/ARF) | Store, parse, show in the dashboard          |
-| `tls@{sender-subdomain}`   | TLS-RPT reports                 | Store, parse the JSON, show in the dashboard |
-| `postmaster` (+extensions) | Human mail to postmaster        | Store, then forward a summary to your team   |
+| Address                             | Purpose                                 | What relay does                                            |
+| ----------------------------------- | --------------------------------------- | ---------------------------------------------------------- |
+| `dmarc@{sender-subdomain}`          | DMARC aggregate reports (RUA)           | Store, parse the XML, show in the dashboard                |
+| `ruf@{sender-subdomain}`            | DMARC failure reports (RUF/ARF)         | Store, parse, show in the dashboard                        |
+| `tls@{sender-subdomain}`            | TLS-RPT reports                         | Store, parse the JSON, show in the dashboard               |
+| `bounce+{token}@{sender-subdomain}` | Bounce reports for one outgoing message | Store, parse, mark that message bounced, or record a delay |
+| `postmaster` (+extensions)          | Human mail to postmaster                | Store, then forward a summary to your team                 |
 
-These addresses exist because your DMARC and DNS records must name a
-collector, and relay is that collector. You see who authenticates as your
-domain, who fails, and which servers have TLS trouble.
+The DMARC and TLS report addresses exist because your DMARC and DNS
+records must name a collector, and relay is that collector. You see who
+authenticates as your domain, who fails, and which servers have TLS
+trouble.
+
+The bounce address is minted per message: every outgoing message carries
+it as its Return-Path, so each bounce report maps to one message. relay
+only accepts reports for addresses it minted itself, and only when the
+report names the original recipient. relay stores the report and marks
+the original outgoing message bounced. Bounce reports are relay's own
+traffic, not mail for your application, so relay never dispatches them
+to your webhooks.
 
 The MAIL-lifetime of a normal message begins at acceptance. relay stores
 it with its metadata, marks it received (or quarantined), and processes it
@@ -129,7 +139,8 @@ asynchronously.
 ## What happens after the spam scan
 
 A clean message goes to the matching active webhooks of the receiving domain.
-The dispatch rules:
+Report traffic for relay's collectors, DMARC, TLS, and bounce reports, never
+dispatches to a webhook. The dispatch rules:
 
 - the webhook must belong to the receiving domain, and its address pattern,
   for example `*@app.acme.com` or `support@acme.com`, matches the recipient,

@@ -49,8 +49,10 @@ standing first.
 Bounce rates are the fastest reputation killer. The suppression list keeps
 yours low:
 
-- every Return-Path carries a per-message id, so bounces map to one message,
+- every Return-Path is minted per message and only relay can mint it, so
+  bounces map to one message,
 - a permanent 5xx adds the address to the suppression list immediately,
+  and a permanent failure in a late bounce report does the same,
 - all further submissions to that address store as suppressed, with no error
   back to your application, so retry loops cannot amplify the bounce rate,
 
@@ -110,7 +112,8 @@ report arrived over TLS.
 
 FBL complaints need a proof before relay records them. The report carries the
 per-message Return-Path of the reported message, and relay matches that
-address. A complaint therefore maps to one message, one domain, and one
+address. Only relay can mint the address, so a message id alone names
+nothing. A complaint therefore maps to one message, one domain, and one
 organization, and a message counts one complaint however many reports name
 it. A report that names no message is kept as an inbound email only, and is
 not recorded as a complaint.
@@ -143,7 +146,7 @@ an organization.
    clean.
 3. A recipient marks a message as spam, and the provider sends a complaint to
    the FBL address. relay matches the complaint to your message through the
-   per-message id on the Return-Path.
+   signed per-message Return-Path.
 4. Providers send aggregate reports every day. relay parses them.
 5. You read your report rows, and correct what you see. Policy updates and
    key rotation are dashboard operations.

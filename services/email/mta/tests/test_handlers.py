@@ -1,6 +1,8 @@
 import logging
+from email import message_from_string
 from types import SimpleNamespace
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from aiosmtpd.smtp import TLSSetupException
@@ -12,13 +14,19 @@ from domains.models import Domain
 from services.email.message.models import Transmission
 from services.email.mta.handlers import (
     MXHandler,
+    get_report_type,
     is_fbl_report,
     process_incoming_message,
     received_header,
     resolve_remote_host,
 )
 from services.email.mta.models import IncomingMessage, TlsReport
-from services.email.mta.tests.conftest import make_dmarc_evaluation, make_raw_email
+from services.email.mta.tests.conftest import (
+    make_arf_email,
+    make_dmarc_evaluation,
+    make_dsn_email,
+    make_raw_email,
+)
 
 
 class TestProcessIncomingMessagePostmaster:
@@ -314,6 +322,115 @@ class TestProcessIncomingMessageTransmission:
         assert transmission.local_ip_address == "188.245.198.157"
         assert transmission.remote_ip_address == "8.8.8.8"
         assert transmission.remote_host == "dns.google"
+
+
+class TestProcessIncomingMessageBounces:
+    @pytest.mark.django_db(transaction=True)
+    async def test_bounce_dsn__stores_message_and_enqueues_parse_task(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        token = uuid4()
+        with (
+            patch("services.email.msa.signals.tasks.parse_bounce_report") as parse_task,
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await process_incoming_message(
+                "mailer-daemon@mx.remote.example",
+                f"bounce+{token}@{domain.sender_domain}",
+                make_dsn_email(),
+                {"ssl_object": None},
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
+                "",
+            )
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert message.org == org
+        assert message.rcpt_to == f"bounce+{token}@{domain.sender_domain}"
+        assert message.status == IncomingMessage.Status.RECEIVED
+        parse_task.enqueue.assert_called_once_with(message_pk=str(message.id))
+        spam_task.enqueue.assert_not_called()
+        assert len(mail.outbox) == 0
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_bounce_address__non_dsn_mail_runs_spam_check(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        token = uuid4()
+        with (
+            patch("services.email.msa.signals.tasks.parse_bounce_report") as parse_task,
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await process_incoming_message(
+                "external@example.org",
+                f"bounce+{token}@{domain.sender_domain}",
+                make_raw_email(),
+                {"ssl_object": None},
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
+                "",
+            )
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(message.id), client_ip=""
+        )
+        parse_task.enqueue.assert_not_called()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_dsn_mail__non_bounce_recipient_runs_spam_check(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        with (
+            patch("services.email.msa.signals.tasks.parse_bounce_report") as parse_task,
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await process_incoming_message(
+                "mailer-daemon@mx.remote.example",
+                "info@example.com",
+                make_dsn_email(),
+                {"ssl_object": None},
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(),
+                "",
+            )
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        assert message.rcpt_to == "info@example.com"
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(message.id), client_ip=""
+        )
+        parse_task.enqueue.assert_not_called()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_bounce_address__feedback_report_runs_spam_check(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        token = uuid4()
+        rcpt_to = f"bounce+{token}@{domain.sender_domain}"
+        with (
+            patch("services.email.msa.signals.tasks.parse_bounce_report") as parse_task,
+            patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
+        ):
+            result = await process_incoming_message(
+                "feedback@gmail.com",
+                rcpt_to,
+                make_arf_email(rcpt_to),
+                {"ssl_object": None},
+                domain,
+                IncomingMessage.Status.RECEIVED,
+                make_dmarc_evaluation(header_from="gmail.com"),
+                "",
+            )
+
+        message = await IncomingMessage.objects.aget(domain=domain)
+        assert result == "250 OK"
+        spam_task.enqueue.assert_called_once_with(
+            message_pk=str(message.id), client_ip=""
+        )
+        parse_task.enqueue.assert_not_called()
 
 
 class TestMXHandler:
@@ -734,6 +851,36 @@ class TestIsFblReport:
                 dkim_alignment=Alignment.FAIL,
             )
         )
+
+
+class TestGetReportType:
+    def test_get_report_type__plain_form(self):
+        msg = message_from_string(
+            "Content-Type: multipart/report; report-type=delivery-status\r\n\r\n"
+        )
+
+        assert get_report_type(msg) == "delivery-status"
+
+    def test_get_report_type__unsegmented_extended_form(self):
+        msg = message_from_string(
+            "Content-Type: multipart/report;"
+            " report-type*=us-ascii'en'delivery-status\r\n\r\n"
+        )
+
+        assert get_report_type(msg) == "delivery-status"
+
+    def test_get_report_type__segmented_folded_form(self):
+        msg = message_from_string(
+            "Content-Type: multipart/report;"
+            " report-type*0*=us-ascii'en'delivery-; report-type*1=status\r\n\r\n"
+        )
+
+        assert get_report_type(msg) == "delivery-status"
+
+    def test_get_report_type__no_report_type_param(self):
+        msg = message_from_string("Content-Type: multipart/report\r\n\r\n")
+
+        assert get_report_type(msg) == ""
 
 
 class TestHandleException:

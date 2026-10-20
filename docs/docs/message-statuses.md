@@ -29,6 +29,9 @@ stateDiagram-v2
     pending --> bounced : permanent rejection (5xx)
     pending --> failed : the retry schedule ended without an accepted attempt
 
+    sent --> bounced : permanent failure in a late bounce report
+    failed --> bounced : permanent failure in a late bounce report
+
     held --> [*]
     sent --> [*]
     bounced --> [*]
@@ -40,9 +43,9 @@ stateDiagram-v2
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
 | pending    | Stored after a `250` acceptance, before the spam scan finishes                                                                                         | The worker scans, signs, and delivers, and retries keep the status pending |
 | suppressed | The recipient address is on the suppression list at submission                                                                                         | Terminal state, no delivery attempt, visible in the dashboard              |
-| sent       | At least one recipient MX host accepted the message after STARTTLS                                                                                     | Final state, the transmission records keep the SMTP transcript             |
-| bounced    | A recipient server answered with a permanent 5xx rejection                                                                                             | Final state, relay suppresses the address automatically                    |
-| failed     | The retry schedule ended without an acceptance, an MTA-STS policy blocks every MX host, or the sender domain is not a root domain of your organization | Final state, every attempt keeps its reason                                |
+| sent       | At least one recipient MX host accepted the message after STARTTLS                                                                                     | Final state, unless a late bounce report flips it to bounced               |
+| bounced    | A recipient server answered with a permanent 5xx rejection, or a late bounce report proved the remote rejected the message                             | Final state, relay suppresses the address automatically                    |
+| failed     | The retry schedule ended without an acceptance, an MTA-STS policy blocks every MX host, or the sender domain is not a root domain of your organization | Final state unless a late bounce report flips it to bounced                |
 | held       | The scan rejects the action, the score reaches the hold threshold, or malware is found                                                                 | Final state until a human sees the dashboard                               |
 
 Notes on reading the diagram:
@@ -51,15 +54,18 @@ Notes on reading the diagram:
   recipient short-circuits that path at submission time. A suppressed
   message is a successful SMTP conversation with no delivery, on purpose.
 - `pending` is the only state with an open movement, so every other state
-  comes from the pipeline after acceptance.
-- A temporary delivery failure does not leave `pending` on its own: relay
-  waits 2, 4, 8, 16 and 32 minutes between attempts, and the message ends
-  failed only after the sixth attempt.
+  comes from the pipeline after acceptance. A temporary delivery failure
+  does not leave `pending` on its own: relay waits 2, 4, 8, 16 and 32
+  minutes between attempts, and the message ends failed only after the
+  sixth attempt.
 - `bounced` and `failed` differ by who is responsible: a remote rejection
   ends as `bounced`, and relay-side transport problems end as `failed`.
 - `sent` is the strongest final state relay can know: the recipient MX
   accepted the message. Confirmed recipient delivery is not tracked, and
-  the enum has no such state.
+  the enum has no such state. A recipient server can still find a
+  permanent failure after acceptance, for example a full mailbox or its
+  own content filter. Its bounce report travels to the per-message bounce
+  address, so the bounce maps to one message.
 
 ## The life of an inbound message
 
@@ -98,16 +104,17 @@ Two details worth knowing:
 
 ## The attempt records under the status
 
-The transmission list per message shows each attempt with its own outcome:
+The transmission list per message shows each attempt with its own outcome.
+A late bounce report adds a row of its own:
 
-| Transmission status | Meaning                                                           |
-| ------------------- | ----------------------------------------------------------------- |
-| received            | relay accepted the message over inbound SMTP                      |
-| submitted           | relay accepted the message for delivery                           |
-| sent                | This attempt reached a recipient MX host that answered success    |
-| bounced             | This attempt revealed a permanent rejection                       |
-| failed              | This attempt failed, and the row names the MX host and the reason |
-| retry               | Reserved for future automatic retry tracking                      |
+| Transmission status | Meaning                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| received            | relay accepted the message over inbound SMTP                                                      |
+| submitted           | relay accepted the message for delivery                                                           |
+| sent                | This attempt reached a recipient MX host that answered success                                    |
+| bounced             | A permanent rejection, during this attempt or in a later bounce report                            |
+| failed              | This attempt failed, and the row names the MX host and the reason                                 |
+| retry               | A bounce report announced a delay; the remote keeps trying and the message status stays unchanged |
 
 One delivery walk produces one row per MX host it reached. A failed
 delivery therefore keeps the answer of every host it tried, including the

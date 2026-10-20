@@ -132,6 +132,23 @@ class TestComputeOrgReputation:
 
         assert stats["complaints"] == 1
 
+    def test_compute_org_reputation__counts_bounced_without_code_as_hard_bounce(
+        self, org, user
+    ):
+        message = make_message(org)
+        Transmission.objects.create(
+            message=message,
+            status=Transmission.Status.BOUNCED,
+            started_at=timezone.now(),
+            finished_at=timezone.now(),
+        )
+
+        stats = compute_org_reputation(org)
+
+        assert stats["hard_bounces"] == 1
+        assert stats["hard_bounce_rate"] == 1.0
+        assert stats["soft_bounces"] == 0
+
     def test_compute_org_reputation__counts_soft_bounces(self, org, user):
         message = make_message(org, OutgoingMessage.Status.FAILED)
         Transmission.objects.create(
@@ -312,9 +329,9 @@ def make_message(org, status=OutgoingMessage.Status.SENT):
     )
 
 
-class TestCheckReputationOnHardBounce:
+class TestCheckReputationOnBounce:
     @pytest.mark.django_db
-    def test_check_reputation_on_hard_bounce__locks(
+    def test_check_reputation_on_bounce__locks(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
         settings.RELAY_REPUTATION_MIN_VOLUME = 1
@@ -331,6 +348,25 @@ class TestCheckReputationOnHardBounce:
 
         org.refresh_from_db()
         assert org.suspended_at is not None
+
+    @pytest.mark.django_db
+    def test_check_reputation_on_bounce__ignores_non_bounced_status(
+        self, django_capture_on_commit_callbacks, org, user, settings
+    ):
+        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        message = make_message(org)
+
+        with django_capture_on_commit_callbacks(execute=True):
+            Transmission.objects.create(
+                message=message,
+                status=Transmission.Status.RETRY,
+                code=450,
+                started_at=timezone.now(),
+                finished_at=timezone.now(),
+            )
+
+        org.refresh_from_db()
+        assert org.suspended_at is None
 
 
 class TestCheckReputationOnHeldMessage:
