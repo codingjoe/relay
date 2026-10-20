@@ -30,6 +30,7 @@ from services.email.msa.models import (
 from services.email.msa.tasks import (
     DELIVERY_RETRY,
     DeliveryStatus,
+    DsnAction,
     MxLookupError,
     TemporaryDeliveryError,
     bounce_signer,
@@ -1083,7 +1084,7 @@ class TestParseDeliveryStatus:
         delivery_status = parse_delivery_status(make_dsn_email())
 
         assert delivery_status == DeliveryStatus(
-            action="failed",
+            action=DsnAction.FAILED,
             code=550,
             output="smtp; 550 5.1.1 User unknown",
             final_recipient="bob@example.net",
@@ -1095,7 +1096,7 @@ class TestParseDeliveryStatus:
         )
 
         assert delivery_status == DeliveryStatus(
-            action="delayed",
+            action=DsnAction.DELAYED,
             code=400,
             output="4.4.1",
             final_recipient="bob@example.net",
@@ -1110,7 +1111,7 @@ class TestParseDeliveryStatus:
         )
 
         assert delivery_status == DeliveryStatus(
-            action="failed",
+            action=DsnAction.FAILED,
             code=500,
             output="dns; 203.0.113.5 unreachable",
             final_recipient="bob@example.net",
@@ -1125,7 +1126,7 @@ class TestParseDeliveryStatus:
         )
 
         assert delivery_status == DeliveryStatus(
-            action="failed",
+            action=DsnAction.FAILED,
             code=500,
             output="550 5.1.1 User unknown",
             final_recipient="bob@example.net",
@@ -1137,7 +1138,7 @@ class TestParseDeliveryStatus:
         )
 
         assert delivery_status == DeliveryStatus(
-            action="failed",
+            action=DsnAction.FAILED,
             code=None,
             output="55",
             final_recipient="bob@example.net",
@@ -1161,10 +1162,17 @@ class TestParseDeliveryStatus:
             )
         )
 
-        delivery_status = parse_delivery_status(raw_bytes)
+        # An action outside RFC 3464's vocabulary fails closed with the
+        # same ValueError path an unreadable DSN takes.
+        with pytest.raises(ValueError, match="is not a valid DsnAction"):
+            parse_delivery_status(raw_bytes)
 
-        assert delivery_status.action == "failed\ufffd"
+        readable = raw_bytes.replace(b"Action: failed\xff\r\n", b"Action: failed\r\n")
+
+        delivery_status = parse_delivery_status(readable)
+
         assert delivery_status.code == 550
+        assert "550 5.1.1 User unknown\ufffd" in delivery_status.output
         assert delivery_status.final_recipient == "bob@example.net"
 
     def test_parse_delivery_status__final_recipient_falls_back_to_original_recipient(
@@ -1178,7 +1186,7 @@ class TestParseDeliveryStatus:
         )
 
         assert delivery_status == DeliveryStatus(
-            action="failed",
+            action=DsnAction.FAILED,
             code=550,
             output="smtp; 550 5.1.1 User unknown",
             final_recipient="bob@example.net",

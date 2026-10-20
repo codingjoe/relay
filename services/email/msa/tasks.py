@@ -8,6 +8,7 @@ import uuid
 from dataclasses import dataclass
 from email import message_from_bytes
 from email.utils import parseaddr
+from enum import StrEnum
 
 import aiosmtplib
 import botocore.exceptions
@@ -557,11 +558,21 @@ def check_outgoing_spam(message_pk, client_ip):
         deliver_message.enqueue(message_id=str(message.pk))
 
 
+class DsnAction(StrEnum):
+    """The action values RFC 3464 defines for a per-recipient field."""
+
+    FAILED = "failed"
+    DELAYED = "delayed"
+    DELIVERED = "delivered"
+    RELAYED = "relayed"
+    EXPANDED = "expanded"
+
+
 @dataclass(frozen=True, slots=True)
 class DeliveryStatus:
     """Per-recipient delivery status fields parsed from a DSN email."""
 
-    action: str
+    action: DsnAction
     code: int | None
     output: str
     final_recipient: str
@@ -614,7 +625,7 @@ def parse_delivery_status(raw_bytes: bytes) -> DeliveryStatus:
     _, _, addr_text = final_recipient.partition(";")
     local_part, at_sign, domain_part = parseaddr(addr_text.strip())[1].partition("@")
     return DeliveryStatus(
-        action=action.strip().lower(),
+        action=DsnAction(action.strip().lower()),
         code=code,
         output=diagnostic_code or status,
         final_recipient=f"{local_part.strip('"')}{at_sign}{domain_part}",
@@ -685,7 +696,7 @@ def parse_bounce_report(message_pk):
                 .get(pk=owner.pk)
             )
             match delivery_status.action:
-                case "failed" | "delayed" if owner.status not in (
+                case DsnAction.FAILED | DsnAction.DELAYED if owner.status not in (
                     OutgoingMessage.Status.SENT,
                     OutgoingMessage.Status.FAILED,
                 ):
@@ -695,7 +706,7 @@ def parse_bounce_report(message_pk):
                         owner.pk,
                         owner.status,
                     )
-                case "failed" | "delayed" if (
+                case DsnAction.FAILED | DsnAction.DELAYED if (
                     delivery_status.final_recipient.lower() != owner.rcpt_to.lower()
                 ):
                     logger.warning(
@@ -704,7 +715,7 @@ def parse_bounce_report(message_pk):
                         owner.rcpt_to,
                         owner.pk,
                     )
-                case "delayed" if Transmission.objects.filter(
+                case DsnAction.DELAYED if Transmission.objects.filter(
                     message=owner, status=Transmission.Status.RETRY
                 ).exists():
                     logger.warning(
@@ -712,7 +723,7 @@ def parse_bounce_report(message_pk):
                         message_pk,
                         owner.pk,
                     )
-                case "failed":
+                case DsnAction.FAILED:
                     with Transmission(
                         message=owner,
                         status=Transmission.Status.BOUNCED,
@@ -726,7 +737,7 @@ def parse_bounce_report(message_pk):
                             email=owner.rcpt_to,
                             reason=SuppressionEntry.Reason.BOUNCE,
                         )
-                case "delayed":
+                case DsnAction.DELAYED:
                     with Transmission(
                         message=owner,
                         status=Transmission.Status.RETRY,
