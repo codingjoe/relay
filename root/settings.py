@@ -164,6 +164,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.github",
     "django_letter",
     "health_check",
+    "hijack",
+    "hijack.contrib.admin",
     "storages",
     "threadmill",
     "crontask",
@@ -205,6 +207,8 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    # Before the dev remote-user middleware so a hijack survives auto-login.
+    "hijack.middleware.HijackUserMiddleware",
     *(
         ["accounts.middleware.HttpHeaderRemoteUserMiddleware"]
         if DEBUG and not TEST
@@ -225,6 +229,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
+            BASE_DIR / "root" / "templates",
             BASE_DIR / "legal" / "docs",
             BASE_DIR / "know_how" / "docs",
             BASE_DIR / "alternative_to" / "docs",
@@ -527,6 +532,9 @@ CRONTASK = {"REDIS_URL": TASK_REDIS_URL}
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "accounts:org-start"
 LOGOUT_REDIRECT_URL = "home"
+
+# https://django-hijack.readthedocs.io/en/stable/customization/#hijack-permission
+HIJACK_PERMISSION_CHECK = "hijack.permissions.superusers_only"
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")

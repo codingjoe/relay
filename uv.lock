@@ -614,6 +614,18 @@ threadmill = [
 ]
 
 [[package]]
+name = "django-hijack"
+version = "3.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/74/bd2ff01bbc418fc0a1db1243c3bcd89abd26e39ff78bbe72a8cce9febaa8/django_hijack-3.8.0.tar.gz", hash = "sha256:77796c89d09911c9e62e217c167ccf4a859ca1aae1055b6bc205c7380d798fff", size = 14529, upload-time = "2026-10-10T22:11:27.397Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/cc/bf300537f024fbbb5787c47e142551507a430862d4e97d6049789b851533/django_hijack-3.8.0-py3-none-any.whl", hash = "sha256:9957deee60f902ae501619b1f01fd47cad89bc4cbb2dcd97ee4c0c9df94ba110", size = 31468, upload-time = "2026-10-10T22:11:26.144Z" },
+]
+
+[[package]]
 name = "django-letter"
 version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1760,6 +1772,7 @@ dependencies = [
     { name = "django-environ" },
     { name = "django-esm" },
     { name = "django-health-check", extra = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"] },
+    { name = "django-hijack" },
     { name = "django-letter" },
     { name = "django-storages", extra = ["s3"] },
     { name = "dkimpy" },
@@ -1825,6 +1838,7 @@ requires-dist = [
     { name = "django-environ", specifier = ">=0.14" },
     { name = "django-esm", specifier = ">=0.11" },
     { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8" },
+    { name = "django-hijack", specifier = ">=3.8.0" },
     { name = "django-letter", specifier = ">=0.6" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
