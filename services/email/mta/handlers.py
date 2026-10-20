@@ -158,11 +158,26 @@ class MXHandler(ProxyProtocolMixin):
         return result
 
 
+def get_report_type(msg: Message) -> str:
+    """Return the report-type of a message, folding RFC 2231 continuations."""
+    segments: dict[int, tuple[bool, str]] = {}
+    for name, value in msg.get_params() or []:
+        name = name.lower()
+        if name == "report-type":
+            return value.lower()
+        if match := re.fullmatch(r"report-type\*(\d*)\*?", name):
+            segments[int(match[1] or "0")] = (name.endswith("*"), value)
+    return "".join(
+        value.split("'", 2)[2] if marker and value.count("'") > 1 else value
+        for _, (marker, value) in sorted(segments.items())
+    ).lower()
+
+
 def is_delivery_status_notification(msg: Message) -> bool:
     """Determine whether a message is an RFC 3464 delivery status notification."""
     return (
         msg.get_content_type() == "multipart/report"
-        and str(msg.get_param("report-type", "")).lower() == "delivery-status"
+        and get_report_type(msg) == "delivery-status"
         and any(
             part.get_content_type() == "message/delivery-status" for part in msg.walk()
         )

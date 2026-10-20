@@ -11,7 +11,7 @@ from . import tasks
 
 
 @receiver(post_save, sender=Transmission)
-def check_reputation_on_hard_bounce(sender, instance, **kwargs):
+def check_reputation_on_bounce(sender, instance, **kwargs):
     """
     Enqueue an org evaluation after commit when a transmission bounces.
 

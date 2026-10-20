@@ -34,24 +34,6 @@ def make_dmarc_evaluation(
     return DmarcEvaluation(**fields)
 
 
-def make_recipient_block(
-    action: str,
-    status: str,
-    diagnostic_code: str,
-    final_recipient: str | None = "rfc822; bob@example.net",
-    original_recipient: str | None = None,
-) -> str:
-    """Return one per-recipient block of a delivery status part."""
-    fields = {
-        "Final-Recipient": final_recipient,
-        "Original-Recipient": original_recipient,
-        "Action": action,
-        "Status": status,
-        "Diagnostic-Code": diagnostic_code,
-    }
-    return "".join(f"{name}: {value}\r\n" for name, value in fields.items() if value)
-
-
 def make_dsn_email(
     action: str = "failed",
     status: str = "5.1.1",
@@ -71,10 +53,15 @@ def make_dsn_email(
     if with_reporting_mta:
         blocks.append("Reporting-MTA: dns; mx.remote.example\r\n")
     if with_recipient_block:
+        fields = {
+            "Final-Recipient": final_recipient,
+            "Original-Recipient": original_recipient,
+            "Action": action,
+            "Status": status,
+            "Diagnostic-Code": diagnostic_code,
+        }
         blocks.append(
-            make_recipient_block(
-                action, status, diagnostic_code, final_recipient, original_recipient
-            )
+            "".join(f"{name}: {value}\r\n" for name, value in fields.items() if value)
         )
     delivery_status = "\r\n".join(blocks)
     return (
@@ -104,6 +91,30 @@ def make_dsn_email(
     ).encode()
 
 
+def make_arf_email(recipient: str) -> bytes:
+    """Return a raw RFC 5965 feedback report addressed to a bounce address."""
+    return (
+        "From: feedback@gmail.com\r\n"
+        f"To: {recipient}\r\n"
+        "Subject: FBL Report\r\n"
+        "MIME-Version: 1.0\r\n"
+        "Content-Type: multipart/report; report-type=feedback-report;\r\n"
+        ' boundary="=_relay-arf-boundary"\r\n'
+        "\r\n"
+        "--=_relay-arf-boundary\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "This is an authentication failure report.\r\n"
+        "--=_relay-arf-boundary\r\n"
+        "Content-Type: message/feedback-report\r\n"
+        "\r\n"
+        "Feedback-Type: abuse\r\n"
+        "User-Agent: Gmail/FBL\r\n"
+        "Version: 1.0\r\n"
+        "--=_relay-arf-boundary--\r\n"
+    ).encode()
+
+
 def make_delayed_dsn_email() -> bytes:
     """Return a raw DSN reporting a temporary delivery delay."""
     return make_dsn_email(
@@ -111,8 +122,3 @@ def make_delayed_dsn_email() -> bytes:
         status="4.4.1",
         diagnostic_code="smtp; 421 try again later",
     )
-
-
-def make_delivered_dsn_email() -> bytes:
-    """Return a raw DSN reporting a successful delivery."""
-    return make_dsn_email(action="delivered", status="2.0.0", diagnostic_code="")

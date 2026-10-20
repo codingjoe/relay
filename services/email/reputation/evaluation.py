@@ -49,11 +49,11 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
         .count()
     )
 
-    transmissions = Transmission.objects.filter(
+    hard_bounces = Transmission.objects.filter(
         message__org=org,
         message__created_at__gte=window_start,
-    )
-    hard_bounces = transmissions.filter(status=Transmission.Status.BOUNCED).count()
+        status=Transmission.Status.BOUNCED,
+    ).count()
     soft_bounces = (
         OutgoingMessage.objects.filter(
             org=org,

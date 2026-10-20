@@ -7,6 +7,7 @@ from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 
 from accounts.models import Organization
 from services.email.msa.models import OutgoingMessage
+from services.email.msa.tasks import resolve_bounce_owner
 from services.email.mta.models import IncomingMessage
 
 from . import evaluation
@@ -15,20 +16,6 @@ from .emails import WeeklyDigestEmail
 from .models import FblReport
 
 logger = logging.getLogger(__name__)
-
-
-def resolve_fbl_message(original_mail_from: str) -> OutgoingMessage | None:
-    """
-    Return the message a report is about, or `None`.
-
-    The per-message proof the provider echoes is the full VERP envelope
-    sender (`bounce+<token>@<sender-domain>`) relay minted when the
-    message was submitted. Only relay can mint the token signature, so
-    a message id alone names nothing. Anything else returns `None`.
-    """
-    from services.email.msa.tasks import resolve_bounce_owner
-
-    return resolve_bounce_owner(original_mail_from)
 
 
 @task()
@@ -61,7 +48,7 @@ def create_provider_fbl_report(message_pk):
     except ValueError:
         logger.warning("FBL report %r is not an ARF email", message_pk)
         return
-    complained_message = resolve_fbl_message(parsed.original_mail_from)
+    complained_message = resolve_bounce_owner(parsed.original_mail_from)
     if complained_message is None:
         logger.warning(
             "FBL report %r names no message relay sent, kept as a message only",

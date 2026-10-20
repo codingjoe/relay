@@ -1,4 +1,5 @@
 import logging
+from email import message_from_string
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -13,6 +14,7 @@ from domains.models import Domain
 from services.email.message.models import Transmission
 from services.email.mta.handlers import (
     MXHandler,
+    get_report_type,
     is_fbl_report,
     process_incoming_message,
     received_header,
@@ -20,6 +22,7 @@ from services.email.mta.handlers import (
 )
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.mta.tests.conftest import (
+    make_arf_email,
     make_dmarc_evaluation,
     make_dsn_email,
     make_raw_email,
@@ -406,34 +409,15 @@ class TestProcessIncomingMessageBounces:
     async def test_bounce_address__feedback_report_runs_spam_check(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
         token = uuid4()
-        report = (
-            "From: feedback@gmail.com\r\n"
-            f"To: bounce+{token}@{domain.sender_domain}\r\n"
-            "Subject: FBL Report\r\n"
-            "MIME-Version: 1.0\r\n"
-            "Content-Type: multipart/report; report-type=feedback-report;\r\n"
-            ' boundary="=_relay-arf-boundary"\r\n'
-            "\r\n"
-            "--=_relay-arf-boundary\r\n"
-            "Content-Type: text/plain\r\n"
-            "\r\n"
-            "This is an authentication failure report.\r\n"
-            "--=_relay-arf-boundary\r\n"
-            "Content-Type: message/feedback-report\r\n"
-            "\r\n"
-            "Feedback-Type: abuse\r\n"
-            "User-Agent: Gmail/FBL\r\n"
-            "Version: 1.0\r\n"
-            "--=_relay-arf-boundary--\r\n"
-        ).encode()
+        rcpt_to = f"bounce+{token}@{domain.sender_domain}"
         with (
             patch("services.email.msa.signals.tasks.parse_bounce_report") as parse_task,
             patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
         ):
             result = await process_incoming_message(
                 "feedback@gmail.com",
-                f"bounce+{token}@{domain.sender_domain}",
-                report,
+                rcpt_to,
+                make_arf_email(rcpt_to),
                 {"ssl_object": None},
                 domain,
                 IncomingMessage.Status.RECEIVED,
@@ -867,6 +851,36 @@ class TestIsFblReport:
                 dkim_alignment=Alignment.FAIL,
             )
         )
+
+
+class TestGetReportType:
+    def test_get_report_type__plain_form(self):
+        msg = message_from_string(
+            "Content-Type: multipart/report; report-type=delivery-status\r\n\r\n"
+        )
+
+        assert get_report_type(msg) == "delivery-status"
+
+    def test_get_report_type__unsegmented_extended_form(self):
+        msg = message_from_string(
+            "Content-Type: multipart/report;"
+            " report-type*=us-ascii'en'delivery-status\r\n\r\n"
+        )
+
+        assert get_report_type(msg) == "delivery-status"
+
+    def test_get_report_type__segmented_folded_form(self):
+        msg = message_from_string(
+            "Content-Type: multipart/report;"
+            " report-type*0*=us-ascii'en'delivery-; report-type*1=status\r\n\r\n"
+        )
+
+        assert get_report_type(msg) == "delivery-status"
+
+    def test_get_report_type__no_report_type_param(self):
+        msg = message_from_string("Content-Type: multipart/report\r\n\r\n")
+
+        assert get_report_type(msg) == ""
 
 
 class TestHandleException:
