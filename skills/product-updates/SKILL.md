@@ -42,7 +42,8 @@ already used.
    transcript, a status detail, or a background job is an internal
    optimization. Lead with features and give each one a stardate entry. Put
    an improvement in the supplemental log, unless users asked for it loudly.
-   The main log records new capability, not a changelog.
+   Leave an internal optimization out entirely. The supplemental log is not
+   a changelog either, and the main log records new capability.
 
 4. Read the merge or pull request description for the "why". `git show <sha>`
    includes the PR body. `gh pr view <number>` works too. Prefer the user
@@ -206,8 +207,8 @@ Then do a human pass:
 
 - Read the file top to bottom as a user.
 - Re-read every stardate entry. If the reader cannot reach a new screen,
-  control, or capability, it is an improvement and belongs in the
-  supplemental log.
+  control, or capability, demote it to the supplemental log. If the reader
+  cannot act on it at all, cut it.
 - Compare the log with the one before it. A shared opening line, section
   title, or metaphor is a failure, even when the checker misses it.
 - Open every image and confirm the feature is visible, the frame is not cut
