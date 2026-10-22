@@ -1,7 +1,9 @@
 import datetime
+from io import StringIO
 
 import pytest
 from django.core.mail.backends import locmem
+from django.core.management import call_command
 from django.utils import timezone
 
 from accounts.models import Membership, Organization
@@ -261,3 +263,42 @@ class TestOnboardingEmail:
         )
 
         assert email.org is org
+
+
+@pytest.mark.django_db
+class TestOnboardingCommand:
+    def test_dry_run__lists_the_targets_without_queueing(self, org, mailoutbox):
+        out = StringIO()
+
+        call_command("onboarding", "--dry-run", stdout=out)
+
+        assert org.slug in out.getvalue()
+        assert not mailoutbox
+
+    def test_command__queues_the_sequence(self, org, mailoutbox):
+        call_command("onboarding", "--org", org.slug, stdout=StringIO())
+
+        assert len(mailoutbox) == len(SEND_OFFSETS)
+
+    def test_command__only_targets_the_given_organization(self, org, user, mailoutbox):
+        other = Organization.objects.create(slug="other-org", billing_is_active=True)
+        Membership.objects.create(org=other, user=user, role=Membership.Role.ADMIN)
+
+        call_command("onboarding", "--org", org.slug, stdout=StringIO())
+
+        assert len(mailoutbox) == len(SEND_OFFSETS)
+
+    def test_command__skips_a_finished_organization(self, org, mailoutbox):
+        complete_onboarding(org)
+
+        call_command("onboarding", "--org", org.slug, stdout=StringIO())
+
+        assert not mailoutbox
+
+    def test_command__skips_a_suspended_organization(self, org, mailoutbox):
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at"])
+
+        call_command("onboarding", "--org", org.slug, stdout=StringIO())
+
+        assert not mailoutbox

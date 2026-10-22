@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
+from django.utils import timezone
 from django_letter.exceptions import InvalidUserError
 
 from accounts.models import Membership, Organization
@@ -14,17 +15,18 @@ logger = logging.getLogger(__name__)
 
 
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
-def schedule_onboarding_emails(org_pk):
+def schedule_onboarding_emails(org_pk, from_now=False):
     """Queue every mail of the sequence for the time it is due."""
     try:
         org = Organization.objects.get(pk=org_pk)
     except Organization.DoesNotExist:
         logger.info("Dropped the onboarding sequence for a missing organization")
     else:
+        start = timezone.now() if from_now else org.created_at
         for stage, offset in SEND_OFFSETS.items():
-            send_onboarding_email.using(
-                run_after=send_time(org.created_at, offset)
-            ).enqueue(org_pk=org.pk, stage=stage)
+            send_onboarding_email.using(run_after=send_time(start, offset)).enqueue(
+                org_pk=org.pk, stage=stage
+            )
 
 
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
