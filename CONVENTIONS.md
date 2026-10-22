@@ -77,6 +77,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   the expression at its call site.
 - Use generator functions when a function produces a sequence for lazy
   consumption, for example when walking database relations.
+- Do not annotate the parameters or the return type of an overridden method.
+  The base class already defines the contract, and a narrower annotation can
+  contradict it.
 
 ## Comments
 

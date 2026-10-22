@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block topbar %}{% include "partials/topbar_static.html" %}{% endblock %}
+{% block title %}Station log: {{ title }} | relay{% endblock %}
+{% block meta_description %}{{ meta_description|default:"relay: developer-first email infrastructure." }}{% endblock %}
+{% block meta_tags %}
+  {{ block.super }}
+  <meta property="og:title" content="Station log: {{ title }}">
+  <meta
+    property="og:description"
+    content="{{ meta_description|default:'relay: developer-first email infrastructure.' }}"
+  >
+  <meta name="twitter:title" content="Station log: {{ title }}">
+  <meta
+    name="twitter:description"
+    content="{{ meta_description|default:'relay: developer-first email infrastructure.' }}"
+  >
+{% endblock meta_tags %}
+
+{% block social_image %}
+  {% if og_image %}
+    <meta property="og:image" content="{{ og_image }}">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="640">
+    <meta property="og:image:alt" content="Station log: {{ title }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{ og_image }}">
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-8 max-w-5xl mx-auto py-8">
+    <aside class="hidden lg:block">
+      <nav aria-label='{% translate "table of contents"|capfirst %}' class="sticky top-4">
+        <p class="text-sm font-medium text-muted-foreground m-0 mb-2">
+          {% translate "on this page"|capfirst %}
+        </p>
+        <div class="prose prose-sm dark:prose-invert max-w-none [&_a]:no-underline [&_a]:text-muted-foreground hover:[&_a]:text-foreground">
+          {{ toc_html }}
+        </div>
+      </nav>
+    </aside>
+    <article class="prose dark:prose-invert max-w-3xl">
+      <p class="text-sm text-muted-foreground not-prose">
+        {{ date|date:"DATE_FORMAT" }}
+        {% if author %}<span aria-hidden="true">·</span> {{ author }}{% endif %}
+      </p>
+      {{ content_html }}
+    </article>
+  </div>
+{% endblock %}
