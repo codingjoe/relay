@@ -122,10 +122,6 @@ class OnboardingEmail(TemplateEmail):
                 separators=(",", ":"),
             ),
             "mcp_question": self.mcp_question,
-            "mcp_setup_url": reverse(
-                "mcp:setup",
-                kwargs={"org_slug": self.campaign.org.slug},
-            ),
             "next_step_title": copy["title"] % {"recipient": recipient},
             "next_step_description": copy["description"],
             "next_step_button": copy["button"],
