@@ -15,7 +15,7 @@ from .models import OnboardingCampaign
 from .onboarding import OnboardingStep
 
 NEXT_STEP_BUTTON = {
-    OnboardingStep.TEST_MESSAGE: _("send a test message"),
+    OnboardingStep.TEST_MESSAGE: _("send test message"),
     OnboardingStep.CREDENTIAL: _("create sandbox key"),
     OnboardingStep.CONNECT: _("connect your app"),
 }
