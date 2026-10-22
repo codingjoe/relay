@@ -254,3 +254,10 @@
   pattern: '(?m)^[ \t]*(?:body\.admin|\.admin)[ \t]+\S[^{\n]*\{'
   hint: 'Nest admin-only rules inside the `body.admin` block with `&` instead of repeating the `body.admin` prefix. Native CSS nesting keeps the scope and its overrides together.'
   filePattern: '^src/css/.*\.css$'
+- name: No inline styles in email templates
+  pattern: '\bstyle\s*='
+  hint: |
+    Write the rule in the template's `<style>` block instead. django-letter runs every
+    mail through premailer, which inlines the stylesheet for you, so a hand-written
+    `style` attribute duplicates work and drifts from the dark mode rules.
+  filePattern: '(^|.*/)templates/emails/.*\.html$'
