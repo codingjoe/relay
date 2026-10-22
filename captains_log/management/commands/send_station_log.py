@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from captains_log.content import CaptainsLogContent
-from services.email.newsletter.tasks import send_station_log
+from captains_log.tasks import send_station_log
 
 
 class Command(BaseCommand):

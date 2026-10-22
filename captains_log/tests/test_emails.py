@@ -2,7 +2,7 @@ import pytest
 from django_letter.notifications import registry
 
 from captains_log.content import CaptainsLogContent
-from services.email.newsletter.emails import (
+from captains_log.emails import (
     StationLogEmail,
     station_log_notification,
 )

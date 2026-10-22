@@ -7,9 +7,9 @@ from django.utils import timezone
 from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership
+from captains_log import tasks
+from captains_log.emails import station_log_notification
 from services.email.msa.models import SuppressionEntry
-from services.email.newsletter import tasks
-from services.email.newsletter.emails import station_log_notification
 
 SLUG = "2026-10"
 
@@ -85,8 +85,7 @@ class TestSendStationLogCommand:
     @pytest.mark.django_db
     def test_command__queues_the_task(self, user, org):
         with patch(
-            "services.email.newsletter.management.commands.send_station_log"
-            ".send_station_log"
+            "captains_log.management.commands.send_station_log.send_station_log"
         ) as task:
             call_command("send_station_log", SLUG)
 

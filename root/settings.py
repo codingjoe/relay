@@ -186,7 +186,6 @@ INSTALLED_APPS = [
     "services.email.message",
     "services.mcp",
     "services.email.dashboard",
-    "services.email.newsletter",
     "services.email.mta",
     "services.email.dmarc",
     "services.email.reputation",

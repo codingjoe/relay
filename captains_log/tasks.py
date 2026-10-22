@@ -6,9 +6,9 @@ from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 
 from accounts.models import Membership
-from captains_log.content import CaptainsLogContent
 from services.email.msa.models import SuppressionEntry
 
+from .content import CaptainsLogContent
 from .emails import StationLogEmail, station_log_notification
 
 logger = logging.getLogger(__name__)

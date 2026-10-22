@@ -439,9 +439,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Give each product update an `image` frontmatter key with a 1280x640
   screenshot path. The station log detail page uses it for `og:image`.
 
-- Send the announcement from `services.email.newsletter`. The app owns the
+- Send the announcement from `captains_log`. The app owns the content, the
   email, the task, the `send_station_log` command, and the "Station log"
-  notification preference. The content app stays model-free and read-only.
+  notification preference. The app stays model-free. It reads the `msa`
+  suppression list, the one allowed exception to the content-app rule.
 
 - Keep article slugs unique across all docs apps. The template loader
   resolves `<slug>.md` against every TEMPLATES DIRS entry in order, so a

@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django_letter import TemplateEmail
 from django_letter.notifications import Notification
 
-from captains_log.content import CaptainsLogContent
+from .content import CaptainsLogContent
 
 station_log_notification = Notification(
     "station-log",

@@ -159,7 +159,6 @@ name = "Abstract depends on no first-party app"
 type = "forbidden"
 source_modules = [ "abstract" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "accounts",
   "alternative_to",
   "captains_log",
@@ -187,7 +186,6 @@ name = "KMS depends on no first-party app except abstract"
 type = "forbidden"
 source_modules = [ "kms" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "accounts",
   "alternative_to",
   "captains_log",
@@ -219,7 +217,6 @@ source_modules = [
   "services.email.tls",
 ]
 forbidden_modules = [
-  "services.email.newsletter",
   "abstract",
   "accounts",
   "alternative_to",
@@ -244,7 +241,6 @@ name = "Accounts depends only on kms and abstract"
 type = "forbidden"
 source_modules = [ "accounts" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -266,7 +262,6 @@ name = "Domains depends only on accounts, kms and abstract"
 type = "forbidden"
 source_modules = [ "domains" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -287,7 +282,6 @@ name = "Message depends only on domains, accounts, kms, tls and abstract"
 type = "forbidden"
 source_modules = [ "services.email.message" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -308,7 +302,6 @@ name = "MCP depends only on message, docs, know_how, accounts, kms, tls and abst
 type = "forbidden"
 source_modules = [ "services.mcp" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "domains",
@@ -330,7 +323,6 @@ name = "MTA depends only on message, msa, spam, domains, accounts, kms and abstr
 type = "forbidden"
 source_modules = [ "services.email.mta" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -348,7 +340,6 @@ name = "MSA depends only on mta, message, spam, domains, accounts, kms and abstr
 type = "forbidden"
 source_modules = [ "services.email.msa" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -366,7 +357,6 @@ name = "DMARC depends only on mta, msa, message, domains, accounts, kms and abst
 type = "forbidden"
 source_modules = [ "services.email.dmarc" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -383,7 +373,6 @@ name = "Reputation depends only on msa, mta, message, domains, accounts and abst
 type = "forbidden"
 source_modules = [ "services.email.reputation" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -400,7 +389,6 @@ name = "Dashboard depends on no documentation or content apps"
 type = "forbidden"
 source_modules = [ "services.email.dashboard" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "alternative_to",
   "captains_log",
   "docs",
@@ -413,10 +401,10 @@ forbidden_modules = [
 [[tool.importlinter.contracts]]
 name = "Content apps depend only on abstract"
 type = "forbidden"
-source_modules = [ "alternative_to", "captains_log", "know_how", "legal" ]
+source_modules = [ "alternative_to", "know_how", "legal" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "accounts",
+  "captains_log",
   "docs",
   "domains",
   "kms",
@@ -435,7 +423,6 @@ name = "Docs app depends only on content apps and abstract"
 type = "forbidden"
 source_modules = [ "docs" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "accounts",
   "domains",
   "kms",
@@ -454,7 +441,6 @@ name = "Well-known app depends only on docs, content apps and abstract"
 type = "forbidden"
 source_modules = [ "well_known" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "accounts",
   "domains",
   "kms",
@@ -473,7 +459,6 @@ name = "Root depends on no first-party app except abstract"
 type = "forbidden"
 source_modules = [ "root" ]
 forbidden_modules = [
-  "services.email.newsletter",
   "accounts",
   "alternative_to",
   "captains_log",
@@ -492,9 +477,9 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Newsletter depends only on captains_log, accounts, msa, message, kms and abstract"
+name = "Captains log depends only on accounts, msa, message, kms and abstract"
 type = "forbidden"
-source_modules = [ "services.email.newsletter" ]
+source_modules = [ "captains_log" ]
 forbidden_modules = [
   "alternative_to",
   "docs",
