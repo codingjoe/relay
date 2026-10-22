@@ -157,6 +157,11 @@ to copy.
 ## Copy rules
 
 - Write short sentences. One idea each.
+- Keep each section to a single paragraph. Avoid bullet lists. Put a short
+  command inline.
+- Write about how to use the change, not how it works inside. The reader needs
+  the control, the outcome, and the value.
+- Stay in the station voice. Do not slip into product or engineering language.
 - Do not use em dashes, en dashes, or semicolons. Use a period, a comma, or a
   colon.
 - Explain what changed, then what it means for the reader.
@@ -178,6 +183,7 @@ The first edition taught these. Do not relearn them.
 - A wide page shot with no focus. Crop to the control or card.
 - A stardate entry for an improvement or an internal fix. Demote it, or cut
   it.
+- A bullet list in a section. Tell it as one paragraph.
 - A reused opening line, section title, or closing line from an earlier log.
 - "Captain's log", "the ship holds course", helm, course, warp, or bridge.
 - Em dashes, en dashes, or semicolons.
