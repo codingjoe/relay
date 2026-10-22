@@ -431,11 +431,13 @@ A rule lives either in this document or in `.relint.yml`, never both.
   Extend `MarkdownArticleMixin` from `abstract.views`.
 
 - Serve product updates from `product/updates` through the `captains_log`
-  app. The app reads the files directly because the same Markdown ships as
-  the newsletter, so image paths stay relative. The list is newest first.
+  app at `/station-log/`. The app reads the files directly because the same
+  Markdown ships as the newsletter, so image paths stay relative. The list is
+  newest first. Write each update as a station log in the spirit of Deep
+  Space Nine, not as a starship log.
 
 - Give each product update an `image` frontmatter key with a 1280x640
-  screenshot path. The Captain's log detail page uses it for `og:image`.
+  screenshot path. The station log detail page uses it for `og:image`.
 
 - Keep article slugs unique across all docs apps. The template loader
   resolves `<slug>.md` against every TEMPLATES DIRS entry in order, so a

@@ -12,10 +12,10 @@ from .content import CAPTAINS_LOG_DIR, CaptainsLogContent, publication_date
 
 
 class CaptainsLogListView(MarkdownListView):
-    """Display every Captain's log update, newest first."""
+    """Display every station log update, newest first."""
 
     template_name = "captains_log/list.html"
-    title = _("Captain's log")
+    title = _("Station log")
     content = CaptainsLogContent
 
     def get_context_data(self, **kwargs):
@@ -33,7 +33,7 @@ class CaptainsLogListView(MarkdownListView):
 
 
 class CaptainsLogDetailView(MarkdownView):
-    """Render one Captain's log update."""
+    """Render one station log update."""
 
     template_name = "captains_log/detail.html"
     parent = "captains_log:list"
@@ -85,7 +85,7 @@ class CaptainsLogDetailView(MarkdownView):
 
 
 class CaptainsLogImageView(generic.View):
-    """Serve a screenshot that belongs to one Captain's log update."""
+    """Serve a screenshot that belongs to one station log update."""
 
     def get(self, request, slug, name, *args, **kwargs):
         if slug not in CaptainsLogContent.slugs:

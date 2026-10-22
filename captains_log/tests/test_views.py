@@ -34,17 +34,17 @@ class TestCaptainsLogDetailView:
         response = client.get(reverse("captains_log:detail", args=["2026-10"]))
         assert response.status_code == 200
         content = response.content.decode()
-        assert "Captain&rsquo;s log, stardate 2026.294" in content
-        assert 'src="/captains-log/2026-10/images/mcp.png"' in content
+        assert "Station log, stardate 2026.294" in content
+        assert 'src="/station-log/2026-10/images/mcp.png"' in content
         assert (
             '<meta property="og:image" '
-            'content="http://testserver/captains-log/2026-10/images/mcp.png">'
+            'content="http://testserver/station-log/2026-10/images/mcp.png">'
         ) in content
         assert '<meta property="og:image:width" content="1280">' in content
         assert '<meta property="og:image:height" content="640">' in content
         assert (
             '<meta name="twitter:image" '
-            'content="http://testserver/captains-log/2026-10/images/mcp.png">'
+            'content="http://testserver/station-log/2026-10/images/mcp.png">'
         ) in content
 
     def test_get__not_found(self, client):
@@ -52,7 +52,7 @@ class TestCaptainsLogDetailView:
         assert response.status_code == 404
 
     def test_get_title__returns_update_title(self, rf):
-        request = rf.get("/captains-log/2026-10/")
+        request = rf.get("/station-log/2026-10/")
         request.resolver_match = type(
             "Match",
             (),
@@ -68,7 +68,7 @@ class TestCaptainsLogDetailView:
         assert response.status_code == 200
         assert "text/markdown" in response["Content-Type"]
         body = response.content.decode()
-        assert "# Captain's log, stardate 2026.294" in body
+        assert "# Station log, stardate 2026.294" in body
         assert "images/mcp.png" in body
         assert not body.startswith("---\n")
 
@@ -89,7 +89,7 @@ class TestCaptainsLogImageView:
         assert response["Content-Type"] == "image/png"
 
     def test_get__rejects_unknown_slug(self, client):
-        response = client.get("/captains-log/1999-01/images/mcp.png")
+        response = client.get("/station-log/1999-01/images/mcp.png")
         assert response.status_code == 404
 
     def test_get__rejects_missing_image(self, client):
@@ -99,7 +99,7 @@ class TestCaptainsLogImageView:
         assert response.status_code == 404
 
     def test_get__rejects_traversal(self, rf):
-        request = rf.get("/captains-log/2026-10/images/../2026-10.md")
+        request = rf.get("/station-log/2026-10/images/../2026-10.md")
         with pytest.raises(Http404):
             CaptainsLogImageView.as_view()(
                 request,

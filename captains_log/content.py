@@ -1,4 +1,4 @@
-"""Captain's log product update index, independent of Django views."""
+"""Station log product update index, independent of Django views."""
 
 import datetime
 import pathlib

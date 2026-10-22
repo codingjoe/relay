@@ -16,7 +16,7 @@ urlpatterns = [
     path("legal/", include("legal.urls")),
     path("docs/", include("docs.urls")),
     path("know-how/", include("know_how.urls")),
-    path("captains-log/", include("captains_log.urls")),
+    path("station-log/", include("captains_log.urls")),
     path("alternative-to/", include("alternative_to.urls")),
     # Site-root crawler files and the discovery documents under /.well-known/
     path("", include("well_known.urls")),

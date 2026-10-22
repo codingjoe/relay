@@ -1,11 +1,11 @@
 ---
 name: product-updates
-description: Create relay's monthly product update as a Captain's log. Use this skill whenever the user asks for product updates, release notes, a changelog, a newsletter, a monthly recap, or a summary of what shipped. The output is a Markdown post in product/updates/ with user-facing copy and focused 1280x640 screenshots. Trigger this even when the user only says "write the newsletter", "what changed this month", or "turn these commits into an update for users".
+description: Create relay's monthly product update as a station log, a log of a subspace relay station in the spirit of Deep Space Nine. Use this skill whenever the user asks for product updates, release notes, a changelog, a newsletter, a monthly recap, or a summary of what shipped. The output is a Markdown post in product/updates/ with user-facing copy and focused 1280x640 screenshots. Trigger this even when the user only says "write the newsletter", "what changed this month", or "turn these commits into an update for users".
 ---
 
 # Product updates
 
-Turn the last month of relay changes into a user-facing Captain's log. The
+Turn the last month of relay changes into a user-facing station log. The
 report ships as a Markdown file in `product/updates/` and doubles as the
 newsletter and the website post. Name the file after the month, for example
 `product/updates/2026-10.md`, and use the publication date in the frontmatter.
@@ -49,18 +49,28 @@ repeating old news.
 
 ## Voice and layout
 
-Write a Captain's log in the spirit of Star Trek. Keep the bit light. The
-product facts are the point, not the fiction.
+Write a station log. The narrator runs a subspace relay station, not a
+Galaxy-class cruiser. Take the tone from Deep Space Nine: a remote station
+where traffic passes through, the crew keeps the boards green, and the quiet
+hours matter as much as the busy ones. Keep the bit light. The product facts
+are the point, not the fiction.
+
+Draw on the station, not the starship. Ops, the docking ring, the promenade,
+traffic through the wormhole, Bajor, Cardassia, the Prophets, and the long
+shift all fit. Starship language does not. No helm, no course, no warp, no
+bridge, and no "the ship holds". The station holds.
 
 - The stardate is `YYYY.DDD`, where `DDD` is the day of year of the commit's
   date on main. January 1 is 001. A non-leap year has 365 days.
 - If two entries land on the same day, give the second the next stardate so
   the log reads in order.
-- Open with the log frame and state how many entries follow.
+- Open with the station frame and state how many entries follow.
+- Name each heading after the station event, not the feature name. A reader
+  should still learn the feature from the first sentence of the body.
 - Use one section per entry.
 - Put the image before the headline, always.
 - Put a horizontal rule between sections. Never after the last section.
-- End the file with "Captain out."
+- End the file with "Station out."
 
 Use this exact shape:
 
@@ -73,14 +83,14 @@ author: Johannes Maron
 date: 2026-10-21
 ---
 
-# Captain's log, stardate 2026.294
+# Station log, stardate 2026.294
 
-The ship holds course. Eight entries follow, in the order they reached the
-bridge.
+The wormhole is quiet. The relay is not. Eight entries follow, in the order
+they reached ops.
 
 ![Alt text that names the feature](images/get-started.png)
 
-## Stardate 2026.270: first contact
+## Stardate 2026.270: a new crew docks
 
 Body copy.
 
@@ -88,7 +98,7 @@ Body copy.
 
 ![Alt text that names the feature](images/sandbox-credential.png)
 
-## Stardate 2026.271: a simulation, not a transmission
+## Stardate 2026.271: the holosuite run
 
 Body copy.
 
@@ -104,7 +114,9 @@ above its headline. It has no stardate.
 relay is open source under AGPL-3.0. If something does not work, open an issue
 on GitHub. For the full reference, read the docs.
 
-Captain out.
+The wormhole stays open. Keep the traffic moving.
+
+Station out.
 ```
 
 The divider sits before the next section's image. The last section has no
@@ -172,7 +184,7 @@ Then do a human pass:
   in the same change.
 - Confirm `.gitattributes` marks `product/updates/**` as
   `linguist-generated`.
-- Confirm `/captains-log/<slug>/` renders the update and its screenshots.
+- Confirm `/station-log/<slug>/` renders the update and its screenshots.
 - Doc-only changes need no Django checks. If you also touch code, run
   `uv run python manage.py check` and
   `uv run python manage.py makemigrations --check --dry-run`.
