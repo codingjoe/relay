@@ -7,6 +7,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, ngettext
+from django.utils.translation import gettext_lazy as _
+from django_letter.notifications import Notification
+from django_letter.notifications.models import EmailHash, NotificationPreference
 
 from accounts.models import Membership, Organization
 from services.email.msa.models import OutgoingMessage, SuppressionEntry
@@ -15,6 +18,12 @@ from . import chart
 from .billing import month_cost
 from .charts import build_volume_chart, sent_per_day
 from .evaluation import ReputationSummary, build_reputation_stats
+
+weekly_digest_notification = Notification(
+    "weekly-digest",
+    _("Weekly digest"),
+    _("A weekly summary of your sending volume and sender reputation."),
+)
 
 
 def build_org_digest(org: Organization) -> dict[str, typing.Any]:
@@ -147,6 +156,12 @@ def iter_digest_members(org: Organization) -> Iterator[Membership]:
     for membership in (
         Membership.objects.filter(org=org, user__is_active=True)
         .exclude(user__email="")
+        .alias(email_hash=EmailHash("user__email"))
+        .exclude(
+            email_hash__in=NotificationPreference.objects.email_hashes(
+                weekly_digest_notification
+            )
+        )
         .select_related("user")
     ):
         if not SuppressionEntry.objects.is_suppressed(org, membership.user.email):

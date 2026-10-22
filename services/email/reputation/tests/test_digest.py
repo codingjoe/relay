@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
+from django_letter.notifications import hash_email
+from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership
 from domains.models import Domain
@@ -212,6 +214,20 @@ class TestIterDigestMembers:
     ):
         Membership.objects.create(org=org, user=other_user)
         SuppressionEntry.objects.create_or_update(org=org, email=user.email)
+
+        assert [membership.user.email for membership in iter_digest_members(org)] == [
+            "bob@example.com"
+        ]
+
+    def test_iter_digest_members__skips_a_disabled_notification(
+        self, org, user, other_user
+    ):
+        Membership.objects.create(org=org, user=other_user)
+        NotificationPreference.objects.create(
+            email_hash=hash_email(user.email),
+            slug="weekly-digest",
+            enabled=False,
+        )
 
         assert [membership.user.email for membership in iter_digest_members(org)] == [
             "bob@example.com"

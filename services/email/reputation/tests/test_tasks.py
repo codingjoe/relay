@@ -7,8 +7,6 @@ from crontask import scheduler
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.mail.backends import locmem
 from django.utils import timezone
-from django_letter.notifications import hash_email
-from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership, Organization
 from domains.models import Domain
@@ -332,20 +330,6 @@ class TestSendOrgWeeklyDigest:
         assert {message.subject for message in mailoutbox} == {
             "test-org sent one message out the door"
         }
-
-    def test_send_org_weekly_digest__skips_a_disabled_member(
-        self, org, user, other_user, mailoutbox
-    ):
-        Membership.objects.create(org=org, user=other_user)
-        NotificationPreference.objects.create(
-            email_hash=hash_email(user.email),
-            slug="weekly-digest",
-            enabled=False,
-        )
-
-        send_org_weekly_digest.func(org_id=org.pk)
-
-        assert [message.to[0] for message in mailoutbox] == ["bob@example.com"]
 
     def test_send_org_weekly_digest__drops_a_suspended_organization(
         self, org, mailoutbox, caplog
