@@ -4,11 +4,19 @@ from django.contrib.humanize.templatetags.humanize import intcomma
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from django_letter import TemplateEmail
+from django_letter.notifications import Notification
 
 from .digest import sample_org_digest
 from .evaluation import ReputationSummary
 
+weekly_digest_notification = Notification(
+    "weekly-digest",
+    _("Weekly digest"),
+    _("A weekly summary of your sending volume and sender reputation."),
+)
 
+
+@weekly_digest_notification
 class WeeklyDigestEmail(TemplateEmail):
     """Report one organization's sending volume and its sender reputation."""
 

@@ -4,6 +4,7 @@ from crontask import cron
 from django.conf import settings
 from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
+from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Organization
 from services.email.msa.models import OutgoingMessage
@@ -12,7 +13,7 @@ from services.email.mta.models import IncomingMessage
 
 from . import evaluation
 from .digest import build_org_digest, iter_digest_members
-from .emails import WeeklyDigestEmail
+from .emails import WeeklyDigestEmail, weekly_digest_notification
 from .models import FblReport
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,10 @@ def send_org_weekly_digest(org_id):
         mailer = mailers.default
         with mailer:
             for membership in iter_digest_members(org):
+                if not NotificationPreference.objects.is_enabled(
+                    weekly_digest_notification, membership.user.email
+                ):
+                    continue
                 try:
                     mailer.send_messages(
                         [
