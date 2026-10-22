@@ -139,9 +139,9 @@ class OnboardingSecondReminderEmail(OnboardingEmail):
     """Remind a new organization three days after its first admin joined."""
 
     template_name = "emails/onboarding/second_reminder.html"
-    subject = _("No sandbox. This is fine.")
-    preheader = _("Sandbox credentials exist, if you want one.")
-    mcp_question = '"list my credentials"'
+    subject = _("We keep your reputation out of the fire")
+    preheader = _("Spam checks, bounce lists, and provider feedback.")
+    mcp_question = '"list my messages"'
 
 
 @onboarding_notification

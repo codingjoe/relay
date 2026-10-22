@@ -3,18 +3,18 @@
 
 {% block meme %}
   <img
-    src="https://api.memegen.link/images/fine/no_sandbox/this_is_fine.jpg?width=600&amp;font=notosans"
-    alt="{% translate 'the room is on fire. The dog says: this is fine.'|capfirst %}"
+    src="https://api.memegen.link/images/fine/sender_reputation/this_is_fine.jpg?width=600&amp;font=notosans"
+    alt="{% translate 'the room is on fire. The dog says: sender reputation, this is fine.'|capfirst %}"
     width="552"
     class="meme-image"
   >
 {% endblock meme %}
 
-{% block headline %}{% translate "no sandbox needed"|capfirst %}{% endblock headline %}
+{% block headline %}{% translate "we watch your reputation"|capfirst %}{% endblock headline %}
 
 {% block intro %}
   {% blocktranslate trimmed %}
-    A real credential sends real mail, which is rather the point. Nervous? Make a sandbox credential instead: relay
-    scans it and keeps it without delivering. Practise, then go live.
+    Relay scans every outgoing message for spam, never mails an address that bounced or complained, and hears from the
+    big providers when someone marks a message as spam. One bad send does not sink your domain.
   {% endblocktranslate %}
 {% endblock intro %}
