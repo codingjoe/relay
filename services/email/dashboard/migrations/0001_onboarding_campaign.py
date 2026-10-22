@@ -106,6 +106,22 @@ class Migration(migrations.Migration):
                 "ordering": ("-modified_at", "-created_at"),
                 "get_latest_by": "created_at",
                 "abstract": False,
+                "constraints": [
+                    models.CheckConstraint(
+                        condition=(
+                            models.Q(
+                                next_send_at__isnull=False, completed_at__isnull=True
+                            )
+                            | models.Q(
+                                next_send_at__isnull=True, completed_at__isnull=False
+                            )
+                        ),
+                        name="onboardingcampaign_active_or_completed",
+                        violation_error_message=(
+                            "A campaign is either due for its next send or completed."
+                        ),
+                    )
+                ],
             },
         ),
         migrations.RunPython(start_campaigns, migrations.RunPython.noop),

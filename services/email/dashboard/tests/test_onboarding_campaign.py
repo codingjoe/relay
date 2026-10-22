@@ -103,6 +103,20 @@ class TestSendOnboardingEmail:
         assert campaign.next_send_at is None
         assert not mailoutbox
 
+    def test_send_onboarding_email__closes_the_sequence_after_the_last_mail(
+        self, org, mailoutbox, settings
+    ):
+        use_locmem_mailer(settings)
+        campaign = OnboardingCampaign.objects.get(org=org)
+        campaign.stage = OnboardingCampaign.Stage.LAST_REMINDER
+        campaign.save(update_fields=["stage"])
+
+        tasks.send_onboarding_email.func(campaign_pk=campaign.pk)
+
+        campaign.refresh_from_db()
+        assert campaign.completed_at is not None
+        assert campaign.next_send_at is None
+
 
 @pytest.mark.django_db
 class TestSendDueOnboardingEmails:

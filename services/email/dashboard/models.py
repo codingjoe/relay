@@ -65,6 +65,20 @@ class OnboardingCampaign(TimeStamped):
     def __str__(self):
         return f"{self.org} / {self.get_stage_display()}"
 
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(next_send_at__isnull=False, completed_at__isnull=True)
+                    | models.Q(next_send_at__isnull=True, completed_at__isnull=False)
+                ),
+                name="onboardingcampaign_active_or_completed",
+                violation_error_message=_(
+                    "A campaign is either due for its next send or completed."
+                ),
+            ),
+        ]
+
     def mark_email_sent(self):
         """Schedule the next email, or end the sequence after the last one."""
         stage_class = type(self).Stage
@@ -79,7 +93,8 @@ class OnboardingCampaign(TimeStamped):
                 self.stage = stage_class.LAST_REMINDER
                 self.next_send_at = next_send_time(days=4)
             case _:
-                self.next_send_at = None
+                self.complete()
+                return
         self.save(update_fields=["stage", "next_send_at", "modified_at"])
 
     def complete(self):
