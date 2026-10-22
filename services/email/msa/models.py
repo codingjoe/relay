@@ -1,12 +1,11 @@
 import datetime
-import hashlib
 from enum import nonmember
 
 from django.core.validators import validate_email
 from django.db import models
-from django.db.models import Lookup
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django_letter.fields import HashedEmailField
 
 from abstract.models import TimeStamped
 from accounts.models import Credential, OrganizationOwned
@@ -117,24 +116,6 @@ class MsaCredential(Credential):
     )
 
 
-class EmailLookup(Lookup):
-    """Hash an email address before comparing against `address_hash`."""
-
-    lookup_name = "email"
-
-    def as_sql(self, compiler, connection):
-        lhs, lhs_params = self.process_lhs(compiler, connection)
-        model = self.lhs.output_field.model
-        return f"{lhs} = %s", [*lhs_params, model.hash_address(self.rhs)]
-
-
-class HashedEmailField(models.BinaryField):
-    """Provide the `__email` lookup for address hashing."""
-
-
-HashedEmailField.register_lookup(EmailLookup)
-
-
 class SuppressionQuerySet(models.QuerySet):
     def create_or_update(self, defaults=None, **kwargs):
         email = kwargs.pop("email", None)
@@ -185,6 +166,7 @@ class SuppressionEntry(OrganizationOwned):
 
     address_hash = HashedEmailField(
         _("address hash"),
+        salt="services.email.msa.models.SuppressionEntry",
         help_text=_("Salted SHA-256 of the lowercased email address."),
     )
     reason = models.TextField(
@@ -208,12 +190,7 @@ class SuppressionEntry(OrganizationOwned):
         return f"{self.org} / {self.address_hash.hex()[:12]}… ({self.reason})"
 
     @classmethod
-    def salt(cls) -> str:
-        """Return a stable salt unique to this model class."""
-        return f"{cls.__module__}.{cls.__name__}"
-
-    @classmethod
     def hash_address(cls, email) -> bytes:
         """Return the salted SHA-256 digest of a lowercased email address."""
         validate_email(email)
-        return hashlib.sha256((cls.salt() + email.lower()).encode()).digest()
+        return cls._meta.get_field("address_hash").hash_email(email)

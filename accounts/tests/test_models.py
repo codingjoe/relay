@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.urls import reverse
-from django_letter.notifications import Notification, hash_email
+from django_letter.notifications import Notification
 from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership, Organization
@@ -78,7 +78,9 @@ class TestMembershipQuerySet:
     ):
         Membership.objects.create(org=org, user=other_user)
         NotificationPreference.objects.create(
-            email_hash=hash_email(user.email),
+            email_hash=NotificationPreference._meta.get_field("email_hash").hash_email(
+                user.email
+            ),
             slug=test_notification.slug,
             enabled=False,
         )

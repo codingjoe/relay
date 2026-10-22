@@ -32,9 +32,6 @@ class TestHashAddress:
         with pytest.raises(ValidationError):
             SuppressionEntry.hash_address("not-an-email")
 
-    def test_salt__is_class_path(self):
-        assert SuppressionEntry.salt() == "services.email.msa.models.SuppressionEntry"
-
 
 class TestCreateOrUpdate:
     @pytest.mark.django_db
