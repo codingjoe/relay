@@ -18,10 +18,7 @@
   </table>
 
   <h1>{% block headline %}{% endblock %}</h1>
-  <p>
-    {{ greeting }}
-    {% block intro %}{% endblock %}
-  </p>
+  <p>{% block intro %}{% endblock %}</p>
 
   <h2>{% translate "your setup"|capfirst %}</h2>
   <p class="progress-caption">

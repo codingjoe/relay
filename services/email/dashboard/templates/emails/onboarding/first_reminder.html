@@ -13,8 +13,8 @@
 {% block headline %}{% translate "send for real, deliver nothing"|capfirst %}{% endblock headline %}
 
 {% block intro %}
-  {% blocktranslate trimmed %}
-    A sandbox credential sends like production. Relay signs it, scans it for spam and viruses, and shows it in your
-    dashboard. Nothing leaves the building.
+  {% blocktranslate trimmed with name=member_name %}
+    Hey {{ name }}, a sandbox credential sends like production. Relay signs it, scans it for spam and viruses, and shows
+    it in your dashboard. Nothing leaves the building.
   {% endblocktranslate %}
 {% endblock intro %}

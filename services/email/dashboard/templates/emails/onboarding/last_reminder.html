@@ -13,9 +13,9 @@
 {% block headline %}{% translate "tired of CloudWatch logs?"|capfirst %}{% endblock headline %}
 
 {% block intro %}
-  {% blocktranslate trimmed %}
-    You see each message you send and every step it took along the way, all in one view. No log group, no query
-    language.
+  {% blocktranslate trimmed with name=member_name %}
+    Last nudge, {{ name }}. You see each message you send and every step it took along the way, all in one view. No log
+    group, no query language.
   {% endblocktranslate %}
 {% endblock intro %}
 
