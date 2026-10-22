@@ -1,7 +1,6 @@
 import datetime
 
 from django.db import models
-from django.db.models.functions import Now
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -28,8 +27,8 @@ def send_time(start: datetime.datetime, days: int) -> datetime.datetime:
     return moment
 
 
-class OnboardingCampaign(TimeStamped):
-    """Walk an organization's admins through the first sending steps."""
+class OnboardingMail(TimeStamped):
+    """Record one onboarding mail that went out to an organization."""
 
     class Stage(models.TextChoices):
         WELCOME = "welcome", _("welcome")
@@ -37,54 +36,34 @@ class OnboardingCampaign(TimeStamped):
         SECOND_REMINDER = "second-reminder", _("second reminder")
         LAST_REMINDER = "last-reminder", _("last reminder")
 
-    SEQUENCE = (
-        Stage.WELCOME,
-        Stage.FIRST_REMINDER,
-        Stage.SECOND_REMINDER,
-        Stage.LAST_REMINDER,
-    )
-    # Days after the campaign starts. The stage and the due time both follow
-    # from this tuple and `sent_count`, so no second state can drift.
-    SEND_OFFSETS = (0, 2, 6, 13)
+    # Days after sign-up. Each mail is due on its own day, so the schedule
+    # needs no progress state beyond the row that records a sent mail.
+    SEND_OFFSETS = {
+        Stage.WELCOME: 0,
+        Stage.FIRST_REMINDER: 2,
+        Stage.SECOND_REMINDER: 6,
+        Stage.LAST_REMINDER: 13,
+    }
 
-    org = models.OneToOneField(
+    org = models.ForeignKey(
         Organization,
         on_delete=models.CASCADE,
-        related_name="onboarding_campaign",
-        help_text=_("Organization the sequence walks through onboarding."),
+        related_name="onboarding_mails",
+        help_text=_("Organization the mail went to."),
     )
-    sent_count = models.PositiveSmallIntegerField(
-        _("sent"),
-        default=0,
-        db_index=True,
-        help_text=_("How many emails of the sequence have gone out."),
+    stage = models.TextField(
+        _("stage"),
+        choices=Stage,
+        help_text=_("Which mail of the sequence went out."),
     )
+
+    class Meta(TimeStamped.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["org", "stage"],
+                name="unique_onboarding_mail_per_org",
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.org} / {self.stage.label if self.stage else _('done')}"
-
-    @property
-    def stage(self):
-        """Return the email the sequence sends next, or `None` once it ran out."""
-        try:
-            return type(self).SEQUENCE[self.sent_count]
-        except IndexError:
-            return None
-
-    @property
-    def next_send_at(self):
-        """Return when the next email is due, or `None` once it ran out."""
-        if self.sent_count >= len(type(self).SEQUENCE):
-            return None
-        return send_time(self.created_at, type(self).SEND_OFFSETS[self.sent_count])
-
-    def claim(self) -> bool:
-        """Advance the sequence unless another worker already sent this email."""
-        return bool(
-            type(self)
-            .objects.filter(pk=self.pk, sent_count=self.sent_count)
-            .update(
-                sent_count=models.F("sent_count") + 1,
-                modified_at=Now(),
-            )
-        )
+        return f"{self.org} / {self.get_stage_display()}"

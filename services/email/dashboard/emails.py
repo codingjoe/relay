@@ -11,7 +11,7 @@ from django_letter.notifications import Notification
 
 from accounts.models import Organization
 
-from .models import OnboardingCampaign
+from .models import OnboardingMail
 from .onboarding import OnboardingStep
 
 onboarding_notification = Notification(
@@ -32,11 +32,11 @@ class OnboardingEmail(TemplateEmail):
     def __init__(
         self,
         *,
-        campaign: OnboardingCampaign,
+        org: Organization,
         state: dict[str, typing.Any],
         **kwargs,
     ):
-        self.campaign = campaign
+        self.org = org
         self.state = state
         super().__init__(**kwargs)
 
@@ -49,11 +49,8 @@ class OnboardingEmail(TemplateEmail):
         language: str | None = None,
         **kwargs,
     ) -> TemplateEmail:
-        """Fill in a sample campaign and state when the caller passes none."""
-        kwargs.setdefault(
-            "campaign",
-            OnboardingCampaign(org=Organization(slug="acme")),
-        )
+        """Fill in a sample organization and state when the caller passes none."""
+        kwargs.setdefault("org", Organization(slug="acme"))
         kwargs.setdefault(
             "state",
             {
@@ -79,7 +76,7 @@ class OnboardingEmail(TemplateEmail):
 
     def get_context_data(self) -> dict[str, typing.Any]:
         return super().get_context_data() | {
-            "organization": self.campaign.org.slug,
+            "organization": self.org.slug,
             "onboarding_steps": self.state["onboarding_steps"],
             "remaining_steps": self.state["remaining_steps"],
             "member_name": self.extra_context["user"].username,
@@ -99,7 +96,7 @@ class OnboardingEmail(TemplateEmail):
             "next_step_button": self.state["next_step"].label,
             "next_step_url": reverse(
                 "email-dashboard:get-started",
-                kwargs={"org_slug": self.campaign.org.slug},
+                kwargs={"org_slug": self.org.slug},
             ),
         }
 
@@ -152,8 +149,8 @@ class OnboardingLastReminderEmail(OnboardingEmail):
 
 
 EMAIL_BY_STAGE = {
-    OnboardingCampaign.Stage.WELCOME: OnboardingWelcomeEmail,
-    OnboardingCampaign.Stage.FIRST_REMINDER: OnboardingFirstReminderEmail,
-    OnboardingCampaign.Stage.SECOND_REMINDER: OnboardingSecondReminderEmail,
-    OnboardingCampaign.Stage.LAST_REMINDER: OnboardingLastReminderEmail,
+    OnboardingMail.Stage.WELCOME: OnboardingWelcomeEmail,
+    OnboardingMail.Stage.FIRST_REMINDER: OnboardingFirstReminderEmail,
+    OnboardingMail.Stage.SECOND_REMINDER: OnboardingSecondReminderEmail,
+    OnboardingMail.Stage.LAST_REMINDER: OnboardingLastReminderEmail,
 }
