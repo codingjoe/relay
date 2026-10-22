@@ -441,7 +441,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Store log screenshots in `product/updates/images/<slug>/` and link them
   with `{% static %}`. Django staticfiles serves the folder, so no image view
-  exists. Use `{% url %}` for internal links.
+  exists. Use `{% url %}` in an `<a>` tag for internal links.
 
 - Send the announcement from `captains_log`. The app owns the content, the
   email, the scheduled task, and the "Station log" notification preference.

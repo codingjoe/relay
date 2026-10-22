@@ -19,7 +19,7 @@ DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 SLUG_RE = re.compile(r"\d{4}-\d{2}")
 # mdformat rewrites `---` as a long underscore run, so accept either form.
 DIVIDER_RE = re.compile(r"^(?:-{3,}|\*{3,}|_{3,})$")
-INTERNAL_LINK_RE = re.compile(r"\]\(https?://relays\.to/")
+INTERNAL_LINK_RE = re.compile(r'(?:\]\(|href=")https?://relays\.to/')
 BANNED = {"\u2014": "em dash", "\u2013": "en dash", ";": "semicolon"}
 
 

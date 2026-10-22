@@ -155,7 +155,7 @@ Improvements and smaller items go here. The supplemental log also gets an
 image above its headline. It has no stardate.
 
 relay is open source under AGPL-3.0. If something does not work, open an issue
-on GitHub. For the full reference, read the [docs]({% url 'docs:list' %}).
+on GitHub. For the full reference, read the <a href="{% url 'docs:list' %}">docs</a>.
 
 Write one fresh closing line here.
 
@@ -188,8 +188,9 @@ to copy.
 - Skip hype. No "revolutionary", "seamless", or "game-changing".
 - Do not name internal tasks, services, or deploy steps unless the reader
   needs them.
-- Use `{% static '<slug>/<name>.png' %}` for images and `{% url 'name' %}` for
-  internal links. Never hard-code the site domain.
+- Use `{% static '<slug>/<name>.png' %}` in an HTML `<img>` tag for images,
+  and `{% url 'name' %}` in an HTML `<a>` tag for internal links. Never
+  hard-code the site domain.
 
 ## Mistakes to avoid
 
@@ -208,7 +209,7 @@ The first edition taught these. Do not relearn them.
 - "Captain's log", "the ship holds course", helm, course, warp, or bridge.
 - Em dashes, en dashes, or semicolons.
 - A social image that does not stand on its own at 1280x640.
-- A hard-coded internal link. Use `{% url %}`.
+- A hard-coded internal link. Use `{% url %}` in an `<a>` tag.
 
 ## Screenshots
 
