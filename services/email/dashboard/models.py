@@ -7,8 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from abstract.models import TimeStamped
 from accounts.models import Organization
 
-# Reminders land at 09:00 in the project timezone, after the morning stand-up
-# and before the day's first deep work. A weekend landing moves to Monday.
+# Reminders land at 09:00 project time; weekend landings move to Monday.
 SEND_HOUR = 9
 
 
@@ -30,16 +29,13 @@ def send_time(
 
 
 class OnboardingMail(TimeStamped):
-    """Record one onboarding mail that went out to an organization."""
-
     class Stage(models.TextChoices):
         WELCOME = "welcome", _("welcome")
         FIRST_REMINDER = "first-reminder", _("first reminder")
         SECOND_REMINDER = "second-reminder", _("second reminder")
         LAST_REMINDER = "last-reminder", _("last reminder")
 
-    # Delay after sign-up. Each mail is due on its own day, so the schedule
-    # needs no progress state beyond the row that records a sent mail.
+    # Delay after sign-up; each mail is due on its own day, so the sent row suffices.
     SEND_OFFSETS = {
         Stage.WELCOME: datetime.timedelta(0),
         Stage.FIRST_REMINDER: datetime.timedelta(days=2),

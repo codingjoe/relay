@@ -1,5 +1,5 @@
 {% extends "emails/base.html" %}
-{% load django_letter humanize i18n %}
+{% load django_letter i18n %}
 
 {% block extra_header %}
   {{ block.super }}
@@ -60,11 +60,4 @@
   {% block extra_note %}{% endblock %}
 
   {% include "emails/onboarding/mcp.html" %}
-
-  {% if unsubscribe_url %}
-    <p class="note">
-      {% translate "rather not get these?"|capfirst %}
-      <a href="{{ unsubscribe_url }}">{% translate "stop the onboarding emails" %}</a>.
-    </p>
-  {% endif %}
 {% endblock content %}

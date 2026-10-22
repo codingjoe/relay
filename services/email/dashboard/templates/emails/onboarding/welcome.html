@@ -2,9 +2,12 @@
 {% load humanize i18n %}
 
 {% block meme %}
+  {% blocktranslate asvar meme_alt trimmed with limit=free_monthly_messages %}
+    One does not simply send {{ limit }} emails for free. Turns out you can.
+  {% endblocktranslate %}
   <img
     src="https://api.memegen.link/images/mordor/one_does_not_simply/send_{{ free_monthly_messages|intcomma }}_emails_for_free.jpg?width=600&amp;font=notosans"
-    alt="{% translate 'one does not simply send a thousand emails for free. Turns out you can.'|capfirst %}"
+    alt="{{ meme_alt }}"
     width="552"
     class="meme-image"
   >

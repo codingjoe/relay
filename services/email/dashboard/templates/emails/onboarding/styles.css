@@ -1,9 +1,4 @@
-/* Stylesheet for the onboarding mails.
-
-django-letter passes every render through premailer, which inlines these rules.
-It parses with cssutils, which silently drops native CSS nesting, so the rules
-stay flat. Keep the file a plain stylesheet: the template includes it inside a
-style element. */
+/* premailer inlines this; cssutils silently drops native CSS nesting, so keep the rules flat. */
 
 .meme {
   margin: 0 0 8px;
@@ -92,7 +87,7 @@ style element. */
 }
 
 .terminal-comment {
-  color: #6b7280;
+  color: #8b949e;
   font-style: italic;
 }
 
@@ -116,7 +111,7 @@ style element. */
 }
 
 .progress-todo {
-  background-color: #ca8a04;
+  background-color: #a16207;
 }
 
 .progress-gap {
@@ -138,7 +133,7 @@ style element. */
 }
 
 .bullet-todo {
-  color: #ca8a04;
+  color: #a16207;
 }
 
 .step {

@@ -3,6 +3,7 @@ import typing
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.humanize.templatetags.humanize import intcomma
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -76,12 +77,10 @@ class OnboardingEmail(TemplateEmail):
 
     def get_context_data(self) -> dict[str, typing.Any]:
         return super().get_context_data() | {
-            "organization": self.org.slug,
             "onboarding_steps": self.state["onboarding_steps"],
             "remaining_steps": self.state["remaining_steps"],
             "member_name": self.extra_context["user"].username,
-            "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
-            "mcp_endpoint": settings.MCP_RESOURCE_URL,
+            "free_monthly_messages": intcomma(settings.RELAY_FREE_MONTHLY_MESSAGES),
             "mcp_codex_command": (
                 f"codex mcp add relay --url {settings.MCP_RESOURCE_URL}"
             ),
@@ -100,24 +99,20 @@ class OnboardingEmail(TemplateEmail):
             ),
         }
 
-    def get_subject(self, **context) -> str:
-        """Fill the placeholders in the stage's subject."""
-        return self.subject % context
-
 
 @onboarding_notification
 class OnboardingWelcomeEmail(OnboardingEmail):
     """Welcome a new organization with the free plan."""
 
     template_name = "emails/onboarding/welcome.html"
-    subject = _("You send 1,000 emails. Relay sends them free.")
+    subject = _("You send %(free_monthly_messages)s emails. Relay sends them free.")
     preheader = _("Send as much as you like, actually.")
     mcp_question = '"set up a project for relay"'
 
 
 @onboarding_notification
 class OnboardingFirstReminderEmail(OnboardingEmail):
-    """Remind a new organization one day after its first admin joined."""
+    """Remind a new organization two days after its first admin joined."""
 
     template_name = "emails/onboarding/first_reminder.html"
     subject = _("Press the button. Not the red one.")
@@ -127,7 +122,7 @@ class OnboardingFirstReminderEmail(OnboardingEmail):
 
 @onboarding_notification
 class OnboardingSecondReminderEmail(OnboardingEmail):
-    """Remind a new organization three days after its first admin joined."""
+    """Remind a new organization six days after its first admin joined."""
 
     template_name = "emails/onboarding/second_reminder.html"
     subject = _("We keep your reputation out of the fire")
@@ -140,7 +135,7 @@ class OnboardingSecondReminderEmail(OnboardingEmail):
 
 @onboarding_notification
 class OnboardingLastReminderEmail(OnboardingEmail):
-    """Send the last onboarding nudge one week after its first admin joined."""
+    """Send the last onboarding nudge thirteen days after its first admin joined."""
 
     template_name = "emails/onboarding/last_reminder.html"
     subject = _("You, AWS, and relay walk into an inbox")

@@ -37,21 +37,25 @@ def send_onboarding_email(org_pk, stage):
     except Organization.DoesNotExist:
         logger.info("Dropped onboarding mail %r for a missing organization", stage)
     else:
-        state = get_onboarding_state(org)
-        if state["onboarding_complete"]:
+        if org.suspended_at:
+            logger.info("Stopped onboarding mail %r for suspended %r", stage, org)
+        elif (state := get_onboarding_state(org))["onboarding_complete"]:
             logger.info(
                 "Stopped onboarding mail %r for %r, onboarding is complete", stage, org
             )
         else:
             email_class = EMAIL_BY_STAGE[stage]
-            _, created = OnboardingMail.objects.get_or_create(org=org, stage=stage)
-            if created:
-                mailer = mailers.default
-                base_url = (
-                    f"{'http' if settings.DEBUG else 'https'}://"
-                    f"{settings.RELAY_PLATFORM_DOMAIN}"
+            claim, created = OnboardingMail.objects.get_or_create(org=org, stage=stage)
+            if not created:
+                logger.info(
+                    "Skipped onboarding mail %r for %r that another worker sent",
+                    stage,
+                    org,
                 )
-                with mailer:
+            else:
+                delivered = 0
+                failure = None
+                with mailers.default as mailer:
                     for membership in (
                         org.memberships.filter(role=Membership.Role.ADMIN)
                         .for_notification(email_class.notification)
@@ -64,19 +68,18 @@ def send_onboarding_email(org_pk, stage):
                                         membership.user,
                                         org=org,
                                         state=state,
-                                        base_url=base_url,
+                                        base_url=settings.MCP_BASE_URL,
                                         language=settings.LANGUAGE_CODE,
                                     )
                                 ]
                             )
-                        except OSError, InvalidUserError:
+                        except (OSError, InvalidUserError) as exc:
+                            failure = exc
                             logger.exception(
-                                "Onboarding email for user %r failed",
-                                membership.user,
+                                "Onboarding email for user %r failed", membership.user
                             )
-            else:
-                logger.info(
-                    "Skipped onboarding mail %r for %r that another worker sent",
-                    stage,
-                    org,
-                )
+                        else:
+                            delivered += 1
+                if failure and not delivered:
+                    claim.delete()
+                    raise failure

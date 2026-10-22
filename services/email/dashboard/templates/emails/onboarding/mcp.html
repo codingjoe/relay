@@ -1,8 +1,3 @@
-{% comment %}
-  MCP terminal at the foot of every mail. Standard shell colouring: the
-  prompt is small and blue, the command is near-white, output recedes to
-  gray, and the comment stays dim instead of competing with the command.
-{% endcomment %}
 {% load i18n %}
 <h2>{% translate "feeling lazy? Connect your agent!"|capfirst %}</h2>
 <table
@@ -26,13 +21,15 @@
     <td class="terminal-body">
       <span class="terminal-prompt">$</span> <span class="terminal-command">{{ mcp_codex_command }}</span><br><span
         class="terminal-output"
-      >relay added to codex</span><br><br><span class="terminal-prompt">$</span> <span
+      >{% translate "relay added to codex" %}</span><br><br><span class="terminal-prompt">$</span> <span
         class="terminal-command"
-      >{{ mcp_claude_command }}</span><br><span class="terminal-output">relay added to claude</span><br><br><span
-        class="terminal-prompt"
-      >$</span> <span class="terminal-command">cat mcp.json</span><br><span
-        class="terminal-json"
-      >{{ mcp_config }}</span><br><br><span class="terminal-comment"># {% translate "ask your agent:" %}
+      >{{ mcp_claude_command }}</span><br><span
+        class="terminal-output"
+      >{% translate "relay added to claude" %}</span><br><br><span class="terminal-prompt">$</span> <span
+        class="terminal-command"
+      >cat mcp.json</span><br><span class="terminal-json">{{ mcp_config }}</span><br><br><span
+        class="terminal-comment"
+      ># {% translate "ask your agent:" %}
         {{ mcp_question }}</span>
     </td>
   </tr>

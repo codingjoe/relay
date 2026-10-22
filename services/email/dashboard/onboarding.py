@@ -34,9 +34,7 @@ def get_onboarding_state(org) -> dict:
         "connected_credential": connected_credential,
         "onboarding_complete": completed_steps == len(steps),
         "next_step": next((step for step, done in steps if not done), None),
-        "completed_steps": completed_steps,
         "remaining_steps": len(steps) - completed_steps,
-        "total_steps": len(steps),
         "onboarding_steps": [
             {"label": step.label, "done": done} for step, done in steps
         ],
