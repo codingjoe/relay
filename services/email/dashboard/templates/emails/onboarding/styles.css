@@ -49,6 +49,11 @@ style element. */
   padding-left: 8px;
 }
 
+.terminal-meta {
+  float: right;
+  opacity: 0.5;
+}
+
 .terminal-dot-red {
   color: #f87171;
 }

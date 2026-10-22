@@ -10,11 +10,12 @@
   >
 {% endblock meme %}
 
-{% block headline %}{% translate "turns out you can"|capfirst %}{% endblock headline %}
+{% block headline %}{% translate "send free, then send more"|capfirst %}{% endblock headline %}
 
 {% block intro %}
   {% blocktranslate trimmed with limit=free_monthly_messages|intcomma %}
-    Turns out you can: {{ limit }} messages a month on the house.
+    You get {{ limit }} free messages every month. Your app signs in, and you watch it take the whole walk: sandbox,
+    signing, spam scan, delivery.
   {% endblocktranslate %}
 {% endblock intro %}
 

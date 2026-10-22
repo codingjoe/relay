@@ -2,7 +2,7 @@ import json
 import typing
 
 from django.conf import settings
-from django.contrib.humanize.templatetags.humanize import intcomma
+from django.contrib.auth import get_user_model
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -74,6 +74,11 @@ class OnboardingEmail(TemplateEmail):
                 ],
             },
         )
+        extra_context = kwargs.setdefault("extra_context", {})
+        extra_context.setdefault(
+            "user",
+            get_user_model()(username="jess", email="member@acme.example"),
+        )
         return super().render_preview(
             request, context=context, language=language, **kwargs
         )
@@ -83,6 +88,7 @@ class OnboardingEmail(TemplateEmail):
             "organization": self.campaign.org.slug,
             "onboarding_steps": self.state["onboarding_steps"],
             "remaining_steps": self.state["remaining_steps"],
+            "member_name": self.extra_context["user"].username,
             "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
             "mcp_endpoint": settings.MCP_RESOURCE_URL,
             "mcp_codex_command": (
@@ -113,15 +119,9 @@ class OnboardingWelcomeEmail(OnboardingEmail):
     """Welcome a new organization with the free plan."""
 
     template_name = "emails/onboarding/welcome.html"
-    subject = _("One does not simply send %(limit)s emails for free")
-    preheader = _("Turns out you can.")
-    mcp_question = '"show my domains"'
-
-    def get_subject(self, **context) -> str:
-        """Fill the placeholders, including the free monthly volume."""
-        return super().get_subject(
-            **(context | {"limit": intcomma(settings.RELAY_FREE_MONTHLY_MESSAGES)})
-        )
+    subject = _("You send 1,000 emails. Relay sends them free.")
+    preheader = _("Send as much as you like, actually.")
+    mcp_question = '"set up a project for relay"'
 
 
 @onboarding_notification
@@ -140,7 +140,10 @@ class OnboardingSecondReminderEmail(OnboardingEmail):
 
     template_name = "emails/onboarding/second_reminder.html"
     subject = _("We keep your reputation out of the fire")
-    preheader = _("Spam checks, bounce lists, and provider feedback.")
+    preheader = _(
+        "Spam checks, bounce lists, and the big providers telling relay when "
+        "someone marks your message as spam."
+    )
     mcp_question = '"list my messages"'
 
 
