@@ -222,6 +222,10 @@ notification preference is "Station log", so an opt-out in the settings
 applies. The dry run reports the recipient count. Use `--now` only in
 development or when no task worker is running.
 
+The mail carries the whole log in its body. Do not replace it with a summary
+or a teaser. The top link opens the same log in a browser for readers whose
+client clips the message or blocks images.
+
 Send each log once. The command keeps no record of what it already sent.
 
 ## Validate

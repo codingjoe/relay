@@ -25,16 +25,30 @@ class TestStationLogEmail:
     def test_get_subject__names_the_log(self, metadata):
         assert render(metadata).subject == "A new station log: October 2026"
 
-    def test_render__shows_the_description(self, metadata):
-        assert metadata["description"] in render(metadata).html
+    def test_render__includes_the_whole_log(self, metadata):
+        html = render(metadata).html
+        assert "Station log, stardate 2026.294" in html
+        assert "Stardate 2026.271: the holosuite run" in html
+        assert "Stardate 2026.292: a new channel opens" in html
+        assert "Supplemental log" in html
+        assert "Station out." in html
 
-    def test_render__uses_the_social_image(self, metadata):
-        assert "/station-log/2026-10/images/mcp.png" in render(metadata).html
+    def test_render__keeps_every_screenshot(self, metadata):
+        html = render(metadata).html
+        for image in (
+            "sandbox-credential",
+            "weekly-digest",
+            "message-preview",
+            "mcp",
+            "get-started",
+        ):
+            assert f"/station-log/2026-10/images/{image}.png" in html
+        assert 'width="600"' in html
 
     def test_render__links_to_the_log(self, metadata):
         html = render(metadata).html
+        assert "Open this log in your browser" in html
         assert "/station-log/2026-10/" in html
-        assert "Read the station log" in html
 
     @pytest.mark.django_db
     def test_message__sets_the_unsubscribe_headers(self, user, metadata):

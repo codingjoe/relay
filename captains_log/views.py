@@ -1,4 +1,3 @@
-import frontmatter
 from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponse
 from django.urls import reverse
@@ -45,7 +44,7 @@ class CaptainsLogDetailView(MarkdownView):
         return cls.content.get_article_metadata(slug)["name"]
 
     def get_article(self):
-        return frontmatter.load(self.content.get_article_path(self.kwargs["slug"]))
+        return self.content.get_article(self.kwargs["slug"])
 
     def get_context_data(self, **kwargs):
         article = self.get_article()
@@ -66,15 +65,14 @@ class CaptainsLogDetailView(MarkdownView):
             if image
             else ""
         )
-        body = article.content.replace("](images/", f"]({image_base}")
         return super().get_context_data(**kwargs) | {
             "title": metadata["name"],
             "meta_description": metadata.get("description", ""),
             "date": publication_date(metadata),
             "author": metadata.get("author", ""),
             "og_image": og_image,
-            "content_html": md_2_html(body),
-            "toc_html": md_toc(body, depth=self.toc_levels),
+            "content_html": self.content.render_body(slug, image_base),
+            "toc_html": md_toc(article.content, depth=self.toc_levels),
         }
 
     def render_markdown(self, request, **kwargs):
