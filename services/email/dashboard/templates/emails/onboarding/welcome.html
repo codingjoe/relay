@@ -18,3 +18,13 @@
     language.
   {% endblocktranslate %}
 {% endblock intro %}
+
+{% block extra_note %}
+  {% url 'open-source' as open_source_url %}
+  <p>
+    {% blocktranslate trimmed %}
+      Free for open source projects and non-profits, forever. That is
+      <a href="{{ open_source_url }}" target="_blank" rel="noopener">our open source promise</a>.
+    {% endblocktranslate %}
+  </p>
+{% endblock extra_note %}

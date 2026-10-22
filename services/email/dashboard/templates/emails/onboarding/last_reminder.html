@@ -13,18 +13,18 @@
 {% block headline %}{% translate "turns out you can"|capfirst %}{% endblock headline %}
 
 {% block intro %}
-  {% url 'open-source' as open_source_url %}
   {% blocktranslate trimmed with limit=free_monthly_messages|intcomma %}
-    Turns out you can: {{ limit }} messages a month on the house. Open source projects and non-profits send free
-    forever. That is <a href="{{ open_source_url }}" target="_blank" rel="noopener">our open source promise</a>.
+    Turns out you can: {{ limit }} messages a month on the house.
   {% endblocktranslate %}
 {% endblock intro %}
 
 {% block extra_note %}
   {% url 'docs:detail' slug='sending' as sending_guide_url %}
-  {% blocktranslate trimmed %}
-    Prefer to wire it up yourself? The
-    <a href="{{ sending_guide_url }}" target="_blank" rel="noopener">sending guide</a> walks through connecting an app,
-    step by step, with a port table for the impatient. RFCs optional.
-  {% endblocktranslate %}
+  <p>
+    {% blocktranslate trimmed %}
+      Prefer to wire it up yourself? The
+      <a href="{{ sending_guide_url }}" target="_blank" rel="noopener">sending guide</a> walks through connecting an
+      app, step by step, with a port table for the impatient. RFCs optional.
+    {% endblocktranslate %}
+  </p>
 {% endblock extra_note %}
