@@ -3,8 +3,12 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.urls import reverse
+from django_letter.notifications import Notification, hash_email
+from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership, Organization
+
+test_notification = Notification("test-notifiable", "Test notification")
 
 
 class TestOrganization:
@@ -53,3 +57,46 @@ class TestMembership:
         Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
         with pytest.raises(IntegrityError):
             Membership.objects.create(org=org, user=user, role=Membership.Role.WRITE)
+
+
+@pytest.mark.django_db
+class TestMembershipQuerySet:
+    def test_notifiable__yields_every_reachable_member(self, org, user, other_user):
+        Membership.objects.create(org=org, user=other_user)
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).notifiable(
+                test_notification
+            )
+        ] == ["alice@example.com", "bob@example.com"]
+
+    def test_notifiable__skips_a_disabled_notification(self, org, user, other_user):
+        Membership.objects.create(org=org, user=other_user)
+        NotificationPreference.objects.create(
+            email_hash=hash_email(user.email),
+            slug=test_notification.slug,
+            enabled=False,
+        )
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).notifiable(
+                test_notification
+            )
+        ] == ["bob@example.com"]
+
+    def test_notifiable__skips_members_without_a_usable_address(self, org, other_user):
+        other_user.is_active = False
+        other_user.save(update_fields=["is_active"])
+        Membership.objects.create(org=org, user=other_user)
+        Membership.objects.create(
+            org=org, user=User.objects.create_user(username="carol", email="")
+        )
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).notifiable(
+                test_notification
+            )
+        ] == ["alice@example.com"]

@@ -2,23 +2,18 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
-from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
-from django_letter.notifications import hash_email
-from django_letter.notifications.models import NotificationPreference
 
-from accounts.models import Membership
 from domains.models import Domain
-from services.email.msa.models import OutgoingMessage, SuppressionEntry
+from services.email.msa.models import OutgoingMessage
 from services.email.reputation import chart
 from services.email.reputation.digest import (
     build_digest_context,
     build_org_digest,
     count_window_recipients,
     digest_illustration,
-    iter_digest_members,
     message_interval,
 )
 from services.email.reputation.tests.conftest import make_stats
@@ -195,54 +190,3 @@ class TestBuildOrgDigest:
 
         assert digest["window_phrase"] == "last 1 day"
         assert f'bgcolor="{chart.COLUMN}"' in digest["week_chart"]
-
-
-@pytest.mark.django_db
-class TestIterDigestMembers:
-    def test_iter_digest_members__yields_every_reachable_member(
-        self, org, user, other_user
-    ):
-        Membership.objects.create(org=org, user=other_user)
-
-        assert [membership.user.email for membership in iter_digest_members(org)] == [
-            "alice@example.com",
-            "bob@example.com",
-        ]
-
-    def test_iter_digest_members__skips_a_suppressed_address(
-        self, org, user, other_user
-    ):
-        Membership.objects.create(org=org, user=other_user)
-        SuppressionEntry.objects.create_or_update(org=org, email=user.email)
-
-        assert [membership.user.email for membership in iter_digest_members(org)] == [
-            "bob@example.com"
-        ]
-
-    def test_iter_digest_members__skips_a_disabled_notification(
-        self, org, user, other_user
-    ):
-        Membership.objects.create(org=org, user=other_user)
-        NotificationPreference.objects.create(
-            email_hash=hash_email(user.email),
-            slug="weekly-digest",
-            enabled=False,
-        )
-
-        assert [membership.user.email for membership in iter_digest_members(org)] == [
-            "bob@example.com"
-        ]
-
-    def test_iter_digest_members__skips_members_without_a_usable_address(
-        self, org, other_user
-    ):
-        other_user.is_active = False
-        other_user.save(update_fields=["is_active"])
-        Membership.objects.create(org=org, user=other_user)
-        Membership.objects.create(
-            org=org, user=User.objects.create_user(username="carol", email="")
-        )
-
-        assert [membership.user.email for membership in iter_digest_members(org)] == [
-            "alice@example.com"
-        ]
