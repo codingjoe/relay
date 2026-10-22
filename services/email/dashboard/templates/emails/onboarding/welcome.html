@@ -1,0 +1,20 @@
+{% extends "emails/onboarding/base.html" %}
+{% load i18n %}
+
+{% block meme %}
+  <img
+    src="https://api.memegen.link/images/db/relay/you/AWS.jpg?width=600&amp;font=notosans"
+    alt="{% translate 'distracted boyfriend: you walk past AWS, eyes on relay.'|capfirst %}"
+    width="552"
+    class="meme-image"
+  >
+{% endblock meme %}
+
+{% block headline %}{% translate "tired of CloudWatch logs?"|capfirst %}{% endblock headline %}
+
+{% block intro %}
+  {% blocktranslate trimmed %}
+    Every message lands in a dashboard with its full transmission trace, the DKIM result, and your sender reputation. No
+    log group, no query language.
+  {% endblocktranslate %}
+{% endblock intro %}

@@ -163,6 +163,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.github",
     "django_letter",
+    "django_letter.notifications",
     "health_check",
     "storages",
     "threadmill",

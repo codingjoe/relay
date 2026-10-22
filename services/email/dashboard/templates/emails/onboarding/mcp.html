@@ -1,0 +1,43 @@
+{% comment %}
+  MCP terminal at the foot of every mail. Standard shell colouring: the
+  prompt is small and blue, the command is near-white, output recedes to
+  gray, and the comment stays dim instead of competing with the command.
+{% endcomment %}
+{% load i18n %}
+<h2>{% translate "feeling lazy? Connect your agent!"|capfirst %}</h2>
+<table
+  role="presentation"
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="100%"
+  class="terminal"
+>
+  <tr>
+    <td class="terminal-bar">
+      <span class="terminal-dot-red">●</span>
+      <span class="terminal-dot-amber">●</span>
+      <span class="terminal-dot-green">●</span>
+      <span class="terminal-title">mcp</span>
+    </td>
+  </tr>
+  <tr>
+    <td class="terminal-body">
+      <span class="terminal-prompt">$</span> <span class="terminal-command">{{ mcp_codex_command }}</span><br><span
+        class="terminal-output"
+      >relay added to codex</span><br><br><span class="terminal-prompt">$</span> <span
+        class="terminal-command"
+      >{{ mcp_claude_command }}</span><br><span class="terminal-output">relay added to claude</span><br><br><span
+        class="terminal-prompt"
+      >$</span> <span class="terminal-command">cat mcp.json</span><br><span
+        class="terminal-json"
+      >{{ mcp_config }}</span><br><br><span class="terminal-comment"># {% translate "ask your agent:" %}
+        {{ mcp_question }}</span>
+    </td>
+  </tr>
+</table>
+<p class="note">
+  <a href="{{ mcp_setup_url }}">{% translate "full MCP setup"|capfirst %}</a>
+  <span aria-hidden="true">·</span>
+  {% translate "One browser sign-in, then your agent reads the log." %}
+</p>

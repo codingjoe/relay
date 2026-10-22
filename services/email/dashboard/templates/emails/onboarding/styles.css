@@ -1,0 +1,181 @@
+/* Stylesheet for the onboarding mails.
+
+django-letter passes every render through premailer, which inlines these rules.
+It parses with cssutils, which silently drops native CSS nesting, so the rules
+stay flat. Keep the file a plain stylesheet: the template includes it inside a
+style element. */
+
+.meme {
+  margin: 0 0 8px;
+}
+
+.meme-image {
+  display: block;
+  width: 100%;
+  max-width: 552px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+.note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: #5d5d5d;
+}
+
+.terminal {
+  margin: 0 0 8px;
+  background-color: #0b1120;
+  border-radius: 12px;
+}
+
+.terminal-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid #1f2937;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 16px;
+  color: #9ca3af;
+}
+
+.terminal-title {
+  padding-left: 8px;
+}
+
+.terminal-dot-red {
+  color: #f87171;
+}
+
+.terminal-dot-amber {
+  color: #fbbf24;
+}
+
+.terminal-dot-green {
+  color: #34d399;
+}
+
+.terminal-body {
+  padding: 12px 16px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 20px;
+  color: #f9fafb;
+  word-break: break-word;
+}
+
+.terminal-prompt {
+  color: #93c5fd;
+}
+
+.terminal-command {
+  color: #f9fafb;
+}
+
+.terminal-output {
+  color: #9ca3af;
+}
+
+.terminal-json {
+  color: #d1d5db;
+}
+
+.terminal-comment {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.progress-caption {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: #5d5d5d;
+}
+
+.progress-segment {
+  height: 4px;
+  font-size: 0;
+  line-height: 4px;
+  vertical-align: top;
+  border-radius: 2px;
+}
+
+.progress-done {
+  background-color: #157a3f;
+}
+
+.progress-todo {
+  background-color: #ca8a04;
+}
+
+.progress-gap {
+  width: 6px;
+  font-size: 0;
+  line-height: 0;
+}
+
+.check {
+  width: 28px;
+  padding: 6px 8px 6px 0;
+  font-size: 18px;
+  line-height: 24px;
+  vertical-align: middle;
+}
+
+.check-done {
+  color: #6200d1;
+}
+
+.check-todo {
+  color: #6b6b6b;
+}
+
+.step {
+  padding: 6px 0;
+  font-size: 16px;
+  line-height: 24px;
+  vertical-align: middle;
+}
+
+.step-done {
+  color: #5d5d5d;
+}
+
+.step-todo {
+  color: #1f2937;
+}
+
+@media (prefers-color-scheme: dark) {
+  .check-done {
+    color: #bb80ff !important;
+  }
+
+  .check-todo {
+    color: #9ca3af !important;
+  }
+
+  .step-done {
+    color: #9ca3af !important;
+  }
+
+  .step-todo {
+    color: #e5e7eb !important;
+  }
+
+  .progress-caption {
+    color: #b0b0b0 !important;
+  }
+
+  .progress-done {
+    background-color: #6ee7a8 !important;
+  }
+
+  .progress-todo {
+    background-color: #fbbf24 !important;
+  }
+
+  .note {
+    color: #b0b0b0 !important;
+  }
+}

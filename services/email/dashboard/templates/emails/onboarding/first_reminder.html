@@ -1,0 +1,20 @@
+{% extends "emails/onboarding/base.html" %}
+{% load i18n %}
+
+{% block meme %}
+  <img
+    src="https://api.memegen.link/images/ds/test_in_sandbox/just_wing_it.jpg?width=600&amp;font=notosans"
+    alt="{% translate 'two red buttons: test in sandbox, or just wing it. There is a third button below.'|capfirst %}"
+    width="552"
+    class="meme-image"
+  >
+{% endblock meme %}
+
+{% block headline %}{% translate "pick the third button"|capfirst %}{% endblock headline %}
+
+{% block intro %}
+  {% blocktranslate trimmed %}
+    Every first send feels like a choice between two mistakes. Send one to yourself first: it takes a minute, and it
+    lands in your own inbox.
+  {% endblocktranslate %}
+{% endblock intro %}

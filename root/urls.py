@@ -40,6 +40,7 @@ urlpatterns = [
     path("identity/o/authorize", AuthorizationView.as_view()),
     path("", include("allauth.idp.urls")),
     path("social/", include("allauth.urls")),
+    path("notifications/", include("django_letter.notifications.urls")),
     path("admin/", admin.site.urls),
 ]
 

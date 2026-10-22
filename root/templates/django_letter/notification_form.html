@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "notifications"|capfirst %} | relay{% endblock %}
+{% block content %}
+  <div class="max-w-xl">
+    <h2 class="mb-6">{% translate "notifications"|capfirst %}</h2>
+    <p class="text-muted-foreground mb-6">
+      {% blocktranslate trimmed %}
+        Choose what relay may send you. Delivery and security mail always arrives. Everything else follows these boxes.
+      {% endblocktranslate %}
+    </p>
+
+    <form method="post">
+      {% csrf_token %}
+      <fieldset class="fieldset">
+        {{ form }}
+      </fieldset>
+      <div class="flex gap-2 mt-6">
+        <button type="submit" class="btn">{% translate "save"|capfirst context "verb" %}</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

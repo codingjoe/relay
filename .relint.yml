@@ -250,3 +250,10 @@
   pattern: '<svg[^>]*>\s*<use[^>]*tabler-sprite\.svg#tabler-'
   hint: 'Render the icon with `{% tabler name="..." size="..." %}` instead of a hand-written `<svg>` that references the sprite.'
   filePattern: '(?!.*abstract/templates/abstract/tabler\.html$).*\.html$'
+- name: No inline styles in email templates
+  pattern: '\bstyle\s*='
+  hint: |
+    Write the rule in the template's `<style>` block instead. django-letter runs every
+    mail through premailer, which inlines the stylesheet for you, so a hand-written
+    `style` attribute duplicates work and drifts from the dark mode rules.
+  filePattern: '(^|.*/)templates/emails/.*\.html$'
