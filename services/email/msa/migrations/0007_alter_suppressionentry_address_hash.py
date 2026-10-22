@@ -4,6 +4,18 @@ import django_letter.fields
 from django.db import migrations
 
 
+def alter_column_type(apps, schema_editor):
+    """Store the digest as bytes on databases created with the text field."""
+    connection = schema_editor.connection
+    if connection.vendor == "postgresql":
+        table = connection.ops.quote_name("msa_suppressionentry")
+        column = connection.ops.quote_name("address_hash")
+        schema_editor.execute(
+            f"ALTER TABLE {table} ALTER COLUMN {column} TYPE bytea "
+            f"USING {column}::bytea"
+        )
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("msa", "0006_remove_outgoingmessage_feedback_id"),
@@ -12,6 +24,7 @@ class Migration(migrations.Migration):
     operations = [
         # The table is empty, so the column changes type without a data
         # conversion. The new field hashes with a colon after the salt.
+        migrations.RunPython(alter_column_type, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="suppressionentry",
             name="address_hash",
