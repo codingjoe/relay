@@ -9,6 +9,7 @@ from django_letter.notifications.models import NotificationPreference
 from accounts.models import Membership, Organization
 
 test_notification = Notification("test-notifiable", "Test notification")
+opt_in_notification = Notification("test-opt-in", "Test opt-in", default=False)
 
 
 class TestOrganization:
@@ -91,6 +92,25 @@ class TestMembershipQuerySet:
                 test_notification
             )
         ] == ["bob@example.com"]
+
+    def test_for_notification__includes_only_opted_in_members(
+        self, org, user, other_user
+    ):
+        Membership.objects.create(org=org, user=other_user)
+        NotificationPreference.objects.create(
+            email_hash=NotificationPreference._meta.get_field("email_hash").hash_email(
+                user.email
+            ),
+            slug=opt_in_notification.slug,
+            enabled=True,
+        )
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).for_notification(
+                opt_in_notification
+            )
+        ] == ["alice@example.com"]
 
     def test_for_notification__skips_members_without_a_usable_address(
         self, org, other_user

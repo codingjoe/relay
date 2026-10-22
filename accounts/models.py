@@ -64,17 +64,18 @@ class MembershipQuerySet(models.QuerySet):
         """
         Return the active members whose address wants the notification.
 
-        Excludes members without an address and members who turned the
-        notification off.
+        Excludes members without an address. Members who kept the default
+        follow `notification.default`.
         """
-        return (
+        overrides = NotificationPreference.objects.email_hashes(notification)
+        queryset = (
             self.filter(user__is_active=True)
             .exclude(user__email="")
             .alias(email_hash=EmailHash("user__email"))
-            .exclude(
-                email_hash__in=NotificationPreference.objects.email_hashes(notification)
-            )
         )
+        if notification.default:
+            return queryset.exclude(email_hash__in=overrides)
+        return queryset.filter(email_hash__in=overrides)
 
 
 class Membership(TimeStamped):
