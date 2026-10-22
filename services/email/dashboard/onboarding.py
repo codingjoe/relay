@@ -6,8 +6,8 @@ from services.email.msa.models import MsaCredential, OutgoingMessage
 
 
 class OnboardingStep(models.TextChoices):
-    TEST_MESSAGE = "test-message", _("send a test message")
-    CREDENTIAL = "credential", _("create a credential")
+    TEST_MESSAGE = "test-message", _("send test message")
+    CREDENTIAL = "credential", _("create sandbox key")
     CONNECT = "connect", _("connect your app")
 
 

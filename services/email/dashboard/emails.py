@@ -14,12 +14,6 @@ from accounts.models import Organization
 from .models import OnboardingCampaign
 from .onboarding import OnboardingStep
 
-NEXT_STEP_BUTTON = {
-    OnboardingStep.TEST_MESSAGE: _("send test message"),
-    OnboardingStep.CREDENTIAL: _("create sandbox key"),
-    OnboardingStep.CONNECT: _("connect your app"),
-}
-
 onboarding_notification = Notification(
     "onboarding",
     _("Onboarding tips"),
@@ -102,7 +96,7 @@ class OnboardingEmail(TemplateEmail):
                 separators=(",", ":"),
             ),
             "mcp_question": self.mcp_question,
-            "next_step_button": NEXT_STEP_BUTTON[self.state["next_step"]],
+            "next_step_button": self.state["next_step"].label,
             "next_step_url": reverse(
                 "email-dashboard:get-started",
                 kwargs={"org_slug": self.campaign.org.slug},
