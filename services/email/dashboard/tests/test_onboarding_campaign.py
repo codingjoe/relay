@@ -162,5 +162,5 @@ class TestOnboardingEmail:
             language="en-us",
         )
 
-        assert email.get_context_data()["next_step_button"] == "Send a test message"
+        assert email.get_context_data()["next_step_button"] == "send a test message"
         assert email.get_context_data()["onboarding_steps"][0]["done"] is False

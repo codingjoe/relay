@@ -15,9 +15,9 @@ from .models import OnboardingCampaign
 from .onboarding import OnboardingStep
 
 NEXT_STEP_BUTTON = {
-    OnboardingStep.TEST_MESSAGE: _("Send a test message"),
-    OnboardingStep.CREDENTIAL: _("Create a credential"),
-    OnboardingStep.CONNECT: _("Connect your app"),
+    OnboardingStep.TEST_MESSAGE: _("send a test message"),
+    OnboardingStep.CREDENTIAL: _("create sandbox key"),
+    OnboardingStep.CONNECT: _("connect your app"),
 }
 
 onboarding_notification = Notification(
