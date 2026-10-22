@@ -95,7 +95,7 @@ If it sounds like a changelog or a manual, rewrite it.
 - Use one section per entry.
 - Put the image before the headline, always.
 - Put a horizontal rule between sections. Never after the last section.
-- End the file with "Station out."
+- End the file with "relay station out."
 
 ## Fresh hooks
 
@@ -107,7 +107,7 @@ not be able to predict the fourth.
 - Rotate the station detail. Ops one month, the promenade the next, then the
   docking ring, the replimat, the cargo bay, a quiet corridor, the wormhole.
 - Keep the frame constant. The headline, image-first sections, dividers, and
-  "Station out." are the format, not a joke to retell.
+  "relay station out." are the format, not a joke to retell.
 - When the month has no obvious station moment, use the plainest one. A quiet
   shift is a valid hook.
 - The checker compares the new log against the earlier files. It fails on a
@@ -119,7 +119,7 @@ Use this exact shape:
 ---
 name: October 2026
 description: One sentence about the month.
-image: images/2026-10/get-started.png
+image: captains_log/2026-10/get-started.png
 author: Johannes Maron
 date: 2026-10-21
 ---
@@ -130,7 +130,7 @@ date: 2026-10-21
 
 Write one fresh opening line here. Two entries follow, newest first.
 
-<img src="{% static '2026-10/sandbox-credential.png' %}" alt="Alt text that names the feature">
+<img src="{% static 'captains_log/2026-10/sandbox-credential.png' %}" alt="Alt text that names the feature" width="600">
 
 ## <station event>
 
@@ -139,7 +139,7 @@ reader gets. Leave the internals to the docs.
 
 ---
 
-<img src="{% static '2026-10/message-preview.png' %}" alt="Alt text that names the feature">
+<img src="{% static 'captains_log/2026-10/message-preview.png' %}" alt="Alt text that names the feature" width="600">
 
 ## <an earlier station event>
 
@@ -147,7 +147,7 @@ Write one paragraph. Keep the station voice.
 
 ---
 
-<img src="{% static '2026-10/get-started.png' %}" alt="Alt text that names the feature">
+<img src="{% static 'captains_log/2026-10/get-started.png' %}" alt="Alt text that names the feature" width="600">
 
 ## Supplemental log
 
@@ -159,7 +159,7 @@ on GitHub. For the full reference, read the <a href="{% url 'docs:list' %}">docs
 
 Write one fresh closing line here.
 
-Station out.
+relay station out.
 ```
 
 The divider sits before the next section's image. The last section has no
@@ -221,7 +221,7 @@ from the running product, not a mockup.
   before navigating. The product and the email templates both ship dark
   styles, so the images stay consistent.
 - Set `image` in the frontmatter to a screenshot that stands on its own in a
-  social post. Use `images/<slug>/<name>.png`, the same relative path the body
+  social post. Use `captains_log/<slug>/<name>.png`, the path the body
   uses.
 - Keep it narrow. One control, one card, or one panel. A wide page shot that
   shows everything up close shows nothing.
@@ -232,19 +232,20 @@ from the running product, not a mockup.
   option the copy talks about, and fill sample values.
 - Do not ship a broken map, a missing image, or a debug toolbar. Change the
   framing or pick another view.
-- Save as `product/updates/images/<slug>/<kebab-case>.png` and reference it
-  with `<img src="{% static '<slug>/<name>.png' %}" alt="<alt>">`. Use the
-  HTML tag so mdformat leaves the static tag alone. Put `{% load static %}`
-  after the frontmatter. Django staticfiles serves that folder, so no image
-  view is needed.
+- Save as `captains_log/static/captains_log/<slug>/<kebab-case>.png` and reference
+  it with
+  `<img src="{% static 'captains_log/<slug>/<name>.png' %}" alt="<alt>" width="600">`.
+  Use the HTML tag so mdformat leaves the static tag alone. Put
+  `{% load static %}` after the frontmatter. Django staticfiles serves that
+  folder, so no image view is needed.
 - Write alt text that names the feature, not "screenshot".
 
 For relay's capture recipe, read `references/screenshots.md`.
 
 ## Publish
 
-A daily task at 09:00 queues the announcement for each log whose frontmatter
-`date` is yesterday. There is nothing to run by hand. The morning after
+A daily task at 15:00 queues the announcement for each log whose frontmatter
+`date` is yesterday. There is nothing to run by hand. The afternoon after
 publication is a good time for the mail to land.
 
 The task queues one email per member who wants station log mail. The
@@ -287,10 +288,10 @@ Then do a human pass:
 - Confirm every claim against the code or the docs.
 - If the report reveals behavior that is not documented, update `docs/docs/`
   in the same change.
-- Confirm `.gitattributes` marks `product/updates/**` as
-  `linguist-generated`.
+- Confirm `.gitattributes` marks `product/updates/**` and
+  `captains_log/static/captains_log/**` as `linguist-generated`.
 - Confirm `/station-log/<slug>/` renders the update and its screenshots
-  through `static()`.
+  from `captains_log/static/captains_log/<slug>/`.
 - Doc-only changes need no Django checks. If you also touch code, run
   `uv run python manage.py check` and
   `uv run python manage.py makemigrations --check --dry-run`.

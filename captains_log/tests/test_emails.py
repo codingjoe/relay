@@ -32,7 +32,7 @@ class TestStationLogEmail:
         assert "The holosuite run" in html
         assert "A new channel opens" in html
         assert "Supplemental log" in html
-        assert "Station out." in html
+        assert "relay station out." in html
 
     def test_render__keeps_every_screenshot(self, metadata):
         html = render(metadata).html
@@ -43,7 +43,7 @@ class TestStationLogEmail:
             "mcp",
             "get-started",
         ):
-            assert static(f"2026-10/{image}.png") in html
+            assert static(f"captains_log/2026-10/{image}.png") in html
         assert 'width="600"' in html
 
     def test_render__links_to_the_log(self, metadata):

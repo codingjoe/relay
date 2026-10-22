@@ -9,7 +9,8 @@ from pathlib import Path
 REQUIRED_KEYS = ("name", "description", "image", "author", "date")
 EXPECTED_SIZE = (1280, 640)
 IMAGE_RE = re.compile(
-    r'<img src="\{%\s*static\s+[\'"]([^\'"]+)[\'"]\s*%\}" alt="([^"]*)">'
+    r'<img src="\{%\s*static\s+[\'"]([^\'"]+)[\'"]\s*%\}" alt="([^"]*)"'
+    r'(?: width="\d+")?>'
 )
 HEADLINE_RE = re.compile(
     r"^# relay station log, stardate \d{4}\.\d{3}$",
@@ -79,6 +80,12 @@ def read_frontmatter(
     return metadata, lines[end + 1 :], []
 
 
+def static_path(markdown_path: Path, source: str) -> Path:
+    """Resolve an app static path from a product update."""
+    repo_root = markdown_path.parent.parent.parent
+    return (repo_root / "captains_log" / "static" / source).resolve()
+
+
 def check_image(image_path: Path, label: str, problems: list[str]) -> None:
     """Record a missing image, a non-PNG file, or a wrong size."""
     if not image_path.is_file():
@@ -109,10 +116,10 @@ def check_frontmatter(
     if date and not DATE_RE.fullmatch(date):
         problems.append("frontmatter date must be YYYY-MM-DD")
     image = metadata.get("image", "")
-    if image and not image.startswith("images/"):
-        problems.append("frontmatter image must start with images/")
+    if image and not image.startswith("captains_log/"):
+        problems.append("frontmatter image must start with captains_log/")
     elif image:
-        check_image((path.parent / image).resolve(), image, problems)
+        check_image(static_path(path, image), image, problems)
 
 
 def check_headline(body: str, problems: list[str]) -> None:
@@ -154,7 +161,7 @@ def check_images(path: Path, body: str, problems: list[str]) -> None:
     for source, alt in IMAGE_RE.findall(body):
         if not alt.strip():
             problems.append(f"image {source} has no alt text")
-        check_image((path.parent / "images" / source).resolve(), source, problems)
+        check_image(static_path(path, source), source, problems)
 
 
 def last_body_line(body_lines: list[str], mask: list[bool]) -> str:
@@ -187,8 +194,8 @@ def check_dividers(
     last = last_body_line(body_lines, mask)
     if DIVIDER_RE.fullmatch(last):
         problems.append("the file ends with a divider")
-    elif last != "Station out.":
-        problems.append("the file does not end with 'Station out.'")
+    elif last != "relay station out.":
+        problems.append("the file does not end with 'relay station out.'")
 
 
 def check_links(body: str, problems: list[str]) -> None:

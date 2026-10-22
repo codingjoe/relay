@@ -355,11 +355,6 @@ SERVESTATIC_MAX_AGE = 0 if DEBUG else 60 * 60 * 24
 STATIC_URL = "static/"
 MEDIA_ROOT = BASE_DIR / "storage"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-# The station logs live next to their screenshots, so the images directory
-# is a staticfiles source. The mail and the page both link through `static()`.
-STATICFILES_DIRS = [
-    BASE_DIR / "product" / "updates" / "images",
-]
 
 # Relay config
 

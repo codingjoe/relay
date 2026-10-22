@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from abstract.utils import md_2_html, md_toc
 from abstract.views import MarkdownListView, MarkdownView
 
-from .content import CaptainsLogContent, publication_date
+from .content import CaptainsLogContent
 
 
 class CaptainsLogListView(MarkdownListView):
@@ -22,7 +22,7 @@ class CaptainsLogListView(MarkdownListView):
                     "slug": slug,
                     "title": metadata["name"],
                     "description": md_2_html(metadata.get("description", "")),
-                    "date": publication_date(metadata),
+                    "date": metadata["date"],
                 }
                 for slug, metadata in self.content.get_articles()
             ],
@@ -49,15 +49,11 @@ class CaptainsLogDetailView(MarkdownView):
         metadata = article.metadata
         slug = self.kwargs["slug"]
         image = str(metadata.get("image", ""))
-        og_image = (
-            self.request.build_absolute_uri(static(image.removeprefix("images/")))
-            if image
-            else ""
-        )
+        og_image = self.request.build_absolute_uri(static(image)) if image else ""
         return super().get_context_data(**kwargs) | {
             "title": metadata["name"],
             "meta_description": metadata.get("description", ""),
-            "date": publication_date(metadata),
+            "date": metadata["date"],
             "author": metadata.get("author", ""),
             "og_image": og_image,
             "content_html": self.content.render_body(slug),

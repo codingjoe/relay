@@ -77,6 +77,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   the expression at its call site.
 - Use generator functions when a function produces a sequence for lazy
   consumption, for example when walking database relations.
+- Do not annotate the parameters or the return type of an overridden method.
+  The base class already defines the contract, and a narrower annotation can
+  contradict it.
 
 ## Comments
 
@@ -429,23 +432,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Serve each markdown docs area from one app with a `docs/` folder.
   Extend `MarkdownArticleMixin` from `abstract.views`.
-
-- Serve product updates from `product/updates` through the `captains_log`
-  app at `/station-log/`. The app reads the files directly because the same
-  Markdown ships as the newsletter, so image paths stay relative. The list
-  and the entries inside each log are newest first. Write each update as a
-  station log in the spirit of Deep Space Nine, not as a starship log.
-
-- Give each product update an `image` frontmatter key with a 1280x640
-  screenshot path. The station log detail page uses it for `og:image`.
-
-- Store log screenshots in `product/updates/images/<slug>/` and link them
-  with `{% static %}`. Django staticfiles serves the folder, so no image view
-  exists. Use `{% url %}` in an `<a>` tag for internal links.
-
-- Send the announcement from `captains_log`. The app owns the content, the
-  email, the scheduled task, and the "Station log" notification preference.
-  The app stays model-free.
 
 - Keep article slugs unique across all docs apps. The template loader
   resolves `<slug>.md` against every TEMPLATES DIRS entry in order, so a

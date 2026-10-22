@@ -54,7 +54,7 @@ class TestCaptainsLogDetailView:
         assert response.status_code == 200
         content = response.content.decode()
         assert "relay station log, stardate 2026.294" in content
-        image_url = static("2026-10/mcp.png")
+        image_url = static("captains_log/2026-10/mcp.png")
         assert f'src="{image_url}"' in content
         assert (
             f'<meta property="og:image" content="http://testserver{image_url}">'
@@ -87,7 +87,7 @@ class TestCaptainsLogDetailView:
         assert "text/markdown" in response["Content-Type"]
         body = response.content.decode()
         assert "# relay station log, stardate 2026.294" in body
-        assert "{% static '2026-10/mcp.png' %}" in body
+        assert "{% static 'captains_log/2026-10/mcp.png' %}" in body
         assert not body.startswith("---\n")
 
     def test_get__returns_markdown_with_url_param(self, client):
@@ -104,4 +104,4 @@ class TestRenderBody:
 
         assert "<br" not in html
         assert "The wormhole is quiet. The relay is not." in html
-        assert static("2026-10/mcp.png") in html
+        assert static("captains_log/2026-10/mcp.png") in html

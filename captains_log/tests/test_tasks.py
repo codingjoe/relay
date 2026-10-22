@@ -92,7 +92,7 @@ class TestSendStationLogAnnouncements:
 
 
 class TestSendStationLogSchedule:
-    def test_announcements__runs_each_morning(self):
+    def test_announcements__runs_daily_at_15(self):
         job = next(
             job
             for job in scheduler.get_jobs()
@@ -100,5 +100,5 @@ class TestSendStationLogSchedule:
         )
         fields = {field.name: str(field) for field in job.trigger.fields}
 
-        assert fields["hour"] == "9"
+        assert fields["hour"] == "15"
         assert fields["minute"] == "0"

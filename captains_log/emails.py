@@ -1,6 +1,5 @@
 import typing
 
-from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django_letter import TemplateEmail
@@ -37,12 +36,12 @@ class StationLogEmail(TemplateEmail):
     @classmethod
     def render_preview(
         cls,
-        request: HttpRequest | None = None,
+        request=None,
         *,
-        context: dict[str, typing.Any] | None = None,
-        language: str | None = None,
+        context=None,
+        language=None,
         **kwargs,
-    ) -> TemplateEmail:
+    ):
         """Announce the newest log when the preview caller names none."""
         if "slug" not in kwargs:
             slug, metadata = next(iter(CaptainsLogContent.get_articles()))
@@ -51,13 +50,10 @@ class StationLogEmail(TemplateEmail):
             request, context=context, language=language, **kwargs
         )
 
-    def get_context_data(self) -> dict[str, typing.Any]:
+    def get_context_data(self):
         return super().get_context_data() | {
             "name": self.metadata["name"],
             "description": self.metadata.get("description", ""),
             "log_url": reverse("captains_log:detail", kwargs={"slug": self.slug}),
-            "content_html": CaptainsLogContent.render_body(
-                self.slug,
-                image_width=600,
-            ),
+            "content_html": CaptainsLogContent.render_body(self.slug),
         }
