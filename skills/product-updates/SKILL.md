@@ -74,6 +74,13 @@ traffic through the wormhole, Bajor, Cardassia, the Prophets, and the long
 shift all fit. Starship language does not. No helm, no course, no warp, no
 bridge, and no "the ship holds". The station holds.
 
+The log reads like a short letter from the station, not a release note. Each
+entry is one flowing paragraph about one thing the reader can now do. The
+reader wants to use the change, not understand the machinery. Name the
+control, say what to do with it, and describe what they get. Leave the
+signing, parsing, and storage details to the docs. Read the paragraph aloud.
+If it sounds like a changelog or a manual, rewrite it.
+
 - The stardate is `YYYY.DDD`, where `DDD` is the day of year of the commit's
   date on main. January 1 is 001. A non-leap year has 365 days.
 - If two entries land on the same day, give the second the next stardate so
@@ -122,7 +129,8 @@ reached ops.
 
 ## Stardate 2026.270: <station event>
 
-Body copy.
+Write one paragraph. Name the control, what to do with it, and what the
+reader gets. Leave the internals to the docs.
 
 ---
 
@@ -130,7 +138,7 @@ Body copy.
 
 ## Stardate 2026.271: <another station event>
 
-Body copy.
+Write one paragraph. Keep the station voice.
 
 ---
 
@@ -157,11 +165,14 @@ to copy.
 ## Copy rules
 
 - Write short sentences. One idea each.
-- Keep each section to a single paragraph. Avoid bullet lists. Put a short
-  command inline.
-- Write about how to use the change, not how it works inside. The reader needs
-  the control, the outcome, and the value.
-- Stay in the station voice. Do not slip into product or engineering language.
+- Keep each section to a single paragraph. Avoid bullet lists and
+  subheadings. A short command may sit inline. If a list feels necessary, turn
+  it into a sentence.
+- Write about how to use the change, not how it works inside. Name the
+  control, the outcome, and the value. A detail about signing, parsing, or
+  storage belongs in the docs, not the log.
+- Stay in the station voice: the station, ops, the board, the link, the shift.
+  Do not slip into product or engineering language.
 - Do not use em dashes, en dashes, or semicolons. Use a period, a comma, or a
   colon.
 - Explain what changed, then what it means for the reader.
@@ -184,6 +195,7 @@ The first edition taught these. Do not relearn them.
 - A stardate entry for an improvement or an internal fix. Demote it, or cut
   it.
 - A bullet list in a section. Tell it as one paragraph.
+- A paragraph that explains internals. Say what the reader does and gets.
 - A reused opening line, section title, or closing line from an earlier log.
 - "Captain's log", "the ship holds course", helm, course, warp, or bridge.
 - Em dashes, en dashes, or semicolons.
@@ -249,6 +261,8 @@ punctuation, and the closing line.
 Then do a human pass:
 
 - Read the file top to bottom as a user.
+- Read each entry aloud. If it sounds like a changelog or a manual, rewrite it
+  as one paragraph about how to use the change.
 - Re-read every stardate entry. If the reader cannot reach a new screen,
   control, or capability, demote it to the supplemental log. If the reader
   cannot act on it at all, cut it.
