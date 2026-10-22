@@ -1,0 +1,103 @@
+from unittest.mock import patch
+
+import pytest
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from django.utils import timezone
+from django_letter.notifications.models import NotificationPreference
+
+from accounts.models import Membership
+from services.email.msa.models import SuppressionEntry
+from services.email.newsletter import tasks
+from services.email.newsletter.emails import station_log_notification
+
+SLUG = "2026-10"
+
+
+def disable_notification(email):
+    field = NotificationPreference._meta.get_field("email_hash")
+    NotificationPreference.objects.set_enabled_hash(
+        station_log_notification,
+        field.hash_email(email),
+        False,
+    )
+
+
+@pytest.mark.django_db
+class TestStationLogRecipients:
+    def test_recipients__returns_one_entry_per_member(self, user, org, write_org):
+        Membership.objects.create(org=write_org, user=user)
+
+        recipients = tasks.station_log_recipients()
+
+        assert sorted(member.email for member in recipients.values()) == [
+            "alice@example.com",
+            "bob@example.com",
+        ]
+
+    def test_recipients__skips_a_suspended_organization(self, user, org):
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at"])
+
+        assert tasks.station_log_recipients() == {}
+
+    def test_recipients__skips_a_disabled_notification(self, user, org):
+        disable_notification(user.email)
+
+        assert tasks.station_log_recipients() == {}
+
+    def test_recipients__skips_a_suppressed_address(self, user, org):
+        SuppressionEntry.objects.create_or_update(
+            org=org,
+            email=user.email,
+            reason=SuppressionEntry.Reason.MANUAL,
+        )
+
+        assert tasks.station_log_recipients() == {}
+
+
+@pytest.mark.django_db
+class TestSendStationLog:
+    def test_send_station_log__mails_each_member_once(self, user, org, mailoutbox):
+        tasks.send_station_log.func(slug=SLUG)
+
+        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        assert mailoutbox[0].subject == "A new station log: October 2026"
+
+    def test_send_station_log__skips_a_member_who_opted_out(
+        self, user, org, mailoutbox
+    ):
+        disable_notification(user.email)
+
+        tasks.send_station_log.func(slug=SLUG)
+
+        assert mailoutbox == []
+
+
+class TestSendStationLogCommand:
+    @pytest.mark.django_db
+    def test_dry_run__reports_without_sending(self, user, org, mailoutbox, capsys):
+        call_command("send_station_log", SLUG, "--dry-run")
+
+        assert mailoutbox == []
+        assert "2026-10 would reach 1 member." in capsys.readouterr().out
+
+    @pytest.mark.django_db
+    def test_command__queues_the_task(self, user, org):
+        with patch(
+            "services.email.newsletter.management.commands.send_station_log"
+            ".send_station_log"
+        ) as task:
+            call_command("send_station_log", SLUG)
+
+        task.enqueue.assert_called_once_with(slug=SLUG)
+
+    @pytest.mark.django_db
+    def test_command__sends_now(self, user, org, mailoutbox):
+        call_command("send_station_log", SLUG, "--now")
+
+        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+
+    def test_command__rejects_an_unknown_log(self):
+        with pytest.raises(CommandError):
+            call_command("send_station_log", "1999-01")

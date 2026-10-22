@@ -1,0 +1,26 @@
+{% extends "emails/base.html" %}
+{% load django_letter i18n %}
+
+{% block content %}
+  <h1 class="first">{{ name }}</h1>
+  <p>{{ description }}</p>
+  {% if image_url %}
+    {% table class="align-center" %}
+    <tr>
+      <td align="center" class="pb16">
+        <a href="{{ log_url }}">
+          <img
+            src="{{ image_url }}"
+            alt="{{ name }} station log"
+            width="600"
+            style="width: 100%; height: auto; border-radius: 10px"
+          >
+        </a>
+      </td>
+    </tr>
+    {% endtable %}
+  {% endif %}
+  {% translate "Read the station log" as button_label %}
+  {% button href=log_url value=button_label primary=True %}
+  <p class="last">{% translate "That is the month, logged and filed." %}</p>
+{% endblock content %}

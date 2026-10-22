@@ -208,6 +208,22 @@ from the running product, not a mockup.
 
 For relay's capture recipe, read `references/screenshots.md`.
 
+## Publish
+
+After the log is merged and deployed, send the announcement:
+
+```shell
+uv run python manage.py send_station_log 2026-10 --dry-run
+uv run python manage.py send_station_log 2026-10
+```
+
+The command queues one email per member who wants station log mail. The
+notification preference is "Station log", so an opt-out in the settings
+applies. The dry run reports the recipient count. Use `--now` only in
+development or when no task worker is running.
+
+Send each log once. The command keeps no record of what it already sent.
+
 ## Validate
 
 Run the bundled checker before handing the report over:
@@ -231,6 +247,8 @@ Then do a human pass:
   misses it.
 - Open every image and confirm the feature is visible, the frame is not cut
   awkwardly, and the image is in dark mode.
+- Render the announcement at `/emails/stationlogemail/` and read the
+  plain-text body. It must make sense when the image is blocked.
 - Confirm every claim against the code or the docs.
 - If the report reveals behavior that is not documented, update `docs/docs/`
   in the same change.

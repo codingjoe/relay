@@ -405,6 +405,7 @@ graph BT
  mta
  dmarc
  reputation
+ newsletter[newsletter]
  message --> accounts
  message --> domains
  message --> kms
@@ -431,6 +432,9 @@ graph BT
  dashboard --> mta
  dashboard --> dmarc
  dashboard --> reputation
+ newsletter --> captains_log
+ newsletter --> accounts
+ newsletter --> msa
  end
  mcp
  mcp --> abstract
