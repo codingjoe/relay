@@ -1,0 +1,67 @@
+{% extends "emails/base.html" %}
+{% load i18n %}
+
+{% block extra_header %}
+  {{ block.super }}
+  <style media="all" type="text/css">
+    .log-link {
+      margin: 0 0 24px;
+      font-size: 13px;
+    }
+
+    .log h1 {
+      margin: 0 0 16px;
+      font-size: 28px;
+      line-height: 34px;
+    }
+
+    .log h2 {
+      margin: 32px 0 12px;
+      font-size: 20px;
+      line-height: 26px;
+    }
+
+    .log p {
+      margin: 0 0 16px;
+    }
+
+    .log ul,
+    .log ol {
+      margin: 0 0 16px;
+      padding-left: 24px;
+    }
+
+    .log li {
+      margin: 0 0 6px;
+    }
+
+    .log img {
+      display: block;
+      max-width: 100%;
+      border-radius: 10px;
+    }
+
+    .log hr {
+      margin: 32px 0;
+      border: 0;
+      border-top: 1px solid #d1d5db;
+    }
+
+    .log code {
+      font-size: 14px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .log hr {
+        border-top-color: #3f3f46 !important;
+      }
+    }
+  </style>
+{% endblock extra_header %}
+
+{% block content %}
+  <p class="log-link">
+    <a href="{{ log_url }}">{% translate "Open this log in your browser" %}</a>
+  </p>
+  <div class="log">{{ content_html }}</div>
+{% endblock content %}

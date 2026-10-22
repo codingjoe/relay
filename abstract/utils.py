@@ -66,34 +66,43 @@ def strip_frontmatter(text: str) -> str:
     return frontmatter.parse(text)[1]
 
 
-def md_2_html(document: str, baselevel: int = 1) -> SafeText:
+def md_2_html(
+    document: str,
+    baselevel: int = 1,
+    *,
+    line_breaks: bool = True,
+) -> SafeText:
     """
     Convert Markdown to HTML as an HTML-safe string.
 
     Args:
         document: Markdown string.
         baselevel: Base level for the table of contents (default: 1).
+        line_breaks: Keep single newlines as `<br>` tags (default: True).
+            Turn this off for prose that is wrapped only for the source.
 
     Returns:
         HTML based on the given Markdown value, including syntax-highlighted
         fenced code blocks.
 
     """
+    extensions = [
+        MermaidExtension(),
+        TocExtension(baselevel=baselevel),
+        MarkdownInHtmlExtension(),
+        "admonition",
+        "def_list",
+        "smarty",
+        "tables",
+        "footnotes",
+        "fenced_code",
+        CodeHiliteExtension(css_class="codehilite"),
+    ]
+    if line_breaks:
+        extensions.append("nl2br")
     html = markdown.markdown(
         document,
-        extensions=[
-            MermaidExtension(),
-            TocExtension(baselevel=baselevel),
-            MarkdownInHtmlExtension(),
-            "admonition",
-            "def_list",
-            "nl2br",
-            "smarty",
-            "tables",
-            "footnotes",
-            "fenced_code",
-            CodeHiliteExtension(css_class="codehilite"),
-        ],
+        extensions=extensions,
         extension_configs={
             "smarty": {"smart_angled_quotes": True},
             "footnotes": {"BACKLINK_TEXT": ""},

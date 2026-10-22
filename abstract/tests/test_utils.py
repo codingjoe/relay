@@ -5,6 +5,16 @@ def test_md_2_html():
     assert utils.md_2_html("How much is the fish?") == "<p>How much is the fish?</p>"
 
 
+def test_md_2_html__keeps_line_breaks_by_default():
+    assert "<br" in str(utils.md_2_html("One line\ncontinues here."))
+
+
+def test_md_2_html__drops_line_breaks_when_disabled():
+    assert "<br" not in str(
+        utils.md_2_html("One line\ncontinues here.", line_breaks=False)
+    )
+
+
 def test_md_2_html__mermaid_block():
     fence = 3 * "`"
     html = str(utils.md_2_html(f"{fence}mermaid\nflowchart TD\n  A --> B\n{fence}"))
