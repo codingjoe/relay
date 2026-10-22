@@ -13,9 +13,10 @@
 {% block headline %}{% translate "turns out you can"|capfirst %}{% endblock headline %}
 
 {% block intro %}
+  {% url 'open-source' as open_source_url %}
   {% blocktranslate trimmed with limit=free_monthly_messages|intcomma %}
     Turns out you can: {{ limit }} messages a month on the house. Open source projects and non-profits send free
-    forever. This is the last onboarding email we send.
+    forever. That is <a href="{{ open_source_url }}" target="_blank" rel="noopener">our open source promise</a>.
   {% endblocktranslate %}
 {% endblock intro %}
 
