@@ -42,8 +42,9 @@ already used.
    transcript, a status detail, or a background job is an internal
    optimization. Lead with features and give each one a stardate entry. Put
    an improvement in the supplemental log, unless users asked for it loudly.
-   Leave an internal optimization out entirely. The supplemental log is not
-   a changelog either, and the main log records new capability.
+   When in doubt, ask the user whether the change was requested. Leave an
+   internal optimization out entirely. The supplemental log is not a
+   changelog either, and the main log records new capability.
 
 4. Read the merge or pull request description for the "why". `git show <sha>`
    includes the PR body. `gh pr view <number>` works too. Prefer the user
@@ -90,8 +91,8 @@ bridge, and no "the ship holds". The station holds.
 The frame repeats. The hooks do not. A reader who has seen three logs should
 not be able to predict the fourth.
 
-- Before writing, list the opening lines, section titles, and metaphors from
-  the earlier logs. Use none of them.
+- Before writing, list the opening lines, section titles, closing lines, and
+  metaphors from the earlier logs. Use none of them.
 - Rotate the station detail. Ops one month, the promenade the next, then the
   docking ring, the replimat, the cargo bay, a quiet corridor, the wormhole.
 - Keep the frame constant. The headline, stardates, image-first sections,
@@ -114,43 +115,43 @@ date: 2026-10-21
 
 # Station log, stardate 2026.294
 
-The wormhole is quiet. The relay is not. Eight entries follow, in the order
-they reached ops.
-
-![Alt text that names the feature](images/get-started.png)
-
-## Stardate 2026.270: a new crew docks
-
-Body copy.
-
----
+Write one fresh opening line here. Two entries follow, in the order they
+reached ops.
 
 ![Alt text that names the feature](images/sandbox-credential.png)
 
-## Stardate 2026.271: the holosuite run
+## Stardate 2026.270: <station event>
 
 Body copy.
 
 ---
 
-![Alt text that names the feature](images/message-log.png)
+![Alt text that names the feature](images/message-preview.png)
+
+## Stardate 2026.271: <another station event>
+
+Body copy.
+
+---
+
+![Alt text that names the feature](images/get-started.png)
 
 ## Supplemental log
 
-Smaller user-visible changes go here. The supplemental log also gets an image
-above its headline. It has no stardate.
+Improvements and smaller items go here. The supplemental log also gets an
+image above its headline. It has no stardate.
 
 relay is open source under AGPL-3.0. If something does not work, open an issue
 on GitHub. For the full reference, read the docs.
 
-The wormhole stays open. Keep the traffic moving.
+Write one fresh closing line here.
 
 Station out.
 ```
 
 The divider sits before the next section's image. The last section has no
-divider after it. Replace the month, dates, headings, entry count, and image
-paths in the example with the real ones. The example is a shape, not content
+divider after it. Replace the month, dates, entry count, image paths, and
+every `<...>` placeholder with real copy. The example is a shape, not content
 to copy.
 
 ## Copy rules
@@ -167,6 +168,21 @@ to copy.
 - Do not name internal tasks, services, or deploy steps unless the reader
   needs them.
 
+## Mistakes to avoid
+
+The first edition taught these. Do not relearn them.
+
+- A picture below its headline. The image always goes first.
+- A horizontal rule after the last section.
+- A light screenshot in a dark log.
+- A wide page shot with no focus. Crop to the control or card.
+- A stardate entry for an improvement or an internal fix. Demote it, or cut
+  it.
+- A reused opening line, section title, or closing line from an earlier log.
+- "Captain's log", "the ship holds course", helm, course, warp, or bridge.
+- Em dashes, en dashes, or semicolons.
+- A social image that does not stand on its own at 1280x640.
+
 ## Screenshots
 
 Every section starts with a picture above its headline. Capture the picture
@@ -176,10 +192,10 @@ from the running product, not a mockup.
 - Capture every screenshot in dark mode. Emulate `prefers-color-scheme: dark`
   before navigating. The product and the email templates both ship dark
   styles, so the images stay consistent.
-- Set `image` in the frontmatter to the screenshot used for social sharing.
-  Use `images/<name>.png`, the same relative path the body uses.
-- Show one feature per image. Frame the control or page the reader should
-  look at.
+- Set `image` in the frontmatter to a screenshot that stands on its own in a
+  social post. Use `images/<name>.png`, the same relative path the body uses.
+- Keep it narrow. One control, one card, or one panel. A wide page shot that
+  shows everything up close shows nothing.
 - Remove the breadcrumb, footer, debug toolbar, and sticky topbar when they
   eat the frame. Keep the sidebar or a page title when it helps the reader
   recognize the screen.
@@ -200,8 +216,9 @@ Run the bundled checker before handing the report over:
 uv run python skills/product-updates/scripts/verify_update.py product/updates/2026-10.md
 ```
 
-It checks the frontmatter, the image-before-headline rule, the 1280x640 image
-size, the divider count, banned punctuation, and the closing line.
+It checks the frontmatter and its social image, the image-before-headline
+rule, the 1280x640 image size, the divider count, repeated hooks, banned
+punctuation, and the closing line.
 
 Then do a human pass:
 
@@ -210,7 +227,8 @@ Then do a human pass:
   control, or capability, demote it to the supplemental log. If the reader
   cannot act on it at all, cut it.
 - Compare the log with the one before it. A shared opening line, section
-  title, or metaphor is a failure, even when the checker misses it.
+  title, closing line, or metaphor is a failure, even when the checker
+  misses it.
 - Open every image and confirm the feature is visible, the frame is not cut
   awkwardly, and the image is in dark mode.
 - Confirm every claim against the code or the docs.
