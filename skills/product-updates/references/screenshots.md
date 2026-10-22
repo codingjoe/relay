@@ -228,7 +228,7 @@ Keep `product/updates/` and its images.
 ## Verify
 
 ```shell
-for f in product/updates/images/*.png; do
+for f in product/updates/images/*/*.png; do
   printf "%s " "$(basename "$f")"
   sips -g pixelWidth -g pixelHeight "$f" | tail -2 | tr '\n' ' '
   echo
@@ -244,7 +244,7 @@ from pathlib import Path
 
 from PIL import Image
 
-for path in sorted(Path("product/updates/images").glob("*.png")):
+for path in sorted(Path("product/updates/images").glob("*/*.png")):
     image = Image.open(path).convert("RGB")
     pixels = list(image.resize((64, 32)).get_flattened_data())
     average = sum(sum(pixel) for pixel in pixels) / (len(pixels) * 3)
@@ -257,7 +257,7 @@ is bright, retake it with dark mode enabled. The size check uses `sips`, which
 is available on macOS. If `tesseract` is available, scan for debug chrome:
 
 ```shell
-tesseract product/updates/images/example.png stdout | grep -iE "queries|djDebug|django-devbar"
+tesseract product/updates/images/2026-10/example.png stdout | grep -iE "queries|djDebug|django-devbar"
 ```
 
 A hit means the screenshot contains the debug toolbar or devbar. Retake it on

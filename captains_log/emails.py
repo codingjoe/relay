@@ -52,17 +52,12 @@ class StationLogEmail(TemplateEmail):
         )
 
     def get_context_data(self) -> dict[str, typing.Any]:
-        image_base = reverse(
-            "captains_log:image",
-            kwargs={"slug": self.slug, "name": "placeholder"},
-        ).removesuffix("placeholder")
         return super().get_context_data() | {
             "name": self.metadata["name"],
             "description": self.metadata.get("description", ""),
             "log_url": reverse("captains_log:detail", kwargs={"slug": self.slug}),
             "content_html": CaptainsLogContent.render_body(
                 self.slug,
-                image_base,
                 image_width=600,
             ),
         }

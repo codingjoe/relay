@@ -2,9 +2,11 @@
 
 import datetime
 import pathlib
+import re
 
 import frontmatter
 from django.conf import settings
+from django.templatetags.static import static
 from django.utils.safestring import mark_safe
 
 from abstract.content import MarkdownContent
@@ -12,6 +14,7 @@ from abstract.utils import md_2_html
 
 CAPTAINS_LOG_DIR = pathlib.Path(settings.BASE_DIR) / "product" / "updates"
 SLUGS = frozenset(path.stem for path in CAPTAINS_LOG_DIR.glob("*.md"))
+IMAGE_LINK_RE = re.compile(r"(!\[[^\]]*\]\()images/([^)]+)(\))")
 
 
 def publication_date(metadata: dict) -> datetime.date:
@@ -48,18 +51,16 @@ class CaptainsLogContent(MarkdownContent):
     def render_body(
         cls,
         slug: str,
-        image_base: str,
         *,
         image_width: int | None = None,
     ) -> str:
-        """Return the update body as HTML with the screenshots under `image_base`."""
+        """Return the update body as HTML with staticfiles image URLs."""
         body = cls.get_article(slug).content
-        html = str(
-            md_2_html(
-                body.replace("](images/", f"]({image_base}"),
-                line_breaks=False,
-            )
+        body = IMAGE_LINK_RE.sub(
+            lambda match: f"{match[1]}{static(match[2])}{match[3]}",
+            body,
         )
+        html = str(md_2_html(body, line_breaks=False))
         if image_width is not None:
             html = html.replace("<img ", f'<img width="{image_width}" ')
         # md_2_html escapes the Markdown source before it returns the markup.

@@ -1,9 +1,8 @@
-import pytest
-from django.http import Http404
+from django.templatetags.static import static
 from django.urls import reverse
 
 from captains_log.content import CaptainsLogContent
-from captains_log.views import CaptainsLogDetailView, CaptainsLogImageView
+from captains_log.views import CaptainsLogDetailView
 
 
 class TestListArticles:
@@ -55,16 +54,15 @@ class TestCaptainsLogDetailView:
         assert response.status_code == 200
         content = response.content.decode()
         assert "relay station log, stardate 2026.294" in content
-        assert 'src="/station-log/2026-10/images/mcp.png"' in content
+        image_url = static("2026-10/mcp.png")
+        assert f'src="{image_url}"' in content
         assert (
-            '<meta property="og:image" '
-            'content="http://testserver/station-log/2026-10/images/mcp.png">'
+            f'<meta property="og:image" content="http://testserver{image_url}">'
         ) in content
         assert '<meta property="og:image:width" content="1280">' in content
         assert '<meta property="og:image:height" content="640">' in content
         assert (
-            '<meta name="twitter:image" '
-            'content="http://testserver/station-log/2026-10/images/mcp.png">'
+            f'<meta name="twitter:image" content="http://testserver{image_url}">'
         ) in content
 
     def test_get__not_found(self, client):
@@ -89,7 +87,7 @@ class TestCaptainsLogDetailView:
         assert "text/markdown" in response["Content-Type"]
         body = response.content.decode()
         assert "# relay station log, stardate 2026.294" in body
-        assert "images/mcp.png" in body
+        assert "images/2026-10/mcp.png" in body
         assert not body.startswith("---\n")
 
     def test_get__returns_markdown_with_url_param(self, client):
@@ -100,39 +98,10 @@ class TestCaptainsLogDetailView:
         assert "text/markdown" in response["Content-Type"]
 
 
-class TestCaptainsLogImageView:
-    def test_get__serves_the_update_screenshot(self, client):
-        response = client.get(
-            reverse("captains_log:image", args=["2026-10", "mcp.png"])
-        )
-        assert response.status_code == 200
-        assert response["Content-Type"] == "image/png"
-
-    def test_get__rejects_unknown_slug(self, client):
-        response = client.get("/station-log/1999-01/images/mcp.png")
-        assert response.status_code == 404
-
-    def test_get__rejects_missing_image(self, client):
-        response = client.get(
-            reverse("captains_log:image", args=["2026-10", "nope.png"])
-        )
-        assert response.status_code == 404
-
-    def test_get__rejects_traversal(self, rf):
-        request = rf.get("/station-log/2026-10/images/../2026-10.md")
-        with pytest.raises(Http404):
-            CaptainsLogImageView.as_view()(
-                request,
-                slug="2026-10",
-                name="../2026-10.md",
-            )
-
-
 class TestRenderBody:
     def test_render_body__drops_the_markdown_line_breaks(self):
-        html = CaptainsLogContent.render_body(
-            "2026-10",
-            "/station-log/2026-10/images/",
-        )
-        assert "<br" not in str(html)
-        assert "The wormhole is quiet. The relay is not." in str(html)
+        html = str(CaptainsLogContent.render_body("2026-10"))
+
+        assert "<br" not in html
+        assert "The wormhole is quiet. The relay is not." in html
+        assert static("2026-10/mcp.png") in html

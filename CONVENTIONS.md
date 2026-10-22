@@ -439,6 +439,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Give each product update an `image` frontmatter key with a 1280x640
   screenshot path. The station log detail page uses it for `og:image`.
 
+- Store log screenshots in `product/updates/images/<slug>/` and link them
+  through `static()`. Django staticfiles serves the folder, so no image view
+  exists.
+
 - Send the announcement from `captains_log`. The app owns the content, the
   email, the scheduled task, and the "Station log" notification preference.
   The app stays model-free.

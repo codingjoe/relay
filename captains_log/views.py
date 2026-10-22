@@ -1,13 +1,11 @@
-from django.conf import settings
-from django.http import FileResponse, Http404, HttpResponse
-from django.urls import reverse
+from django.http import HttpResponse
+from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
-from django.views import generic
 
 from abstract.utils import md_2_html, md_toc
 from abstract.views import MarkdownListView, MarkdownView
 
-from .content import CAPTAINS_LOG_DIR, CaptainsLogContent, publication_date
+from .content import CaptainsLogContent, publication_date
 
 
 class CaptainsLogListView(MarkdownListView):
@@ -50,18 +48,9 @@ class CaptainsLogDetailView(MarkdownView):
         article = self.get_article()
         metadata = article.metadata
         slug = self.kwargs["slug"]
-        image_base = reverse(
-            "captains_log:image",
-            kwargs={"slug": slug, "name": "placeholder"},
-        ).removesuffix("placeholder")
-        image = str(metadata.get("image", "")).removeprefix("images/")
+        image = str(metadata.get("image", ""))
         og_image = (
-            self.request.build_absolute_uri(
-                reverse(
-                    "captains_log:image",
-                    kwargs={"slug": slug, "name": image},
-                )
-            )
+            self.request.build_absolute_uri(static(image.removeprefix("images/")))
             if image
             else ""
         )
@@ -71,7 +60,7 @@ class CaptainsLogDetailView(MarkdownView):
             "date": publication_date(metadata),
             "author": metadata.get("author", ""),
             "og_image": og_image,
-            "content_html": self.content.render_body(slug, image_base),
+            "content_html": self.content.render_body(slug),
             "toc_html": md_toc(article.content, depth=self.toc_levels),
         }
 
@@ -80,22 +69,3 @@ class CaptainsLogDetailView(MarkdownView):
             self.get_article().content,
             content_type="text/markdown; charset=utf-8",
         )
-
-
-class CaptainsLogImageView(generic.View):
-    """Serve a screenshot that belongs to one station log update."""
-
-    def get(self, request, slug, name, *args, **kwargs):
-        if slug not in CaptainsLogContent.slugs:
-            raise Http404
-        image_root = (CAPTAINS_LOG_DIR / "images").resolve()
-        image_path = (image_root / name).resolve()
-        if (
-            not image_path.is_relative_to(image_root)
-            or image_path.suffix != ".png"
-            or not image_path.is_file()
-        ):
-            raise Http404
-        response = FileResponse(image_path.open("rb"), content_type="image/png")
-        response["Cache-Control"] = f"public, max-age={settings.SERVESTATIC_MAX_AGE}"
-        return response

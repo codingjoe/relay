@@ -119,7 +119,7 @@ Use this exact shape:
 ---
 name: October 2026
 description: One sentence about the month.
-image: images/get-started.png
+image: images/2026-10/get-started.png
 author: Johannes Maron
 date: 2026-10-21
 ---
@@ -128,7 +128,7 @@ date: 2026-10-21
 
 Write one fresh opening line here. Two entries follow, newest first.
 
-![Alt text that names the feature](images/sandbox-credential.png)
+![Alt text that names the feature](images/2026-10/sandbox-credential.png)
 
 ## <station event>
 
@@ -137,7 +137,7 @@ reader gets. Leave the internals to the docs.
 
 ---
 
-![Alt text that names the feature](images/message-preview.png)
+![Alt text that names the feature](images/2026-10/message-preview.png)
 
 ## <an earlier station event>
 
@@ -145,7 +145,7 @@ Write one paragraph. Keep the station voice.
 
 ---
 
-![Alt text that names the feature](images/get-started.png)
+![Alt text that names the feature](images/2026-10/get-started.png)
 
 ## Supplemental log
 
@@ -215,7 +215,8 @@ from the running product, not a mockup.
   before navigating. The product and the email templates both ship dark
   styles, so the images stay consistent.
 - Set `image` in the frontmatter to a screenshot that stands on its own in a
-  social post. Use `images/<name>.png`, the same relative path the body uses.
+  social post. Use `images/<slug>/<name>.png`, the same relative path the body
+  uses.
 - Keep it narrow. One control, one card, or one panel. A wide page shot that
   shows everything up close shows nothing.
 - Remove the breadcrumb, footer, debug toolbar, and sticky topbar when they
@@ -225,7 +226,9 @@ from the running product, not a mockup.
   option the copy talks about, and fill sample values.
 - Do not ship a broken map, a missing image, or a debug toolbar. Change the
   framing or pick another view.
-- Save as `product/updates/images/<kebab-case>.png`.
+- Save as `product/updates/images/<slug>/<kebab-case>.png` and reference it
+  as `images/<slug>/<name>.png`. Django staticfiles serves that folder, so no
+  image view is needed.
 - Write alt text that names the feature, not "screenshot".
 
 For relay's capture recipe, read `references/screenshots.md`.
@@ -278,7 +281,8 @@ Then do a human pass:
   in the same change.
 - Confirm `.gitattributes` marks `product/updates/**` as
   `linguist-generated`.
-- Confirm `/station-log/<slug>/` renders the update and its screenshots.
+- Confirm `/station-log/<slug>/` renders the update and its screenshots
+  through `static()`.
 - Doc-only changes need no Django checks. If you also touch code, run
   `uv run python manage.py check` and
   `uv run python manage.py makemigrations --check --dry-run`.

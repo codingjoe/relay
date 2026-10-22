@@ -1,4 +1,5 @@
 import pytest
+from django.templatetags.static import static
 from django_letter.notifications import registry
 
 from captains_log.content import CaptainsLogContent
@@ -42,7 +43,7 @@ class TestStationLogEmail:
             "mcp",
             "get-started",
         ):
-            assert f"/station-log/2026-10/images/{image}.png" in html
+            assert static(f"2026-10/{image}.png") in html
         assert 'width="600"' in html
 
     def test_render__links_to_the_log(self, metadata):
