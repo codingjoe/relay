@@ -161,4 +161,4 @@ class TestSuppressionEntryStr:
         s = str(entry)
         assert "acme" in s
         assert "manual" in s
-        assert SuppressionEntry.hash_address("bob@example.com")[:12] in s
+        assert SuppressionEntry.hash_address("bob@example.com").hex()[:12] in s

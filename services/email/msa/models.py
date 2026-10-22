@@ -128,7 +128,7 @@ class EmailLookup(Lookup):
         return f"{lhs} = %s", [*lhs_params, model.hash_address(self.rhs)]
 
 
-class HashedEmailField(models.TextField):
+class HashedEmailField(models.BinaryField):
     """Provide the `__email` lookup for address hashing."""
 
 
@@ -205,7 +205,7 @@ class SuppressionEntry(OrganizationOwned):
         ]
 
     def __str__(self):
-        return f"{self.org} / {self.address_hash[:12]}… ({self.reason})"
+        return f"{self.org} / {self.address_hash.hex()[:12]}… ({self.reason})"
 
     @classmethod
     def salt(cls) -> str:
@@ -213,7 +213,7 @@ class SuppressionEntry(OrganizationOwned):
         return f"{cls.__module__}.{cls.__name__}"
 
     @classmethod
-    def hash_address(cls, email) -> str:
-        """Return the salted SHA-256 hex digest of a lowercased email address."""
+    def hash_address(cls, email) -> bytes:
+        """Return the salted SHA-256 digest of a lowercased email address."""
         validate_email(email)
-        return hashlib.sha256((cls.salt() + email.lower()).encode()).hexdigest()
+        return hashlib.sha256((cls.salt() + email.lower()).encode()).digest()
