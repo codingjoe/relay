@@ -59,7 +59,7 @@ class Organization(TimeStamped):
 
 
 class MembershipQuerySet(models.QuerySet):
-    def notifiable(self, notification: Notification) -> MembershipQuerySet:
+    def for_notification(self, notification: Notification) -> MembershipQuerySet:
         """
         Return the active members whose address wants the notification.
 

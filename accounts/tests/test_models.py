@@ -61,17 +61,21 @@ class TestMembership:
 
 @pytest.mark.django_db
 class TestMembershipQuerySet:
-    def test_notifiable__yields_every_reachable_member(self, org, user, other_user):
+    def test_for_notification__yields_every_reachable_member(
+        self, org, user, other_user
+    ):
         Membership.objects.create(org=org, user=other_user)
 
         assert [
             membership.user.email
-            for membership in Membership.objects.filter(org=org).notifiable(
+            for membership in Membership.objects.filter(org=org).for_notification(
                 test_notification
             )
         ] == ["alice@example.com", "bob@example.com"]
 
-    def test_notifiable__skips_a_disabled_notification(self, org, user, other_user):
+    def test_for_notification__skips_a_disabled_notification(
+        self, org, user, other_user
+    ):
         Membership.objects.create(org=org, user=other_user)
         NotificationPreference.objects.create(
             email_hash=hash_email(user.email),
@@ -81,12 +85,14 @@ class TestMembershipQuerySet:
 
         assert [
             membership.user.email
-            for membership in Membership.objects.filter(org=org).notifiable(
+            for membership in Membership.objects.filter(org=org).for_notification(
                 test_notification
             )
         ] == ["bob@example.com"]
 
-    def test_notifiable__skips_members_without_a_usable_address(self, org, other_user):
+    def test_for_notification__skips_members_without_a_usable_address(
+        self, org, other_user
+    ):
         other_user.is_active = False
         other_user.save(update_fields=["is_active"])
         Membership.objects.create(org=org, user=other_user)
@@ -96,7 +102,7 @@ class TestMembershipQuerySet:
 
         assert [
             membership.user.email
-            for membership in Membership.objects.filter(org=org).notifiable(
+            for membership in Membership.objects.filter(org=org).for_notification(
                 test_notification
             )
         ] == ["alice@example.com"]

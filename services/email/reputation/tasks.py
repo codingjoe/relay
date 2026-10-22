@@ -131,7 +131,7 @@ def send_org_weekly_digest(org_id):
         with mailer:
             for membership in (
                 Membership.objects.filter(org=org)
-                .notifiable(weekly_digest_notification)
+                .for_notification(weekly_digest_notification)
                 .select_related("user")
             ):
                 try:
