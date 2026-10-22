@@ -45,8 +45,8 @@
   {% table %}
   {% for step in onboarding_steps %}
     <tr>
-      <td class="check {% if step.done %}check-done{% else %}check-todo{% endif %}" valign="middle">
-        {% if step.done %}✓{% else %}○{% endif %}
+      <td class="bullet {% if step.done %}bullet-done{% else %}bullet-todo{% endif %}" valign="middle">
+        •
       </td>
       <td class="step {% if step.done %}step-done{% else %}step-todo{% endif %}" valign="middle">
         {{ step.label|capfirst }}

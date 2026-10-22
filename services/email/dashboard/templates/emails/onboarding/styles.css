@@ -115,7 +115,7 @@ style element. */
   line-height: 0;
 }
 
-.check {
+.bullet {
   width: 28px;
   padding: 6px 8px 6px 0;
   font-size: 18px;
@@ -123,12 +123,12 @@ style element. */
   vertical-align: middle;
 }
 
-.check-done {
-  color: #6200d1;
+.bullet-done {
+  color: #157a3f;
 }
 
-.check-todo {
-  color: #6b6b6b;
+.bullet-todo {
+  color: #ca8a04;
 }
 
 .step {
@@ -140,6 +140,7 @@ style element. */
 
 .step-done {
   color: #5d5d5d;
+  text-decoration: line-through;
 }
 
 .step-todo {
@@ -147,12 +148,12 @@ style element. */
 }
 
 @media (prefers-color-scheme: dark) {
-  .check-done {
-    color: #bb80ff !important;
+  .bullet-done {
+    color: #6ee7a8 !important;
   }
 
-  .check-todo {
-    color: #9ca3af !important;
+  .bullet-todo {
+    color: #fbbf24 !important;
   }
 
   .step-done {
