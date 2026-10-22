@@ -3,8 +3,13 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.urls import reverse
+from django_letter.notifications import Notification
+from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership, Organization
+
+test_notification = Notification("test-notifiable", "Test notification")
+opt_in_notification = Notification("test-opt-in", "Test opt-in", default=False)
 
 
 class TestOrganization:
@@ -53,3 +58,73 @@ class TestMembership:
         Membership.objects.create(org=org, user=user, role=Membership.Role.ADMIN)
         with pytest.raises(IntegrityError):
             Membership.objects.create(org=org, user=user, role=Membership.Role.WRITE)
+
+
+@pytest.mark.django_db
+class TestMembershipQuerySet:
+    def test_for_notification__yields_every_reachable_member(
+        self, org, user, other_user
+    ):
+        Membership.objects.create(org=org, user=other_user)
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).for_notification(
+                test_notification
+            )
+        ] == ["alice@example.com", "bob@example.com"]
+
+    def test_for_notification__skips_a_disabled_notification(
+        self, org, user, other_user
+    ):
+        Membership.objects.create(org=org, user=other_user)
+        NotificationPreference.objects.create(
+            email_hash=NotificationPreference._meta.get_field("email_hash").hash_email(
+                user.email
+            ),
+            slug=test_notification.slug,
+            enabled=False,
+        )
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).for_notification(
+                test_notification
+            )
+        ] == ["bob@example.com"]
+
+    def test_for_notification__includes_only_opted_in_members(
+        self, org, user, other_user
+    ):
+        Membership.objects.create(org=org, user=other_user)
+        NotificationPreference.objects.create(
+            email_hash=NotificationPreference._meta.get_field("email_hash").hash_email(
+                user.email
+            ),
+            slug=opt_in_notification.slug,
+            enabled=True,
+        )
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).for_notification(
+                opt_in_notification
+            )
+        ] == ["alice@example.com"]
+
+    def test_for_notification__skips_members_without_a_usable_address(
+        self, org, other_user
+    ):
+        other_user.is_active = False
+        other_user.save(update_fields=["is_active"])
+        Membership.objects.create(org=org, user=other_user)
+        Membership.objects.create(
+            org=org, user=User.objects.create_user(username="carol", email="")
+        )
+
+        assert [
+            membership.user.email
+            for membership in Membership.objects.filter(org=org).for_notification(
+                test_notification
+            )
+        ] == ["alice@example.com"]
