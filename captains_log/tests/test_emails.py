@@ -28,7 +28,7 @@ class TestStationLogEmail:
 
     def test_render__includes_the_whole_log(self, metadata):
         html = render(metadata).html
-        assert "relay station log, stardate 2026.294" in html
+        assert "relay station log, stardate 2026.295" in html
         assert "The holosuite run" in html
         assert "A new channel opens" in html
         assert "Supplemental log" in html

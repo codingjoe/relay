@@ -1,5 +1,6 @@
 import typing
 
+from django.http import Http404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django_letter import TemplateEmail
@@ -44,7 +45,10 @@ class StationLogEmail(TemplateEmail):
     ):
         """Announce the newest log when the preview caller names none."""
         if "slug" not in kwargs:
-            slug, metadata = next(iter(CaptainsLogContent.get_articles()))
+            try:
+                slug, metadata = next(iter(CaptainsLogContent.get_articles()))
+            except StopIteration:
+                raise Http404 from None
             kwargs |= {"slug": slug, "metadata": metadata}
         return super().render_preview(
             request, context=context, language=language, **kwargs

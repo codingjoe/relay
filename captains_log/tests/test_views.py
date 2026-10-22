@@ -53,7 +53,7 @@ class TestCaptainsLogDetailView:
         response = client.get(reverse("captains_log:detail", args=["2026-10"]))
         assert response.status_code == 200
         content = response.content.decode()
-        assert "relay station log, stardate 2026.294" in content
+        assert "relay station log, stardate 2026.295" in content
         image_url = static("captains_log/2026-10/mcp.png")
         assert f'src="{image_url}"' in content
         assert (
@@ -86,7 +86,7 @@ class TestCaptainsLogDetailView:
         assert response.status_code == 200
         assert "text/markdown" in response["Content-Type"]
         body = response.content.decode()
-        assert "# relay station log, stardate 2026.294" in body
+        assert "# relay station log, stardate 2026.295" in body
         assert "{% static 'captains_log/2026-10/mcp.png' %}" in body
         assert not body.startswith("---\n")
 

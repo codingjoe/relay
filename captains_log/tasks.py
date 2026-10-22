@@ -26,7 +26,7 @@ def send_station_log(slug):
             for membership in (
                 Membership.objects.filter(org__suspended_at__isnull=True)
                 .for_notification(station_log_notification)
-                .select_related("user", "org")
+                .select_related("user")
             )
         }:
             try:
@@ -40,8 +40,12 @@ def send_station_log(slug):
                         )
                     ]
                 )
-            except OSError:
-                logger.exception("Station log for user %r failed", member.pk)
+            except (OSError, ValueError) as exc:
+                logger.warning(
+                    "Station log for user %r failed: %s",
+                    member.pk,
+                    type(exc).__name__,
+                )
 
 
 @cron("0 15 * * *")

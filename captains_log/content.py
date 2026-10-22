@@ -22,9 +22,11 @@ class CaptainsLogContent(MarkdownContent):
     @classmethod
     def get_articles(cls):
         """Yield `(slug, metadata)` from the newest update to the oldest."""
-        articles = list(super().get_articles())
-        articles.sort(key=lambda article: article[1]["date"], reverse=True)
-        yield from articles
+        yield from sorted(
+            super().get_articles(),
+            key=lambda article: article[1]["date"],
+            reverse=True,
+        )
 
     @classmethod
     def get_article(cls, slug: str) -> frontmatter.Post:

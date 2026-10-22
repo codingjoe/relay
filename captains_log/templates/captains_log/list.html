@@ -19,7 +19,7 @@
               {{ article.date|date:"DATE_FORMAT" }}
             </div>
             {% if article.description %}
-              <div class="text-sm text-muted-foreground">{{ article.description }}</div>
+              <div class="text-sm text-muted-foreground">{{ article.description|striptags }}</div>
             {% endif %}
           </div>
           {% tabler name="chevron-right" class="text-muted-foreground ms-auto shrink-0" %}

@@ -220,10 +220,11 @@ heading may fit. The rest of the mail is too tall for 640px.
 Stop the servers and remove the working state:
 
 ```shell
-rm -rf db.sqlite3 staticfiles storage .playwright-mcp
+rm -rf staticfiles .playwright-mcp
 ```
 
-Keep `product/updates/` and `captains_log/static/captains_log/`.
+Never delete `db.sqlite3` or `storage/`: they hold working data. Keep
+`product/updates/` and `captains_log/static/captains_log/`.
 
 ## Verify
 

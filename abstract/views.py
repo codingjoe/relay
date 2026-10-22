@@ -256,6 +256,7 @@ class MarkdownListView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateV
                     "slug": slug,
                     "title": metadata["name"],
                     "description": md_2_html(metadata.get("description", "")),
+                    "date": metadata.get("date"),
                 }
                 for slug, metadata in self.content.get_articles()
             ],
