@@ -391,7 +391,6 @@ graph BT
  alternative_to --> abstract
  captains_log --> abstract
  captains_log --> accounts
- captains_log --> msa
  docs --> abstract
  well_known --> know_how
  well_known --> alternative_to
@@ -450,6 +449,3 @@ graph BT
  root --> platform;
  root(((root)))
 ```
-
-`captains_log` owns the station log mail, so it reads `accounts` and `msa`.
-It is the one content app that reaches into a service.

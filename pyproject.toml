@@ -477,7 +477,7 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Captains log depends only on accounts, msa, message, kms and abstract"
+name = "Captains log depends only on accounts and abstract"
 type = "forbidden"
 source_modules = [ "captains_log" ]
 forbidden_modules = [
@@ -485,10 +485,13 @@ forbidden_modules = [
   "docs",
   "domains",
   "know_how",
+  "kms",
   "legal",
   "root",
   "services.email.dashboard",
   "services.email.dmarc",
+  "services.email.message",
+  "services.email.msa",
   "services.email.mta",
   "services.email.reputation",
   "services.mcp",

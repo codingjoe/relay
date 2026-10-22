@@ -10,7 +10,6 @@ from accounts.models import Membership
 from captains_log import tasks
 from captains_log.content import CaptainsLogContent
 from captains_log.emails import station_log_notification
-from services.email.msa.models import SuppressionEntry
 
 SLUG = "2026-10"
 
@@ -58,17 +57,6 @@ class TestSendStationLog:
     ):
         org.suspended_at = timezone.now()
         org.save(update_fields=["suspended_at"])
-
-        tasks.send_station_log.func(slug=SLUG)
-
-        assert mailoutbox == []
-
-    def test_send_station_log__skips_a_suppressed_address(self, user, org, mailoutbox):
-        SuppressionEntry.objects.create_or_update(
-            org=org,
-            email=user.email,
-            reason=SuppressionEntry.Reason.MANUAL,
-        )
 
         tasks.send_station_log.func(slug=SLUG)
 
