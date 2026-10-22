@@ -4,6 +4,7 @@ from crontask import cron
 from django.conf import settings
 from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
+from django_letter.notifications import hash_email
 from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Organization
@@ -128,24 +129,31 @@ def send_org_weekly_digest(org_id):
         logger.info("Dropped the weekly digest for suspended organization %r", org_id)
     else:
         digest = build_org_digest(org)
+        members = [
+            (membership, hash_email(membership.user.email))
+            for membership in iter_digest_members(org)
+        ]
+        preferences = dict(
+            NotificationPreference.objects.filter(
+                slug=weekly_digest_notification.slug,
+                email_hash__in=[email_hash for _, email_hash in members],
+            ).values_list("email_hash", "enabled")
+        )
         mailer = mailers.default
         with mailer:
-            for membership in iter_digest_members(org):
-                if not NotificationPreference.objects.is_enabled(
-                    weekly_digest_notification, membership.user.email
-                ):
-                    continue
-                try:
-                    mailer.send_messages(
-                        [
-                            WeeklyDigestEmail.to_user(
-                                membership.user,
-                                digest=digest,
-                                language=settings.LANGUAGE_CODE,
-                            )
-                        ]
-                    )
-                except OSError:
-                    logger.exception(
-                        "Weekly digest for user %r failed", membership.user_id
-                    )
+            for membership, email_hash in members:
+                if preferences.get(email_hash, weekly_digest_notification.default):
+                    try:
+                        mailer.send_messages(
+                            [
+                                WeeklyDigestEmail.to_user(
+                                    membership.user,
+                                    digest=digest,
+                                    language=settings.LANGUAGE_CODE,
+                                )
+                            ]
+                        )
+                    except OSError:
+                        logger.exception(
+                            "Weekly digest for user %r failed", membership.user_id
+                        )
