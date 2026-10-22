@@ -440,9 +440,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   screenshot path. The station log detail page uses it for `og:image`.
 
 - Send the announcement from `captains_log`. The app owns the content, the
-  email, the task, the `send_station_log` command, and the "Station log"
-  notification preference. The app stays model-free. It reads the `msa`
-  suppression list, the one allowed exception to the content-app rule.
+  email, the scheduled task, and the "Station log" notification preference.
+  The app stays model-free. It reads the `msa` suppression list, the one
+  allowed exception to the content-app rule.
 
 - Keep article slugs unique across all docs apps. The template loader
   resolves `<slug>.md` against every TEMPLATES DIRS entry in order, so a

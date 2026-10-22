@@ -231,23 +231,19 @@ For relay's capture recipe, read `references/screenshots.md`.
 
 ## Publish
 
-After the log is merged and deployed, send the announcement:
+A daily task at 09:00 queues the announcement for each log whose frontmatter
+`date` is yesterday. There is nothing to run by hand. The morning after
+publication is a good time for the mail to land.
 
-```shell
-uv run python manage.py send_station_log 2026-10 --dry-run
-uv run python manage.py send_station_log 2026-10
-```
-
-The command queues one email per member who wants station log mail. The
+The task queues one email per member who wants station log mail. The
 notification preference is "Station log", so an opt-out in the settings
-applies. The dry run reports the recipient count. Use `--now` only in
-development or when no task worker is running.
+applies.
 
 The mail carries the whole log in its body. Do not replace it with a summary
 or a teaser. The top link opens the same log in a browser for readers whose
 client clips the message or blocks images.
 
-Send each log once. The command keeps no record of what it already sent.
+Set the `date` field to the publication date. The schedule keys off it.
 
 ## Validate
 

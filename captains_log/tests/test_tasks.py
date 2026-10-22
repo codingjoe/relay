@@ -1,13 +1,14 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
-from django.core.management import call_command
-from django.core.management.base import CommandError
+from crontask import scheduler
 from django.utils import timezone
 from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership
 from captains_log import tasks
+from captains_log.content import CaptainsLogContent
 from captains_log.emails import station_log_notification
 from services.email.msa.models import SuppressionEntry
 
@@ -74,29 +75,42 @@ class TestSendStationLog:
         assert mailoutbox == []
 
 
-class TestSendStationLogCommand:
-    @pytest.mark.django_db
-    def test_dry_run__reports_without_sending(self, user, org, mailoutbox, capsys):
-        call_command("send_station_log", SLUG, "--dry-run")
+class TestSendStationLogAnnouncements:
+    def test_announcements__queues_yesterday_log(self, monkeypatch):
+        yesterday = timezone.localdate() - timedelta(days=1)
+        monkeypatch.setattr(
+            CaptainsLogContent,
+            "get_articles",
+            classmethod(lambda cls: iter([(SLUG, {"date": yesterday})])),
+        )
 
-        assert mailoutbox == []
-        assert "2026-10 would reach 1 member." in capsys.readouterr().out
-
-    @pytest.mark.django_db
-    def test_command__queues_the_task(self, user, org):
-        with patch(
-            "captains_log.management.commands.send_station_log.send_station_log"
-        ) as task:
-            call_command("send_station_log", SLUG)
+        with patch("captains_log.tasks.send_station_log") as task:
+            tasks.send_station_log_announcements.func()
 
         task.enqueue.assert_called_once_with(slug=SLUG)
 
-    @pytest.mark.django_db
-    def test_command__sends_now(self, user, org, mailoutbox):
-        call_command("send_station_log", SLUG, "--now")
+    def test_announcements__skips_older_logs(self, monkeypatch):
+        older = timezone.localdate() - timedelta(days=2)
+        monkeypatch.setattr(
+            CaptainsLogContent,
+            "get_articles",
+            classmethod(lambda cls: iter([(SLUG, {"date": older})])),
+        )
 
-        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        with patch("captains_log.tasks.send_station_log") as task:
+            tasks.send_station_log_announcements.func()
 
-    def test_command__rejects_an_unknown_log(self):
-        with pytest.raises(CommandError):
-            call_command("send_station_log", "1999-01")
+        task.enqueue.assert_not_called()
+
+
+class TestSendStationLogSchedule:
+    def test_announcements__runs_each_morning(self):
+        job = next(
+            job
+            for job in scheduler.get_jobs()
+            if job.name == tasks.send_station_log_announcements.name
+        )
+        fields = {field.name: str(field) for field in job.trigger.fields}
+
+        assert fields["hour"] == "9"
+        assert fields["minute"] == "0"
