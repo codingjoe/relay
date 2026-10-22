@@ -1,8 +1,47 @@
+import datetime
+
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from domains.models import Domain
 from services.email.msa.models import MsaCredential, OutgoingMessage
+
+# Reminders land at 09:00 project time; weekend landings move to Monday.
+SEND_HOUR = 9
+
+
+def send_time(
+    start: datetime.datetime, offset: datetime.timedelta
+) -> datetime.datetime:
+    """Return the 09:00 weekday that is `offset` after `start`."""
+    if not offset:
+        return start
+    moment = (timezone.localtime(start) + offset).replace(
+        hour=SEND_HOUR,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    while moment.weekday() >= 5:
+        moment += datetime.timedelta(days=1)
+    return moment
+
+
+class OnboardingStage(models.TextChoices):
+    WELCOME = "welcome", _("welcome")
+    FIRST_REMINDER = "first-reminder", _("first reminder")
+    SECOND_REMINDER = "second-reminder", _("second reminder")
+    LAST_REMINDER = "last-reminder", _("last reminder")
+
+
+# Delay after sign-up; each mail is due on its own day.
+SEND_OFFSETS = {
+    OnboardingStage.WELCOME: datetime.timedelta(0),
+    OnboardingStage.FIRST_REMINDER: datetime.timedelta(days=2),
+    OnboardingStage.SECOND_REMINDER: datetime.timedelta(days=6),
+    OnboardingStage.LAST_REMINDER: datetime.timedelta(days=13),
+}
 
 
 class OnboardingStep(models.TextChoices):

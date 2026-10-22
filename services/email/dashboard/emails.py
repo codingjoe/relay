@@ -12,8 +12,7 @@ from django_letter.notifications import Notification
 
 from accounts.models import Organization
 
-from .models import OnboardingMail
-from .onboarding import OnboardingStep
+from .onboarding import OnboardingStage, OnboardingStep
 
 onboarding_notification = Notification(
     "onboarding",
@@ -144,8 +143,8 @@ class OnboardingLastReminderEmail(OnboardingEmail):
 
 
 EMAIL_BY_STAGE = {
-    OnboardingMail.Stage.WELCOME: OnboardingWelcomeEmail,
-    OnboardingMail.Stage.FIRST_REMINDER: OnboardingFirstReminderEmail,
-    OnboardingMail.Stage.SECOND_REMINDER: OnboardingSecondReminderEmail,
-    OnboardingMail.Stage.LAST_REMINDER: OnboardingLastReminderEmail,
+    OnboardingStage.WELCOME: OnboardingWelcomeEmail,
+    OnboardingStage.FIRST_REMINDER: OnboardingFirstReminderEmail,
+    OnboardingStage.SECOND_REMINDER: OnboardingSecondReminderEmail,
+    OnboardingStage.LAST_REMINDER: OnboardingLastReminderEmail,
 }

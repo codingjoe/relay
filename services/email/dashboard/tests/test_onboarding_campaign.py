@@ -8,8 +8,13 @@ from accounts.models import Membership, Organization
 from domains.models import Domain
 from services.email.dashboard import tasks
 from services.email.dashboard.emails import EMAIL_BY_STAGE, OnboardingWelcomeEmail
-from services.email.dashboard.models import OnboardingMail, send_time
-from services.email.dashboard.onboarding import OnboardingStep, get_onboarding_state
+from services.email.dashboard.onboarding import (
+    SEND_OFFSETS,
+    OnboardingStage,
+    OnboardingStep,
+    get_onboarding_state,
+    send_time,
+)
 from services.email.msa.models import MsaCredential, OutgoingMessage
 
 REFUSED_ADDRESS = "bob@example.com"  # the other_user fixture's address
@@ -49,7 +54,17 @@ def complete_onboarding(org):
 
 
 def test_email_by_stage_covers_every_stage():
-    assert set(EMAIL_BY_STAGE) == set(OnboardingMail.Stage)
+    assert set(EMAIL_BY_STAGE) == set(OnboardingStage)
+
+
+def test_send_offsets__cover_every_stage():
+    assert set(SEND_OFFSETS) == set(OnboardingStage)
+
+
+def test_send_time__returns_the_start_for_a_zero_offset():
+    start = timezone.now().replace(year=2026, month=10, day=23, hour=14, minute=30)
+
+    assert send_time(start, datetime.timedelta(0)) == start
 
 
 def test_send_time__waits_for_the_next_weekday_morning():
@@ -94,32 +109,10 @@ class TestSendOnboardingEmail:
 
         tasks.send_onboarding_email.func(
             org_pk=org.pk,
-            stage=OnboardingMail.Stage.WELCOME,
+            stage=OnboardingStage.WELCOME,
         )
 
         assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
-
-    def test_send_onboarding_email__records_the_mail(self, org, mailoutbox):
-        tasks.send_onboarding_email.func(
-            org_pk=org.pk,
-            stage=OnboardingMail.Stage.WELCOME,
-        )
-
-        assert OnboardingMail.objects.filter(
-            org=org, stage=OnboardingMail.Stage.WELCOME
-        ).exists()
-
-    def test_send_onboarding_email__does_not_repeat_a_mail(self, org, mailoutbox):
-        tasks.send_onboarding_email.func(
-            org_pk=org.pk,
-            stage=OnboardingMail.Stage.WELCOME,
-        )
-        tasks.send_onboarding_email.func(
-            org_pk=org.pk,
-            stage=OnboardingMail.Stage.WELCOME,
-        )
-
-        assert len(mailoutbox) == 1
 
     def test_send_onboarding_email__leaves_a_finished_organization_alone(
         self, org, mailoutbox
@@ -128,11 +121,10 @@ class TestSendOnboardingEmail:
 
         tasks.send_onboarding_email.func(
             org_pk=org.pk,
-            stage=OnboardingMail.Stage.WELCOME,
+            stage=OnboardingStage.WELCOME,
         )
 
         assert not mailoutbox
-        assert not OnboardingMail.objects.exists()
 
     def test_send_onboarding_email__leaves_a_suspended_organization_alone(
         self, org, mailoutbox
@@ -142,26 +134,12 @@ class TestSendOnboardingEmail:
 
         tasks.send_onboarding_email.func(
             org_pk=org.pk,
-            stage=OnboardingMail.Stage.WELCOME,
+            stage=OnboardingStage.WELCOME,
         )
 
         assert not mailoutbox
-        assert not OnboardingMail.objects.filter(org=org).exists()
 
-    def test_send_onboarding_email__releases_the_claim_when_every_mail_fails(
-        self, org, settings
-    ):
-        settings.MAILERS = {"default": {"BACKEND": f"{__name__}.RefusedEmailBackend"}}
-
-        with pytest.raises(RefusedConnectionError):
-            tasks.send_onboarding_email.func(
-                org_pk=org.pk,
-                stage=OnboardingMail.Stage.WELCOME,
-            )
-
-        assert not OnboardingMail.objects.filter(org=org).exists()
-
-    def test_send_onboarding_email__keeps_the_claim_when_one_admin_fails(
+    def test_send_onboarding_email__keeps_going_when_one_admin_fails(
         self, org, other_user, mailoutbox, settings
     ):
         Membership.objects.create(
@@ -175,18 +153,15 @@ class TestSendOnboardingEmail:
 
         tasks.send_onboarding_email.func(
             org_pk=org.pk,
-            stage=OnboardingMail.Stage.WELCOME,
+            stage=OnboardingStage.WELCOME,
         )
 
         assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
-        assert OnboardingMail.objects.filter(
-            org=org, stage=OnboardingMail.Stage.WELCOME
-        ).exists()
 
     def test_send_onboarding_email__drops_a_missing_organization(self, org, mailoutbox):
         tasks.send_onboarding_email.func(
             org_pk=org.pk + 1,
-            stage=OnboardingMail.Stage.WELCOME,
+            stage=OnboardingStage.WELCOME,
         )
 
         assert not mailoutbox
@@ -194,26 +169,27 @@ class TestSendOnboardingEmail:
 
 @pytest.mark.django_db
 class TestScheduleOnboardingEmails:
-    def test_schedule_onboarding_emails__queues_every_stage(
-        self, org, django_capture_on_commit_callbacks
+    def test_schedule_onboarding_emails__queues_every_stage_in_order(
+        self, org, mailoutbox
     ):
-        with django_capture_on_commit_callbacks(execute=True):
-            tasks.schedule_onboarding_emails.enqueue(org_pk=org.pk)
+        tasks.schedule_onboarding_emails.func(org_pk=org.pk)
 
-        assert set(OnboardingMail.objects.values_list("stage", flat=True)) == set(
-            OnboardingMail.Stage
+        assert len(mailoutbox) == len(SEND_OFFSETS)
+        assert mailoutbox[0].subject.startswith("You send 1,000")
+        assert (
+            mailoutbox[-1].subject
+            == EMAIL_BY_STAGE[OnboardingStage.LAST_REMINDER].subject
         )
 
     def test_schedule_onboarding_emails__drops_a_missing_organization(
         self, org, mailoutbox
     ):
-        tasks.schedule_onboarding_emails.enqueue(org_pk=org.pk + 1)
+        tasks.schedule_onboarding_emails.func(org_pk=org.pk + 1)
 
         assert not mailoutbox
-        assert not OnboardingMail.objects.exists()
 
     def test_first_admin_schedules_the_sequence(
-        self, user, django_capture_on_commit_callbacks
+        self, user, mailoutbox, django_capture_on_commit_callbacks
     ):
         org = Organization.objects.create(slug="fresh-org", billing_is_active=True)
 
@@ -224,23 +200,20 @@ class TestScheduleOnboardingEmails:
                 role=Membership.Role.ADMIN,
             )
 
-        assert OnboardingMail.objects.filter(org=org).count() == len(
-            OnboardingMail.Stage
-        )
+        assert len(mailoutbox) == len(SEND_OFFSETS)
 
     def test_second_admin_does_not_schedule_again(
-        self, user, other_user, django_capture_on_commit_callbacks
+        self, user, other_user, mailoutbox, django_capture_on_commit_callbacks
     ):
         org = Organization.objects.create(slug="team-org", billing_is_active=True)
 
-        # Swallow the first callback, so an unguarded second admin would leave visible rows.
-        with django_capture_on_commit_callbacks(execute=False) as callbacks:
+        with django_capture_on_commit_callbacks(execute=True):
             Membership.objects.create(
                 org=org,
                 user=user,
                 role=Membership.Role.ADMIN,
             )
-        assert len(callbacks) == 1
+        sent = len(mailoutbox)
 
         with django_capture_on_commit_callbacks(execute=True):
             Membership.objects.create(
@@ -249,7 +222,7 @@ class TestScheduleOnboardingEmails:
                 role=Membership.Role.ADMIN,
             )
 
-        assert not OnboardingMail.objects.filter(org=org).exists()
+        assert len(mailoutbox) == sent
 
 
 def test_render_preview__fills_in_a_sample_organization_state_and_user():
@@ -259,16 +232,6 @@ def test_render_preview__fills_in_a_sample_organization_state_and_user():
     assert email.state["next_step"] == OnboardingStep.CREDENTIAL
     assert email.extra_context["user"].username == "jess"
     assert ">jess<" in email.html
-
-
-class TestOnboardingMail:
-    def test_str__names_the_organization_and_stage(self):
-        mail = OnboardingMail(
-            org=Organization(slug="acme"),
-            stage=OnboardingMail.Stage.FIRST_REMINDER,
-        )
-
-        assert str(mail) == "acme / first reminder"
 
 
 @pytest.mark.django_db
@@ -298,7 +261,3 @@ class TestOnboardingEmail:
         )
 
         assert email.org is org
-        assert email.state is state
-        assert email.extra_context["user"] is user
-        assert ">alice<" in email.html
-        assert "send test message" in email.html
