@@ -1,26 +1,28 @@
+import datetime
+
 import django.db.models.deletion
 import django.utils.timezone
 from django.db import migrations, models
 
+# Mirrors `OnboardingCampaign.SEND_OFFSETS`: the last email goes out a week in.
+SEQUENCE_WINDOW = datetime.timedelta(days=8)
+
 
 def start_campaigns(apps, schema_editor):
-    """Start a sequence for every organization that has not finished onboarding."""
+    """Start a sequence for recent organizations that have not finished onboarding."""
     Organization = apps.get_model("accounts", "Organization")
     OutgoingMessage = apps.get_model("msa", "OutgoingMessage")
     MsaCredential = apps.get_model("msa", "MsaCredential")
     OnboardingCampaign = apps.get_model("dashboard", "OnboardingCampaign")
-    now = django.utils.timezone.now()
-    for org in Organization.objects.iterator():
+    recent = django.utils.timezone.now() - SEQUENCE_WINDOW
+    for org in Organization.objects.filter(created_at__gte=recent).iterator():
         has_outgoing_message = OutgoingMessage.objects.filter(org_id=org.pk).exists()
         connected = MsaCredential.objects.filter(
             org_id=org.pk,
             last_used_at__isnull=False,
         ).exists()
         if not (has_outgoing_message and connected):
-            OnboardingCampaign.objects.get_or_create(
-                org_id=org.pk,
-                defaults={"next_send_at": now},
-            )
+            OnboardingCampaign.objects.get_or_create(org_id=org.pk)
 
 
 class Migration(migrations.Migration):
@@ -57,39 +59,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "stage",
-                    models.TextField(
-                        choices=[
-                            ("welcome", "welcome"),
-                            ("first-reminder", "first reminder"),
-                            ("second-reminder", "second reminder"),
-                            ("last-reminder", "last reminder"),
-                        ],
-                        default="welcome",
-                        help_text="Email the sequence sends next.",
-                        verbose_name="stage",
-                    ),
-                ),
-                (
-                    "next_send_at",
-                    models.DateTimeField(
-                        blank=True,
+                    "sent_count",
+                    models.PositiveSmallIntegerField(
                         db_index=True,
-                        default=django.utils.timezone.now,
-                        help_text=(
-                            "When the next email is due. Empty once the sequence ends."
-                        ),
-                        null=True,
-                        verbose_name="next send",
-                    ),
-                ),
-                (
-                    "completed_at",
-                    models.DateTimeField(
-                        blank=True,
-                        help_text="When onboarding finished, which stops the sequence.",
-                        null=True,
-                        verbose_name="completed",
+                        default=0,
+                        help_text="How many emails of the sequence have gone out.",
+                        verbose_name="sent",
                     ),
                 ),
                 (
@@ -106,22 +81,6 @@ class Migration(migrations.Migration):
                 "ordering": ("-modified_at", "-created_at"),
                 "get_latest_by": "created_at",
                 "abstract": False,
-                "constraints": [
-                    models.CheckConstraint(
-                        condition=(
-                            models.Q(
-                                next_send_at__isnull=False, completed_at__isnull=True
-                            )
-                            | models.Q(
-                                next_send_at__isnull=True, completed_at__isnull=False
-                            )
-                        ),
-                        name="onboardingcampaign_active_or_completed",
-                        violation_error_message=(
-                            "A campaign is either due for its next send or completed."
-                        ),
-                    )
-                ],
             },
         ),
         migrations.RunPython(start_campaigns, migrations.RunPython.noop),

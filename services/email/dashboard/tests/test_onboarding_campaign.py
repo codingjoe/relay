@@ -90,7 +90,7 @@ class TestSendOnboardingEmail:
         assert campaign.stage == OnboardingCampaign.Stage.FIRST_REMINDER
         assert campaign.next_send_at > timezone.now()
 
-    def test_send_onboarding_email__closes_a_finished_organization(
+    def test_send_onboarding_email__leaves_a_finished_organization_alone(
         self, org, mailoutbox
     ):
         complete_onboarding(org)
@@ -99,22 +99,20 @@ class TestSendOnboardingEmail:
         tasks.send_onboarding_email.func(campaign_pk=campaign.pk)
 
         campaign.refresh_from_db()
-        assert campaign.completed_at is not None
-        assert campaign.next_send_at is None
+        assert campaign.sent_count == 0
         assert not mailoutbox
 
-    def test_send_onboarding_email__closes_the_sequence_after_the_last_mail(
+    def test_send_onboarding_email__ends_the_sequence_after_the_last_mail(
         self, org, mailoutbox, settings
     ):
         use_locmem_mailer(settings)
         campaign = OnboardingCampaign.objects.get(org=org)
-        campaign.stage = OnboardingCampaign.Stage.LAST_REMINDER
-        campaign.save(update_fields=["stage"])
+        OnboardingCampaign.objects.filter(pk=campaign.pk).update(sent_count=3)
 
         tasks.send_onboarding_email.func(campaign_pk=campaign.pk)
 
         campaign.refresh_from_db()
-        assert campaign.completed_at is not None
+        assert campaign.stage is None
         assert campaign.next_send_at is None
 
 
@@ -130,8 +128,17 @@ class TestSendDueOnboardingEmails:
 
     def test_send_due_onboarding_emails__skips_a_future_email(self, org, mailoutbox):
         campaign = OnboardingCampaign.objects.get(org=org)
-        campaign.next_send_at = timezone.now() + datetime.timedelta(days=1)
-        campaign.save(update_fields=["next_send_at"])
+        OnboardingCampaign.objects.filter(pk=campaign.pk).update(sent_count=1)
+
+        tasks.send_due_onboarding_emails.func()
+
+        assert not mailoutbox
+
+    def test_send_due_onboarding_emails__skips_an_old_campaign(self, org, mailoutbox):
+        campaign = OnboardingCampaign.objects.get(org=org)
+        OnboardingCampaign.objects.filter(pk=campaign.pk).update(
+            created_at=timezone.now() - datetime.timedelta(days=30)
+        )
 
         tasks.send_due_onboarding_emails.func()
 
