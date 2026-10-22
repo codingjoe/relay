@@ -10,11 +10,11 @@
   >
 {% endblock meme %}
 
-{% block headline %}{% translate "pick the third button"|capfirst %}{% endblock headline %}
+{% block headline %}{% translate "pick sandbox, not production"|capfirst %}{% endblock headline %}
 
 {% block intro %}
   {% blocktranslate trimmed %}
-    Every first send feels like a choice between two mistakes. Send one to yourself first: it takes a minute, and it
-    lands in your own inbox.
+    Send a test message to yourself first. It runs the whole pipeline and lands in your own inbox. A sandbox credential
+    does the same for your app, without delivering.
   {% endblocktranslate %}
 {% endblock intro %}
