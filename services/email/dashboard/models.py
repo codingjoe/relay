@@ -12,11 +12,13 @@ from accounts.models import Organization
 SEND_HOUR = 9
 
 
-def send_time(start: datetime.datetime, days: int) -> datetime.datetime:
-    """Return the 09:00 weekday that is `days` after `start`."""
-    if not days:
+def send_time(
+    start: datetime.datetime, offset: datetime.timedelta
+) -> datetime.datetime:
+    """Return the 09:00 weekday that is `offset` after `start`."""
+    if not offset:
         return start
-    moment = (timezone.localtime(start) + datetime.timedelta(days=days)).replace(
+    moment = (timezone.localtime(start) + offset).replace(
         hour=SEND_HOUR,
         minute=0,
         second=0,
@@ -36,13 +38,13 @@ class OnboardingMail(TimeStamped):
         SECOND_REMINDER = "second-reminder", _("second reminder")
         LAST_REMINDER = "last-reminder", _("last reminder")
 
-    # Days after sign-up. Each mail is due on its own day, so the schedule
+    # Delay after sign-up. Each mail is due on its own day, so the schedule
     # needs no progress state beyond the row that records a sent mail.
     SEND_OFFSETS = {
-        Stage.WELCOME: 0,
-        Stage.FIRST_REMINDER: 2,
-        Stage.SECOND_REMINDER: 6,
-        Stage.LAST_REMINDER: 13,
+        Stage.WELCOME: datetime.timedelta(0),
+        Stage.FIRST_REMINDER: datetime.timedelta(days=2),
+        Stage.SECOND_REMINDER: datetime.timedelta(days=6),
+        Stage.LAST_REMINDER: datetime.timedelta(days=13),
     }
 
     org = models.ForeignKey(

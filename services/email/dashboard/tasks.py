@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 # Give the cron a day of slack past the last offset before an organization
 # stops being considered at all.
-SEQUENCE_WINDOW = datetime.timedelta(
-    days=OnboardingMail.SEND_OFFSETS[OnboardingMail.Stage.LAST_REMINDER] + 1
-)
+SEQUENCE_WINDOW = OnboardingMail.SEND_OFFSETS[
+    OnboardingMail.Stage.LAST_REMINDER
+] + datetime.timedelta(days=1)
 
 
 def due_stage(org, now):
@@ -29,8 +29,8 @@ def due_stage(org, now):
     return next(
         (
             stage
-            for stage, days in OnboardingMail.SEND_OFFSETS.items()
-            if stage not in sent and send_time(org.created_at, days) <= now
+            for stage, offset in OnboardingMail.SEND_OFFSETS.items()
+            if stage not in sent and send_time(org.created_at, offset) <= now
         ),
         None,
     )
