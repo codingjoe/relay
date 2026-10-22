@@ -7,6 +7,9 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django_letter.fields import EmailHash
+from django_letter.notifications import Notification
+from django_letter.notifications.models import NotificationPreference
 
 from abstract.models import TimeStamped
 
@@ -56,6 +59,25 @@ class Organization(TimeStamped):
         return reverse("accounts:org-home", kwargs={"org_slug": self.slug})
 
 
+class MembershipQuerySet(models.QuerySet):
+    def for_notification(self, notification: Notification) -> MembershipQuerySet:
+        """
+        Return the active members whose address wants the notification.
+
+        Excludes members without an address. Members who kept the default
+        follow `notification.default`.
+        """
+        overrides = NotificationPreference.objects.email_hashes(notification)
+        queryset = (
+            self.filter(user__is_active=True)
+            .exclude(user__email="")
+            .alias(email_hash=EmailHash("user__email"))
+        )
+        if notification.default:
+            return queryset.exclude(email_hash__in=overrides)
+        return queryset.filter(email_hash__in=overrides)
+
+
 class Membership(TimeStamped):
     class Role(models.TextChoices):
         WRITE = "write", _("write")
@@ -79,6 +101,8 @@ class Membership(TimeStamped):
             "Write members can use services. Admin members can also manage users."
         ),
     )
+
+    objects = MembershipQuerySet.as_manager()
 
     class Meta:
         constraints = [
