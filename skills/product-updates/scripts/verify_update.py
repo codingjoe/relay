@@ -10,7 +10,10 @@ REQUIRED_KEYS = ("name", "description", "image", "author", "date")
 EXPECTED_SIZE = (1280, 640)
 IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 STARDATE_RE = re.compile(r"^## Stardate (\d{4})\.(\d{3}): \S")
-HEADLINE_RE = re.compile(r"^# Station log, stardate \d{4}\.\d{3}$", re.MULTILINE)
+HEADLINE_RE = re.compile(
+    r"^# relay station log, stardate \d{4}\.\d{3}$",
+    re.MULTILINE,
+)
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 SLUG_RE = re.compile(r"\d{4}-\d{2}")
 # mdformat rewrites `---` as a long underscore run, so accept either form.
@@ -119,7 +122,7 @@ def check_frontmatter(
 def check_headline(body: str, problems: list[str]) -> None:
     """Require the stardate headline."""
     if not HEADLINE_RE.search(body):
-        problems.append("missing the Station log headline")
+        problems.append("missing the relay station log headline")
 
 
 def check_section_images(

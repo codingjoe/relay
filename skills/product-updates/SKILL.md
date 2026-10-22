@@ -86,6 +86,9 @@ If it sounds like a changelog or a manual, rewrite it.
 - If two entries land on the same day, give the second the next stardate so
   the log reads in order.
 - Open with the station frame and state how many entries follow.
+- Put `relay station log` in the first headline, as
+  `relay station log, stardate YYYY.DDD`. Only that headline carries
+  `relay`. The section headings and the site label stay `Station log`.
 - Name each heading after the station event, not the feature name. A reader
   should still learn the feature from the first sentence of the body.
 - Use one section per entry.
@@ -120,7 +123,7 @@ author: Johannes Maron
 date: 2026-10-21
 ---
 
-# Station log, stardate 2026.294
+# relay station log, stardate 2026.294
 
 Write one fresh opening line here. Two entries follow, in the order they
 reached ops.
