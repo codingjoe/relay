@@ -10,11 +10,11 @@
   >
 {% endblock meme %}
 
-{% block headline %}{% translate "pick sandbox, not production"|capfirst %}{% endblock headline %}
+{% block headline %}{% translate "the sandbox sends for real, then stops"|capfirst %}{% endblock headline %}
 
 {% block intro %}
   {% blocktranslate trimmed %}
-    Send a test message to yourself first. It runs the whole pipeline and lands in your own inbox. A sandbox credential
-    does the same for your app, without delivering.
+    A sandbox credential sends exactly like production. Relay signs it, scans it for spam and viruses, and shows it in
+    your dashboard. It just never leaves the building.
   {% endblocktranslate %}
 {% endblock intro %}
