@@ -54,7 +54,12 @@ class CaptainsLogContent(MarkdownContent):
     ) -> str:
         """Return the update body as HTML with the screenshots under `image_base`."""
         body = cls.get_article(slug).content
-        html = str(md_2_html(body.replace("](images/", f"]({image_base}")))
+        html = str(
+            md_2_html(
+                body.replace("](images/", f"]({image_base}"),
+                line_breaks=False,
+            )
+        )
         if image_width is not None:
             html = html.replace("<img ", f'<img width="{image_width}" ')
         # md_2_html escapes the Markdown source before it returns the markup.

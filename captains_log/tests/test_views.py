@@ -106,3 +106,13 @@ class TestCaptainsLogImageView:
                 slug="2026-10",
                 name="../2026-10.md",
             )
+
+
+class TestRenderBody:
+    def test_render_body__drops_the_markdown_line_breaks(self):
+        html = CaptainsLogContent.render_body(
+            "2026-10",
+            "/station-log/2026-10/images/",
+        )
+        assert "<br" not in str(html)
+        assert "The wormhole is quiet. The relay is not." in str(html)
