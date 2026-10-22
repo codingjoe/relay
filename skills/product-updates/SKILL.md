@@ -56,7 +56,7 @@ already used.
    endpoints, limits, and hostnames must be correct.
 
 6. Group commits that deliver one outcome. Aim for 3 to 7 feature entries.
-   Order them by the day they landed on main.
+   Order them newest first, the day they landed on main in reverse.
 
 7. If the user impact of a change is unclear, ask the user rather than
    guessing. Never invent metrics, quotes, customers, or dates.
@@ -83,8 +83,9 @@ If it sounds like a changelog or a manual, rewrite it.
 
 - The stardate is `YYYY.DDD`, where `DDD` is the day of year of the commit's
   date on main. January 1 is 001. A non-leap year has 365 days.
+- Order the entries newest first. The newest stardate opens the log.
 - If two entries land on the same day, give the second the next stardate so
-  the log reads in order.
+  the log reads in order. Newest first still holds.
 - Open with the station frame and state how many entries follow.
 - Put `relay station log` in the first headline, as
   `relay station log, stardate YYYY.DDD`. Only that headline carries
@@ -125,12 +126,11 @@ date: 2026-10-21
 
 # relay station log, stardate 2026.294
 
-Write one fresh opening line here. Two entries follow, in the order they
-reached ops.
+Write one fresh opening line here. Two entries follow, newest first.
 
 ![Alt text that names the feature](images/sandbox-credential.png)
 
-## Stardate 2026.270: <station event>
+## Stardate 2026.271: <station event>
 
 Write one paragraph. Name the control, what to do with it, and what the
 reader gets. Leave the internals to the docs.
@@ -139,7 +139,7 @@ reader gets. Leave the internals to the docs.
 
 ![Alt text that names the feature](images/message-preview.png)
 
-## Stardate 2026.271: <another station event>
+## Stardate 2026.270: <an earlier station event>
 
 Write one paragraph. Keep the station voice.
 

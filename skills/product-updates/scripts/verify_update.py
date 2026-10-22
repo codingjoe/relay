@@ -157,8 +157,8 @@ def check_stardates(heading_lines: list[str], problems: list[str]) -> None:
         for line, stardate in entries
         if stardate is None
     )
-    if stardates != sorted(stardates):
-        problems.append("stardates are not in ascending order")
+    if stardates != sorted(stardates, reverse=True):
+        problems.append("stardates are not in descending order")
     if len(stardates) != len(set(stardates)):
         problems.append("stardates are not unique")
 

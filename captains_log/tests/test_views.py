@@ -13,6 +13,26 @@ class TestListArticles:
         assert dates == sorted(dates, reverse=True)
         assert articles[0][0] == "2026-10"
 
+    def test_list_articles__orders_two_logs_newest_first(self, tmp_path, monkeypatch):
+        (tmp_path / "2026-09.md").write_text(
+            "---\nname: September 2026\ndate: 2026-09-01\n---\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "2026-10.md").write_text(
+            "---\nname: October 2026\ndate: 2026-10-01\n---\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(CaptainsLogContent, "docs_dir", tmp_path)
+        monkeypatch.setattr(
+            CaptainsLogContent,
+            "slugs",
+            frozenset({"2026-09", "2026-10"}),
+        )
+
+        articles = list(CaptainsLogContent.get_articles())
+
+        assert [slug for slug, _ in articles] == ["2026-10", "2026-09"]
+
     def test_list_articles__each_has_title_date_and_description(self):
         for slug, metadata in CaptainsLogContent.get_articles():
             assert metadata["name"]
