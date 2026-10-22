@@ -18,8 +18,9 @@ dependency bumps, CI, deploy plumbing, or internal refactors unless the change
 alters their behavior.
 
 Use `PRODUCT.md` for positioning and `docs/docs/` for the exact behavior. Read
-the most recent file in `product/updates/` to match the voice and avoid
-repeating old news.
+every earlier file in `product/updates/` before you write. Match the voice,
+and never repeat a hook, an opening line, a section title, or a metaphor they
+already used.
 
 ## Collect the month
 
@@ -34,17 +35,28 @@ repeating old news.
    reliability fix, a security fix, or a developer-experience change. Drop
    version bumps, test-only work, refactors, and infrastructure.
 
-3. Read the merge or pull request description for the "why". `git show <sha>`
-   includes the PR body. `gh pr view <number>` works too. Prefer the user
-   outcome over the implementation detail.
+3. Sort features from improvements. Ask what the reader can do now that they
+   could not do before. A new screen, control, or capability is a feature. A
+   layout, flow, copy, reliability, or delivery change is an improvement,
+   even when it prevents lost mail. A change the reader only meets in a
+   transcript, a status detail, or a background job is an internal
+   optimization. Lead with features and give each one a stardate entry. Put
+   an improvement in the supplemental log, unless users asked for it loudly.
+   The main log records new capability, not a changelog.
 
-4. Check the templates, docs, and settings for exact values. Ports, statuses,
+4. Read the merge or pull request description for the "why". `git show <sha>`
+   includes the PR body. `gh pr view <number>` works too. Prefer the user
+   outcome over the implementation detail. A PR body that opens with "I
+   want" is usually a feature. One that opens with "today the flow is" is
+   usually an improvement.
+
+5. Check the templates, docs, and settings for exact values. Ports, statuses,
    endpoints, limits, and hostnames must be correct.
 
-5. Group commits that deliver one outcome. Aim for 6 to 9 entries. Order them
-   by the day they landed on main.
+6. Group commits that deliver one outcome. Aim for 3 to 7 feature entries.
+   Order them by the day they landed on main.
 
-6. If the user impact of a change is unclear, ask the user rather than
+7. If the user impact of a change is unclear, ask the user rather than
    guessing. Never invent metrics, quotes, customers, or dates.
 
 ## Voice and layout
@@ -71,6 +83,22 @@ bridge, and no "the ship holds". The station holds.
 - Put the image before the headline, always.
 - Put a horizontal rule between sections. Never after the last section.
 - End the file with "Station out."
+
+## Fresh hooks
+
+The frame repeats. The hooks do not. A reader who has seen three logs should
+not be able to predict the fourth.
+
+- Before writing, list the opening lines, section titles, and metaphors from
+  the earlier logs. Use none of them.
+- Rotate the station detail. Ops one month, the promenade the next, then the
+  docking ring, the replimat, the cargo bay, a quiet corridor, the wormhole.
+- Keep the frame constant. The headline, stardates, image-first sections,
+  dividers, and "Station out." are the format, not a joke to retell.
+- When the month has no obvious station moment, use the plainest one. A quiet
+  shift is a valid hook.
+- The checker compares the new log against the earlier files. It fails on a
+  reused intro or a reused section title.
 
 Use this exact shape:
 
@@ -177,6 +205,11 @@ size, the divider count, banned punctuation, and the closing line.
 Then do a human pass:
 
 - Read the file top to bottom as a user.
+- Re-read every stardate entry. If the reader cannot reach a new screen,
+  control, or capability, it is an improvement and belongs in the
+  supplemental log.
+- Compare the log with the one before it. A shared opening line, section
+  title, or metaphor is a failure, even when the checker misses it.
 - Open every image and confirm the feature is visible, the frame is not cut
   awkwardly, and the image is in dark mode.
 - Confirm every claim against the code or the docs.

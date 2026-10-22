@@ -210,6 +210,67 @@ def check_prose(text: str, problems: list[str]) -> None:
     )
 
 
+def first_paragraph(lines: list[str], mask: list[bool]) -> str:
+    """Return the first paragraph after the H1."""
+    heading = next(
+        (i for i, line in enumerate(lines) if mask[i] and line.startswith("# ")),
+        -1,
+    )
+    start = next(
+        (i for i in range(heading + 1, len(lines)) if mask[i] and lines[i].strip()),
+        len(lines),
+    )
+    end = next(
+        (i for i in range(start, len(lines)) if mask[i] and not lines[i].strip()),
+        len(lines),
+    )
+    return " ".join(
+        lines[i].strip() for i in range(start, end) if mask[i] and lines[i].strip()
+    )
+
+
+def section_titles(heading_lines: list[str]) -> set[str]:
+    """Return the words after the stardate in each section heading."""
+    return {
+        line.partition(":")[2].strip().lower()
+        for line in heading_lines
+        if line.startswith("## Stardate")
+    }
+
+
+def check_fresh_hooks(
+    path: Path,
+    body_lines: list[str],
+    mask: list[bool],
+    heading_lines: list[str],
+    problems: list[str],
+) -> None:
+    """Reject an intro or section title reused from an earlier update."""
+    current_intro = " ".join(first_paragraph(body_lines, mask).split()).lower()
+    current_titles = section_titles(heading_lines)
+    earlier_paths = [
+        earlier
+        for earlier in sorted(path.parent.glob("*.md"))
+        if earlier.resolve() != path.resolve()
+    ]
+    for earlier in earlier_paths:
+        earlier_lines = earlier.read_text(encoding="utf-8").splitlines()
+        _, earlier_body, _ = read_frontmatter(earlier_lines)
+        earlier_mask = code_mask(earlier_body)
+        earlier_intro = " ".join(first_paragraph(earlier_body, earlier_mask).split())
+        if current_intro and current_intro == earlier_intro.lower():
+            problems.append(f"intro repeats {earlier.name}")
+        earlier_headings = [
+            line
+            for i, line in enumerate(earlier_body)
+            if earlier_mask[i] and line.startswith("## ")
+        ]
+        problems.extend(
+            f"section title repeats {earlier.name}: {title}"
+            for title in sorted(current_titles & section_titles(earlier_headings))
+        )
+
+
 def report_result(
     path: Path,
     sections: int,
@@ -254,6 +315,13 @@ def main() -> int:
     check_stardates([body_lines[i] for i in heading_indexes], problems)
     check_images(path, body, problems)
     check_dividers(body_lines, mask, heading_indexes, problems)
+    check_fresh_hooks(
+        path,
+        body_lines,
+        mask,
+        [body_lines[i] for i in heading_indexes],
+        problems,
+    )
     check_prose(text, problems)
 
     if SLUG_RE.fullmatch(path.stem) is None:
