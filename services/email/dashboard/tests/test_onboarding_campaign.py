@@ -252,6 +252,25 @@ class TestScheduleOnboardingEmails:
         assert not OnboardingMail.objects.filter(org=org).exists()
 
 
+def test_render_preview__fills_in_a_sample_organization_state_and_user():
+    email = OnboardingWelcomeEmail.render_preview(language="en-us")
+
+    assert email.org.slug == "acme"
+    assert email.state["next_step"] == OnboardingStep.CREDENTIAL
+    assert email.extra_context["user"].username == "jess"
+    assert ">jess<" in email.html
+
+
+class TestOnboardingMail:
+    def test_str__names_the_organization_and_stage(self):
+        mail = OnboardingMail(
+            org=Organization(slug="acme"),
+            stage=OnboardingMail.Stage.FIRST_REMINDER,
+        )
+
+        assert str(mail) == "acme / first reminder"
+
+
 @pytest.mark.django_db
 class TestOnboardingEmail:
     def test_context__names_the_next_step(self, org, user):
@@ -265,3 +284,21 @@ class TestOnboardingEmail:
 
         assert email.get_context_data()["next_step_button"] == "send test message"
         assert email.get_context_data()["onboarding_steps"][0]["done"] is False
+
+    def test_render_preview__keeps_the_callers_organization_state_and_user(
+        self, org, user
+    ):
+        state = get_onboarding_state(org)
+
+        email = OnboardingWelcomeEmail.render_preview(
+            org=org,
+            state=state,
+            extra_context={"user": user},
+            language="en-us",
+        )
+
+        assert email.org is org
+        assert email.state is state
+        assert email.extra_context["user"] is user
+        assert ">alice<" in email.html
+        assert "send test message" in email.html
