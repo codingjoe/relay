@@ -29,6 +29,12 @@
         class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
       >{% translate "docs"|capfirst %}</a>
       <a
+        href="{% url 'captains_log:list' %}"
+        target="_blank"
+        rel="noopener"
+        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+      >{% translate "captain's log"|capfirst %}</a>
+      <a
         href="{% url 'know_how:list' %}"
         target="_blank"
         rel="noopener"

@@ -1,6 +1,7 @@
 *.lock binary
 *-lock.* binary
 fixtures/* linguist-generated
+product/updates/** linguist-generated
 **/migrations/*.py linguist-generated
 services/email/message/preview/gmail.py linguist-generated
 services/email/message/preview/apple_mail.py linguist-generated

@@ -379,6 +379,7 @@ graph BT
  domains
  know_how[know_how]
  alternative_to[alternative_to]
+ captains_log[captains_log]
  docs
  legal
  well_known[well_known]
@@ -388,6 +389,7 @@ graph BT
  legal --> abstract
  know_how --> abstract
  alternative_to --> abstract
+ captains_log --> abstract
  docs --> abstract
  well_known --> know_how
  well_known --> alternative_to

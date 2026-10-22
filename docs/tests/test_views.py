@@ -4,6 +4,7 @@ import re
 from django.urls import reverse
 
 from alternative_to.content import ALTERNATIVE_TO_DIR
+from captains_log.content import CAPTAINS_LOG_DIR
 from docs.content import DOCS_DIR, SLUGS, DocsContent
 from docs.views import DocsDetailView
 from know_how.content import KNOW_HOW_DIR
@@ -23,6 +24,7 @@ class TestSlugUniqueness:
         other_slugs = (
             {p.stem for p in pathlib.Path(ALTERNATIVE_TO_DIR).glob("*.md")}
             | {p.stem for p in pathlib.Path(KNOW_HOW_DIR).glob("*.md")}
+            | {p.stem for p in CAPTAINS_LOG_DIR.glob("*.md")}
             | LEGAL_SLUGS
         )
         assert not SLUGS & other_slugs

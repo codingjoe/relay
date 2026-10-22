@@ -35,7 +35,8 @@ WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
 explicit tool binding, user-bound OAuth connections that read every
 organization the member is active in),
 `services.email.dashboard` (the unified
-transactional-email dashboard), `legal` (Markdown legal pages), `abstract`
+transactional-email dashboard), `legal` (Markdown legal pages), `captains_log`
+(Markdown product updates from `product/updates`), `abstract`
 (shared TimeStamped model, admin mixins, Markdown utils).
 
 App dependencies flow in one direction: apps must not import from their

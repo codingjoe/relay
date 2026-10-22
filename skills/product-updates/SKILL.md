@@ -1,0 +1,178 @@
+---
+name: product-updates
+description: Create relay's monthly product update as a Captain's log. Use this skill whenever the user asks for product updates, release notes, a changelog, a newsletter, a monthly recap, or a summary of what shipped. The output is a Markdown post in product/updates/ with user-facing copy and focused 1280x640 screenshots. Trigger this even when the user only says "write the newsletter", "what changed this month", or "turn these commits into an update for users".
+---
+
+# Product updates
+
+Turn the last month of relay changes into a user-facing Captain's log. The
+report ships as a Markdown file in `product/updates/` and doubles as the
+newsletter and the website post. Name the file after the month, for example
+`product/updates/2026-10.md`, and use the publication date in the frontmatter.
+
+## Audience
+
+Write for relay users. They are developers sending and receiving mail. They
+care about what they can now do, see, or trust. They do not care about
+dependency bumps, CI, deploy plumbing, or internal refactors unless the change
+alters their behavior.
+
+Use `PRODUCT.md` for positioning and `docs/docs/` for the exact behavior. Read
+the most recent file in `product/updates/` to match the voice and avoid
+repeating old news.
+
+## Collect the month
+
+1. List commits from the window. Use the last 30 days by default, or the
+   calendar month the user names.
+
+   ```shell
+   git log --since="30 days ago" --pretty=format:"%h %ad %s" --date=short --no-merges
+   ```
+
+2. Keep the changes a user can feel. A feature, a flow, a status, a limit, a
+   reliability fix, a security fix, or a developer-experience change. Drop
+   version bumps, test-only work, refactors, and infrastructure.
+
+3. Read the merge or pull request description for the "why". `git show <sha>`
+   includes the PR body. `gh pr view <number>` works too. Prefer the user
+   outcome over the implementation detail.
+
+4. Check the templates, docs, and settings for exact values. Ports, statuses,
+   endpoints, limits, and hostnames must be correct.
+
+5. Group commits that deliver one outcome. Aim for 6 to 9 entries. Order them
+   by the day they landed on main.
+
+6. If the user impact of a change is unclear, ask the user rather than
+   guessing. Never invent metrics, quotes, customers, or dates.
+
+## Voice and layout
+
+Write a Captain's log in the spirit of Star Trek. Keep the bit light. The
+product facts are the point, not the fiction.
+
+- The stardate is `YYYY.DDD`, where `DDD` is the day of year of the commit's
+  date on main. January 1 is 001. A non-leap year has 365 days.
+- If two entries land on the same day, give the second the next stardate so
+  the log reads in order.
+- Open with the log frame and state how many entries follow.
+- Use one section per entry.
+- Put the image before the headline, always.
+- Put a horizontal rule between sections. Never after the last section.
+- End the file with "Captain out."
+
+Use this exact shape:
+
+```markdown
+---
+name: October 2026
+description: One sentence about the month.
+image: images/get-started.png
+author: Johannes Maron
+date: 2026-10-21
+---
+
+# Captain's log, stardate 2026.294
+
+The ship holds course. Eight entries follow, in the order they reached the
+bridge.
+
+![Alt text that names the feature](images/get-started.png)
+
+## Stardate 2026.270: first contact
+
+Body copy.
+
+---
+
+![Alt text that names the feature](images/sandbox-credential.png)
+
+## Stardate 2026.271: a simulation, not a transmission
+
+Body copy.
+
+---
+
+![Alt text that names the feature](images/message-log.png)
+
+## Supplemental log
+
+Smaller user-visible changes go here. The supplemental log also gets an image
+above its headline. It has no stardate.
+
+relay is open source under AGPL-3.0. If something does not work, open an issue
+on GitHub. For the full reference, read the docs.
+
+Captain out.
+```
+
+The divider sits before the next section's image. The last section has no
+divider after it. Replace the month, dates, headings, entry count, and image
+paths in the example with the real ones. The example is a shape, not content
+to copy.
+
+## Copy rules
+
+- Write short sentences. One idea each.
+- Do not use em dashes, en dashes, or semicolons. Use a period, a comma, or a
+  colon.
+- Explain what changed, then what it means for the reader.
+- Include the exact values a reader needs, such as ports, statuses,
+  endpoints, and limits.
+- Use sentence case for headings and image alt text.
+- Keep the name "relay" lowercase.
+- Skip hype. No "revolutionary", "seamless", or "game-changing".
+- Do not name internal tasks, services, or deploy steps unless the reader
+  needs them.
+
+## Screenshots
+
+Every section starts with a picture above its headline. Capture the picture
+from the running product, not a mockup.
+
+- Fix the viewport at 1280x640. This is a hard requirement.
+- Capture every screenshot in dark mode. Emulate `prefers-color-scheme: dark`
+  before navigating. The product and the email templates both ship dark
+  styles, so the images stay consistent.
+- Set `image` in the frontmatter to the screenshot used for social sharing.
+  Use `images/<name>.png`, the same relative path the body uses.
+- Show one feature per image. Frame the control or page the reader should
+  look at.
+- Remove the breadcrumb, footer, debug toolbar, and sticky topbar when they
+  eat the frame. Keep the sidebar or a page title when it helps the reader
+  recognize the screen.
+- Use fixture data with realistic names and dates. Open dialogs, choose the
+  option the copy talks about, and fill sample values.
+- Do not ship a broken map, a missing image, or a debug toolbar. Change the
+  framing or pick another view.
+- Save as `product/updates/images/<kebab-case>.png`.
+- Write alt text that names the feature, not "screenshot".
+
+For relay's capture recipe, read `references/screenshots.md`.
+
+## Validate
+
+Run the bundled checker before handing the report over:
+
+```shell
+uv run python skills/product-updates/scripts/verify_update.py product/updates/2026-10.md
+```
+
+It checks the frontmatter, the image-before-headline rule, the 1280x640 image
+size, the divider count, banned punctuation, and the closing line.
+
+Then do a human pass:
+
+- Read the file top to bottom as a user.
+- Open every image and confirm the feature is visible, the frame is not cut
+  awkwardly, and the image is in dark mode.
+- Confirm every claim against the code or the docs.
+- If the report reveals behavior that is not documented, update `docs/docs/`
+  in the same change.
+- Confirm `.gitattributes` marks `product/updates/**` as
+  `linguist-generated`.
+- Confirm `/captains-log/<slug>/` renders the update and its screenshots.
+- Doc-only changes need no Django checks. If you also touch code, run
+  `uv run python manage.py check` and
+  `uv run python manage.py makemigrations --check --dry-run`.

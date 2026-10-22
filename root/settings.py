@@ -177,6 +177,7 @@ INSTALLED_APPS = [
     "legal",
     "know_how",
     "alternative_to",
+    "captains_log",
     "docs",
     "well_known",
     "root",
