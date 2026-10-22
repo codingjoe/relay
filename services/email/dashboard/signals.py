@@ -5,16 +5,21 @@ from django.dispatch import receiver
 from accounts.models import Membership
 
 from . import tasks
-from .models import OnboardingMail
 
 
 @receiver(post_save, sender=Membership)
-def send_onboarding_welcome(sender, instance, created, **kwargs):
-    """Send the welcome as soon as the first admin joins, rather than at the next cron."""
-    if created and not kwargs.get("raw") and instance.role == Membership.Role.ADMIN:
+def start_onboarding_emails(sender, instance, created, **kwargs):
+    """Schedule the sequence when an organization gets its first admin."""
+    if (
+        created
+        and not kwargs.get("raw")
+        and instance.role == Membership.Role.ADMIN
+        and not Membership.objects.filter(
+            org_id=instance.org_id, role=Membership.Role.ADMIN
+        )
+        .exclude(pk=instance.pk)
+        .exists()
+    ):
         transaction.on_commit(
-            lambda: tasks.send_onboarding_email.enqueue(
-                org_pk=instance.org_id,
-                stage=OnboardingMail.Stage.WELCOME,
-            )
+            lambda: tasks.schedule_onboarding_emails.enqueue(org_pk=instance.org_id)
         )

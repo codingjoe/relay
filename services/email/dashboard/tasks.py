@@ -1,11 +1,8 @@
-import datetime
 import logging
 
-from crontask import cron
 from django.conf import settings
 from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
-from django.utils import timezone
 from django_letter.exceptions import InvalidUserError
 
 from accounts.models import Membership, Organization
@@ -16,42 +13,19 @@ from .onboarding import get_onboarding_state
 
 logger = logging.getLogger(__name__)
 
-# Give the cron a day of slack past the last offset before an organization
-# stops being considered at all.
-SEQUENCE_WINDOW = OnboardingMail.SEND_OFFSETS[
-    OnboardingMail.Stage.LAST_REMINDER
-] + datetime.timedelta(days=1)
 
-
-def due_stage(org, now):
-    """Return the earliest mail that is due and not sent yet."""
-    sent = {mail.stage for mail in org.onboarding_mails.all()}
-    return next(
-        (
-            stage
-            for stage, offset in OnboardingMail.SEND_OFFSETS.items()
-            if stage not in sent and send_time(org.created_at, offset) <= now
-        ),
-        None,
-    )
-
-
-@cron("0 9 * * *")
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
-def send_due_onboarding_emails():
-    """Queue the next unsent onboarding mail of every organization that is due."""
-    now = timezone.now()
-    orgs = (
-        Organization.objects.filter(
-            created_at__gte=now - SEQUENCE_WINDOW,
-            suspended_at__isnull=True,
-        )
-        .only("pk", "created_at")
-        .prefetch_related("onboarding_mails")
-    )
-    for org in orgs:
-        if stage := due_stage(org, now):
-            send_onboarding_email.enqueue(org_pk=org.pk, stage=stage)
+def schedule_onboarding_emails(org_pk):
+    """Queue every mail of the sequence for the time it is due."""
+    try:
+        org = Organization.objects.get(pk=org_pk)
+    except Organization.DoesNotExist:
+        logger.info("Dropped the onboarding sequence for a missing organization")
+    else:
+        for stage, offset in OnboardingMail.SEND_OFFSETS.items():
+            send_onboarding_email.using(
+                run_after=send_time(org.created_at, offset)
+            ).enqueue(org_pk=org.pk, stage=stage)
 
 
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
