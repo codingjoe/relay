@@ -627,15 +627,15 @@ wheels = [
 
 [[package]]
 name = "django-letter"
-version = "0.8.0"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "premailer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/da/e8/f5cbdc6a26a65474e64eb060d8f1ac4806d4dd89a42fae0c89312b7ea161/django_letter-0.8.0.tar.gz", hash = "sha256:df0deb6c8d69308af6ac0949de1dad6e8b9a3a4e897215ffa7b8824718bfc392", size = 64073, upload-time = "2026-10-21T21:33:23.16Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/43/40cb1c722c6cef1a11cba3097442d46d8874bad84f1173adcdbdeae2b0b4/django_letter-0.9.0.tar.gz", hash = "sha256:99501eca5904b10e07e8bb959c1d85f422fca081b15f4c6037b8803000dcbc1e", size = 65237, upload-time = "2026-10-22T12:55:09.037Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/65/fd627cc26e16e7ec0ebbf1e185944cae589f202472a9e7bf1f5a0dce8561/django_letter-0.8.0-py3-none-any.whl", hash = "sha256:d8222b6963505d38e7ec1856b3316aa396916de1b0264d681d9f2ac27b05f448", size = 69255, upload-time = "2026-10-21T21:33:21.815Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/91/20a47106ba9ef813a0d0399f2361af6e3fd7d068a920d1d0ad2d7571c520/django_letter-0.9.0-py3-none-any.whl", hash = "sha256:65c6b9dc461fa546bcfba559de4979549d76151219e89759d08d180bde141b83", size = 70287, upload-time = "2026-10-22T12:55:07.759Z" },
 ]
 
 [[package]]
@@ -1839,7 +1839,7 @@ requires-dist = [
     { name = "django-esm", specifier = ">=0.11" },
     { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8" },
     { name = "django-hijack", specifier = ">=3.8" },
-    { name = "django-letter", specifier = ">=0.8" },
+    { name = "django-letter", specifier = ">=0.9" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
     { name = "dkimpy", specifier = ">=1.1.8" },
     { name = "dnslib", specifier = ">=0.9.26" },

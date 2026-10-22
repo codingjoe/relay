@@ -129,20 +129,13 @@ def send_org_weekly_digest(org_id):
         logger.info("Dropped the weekly digest for suspended organization %r", org_id)
     else:
         digest = build_org_digest(org)
-        members = [
-            (membership, hash_email(membership.user.email))
-            for membership in iter_digest_members(org)
-        ]
-        preferences = dict(
-            NotificationPreference.objects.filter(
-                slug=weekly_digest_notification.slug,
-                email_hash__in=[email_hash for _, email_hash in members],
-            ).values_list("email_hash", "enabled")
+        disabled_hashes = set(
+            NotificationPreference.objects.email_hashes(weekly_digest_notification)
         )
         mailer = mailers.default
         with mailer:
-            for membership, email_hash in members:
-                if preferences.get(email_hash, weekly_digest_notification.default):
+            for membership in iter_digest_members(org):
+                if hash_email(membership.user.email) not in disabled_hashes:
                     try:
                         mailer.send_messages(
                             [
