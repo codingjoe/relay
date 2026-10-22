@@ -19,8 +19,7 @@
 
   <h1>{% block headline %}{% endblock %}</h1>
   <p>
-    {% blocktranslate trimmed %}Hey {{ member_name }},
-    {% endblocktranslate %}
+    {{ greeting }}
     {% block intro %}{% endblock %}
   </p>
 

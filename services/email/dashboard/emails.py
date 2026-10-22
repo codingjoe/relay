@@ -28,6 +28,7 @@ class OnboardingEmail(TemplateEmail):
     subject = ""
     preheader = ""
     mcp_question = ""
+    greeting = ""
 
     def __init__(
         self,
@@ -83,6 +84,7 @@ class OnboardingEmail(TemplateEmail):
             "onboarding_steps": self.state["onboarding_steps"],
             "remaining_steps": self.state["remaining_steps"],
             "member_name": self.extra_context["user"].username,
+            "greeting": self.greeting % {"name": self.extra_context["user"].username},
             "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
             "mcp_endpoint": settings.MCP_RESOURCE_URL,
             "mcp_codex_command": (
@@ -116,6 +118,7 @@ class OnboardingWelcomeEmail(OnboardingEmail):
     subject = _("You send 1,000 emails. Relay sends them free.")
     preheader = _("Send as much as you like, actually.")
     mcp_question = '"set up a project for relay"'
+    greeting = _("Welcome aboard, %(name)s,")
 
 
 @onboarding_notification
@@ -126,6 +129,7 @@ class OnboardingFirstReminderEmail(OnboardingEmail):
     subject = _("Press the button. Not the red one.")
     preheader = _("There is a third button.")
     mcp_question = '"send a test email"'
+    greeting = _("Hey %(name)s,")
 
 
 @onboarding_notification
@@ -139,6 +143,7 @@ class OnboardingSecondReminderEmail(OnboardingEmail):
         "someone marks your message as spam."
     )
     mcp_question = '"list my messages"'
+    greeting = _("Quick check, %(name)s,")
 
 
 @onboarding_notification
@@ -149,6 +154,7 @@ class OnboardingLastReminderEmail(OnboardingEmail):
     subject = _("You, AWS, and relay walk into an inbox")
     preheader = _("You already moved. AWS will cope.")
     mcp_question = "what landed in my inbox?"
+    greeting = _("Last nudge, %(name)s,")
 
 
 EMAIL_BY_STAGE = {
