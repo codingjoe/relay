@@ -2,7 +2,6 @@ import json
 import typing
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.http import HttpRequest
 from django.urls import reverse
@@ -15,28 +14,10 @@ from accounts.models import Organization
 from .models import OnboardingCampaign
 from .onboarding import OnboardingStep
 
-NEXT_STEP_COPY = {
-    OnboardingStep.TEST_MESSAGE: {
-        "title": _("Send a test message to %(recipient)s"),
-        "description": _(
-            "relay signs it, delivers it, and then shows you every hop in your "
-            "dashboard."
-        ),
-        "button": _("Send a test message"),
-    },
-    OnboardingStep.CREDENTIAL: {
-        "title": _("Create a credential"),
-        "description": _("one key, shown once. Your app uses it to sign in and send."),
-        "button": _("Create a credential"),
-    },
-    OnboardingStep.CONNECT: {
-        "title": _("Connect your app"),
-        "description": _(
-            "Point your app at the host below and send once. The checklist ticks "
-            "itself off the first time your app signs in."
-        ),
-        "button": _("Connect your app"),
-    },
+NEXT_STEP_BUTTON = {
+    OnboardingStep.TEST_MESSAGE: _("Send a test message"),
+    OnboardingStep.CREDENTIAL: _("Create a credential"),
+    OnboardingStep.CONNECT: _("Connect your app"),
 }
 
 onboarding_notification = Notification(
@@ -93,18 +74,11 @@ class OnboardingEmail(TemplateEmail):
                 ],
             },
         )
-        extra_context = kwargs.setdefault("extra_context", {})
-        extra_context.setdefault(
-            "user",
-            get_user_model()(email="member@acme.example"),
-        )
         return super().render_preview(
             request, context=context, language=language, **kwargs
         )
 
     def get_context_data(self) -> dict[str, typing.Any]:
-        copy = NEXT_STEP_COPY[self.state["next_step"]]
-        recipient = self.extra_context["user"].email
         return super().get_context_data() | {
             "organization": self.campaign.org.slug,
             "onboarding_steps": self.state["onboarding_steps"],
@@ -122,9 +96,7 @@ class OnboardingEmail(TemplateEmail):
                 separators=(",", ":"),
             ),
             "mcp_question": self.mcp_question,
-            "next_step_title": copy["title"] % {"recipient": recipient},
-            "next_step_description": copy["description"],
-            "next_step_button": copy["button"],
+            "next_step_button": NEXT_STEP_BUTTON[self.state["next_step"]],
             "next_step_url": reverse(
                 "email-dashboard:get-started",
                 kwargs={"org_slug": self.campaign.org.slug},

@@ -25,6 +25,11 @@ style element. */
   color: #5d5d5d;
 }
 
+/* The CTA follows the checklist, so it needs its own gap above. */
+.btn td {
+  padding-top: 8px;
+}
+
 .terminal {
   margin: 0 0 8px;
   background-color: #0b1120;

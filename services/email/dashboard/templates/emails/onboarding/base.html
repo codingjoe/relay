@@ -55,8 +55,6 @@
   {% endfor %}
   {% endtable %}
 
-  <h2>{{ next_step_title }}</h2>
-  <p>{{ next_step_description|capfirst }}</p>
   {% button href=next_step_url value=next_step_button primary=True %}
 
   {% block extra_note %}{% endblock %}
