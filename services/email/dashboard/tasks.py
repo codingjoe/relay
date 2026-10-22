@@ -7,7 +7,6 @@ from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 from django.utils import timezone
 from django_letter.exceptions import InvalidUserError
-from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership, Organization
 
@@ -37,7 +36,7 @@ def due_stage(org, now):
     )
 
 
-@cron("0 * * * *")
+@cron("0 9 * * *")
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
 def send_due_onboarding_emails():
     """Queue the next unsent onboarding mail of every organization that is due."""
@@ -80,33 +79,27 @@ def send_onboarding_email(org_pk, stage):
                 )
                 with mailer:
                     for membership in (
-                        org.memberships.filter(
-                            role=Membership.Role.ADMIN,
-                            user__is_active=True,
-                        )
+                        org.memberships.filter(role=Membership.Role.ADMIN)
+                        .for_notification(email_class.notification)
                         .select_related("user")
-                        .iterator()
                     ):
-                        if NotificationPreference.objects.is_enabled(
-                            email_class.notification, membership.user.email
-                        ):
-                            try:
-                                mailer.send_messages(
-                                    [
-                                        email_class.to_user(
-                                            membership.user,
-                                            org=org,
-                                            state=state,
-                                            base_url=base_url,
-                                            language=settings.LANGUAGE_CODE,
-                                        )
-                                    ]
-                                )
-                            except OSError, InvalidUserError:
-                                logger.exception(
-                                    "Onboarding email for user %r failed",
-                                    membership.user,
-                                )
+                        try:
+                            mailer.send_messages(
+                                [
+                                    email_class.to_user(
+                                        membership.user,
+                                        org=org,
+                                        state=state,
+                                        base_url=base_url,
+                                        language=settings.LANGUAGE_CODE,
+                                    )
+                                ]
+                            )
+                        except OSError, InvalidUserError:
+                            logger.exception(
+                                "Onboarding email for user %r failed",
+                                membership.user,
+                            )
             else:
                 logger.info(
                     "Skipped onboarding mail %r for %r that another worker sent",

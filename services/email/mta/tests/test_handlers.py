@@ -75,6 +75,7 @@ class TestProcessIncomingMessagePostmaster:
     @pytest.mark.django_db(transaction=True)
     async def test_postmaster__enqueues_only_spam_check(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
+        sent = len(mail.outbox)
         with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
             await process_incoming_message(
                 "external@example.org",
@@ -90,12 +91,13 @@ class TestProcessIncomingMessagePostmaster:
         spam_task.enqueue.assert_called_once_with(
             message_pk=str(message.id), client_ip=""
         )
-        assert len(mail.outbox) == 0
+        assert len(mail.outbox) == sent
 
     @pytest.mark.django_db(transaction=True)
     async def test_non_postmaster__does_not_send_mail(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
         org.billing_is_active = True
+        sent = len(mail.outbox)
         with patch("services.email.mta.handlers.check_incoming_spam"):
             result = await process_incoming_message(
                 "external@example.org",
@@ -110,7 +112,7 @@ class TestProcessIncomingMessagePostmaster:
         message = await IncomingMessage.objects.aget(domain=domain)
         assert result == "250 OK"
         assert message.org == org
-        assert len(mail.outbox) == 0
+        assert len(mail.outbox) == sent
 
     @pytest.mark.django_db(transaction=True)
     async def test_quarantined_status__stored_with_quarantine(self, org):
@@ -329,6 +331,7 @@ class TestProcessIncomingMessageBounces:
     async def test_bounce_dsn__stores_message_and_enqueues_parse_task(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
         token = uuid4()
+        sent = len(mail.outbox)
         with (
             patch("services.email.msa.signals.tasks.parse_bounce_report") as parse_task,
             patch("services.email.mta.handlers.check_incoming_spam") as spam_task,
@@ -351,7 +354,7 @@ class TestProcessIncomingMessageBounces:
         assert message.status == IncomingMessage.Status.RECEIVED
         parse_task.enqueue.assert_called_once_with(message_pk=str(message.id))
         spam_task.enqueue.assert_not_called()
-        assert len(mail.outbox) == 0
+        assert len(mail.outbox) == sent
 
     @pytest.mark.django_db(transaction=True)
     async def test_bounce_address__non_dsn_mail_runs_spam_check(self, org):
