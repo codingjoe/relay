@@ -45,7 +45,7 @@ class OnboardingCampaign(TimeStamped):
     )
     # Days after the campaign starts. The stage and the due time both follow
     # from this tuple and `sent_count`, so no second state can drift.
-    SEND_OFFSETS = (0, 1, 3, 7)
+    SEND_OFFSETS = (0, 2, 6, 13)
 
     org = models.OneToOneField(
         Organization,

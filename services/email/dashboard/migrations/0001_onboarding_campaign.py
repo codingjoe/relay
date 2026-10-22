@@ -4,8 +4,8 @@ import django.db.models.deletion
 import django.utils.timezone
 from django.db import migrations, models
 
-# Mirrors `OnboardingCampaign.SEND_OFFSETS`: the last email goes out a week in.
-SEQUENCE_WINDOW = datetime.timedelta(days=8)
+# Mirrors `OnboardingCampaign.SEND_OFFSETS`: the last email goes out two weeks in.
+SEQUENCE_WINDOW = datetime.timedelta(days=14)
 
 
 def start_campaigns(apps, schema_editor):
