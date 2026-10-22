@@ -124,11 +124,13 @@ author: Johannes Maron
 date: 2026-10-21
 ---
 
+{% load static %}
+
 # relay station log, stardate 2026.294
 
 Write one fresh opening line here. Two entries follow, newest first.
 
-![Alt text that names the feature](images/2026-10/sandbox-credential.png)
+<img src="{% static '2026-10/sandbox-credential.png' %}" alt="Alt text that names the feature">
 
 ## <station event>
 
@@ -137,7 +139,7 @@ reader gets. Leave the internals to the docs.
 
 ---
 
-![Alt text that names the feature](images/2026-10/message-preview.png)
+<img src="{% static '2026-10/message-preview.png' %}" alt="Alt text that names the feature">
 
 ## <an earlier station event>
 
@@ -145,7 +147,7 @@ Write one paragraph. Keep the station voice.
 
 ---
 
-![Alt text that names the feature](images/2026-10/get-started.png)
+<img src="{% static '2026-10/get-started.png' %}" alt="Alt text that names the feature">
 
 ## Supplemental log
 
@@ -153,7 +155,7 @@ Improvements and smaller items go here. The supplemental log also gets an
 image above its headline. It has no stardate.
 
 relay is open source under AGPL-3.0. If something does not work, open an issue
-on GitHub. For the full reference, read the docs.
+on GitHub. For the full reference, read the [docs]({% url 'docs:list' %}).
 
 Write one fresh closing line here.
 
@@ -186,6 +188,8 @@ to copy.
 - Skip hype. No "revolutionary", "seamless", or "game-changing".
 - Do not name internal tasks, services, or deploy steps unless the reader
   needs them.
+- Use `{% static '<slug>/<name>.png' %}` for images and `{% url 'name' %}` for
+  internal links. Never hard-code the site domain.
 
 ## Mistakes to avoid
 
@@ -204,6 +208,7 @@ The first edition taught these. Do not relearn them.
 - "Captain's log", "the ship holds course", helm, course, warp, or bridge.
 - Em dashes, en dashes, or semicolons.
 - A social image that does not stand on its own at 1280x640.
+- A hard-coded internal link. Use `{% url %}`.
 
 ## Screenshots
 
@@ -227,8 +232,10 @@ from the running product, not a mockup.
 - Do not ship a broken map, a missing image, or a debug toolbar. Change the
   framing or pick another view.
 - Save as `product/updates/images/<slug>/<kebab-case>.png` and reference it
-  as `images/<slug>/<name>.png`. Django staticfiles serves that folder, so no
-  image view is needed.
+  with `<img src="{% static '<slug>/<name>.png' %}" alt="<alt>">`. Use the
+  HTML tag so mdformat leaves the static tag alone. Put `{% load static %}`
+  after the frontmatter. Django staticfiles serves that folder, so no image
+  view is needed.
 - Write alt text that names the feature, not "screenshot".
 
 For relay's capture recipe, read `references/screenshots.md`.
@@ -258,8 +265,8 @@ uv run python skills/product-updates/scripts/verify_update.py product/updates/20
 ```
 
 It checks the frontmatter and its social image, the image-before-headline
-rule, the 1280x640 image size, the divider count, repeated hooks, banned
-punctuation, and the closing line.
+rule, the 1280x640 image size, the divider count, repeated hooks, internal
+links, banned punctuation, and the closing line.
 
 Then do a human pass:
 

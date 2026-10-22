@@ -8,7 +8,9 @@ from pathlib import Path
 
 REQUIRED_KEYS = ("name", "description", "image", "author", "date")
 EXPECTED_SIZE = (1280, 640)
-IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+IMAGE_RE = re.compile(
+    r'<img src="\{%\s*static\s+[\'"]([^\'"]+)[\'"]\s*%\}" alt="([^"]*)">'
+)
 HEADLINE_RE = re.compile(
     r"^# relay station log, stardate \d{4}\.\d{3}$",
     re.MULTILINE,
@@ -17,6 +19,7 @@ DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 SLUG_RE = re.compile(r"\d{4}-\d{2}")
 # mdformat rewrites `---` as a long underscore run, so accept either form.
 DIVIDER_RE = re.compile(r"^(?:-{3,}|\*{3,}|_{3,})$")
+INTERNAL_LINK_RE = re.compile(r"\]\(https?://relays\.to/")
 BANNED = {"\u2014": "em dash", "\u2013": "en dash", ";": "semicolon"}
 
 
@@ -148,10 +151,10 @@ def check_section_titles(heading_lines: list[str], problems: list[str]) -> None:
 
 def check_images(path: Path, body: str, problems: list[str]) -> None:
     """Require alt text, a file, and the exact size for every image."""
-    for alt, source in IMAGE_RE.findall(body):
+    for source, alt in IMAGE_RE.findall(body):
         if not alt.strip():
             problems.append(f"image {source} has no alt text")
-        check_image((path.parent / source).resolve(), source, problems)
+        check_image((path.parent / "images" / source).resolve(), source, problems)
 
 
 def last_body_line(body_lines: list[str], mask: list[bool]) -> str:
@@ -186,6 +189,14 @@ def check_dividers(
         problems.append("the file ends with a divider")
     elif last != "Station out.":
         problems.append("the file does not end with 'Station out.'")
+
+
+def check_links(body: str, problems: list[str]) -> None:
+    """Require the url tag for internal links."""
+    problems.extend(
+        f"internal link hard-codes the site: {match.group(0)}"
+        for match in INTERNAL_LINK_RE.finditer(body)
+    )
 
 
 def check_prose(text: str, problems: list[str]) -> None:
@@ -269,7 +280,7 @@ def report_result(
             report(f"FAIL {problem}")
         return 1
     report(f"OK {path.name}: {sections} sections, {screenshots} screenshots")
-    report("OK frontmatter, headline, image-before-headline, 1280x640, dividers")
+    report("OK frontmatter, headline, image-before-headline, 1280x640, dividers, links")
     report("OK no em dashes, no en dashes, no semicolons, closing line")
     return 0
 
@@ -301,6 +312,7 @@ def main() -> int:
     check_section_titles([body_lines[i] for i in heading_indexes], problems)
     check_images(path, body, problems)
     check_dividers(body_lines, mask, heading_indexes, problems)
+    check_links(body, problems)
     check_fresh_hooks(
         path,
         body_lines,
