@@ -1,30 +1,30 @@
 {% extends "emails/onboarding/base.html" %}
-{% load i18n %}
+{% load humanize i18n %}
 
 {% block meme %}
   <img
-    src="https://api.memegen.link/images/db/relay/you/AWS.jpg?width=600&amp;font=notosans"
-    alt="{% translate 'distracted boyfriend: you walk past AWS, eyes on relay.'|capfirst %}"
+    src="https://api.memegen.link/images/mordor/one_does_not_simply/send_{{ free_monthly_messages|intcomma }}_emails_for_free.jpg?width=600&amp;font=notosans"
+    alt="{% translate 'one does not simply send a thousand emails for free. Turns out you can.'|capfirst %}"
     width="552"
     class="meme-image"
   >
 {% endblock meme %}
 
-{% block headline %}{% translate "tired of CloudWatch logs?"|capfirst %}{% endblock headline %}
+{% block headline %}{% translate "turns out you can"|capfirst %}{% endblock headline %}
 
 {% block intro %}
-  {% blocktranslate trimmed %}
-    You see each message you send and every step it took along the way, all in one view. No log group, no query
-    language.
+  {% blocktranslate trimmed with limit=free_monthly_messages|intcomma %}
+    Turns out you can: {{ limit }} messages a month on the house.
   {% endblocktranslate %}
 {% endblock intro %}
 
 {% block extra_note %}
-  {% url 'open-source' as open_source_url %}
+  {% url 'docs:detail' slug='sending' as sending_guide_url %}
   <p>
     {% blocktranslate trimmed %}
-      Free for open source projects and non-profits, forever. That is
-      <a href="{{ open_source_url }}" target="_blank" rel="noopener">our open source promise</a>.
+      Prefer to wire it up yourself? The
+      <a href="{{ sending_guide_url }}" target="_blank" rel="noopener">sending guide</a> walks through connecting an
+      app, step by step, with a port table for the impatient. RFCs optional.
     {% endblocktranslate %}
   </p>
 {% endblock extra_note %}

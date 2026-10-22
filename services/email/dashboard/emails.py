@@ -110,12 +110,18 @@ class OnboardingEmail(TemplateEmail):
 
 @onboarding_notification
 class OnboardingWelcomeEmail(OnboardingEmail):
-    """Welcome a new organization and point it at the first step."""
+    """Welcome a new organization with the free plan."""
 
     template_name = "emails/onboarding/welcome.html"
-    subject = _("You, AWS, and relay walk into an inbox")
-    preheader = _("You already moved. AWS will cope.")
-    mcp_question = "what landed in my inbox?"
+    subject = _("One does not simply send %(limit)s emails for free")
+    preheader = _("Turns out you can.")
+    mcp_question = '"show my domains"'
+
+    def get_subject(self, **context) -> str:
+        """Fill the placeholders, including the free monthly volume."""
+        return super().get_subject(
+            **(context | {"limit": intcomma(settings.RELAY_FREE_MONTHLY_MESSAGES)})
+        )
 
 
 @onboarding_notification
@@ -143,15 +149,9 @@ class OnboardingLastReminderEmail(OnboardingEmail):
     """Send the last onboarding nudge one week after its first admin joined."""
 
     template_name = "emails/onboarding/last_reminder.html"
-    subject = _("One does not simply send %(limit)s emails for free")
-    preheader = _("Turns out you can.")
-    mcp_question = '"show my domains"'
-
-    def get_subject(self, **context) -> str:
-        """Fill the placeholders, including the free monthly volume."""
-        return super().get_subject(
-            **(context | {"limit": intcomma(settings.RELAY_FREE_MONTHLY_MESSAGES)})
-        )
+    subject = _("You, AWS, and relay walk into an inbox")
+    preheader = _("You already moved. AWS will cope.")
+    mcp_question = "what landed in my inbox?"
 
 
 EMAIL_BY_STAGE = {
