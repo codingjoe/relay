@@ -9,7 +9,6 @@ from pathlib import Path
 REQUIRED_KEYS = ("name", "description", "image", "author", "date")
 EXPECTED_SIZE = (1280, 640)
 IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
-STARDATE_RE = re.compile(r"^## Stardate (\d{4})\.(\d{3}): \S")
 HEADLINE_RE = re.compile(
     r"^# relay station log, stardate \d{4}\.\d{3}$",
     re.MULTILINE,
@@ -44,12 +43,6 @@ def prose_without_code(text: str) -> str:
     fence = "`" * 3
     text = re.sub(f"{fence}.*?{fence}", "", text, flags=re.DOTALL)
     return re.sub(r"`[^`]*`", "", text)
-
-
-def parse_stardate(line: str) -> tuple[int, int] | None:
-    """Return the year and day of year of a stardate heading, else `None`."""
-    found = STARDATE_RE.match(line)
-    return (int(found[1]), int(found[2])) if found else None
 
 
 def code_mask(lines: list[str]) -> list[bool]:
@@ -144,23 +137,13 @@ def check_section_images(
             problems.append(f"section '{title}' does not start with an image")
 
 
-def check_stardates(heading_lines: list[str], problems: list[str]) -> None:
-    """Require ascending, unique stardates except on the supplemental log."""
-    entries = [
-        (line, parse_stardate(line))
-        for line in heading_lines
-        if not line.startswith("## Supplemental log")
-    ]
-    stardates = [stardate for _, stardate in entries if stardate]
+def check_section_titles(heading_lines: list[str], problems: list[str]) -> None:
+    """Require a title only, with no stardate, on each section heading."""
     problems.extend(
-        f"section heading is not a stardate: {line}"
-        for line, stardate in entries
-        if stardate is None
+        f"section heading repeats the stardate: {line}"
+        for line in heading_lines
+        if re.match(r"^## Stardate\b", line)
     )
-    if stardates != sorted(stardates, reverse=True):
-        problems.append("stardates are not in descending order")
-    if len(stardates) != len(set(stardates)):
-        problems.append("stardates are not unique")
 
 
 def check_images(path: Path, body: str, problems: list[str]) -> None:
@@ -233,11 +216,11 @@ def first_paragraph(lines: list[str], mask: list[bool]) -> str:
 
 
 def section_titles(heading_lines: list[str]) -> set[str]:
-    """Return the words after the stardate in each section heading."""
+    """Return the title of each section heading."""
     return {
-        line.partition(":")[2].strip().lower()
+        line.removeprefix("## ").strip().lower()
         for line in heading_lines
-        if line.startswith("## Stardate")
+        if not line.startswith("## Supplemental log")
     }
 
 
@@ -286,7 +269,7 @@ def report_result(
             report(f"FAIL {problem}")
         return 1
     report(f"OK {path.name}: {sections} sections, {screenshots} screenshots")
-    report("OK frontmatter, stardates, image-before-headline, 1280x640, dividers")
+    report("OK frontmatter, headline, image-before-headline, 1280x640, dividers")
     report("OK no em dashes, no en dashes, no semicolons, closing line")
     return 0
 
@@ -315,7 +298,7 @@ def main() -> int:
     if not heading_indexes:
         problems.append("no sections found")
     check_section_images(body_lines, mask, heading_indexes, problems)
-    check_stardates([body_lines[i] for i in heading_indexes], problems)
+    check_section_titles([body_lines[i] for i in heading_indexes], problems)
     check_images(path, body, problems)
     check_dividers(body_lines, mask, heading_indexes, problems)
     check_fresh_hooks(

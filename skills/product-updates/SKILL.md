@@ -81,17 +81,17 @@ control, say what to do with it, and describe what they get. Leave the
 signing, parsing, and storage details to the docs. Read the paragraph aloud.
 If it sounds like a changelog or a manual, rewrite it.
 
-- The stardate is `YYYY.DDD`, where `DDD` is the day of year of the commit's
-  date on main. January 1 is 001. A non-leap year has 365 days.
-- Order the entries newest first. The newest stardate opens the log.
-- If two entries land on the same day, give the second the next stardate so
-  the log reads in order. Newest first still holds.
+- The first headline carries the stardate, `YYYY.DDD`, where `DDD` is the
+  day of year of the commit's date on main. January 1 is 001. A non-leap year
+  has 365 days.
+- Order the entries newest first. The newest entry opens the log.
 - Open with the station frame and state how many entries follow.
 - Put `relay station log` in the first headline, as
   `relay station log, stardate YYYY.DDD`. Only that headline carries
   `relay`. The section headings and the site label stay `Station log`.
 - Name each heading after the station event, not the feature name. A reader
-  should still learn the feature from the first sentence of the body.
+  should still learn the feature from the first sentence of the body. Do not
+  repeat the stardate in a section heading.
 - Use one section per entry.
 - Put the image before the headline, always.
 - Put a horizontal rule between sections. Never after the last section.
@@ -106,8 +106,8 @@ not be able to predict the fourth.
   metaphors from the earlier logs. Use none of them.
 - Rotate the station detail. Ops one month, the promenade the next, then the
   docking ring, the replimat, the cargo bay, a quiet corridor, the wormhole.
-- Keep the frame constant. The headline, stardates, image-first sections,
-  dividers, and "Station out." are the format, not a joke to retell.
+- Keep the frame constant. The headline, image-first sections, dividers, and
+  "Station out." are the format, not a joke to retell.
 - When the month has no obvious station moment, use the plainest one. A quiet
   shift is a valid hook.
 - The checker compares the new log against the earlier files. It fails on a
@@ -130,7 +130,7 @@ Write one fresh opening line here. Two entries follow, newest first.
 
 ![Alt text that names the feature](images/sandbox-credential.png)
 
-## Stardate 2026.271: <station event>
+## <station event>
 
 Write one paragraph. Name the control, what to do with it, and what the
 reader gets. Leave the internals to the docs.
@@ -139,7 +139,7 @@ reader gets. Leave the internals to the docs.
 
 ![Alt text that names the feature](images/message-preview.png)
 
-## Stardate 2026.270: <an earlier station event>
+## <an earlier station event>
 
 Write one paragraph. Keep the station voice.
 
@@ -198,6 +198,7 @@ The first edition taught these. Do not relearn them.
 - A stardate entry for an improvement or an internal fix. Demote it, or cut
   it.
 - A bullet list in a section. Tell it as one paragraph.
+- A stardate in a section heading. Keep it in the first headline.
 - A paragraph that explains internals. Say what the reader does and gets.
 - A reused opening line, section title, or closing line from an earlier log.
 - "Captain's log", "the ship holds course", helm, course, warp, or bridge.
