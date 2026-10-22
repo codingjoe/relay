@@ -24,39 +24,6 @@ def disable_notification(email):
 
 
 @pytest.mark.django_db
-class TestStationLogRecipients:
-    def test_recipients__returns_one_entry_per_member(self, user, org, write_org):
-        Membership.objects.create(org=write_org, user=user)
-
-        recipients = tasks.station_log_recipients()
-
-        assert sorted(member.email for member in recipients.values()) == [
-            "alice@example.com",
-            "bob@example.com",
-        ]
-
-    def test_recipients__skips_a_suspended_organization(self, user, org):
-        org.suspended_at = timezone.now()
-        org.save(update_fields=["suspended_at"])
-
-        assert tasks.station_log_recipients() == {}
-
-    def test_recipients__skips_a_disabled_notification(self, user, org):
-        disable_notification(user.email)
-
-        assert tasks.station_log_recipients() == {}
-
-    def test_recipients__skips_a_suppressed_address(self, user, org):
-        SuppressionEntry.objects.create_or_update(
-            org=org,
-            email=user.email,
-            reason=SuppressionEntry.Reason.MANUAL,
-        )
-
-        assert tasks.station_log_recipients() == {}
-
-
-@pytest.mark.django_db
 class TestSendStationLog:
     def test_send_station_log__mails_each_member_once(self, user, org, mailoutbox):
         tasks.send_station_log.func(slug=SLUG)
@@ -64,10 +31,43 @@ class TestSendStationLog:
         assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
         assert mailoutbox[0].subject == "A new station log: October 2026"
 
+    def test_send_station_log__mails_a_member_of_two_orgs_once(
+        self, user, org, write_org, mailoutbox
+    ):
+        Membership.objects.create(org=write_org, user=user)
+
+        tasks.send_station_log.func(slug=SLUG)
+
+        assert sorted(message.to[0] for message in mailoutbox) == [
+            "alice@example.com",
+            "bob@example.com",
+        ]
+
     def test_send_station_log__skips_a_member_who_opted_out(
         self, user, org, mailoutbox
     ):
         disable_notification(user.email)
+
+        tasks.send_station_log.func(slug=SLUG)
+
+        assert mailoutbox == []
+
+    def test_send_station_log__skips_a_suspended_organization(
+        self, user, org, mailoutbox
+    ):
+        org.suspended_at = timezone.now()
+        org.save(update_fields=["suspended_at"])
+
+        tasks.send_station_log.func(slug=SLUG)
+
+        assert mailoutbox == []
+
+    def test_send_station_log__skips_a_suppressed_address(self, user, org, mailoutbox):
+        SuppressionEntry.objects.create_or_update(
+            org=org,
+            email=user.email,
+            reason=SuppressionEntry.Reason.MANUAL,
+        )
 
         tasks.send_station_log.func(slug=SLUG)
 

@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from captains_log.content import CaptainsLogContent
-from services.email.newsletter.tasks import send_station_log, station_log_recipients
+from services.email.newsletter.tasks import send_station_log
 
 
 class Command(BaseCommand):
@@ -29,7 +29,7 @@ class Command(BaseCommand):
                 f"Unknown station log {slug!r}."
             )
         if options["dry_run"]:
-            recipients = len(station_log_recipients())
+            recipients = send_station_log.func(slug=slug, dry_run=True)
             noun = "member" if recipients == 1 else "members"
             self.stdout.write(f"{slug} would reach {recipients} {noun}.")
         elif options["now"]:
