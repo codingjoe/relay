@@ -135,9 +135,9 @@
         <div aria-hidden="true" data-align="end" data-popover data-side="bottom" id="user-menu-popover">
           <div aria-labelledby="user-menu-trigger" id="user-menu-menu" role="menu">
             <div role="group">
-              <div role="heading">
-                {% translate "signed in as"|capfirst %}
-                <div class="text-foreground font-semibold">@{{ user.username }}</div>
+              <div role="heading" class="flex flex-col items-start gap-1">
+                <span>{% translate "signed in as"|capfirst %}</span>
+                <span class="text-foreground font-semibold">@{{ user.username }}</span>
               </div>
             </div>
             <hr role="separator">
@@ -146,6 +146,12 @@
                 <a href="{% url 'accounts:org-list' %}">
                   {% tabler name="building-community" size="3.5" %}
                   {% translate "your organizations"|capfirst context "noun" %}
+                </a>
+              </div>
+              <div role="menuitem">
+                <a href="{% url 'django_letter_notifications:settings' %}">
+                  {% tabler name="bell" size="3.5" %}
+                  {% translate "notifications"|capfirst context "noun" %}
                 </a>
               </div>
             </div>

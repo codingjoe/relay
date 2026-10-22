@@ -5,13 +5,13 @@ from django.conf import settings
 from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 
-from accounts.models import Organization
+from accounts.models import Membership, Organization
 from services.email.msa.models import OutgoingMessage
 from services.email.msa.tasks import resolve_bounce_owner
 from services.email.mta.models import IncomingMessage
 
 from . import evaluation
-from .digest import build_org_digest, iter_digest_members
+from .digest import build_org_digest, weekly_digest_notification
 from .emails import WeeklyDigestEmail
 from .models import FblReport
 
@@ -129,7 +129,11 @@ def send_org_weekly_digest(org_id):
         digest = build_org_digest(org)
         mailer = mailers.default
         with mailer:
-            for membership in iter_digest_members(org):
+            for membership in (
+                Membership.objects.filter(org=org)
+                .for_notification(weekly_digest_notification)
+                .select_related("user")
+            ):
                 try:
                     mailer.send_messages(
                         [

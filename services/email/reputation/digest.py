@@ -1,5 +1,4 @@
 import typing
-from collections.abc import Iterator
 from datetime import timedelta
 
 from django.conf import settings
@@ -7,14 +6,22 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, ngettext
+from django.utils.translation import gettext_lazy as _
+from django_letter.notifications import Notification
 
-from accounts.models import Membership, Organization
-from services.email.msa.models import OutgoingMessage, SuppressionEntry
+from accounts.models import Organization
+from services.email.msa.models import OutgoingMessage
 
 from . import chart
 from .billing import month_cost
 from .charts import build_volume_chart, sent_per_day
 from .evaluation import ReputationSummary, build_reputation_stats
+
+weekly_digest_notification = Notification(
+    "weekly-digest",
+    _("Weekly digest"),
+    _("A weekly summary of your sending volume and sender reputation."),
+)
 
 
 def build_org_digest(org: Organization) -> dict[str, typing.Any]:
@@ -140,14 +147,3 @@ def sample_org_digest() -> dict[str, typing.Any]:
         daily_counts=[980, 1420, 2310, 1750, 2640, 1880, 1500],
         recipients=214,
     )
-
-
-def iter_digest_members(org: Organization) -> Iterator[Membership]:
-    """Yield the members of one organization that the digest reaches."""
-    for membership in (
-        Membership.objects.filter(org=org, user__is_active=True)
-        .exclude(user__email="")
-        .select_related("user")
-    ):
-        if not SuppressionEntry.objects.is_suppressed(org, membership.user.email):
-            yield membership
