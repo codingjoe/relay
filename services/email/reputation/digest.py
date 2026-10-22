@@ -20,10 +20,7 @@ from .evaluation import ReputationSummary, build_reputation_stats
 weekly_digest_notification = Notification(
     "weekly-digest",
     _("Weekly digest"),
-    _(
-        "A weekly summary of your sending volume and sender reputation. "
-        "Sent by default."
-    ),
+    _("A weekly summary of your sending volume and sender reputation."),
 )
 
 
