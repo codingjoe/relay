@@ -20,3 +20,10 @@ class TestAdminSite:
         assert response.status_code == 200
         assert 'class="input"' not in content
         assert "input-group" not in content
+
+    @pytest.mark.django_db
+    def test_get__user_change_renders(self, client, admin_user, user):
+        client.force_login(admin_user)
+        response = client.get(reverse("admin:auth_user_change", args=(user.pk,)))
+
+        assert response.status_code == 200

@@ -2,6 +2,7 @@ from contextvars import ContextVar
 from pathlib import Path
 
 import django
+from django.apps import apps
 from django.forms.renderers import DjangoTemplates, TemplatesSetting
 from django.utils.functional import cached_property
 
@@ -17,9 +18,11 @@ class AdminWidgetRenderer(DjangoTemplates):
         return self.backend(
             {
                 "APP_DIRS": False,
+                # Only Django's own templates, so app overrides never leak in.
                 "DIRS": [
-                    django_path / "forms" / "templates",
-                    django_path / "contrib" / "admin" / "templates",
+                    Path(config.path) / "templates"
+                    for config in apps.get_app_configs()
+                    if Path(config.path).is_relative_to(django_path)
                 ],
                 "NAME": "adminforms",
                 "OPTIONS": {},
