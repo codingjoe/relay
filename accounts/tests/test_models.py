@@ -143,3 +143,8 @@ class TestMembershipQuerySet:
                 test_notification
             )
         ] == ["alice@example.com"]
+
+
+class TestMembershipRepr:
+    def test_repr__returns_pk(self):
+        assert repr(Membership(pk=1)) == "<Membership 1>"

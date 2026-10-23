@@ -103,3 +103,8 @@ class TestDmarcRecordStr:
         assert "192.168.1.1" in result
         assert "5" in result
         assert "none" in result
+
+
+class TestDmarcRecordRepr:
+    def test_repr__returns_pk(self):
+        assert repr(DmarcRecord(pk=1)) == "<DmarcRecord 1>"

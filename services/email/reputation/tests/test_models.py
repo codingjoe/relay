@@ -152,3 +152,8 @@ class TestFblReport:
         report = FblReport.create_for_spam(message)
 
         assert report.complained_message == message
+
+
+class TestFblReportRepr:
+    def test_repr__returns_pk(self):
+        assert repr(FblReport(pk=1)) == "<FblReport 1>"

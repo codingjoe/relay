@@ -357,3 +357,8 @@ class TestSenderDmarcRecord:
 
     def test_sender_dmarc_record__does_not_use_none_policy(self):
         assert "p=none" not in Domain(name="example.com").sender_dmarc_record
+
+
+class TestDomainRepr:
+    def test_repr__returns_pk(self):
+        assert repr(Domain(pk=1)) == "<Domain 1>"
