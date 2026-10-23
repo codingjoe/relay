@@ -1,0 +1,21 @@
+{% extends "emails/onboarding/base.html" %}
+{% load i18n %}
+
+{% block meme %}
+  <img
+    src="https://api.memegen.link/images/fine/IP_Blacklisted/this_is_fine.jpg?width=600&amp;font=notosans"
+    alt="{% translate 'the room is on fire. The dog says: IP blacklisted, this is fine.'|capfirst %}"
+    width="552"
+    class="meme-image"
+  >
+{% endblock meme %}
+
+{% block headline %}{% translate "we watch your reputation"|capfirst %}{% endblock headline %}
+
+{% block intro %}
+  {% blocktranslate trimmed with name=member_name %}
+    Quick check, {{ name }}: relay scans every outgoing message for spam, never mails an address that bounced or
+    complained, and hears from the big providers when someone marks a message as spam. One bad send does not sink your
+    domain.
+  {% endblocktranslate %}
+{% endblock intro %}

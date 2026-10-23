@@ -1,0 +1,20 @@
+{% extends "emails/onboarding/base.html" %}
+{% load i18n %}
+
+{% block meme %}
+  <img
+    src="https://api.memegen.link/images/ds/sandbox/production.jpg?width=600&amp;font=notosans"
+    alt="{% translate 'two red buttons: sandbox or production. There is a third button below.'|capfirst %}"
+    width="552"
+    class="meme-image"
+  >
+{% endblock meme %}
+
+{% block headline %}{% translate "send for real, deliver nothing"|capfirst %}{% endblock headline %}
+
+{% block intro %}
+  {% blocktranslate trimmed with name=member_name %}
+    Hey {{ name }}, a sandbox credential sends like production: relay signs it, scans it for spam and viruses, and shows
+    it in your dashboard. Nothing leaves the building.
+  {% endblocktranslate %}
+{% endblock intro %}

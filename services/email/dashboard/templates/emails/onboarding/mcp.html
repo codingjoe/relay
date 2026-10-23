@@ -1,0 +1,39 @@
+{% load i18n %}
+<h2>{% translate "feeling lazy? Connect your agent!"|capfirst %}</h2>
+<table
+  role="presentation"
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="100%"
+  class="terminal"
+>
+  <tr>
+    <td class="terminal-bar">
+      <span class="terminal-dot-red">●</span>
+      <span class="terminal-dot-amber">●</span>
+      <span class="terminal-dot-green">●</span>
+      <span class="terminal-title">mcp</span>
+      <span class="terminal-meta">{{ member_name }}</span>
+    </td>
+  </tr>
+  <tr>
+    <td class="terminal-body">
+      <span class="terminal-prompt">$</span> <span class="terminal-command">{{ mcp_codex_command }}</span><br><span
+        class="terminal-output"
+      >{% translate "relay added to codex" %}</span><br><br><span class="terminal-prompt">$</span> <span
+        class="terminal-command"
+      >{{ mcp_claude_command }}</span><br><span
+        class="terminal-output"
+      >{% translate "relay added to claude" %}</span><br><br><span class="terminal-prompt">$</span> <span
+        class="terminal-command"
+      >cat mcp.json</span><br><span class="terminal-json">{{ mcp_config }}</span><br><br><span
+        class="terminal-comment"
+      ># {% translate "ask your agent:" %}
+        {{ mcp_question }}</span>
+    </td>
+  </tr>
+</table>
+<p class="note">
+  {% translate "Pick one command. That is the whole setup. The first connection opens a browser sign-in." %}
+</p>

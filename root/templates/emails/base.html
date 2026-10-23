@@ -73,6 +73,12 @@
       padding-bottom: 16px;
     }
 
+    /* Illustrations keep their aspect ratio and never exceed the column. */
+    .email-art {
+      width: 80%;
+      height: auto;
+    }
+
     /* The base template states the gap under a button on `.btn > tbody >
        tr > td`, and premailer parses no tbody, so that rule never matches.
        State the same gap without one, or the button sits flush on whatever

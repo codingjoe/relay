@@ -1,0 +1,63 @@
+{% extends "emails/base.html" %}
+{% load django_letter i18n %}
+
+{% block extra_header %}
+  {{ block.super }}
+  <style media="all" type="text/css">
+    {% include "emails/onboarding/styles.css" %}
+  </style>
+{% endblock extra_header %}
+
+{% block content %}
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="meme">
+    <tr>
+      <td align="center">
+        {% block meme %}{% endblock %}
+      </td>
+    </tr>
+  </table>
+
+  <h1>{% block headline %}{% endblock %}</h1>
+  <p>{% block intro %}{% endblock %}</p>
+
+  <h2>{% translate "your setup"|capfirst %}</h2>
+  <p class="progress-caption">
+    {% blocktranslate count counter=remaining_steps trimmed %}
+      {{ counter }} step to go.
+    {% plural %}
+      {{ counter }} steps to go.
+    {% endblocktranslate %}
+  </p>
+  {% table %}
+  <tr>
+    {% for step in onboarding_steps %}
+      <td
+        class="progress-segment progress-{% if step.done %}done{% else %}todo{% endif %}"
+        height="4"
+      >
+      </td>
+      {% if not forloop.last %}
+        <td class="progress-gap" width="6">&nbsp;</td>
+      {% endif %}
+    {% endfor %}
+  </tr>
+  {% endtable %}
+  {% table %}
+  {% for step in onboarding_steps %}
+    <tr>
+      <td class="bullet {% if step.done %}bullet-done{% else %}bullet-todo{% endif %}" valign="middle">
+        •
+      </td>
+      <td class="step {% if step.done %}step-done{% else %}step-todo{% endif %}" valign="middle">
+        {{ step.label|capfirst }}
+      </td>
+    </tr>
+  {% endfor %}
+  {% endtable %}
+
+  {% button href=next_step_url value=next_step_button primary=True %}
+
+  {% block extra_note %}{% endblock %}
+
+  {% include "emails/onboarding/mcp.html" %}
+{% endblock content %}

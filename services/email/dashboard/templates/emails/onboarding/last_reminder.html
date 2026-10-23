@@ -1,0 +1,30 @@
+{% extends "emails/onboarding/base.html" %}
+{% load i18n %}
+
+{% block meme %}
+  <img
+    src="https://api.memegen.link/images/db/relay/you/AWS.jpg?width=600&amp;font=notosans"
+    alt="{% translate 'distracted boyfriend: you walk past AWS, eyes on relay.'|capfirst %}"
+    width="552"
+    class="meme-image"
+  >
+{% endblock meme %}
+
+{% block headline %}{% translate "tired of CloudWatch logs?"|capfirst %}{% endblock headline %}
+
+{% block intro %}
+  {% blocktranslate trimmed with name=member_name %}
+    Last nudge, {{ name }}. You see each message you send and every step it took along the way, all in one view. No log
+    group, no query language.
+  {% endblocktranslate %}
+{% endblock intro %}
+
+{% block extra_note %}
+  {% url 'open-source' as open_source_url %}
+  <p>
+    {% blocktranslate trimmed %}
+      Free for open source projects and non-profits, forever. That is
+      <a href="{{ open_source_url }}" target="_blank" rel="noopener">our open source promise</a>.
+    {% endblocktranslate %}
+  </p>
+{% endblock extra_note %}

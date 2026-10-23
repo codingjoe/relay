@@ -1,0 +1,34 @@
+{% extends "emails/onboarding/base.html" %}
+{% load humanize i18n %}
+
+{% block meme %}
+  {% blocktranslate asvar meme_alt trimmed with limit=free_monthly_messages %}
+    One does not simply send {{ limit }} emails for free. Turns out you can.
+  {% endblocktranslate %}
+  <img
+    src="https://api.memegen.link/images/mordor/one_does_not_simply/send_{{ free_monthly_messages|intcomma }}_emails_for_free.jpg?width=600&amp;font=notosans"
+    alt="{{ meme_alt }}"
+    width="552"
+    class="meme-image"
+  >
+{% endblock meme %}
+
+{% block headline %}{% translate "send free, then send more"|capfirst %}{% endblock headline %}
+
+{% block intro %}
+  {% blocktranslate trimmed with name=member_name limit=free_monthly_messages|intcomma %}
+    Welcome aboard, {{ name }}. You get {{ limit }} free messages every month. Your app signs in, and you watch it take
+    the whole walk: sandbox, signing, spam scan, delivery.
+  {% endblocktranslate %}
+{% endblock intro %}
+
+{% block extra_note %}
+  {% url 'docs:detail' slug='sending' as sending_guide_url %}
+  <p>
+    {% blocktranslate trimmed %}
+      Prefer to wire it up yourself? The
+      <a href="{{ sending_guide_url }}" target="_blank" rel="noopener">sending guide</a> walks through connecting an
+      app, step by step, with a port table for the impatient. RFCs optional.
+    {% endblocktranslate %}
+  </p>
+{% endblock extra_note %}
