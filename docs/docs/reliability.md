@@ -131,6 +131,10 @@ endpoint misbehavior shows as data.
   and attaches its commits, so an error points at the release that produced it.
 - **Dashboard transmissions** show each outbound attempt with its SMTP
   conversation.
+- **Sending IP reputation.** `/health/reputation/` queries public DNS
+  blocklists for every egress sending IP. A listing answers 500 and names the
+  blocklist: delist the address. A failed lookup answers 200 with a warning in
+  the body: check the resolver.
 - **Webhook delivery rows** show inbound webhook status.
 - **Inbound quarantine** contents stay readable, with the spam score visible.
 
