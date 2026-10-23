@@ -177,7 +177,7 @@ spec:
     spec:
       containers:
         - name: rspamd
-          image: rspamd/rspamd:4.1
+          image: rspamd/rspamd:4.2.3
           ports:
             - {name: controller, containerPort: 11334}
           volumeMounts:
@@ -233,6 +233,7 @@ spec:
     spec:
       containers:
         - name: clamav
+          # https://github.com/Cisco-Talos/clamav-docker/issues/111
           image: clamav/clamav:1.5.4_base-debian13-slim
           env:
             - {name: CLAMAV_NO_FRESHCLAMD, value: "true"}
@@ -296,6 +297,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: clamav-updater
+          # https://github.com/Cisco-Talos/clamav-docker/issues/111
           image: clamav/clamav:1.5.4_base-debian13-slim
           resources:
             requests: {cpu: 100m}
