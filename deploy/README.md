@@ -62,6 +62,9 @@ repo root.
 
 - [ ] `curl https://relays.to/health/node/` answers 200.
 - [ ] `curl https://relays.to/health/application/` answers 200.
+- [ ] `curl https://relays.to/health/reputation/` answers 200. A warning in the
+  body names a blocklist that could not answer: check the resolver. A 500 names
+  a listed sending IP: delist the address.
 - [ ] `curl https://relays.to/health/pipeline/` answers 200. A failure can
   come from a third-party incident.
 - [ ] `curl -i -X POST https://relays.to/mcp -d '{}'` answers 401 with a

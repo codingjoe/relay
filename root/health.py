@@ -1,7 +1,201 @@
+import asyncio
+import dataclasses
+import ipaddress
+
+import dns.asyncresolver
+import dns.exception
+import dns.resolver
 from django.conf import settings
 from django.urls import path
+from health_check.base import HealthCheck
+from health_check.exceptions import ServiceUnavailable, ServiceWarning
 from health_check.views import HealthCheckView
 from redis.asyncio import Redis
+
+
+@dataclasses.dataclass(frozen=True)
+class BlocklistProvider:
+    name: str
+    zone: str
+    reasons: frozendict[str, str] = dataclasses.field(default_factory=frozendict)
+
+
+class BlocklistListing(ServiceUnavailable):
+    def __init__(self, address, provider, codes):
+        self.address = address
+        self.provider = provider
+        self.codes = codes
+        reasons = ", ".join(
+            dict.fromkeys(
+                provider.reasons[code] for code in codes if code in provider.reasons
+            )
+        )
+        message = f"Listed on {provider.name} ({provider.zone})"
+        if reasons:
+            message = f"{message}: {reasons}"
+        super().__init__(message)
+
+
+class BlocklistLookupError(ServiceWarning):
+    def __init__(self, address, provider, error):
+        self.address = address
+        self.provider = provider
+        super().__init__(
+            f"{provider.name} ({provider.zone}) lookup failed: {type(error).__name__}"
+        )
+
+
+class BlocklistRefusal(ServiceWarning):
+    query_error_reasons = frozendict(
+        {
+            "127.255.255.252": "the query was refused",
+            "127.255.255.253": "the query came from a public resolver",
+            "127.255.255.254": "the query was malformed",
+            "127.255.255.255": "the query was blocked",
+        }
+    )
+
+    def __init__(self, address, provider, codes):
+        self.address = address
+        self.provider = provider
+        reasons = ", ".join(
+            dict.fromkeys(
+                self.query_error_reasons.get(
+                    code, "check the DNS resolver configuration"
+                )
+                for code in codes
+            )
+        )
+        super().__init__(
+            f"{provider.name} ({provider.zone}) refused the lookup: {reasons}"
+        )
+
+
+class BlocklistWarning(ServiceWarning):
+    def __init__(self, address, message):
+        self.address = address
+        super().__init__(message)
+
+
+class BlocklistAddressError(ServiceUnavailable):
+    def __init__(self, address):
+        self.address = address
+        super().__init__(f"{address} is not an IP address")
+
+
+@dataclasses.dataclass
+class DnsBlocklist(HealthCheck):
+    address: str
+    providers: tuple[BlocklistProvider, ...] = dataclasses.field(
+        default=(
+            BlocklistProvider(
+                "Spamhaus ZEN",
+                "zen.spamhaus.org",
+                frozendict(
+                    {
+                        "127.0.0.2": "SBL, spam source",
+                        "127.0.0.3": "CSS, spam source",
+                        "127.0.0.4": "XBL, exploited machine",
+                        "127.0.0.5": "XBL, exploited machine",
+                        "127.0.0.6": "XBL, exploited machine",
+                        "127.0.0.7": "XBL, exploited machine",
+                        "127.0.0.9": "DROP, malicious network",
+                        "127.0.0.10": "PBL, policy blocklist",
+                        "127.0.0.11": "PBL, policy blocklist",
+                    }
+                ),
+            ),
+            BlocklistProvider("SpamCop", "bl.spamcop.net"),
+            BlocklistProvider("Barracuda", "b.barracudacentral.org"),
+            BlocklistProvider("Mailspike", "z.mailspike.net"),
+            BlocklistProvider("Hostkarma", "black.junkemailfilter.com"),
+            BlocklistProvider("PSBL", "psbl.surriel.com"),
+            BlocklistProvider("UCEPROTECT Level 1", "dnsbl-1.uceprotect.net"),
+            BlocklistProvider("SpamRATS", "all.spamrats.com"),
+            BlocklistProvider("Spam Eating Monkey", "bl.spameatingmonkey.net"),
+            BlocklistProvider("JustSpam", "dnsbl.justspam.org"),
+            BlocklistProvider("GBUdb Truncate", "truncate.gbudb.net"),
+            BlocklistProvider("0spam", "bl.0spam.org"),
+            BlocklistProvider("Backscatterer", "ips.backscatterer.org"),
+            BlocklistProvider("Blocklist.de", "bl.blocklist.de"),
+            BlocklistProvider("SpamSources", "spamsources.fabel.dk"),
+            BlocklistProvider("RV-Soft", "dnsbl.rv-soft.info"),
+            BlocklistProvider("InterServer", "rbl.interserver.net"),
+            BlocklistProvider("DroneBL", "dnsbl.dronebl.org"),
+        ),
+        repr=False,
+    )
+
+    # Blocklists answer a refused query from this range instead of a listing.
+    query_error_network = ipaddress.ip_network("127.255.255.0/24")
+
+    async def run(self):
+        try:
+            reversed_address = (
+                ipaddress.ip_address(self.address)
+                .reverse_pointer.removesuffix(".in-addr.arpa")
+                .removesuffix(".ip6.arpa")
+            )
+        except ValueError as error:
+            raise BlocklistAddressError(self.address) from error
+        resolver = dns.asyncresolver.Resolver()
+        resolver.lifetime = self.timeout.total_seconds()
+        results = await asyncio.gather(
+            *(
+                self.lookup(provider, reversed_address, resolver)
+                for provider in self.providers
+            )
+        )
+        issues = [result for result in results if result]
+        if issues:
+            message = "\n".join(issue.message for issue in issues)
+            if any(isinstance(issue, ServiceUnavailable) for issue in issues):
+                raise ServiceUnavailable(message)
+            raise BlocklistWarning(self.address, message)
+
+    async def lookup(self, provider, reversed_address, resolver):
+        query = f"{reversed_address}.{provider.zone}"
+        issue = None
+        try:
+            answers = await resolver.resolve(query, "A")
+        except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
+            answers = ()
+        except dns.exception.DNSException as error:
+            issue = BlocklistLookupError(self.address, provider, error)
+            answers = ()
+        codes = sorted(
+            (rdata.address for rdata in answers),
+            key=ipaddress.ip_address,
+        )
+        if issue is None:
+            errors = [
+                code
+                for code in codes
+                if ipaddress.ip_address(code) in self.query_error_network
+            ]
+            if errors:
+                issue = BlocklistRefusal(self.address, provider, errors)
+            elif codes:
+                issue = BlocklistListing(self.address, provider, codes)
+        return issue
+
+
+class ReputationHealthCheckView(HealthCheckView):
+    """Answer 200 when every check only warned, 500 when any is unavailable."""
+
+    async def get(self, request, *args, **kwargs):
+        response = await super().get(request, *args, **kwargs)
+        if response.status_code == 500 and all(
+            error is None or isinstance(error, ServiceWarning)
+            for error in (result.error for result in self.results)
+        ):
+            response.status_code = 200
+        return response
+
+
+reputation_checks = [
+    (DnsBlocklist, {"address": address}) for address in settings.RELAY_SMTP_SOURCE_IPS
+]
 
 node_checks = [
     "health_check.contrib.psutil.Disk",
@@ -53,6 +247,11 @@ urlpatterns = [
         "application/",
         HealthCheckView.as_view(checks=application_checks),
         name="health-application",
+    ),
+    path(
+        "reputation/",
+        ReputationHealthCheckView.as_view(checks=reputation_checks),
+        name="health-reputation",
     ),
     path(
         "pipeline/",
