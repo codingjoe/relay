@@ -500,7 +500,7 @@ else:
         "OPTIONS": {},
     }
 MAILERS = {"default": _mailer}
-DEFAULT_FROM_EMAIL = f"postmaster@{RELAY_PLATFORM_DOMAIN}"
+DEFAULT_FROM_EMAIL = f"noreply@{RELAY_PLATFORM_DOMAIN}"
 
 
 # Django task framework
