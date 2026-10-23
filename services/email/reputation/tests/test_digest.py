@@ -158,6 +158,21 @@ class TestBuildDigestContext:
         assert context["message_interval"] == ""
         assert context["cost"] == Decimal("0.00")
 
+    def test_build_digest_context__makes_a_free_organization_free(self, org):
+        org.is_free = True
+        org.save(update_fields=["is_free"])
+
+        context = build_digest_context(
+            org,
+            stats=make_stats(),
+            month_messages=42100,
+            daily_counts=[10] * 7,
+            recipients=214,
+        )
+
+        assert context["is_free"] is True
+        assert context["cost"] == Decimal("0.00")
+
 
 @pytest.mark.django_db
 class TestBuildOrgDigest:

@@ -37,6 +37,12 @@ class TestMonthCost:
 
         assert month_cost(5000) == Decimal("0.00")
 
+    def test_for_a_free_organization__is_free(self, settings):
+        settings.RELAY_FREE_MONTHLY_MESSAGES = 1000
+        settings.RELAY_PRICE_PER_1000_MESSAGES = 10.0
+
+        assert month_cost(5000, is_free=True) == Decimal("0.00")
+
 
 class TestOveragePrice:
     def test_without_a_price__has_none(self, settings):

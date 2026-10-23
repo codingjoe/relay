@@ -41,6 +41,21 @@ class TestOrganization:
             "accounts:org-home", kwargs={"org_slug": "acme"}
         )
 
+    @pytest.mark.django_db
+    def test_save__enables_billing_for_a_free_organization(self):
+        org = Organization.objects.create(slug="acme", is_free=True)
+
+        assert org.billing_is_active is True
+
+    @pytest.mark.django_db
+    def test_save__enables_billing_on_a_partial_free_organization_save(self):
+        org = Organization.objects.create(slug="acme")
+        org.is_free = True
+        org.save(update_fields=["is_free"])
+
+        org.refresh_from_db()
+        assert org.billing_is_active is True
+
 
 @pytest.mark.django_db
 class TestMembership:

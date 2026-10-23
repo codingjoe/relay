@@ -123,7 +123,8 @@ def build_digest_context(
             if any(daily_counts)
             else ""
         ),
-        "cost": month_cost(month_messages),
+        "cost": month_cost(month_messages, is_free=org.is_free),
+        "is_free": org.is_free,
         "free_monthly_messages": free_monthly_messages,
         "dashboard_path": reverse("monitoring:overview", kwargs={"org_slug": org.slug}),
     }

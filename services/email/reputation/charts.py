@@ -234,7 +234,7 @@ def build_volume_chart(org):
     Return the cumulative sending volume of this month and the last one.
 
     One point per day, this month and the same day of the last month, with
-    the free tier as the threshold line.
+    the free tier as the threshold line for billed organizations.
     """
     today = timezone.localdate()
     this_month = today.replace(day=1)
@@ -284,10 +284,18 @@ def build_volume_chart(org):
         ],
         "rows": rows,
         "this_month_total": this_total,
-        "subtitle": gettext("Cumulative, against the free tier"),
-        "threshold": {
-            "value": settings.RELAY_FREE_MONTHLY_MESSAGES,
-            "label": gettext("Free tier"),
-        },
+        "subtitle": (
+            gettext("Cumulative, this month and last month")
+            if org.is_free
+            else gettext("Cumulative, against the free tier")
+        ),
+        "threshold": (
+            None
+            if org.is_free
+            else {
+                "value": settings.RELAY_FREE_MONTHLY_MESSAGES,
+                "label": gettext("Free tier"),
+            }
+        ),
         "y_scale": {"stacked": False},
     }

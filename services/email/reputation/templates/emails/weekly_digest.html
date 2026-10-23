@@ -149,16 +149,21 @@
     </p>
   {% endif %}
   {% translate "cost" as cost_label %}
-  {% if cost %}
-    {% blocktranslate with amount=cost|intcomma asvar cost_value trimmed %}
-      {{ amount }} EUR
-    {% endblocktranslate %}
+  {% if is_free %}
+    {% translate "free &lt;3"|capfirst as cost_value %}
+    {% translate "For everything you give, this one is on us." as cost_caption %}
   {% else %}
-    {% translate "free"|capfirst as cost_value %}
+    {% if cost %}
+      {% blocktranslate with amount=cost|intcomma asvar cost_value trimmed %}
+        {{ amount }} EUR
+      {% endblocktranslate %}
+    {% else %}
+      {% translate "free"|capfirst as cost_value %}
+    {% endif %}
+    {% blocktranslate with limit=free_monthly_messages|intcomma asvar cost_caption trimmed %}
+      {{ limit }} a month on the house.
+    {% endblocktranslate %}
   {% endif %}
-  {% blocktranslate with limit=free_monthly_messages|intcomma asvar cost_caption trimmed %}
-    {{ limit }} a month on the house.
-  {% endblocktranslate %}
   {% translate "hard bounce rate" as bounce_label %}
   {% blocktranslate with limit=bounce_threshold|percent:"2" asvar bounce_caption trimmed %}
     We allow up to {{ limit }}.

@@ -199,6 +199,20 @@ class TestReputationOverviewView:
         )
         assert "Free" in response.content.decode()
 
+    def test_get__shows_a_thank_you_note_for_a_free_organization(
+        self, admin_client, org
+    ):
+        org.is_free = True
+        org.save(update_fields=["is_free"])
+
+        response = admin_client.get(overview_url(org))
+
+        assert response.status_code == 200
+        assert response.context["cost"] == Decimal("0.00")
+        card = card_containing(response.content.decode(), "Thank you")
+        assert "Free &lt;3" in card
+        assert "messages a month" not in card
+
     def test_get__shows_only_the_free_plan_when_the_price_is_zero(
         self, admin_client, org, settings
     ):
