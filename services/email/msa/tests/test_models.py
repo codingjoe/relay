@@ -10,6 +10,7 @@ from services.email.message.models import Transmission
 from services.email.msa.models import (
     MsaCredential,
     OutgoingMessage,
+    SuppressionEntry,
     TerminalStatusError,
 )
 
@@ -254,3 +255,13 @@ class TestTransmission:
     )
     def test_status_badge_variant(self, status, expected):
         assert Transmission(status=status).status_badge_variant == expected
+
+
+class TestMsaCredentialRepr:
+    def test_repr__returns_pk(self):
+        assert repr(MsaCredential(pk=1)) == "<MsaCredential 1>"
+
+
+class TestSuppressionEntryRepr:
+    def test_repr__returns_pk(self):
+        assert repr(SuppressionEntry(pk=1)) == "<SuppressionEntry 1>"

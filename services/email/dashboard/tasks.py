@@ -66,5 +66,5 @@ def send_onboarding_email(org_pk, stage):
                         )
                     except OSError, InvalidUserError:
                         logger.exception(
-                            "Onboarding email for user %r failed", membership.user
+                            "Onboarding email for user %r failed", membership.user_id
                         )

@@ -58,6 +58,9 @@ class Organization(TimeStamped):
     def __str__(self):
         return self.slug
 
+    def __repr__(self):
+        return f"<Organization {self.pk}>"
+
     def save(self, *args, update_fields=None, **kwargs):
         self.slug = self._meta.get_field("slug").clean(self.slug, self)
         if self.is_free:
@@ -126,6 +129,9 @@ class Membership(TimeStamped):
 
     def __str__(self):
         return f"{self.user} @ {self.org} ({self.role})"
+
+    def __repr__(self):
+        return f"<Membership {self.pk}>"
 
 
 class OrganizationOwned(TimeStamped):
@@ -210,6 +216,9 @@ class Credential(OrganizationOwned):
 
     def __str__(self):
         return f"{self.org} / {self.name or self.key_prefix}…"
+
+    def __repr__(self):
+        return f"<{type(self).__name__} {self.pk}>"
 
     @property
     def salt(self):

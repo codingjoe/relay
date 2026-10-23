@@ -41,9 +41,10 @@ def send_station_log(slug):
                     ]
                 )
             except (OSError, ValueError) as exc:
+                member_pk = member.pk
                 logger.warning(
                     "Station log for user %r failed: %s",
-                    member.pk,
+                    member_pk,
                     type(exc).__name__,
                 )
 

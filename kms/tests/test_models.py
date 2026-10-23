@@ -158,3 +158,13 @@ class TestStorePresentedChain:
         assert Certificate.objects.count() == 1
         Certificate.store_presented_chain([leaf])
         assert Certificate.objects.count() == 1
+
+
+class TestSigningKeyRepr:
+    def test_repr__returns_pk(self):
+        assert repr(SigningKey(pk=1)) == "<SigningKey 1>"
+
+
+class TestCertificateRepr:
+    def test_repr__returns_pk(self):
+        assert repr(Certificate(pk=1)) == "<Certificate 1>"

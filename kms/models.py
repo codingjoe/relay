@@ -49,6 +49,9 @@ class SigningKey(TimeStamped):
     def __str__(self):
         return f"{self.algorithm}/{self.key_id}"
 
+    def __repr__(self):
+        return f"<SigningKey {self.pk}>"
+
     def sign(self, payload: bytes) -> bytes:
         return keys.load(self.encrypted_private_key).sign(payload)
 
@@ -145,6 +148,9 @@ class Certificate(TimeStamped):
 
     def __str__(self):
         return self.subject or f"sha256:{self.fingerprint[:16]}…"
+
+    def __repr__(self):
+        return f"<Certificate {self.pk}>"
 
     def chain(self):
         """

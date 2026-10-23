@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from domains.models import Domain
 from kms.models import SigningKey
-from services.email.mta.models import Webhook
+from services.email.mta.models import TlsFailure, Webhook, WebhookDelivery
 
 
 @pytest.fixture
@@ -153,3 +153,13 @@ class TestSign:
             webhook.signing_key.public_bytes_raw()
         )
         public_key.verify(sig_bytes, signed_content)
+
+
+class TestWebhookDeliveryRepr:
+    def test_repr__returns_pk(self):
+        assert repr(WebhookDelivery(pk=1)) == "<WebhookDelivery 1>"
+
+
+class TestTlsFailureRepr:
+    def test_repr__returns_pk(self):
+        assert repr(TlsFailure(pk=1)) == "<TlsFailure 1>"

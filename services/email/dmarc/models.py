@@ -210,6 +210,9 @@ class DmarcRecord(TimeStamped):
     def __str__(self):
         return f"{self.source_ip_address} ×{self.count} ({self.disposition})"
 
+    def __repr__(self):
+        return f"<DmarcRecord {self.pk}>"
+
 
 class DmarcFailureReport(IncomingMessage):
     """DMARC forensic (RUF) report received from a reporting organization."""

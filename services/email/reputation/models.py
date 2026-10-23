@@ -162,6 +162,9 @@ class FblReport(OrganizationOwned):
     def __str__(self):
         return f"{self.reporting_org} → {self.domain.name} ({self.original_mail_from})"
 
+    def __repr__(self):
+        return f"<FblReport {self.pk}>"
+
     def get_absolute_url(self):
         return reverse(
             "monitoring:fbl-report-detail",
