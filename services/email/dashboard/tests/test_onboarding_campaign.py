@@ -1,5 +1,6 @@
 import datetime
 import importlib
+from email.utils import parseaddr
 
 import pytest
 from django.apps import apps
@@ -54,7 +55,9 @@ class RefusedAddressEmailBackend(locmem.EmailBackend):
 
     def send_messages(self, email_messages):
         for message in email_messages:
-            if REFUSED_ADDRESS in message.to:
+            if any(
+                parseaddr(recipient)[1] == REFUSED_ADDRESS for recipient in message.to
+            ):
                 raise RefusedConnectionError
         return super().send_messages(email_messages)
 
@@ -129,7 +132,9 @@ class TestSendOnboardingEmail:
             stage=OnboardingStage.WELCOME,
         )
 
-        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        assert [parseaddr(message.to[0])[1] for message in mailoutbox] == [
+            "alice@example.com"
+        ]
 
     @pytest.mark.parametrize(
         "missing_field",
@@ -152,7 +157,9 @@ class TestSendOnboardingEmail:
             stage=OnboardingStage.WELCOME,
         )
 
-        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        assert [parseaddr(message.to[0])[1] for message in mailoutbox] == [
+            "alice@example.com"
+        ]
 
     def test_send_onboarding_email__leaves_a_finished_organization_alone(
         self, org, mailoutbox
@@ -196,7 +203,9 @@ class TestSendOnboardingEmail:
             stage=OnboardingStage.WELCOME,
         )
 
-        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        assert [parseaddr(message.to[0])[1] for message in mailoutbox] == [
+            "alice@example.com"
+        ]
 
     def test_send_onboarding_email__drops_a_missing_organization(self, org, mailoutbox):
         tasks.send_onboarding_email.func(
