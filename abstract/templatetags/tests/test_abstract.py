@@ -208,3 +208,13 @@ def test_tabler__without_size():
     html = template.render({})
     assert 'class="tabler"' in html
     assert "#tabler-search" in html
+
+
+def test_timestamp__renders_in_the_current_time_zone():
+    value = datetime.datetime(2025, 6, 1, 22, 30, tzinfo=datetime.UTC)
+
+    with timezone.override("Europe/Berlin"):
+        data = abstract.timestamp(value)
+
+    assert data["iso"] == "2025-06-02T00:30:00+02:00"
+    assert data["natural"] == "June 2, 2025 12:30 a.m."

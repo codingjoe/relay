@@ -258,13 +258,12 @@ class UserPreference(models.Model):
     )
     time_zone = models.TextField(
         _("time zone"),
-        blank=True,
-        default="",
-        help_text=_("Time zone used to display dates. Empty uses the service default."),
+        default=settings.TIME_ZONE,
+        help_text=_("Time zone used to display dates."),
     )
 
     def __str__(self):
-        return f"{self.user} / {self.time_zone or _('default')}"
+        return f"{self.user} / {self.time_zone}"
 
     def __repr__(self):
         return f"<UserPreference {self.pk}>"

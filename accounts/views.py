@@ -358,14 +358,8 @@ def get_time_zone_choices():
 class UserPreferenceForm(ModelForm):
     time_zone = ChoiceField(
         label=_("time zone"),
-        required=False,
-        choices=[
-            ("", _("Default (%(time_zone)s)") % {"time_zone": settings.TIME_ZONE}),
-            *get_time_zone_choices(),
-        ],
-        help_text=_(
-            "Time zone used to display dates. Choose the default to follow the service."
-        ),
+        choices=get_time_zone_choices(),
+        help_text=_("Time zone used to display dates."),
     )
 
     class Meta:
@@ -383,7 +377,7 @@ class UserPreferenceUpdateView(LoginRequiredMixin, NoStoreCacheMixin, generic.Fo
         try:
             time_zone = self.request.user.preference.time_zone
         except UserPreference.DoesNotExist:
-            time_zone = ""
+            time_zone = settings.TIME_ZONE
         return {"time_zone": time_zone}
 
     def form_valid(self, form):
