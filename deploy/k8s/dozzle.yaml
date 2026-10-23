@@ -22,7 +22,7 @@ spec:
       serviceAccountName: dozzle
       containers:
         - name: dozzle
-          image: amir20/dozzle:v11.3.2
+          image: amir20/dozzle:v11.3.3
           env:
             - {name: DOZZLE_MODE, value: k8s}
             - {name: DOZZLE_HOSTNAME, value: relay}
