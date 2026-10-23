@@ -37,6 +37,16 @@ class FakeResolver:
         return self.answers
 
 
+class RecordingResolver:
+    def __init__(self, answers=()):
+        self.answers = answers
+        self.queries = []
+
+    async def resolve(self, query, record_type):
+        self.queries.append(query)
+        return self.answers
+
+
 class DummyResolver:
     async def resolve(self, query, record_type):
         raise AssertionError
@@ -88,6 +98,27 @@ class TestBlocklistLookupError:
         )
         assert error.message == "Example (example.test) lookup failed: ValueError"
 
+    def test_init__explains_a_timeout(self):
+        error = BlocklistLookupError(
+            "192.0.2.1",
+            PROVIDER,
+            dns.resolver.LifetimeTimeout(5.0, []),
+        )
+        assert (
+            error.message
+            == "Example (example.test) lookup failed: the provider did not answer "
+            "in time"
+        )
+
+    def test_init__explains_missing_nameservers(self):
+        """Skip the request dnspython would format the message from."""
+        error = dns.resolver.NoNameservers.__new__(dns.resolver.NoNameservers)
+        assert (
+            BlocklistLookupError("192.0.2.1", PROVIDER, error).message
+            == "Example (example.test) lookup failed: no nameserver answered for "
+            "the provider"
+        )
+
 
 class TestBlocklistRefusal:
     def test_init__translates_a_known_code(self):
@@ -98,8 +129,8 @@ class TestBlocklistRefusal:
         )
         assert (
             error.message
-            == "Example (example.test) refused the lookup: the query came from a "
-            "public resolver"
+            == "Example (example.test) refused the lookup: the provider rejected "
+            "the query from this resolver"
         )
 
     def test_init__falls_back_to_the_resolver_hint(self):
@@ -144,7 +175,7 @@ class TestDnsBlocklistLookup:
         )
         issue = await check.lookup(PROVIDER, "1.2.0.192", resolver)
         assert isinstance(issue, BlocklistRefusal)
-        assert "the query came from a public resolver" in issue.message
+        assert "the provider rejected the query from this resolver" in issue.message
 
     async def test_lookup__returns_a_listing(self):
         check = DnsBlocklist(address="192.0.2.1")
@@ -159,6 +190,44 @@ class TestDnsBlocklistLookup:
         issue = await check.lookup(PROVIDER, "1.2.0.192", resolver)
         assert isinstance(issue, BlocklistListing)
         assert issue.message == "Listed on Example (example.test)"
+
+
+class TestDnsBlocklistSpamhausKey:
+    provider = BlocklistProvider(
+        "Spamhaus ZEN",
+        "zen.dq.spamhaus.net",
+        frozendict({"127.0.0.2": "SBL, spam source"}),
+        keyed_zone="{key}.zen.dq.spamhaus.net",
+    )
+
+    async def test_lookup__queries_the_keyed_zone(self, settings):
+        settings.SPAMHAUS_KEY = "key123"
+        resolver = RecordingResolver()
+        await DnsBlocklist(address="192.0.2.1").lookup(
+            self.provider, "1.2.0.192", resolver
+        )
+        assert resolver.queries == ["1.2.0.192.key123.zen.dq.spamhaus.net"]
+
+    async def test_lookup__queries_the_plain_zone_without_a_key(self, settings):
+        settings.SPAMHAUS_KEY = ""
+        resolver = RecordingResolver()
+        await DnsBlocklist(address="192.0.2.1").lookup(
+            self.provider, "1.2.0.192", resolver
+        )
+        assert resolver.queries == ["1.2.0.192.zen.dq.spamhaus.net"]
+
+    async def test_lookup__keeps_the_key_out_of_a_listing(self, settings):
+        settings.SPAMHAUS_KEY = "key123"
+        resolver = RecordingResolver(
+            answers=[types.SimpleNamespace(address="127.0.0.2")]
+        )
+        issue = await DnsBlocklist(address="192.0.2.1").lookup(
+            self.provider, "1.2.0.192", resolver
+        )
+        assert "key123" not in issue.message
+        assert issue.message == (
+            "Listed on Spamhaus ZEN (zen.dq.spamhaus.net): SBL, spam source"
+        )
 
 
 class TestDnsBlocklistRun:

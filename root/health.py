@@ -18,6 +18,8 @@ class BlocklistProvider:
     name: str
     zone: str
     reasons: frozendict[str, str] = dataclasses.field(default_factory=frozendict)
+    # Queried when a Spamhaus key is set. The key never reaches the output.
+    keyed_zone: str = ""
 
 
 class BlocklistListing(ServiceUnavailable):
@@ -37,21 +39,27 @@ class BlocklistListing(ServiceUnavailable):
 
 
 class BlocklistLookupError(ServiceWarning):
+    failure_reasons = frozendict(
+        {
+            "LifetimeTimeout": "the provider did not answer in time",
+            "NoNameservers": "no nameserver answered for the provider",
+        }
+    )
+
     def __init__(self, address, provider, error):
         self.address = address
         self.provider = provider
-        super().__init__(
-            f"{provider.name} ({provider.zone}) lookup failed: {type(error).__name__}"
-        )
+        reason = self.failure_reasons.get(type(error).__name__, type(error).__name__)
+        super().__init__(f"{provider.name} ({provider.zone}) lookup failed: {reason}")
 
 
 class BlocklistRefusal(ServiceWarning):
     query_error_reasons = frozendict(
         {
-            "127.255.255.252": "the query was refused",
-            "127.255.255.253": "the query came from a public resolver",
-            "127.255.255.254": "the query was malformed",
-            "127.255.255.255": "the query was blocked",
+            "127.255.255.252": "the query name is invalid",
+            "127.255.255.253": "the provider rejected the query from this resolver",
+            "127.255.255.254": "the provider rejected the query from this resolver",
+            "127.255.255.255": "the provider blocked this resolver",
         }
     )
 
@@ -90,7 +98,7 @@ class DnsBlocklist(HealthCheck):
         default=(
             BlocklistProvider(
                 "Spamhaus ZEN",
-                "zen.spamhaus.org",
+                "zen.dq.spamhaus.net" if settings.SPAMHAUS_KEY else "zen.spamhaus.org",
                 frozendict(
                     {
                         "127.0.0.2": "SBL, spam source",
@@ -104,6 +112,7 @@ class DnsBlocklist(HealthCheck):
                         "127.0.0.11": "PBL, policy blocklist",
                     }
                 ),
+                keyed_zone="{key}.zen.dq.spamhaus.net",
             ),
             BlocklistProvider("SpamCop", "bl.spamcop.net"),
             BlocklistProvider("Barracuda", "b.barracudacentral.org"),
@@ -154,7 +163,10 @@ class DnsBlocklist(HealthCheck):
             raise BlocklistWarning(self.address, message)
 
     async def lookup(self, provider, reversed_address, resolver):
-        query = f"{reversed_address}.{provider.zone}"
+        zone = provider.zone
+        if provider.keyed_zone and settings.SPAMHAUS_KEY:
+            zone = provider.keyed_zone.format(key=settings.SPAMHAUS_KEY)
+        query = f"{reversed_address}.{zone}"
         issue = None
         try:
             answers = await resolver.resolve(query, "A")
