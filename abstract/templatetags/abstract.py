@@ -97,6 +97,8 @@ def param_replace(context, **kwargs):
 @register.inclusion_tag("abstract/timestamp.html")
 def timestamp(value):
     """Render a `<time>` element with naturaltime and ISO 8601 tooltip."""
+    if isinstance(value, datetime.datetime) and timezone.is_aware(value):
+        value = timezone.localtime(value)
     return {
         "value": value,
         "iso": value.isoformat(),

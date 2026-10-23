@@ -1,4 +1,5 @@
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -151,6 +152,9 @@ class TestMembershipRepr:
 
 
 class TestUserPreference:
+    def test_time_zone__defaults_to_the_service_time_zone(self):
+        assert UserPreference().time_zone == settings.TIME_ZONE
+
     @pytest.mark.django_db
     def test_str__includes_user_and_time_zone(self, user):
         preference = UserPreference.objects.create(user=user, time_zone="Europe/Berlin")
