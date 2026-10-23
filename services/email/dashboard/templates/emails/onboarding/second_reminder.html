@@ -13,7 +13,7 @@
 {% block headline %}{% translate "we watch your reputation"|capfirst %}{% endblock headline %}
 
 {% block intro %}
-  {% blocktranslate trimmed with name=member_name %}
+  {% blocktranslate trimmed with name=short_name %}
     Quick check, {{ name }}: relay scans every outgoing message for spam, never mails an address that bounced or
     complained, and hears from the big providers when someone marks a message as spam. One bad send does not sink your
     domain.
