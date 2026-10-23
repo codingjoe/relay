@@ -30,7 +30,7 @@ class HttpHeaderRemoteUserMiddleware(RemoteUserMiddleware):
 
 
 class UserTimeZoneMiddleware:
-    """Activate the signed-in user's time zone for the request."""
+    """Activate the signed-in user's time zone before rendering."""
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -42,15 +42,8 @@ class UserTimeZoneMiddleware:
         finally:
             timezone.deactivate()
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        view_class = getattr(view_func, "view_class", None)
-        # Public pages stay identical for every visitor, so they must not read the session.
-        is_public = getattr(view_class, "cache_control", {}).get("public", False)
-        if (
-            request.session.session_key
-            and not is_public
-            and request.user.is_authenticated
-        ):
+    def process_template_response(self, request, response):
+        if request.session.accessed and request.user.is_authenticated:
             try:
                 time_zone = request.user.preference.time_zone
             except UserPreference.DoesNotExist:
@@ -60,3 +53,4 @@ class UserTimeZoneMiddleware:
                     timezone.activate(zoneinfo.ZoneInfo(time_zone))
                 except ValueError, zoneinfo.ZoneInfoNotFoundError:
                     timezone.deactivate()
+        return response
