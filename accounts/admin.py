@@ -7,9 +7,15 @@ from .models import Membership, Organization
 
 @admin.register(Organization)
 class OrganizationAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
-    list_display = ["slug", "created_at", "suspended_at", "billing_is_active"]
+    list_display = [
+        "slug",
+        "created_at",
+        "suspended_at",
+        "billing_is_active",
+        "is_free",
+    ]
     search_fields = ["slug"]
-    list_filter = ["billing_is_active"]
+    list_filter = ["billing_is_active", "is_free"]
 
 
 @admin.register(Membership)

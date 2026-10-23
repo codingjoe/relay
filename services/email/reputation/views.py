@@ -79,7 +79,7 @@ class ReputationOverviewView(
     def get_context_data(self, **kwargs):
         chart = build_reputation_chart(self.org)
         volume = build_volume_chart(self.org)
-        cost = month_cost(volume["this_month_total"])
+        cost = month_cost(volume["this_month_total"], is_free=self.org.is_free)
         last = chart["rows"][-1]
         bounce_threshold = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
         complaint_threshold = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD

@@ -9,9 +9,16 @@ NBSP = "\N{NO-BREAK SPACE}"
 SAMPLE_DAYS = [980, 1420, 2310, 1750, 2640, 1880, 1500]
 
 
-def make_digest(stats=None, *, month_messages=42100, daily_counts=None, recipients=214):
+def make_digest(
+    stats=None,
+    *,
+    month_messages=42100,
+    daily_counts=None,
+    recipients=214,
+    is_free=False,
+):
     return build_digest_context(
-        Organization(slug="acme"),
+        Organization(slug="acme", is_free=is_free),
         stats=stats or make_stats(total_sent=12480, soft_bounces=17),
         month_messages=month_messages,
         daily_counts=SAMPLE_DAYS if daily_counts is None else daily_counts,
@@ -144,6 +151,14 @@ class TestWeeklyDigestEmail:
             email.html, "Complaint rate"
         )
         assert "relay suspends the organization" not in email.html
+
+    def test_render__shows_free_for_a_free_organization(self):
+        email = render(make_digest(is_free=True))
+
+        cost_card = card_containing(email.html, "Cost")
+        assert "Free &lt;3" in cost_card
+        assert "For everything you give, this one is on us." in cost_card
+        assert "28.36 EUR" not in email.html
 
     def test_render__opens_with_the_rate_that_is_over(self):
         email = render(

@@ -127,6 +127,15 @@ class TestBuildVolumeChart:
         assert chart["rows"][0]["day"] == "2026-09-01"
         assert chart["rows"][-1]["day"] == "2026-09-30"
 
+    def test_a_free_organization__has_no_free_tier_threshold(self, org):
+        org.is_free = True
+        org.save(update_fields=["is_free"])
+
+        chart = build_volume_chart(org)
+
+        assert chart["threshold"] is None
+        assert chart["subtitle"] == "Cumulative, this month and last month"
+
     def test_covers_a_short_month(self, org, monkeypatch):
         freeze_today(monkeypatch, date(2026, 2, 15))
 

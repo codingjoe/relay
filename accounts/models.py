@@ -47,13 +47,25 @@ class Organization(TimeStamped):
         default=False,
         help_text=_("Indicates whether billing is active for the organization."),
     )
+    is_free = models.BooleanField(
+        _("free service"),
+        default=False,
+        help_text=_(
+            "Free organizations pay nothing but count as billed, for example open-source projects and non-profits."
+        ),
+    )
 
     def __str__(self):
         return self.slug
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, update_fields=None, **kwargs):
         self.slug = self._meta.get_field("slug").clean(self.slug, self)
-        return super().save(*args, **kwargs)
+        if self.is_free:
+            # Free means billing enabled, so the billing checks keep working.
+            self.billing_is_active = True
+            if update_fields is not None:
+                update_fields = {*update_fields, "billing_is_active"}
+        return super().save(*args, update_fields=update_fields, **kwargs)
 
     def get_absolute_url(self):
         return reverse("accounts:org-home", kwargs={"org_slug": self.slug})
