@@ -264,6 +264,9 @@ class Message(TimeStamped):
     def __str__(self):
         return f"{self.mail_from} → {self.rcpt_to} ({self.kind})"
 
+    def __repr__(self):
+        return f"<{type(self).__name__} {self.pk}>"
+
     def get_absolute_url(self) -> str:
         model = self.content_type.model_class()
         return reverse(
@@ -622,6 +625,9 @@ class Transmission(Timing):
 
     def __str__(self):
         return f"{self.message} → {self.status}"
+
+    def __repr__(self):
+        return f"<Transmission {self.pk}>"
 
 
 class SpamCheck(Timing):

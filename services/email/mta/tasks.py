@@ -167,7 +167,7 @@ def deliver_to_webhook(message, webhook, is_test=False):
                 timeout=settings.RELAY_WEBHOOK_TIMEOUT,
             )
         except httpx.HTTPError as e:
-            logger.exception("Webhook delivery to %s failed", webhook.url)
+            logger.exception("Webhook delivery to %r failed", webhook)
             timer.status = timer.Status.FAILED
             timer.response_body = str(e)[:2000]
             return False, 0

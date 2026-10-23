@@ -237,7 +237,7 @@ class TestDeliverMessage:
         assert stored_certificate.issuer_certificate is None
         assert list(stored_certificate.chain()) == [stored_certificate]
         assert (
-            f"Message {msg.id} to {msg.rcpt_to} delivered via 'mx.example.com' "
+            f"Message {msg!r} delivered via 'mx.example.com' "
             "from 198.51.100.25: '250 OK'" in caplog.messages
         )
 
@@ -290,7 +290,7 @@ class TestDeliverMessage:
                 "services.email.msa.tasks.aiosmtplib.SMTP",
                 side_effect=OSError("Network is unreachable"),
             ),
-            caplog.at_level(logging.WARNING),
+            caplog.at_level(logging.INFO),
             pytest.raises(TemporaryDeliveryError, match="Network is unreachable"),
         ):
             deliver_message.func(message_id=str(msg.id))
@@ -301,11 +301,8 @@ class TestDeliverMessage:
         assert transmission.status == Transmission.Status.FAILED
         assert transmission.local_ip_address == "198.51.100.7"
         assert transmission.remote_ip_address is None
-        assert (
-            f"Message {msg.id} to {msg.rcpt_to} failed, relay retries: "
-            "mx.example.com from 198.51.100.7: OSError: Network is unreachable"
-            in caplog.messages
-        )
+        assert f"Message {msg!r} failed, relay retries" in caplog.messages
+        assert "OSError: Network is unreachable" in caplog.text
 
     def test_deliver_message__bounce_records_pool_address(
         self, user, org, dns_resolver, settings, caplog
@@ -339,7 +336,7 @@ class TestDeliverMessage:
         assert transmission.status == Transmission.Status.BOUNCED
         assert transmission.local_ip_address == "198.51.100.7"
         assert (
-            f"Message {msg.id} to {msg.rcpt_to} bounced at 'mx.example.com' "
+            f"Message {msg!r} bounced at 'mx.example.com' "
             "from 198.51.100.7: '550 5.1.1 User unknown'" in caplog.messages
         )
 
@@ -381,7 +378,7 @@ class TestDeliverMessage:
         assert transmission.local_ip_address == "198.51.100.7"
         assert transmission.remote_ip_address == "203.0.113.10"
         assert (
-            f"Message {msg.id} to {msg.rcpt_to} delivered via 'mx.example.com' "
+            f"Message {msg!r} delivered via 'mx.example.com' "
             "from 198.51.100.7: '250 OK'" in caplog.messages
         )
 
@@ -747,7 +744,7 @@ class TestDeliverMessage:
                 "services.email.msa.tasks.aiosmtplib.SMTP",
                 side_effect=aiosmtplib.SMTPRecipientsRefused([refusal]),
             ) as mock_smtp,
-            caplog.at_level(logging.WARNING),
+            caplog.at_level(logging.INFO),
             pytest.raises(TemporaryDeliveryError),
         ):
             deliver_message.func(message_id=str(msg.id))
@@ -776,11 +773,8 @@ class TestDeliverMessage:
                 "451 4.2.1 Try again later",
             ),
         }
-        assert (
-            f"Message {msg.id} to {msg.rcpt_to} failed, relay retries: "
-            "mx1.example.com: 451 4.2.1 Try again later; "
-            "mx2.example.com: 451 4.2.1 Try again later"
-        ) in caplog.messages
+        assert f"Message {msg!r} failed, relay retries" in caplog.messages
+        assert "451 4.2.1 Try again later" in caplog.text
 
     def test_deliver_message__unexpected_refusal_retries(self, user, org, dns_resolver):
         domain = Domain.objects.create(name="example.com", org=org)

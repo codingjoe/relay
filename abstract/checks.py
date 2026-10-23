@@ -10,6 +10,7 @@ from django.db.models import (
     FileField,
     ForeignKey,
     ManyToManyField,
+    Model,
     UniqueConstraint,
     UUIDField,
 )
@@ -139,4 +140,39 @@ def check_admin_related_fields_use_autocomplete(app_configs, **kwargs):
                 )
             )
         )
+    return warnings
+
+
+def first_model_definition(model, name):
+    """Return the nearest class before Django's Model that defines name."""
+    for klass in model.__mro__:
+        if klass in (object, Model):
+            return None
+        if name in klass.__dict__:
+            return klass
+    return None
+
+
+@register()
+def check_models_with_str_define_repr(app_configs, **kwargs):
+    """Warn when a model's custom __str__ has no custom __repr__."""
+    warnings = []
+    warnings.extend(
+        Warning(
+            f"{model._meta.label} defines __str__ without __repr__.",
+            hint=(
+                "Django's default __repr__ calls __str__, so a log line "
+                "can expose personal data. Define __repr__ to return an "
+                "identifier such as the primary key."
+            ),
+            obj=model,
+            id="abstract.W005",
+        )
+        for model in apps.get_models()
+        if (
+            is_first_party(model._meta.app_config)
+            and first_model_definition(model, "__str__") is not None
+            and first_model_definition(model, "__repr__") is None
+        )
+    )
     return warnings

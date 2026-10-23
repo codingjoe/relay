@@ -70,6 +70,13 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Always include explicit `update_fields=` to avoid race conditions and be explicit.
 - Use `force_insert=True` when creating a new instance.
 
+## Model methods
+
+- A model that defines `__str__` must also define `__repr__`, or inherit one
+  from a base class. Django's default repr calls `__str__`, so a log line can
+  expose addresses and other personal data. The `abstract.W005` system check
+  enforces this.
+
 ## Functions
 
 - Function names must be descriptive, not ambiguous.

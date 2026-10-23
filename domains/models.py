@@ -226,6 +226,9 @@ class Domain(TimeStamped):
     def __str__(self):
         return f"{self.name} (managed)" if self.is_managed else self.name
 
+    def __repr__(self):
+        return f"<Domain {self.pk}>"
+
     class Meta(TimeStamped.Meta):
         indexes = [
             models.Index(Lower("name"), name="domain_name_lower_idx"),

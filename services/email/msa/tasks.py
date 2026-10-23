@@ -147,8 +147,8 @@ def deliver_message(message_id):
     message = OutgoingMessage.objects.select_related("domain", "org").get(pk=message_id)
     if message.status != OutgoingMessage.Status.PENDING:
         logger.error(
-            "Message %s is %s, relay transmits pending messages only",
-            message.id,
+            "Message %r is %s, relay transmits pending messages only",
+            message,
             message.status,
         )
         return
@@ -159,18 +159,13 @@ def deliver_message(message_id):
     started_at = timezone.now()  # a start stamped before the block is kept
     try:
         send_outgoing_message(message)
-    except TemporaryDeliveryError as error:
-        logger.warning(
-            "Message %s to %s failed, relay retries: %s",
-            message.id,
-            message.rcpt_to,
-            error,
-        )
+    except TemporaryDeliveryError:
+        logger.info("Message %r failed, relay retries", message, exc_info=True)
         raise
     except (AmbiguousSenderDomainError, SenderDomainMismatchError) as error:
         # A sender domain that does not resolve to the org's root domain is a
         # configuration problem, so no retry can fix it.
-        logger.exception("Message %s has a sender domain relay cannot use", message.id)
+        logger.exception("Message %r has a sender domain relay cannot use", message)
         record_failed_attempt(message, started_at, error)
         message.status = OutgoingMessage.Status.FAILED
         message.save(update_fields=["status"])
@@ -258,9 +253,8 @@ def send_outgoing_message(message):
     status, failure = deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path)
     if failure and not message.is_sandbox:
         logger.error(
-            "Message %s to %s could not be delivered: %s",
-            message.id,
-            message.rcpt_to,
+            "Message %r could not be delivered: %s",
+            message,
             failure,
         )
     message.status = status
@@ -296,9 +290,8 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
             allowed, reason = MtaStsPolicy.get(rcpt_domain).allows(mx_host)
             if not allowed:
                 logger.warning(
-                    "MTA-STS blocked message %s to %s via %r: %s",
-                    message.id,
-                    message.rcpt_to,
+                    "MTA-STS blocked message %r via %r: %s",
+                    message,
                     mx_host,
                     reason,
                 )
@@ -329,9 +322,8 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                         # A permanent rejection suppresses the recipient address.
                         record_bounce(message, transmission, code, output, mx_host)
                         logger.warning(
-                            "Message %s to %s bounced at %r from %s: %r",
-                            message.id,
-                            message.rcpt_to,
+                            "Message %r bounced at %r from %s: %r",
+                            message,
                             mx_host,
                             transmission.local_ip_address or "-",
                             output,
@@ -361,9 +353,8 @@ def deliver_via_mx_hosts(message, mx_hosts, raw_bytes, return_path):
                 transmission.tls_cipher = tls_details["tls_cipher"]
                 transmission.tls_certificate = tls_details["tls_certificate"]
                 logger.info(
-                    "Message %s to %s delivered via %r from %s: %r",
-                    message.id,
-                    message.rcpt_to,
+                    "Message %r delivered via %r from %s: %r",
+                    message,
                     mx_host,
                     transmission.local_ip_address or "-",
                     response,
@@ -704,17 +695,16 @@ def parse_bounce_report(message_pk):
                     logger.warning(
                         "Bounce DSN %r does not apply to outgoing message %r in status %r",
                         message_pk,
-                        owner.pk,
+                        owner,
                         owner.status,
                     )
                 case DsnAction.FAILED | DsnAction.DELAYED if (
                     delivery_status.final_recipient.lower() != owner.rcpt_to.lower()
                 ):
                     logger.warning(
-                        "Bounce DSN %r does not report recipient %r of outgoing message %r",
+                        "Bounce DSN %r does not report recipient of outgoing message %r",
                         message_pk,
-                        owner.rcpt_to,
-                        owner.pk,
+                        owner,
                     )
                 case DsnAction.DELAYED if Transmission.objects.filter(
                     message=owner, status=Transmission.Status.RETRY
@@ -722,7 +712,7 @@ def parse_bounce_report(message_pk):
                     logger.warning(
                         "Bounce DSN %r repeats a recorded retry for outgoing message %r",
                         message_pk,
-                        owner.pk,
+                        owner,
                     )
                 case DsnAction.FAILED:
                     with Transmission(

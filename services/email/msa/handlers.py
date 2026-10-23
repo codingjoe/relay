@@ -302,7 +302,7 @@ def process_message(
         # Suppressed mail never leaves relay, so relay mints no Feedback-ID
         # and the stored copy carries none.
         raw_bytes = remove_feedback_id_headers(raw_bytes)
-        store_outgoing_message(
+        message = store_outgoing_message(
             org=credential.org,
             rcpt_to=rcpt_to,
             mail_from=mail_from,
@@ -314,7 +314,7 @@ def process_message(
             raw_bytes=raw_bytes,
             started_at=started_at,
         )
-        logger.info("Suppressed message from %r to %r", mail_from, rcpt_to)
+        logger.info("Suppressed message %r", message)
         return "250 OK"
 
     if (

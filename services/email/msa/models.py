@@ -189,6 +189,9 @@ class SuppressionEntry(OrganizationOwned):
     def __str__(self):
         return f"{self.org} / {self.address_hash.hex()[:12]}… ({self.reason})"
 
+    def __repr__(self):
+        return f"<SuppressionEntry {self.pk}>"
+
     @classmethod
     def hash_address(cls, email) -> bytes:
         """Return the salted SHA-256 digest of a lowercased email address."""

@@ -135,6 +135,9 @@ class Webhook(OrganizationOwned):
     def __str__(self):
         return f"{self.org} / {self.name or self.url}"
 
+    def __repr__(self):
+        return f"<Webhook {self.pk}>"
+
     @property
     def mx_record(self) -> str:
         if self.domain.is_managed:
@@ -229,6 +232,9 @@ class WebhookDelivery(Timing):
 
     def __str__(self):
         return f"{self.webhook} ({self.status})"
+
+    def __repr__(self):
+        return f"<WebhookDelivery {self.pk}>"
 
 
 class TlsReport(IncomingMessage):
@@ -400,3 +406,6 @@ class TlsFailure(TimeStamped):
 
     def __str__(self):
         return f"{self.get_result_type_display()} ×{self.count} ({self.receiving_mx_hostname})"
+
+    def __repr__(self):
+        return f"<TlsFailure {self.pk}>"
