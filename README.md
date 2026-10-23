@@ -328,9 +328,9 @@ Spamhaus refuses queries from shared resolvers, so a Data Query Service key
 keeps that provider in the check. Get one at
 <https://portal.spamhaus.com/auth/account-setup?ps=free_dqs_product>.
 
-| Variable             | Default  | Description                                    |
-| -------------------- | -------- | ---------------------------------------------- |
-| `RELAY_SPAMHAUS_KEY` | _(none)_ | Spamhaus Data Query Service key, never printed |
+| Variable       | Default  | Description                                    |
+| -------------- | -------- | ---------------------------------------------- |
+| `SPAMHAUS_KEY` | _(none)_ | Spamhaus Data Query Service key, never printed |
 
 ### Tech Stack
 

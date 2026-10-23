@@ -60,7 +60,7 @@ repo root.
   <https://portal.spamhaus.com/auth/account-setup?ps=free_dqs_product>.
 - [ ] Store it:
   ```bash
-  dotenvx set RELAY_SPAMHAUS_KEY "<key>" -f .env.production
+  dotenvx set SPAMHAUS_KEY "<key>" -f .env.production
   ```
 
 ## Deploy

@@ -202,7 +202,7 @@ class TestDnsBlocklistSpamhausKey:
     )
 
     async def test_lookup__queries_the_keyed_zone(self, settings):
-        settings.RELAY_SPAMHAUS_KEY = "key123"
+        settings.SPAMHAUS_KEY = "key123"
         resolver = RecordingResolver()
         await DnsBlocklist(address="192.0.2.1").lookup(
             self.provider, "1.2.0.192", resolver
@@ -210,7 +210,7 @@ class TestDnsBlocklistSpamhausKey:
         assert resolver.queries == ["1.2.0.192.key123.zen.dq.spamhaus.net"]
 
     async def test_lookup__queries_the_plain_zone_without_a_key(self, settings):
-        settings.RELAY_SPAMHAUS_KEY = ""
+        settings.SPAMHAUS_KEY = ""
         resolver = RecordingResolver()
         await DnsBlocklist(address="192.0.2.1").lookup(
             self.provider, "1.2.0.192", resolver
@@ -218,7 +218,7 @@ class TestDnsBlocklistSpamhausKey:
         assert resolver.queries == ["1.2.0.192.zen.dq.spamhaus.net"]
 
     async def test_lookup__keeps_the_key_out_of_a_listing(self, settings):
-        settings.RELAY_SPAMHAUS_KEY = "key123"
+        settings.SPAMHAUS_KEY = "key123"
         resolver = RecordingResolver(
             answers=[types.SimpleNamespace(address="127.0.0.2")]
         )

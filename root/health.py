@@ -98,9 +98,7 @@ class DnsBlocklist(HealthCheck):
         default=(
             BlocklistProvider(
                 "Spamhaus ZEN",
-                "zen.dq.spamhaus.net"
-                if settings.RELAY_SPAMHAUS_KEY
-                else "zen.spamhaus.org",
+                "zen.dq.spamhaus.net" if settings.SPAMHAUS_KEY else "zen.spamhaus.org",
                 frozendict(
                     {
                         "127.0.0.2": "SBL, spam source",
@@ -166,8 +164,8 @@ class DnsBlocklist(HealthCheck):
 
     async def lookup(self, provider, reversed_address, resolver):
         zone = provider.zone
-        if provider.keyed_zone and settings.RELAY_SPAMHAUS_KEY:
-            zone = provider.keyed_zone.format(key=settings.RELAY_SPAMHAUS_KEY)
+        if provider.keyed_zone and settings.SPAMHAUS_KEY:
+            zone = provider.keyed_zone.format(key=settings.SPAMHAUS_KEY)
         query = f"{reversed_address}.{zone}"
         issue = None
         try:

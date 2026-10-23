@@ -445,7 +445,7 @@ RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7
 RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
 # Keeps Spamhaus answering from a shared resolver, see
 # https://docs.spamhaus.com/datasets/docs/source/70-access-methods/data-query-service/040-dqs-queries.html
-RELAY_SPAMHAUS_KEY = env("RELAY_SPAMHAUS_KEY", default="")
+SPAMHAUS_KEY = env("SPAMHAUS_KEY", default="")
 
 RELAY_FREE_MONTHLY_MESSAGES = env.int("RELAY_FREE_MONTHLY_MESSAGES", default=1000)
 RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.69)
