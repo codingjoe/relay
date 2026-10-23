@@ -1,4 +1,9 @@
+import zoneinfo
+
 from django.contrib.auth.middleware import RemoteUserMiddleware
+from django.utils import timezone
+
+from .models import UserPreference
 
 
 class HttpHeaderRemoteUserMiddleware(RemoteUserMiddleware):
@@ -22,3 +27,30 @@ class HttpHeaderRemoteUserMiddleware(RemoteUserMiddleware):
             return request.META[self.header]
         except KeyError:
             return self.REMOTE_USER_NAME
+
+
+class UserTimeZoneMiddleware:
+    """Activate the signed-in user's time zone before rendering."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        timezone.deactivate()
+        try:
+            return self.get_response(request)
+        finally:
+            timezone.deactivate()
+
+    def process_template_response(self, request, response):
+        if request.session.accessed and request.user.is_authenticated:
+            try:
+                time_zone = request.user.preference.time_zone
+            except UserPreference.DoesNotExist:
+                time_zone = ""
+            if time_zone:
+                try:
+                    timezone.activate(zoneinfo.ZoneInfo(time_zone))
+                except ValueError, zoneinfo.ZoneInfoNotFoundError:
+                    timezone.deactivate()
+        return response

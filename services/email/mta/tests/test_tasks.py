@@ -67,7 +67,11 @@ class TestWebhookEventFromTest:
         before = int(time.time())
         event = WebhookEvent.from_message(None, is_test=True)
         after = int(time.time())
-        ts = time.mktime(time.strptime(event.received_at, "%Y-%m-%dT%H:%M:%SZ"))
+        ts = (
+            datetime.datetime.strptime(event.received_at, "%Y-%m-%dT%H:%M:%SZ")
+            .replace(tzinfo=datetime.UTC)
+            .timestamp()
+        )
         assert before <= ts <= after
 
 

@@ -149,6 +149,12 @@
                 </a>
               </div>
               <div role="menuitem">
+                <a href="{% url 'accounts:preference-update' %}">
+                  {% tabler name="world" size="3.5" %}
+                  {% translate "localization"|capfirst context "noun" %}
+                </a>
+              </div>
+              <div role="menuitem">
                 <a href="{% url 'django_letter_notifications:settings' %}">
                   {% tabler name="bell" size="3.5" %}
                   {% translate "notifications"|capfirst context "noun" %}

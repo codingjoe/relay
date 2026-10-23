@@ -73,10 +73,9 @@ def test_send_time__waits_for_the_next_weekday_morning():
     friday = timezone.now().replace(
         year=2026, month=10, day=23, hour=14, minute=30, second=0, microsecond=0
     )
+    expected = timezone.localtime(friday).replace(day=26, hour=9, minute=0)
 
-    assert send_time(friday, datetime.timedelta(days=1)) == friday.replace(
-        day=26, hour=9, minute=0
-    )
+    assert send_time(friday, datetime.timedelta(days=1)) == expected
 
 
 @pytest.mark.django_db

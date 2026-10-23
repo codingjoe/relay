@@ -246,3 +246,25 @@ class Credential(OrganizationOwned):
             self.save(update_fields=["last_used_at", "modified_at"])
             return True
         return False
+
+
+class UserPreference(models.Model):
+    """Store one user's localization choices."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="preference",
+    )
+    time_zone = models.TextField(
+        _("time zone"),
+        blank=True,
+        default="",
+        help_text=_("Time zone used to display dates. Empty uses the service default."),
+    )
+
+    def __str__(self):
+        return f"{self.user} / {self.time_zone or _('default')}"
+
+    def __repr__(self):
+        return f"<UserPreference {self.pk}>"

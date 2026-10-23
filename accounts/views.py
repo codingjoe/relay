@@ -1,3 +1,6 @@
+import zoneinfo
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
@@ -5,6 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
 from django.forms import (
     CharField,
+    ChoiceField,
     ModelForm,
     SlugField,
     TextInput,
@@ -17,7 +21,7 @@ from django.views import generic
 
 from abstract.views import BreadcrumbViewMixin, NoStoreCacheMixin
 
-from .models import Membership, Organization
+from .models import Membership, Organization, UserPreference
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
@@ -334,3 +338,61 @@ class MembershipUpdateView(
             % {"user": self.object.user.username, "role": form.cleaned_data["role"]},
         )
         return super().form_valid(form)
+
+
+def get_time_zone_choices():
+    """Return the available time zones grouped by region."""
+    groups = {}
+    for name in sorted(zoneinfo.available_timezones()):
+        region = name.partition("/")[0] if "/" in name else ""
+        groups.setdefault(region, []).append((name, name))
+    other = groups.pop("", [])
+    choices = [
+        (region.replace("_", " "), zones) for region, zones in sorted(groups.items())
+    ]
+    if other:
+        choices.append((_("Other"), other))
+    return choices
+
+
+class UserPreferenceForm(ModelForm):
+    time_zone = ChoiceField(
+        label=_("time zone"),
+        required=False,
+        choices=[
+            ("", _("Default (%(time_zone)s)") % {"time_zone": settings.TIME_ZONE}),
+            *get_time_zone_choices(),
+        ],
+        help_text=_(
+            "Time zone used to display dates. Choose the default to follow the service."
+        ),
+    )
+
+    class Meta:
+        model = UserPreference
+        fields = ["time_zone"]
+
+
+class UserPreferenceUpdateView(LoginRequiredMixin, NoStoreCacheMixin, generic.FormView):
+    """Show and save the localization of the signed-in user."""
+
+    form_class = UserPreferenceForm
+    template_name = "accounts/userpreference_form.html"
+
+    def get_initial(self):
+        try:
+            time_zone = self.request.user.preference.time_zone
+        except UserPreference.DoesNotExist:
+            time_zone = ""
+        return {"time_zone": time_zone}
+
+    def form_valid(self, form):
+        UserPreference.objects.update_or_create(
+            user=self.request.user,
+            defaults={"time_zone": form.cleaned_data["time_zone"]},
+        )
+        messages.success(self.request, _("Updated your localization."))
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("accounts:preference-update")
