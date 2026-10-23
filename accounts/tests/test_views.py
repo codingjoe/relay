@@ -271,3 +271,45 @@ class TestMembershipDeleteView:
             f"/org/{write_org.slug}/settings/members/{membership.pk}/delete"
         )
         assert response.status_code == 404
+
+
+class TestUserPreferenceUpdateView:
+    def test_get__requires_login(self, client):
+        response = client.get("/account/preferences")
+        assert response.status_code == 302
+        assert "/account/login" in response.url
+
+    @pytest.mark.django_db
+    def test_get__no_store_cache_control_header(self, admin_client):
+        response = admin_client.get("/account/preferences")
+        assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.django_db
+    def test_get__shows_saved_time_zone(self, admin_client):
+        admin_client.post("/account/preferences", {"time_zone": "America/New_York"})
+        response = admin_client.get("/account/preferences")
+        assert response.context["form"]["time_zone"].value() == "America/New_York"
+
+    @pytest.mark.django_db
+    def test_post__saves_time_zone(self, admin_client):
+        response = admin_client.post(
+            "/account/preferences", {"time_zone": "America/New_York"}
+        )
+        assert response.status_code == 302
+        assert admin_client.session["django_timezone"] == "America/New_York"
+
+    @pytest.mark.django_db
+    def test_post__clears_time_zone(self, admin_client):
+        admin_client.session["django_timezone"] = "America/New_York"
+        admin_client.session.save()
+        response = admin_client.post("/account/preferences", {"time_zone": ""})
+        assert response.status_code == 302
+        assert admin_client.session["django_timezone"] == ""
+
+    @pytest.mark.django_db
+    def test_post__rejects_an_unknown_time_zone(self, admin_client):
+        response = admin_client.post(
+            "/account/preferences", {"time_zone": "Mars/Olympus"}
+        )
+        assert response.status_code == 200
+        assert "time_zone" in response.context["form"].errors

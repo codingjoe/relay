@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "localization"|capfirst context "noun" %} | relay{% endblock %}
+{% block content %}
+  <div class="max-w-xl">
+    <h2 class="mb-6">{% translate "localization"|capfirst context "noun" %}</h2>
+    <p class="text-muted-foreground mb-6">
+      {% blocktranslate trimmed %}
+        Choose how relay displays dates and times to you. Times are stored in UTC.
+      {% endblocktranslate %}
+    </p>
+
+    <form method="post">
+      {% csrf_token %}
+      <fieldset class="fieldset">
+        {{ form }}
+      </fieldset>
+      <div class="flex gap-2 mt-6">
+        <button type="submit" class="btn">{% translate "save"|capfirst context "verb" %}</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

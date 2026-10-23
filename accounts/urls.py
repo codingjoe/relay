@@ -12,6 +12,11 @@ urlpatterns = [
             [
                 path("login", views.LoginView.as_view(), name="login"),
                 path("logout", LogoutView.as_view(), name="logout"),
+                path(
+                    "preferences",
+                    views.UserPreferenceUpdateView.as_view(),
+                    name="preference-update",
+                ),
             ]
         ),
     ),
