@@ -18,6 +18,8 @@ class BlocklistProvider:
     name: str
     zone: str
     reasons: frozendict[str, str] = dataclasses.field(default_factory=frozendict)
+    # Queried when a Spamhaus key is set. The key never reaches the output.
+    keyed_zone: str = ""
 
 
 class BlocklistListing(ServiceUnavailable):
@@ -96,7 +98,9 @@ class DnsBlocklist(HealthCheck):
         default=(
             BlocklistProvider(
                 "Spamhaus ZEN",
-                "zen.spamhaus.org",
+                "zen.dq.spamhaus.net"
+                if settings.RELAY_SPAMHAUS_KEY
+                else "zen.spamhaus.org",
                 frozendict(
                     {
                         "127.0.0.2": "SBL, spam source",
@@ -110,6 +114,7 @@ class DnsBlocklist(HealthCheck):
                         "127.0.0.11": "PBL, policy blocklist",
                     }
                 ),
+                keyed_zone="{key}.zen.dq.spamhaus.net",
             ),
             BlocklistProvider("SpamCop", "bl.spamcop.net"),
             BlocklistProvider("Barracuda", "b.barracudacentral.org"),
@@ -160,7 +165,10 @@ class DnsBlocklist(HealthCheck):
             raise BlocklistWarning(self.address, message)
 
     async def lookup(self, provider, reversed_address, resolver):
-        query = f"{reversed_address}.{provider.zone}"
+        zone = provider.zone
+        if provider.keyed_zone and settings.RELAY_SPAMHAUS_KEY:
+            zone = provider.keyed_zone.format(key=settings.RELAY_SPAMHAUS_KEY)
+        query = f"{reversed_address}.{zone}"
         issue = None
         try:
             answers = await resolver.resolve(query, "A")

@@ -320,6 +320,18 @@ Return-Path is.
 | `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN`                              | The FBL ingestion mailbox. Register it with your providers.                                                      |
 | `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,aol.net,hotmail.com,outlook.com,live.com` | Provider domains whose authenticated reports are ingested, including their subdomains. Empty disables ingestion. |
 
+### Sender IP reputation
+
+The `/health/reputation/` endpoint queries public DNS blocklists for every
+address in `RELAY_SMTP_SOURCE_IPS` and answers 500 when one is listed.
+Spamhaus refuses queries from shared resolvers, so a Data Query Service key
+keeps that provider in the check. Get one at
+<https://portal.spamhaus.com/auth/account-setup?ps=free_dqs_product>.
+
+| Variable             | Default  | Description                                    |
+| -------------------- | -------- | ---------------------------------------------- |
+| `RELAY_SPAMHAUS_KEY` | _(none)_ | Spamhaus Data Query Service key, never printed |
+
 ### Tech Stack
 
 - **Django** with the task framework for async message delivery

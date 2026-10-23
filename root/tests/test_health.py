@@ -37,6 +37,16 @@ class FakeResolver:
         return self.answers
 
 
+class RecordingResolver:
+    def __init__(self, answers=()):
+        self.answers = answers
+        self.queries = []
+
+    async def resolve(self, query, record_type):
+        self.queries.append(query)
+        return self.answers
+
+
 class DummyResolver:
     async def resolve(self, query, record_type):
         raise AssertionError
@@ -181,6 +191,44 @@ class TestDnsBlocklistLookup:
         issue = await check.lookup(PROVIDER, "1.2.0.192", resolver)
         assert isinstance(issue, BlocklistListing)
         assert issue.message == "Listed on Example (example.test)"
+
+
+class TestDnsBlocklistSpamhausKey:
+    provider = BlocklistProvider(
+        "Spamhaus ZEN",
+        "zen.dq.spamhaus.net",
+        frozendict({"127.0.0.2": "SBL, spam source"}),
+        keyed_zone="{key}.zen.dq.spamhaus.net",
+    )
+
+    async def test_lookup__queries_the_keyed_zone(self, settings):
+        settings.RELAY_SPAMHAUS_KEY = "key123"
+        resolver = RecordingResolver()
+        await DnsBlocklist(address="192.0.2.1").lookup(
+            self.provider, "1.2.0.192", resolver
+        )
+        assert resolver.queries == ["1.2.0.192.key123.zen.dq.spamhaus.net"]
+
+    async def test_lookup__queries_the_plain_zone_without_a_key(self, settings):
+        settings.RELAY_SPAMHAUS_KEY = ""
+        resolver = RecordingResolver()
+        await DnsBlocklist(address="192.0.2.1").lookup(
+            self.provider, "1.2.0.192", resolver
+        )
+        assert resolver.queries == ["1.2.0.192.zen.dq.spamhaus.net"]
+
+    async def test_lookup__keeps_the_key_out_of_a_listing(self, settings):
+        settings.RELAY_SPAMHAUS_KEY = "key123"
+        resolver = RecordingResolver(
+            answers=[types.SimpleNamespace(address="127.0.0.2")]
+        )
+        issue = await DnsBlocklist(address="192.0.2.1").lookup(
+            self.provider, "1.2.0.192", resolver
+        )
+        assert "key123" not in issue.message
+        assert issue.message == (
+            "Listed on Spamhaus ZEN (zen.dq.spamhaus.net): SBL, spam source"
+        )
 
 
 class TestDnsBlocklistRun:

@@ -54,6 +54,15 @@ repo root.
   git add .env.production && git commit -m "Add OAuth credentials" && git push
   ```
 
+## Spamhaus key
+
+- [ ] Create a Data Query Service key at
+  <https://portal.spamhaus.com/auth/account-setup?ps=free_dqs_product>.
+- [ ] Store it:
+  ```bash
+  dotenvx set RELAY_SPAMHAUS_KEY "<key>" -f .env.production
+  ```
+
 ## Deploy
 
 - [ ] Dispatch the deploy from `main`: `gh workflow run deploy.yml --ref main`.
