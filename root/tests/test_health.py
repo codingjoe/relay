@@ -88,6 +88,28 @@ class TestBlocklistLookupError:
         )
         assert error.message == "Example (example.test) lookup failed: ValueError"
 
+    def test_init__explains_a_timeout(self):
+        error = BlocklistLookupError(
+            "192.0.2.1",
+            PROVIDER,
+            dns.resolver.LifetimeTimeout(5.0, []),
+        )
+        assert (
+            error.message
+            == "Example (example.test) lookup failed: the provider did not answer "
+            "in time"
+        )
+
+    def test_init__explains_missing_nameservers(self):
+        # dnspython formats this exception from its request, which the check
+        # never reads.
+        error = dns.resolver.NoNameservers.__new__(dns.resolver.NoNameservers)
+        assert (
+            BlocklistLookupError("192.0.2.1", PROVIDER, error).message
+            == "Example (example.test) lookup failed: no nameserver answered for "
+            "the provider"
+        )
+
 
 class TestBlocklistRefusal:
     def test_init__translates_a_known_code(self):
@@ -98,8 +120,8 @@ class TestBlocklistRefusal:
         )
         assert (
             error.message
-            == "Example (example.test) refused the lookup: the query came from a "
-            "public resolver"
+            == "Example (example.test) refused the lookup: the provider rejected "
+            "the query from this resolver"
         )
 
     def test_init__falls_back_to_the_resolver_hint(self):
@@ -144,7 +166,7 @@ class TestDnsBlocklistLookup:
         )
         issue = await check.lookup(PROVIDER, "1.2.0.192", resolver)
         assert isinstance(issue, BlocklistRefusal)
-        assert "the query came from a public resolver" in issue.message
+        assert "the provider rejected the query from this resolver" in issue.message
 
     async def test_lookup__returns_a_listing(self):
         check = DnsBlocklist(address="192.0.2.1")
