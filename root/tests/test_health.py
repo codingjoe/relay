@@ -111,8 +111,7 @@ class TestBlocklistLookupError:
         )
 
     def test_init__explains_missing_nameservers(self):
-        # dnspython formats this exception from its request, which the check
-        # never reads.
+        """Skip the request dnspython would format the message from."""
         error = dns.resolver.NoNameservers.__new__(dns.resolver.NoNameservers)
         assert (
             BlocklistLookupError("192.0.2.1", PROVIDER, error).message
