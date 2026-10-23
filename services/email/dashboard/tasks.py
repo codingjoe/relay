@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.core.mail import mailers
+from django.db.models import Q
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 from django.utils import timezone
 from django_letter.exceptions import InvalidUserError
@@ -31,7 +32,7 @@ def schedule_onboarding_emails(org_pk, from_now=False):
 
 @task(queue_name=DEFAULT_TASK_QUEUE_NAME)
 def send_onboarding_email(org_pk, stage):
-    """Mail one onboarding step to the organization's admins."""
+    """Mail one onboarding step to the organization's named admins."""
     stage = OnboardingStage(stage)
     try:
         org = Organization.objects.get(pk=org_pk)
@@ -49,6 +50,8 @@ def send_onboarding_email(org_pk, stage):
             with mailers.default as mailer:
                 for membership in (
                     org.memberships.filter(role=Membership.Role.ADMIN)
+                    # The greeting uses the short name, so skip members without one.
+                    .exclude(Q(user__first_name="") | Q(user__last_name=""))
                     .for_notification(email_class.notification)
                     .select_related("user")
                 ):

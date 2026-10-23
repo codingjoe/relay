@@ -68,7 +68,12 @@ class OnboardingEmail(TemplateEmail):
         extra_context = kwargs.setdefault("extra_context", {})
         extra_context.setdefault(
             "user",
-            get_user_model()(username="jess", email="member@acme.example"),
+            get_user_model()(
+                username="jess",
+                email="member@acme.example",
+                first_name="Jess",
+                last_name="Example",
+            ),
         )
         return super().render_preview(
             request, context=context, language=language, **kwargs
@@ -78,7 +83,8 @@ class OnboardingEmail(TemplateEmail):
         return super().get_context_data() | {
             "onboarding_steps": self.state["onboarding_steps"],
             "remaining_steps": self.state["remaining_steps"],
-            "member_name": self.extra_context["user"].username,
+            "username": self.extra_context["user"].username,
+            "short_name": self.extra_context["user"].get_short_name(),
             "free_monthly_messages": intcomma(settings.RELAY_FREE_MONTHLY_MESSAGES),
             "mcp_codex_command": (
                 f"codex mcp add relay --url {settings.MCP_RESOURCE_URL}"

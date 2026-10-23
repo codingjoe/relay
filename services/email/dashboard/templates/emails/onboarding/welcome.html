@@ -16,7 +16,7 @@
 {% block headline %}{% translate "send free, then send more"|capfirst %}{% endblock headline %}
 
 {% block intro %}
-  {% blocktranslate trimmed with name=member_name limit=free_monthly_messages|intcomma %}
+  {% blocktranslate trimmed with name=short_name limit=free_monthly_messages|intcomma %}
     Welcome aboard, {{ name }}. You get {{ limit }} free messages every month. Your app signs in, and you watch it take
     the whole walk: sandbox, signing, spam scan, delivery.
   {% endblocktranslate %}

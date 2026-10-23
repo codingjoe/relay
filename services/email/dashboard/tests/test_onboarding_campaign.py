@@ -1,5 +1,6 @@
 import datetime
 import importlib
+from email.utils import parseaddr
 
 import pytest
 from django.apps import apps
@@ -22,6 +23,22 @@ from services.email.msa.models import MsaCredential, OutgoingMessage
 REFUSED_ADDRESS = "bob@example.com"  # the other_user fixture's address
 
 
+@pytest.fixture
+def user(user):
+    user.first_name = "Alice"
+    user.last_name = "Example"
+    user.save(update_fields=["first_name", "last_name"])
+    return user
+
+
+@pytest.fixture
+def other_user(other_user):
+    other_user.first_name = "Bob"
+    other_user.last_name = "Example"
+    other_user.save(update_fields=["first_name", "last_name"])
+    return other_user
+
+
 class RefusedConnectionError(OSError):
     """A refused connection, the way a dead SMTP host raises it."""
 
@@ -38,7 +55,9 @@ class RefusedAddressEmailBackend(locmem.EmailBackend):
 
     def send_messages(self, email_messages):
         for message in email_messages:
-            if REFUSED_ADDRESS in message.to:
+            if any(
+                parseaddr(recipient)[1] == REFUSED_ADDRESS for recipient in message.to
+            ):
                 raise RefusedConnectionError
         return super().send_messages(email_messages)
 
@@ -113,7 +132,34 @@ class TestSendOnboardingEmail:
             stage=OnboardingStage.WELCOME,
         )
 
-        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        assert [parseaddr(message.to[0])[1] for message in mailoutbox] == [
+            "alice@example.com"
+        ]
+
+    @pytest.mark.parametrize(
+        "missing_field",
+        ["first_name", "last_name"],
+        ids=["no-first-name", "no-last-name"],
+    )
+    def test_send_onboarding_email__skips_an_admin_without_a_full_name(
+        self, org, other_user, mailoutbox, missing_field
+    ):
+        Membership.objects.create(
+            org=org,
+            user=other_user,
+            role=Membership.Role.ADMIN,
+        )
+        setattr(other_user, missing_field, "")
+        other_user.save(update_fields=[missing_field])
+
+        tasks.send_onboarding_email.func(
+            org_pk=org.pk,
+            stage=OnboardingStage.WELCOME,
+        )
+
+        assert [parseaddr(message.to[0])[1] for message in mailoutbox] == [
+            "alice@example.com"
+        ]
 
     def test_send_onboarding_email__leaves_a_finished_organization_alone(
         self, org, mailoutbox
@@ -157,7 +203,9 @@ class TestSendOnboardingEmail:
             stage=OnboardingStage.WELCOME,
         )
 
-        assert [message.to[0] for message in mailoutbox] == ["alice@example.com"]
+        assert [parseaddr(message.to[0])[1] for message in mailoutbox] == [
+            "alice@example.com"
+        ]
 
     def test_send_onboarding_email__drops_a_missing_organization(self, org, mailoutbox):
         tasks.send_onboarding_email.func(
@@ -233,6 +281,7 @@ def test_render_preview__fills_in_a_sample_organization_state_and_user():
     assert email.state["next_step"] == OnboardingStep.CREDENTIAL
     assert email.extra_context["user"].username == "jess"
     assert ">jess<" in email.html
+    assert "Welcome aboard, Jess" in email.html
 
 
 @pytest.mark.django_db
@@ -248,6 +297,8 @@ class TestOnboardingEmail:
 
         assert email.get_context_data()["next_step_button"] == "send test message"
         assert email.get_context_data()["onboarding_steps"][0]["done"] is False
+        assert email.get_context_data()["username"] == "alice"
+        assert email.get_context_data()["short_name"] == "Alice"
 
     def test_render_preview__keeps_the_callers_organization_state_and_user(
         self, org, user
