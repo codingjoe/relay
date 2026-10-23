@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from accounts.models import Membership, Organization
+from accounts.models import Membership, Organization, UserPreference
 
 
 @pytest.mark.django_db
@@ -285,26 +285,25 @@ class TestUserPreferenceUpdateView:
         assert response.headers["Cache-Control"] == "no-store"
 
     @pytest.mark.django_db
-    def test_get__shows_saved_time_zone(self, admin_client):
-        admin_client.post("/account/preferences", {"time_zone": "America/New_York"})
+    def test_get__shows_saved_time_zone(self, admin_client, user):
+        UserPreference.objects.create(user=user, time_zone="America/New_York")
         response = admin_client.get("/account/preferences")
         assert response.context["form"]["time_zone"].value() == "America/New_York"
 
     @pytest.mark.django_db
-    def test_post__saves_time_zone(self, admin_client):
+    def test_post__saves_time_zone(self, admin_client, user):
         response = admin_client.post(
             "/account/preferences", {"time_zone": "America/New_York"}
         )
         assert response.status_code == 302
-        assert admin_client.session["django_timezone"] == "America/New_York"
+        assert UserPreference.objects.get(user=user).time_zone == "America/New_York"
 
     @pytest.mark.django_db
-    def test_post__clears_time_zone(self, admin_client):
-        admin_client.session["django_timezone"] = "America/New_York"
-        admin_client.session.save()
+    def test_post__clears_time_zone(self, admin_client, user):
+        UserPreference.objects.create(user=user, time_zone="America/New_York")
         response = admin_client.post("/account/preferences", {"time_zone": ""})
         assert response.status_code == 302
-        assert admin_client.session["django_timezone"] == ""
+        assert UserPreference.objects.get(user=user).time_zone == ""
 
     @pytest.mark.django_db
     def test_post__rejects_an_unknown_time_zone(self, admin_client):

@@ -6,7 +6,7 @@ from django.urls import reverse
 from django_letter.notifications import Notification
 from django_letter.notifications.models import NotificationPreference
 
-from accounts.models import Membership, Organization
+from accounts.models import Membership, Organization, UserPreference
 
 test_notification = Notification("test-notifiable", "Test notification")
 opt_in_notification = Notification("test-opt-in", "Test opt-in", default=False)
@@ -148,3 +148,14 @@ class TestMembershipQuerySet:
 class TestMembershipRepr:
     def test_repr__returns_pk(self):
         assert repr(Membership(pk=1)) == "<Membership 1>"
+
+
+class TestUserPreference:
+    @pytest.mark.django_db
+    def test_str__includes_user_and_time_zone(self, user):
+        preference = UserPreference.objects.create(user=user, time_zone="Europe/Berlin")
+
+        assert str(preference) == "alice / Europe/Berlin"
+
+    def test_repr__returns_pk(self):
+        assert repr(UserPreference(pk=1)) == "<UserPreference 1>"

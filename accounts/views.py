@@ -9,7 +9,6 @@ from django.db.models import Prefetch
 from django.forms import (
     CharField,
     ChoiceField,
-    Form,
     ModelForm,
     SlugField,
     TextInput,
@@ -22,7 +21,7 @@ from django.views import generic
 
 from abstract.views import BreadcrumbViewMixin, NoStoreCacheMixin
 
-from .models import Membership, Organization
+from .models import Membership, Organization, UserPreference
 
 
 class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
@@ -356,7 +355,7 @@ def get_time_zone_choices():
     return choices
 
 
-class UserPreferenceForm(Form):
+class UserPreferenceForm(ModelForm):
     time_zone = ChoiceField(
         label=_("time zone"),
         required=False,
@@ -369,6 +368,10 @@ class UserPreferenceForm(Form):
         ),
     )
 
+    class Meta:
+        model = UserPreference
+        fields = ["time_zone"]
+
 
 class UserPreferenceUpdateView(LoginRequiredMixin, NoStoreCacheMixin, generic.FormView):
     """Show and save the localization of the signed-in user."""
@@ -377,10 +380,17 @@ class UserPreferenceUpdateView(LoginRequiredMixin, NoStoreCacheMixin, generic.Fo
     template_name = "accounts/userpreference_form.html"
 
     def get_initial(self):
-        return {"time_zone": self.request.session.get("django_timezone", "")}
+        try:
+            time_zone = self.request.user.preference.time_zone
+        except UserPreference.DoesNotExist:
+            time_zone = ""
+        return {"time_zone": time_zone}
 
     def form_valid(self, form):
-        self.request.session["django_timezone"] = form.cleaned_data["time_zone"]
+        UserPreference.objects.update_or_create(
+            user=self.request.user,
+            defaults={"time_zone": form.cleaned_data["time_zone"]},
+        )
         messages.success(self.request, _("Updated your localization."))
         return super().form_valid(form)
 
