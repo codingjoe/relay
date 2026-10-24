@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import ipaddress
+from datetime import timedelta
 
 import dns.asyncresolver
 import dns.exception
@@ -254,20 +255,36 @@ pipeline_checks = [
 ]
 
 urlpatterns = [
-    path("node/", HealthCheckView.as_view(checks=node_checks), name="health-node"),
+    path(
+        "node/",
+        HealthCheckView.as_view(checks=node_checks, allow_anonymous=True),
+        name="health-node",
+    ),
     path(
         "application/",
-        HealthCheckView.as_view(checks=application_checks),
+        HealthCheckView.as_view(
+            checks=application_checks,
+            max_age=timedelta(seconds=30),
+            allow_anonymous=True,
+        ),
         name="health-application",
     ),
     path(
         "reputation/",
-        ReputationHealthCheckView.as_view(checks=reputation_checks),
+        ReputationHealthCheckView.as_view(
+            checks=reputation_checks,
+            max_age=timedelta(seconds=30),
+            allow_anonymous=True,
+        ),
         name="health-reputation",
     ),
     path(
         "pipeline/",
-        HealthCheckView.as_view(checks=pipeline_checks),
+        HealthCheckView.as_view(
+            checks=pipeline_checks,
+            max_age=timedelta(seconds=30),
+            allow_anonymous=True,
+        ),
         name="health-pipeline",
     ),
 ]

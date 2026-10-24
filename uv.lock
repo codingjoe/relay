@@ -580,21 +580,19 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.10.0"
+version = "4.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
+    { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a4/0c/1a1f61b3899de48a46d93951c7a99493716987387ee70e30ba10f7ebbe41/django_health_check-4.10.0.tar.gz", hash = "sha256:ade209858e5fe4154e252ad5b37c1c57cf5e0752f2fb1366eaf47cdf995fefb1", size = 24765, upload-time = "2026-10-10T22:27:42.388Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/e6/2fedd1bdfa09792c1030c1fa670803c76ab6934afeb7ef762deafa3491e9/django_health_check-4.11.0.tar.gz", hash = "sha256:b81090e196610c176ea78a986633e33bfb5c2a20598e6580b82d88489bf787fc", size = 26951, upload-time = "2026-10-24T18:23:47.828Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/db/fdd01f7ea2e8e6221f9c100be616caf462eeaef7ffb7a9634448510751d0/django_health_check-4.10.0-py3-none-any.whl", hash = "sha256:2cd841b2cf9eab706b8146ed098afda1312c778895db008c7e9d68e0343a9966", size = 30889, upload-time = "2026-10-10T22:27:40.855Z" },
+    { url = "https://files.pythonhosted.org/packages/74/69/6d81933155f987708b60dab510cb6744856a6d00a3ad792fc65a66b3689f/django_health_check-4.11.0-py3-none-any.whl", hash = "sha256:afab6dbe01db496c81ce7372f61aca485c19103fcd3ae444796b7ea264a3671b", size = 33564, upload-time = "2026-10-24T18:23:46.615Z" },
 ]
 
 [package.optional-dependencies]
-atlassian = [
-    { name = "httpx" },
-]
 crontask = [
     { name = "django-crontask", extra = ["redis"] },
     { name = "redis" },
@@ -607,7 +605,6 @@ redis = [
 ]
 rss = [
     { name = "feedparser" },
-    { name = "httpx" },
 ]
 threadmill = [
     { name = "threadmill", extra = ["redis"] },
@@ -1771,7 +1768,7 @@ dependencies = [
     { name = "django-crontask" },
     { name = "django-environ" },
     { name = "django-esm" },
-    { name = "django-health-check", extra = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"] },
+    { name = "django-health-check", extra = ["crontask", "psutil", "redis", "rss", "threadmill"] },
     { name = "django-hijack" },
     { name = "django-letter" },
     { name = "django-storages", extra = ["s3"] },
@@ -1837,7 +1834,7 @@ requires-dist = [
     { name = "django-crontask", specifier = ">=2.0.1" },
     { name = "django-environ", specifier = ">=0.14" },
     { name = "django-esm", specifier = ">=0.11" },
-    { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.8" },
+    { name = "django-health-check", extras = ["atlassian", "crontask", "psutil", "redis", "rss", "threadmill"], specifier = ">=4.11" },
     { name = "django-hijack", specifier = ">=3.8" },
     { name = "django-letter", specifier = ">=0.10" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
