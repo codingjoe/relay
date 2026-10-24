@@ -173,6 +173,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   their long forms: SPF, DKIM, DMARC, MX, SMTP, PTR.
 - Do not wrap technical protocol terms in `gettext`, for example STARTTLS,
   TLS, or plaintext. They read the same in every language.
+- Do not prefix settings with the project name. Write `PLATFORM_DOMAIN`, not
+  `RELAY_PLATFORM_DOMAIN`. The project is the only consumer of its settings,
+  so the prefix is noise. Environment variables follow the same rule.
 
 ## Templates & UI
 
@@ -448,7 +451,7 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Write `docs/docs` for relay users, not developers. Describe behavior and
   configuration in product terms: the platform domain, the dashboard, a
-  submission host. Internal names such as `RELAY_*` belong in
+  submission host. Internal names such as `PLATFORM_DOMAIN` belong in
   `README.md`.
 
 ## Kubernetes manifests

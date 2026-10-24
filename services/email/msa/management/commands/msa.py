@@ -17,8 +17,8 @@ class Command(BaseCommand):
             "--ports",
             nargs="+",
             type=int,
-            default=[*settings.RELAY_SMTP_SUBMISSION_PORTS],
-            help="Listen ports (defaults to RELAY_SMTP_SUBMISSION_PORTS)",
+            default=[*settings.SMTP_SUBMISSION_PORTS],
+            help="Listen ports (defaults to SMTP_SUBMISSION_PORTS)",
         )
 
     def handle(self, *args, host, ports, **options):
@@ -29,9 +29,9 @@ class Command(BaseCommand):
         run_smtp_server(
             host=host,
             ports=ports,
-            implicit_tls_ports=settings.RELAY_SMTP_IMPLICIT_TLS_PORTS,
-            tls_cert_path=settings.RELAY_SMTP_TLS_CERT_PATH,
-            tls_key_path=settings.RELAY_SMTP_TLS_KEY_PATH,
-            proxy_protocol_timeout=settings.RELAY_PROXY_PROTOCOL_TIMEOUT,
-            balancer_port=settings.RELAY_SMTP_BALANCER_PORT,
+            implicit_tls_ports=settings.SMTP_IMPLICIT_TLS_PORTS,
+            tls_cert_path=settings.SMTP_TLS_CERT_PATH,
+            tls_key_path=settings.SMTP_TLS_KEY_PATH,
+            proxy_protocol_timeout=settings.PROXY_PROTOCOL_TIMEOUT,
+            balancer_port=settings.SMTP_BALANCER_PORT,
         )

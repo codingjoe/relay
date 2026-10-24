@@ -65,7 +65,7 @@ class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.Deta
         return super().get_context_data(**kwargs) | {
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "dkim_cnames": self.object.dkim_cnames,
-            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
+            "mx_hostnames": settings.DNS_MX_HOSTNAMES,
             "mx_priority": resolver.DNSResolver.MX_PRIORITY,
         }
 
@@ -155,14 +155,14 @@ class MtaStsPolicyView(generic.DetailView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
-            "mta_sts_mode": settings.RELAY_MTA_STS_MODE,
-            "mta_sts_max_age": settings.RELAY_MTA_STS_MAX_AGE,
-            "mx_hostnames": settings.RELAY_DNS_MX_HOSTNAMES,
+            "mta_sts_mode": settings.MTA_STS_MODE,
+            "mta_sts_max_age": settings.MTA_STS_MAX_AGE,
+            "mx_hostnames": settings.DNS_MX_HOSTNAMES,
         }
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
-        response["Cache-Control"] = f"public, max-age={settings.RELAY_MTA_STS_MAX_AGE}"
+        response["Cache-Control"] = f"public, max-age={settings.MTA_STS_MAX_AGE}"
         response["Vary"] = "Host"
         return response
 
@@ -183,7 +183,7 @@ class MtaStsAuthorizeView(NoStoreCacheMixin, generic.View):
                     domain = None
         # A row below the platform domain bypasses the name validation, so
         # only relay's own managed domains are valid hosts there.
-        platform = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+        platform = canonicalize_domain_name(settings.PLATFORM_DOMAIN)
         authorized = (
             domain is not None
             and host == f"mta-sts.{domain.name}"

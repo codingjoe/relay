@@ -43,7 +43,7 @@ def parse_signatures(signed):
 def make_platform_domain(org, **dkim_keys):
     """Create the platform Domain row with explicit keys."""
     domain = Domain.objects.create(
-        name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+        name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
         org=org,
     )
     if dkim_keys:

@@ -43,7 +43,7 @@ class TestHomeViewRender:
 
 class TestHomeViewPricing:
     def test_get__shows_the_configured_free_tier(self, client, settings):
-        settings.RELAY_FREE_MONTHLY_MESSAGES = 2000
+        settings.FREE_MONTHLY_MESSAGES = 2000
 
         text = " ".join(client.get("/").content.decode().split())
 
@@ -53,7 +53,7 @@ class TestHomeViewPricing:
         assert '<span id="price-volume">2,000</span>' in text
 
     def test_get__shows_a_changed_price(self, client, settings):
-        settings.RELAY_PRICE_PER_1000_MESSAGES = 2.5
+        settings.PRICE_PER_1000_MESSAGES = 2.5
 
         text = " ".join(client.get("/").content.decode().split())
 

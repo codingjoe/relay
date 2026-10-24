@@ -75,7 +75,7 @@ def received_header(session) -> bytes:
     if ip := get_client_ip(session):
         received += f" ([{ip}])"
     received += (
-        f"\r\n\tby {settings.RELAY_DNS_MX_HOSTNAMES[0]} with {protocol};\r\n\t"
+        f"\r\n\tby {settings.DNS_MX_HOSTNAMES[0]} with {protocol};\r\n\t"
         + formatdate(usegmt=True)
     )
     return f"Received: {received}".encode()
@@ -86,7 +86,7 @@ def is_fbl_report(evaluation: DmarcEvaluation) -> bool:
     domain = (evaluation.header_from or "").lower().rstrip(".")
     if not any(
         domain == allowed or domain.endswith(f".{allowed}")
-        for allowed in settings.RELAY_FBL_SENDER_DOMAINS
+        for allowed in settings.FBL_SENDER_DOMAINS
     ):
         return False
     if evaluation.dmarc_authenticated:
@@ -200,16 +200,14 @@ def process_incoming_message(
     msg = message_from_bytes(raw_bytes)
     rcpt_domain = rcpt_to.split("@")[-1] if "@" in rcpt_to else ""
     local_part = rcpt_to.split("@", 1)[0].lower() if "@" in rcpt_to else ""
-    is_fbl_recipient = rcpt_to.lower().rstrip(".") == settings.RELAY_FBL_ADDRESS
+    is_fbl_recipient = rcpt_to.lower().rstrip(".") == settings.FBL_ADDRESS
     subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
     started_at = timezone.now()
     remote_host = resolve_remote_host(client_ip)
 
     match local_part:
-        case (
-            settings.RELAY_DMARC_REPORT_LOCAL_PART | settings.RELAY_DMARC_RUF_LOCAL_PART
-        ):
+        case settings.DMARC_REPORT_LOCAL_PART | settings.DMARC_RUF_LOCAL_PART:
             # DMARC reports belong to the dmarc app; dispatch via signal so
             # mta does not depend on it.
             responses = report_received.send(
@@ -231,7 +229,7 @@ def process_incoming_message(
             if any(r is not None for _, r in responses):
                 return "250 OK"
 
-        case settings.RELAY_TLS_REPORT_LOCAL_PART:
+        case settings.TLS_REPORT_LOCAL_PART:
             with Transmission.record_reception(
                 tls, started_at, client_ip, local_ip, remote_host
             ) as reception:
@@ -272,7 +270,7 @@ def process_incoming_message(
             return "250 OK"
 
         case _ if local_part.startswith(
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+"
+            f"{settings.BOUNCE_LOCAL_PART}+"
         ) and is_delivery_status_notification(msg):
             with Transmission.record_reception(
                 tls, started_at, client_ip, local_ip, remote_host

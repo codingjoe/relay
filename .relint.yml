@@ -154,6 +154,10 @@
     reload the module with `importlib.reload` instead of importing
     inside a function.
   filePattern: '(?!.*(?:/tasks\.py$|/apps\.py$|/settings\.py$|manage\.py$)).*\.py$'
+- name: Settings carry no project prefix
+  pattern: '\bRELAY_[A-Z0-9_]+\b'
+  hint: 'The project is the only consumer of its settings, so the `RELAY_` prefix adds nothing. Name the setting after what it configures, for example `PLATFORM_DOMAIN`. Provisioning inputs such as `RELAY_HOSTNAME` stay in shell scripts.'
+  filePattern: '.*\.py$'
 - name: No code references in user docs
   pattern: '(?i)\bRELAY_[A-Z_]+\b'
   hint: 'docs/docs pages are for relay users, not developers. Replace environment variable and setting names with product wording (the platform domain, the submission host, the dashboard). Internal names live in README.md.'

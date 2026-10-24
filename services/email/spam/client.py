@@ -113,7 +113,7 @@ class SpamResult:
 async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
     """Return the rspamd score and action for a raw message."""
     headers = {
-        "Password": settings.RELAY_RSPAMD_PASSWORD,
+        "Password": settings.RSPAMD_PASSWORD,
         # Symbol timings come back only for profiled tasks, see
         # https://docs.rspamd.com/developers/protocol/
         "Profile": "yes",
@@ -122,7 +122,7 @@ async def check_message(raw_bytes: bytes, client_ip: str) -> SpamResult:
         headers["Ip"] = client_ip
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.post(
-            f"{settings.RELAY_RSPAMD_URL.rstrip('/')}/checkv2",
+            f"{settings.RSPAMD_URL.rstrip('/')}/checkv2",
             content=raw_bytes,
             headers=headers,
         )

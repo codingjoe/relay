@@ -164,7 +164,7 @@ def deliver_to_webhook(message, webhook, is_test=False):
                     "webhook-timestamp": str(timestamp),
                     "webhook-signature": signature,
                 },
-                timeout=settings.RELAY_WEBHOOK_TIMEOUT,
+                timeout=settings.WEBHOOK_TIMEOUT,
             )
         except httpx.HTTPError as e:
             logger.exception("Webhook delivery to %r failed", webhook)
@@ -221,7 +221,7 @@ def forward_postmaster_message(message_pk):
     """
     message = IncomingMessage.objects.get(pk=message_pk)
     memberships = message.org.memberships.select_related("user")
-    mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{message.domain_name}"
+    mail_from = f"{settings.POSTMASTER_LOCAL_PART}@{message.domain_name}"
     started_at = timezone.now()
     for membership in memberships:
         try:
@@ -263,8 +263,7 @@ def check_incoming_spam(message_pk, client_ip):
         check.antivirus_ms = spam.antivirus_ms
         check.profile_ms = spam.profile_ms
     is_spam = (
-        spam.action == SpamAction.REJECT
-        or spam.score >= settings.RELAY_RSPAMD_REJECT_SCORE
+        spam.action == SpamAction.REJECT or spam.score >= settings.RSPAMD_REJECT_SCORE
     )
     message.spam_score = spam.score
     message.spam_action = spam.action
@@ -286,6 +285,6 @@ def check_incoming_spam(message_pk, client_ip):
         dispatch_webhook.enqueue(message_id=str(message.pk))
         if (
             message.rcpt_to.partition("@")[0].partition("+")[0].lower()
-            == settings.RELAY_POSTMASTER_LOCAL_PART
+            == settings.POSTMASTER_LOCAL_PART
         ):
             forward_postmaster_message.enqueue(message_pk=str(message.pk))

@@ -27,7 +27,7 @@ weekly_digest_notification = Notification(
 def build_org_digest(org: Organization) -> dict[str, typing.Any]:
     """Return the numbers the mail shows for one organization."""
     volume = build_volume_chart(org)
-    window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
+    window_days = max(settings.REPUTATION_WINDOW_DAYS, 1)
     start = timezone.localdate() - timedelta(days=window_days - 1)
     window_counts = sent_per_day(org, start)
     return build_digest_context(
@@ -101,8 +101,8 @@ def build_digest_context(
     recipients: int,
 ) -> dict[str, typing.Any]:
     """Return the rates, their limits, and the month so far for one organization."""
-    window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
-    free_monthly_messages = settings.RELAY_FREE_MONTHLY_MESSAGES
+    window_days = max(settings.REPUTATION_WINDOW_DAYS, 1)
+    free_monthly_messages = settings.FREE_MONTHLY_MESSAGES
     illustration = digest_illustration(stats)
     return {
         "stats": stats,
@@ -113,8 +113,8 @@ def build_digest_context(
         "illustration_light": illustration[0],
         "illustration_dark": illustration[1],
         "message_interval": message_interval(round(stats["total_sent"] / window_days)),
-        "bounce_threshold": settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD,
-        "complaint_threshold": settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD,
+        "bounce_threshold": settings.REPUTATION_BOUNCE_RATE_THRESHOLD,
+        "complaint_threshold": settings.REPUTATION_COMPLAINT_RATE_THRESHOLD,
         "month_messages": month_messages,
         "recipients": recipients,
         "week_chart": (

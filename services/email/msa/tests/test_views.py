@@ -368,7 +368,7 @@ class TestCredentialListView:
         assert response.headers["Cache-Control"] == "no-store"
 
     def test_get__context_has_smtp_info(self, admin_client, org, settings):
-        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        settings.SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert "smtp_hostname" in response.context
         assert "smtp_starttls_ports" in response.context
@@ -389,7 +389,7 @@ class TestCredentialListView:
         assert 'name="sandbox" value="true"' not in content
 
     def test_get__renders_connection_uri(self, admin_client, org, settings):
-        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        settings.SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
         content = response.content.decode()
@@ -402,7 +402,7 @@ class TestCredentialListView:
     def test_get__opens_the_key_dialog_after_creation(
         self, admin_client, org, settings
     ):
-        settings.RELAY_SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
+        settings.SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
         raw_key = admin_client.session["raw_key"]
 

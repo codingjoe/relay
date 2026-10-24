@@ -137,7 +137,7 @@ class TestParseFblReport:
     def test_parse_fbl_report__checks_org_reputation(
         self, org, user, settings, mailoutbox
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
@@ -258,8 +258,8 @@ class TestProcessIncomingMessage:
     async def test_process_incoming_message__fbl_recipient_creates_report(
         self, org, settings
     ):
-        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_ADDRESS = "fbl@example.com"
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         original = make_outgoing_message(org, domain)
         return_path = mint_bounce_address(original)
@@ -286,8 +286,8 @@ class TestProcessIncomingMessage:
     async def test_process_incoming_message__fbl_recipient_unknown_sender_checks_spam(
         self, org, settings
     ):
-        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_ADDRESS = "fbl@example.com"
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         with patch("services.email.mta.handlers.check_incoming_spam") as spam_task:
             result = await process_incoming_message(

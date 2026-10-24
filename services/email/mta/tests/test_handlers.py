@@ -271,7 +271,7 @@ class TestProcessIncomingMessageReports:
         with patch("services.email.mta.handlers.parse_tls_report"):
             result = await process_incoming_message(
                 "external@example.org",
-                f"{settings.RELAY_TLS_REPORT_LOCAL_PART}@example.com",
+                f"{settings.TLS_REPORT_LOCAL_PART}@example.com",
                 make_raw_email(),
                 {"ssl_object": None},
                 domain,
@@ -543,8 +543,8 @@ class TestMXHandler:
     async def test_handle_data__fbl_recipient_from_listed_sender_creates_report(
         self, org, settings
     ):
-        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_ADDRESS = "fbl@example.com"
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="feedback@arf.mail.yahoo.com",
@@ -576,8 +576,8 @@ class TestMXHandler:
     async def test_handle_data__fbl_sender_unauthenticated_checks_spam(
         self, org, settings
     ):
-        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+        settings.FBL_ADDRESS = "fbl@example.com"
+        settings.FBL_SENDER_DOMAINS = ["hotmail.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="staff@hotmail.com",
@@ -610,8 +610,8 @@ class TestMXHandler:
     async def test_handle_data__fbl_sender_sub_domain_creates_report(
         self, org, settings
     ):
-        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_ADDRESS = "fbl@example.com"
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="scomp-feedback@eu.arf.mail.yahoo.com",
@@ -641,8 +641,8 @@ class TestMXHandler:
     async def test_handle_data__fbl_recipient_unknown_sender_checks_spam(
         self, org, settings
     ):
-        settings.RELAY_FBL_ADDRESS = "fbl@example.com"
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_ADDRESS = "fbl@example.com"
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="forged@example.org",
@@ -666,8 +666,8 @@ class TestMXHandler:
 
     @pytest.mark.django_db(transaction=True)
     async def test_handle_data__fbl_on_customer_domain_checks_spam(self, org, settings):
-        settings.RELAY_FBL_ADDRESS = "fbl@relays.test"
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_ADDRESS = "fbl@relays.test"
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
         domain = Domain.objects.create(name="example.com", org=org)
         envelope = SimpleNamespace(
             mail_from="feedback@arf.mail.yahoo.com",
@@ -751,7 +751,7 @@ class TestReceivedHeader:
         received = received_header(session).decode()
 
         assert received.startswith("Received: from mx.sender.example ([198.51.100.7])")
-        assert f"by {settings.RELAY_DNS_MX_HOSTNAMES[0]} with ESMTPS;" in received
+        assert f"by {settings.DNS_MX_HOSTNAMES[0]} with ESMTPS;" in received
         assert received.endswith("GMT")
 
     def test_received_header__unknown_helo_without_tls(self):
@@ -787,24 +787,24 @@ class TestReceivedHeader:
 
 class TestIsFblReport:
     def test_is_fbl_report__listed_domain(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
         assert is_fbl_report(make_dmarc_evaluation(header_from="arf.mail.yahoo.com"))
 
     def test_is_fbl_report__sub_domain(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+        settings.FBL_SENDER_DOMAINS = ["hotmail.com"]
 
         assert is_fbl_report(make_dmarc_evaluation(header_from="mail.hotmail.com"))
 
     def test_is_fbl_report__normalizes_domain(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
         assert is_fbl_report(
             make_dmarc_evaluation(header_from="ARF.MAIL.YAHOO.COM."),
         )
 
     def test_is_fbl_report__look_alike_domain(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
         assert not is_fbl_report(
             make_dmarc_evaluation(header_from="arf.mail.yahoo.com.evil.test"),
@@ -814,25 +814,25 @@ class TestIsFblReport:
         )
 
     def test_is_fbl_report__unlisted_domain(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
         assert not is_fbl_report(make_dmarc_evaluation(header_from="example.org"))
 
     def test_is_fbl_report__missing_domain(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
+        settings.FBL_SENDER_DOMAINS = ["arf.mail.yahoo.com"]
 
         assert not is_fbl_report(make_dmarc_evaluation(header_from=""))
         assert not is_fbl_report(make_dmarc_evaluation(header_from=None))
 
     def test_is_fbl_report__no_listed_domain(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = []
+        settings.FBL_SENDER_DOMAINS = []
 
         assert not is_fbl_report(
             make_dmarc_evaluation(header_from="arf.mail.yahoo.com")
         )
 
     def test_is_fbl_report__unauthenticated_claimed_provider(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+        settings.FBL_SENDER_DOMAINS = ["hotmail.com"]
 
         assert not is_fbl_report(
             make_dmarc_evaluation(
@@ -845,7 +845,7 @@ class TestIsFblReport:
         )
 
     def test_is_fbl_report__spf_only_authentication(self, settings):
-        settings.RELAY_FBL_SENDER_DOMAINS = ["hotmail.com"]
+        settings.FBL_SENDER_DOMAINS = ["hotmail.com"]
 
         assert is_fbl_report(
             make_dmarc_evaluation(

@@ -28,7 +28,7 @@ def sign_message(raw_bytes, domain):
     """
     Sign a message with DKIM for the sender domain.
 
-    Also signs for the domain named RELAY_PLATFORM_DOMAIN when it exists.
+    Also signs for the domain named PLATFORM_DOMAIN when it exists.
     """
     signed = raw_bytes
     # Signatures are prepended, so the customer's signature ends up on
@@ -38,7 +38,7 @@ def sign_message(raw_bytes, domain):
     signing_domains = Domain.objects.select_related(
         "dkim_key_rsa2048",
         "dkim_key_ed25519",
-    ).filter(Q(name=settings.RELAY_PLATFORM_DOMAIN) | Q(pk=domain.pk))
+    ).filter(Q(name=settings.PLATFORM_DOMAIN) | Q(pk=domain.pk))
     for sign_domain in signing_domains:
         # RSA-2048 goes last: prepending puts the last signature on top, and the
         # topmost one is what naive verifiers and relay's inbound evaluation read.

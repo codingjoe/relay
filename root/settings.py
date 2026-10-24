@@ -359,72 +359,66 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Relay config
 
-RELAY_PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
+PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
 
-RELAY_STORAGE_DOMAIN = env(
-    "RELAY_STORAGE_DOMAIN", default=f"storage.{RELAY_PLATFORM_DOMAIN}"
-)
+STORAGE_DOMAIN = env("STORAGE_DOMAIN", default=f"storage.{PLATFORM_DOMAIN}")
 if AWS_STORAGE_BUCKET_NAME:
-    AWS_S3_ENDPOINT_URL = f"https://{RELAY_STORAGE_DOMAIN}"
+    AWS_S3_ENDPOINT_URL = f"https://{STORAGE_DOMAIN}"
 
-RELAY_SENDER_SUBDOMAIN_PREFIX = env(
-    "RELAY_SENDER_SUBDOMAIN_PREFIX", default="mail.relay"
-)
+SENDER_SUBDOMAIN_PREFIX = env("SENDER_SUBDOMAIN_PREFIX", default="mail.relay")
 
-RELAY_DNS_NS_NAMESERVERS = env.list(
-    "RELAY_DNS_NS_NAMESERVERS",
+DNS_NS_NAMESERVERS = env.list(
+    "DNS_NS_NAMESERVERS",
     default=[
-        f"ns1.{RELAY_PLATFORM_DOMAIN}",
-        f"ns2.{RELAY_PLATFORM_DOMAIN}",
+        f"ns1.{PLATFORM_DOMAIN}",
+        f"ns2.{PLATFORM_DOMAIN}",
     ],
 )
-RELAY_DNS_MX_HOSTNAMES = env.list(
-    "RELAY_DNS_MX_HOSTNAMES",
-    default=[f"mx1.{RELAY_PLATFORM_DOMAIN}", f"mx2.{RELAY_PLATFORM_DOMAIN}"],
+DNS_MX_HOSTNAMES = env.list(
+    "DNS_MX_HOSTNAMES",
+    default=[f"mx1.{PLATFORM_DOMAIN}", f"mx2.{PLATFORM_DOMAIN}"],
 )
-RELAY_DNS_SMTP_IPS = env.list("RELAY_DNS_SMTP_IPS", default=["127.0.0.1"])
+DNS_SMTP_IPS = env.list("DNS_SMTP_IPS", default=["127.0.0.1"])
 # Egress pool for the worker's outgoing SMTP; empty sends from the primary IP.
-RELAY_SMTP_SOURCE_IPS = env.list("RELAY_SMTP_SOURCE_IPS", default=[])
-RELAY_SMTP_PUBLIC_HOSTNAME = f"smtp.{RELAY_PLATFORM_DOMAIN}"
-RELAY_DNS_DKIM_IDENTIFIER = env("RELAY_DNS_DKIM_IDENTIFIER", default="relay")
+SMTP_SOURCE_IPS = env.list("SMTP_SOURCE_IPS", default=[])
+SMTP_PUBLIC_HOSTNAME = f"smtp.{PLATFORM_DOMAIN}"
+DNS_DKIM_IDENTIFIER = env("DNS_DKIM_IDENTIFIER", default="relay")
 
-RELAY_MANAGED_SENDER_DOMAIN = f"open.{RELAY_PLATFORM_DOMAIN}"
+MANAGED_SENDER_DOMAIN = f"open.{PLATFORM_DOMAIN}"
 
-RELAY_SMTP_SUBMISSION_PORTS = (587, 465)
-RELAY_SMTP_IMPLICIT_TLS_PORTS = (465,)
-RELAY_SMTP_BALANCER_PORT = 2465
-RELAY_SMTP_TLS_CERT_PATH = env("RELAY_SMTP_TLS_CERT_PATH", default="")
-RELAY_SMTP_TLS_KEY_PATH = env("RELAY_SMTP_TLS_KEY_PATH", default="")
+SMTP_SUBMISSION_PORTS = (587, 465)
+SMTP_IMPLICIT_TLS_PORTS = (465,)
+SMTP_BALANCER_PORT = 2465
+SMTP_TLS_CERT_PATH = env("SMTP_TLS_CERT_PATH", default="")
+SMTP_TLS_KEY_PATH = env("SMTP_TLS_KEY_PATH", default="")
 
-RELAY_MX_PORTS = (25,)
-RELAY_MX_TLS_CERT_PATH = env.list("RELAY_MX_TLS_CERT_PATH", default=[])
-RELAY_MX_TLS_KEY_PATH = env.list("RELAY_MX_TLS_KEY_PATH", default=[])
+MX_PORTS = (25,)
+MX_TLS_CERT_PATH = env.list("MX_TLS_CERT_PATH", default=[])
+MX_TLS_KEY_PATH = env.list("MX_TLS_KEY_PATH", default=[])
 
 # Timeout in seconds for reading the PROXY protocol header. None disables
 # the expectation; a positive value is required where enabled.
-proxy_protocol_timeout_secs = env.float("RELAY_PROXY_PROTOCOL_TIMEOUT", default=None)
-RELAY_PROXY_PROTOCOL_TIMEOUT = (
+proxy_protocol_timeout_secs = env.float("PROXY_PROTOCOL_TIMEOUT", default=None)
+PROXY_PROTOCOL_TIMEOUT = (
     datetime.timedelta(seconds=proxy_protocol_timeout_secs)
     if proxy_protocol_timeout_secs
     else None
 )
 
-rspamd_url = env.url("RELAY_RSPAMD_URL", default="http://rspamd:11334")
-RELAY_RSPAMD_PASSWORD = rspamd_url.password or ""
-RELAY_RSPAMD_URL = rspamd_url._replace(
-    netloc=rspamd_url.netloc.rpartition("@")[2]
-).geturl()
-RELAY_RSPAMD_REJECT_SCORE = env.float("RELAY_RSPAMD_REJECT_SCORE", default=15.0)
-RELAY_RSPAMD_HOLD_SCORE = env.float("RELAY_RSPAMD_HOLD_SCORE", default=6.0)
+rspamd_url = env.url("RSPAMD_URL", default="http://rspamd:11334")
+RSPAMD_PASSWORD = rspamd_url.password or ""
+RSPAMD_URL = rspamd_url._replace(netloc=rspamd_url.netloc.rpartition("@")[2]).geturl()
+RSPAMD_REJECT_SCORE = env.float("RSPAMD_REJECT_SCORE", default=15.0)
+RSPAMD_HOLD_SCORE = env.float("RSPAMD_HOLD_SCORE", default=6.0)
 
-RELAY_WEBHOOK_TIMEOUT = env.int("RELAY_WEBHOOK_TIMEOUT", default=30)
+WEBHOOK_TIMEOUT = env.int("WEBHOOK_TIMEOUT", default=30)
 
-RELAY_DMARC_REPORT_LOCAL_PART = env("RELAY_DMARC_REPORT_LOCAL_PART", default="dmarc")
-RELAY_DMARC_RUF_LOCAL_PART = env("RELAY_DMARC_RUF_LOCAL_PART", default="ruf")
-RELAY_TLS_REPORT_LOCAL_PART = env("RELAY_TLS_REPORT_LOCAL_PART", default="tls")
-RELAY_FBL_ADDRESS = env("RELAY_FBL_ADDRESS", default=f"fbl@{RELAY_PLATFORM_DOMAIN}")
-RELAY_FBL_SENDER_DOMAINS = env.list(
-    "RELAY_FBL_SENDER_DOMAINS",
+DMARC_REPORT_LOCAL_PART = env("DMARC_REPORT_LOCAL_PART", default="dmarc")
+DMARC_RUF_LOCAL_PART = env("DMARC_RUF_LOCAL_PART", default="ruf")
+TLS_REPORT_LOCAL_PART = env("TLS_REPORT_LOCAL_PART", default="tls")
+FBL_ADDRESS = env("FBL_ADDRESS", default=f"fbl@{PLATFORM_DOMAIN}")
+FBL_SENDER_DOMAINS = env.list(
+    "FBL_SENDER_DOMAINS",
     default=[
         "arf.mail.yahoo.com",
         "aol.net",
@@ -433,31 +427,31 @@ RELAY_FBL_SENDER_DOMAINS = env.list(
         "live.com",
     ],
 )
-RELAY_POSTMASTER_LOCAL_PART = "postmaster"
-RELAY_BOUNCE_LOCAL_PART = "bounce"
+POSTMASTER_LOCAL_PART = "postmaster"
+BOUNCE_LOCAL_PART = "bounce"
 
-RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD = env.float(
-    "RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD", default=0.05
+REPUTATION_BOUNCE_RATE_THRESHOLD = env.float(
+    "REPUTATION_BOUNCE_RATE_THRESHOLD", default=0.05
 )
-RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
-    "RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD", default=0.001
+REPUTATION_COMPLAINT_RATE_THRESHOLD = env.float(
+    "REPUTATION_COMPLAINT_RATE_THRESHOLD", default=0.001
 )
-RELAY_REPUTATION_WINDOW_DAYS = env.int("RELAY_REPUTATION_WINDOW_DAYS", default=7)
-RELAY_REPUTATION_MIN_VOLUME = env.int("RELAY_REPUTATION_MIN_VOLUME", default=100)
+REPUTATION_WINDOW_DAYS = env.int("REPUTATION_WINDOW_DAYS", default=7)
+REPUTATION_MIN_VOLUME = env.int("REPUTATION_MIN_VOLUME", default=100)
 # Keeps Spamhaus answering from a shared resolver, see
 # https://docs.spamhaus.com/datasets/docs/source/70-access-methods/data-query-service/040-dqs-queries.html
 SPAMHAUS_KEY = env("SPAMHAUS_KEY", default="")
 
-RELAY_FREE_MONTHLY_MESSAGES = env.int("RELAY_FREE_MONTHLY_MESSAGES", default=1000)
-RELAY_PRICE_PER_1000_MESSAGES = env.float("RELAY_PRICE_PER_1000_MESSAGES", default=0.69)
+FREE_MONTHLY_MESSAGES = env.int("FREE_MONTHLY_MESSAGES", default=1000)
+PRICE_PER_1000_MESSAGES = env.float("PRICE_PER_1000_MESSAGES", default=0.69)
 
-RELAY_MTA_STS_MODE = env("RELAY_MTA_STS_MODE", default="enforce")
-RELAY_MTA_STS_MAX_AGE = env.int("RELAY_MTA_STS_MAX_AGE", default=604800)
-RELAY_MTA_STS_POLICY_ID = env("RELAY_MTA_STS_POLICY_ID", default="20260730T100000Z")
+MTA_STS_MODE = env("MTA_STS_MODE", default="enforce")
+MTA_STS_MAX_AGE = env.int("MTA_STS_MAX_AGE", default=604800)
+MTA_STS_POLICY_ID = env("MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 # https://docs.allauth.org/en/latest/idp/oidc/configuration.html
 
-MCP_BASE_URL = f"{'http' if DEBUG else 'https'}://{RELAY_PLATFORM_DOMAIN}"
+MCP_BASE_URL = f"{'http' if DEBUG else 'https'}://{PLATFORM_DOMAIN}"
 MCP_RESOURCE_URL = f"{MCP_BASE_URL}/mcp"
 # The issuer ends in exactly one slash, the form OIDC clients normalize to.
 MCP_OIDC_ISSUER_URL = f"{MCP_BASE_URL}/"
@@ -504,7 +498,7 @@ else:
         "OPTIONS": {},
     }
 MAILERS = {"default": _mailer}
-DEFAULT_FROM_EMAIL = f"noreply@{RELAY_PLATFORM_DOMAIN}"
+DEFAULT_FROM_EMAIL = f"noreply@{PLATFORM_DOMAIN}"
 
 
 # Django task framework

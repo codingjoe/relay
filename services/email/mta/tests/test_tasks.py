@@ -412,7 +412,7 @@ class TestPostmasterForwardEmail:
         assert f'<html lang="{settings.LANGUAGE_CODE}">' in email.html
         assert ">sender@example.org<" in email.html
         assert ">Delivery delayed<" in email.html
-        assert f">postmaster@{settings.RELAY_PLATFORM_DOMAIN}<" in email.html
+        assert f">postmaster@{settings.PLATFORM_DOMAIN}<" in email.html
         assert f"{base_url}{email.incoming_message.get_absolute_url()}" in email.body
         assert not IncomingMessage.objects.exists()
 
