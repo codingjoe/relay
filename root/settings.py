@@ -79,6 +79,9 @@ SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=not (DEBUG or TEST
 # Probes and Caddy's on-demand TLS permission check arrive over plain HTTP.
 SECURE_REDIRECT_EXEMPT = [r"^health/", r"^internal/mta-sts/authorize/"]
 
+# https://codingjoe.dev/django-health-check/usage/#health_check.views.HealthCheckView.auth_token
+HEALTH_CHECK_AUTH_TOKEN = env("HEALTH_CHECK_AUTH_TOKEN", default="")
+
 # Show django-debug-toolbar for local development requests.
 INTERNAL_IPS = ["127.0.0.1"]
 
