@@ -1,5 +1,4 @@
 import types
-from datetime import timedelta
 
 import dns.exception
 import dns.resolver
@@ -16,7 +15,6 @@ from root.health import (
     BlocklistProvider,
     BlocklistRefusal,
     BlocklistWarning,
-    CachedHealthCheckView,
     DnsBlocklist,
     ReputationHealthCheckView,
 )
@@ -299,22 +297,6 @@ class TestDnsBlocklistRun:
         assert "Listed on Example (example.test)" in exc_info.value.message
         assert "Other (other.test) lookup failed" in exc_info.value.message
         assert "\n" in exc_info.value.message
-
-
-class TestCachedHealthCheckView:
-    async def test_get__caches_a_failed_response(self):
-        view = CachedHealthCheckView.as_view(
-            checks=[UnavailableCheck],
-            max_age=timedelta(seconds=30),
-        )
-        response = await view(RequestFactory().get("/health/application/"))
-        assert response.status_code == 500
-        assert response.headers["Cache-Control"] == "public, max-age=30"
-
-    async def test_get__answers_no_store_without_max_age(self):
-        view = CachedHealthCheckView.as_view(checks=[PassingCheck])
-        response = await view(RequestFactory().get("/health/node/"))
-        assert response.headers["Cache-Control"] == "no-store"
 
 
 class TestReputationHealthCheckView:

@@ -8,7 +8,6 @@ import dns.exception
 import dns.resolver
 from django.conf import settings
 from django.urls import path
-from django.utils.cache import patch_cache_control
 from health_check.base import HealthCheck
 from health_check.exceptions import ServiceUnavailable, ServiceWarning
 from health_check.views import HealthCheckView
@@ -194,24 +193,7 @@ class DnsBlocklist(HealthCheck):
         return issue
 
 
-class CachedHealthCheckView(HealthCheckView):
-    """Serve cached health results, including failed checks."""
-
-    def patch_cache_headers(self, request, response):
-        max_age_seconds = max(0, int(self.max_age.total_seconds()))
-        cacheable = (
-            max_age_seconds
-            and request.method in ("GET", "HEAD")
-            and "Authorization" not in request.headers
-        )
-        if cacheable:
-            patch_cache_control(response, public=True, max_age=max_age_seconds)
-        else:
-            patch_cache_control(response, no_store=True)
-        return response
-
-
-class ReputationHealthCheckView(CachedHealthCheckView):
+class ReputationHealthCheckView(HealthCheckView):
     """Answer 200 when every check only warned, 500 when any is unavailable."""
 
     async def get(self, request, *args, **kwargs):
@@ -275,12 +257,12 @@ pipeline_checks = [
 urlpatterns = [
     path(
         "node/",
-        CachedHealthCheckView.as_view(checks=node_checks, allow_anonymous=True),
+        HealthCheckView.as_view(checks=node_checks, allow_anonymous=True),
         name="health-node",
     ),
     path(
         "application/",
-        CachedHealthCheckView.as_view(
+        HealthCheckView.as_view(
             checks=application_checks,
             max_age=timedelta(seconds=30),
             allow_anonymous=True,
@@ -298,7 +280,7 @@ urlpatterns = [
     ),
     path(
         "pipeline/",
-        CachedHealthCheckView.as_view(
+        HealthCheckView.as_view(
             checks=pipeline_checks,
             max_age=timedelta(seconds=30),
             allow_anonymous=True,
