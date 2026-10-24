@@ -94,6 +94,8 @@ class BlocklistAddressError(ServiceUnavailable):
 
 @dataclasses.dataclass
 class DnsBlocklist(HealthCheck):
+    timeout = timedelta(seconds=10)
+
     address: str
     providers: tuple[BlocklistProvider, ...] = dataclasses.field(
         default=(
