@@ -39,9 +39,7 @@ def compute_org_reputation(org: Organization) -> ReputationStats:
     only. A sandbox submission counts nowhere, because relay never
     transmits it.
     """
-    window_start = timezone.now() - timedelta(
-        days=settings.RELAY_REPUTATION_WINDOW_DAYS
-    )
+    window_start = timezone.now() - timedelta(days=settings.REPUTATION_WINDOW_DAYS)
     total_sent = (
         OutgoingMessage.objects.filter(org=org, created_at__gte=window_start)
         .exclude(status=OutgoingMessage.Status.SANDBOXED)
@@ -102,10 +100,10 @@ def build_reputation_stats(org: Organization) -> ReputationSummary:
     stats = compute_org_reputation(org)
     return stats | {
         "hard_bounce_over_limit": (
-            stats["hard_bounce_rate"] > settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
+            stats["hard_bounce_rate"] > settings.REPUTATION_BOUNCE_RATE_THRESHOLD
         ),
         "complaint_over_limit": (
-            stats["complaint_rate"] > settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
+            stats["complaint_rate"] > settings.REPUTATION_COMPLAINT_RATE_THRESHOLD
         ),
     }
 
@@ -116,12 +114,12 @@ def check_org_reputation(org: Organization) -> ReputationStats:
 
     Suspends the organization permanently when the hard-bounce rate or
     complaint rate exceeds the configured thresholds and the organization
-    has sent at least `RELAY_REPUTATION_MIN_VOLUME` messages in the window.
+    has sent at least `REPUTATION_MIN_VOLUME` messages in the window.
     The suspension is never cleared automatically. Returns the computed
     reputation stats.
     """
     stats = build_reputation_stats(org)
-    if stats["total_sent"] < settings.RELAY_REPUTATION_MIN_VOLUME:
+    if stats["total_sent"] < settings.REPUTATION_MIN_VOLUME:
         return stats
 
     if not (stats["hard_bounce_over_limit"] or stats["complaint_over_limit"]):
@@ -149,7 +147,7 @@ def notify_org_locked(org: Organization, stats: ReputationStats) -> None:
         "hard_bounces": stats["hard_bounces"],
         "complaints": stats["complaints"],
         "total_sent": stats["total_sent"],
-        "days": settings.RELAY_REPUTATION_WINDOW_DAYS,
+        "days": settings.REPUTATION_WINDOW_DAYS,
     }
     for membership in Membership.objects.filter(
         org=org,

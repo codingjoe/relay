@@ -30,9 +30,9 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef: {name: relay-infra, key: REDIS_PASSWORD}
-            - name: RELAY_STORAGE_DOMAIN
+            - name: STORAGE_DOMAIN
               valueFrom:
-                secretKeyRef: {name: relay-infra, key: RELAY_STORAGE_DOMAIN}
+                secretKeyRef: {name: relay-infra, key: STORAGE_DOMAIN}
           ports:
             - {name: smtp, containerPort: 25}
             - {name: http, containerPort: 80}

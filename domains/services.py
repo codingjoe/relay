@@ -58,7 +58,7 @@ def verify_nameserver_delegation(domain):
         ns_records = dns.resolver.resolve(domain.sender_domain, "NS")
     except dns.exception.DNSException:
         return False
-    our_ns = {ns.rstrip(".").lower() for ns in settings.RELAY_DNS_NS_NAMESERVERS}
+    our_ns = {ns.rstrip(".").lower() for ns in settings.DNS_NS_NAMESERVERS}
     their_ns = {str(r.target).rstrip(".").lower() for r in ns_records}
     # A chased CNAME answers with the target's records, so the owner name of
     # the answer is what proves a zone cut, and the nameserver set alone does not.
@@ -112,7 +112,7 @@ def check_mx(domain):
     except dns.exception.DNSException:
         return False
     expected_exchanges = {
-        hostname.rstrip(".").lower() for hostname in settings.RELAY_DNS_MX_HOSTNAMES
+        hostname.rstrip(".").lower() for hostname in settings.DNS_MX_HOSTNAMES
     }
     return any(
         str(record.exchange).rstrip(".").lower() in expected_exchanges

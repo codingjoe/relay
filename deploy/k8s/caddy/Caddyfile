@@ -179,7 +179,7 @@ redis-tasks.{$HOSTNAME} {
 	respond "OK" 200
 }
 
-{$RELAY_STORAGE_DOMAIN} {
+{$STORAGE_DOMAIN} {
 	reverse_proxy storage:8080 {
 		health_uri /healthz
 	}

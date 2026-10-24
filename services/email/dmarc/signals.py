@@ -29,7 +29,7 @@ def create_report(
     **kwargs,
 ):
     """Create a DMARC report from an incoming report email."""
-    if local_part == settings.RELAY_DMARC_REPORT_LOCAL_PART:
+    if local_part == settings.DMARC_REPORT_LOCAL_PART:
         with Transmission.record_reception(
             tls, started_at, client_ip, local_ip, remote_host
         ) as reception:

@@ -6,12 +6,12 @@ from django.utils.translation import gettext_lazy as _
 
 def get_submission_context() -> dict:
     """Return the submission hostname and ports members connect to."""
-    implicit_tls_ports = settings.RELAY_SMTP_IMPLICIT_TLS_PORTS
+    implicit_tls_ports = settings.SMTP_IMPLICIT_TLS_PORTS
     return {
-        "smtp_hostname": settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+        "smtp_hostname": settings.SMTP_PUBLIC_HOSTNAME,
         "smtp_starttls_ports": tuple(
             port
-            for port in settings.RELAY_SMTP_SUBMISSION_PORTS
+            for port in settings.SMTP_SUBMISSION_PORTS
             if port not in implicit_tls_ports
         ),
         "smtp_implicit_tls_ports": implicit_tls_ports,

@@ -204,7 +204,7 @@ class TestDeliverMessage:
 
         assert (
             mock_smtp.call_args.kwargs["local_hostname"]
-            == settings.RELAY_SMTP_PUBLIC_HOSTNAME
+            == settings.SMTP_PUBLIC_HOSTNAME
         )
         assert mock_smtp.call_args.kwargs["port"] == 25
         assert mock_smtp.call_args.kwargs["use_tls"] is False
@@ -272,7 +272,7 @@ class TestDeliverMessage:
     def test_deliver_message__failed_dial_records_pool_address(
         self, user, org, dns_resolver, settings, caplog
     ):
-        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+        settings.SMTP_SOURCE_IPS = ["198.51.100.7"]
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
@@ -307,7 +307,7 @@ class TestDeliverMessage:
     def test_deliver_message__bounce_records_pool_address(
         self, user, org, dns_resolver, settings, caplog
     ):
-        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+        settings.SMTP_SOURCE_IPS = ["198.51.100.7"]
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
@@ -343,7 +343,7 @@ class TestDeliverMessage:
     def test_deliver_message__dials_from_the_pool_address(
         self, user, org, dns_resolver, settings, caplog
     ):
-        settings.RELAY_SMTP_SOURCE_IPS = ["198.51.100.7"]
+        settings.SMTP_SOURCE_IPS = ["198.51.100.7"]
 
         domain = Domain.objects.get(org=org)
         msg = OutgoingMessage.objects.create(
@@ -1231,8 +1231,7 @@ class TestResolveBounceOwner:
 
         assert (
             resolve_bounce_owner(
-                f"{settings.RELAY_BOUNCE_LOCAL_PART}+{original.pk}"
-                f"@{domain.sender_domain}"
+                f"{settings.BOUNCE_LOCAL_PART}+{original.pk}@{domain.sender_domain}"
             )
             is None
         )
@@ -1263,16 +1262,14 @@ class TestResolveBounceOwner:
 
         assert (
             resolve_bounce_owner(
-                f"{settings.RELAY_BOUNCE_LOCAL_PART}+not-a-uuid@{domain.sender_domain}"
+                f"{settings.BOUNCE_LOCAL_PART}+not-a-uuid@{domain.sender_domain}"
             )
             is None
         )
 
     def test_resolve_bounce_owner__returns_none_for_token_without_separator(self, org):
         domain = Domain.objects.create(name="example.com", org=org)
-        rcpt_to = (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+no-separator@{domain.sender_domain}"
-        )
+        rcpt_to = f"{settings.BOUNCE_LOCAL_PART}+no-separator@{domain.sender_domain}"
 
         assert resolve_bounce_owner(rcpt_to) is None
 
@@ -1281,8 +1278,7 @@ class TestResolveBounceOwner:
         value = base64.urlsafe_b64encode(b"truncated").rstrip(b"=").decode()
         signature = bounce_signer.signature(value)[:20]
         rcpt_to = (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{value}.{signature}"
-            f"@{domain.sender_domain}"
+            f"{settings.BOUNCE_LOCAL_PART}+{value}.{signature}@{domain.sender_domain}"
         )
 
         assert resolve_bounce_owner(rcpt_to) is None
@@ -1297,8 +1293,7 @@ class TestResolveBounceOwner:
         signature = bounce_signer.signature(value, key=old_key)[:20]
         monkeypatch.setattr(bounce_signer, "fallback_keys", [old_key])
         rcpt_to = (
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{value}.{signature}"
-            f"@{domain.sender_domain}"
+            f"{settings.BOUNCE_LOCAL_PART}+{value}.{signature}@{domain.sender_domain}"
         )
 
         assert resolve_bounce_owner(rcpt_to) == original
@@ -1378,7 +1373,7 @@ class TestParseBounceReport:
         dsn = make_bounce_dsn(
             org,
             domain,
-            f"{settings.RELAY_BOUNCE_LOCAL_PART}+{uuid.uuid4()}@{domain.sender_domain}",
+            f"{settings.BOUNCE_LOCAL_PART}+{uuid.uuid4()}@{domain.sender_domain}",
             make_dsn_email(),
         )
 

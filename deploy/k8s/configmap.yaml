@@ -10,4 +10,4 @@ data:
   GRANIAN_LOG_ACCESS_FMT: '{"addr": "%(addr)s", "time": "%(time)s", "dt_ms": %(dt_ms)f, "status": %(status)d, "path": "%(path)s", "query_string": "%(query_string)s", "method": "%(method)s", "scheme": "%(scheme)s", "protocol": "%(protocol)s"}'
   GRANIAN_LOG_CONFIG: granian.log.config.json
   GRANIAN_WORKERS: "2"
-  RELAY_PROXY_PROTOCOL_TIMEOUT: "3"
+  PROXY_PROTOCOL_TIMEOUT: "3"

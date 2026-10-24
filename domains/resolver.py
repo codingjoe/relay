@@ -59,8 +59,8 @@ class DNSResolver(BaseResolver):
         query_name = str(qname).strip().rstrip(".").lower()
         match qtype:
             case QTYPE.A | QTYPE.ANY if query_name in (
-                settings.RELAY_SMTP_PUBLIC_HOSTNAME,
-                *settings.RELAY_DNS_MX_HOSTNAMES,
+                settings.SMTP_PUBLIC_HOSTNAME,
+                *settings.DNS_MX_HOSTNAMES,
             ):
                 return [
                     RR(
@@ -69,7 +69,7 @@ class DNSResolver(BaseResolver):
                         rdata=A(smtp_ip_address),
                         ttl=self.RECORD_TTL,
                     )
-                    for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS
+                    for smtp_ip_address in settings.DNS_SMTP_IPS
                 ]
             case _:
                 try:
@@ -98,12 +98,12 @@ class DNSResolver(BaseResolver):
                 domain.sender_domain,
                 f"mta-sts.{domain.sender_domain}",
             ):
-                for smtp_ip_address in settings.RELAY_DNS_SMTP_IPS:
+                for smtp_ip_address in settings.DNS_SMTP_IPS:
                     yield RR(
                         qname, QTYPE.A, rdata=A(smtp_ip_address), ttl=self.RECORD_TTL
                     )
             case QTYPE.MX | QTYPE.ANY:
-                for hostname in settings.RELAY_DNS_MX_HOSTNAMES:
+                for hostname in settings.DNS_MX_HOSTNAMES:
                     yield RR(
                         qname,
                         QTYPE.MX,
@@ -113,7 +113,7 @@ class DNSResolver(BaseResolver):
             case QTYPE.TXT | QTYPE.ANY:
                 yield from self.resolve_txt(qname, qtype, query_name, domain)
             case QTYPE.NS | QTYPE.ANY:
-                for nameserver in settings.RELAY_DNS_NS_NAMESERVERS:
+                for nameserver in settings.DNS_NS_NAMESERVERS:
                     yield RR(
                         qname, QTYPE.NS, rdata=NS(DNSLabel(nameserver)), ttl=self.NS_TTL
                     )

@@ -128,10 +128,10 @@ def build_reputation_chart(org):
     Return the hard bounce, soft bounce, and complaint rates of one organization.
 
     The rates are cumulative and cover the last
-    `RELAY_REPUTATION_WINDOW_DAYS` days. The soft bounce rate is display-only:
+    `REPUTATION_WINDOW_DAYS` days. The soft bounce rate is display-only:
     only the hard bounce and complaint rates feed the suspension check.
     """
-    window_days = max(settings.RELAY_REPUTATION_WINDOW_DAYS, 1)
+    window_days = max(settings.REPUTATION_WINDOW_DAYS, 1)
     start = timezone.localdate() - timedelta(days=window_days - 1)
 
     sent_counts = sent_per_day(org, start)
@@ -140,8 +140,8 @@ def build_reputation_chart(org):
     complaint_counts = complaints_per_day(org, start)
 
     days_list = [start + timedelta(days=offset) for offset in range(window_days)]
-    bounce_limit = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD * 100
-    complaint_limit = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD * 100
+    bounce_limit = settings.REPUTATION_BOUNCE_RATE_THRESHOLD * 100
+    complaint_limit = settings.REPUTATION_COMPLAINT_RATE_THRESHOLD * 100
 
     sent_cumulative = list(accumulate(sent_counts.get(day, 0) for day in days_list))
     hard_bounce_cumulative = list(
@@ -293,7 +293,7 @@ def build_volume_chart(org):
             None
             if org.is_free
             else {
-                "value": settings.RELAY_FREE_MONTHLY_MESSAGES,
+                "value": settings.FREE_MONTHLY_MESSAGES,
                 "label": gettext("Free tier"),
             }
         ),

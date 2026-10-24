@@ -81,8 +81,8 @@ class ReputationOverviewView(
         volume = build_volume_chart(self.org)
         cost = month_cost(volume["this_month_total"], is_free=self.org.is_free)
         last = chart["rows"][-1]
-        bounce_threshold = settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD
-        complaint_threshold = settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD
+        bounce_threshold = settings.REPUTATION_BOUNCE_RATE_THRESHOLD
+        complaint_threshold = settings.REPUTATION_COMPLAINT_RATE_THRESHOLD
         # The chart carries rates in per cent; the cards format fractions.
         hard_bounce_rate = (last["hard_bounce_rate"] or 0.0) / 100
         complaint_rate = (last["complaint_rate"] or 0.0) / 100
@@ -101,7 +101,7 @@ class ReputationOverviewView(
             "cost": cost,
             "month_messages": volume["this_month_total"],
             "overage_price": overage_price(),
-            "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
+            "free_monthly_messages": settings.FREE_MONTHLY_MESSAGES,
             "bounce_threshold": bounce_threshold,
             "complaint_threshold": complaint_threshold,
         }

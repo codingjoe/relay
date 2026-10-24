@@ -59,10 +59,10 @@ dashboard, and `just production threadmill` opens the task inspector.
 
 Every organization gets a **managed sender domain**. It is a subdomain of the
 platform domain, and relay manages it automatically. The domain is
-derived from the platform domain as `open.{RELAY_PLATFORM_DOMAIN}` (for
+derived from the platform domain as `open.{PLATFORM_DOMAIN}` (for
 example `open.localhost` in development).
 When an organization is created, a `Domain` is auto-created with the name
-`{org.slug}.{RELAY_MANAGED_SENDER_DOMAIN}` (for example `acme.open.localhost`).
+`{org.slug}.{MANAGED_SENDER_DOMAIN}` (for example `acme.open.localhost`).
 The domain is DKIM-signed and pre-verified. No user DNS configuration needed.
 
 The managed domain cannot be deleted from the dashboard. Users can still add
@@ -71,18 +71,18 @@ their own delegated domains alongside it.
 ### Operator setup
 
 The platform operator must set up the following records on the
-`RELAY_PLATFORM_DOMAIN` nameserver:
+`PLATFORM_DOMAIN` nameserver:
 
 1. **NS delegation for `open.{platform_domain}`**. Add NS records for the
-   `open` subdomain pointing to `RELAY_DNS_NS_NAMESERVERS` (for example,
+   `open` subdomain pointing to `DNS_NS_NAMESERVERS` (for example,
    `ns1.{platform_domain}`, `ns2.{platform_domain}`).
 2. **A/AAAA record for the web server**. The platform domain itself needs
    an A/AAAA record for the web UI.
 3. **A/AAAA record for the storage host**. Caddy serves signed message body
    URLs on `storage.{platform_domain}`, and the certificate for that name
    needs a record that resolves. Point it at the web server, or set
-   `RELAY_STORAGE_DOMAIN` to serve bodies from a different name.
-4. **Forward DNS for the SMTP server**. Set `RELAY_DNS_SMTP_IPS`. The
+   `STORAGE_DOMAIN` to serve bodies from a different name.
+4. **Forward DNS for the SMTP server**. Set `DNS_SMTP_IPS`. The
    public hostname (`smtp.{platform_domain}`) and sender subdomains resolve
    to the SMTP server IPs, and the SPF record of each sender subdomain
    authorizes every one of them.
@@ -102,7 +102,7 @@ per-domain delegation is necessary.
 
 Outgoing mail is dual-signed with DKIM: once for the sender's own domain
 and once for the platform domain. The platform domain is the `Domain`
-row whose name equals `RELAY_PLATFORM_DOMAIN`; until you register it,
+row whose name equals `PLATFORM_DOMAIN`; until you register it,
 relay signs with the sending domain only. Each signature covers the
 `Feedback-ID` header, which names the sending domain, the organization,
 the mail type, and the platform, so Gmail can group its complaint rates
@@ -262,12 +262,12 @@ The egress and ingress workers scan every stored message with rspamd before
 delivery or webhook dispatch, and record the score, the action, and the
 antivirus verdict on the message.
 
-| Variable                    | Default               | Description                                                     |
-| --------------------------- | --------------------- | --------------------------------------------------------------- |
-| `RELAY_RSPAMD_URL`          | `http://rspamd:11334` | Controller address, the password may ride along as URL userinfo |
-| `RELAY_RSPAMD_PASSWORD`     | _(from the URL)_      | Controller password                                             |
-| `RELAY_RSPAMD_HOLD_SCORE`   | `6.0`                 | Outbound score at which a message is held                       |
-| `RELAY_RSPAMD_REJECT_SCORE` | `15.0`                | Inbound score at which a message is quarantined                 |
+| Variable              | Default               | Description                                                     |
+| --------------------- | --------------------- | --------------------------------------------------------------- |
+| `RSPAMD_URL`          | `http://rspamd:11334` | Controller address, the password may ride along as URL userinfo |
+| `RSPAMD_PASSWORD`     | _(from the URL)_      | Controller password                                             |
+| `RSPAMD_HOLD_SCORE`   | `6.0`                 | Outbound score at which a message is held                       |
+| `RSPAMD_REJECT_SCORE` | `15.0`                | Inbound score at which a message is quarantined                 |
 
 ClamAV reports one symbol per outcome, and the client maps them: `CLAM_VIRUS`
 with the virus name for a detection, `CLAM_VIRUS_ENCRYPTED` and
@@ -279,7 +279,7 @@ verdict.
 A clean scan carries no symbol at all, so rspamd never confirms that
 ClamAV ran. The `clamav` block of `deploy/k8s/rspamd/antivirus.conf` sets
 `log_clean`, which logs every part ClamAV reports clean, and the controller
-statistics behind `RELAY_RSPAMD_PASSWORD` count the messages rspamd
+statistics behind `RSPAMD_PASSWORD` count the messages rspamd
 scanned. To exercise the whole path, send an EICAR test attachment through
 submission or the MX: it must land held (outbound) or quarantined (inbound)
 with `CLAM_VIRUS` in the stored symbols.
@@ -295,9 +295,9 @@ of the check it took whenever it is.
 
 ### Feedback loop (FBL) reports
 
-FBL complaints arrive at `RELAY_FBL_ADDRESS`. relay ingests one only when the
+FBL complaints arrive at `FBL_ADDRESS`. relay ingests one only when the
 report authenticates for its own `From` domain, that domain is listed in
-`RELAY_FBL_SENDER_DOMAINS`, and the report names the message it is about.
+`FBL_SENDER_DOMAINS`, and the report names the message it is about.
 Register the address with each provider. Yahoo and Microsoft send
 per-complaint reports, Google does not. A report that names no message stays
 on record as an inbound email only, and is not recorded as a complaint.
@@ -315,10 +315,10 @@ identifier appears in enough mail, so a per-message value is never reported.
 As a result, the header is not a proof for a complaint. Only the per-message
 Return-Path is.
 
-| Variable                   | Default                                                       | Description                                                                                                      |
-| -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `RELAY_FBL_ADDRESS`        | `fbl@` + `RELAY_PLATFORM_DOMAIN`                              | The FBL ingestion mailbox. Register it with your providers.                                                      |
-| `RELAY_FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,aol.net,hotmail.com,outlook.com,live.com` | Provider domains whose authenticated reports are ingested, including their subdomains. Empty disables ingestion. |
+| Variable             | Default                                                       | Description                                                                                                      |
+| -------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `FBL_ADDRESS`        | `fbl@` + `PLATFORM_DOMAIN`                                    | The FBL ingestion mailbox. Register it with your providers.                                                      |
+| `FBL_SENDER_DOMAINS` | `arf.mail.yahoo.com,aol.net,hotmail.com,outlook.com,live.com` | Provider domains whose authenticated reports are ingested, including their subdomains. Empty disables ingestion. |
 
 ### Tech Stack
 

@@ -70,7 +70,7 @@ class DomainQuerySet(models.QuerySet):
         # domain by design, so it may share an ancestor chain with
         # domains of other organizations without making the match ambiguous.
         if len({domain.org_id for domain in domains}) > 1:
-            platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+            platform_name = canonicalize_domain_name(settings.PLATFORM_DOMAIN)
             domains = [domain for domain in domains if domain.name != platform_name]
         if not domains or len({domain.org_id for domain in domains}) > 1:
             raise self.model.DoesNotExist
@@ -292,9 +292,9 @@ class Domain(TimeStamped):
     def clean(self):
         name = canonicalize_domain_name(self.name)
         self.name = name
-        platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+        platform_name = canonicalize_domain_name(settings.PLATFORM_DOMAIN)
         if not self.is_managed:
-            root = canonicalize_domain_name(settings.RELAY_MANAGED_SENDER_DOMAIN)
+            root = canonicalize_domain_name(settings.MANAGED_SENDER_DOMAIN)
             if name == root or name.endswith(f".{root}"):
                 raise ValidationError(
                     _(
@@ -341,7 +341,7 @@ class Domain(TimeStamped):
 
     @property
     def dkim_ciphers(self):
-        prefix = settings.RELAY_DNS_DKIM_IDENTIFIER
+        prefix = settings.DNS_DKIM_IDENTIFIER
         return [
             ("dkim_rsa2048", f"{prefix}-rsa2048", self.dkim_key_rsa2048),
             ("dkim_ed25519", f"{prefix}-ed25519", self.dkim_key_ed25519),
@@ -350,7 +350,7 @@ class Domain(TimeStamped):
     @property
     def sender_domain(self):
         """Return the subdomain used as the SMTP envelope and DKIM sender."""
-        return f"{settings.RELAY_SENDER_SUBDOMAIN_PREFIX}.{self.name}"
+        return f"{settings.SENDER_SUBDOMAIN_PREFIX}.{self.name}"
 
     @property
     def dmarc_record_name(self):
@@ -372,7 +372,7 @@ class Domain(TimeStamped):
     @property
     def spf_record(self):
         """Return the SPF record with one ip4 term per relay sending address."""
-        terms = [f"ip4:{address}" for address in settings.RELAY_DNS_SMTP_IPS]
+        terms = [f"ip4:{address}" for address in settings.DNS_SMTP_IPS]
         return " ".join(["v=spf1", *terms, "-all"])
 
     @property
@@ -381,15 +381,15 @@ class Domain(TimeStamped):
 
     @property
     def dmarc_reporting_address(self):
-        return f"{settings.RELAY_DMARC_REPORT_LOCAL_PART}@{self.sender_domain}"
+        return f"{settings.DMARC_REPORT_LOCAL_PART}@{self.sender_domain}"
 
     @property
     def dmarc_ruf_reporting_address(self):
-        return f"{settings.RELAY_DMARC_RUF_LOCAL_PART}@{self.sender_domain}"
+        return f"{settings.DMARC_RUF_LOCAL_PART}@{self.sender_domain}"
 
     @property
     def tls_reporting_address(self):
-        return f"{settings.RELAY_TLS_REPORT_LOCAL_PART}@{self.sender_domain}"
+        return f"{settings.TLS_REPORT_LOCAL_PART}@{self.sender_domain}"
 
     @property
     def dmarc_record(self):
@@ -422,7 +422,7 @@ class Domain(TimeStamped):
     @property
     def mta_sts_record(self):
         """Return the MTA-STS DNS record for _mta-sts.{domain}."""
-        return f"v=STSv1; id={settings.RELAY_MTA_STS_POLICY_ID}"
+        return f"v=STSv1; id={settings.MTA_STS_POLICY_ID}"
 
     @property
     def mta_sts_hostname(self):

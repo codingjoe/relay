@@ -58,8 +58,8 @@ class HomeView(CacheControlMixin, BreadcrumbViewMixin, generic.TemplateView):
             "nameservers": [f"ns1.{platform}", f"ns2.{platform}"],
             "brands": BRANDS,
             "testimonials": TESTIMONIALS,
-            "free_monthly_messages": settings.RELAY_FREE_MONTHLY_MESSAGES,
-            "price_per_1000_messages": settings.RELAY_PRICE_PER_1000_MESSAGES,
+            "free_monthly_messages": settings.FREE_MONTHLY_MESSAGES,
+            "price_per_1000_messages": settings.PRICE_PER_1000_MESSAGES,
         }
 
 

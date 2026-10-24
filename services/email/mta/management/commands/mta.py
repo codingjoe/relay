@@ -19,8 +19,8 @@ class Command(BaseCommand):
             "--ports",
             nargs="+",
             type=int,
-            default=[*settings.RELAY_MX_PORTS],
-            help="Listen ports (defaults to RELAY_MX_PORTS)",
+            default=[*settings.MX_PORTS],
+            help="Listen ports (defaults to MX_PORTS)",
         )
 
     def handle(self, *args, host, ports, **options):
@@ -29,7 +29,7 @@ class Command(BaseCommand):
         run_mx_server(
             host=host,
             ports=ports,
-            tls_cert_path=settings.RELAY_MX_TLS_CERT_PATH,
-            tls_key_path=settings.RELAY_MX_TLS_KEY_PATH,
-            proxy_protocol_timeout=settings.RELAY_PROXY_PROTOCOL_TIMEOUT,
+            tls_cert_path=settings.MX_TLS_CERT_PATH,
+            tls_key_path=settings.MX_TLS_KEY_PATH,
+            proxy_protocol_timeout=settings.PROXY_PROTOCOL_TIMEOUT,
         )

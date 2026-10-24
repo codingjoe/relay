@@ -8,10 +8,10 @@ secretGenerator:
   - name: relay-infra
     literals:
       - HOSTNAME=localhost
-      - RELAY_STORAGE_DOMAIN=storage.localhost
+      - STORAGE_DOMAIN=storage.localhost
       - POSTGRES_PASSWORD=postgres
       - REDIS_PASSWORD=redis
-      - RELAY_RSPAMD_PASSWORD=rspamd
+      - RSPAMD_PASSWORD=rspamd
       - AWS_S3_ACCESS_KEY_ID=local
       - AWS_S3_SECRET_ACCESS_KEY=local
       - AWS_S3_ENDPOINT_URL=http://localhost:9000
@@ -21,11 +21,11 @@ secretGenerator:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
       - REDIS_URL=redis://:redis@redis:6379/0
       - TASK_REDIS_URL=redis://:redis@redis-tasks:6379/0
-      - RELAY_RSPAMD_URL=http://:rspamd@rspamd:11334
-      - RELAY_SMTP_TLS_CERT_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.crt
-      - RELAY_SMTP_TLS_KEY_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.key
-      - RELAY_MX_TLS_CERT_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.crt,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.crt
-      - RELAY_MX_TLS_KEY_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.key,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.key
+      - RSPAMD_URL=http://:rspamd@rspamd:11334
+      - SMTP_TLS_CERT_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.crt
+      - SMTP_TLS_KEY_PATH=/data/caddy/certificates/local/smtp.localhost/smtp.localhost.key
+      - MX_TLS_CERT_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.crt,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.crt
+      - MX_TLS_KEY_PATH=/data/caddy/certificates/local/mx1.localhost/mx1.localhost.key,/data/caddy/certificates/local/mx2.localhost/mx2.localhost.key
   - name: dotenvx-key
     literals:
       - DOTENV_PRIVATE_KEY_PRODUCTION=unused

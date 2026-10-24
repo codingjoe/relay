@@ -100,7 +100,7 @@ jobs:
         run: |
           postgres_password="$(dotenvx get POSTGRES_PASSWORD -f .env.production || true)"
           redis_password="$(dotenvx get REDIS_PASSWORD -f .env.production || true)"
-          rspamd_password="$(dotenvx get RELAY_RSPAMD_PASSWORD -f .env.production || true)"
+          rspamd_password="$(dotenvx get RSPAMD_PASSWORD -f .env.production || true)"
           hostname="$(dotenvx get HOSTNAME -f .env.production || true)"
           for check in "$postgres_password" "$redis_password" "$rspamd_password" "$hostname"; do
               if [ -z "$check" ]; then
@@ -113,11 +113,11 @@ jobs:
               --from-literal=DATABASE_URL="postgresql://postgres:${postgres_password}@postgres:5432/postgres" \
               --from-literal=REDIS_URL="redis://:${redis_password}@redis:6379/0" \
               --from-literal=TASK_REDIS_URL="redis://:${redis_password}@redis-tasks:6379/0" \
-              --from-literal=RELAY_RSPAMD_URL="http://:${rspamd_password}@rspamd:11334" \
-              --from-literal=RELAY_SMTP_TLS_CERT_PATH="${certificates}/smtp.${hostname}/smtp.${hostname}.crt" \
-              --from-literal=RELAY_SMTP_TLS_KEY_PATH="${certificates}/smtp.${hostname}/smtp.${hostname}.key" \
-              --from-literal=RELAY_MX_TLS_CERT_PATH="${certificates}/mx1.${hostname}/mx1.${hostname}.crt,${certificates}/mx2.${hostname}/mx2.${hostname}.crt" \
-              --from-literal=RELAY_MX_TLS_KEY_PATH="${certificates}/mx1.${hostname}/mx1.${hostname}.key,${certificates}/mx2.${hostname}/mx2.${hostname}.key" \
+              --from-literal=RSPAMD_URL="http://:${rspamd_password}@rspamd:11334" \
+              --from-literal=SMTP_TLS_CERT_PATH="${certificates}/smtp.${hostname}/smtp.${hostname}.crt" \
+              --from-literal=SMTP_TLS_KEY_PATH="${certificates}/smtp.${hostname}/smtp.${hostname}.key" \
+              --from-literal=MX_TLS_CERT_PATH="${certificates}/mx1.${hostname}/mx1.${hostname}.crt,${certificates}/mx2.${hostname}/mx2.${hostname}.crt" \
+              --from-literal=MX_TLS_KEY_PATH="${certificates}/mx1.${hostname}/mx1.${hostname}.key,${certificates}/mx2.${hostname}/mx2.${hostname}.key" \
               --dry-run=client --output=yaml | kubectl apply -f -
       - name: Build the rspamd and redis config Secrets
         env:
