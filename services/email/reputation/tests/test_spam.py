@@ -246,7 +246,7 @@ class TestCheckOrgReputation:
     def test_check_org_reputation__locks_on_threshold_breach(
         self, org, user, mailoutbox, settings
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
@@ -272,7 +272,7 @@ class TestCheckOrgReputation:
         assert mailoutbox[0].to == ["alice@example.com"]
 
     def test_check_org_reputation__ignores_soft_bounces(self, org, user, settings):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         message = make_message(org, OutgoingMessage.Status.FAILED)
         Transmission.objects.create(
             message=message,
@@ -291,7 +291,7 @@ class TestCheckOrgReputation:
     def test_check_org_reputation__skips_notification_when_already_locked(
         self, org, user, mailoutbox, settings
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         Organization.objects.filter(pk=org.pk).update(suspended_at=timezone.now())
         domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
@@ -334,7 +334,7 @@ class TestCheckReputationOnBounce:
     def test_check_reputation_on_bounce__locks(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         message = make_message(org)
 
         with django_capture_on_commit_callbacks(execute=True):
@@ -353,7 +353,7 @@ class TestCheckReputationOnBounce:
     def test_check_reputation_on_bounce__ignores_non_bounced_status(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         message = make_message(org)
 
         with django_capture_on_commit_callbacks(execute=True):
@@ -374,7 +374,7 @@ class TestCheckReputationOnHeldMessage:
     def test_check_reputation_on_held_message__locks(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="reputation.test", org=org)
         message = OutgoingMessage.objects.create(
             org=org,
@@ -396,7 +396,7 @@ class TestCheckReputationOnHeldMessage:
     def test_check_reputation_on_held_message__ignores_regular_send(
         self, django_capture_on_commit_callbacks, org, user, settings
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
 
         with django_capture_on_commit_callbacks(execute=True):
             make_message(org)
@@ -483,7 +483,7 @@ class TestBuildReputationChart:
     def test_build_reputation_chart__matches_evaluation_complaint_semantics(
         self, org, user, settings
     ):
-        settings.RELAY_REPUTATION_MIN_VOLUME = 1
+        settings.REPUTATION_MIN_VOLUME = 1
         domain = Domain.objects.create(name="acme.com", org=org)
         message = OutgoingMessage.objects.create(
             org=org,

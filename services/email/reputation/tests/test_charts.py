@@ -36,7 +36,7 @@ def make_message(org, day):
 class TestBuildReputationChart:
     def test_with_a_zero_window__counts_as_one_day(self, org, settings, monkeypatch):
         freeze_today(monkeypatch, date(2026, 9, 19))
-        settings.RELAY_REPUTATION_WINDOW_DAYS = 0
+        settings.REPUTATION_WINDOW_DAYS = 0
 
         chart = build_reputation_chart(org)
 
@@ -49,7 +49,7 @@ class TestBuildReputationChart:
         self, org, settings, monkeypatch
     ):
         freeze_today(monkeypatch, date(2026, 9, 19))
-        settings.RELAY_REPUTATION_WINDOW_DAYS = -7
+        settings.REPUTATION_WINDOW_DAYS = -7
 
         chart = build_reputation_chart(org)
 
@@ -58,7 +58,7 @@ class TestBuildReputationChart:
 
     def test_reports_the_cumulative_rates(self, org, settings, monkeypatch):
         freeze_today(monkeypatch, date(2026, 9, 19))
-        settings.RELAY_REPUTATION_WINDOW_DAYS = 7
+        settings.REPUTATION_WINDOW_DAYS = 7
         make_message(org, date(2026, 9, 15))
         bounced = make_message(org, date(2026, 9, 16))
         Transmission.objects.create(
@@ -79,7 +79,7 @@ class TestBuildReputationChart:
 
     def test_reports_the_cumulative_soft_bounce_rate(self, org, settings, monkeypatch):
         freeze_today(monkeypatch, date(2026, 9, 19))
-        settings.RELAY_REPUTATION_WINDOW_DAYS = 7
+        settings.REPUTATION_WINDOW_DAYS = 7
         hard = make_message(org, date(2026, 9, 16))
         soft = make_message(org, date(2026, 9, 16))
         soft.status = OutgoingMessage.Status.FAILED

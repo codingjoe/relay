@@ -209,7 +209,7 @@ class ReputationHealthCheckView(HealthCheckView):
 
 
 reputation_checks = [
-    (DnsBlocklist, {"address": address}) for address in settings.RELAY_SMTP_SOURCE_IPS
+    (DnsBlocklist, {"address": address}) for address in settings.SMTP_SOURCE_IPS
 ]
 
 node_checks = [

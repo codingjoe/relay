@@ -194,7 +194,7 @@ class TestReputationOverviewView:
 
         assert response.status_code == 200
         assert (
-            f"Up to {settings.RELAY_FREE_MONTHLY_MESSAGES:,} messages a month."
+            f"Up to {settings.FREE_MONTHLY_MESSAGES:,} messages a month."
             in response.content.decode()
         )
         assert "Free" in response.content.decode()
@@ -216,23 +216,21 @@ class TestReputationOverviewView:
     def test_get__shows_only_the_free_plan_when_the_price_is_zero(
         self, admin_client, org, settings
     ):
-        settings.RELAY_PRICE_PER_1000_MESSAGES = 0.0
+        settings.PRICE_PER_1000_MESSAGES = 0.0
 
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
         card = card_containing(response.content.decode(), "Cost")
-        assert (
-            f"Up to {settings.RELAY_FREE_MONTHLY_MESSAGES:,} messages a month." in card
-        )
+        assert f"Up to {settings.FREE_MONTHLY_MESSAGES:,} messages a month." in card
         assert "Free" in card
         assert "per 1,000 messages" not in card
 
     def test_get__shows_the_cost_of_a_month_past_the_allowance(
         self, admin_client, org, settings
     ):
-        settings.RELAY_FREE_MONTHLY_MESSAGES = 1
-        settings.RELAY_PRICE_PER_1000_MESSAGES = 10.0
+        settings.FREE_MONTHLY_MESSAGES = 1
+        settings.PRICE_PER_1000_MESSAGES = 10.0
         domain = Domain.objects.create(name="acme.com", org=org)
         for index in range(3):
             OutgoingMessage.objects.create(
@@ -315,7 +313,7 @@ class TestReputationOverviewView:
         ]
         assert this_month_cumulative[-1] == 1
         assert last_month_cumulative[-1] == 1
-        assert chart["threshold"]["value"] == settings.RELAY_FREE_MONTHLY_MESSAGES
+        assert chart["threshold"]["value"] == settings.FREE_MONTHLY_MESSAGES
         assert "chart-volume" in response.content.decode()
 
     def test_get__shows_the_rate_in_per_cent(self, admin_client, org, user):

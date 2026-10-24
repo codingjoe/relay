@@ -63,7 +63,7 @@ class TestEmailView(OrganizationScopedView, generic.View):
             messages.error(request, _("Add a sending domain first."))
             return redirect("message:message-list", org_slug=org_slug)
 
-        mail_from = f"{settings.RELAY_POSTMASTER_LOCAL_PART}@{domain.name}"
+        mail_from = f"{settings.POSTMASTER_LOCAL_PART}@{domain.name}"
         message_pk = uuid.uuid7()
         try:
             email = TestEmail.to_user(

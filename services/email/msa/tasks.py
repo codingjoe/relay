@@ -43,7 +43,7 @@ def mint_bounce_address(message: OutgoingMessage, key: str | None = None) -> str
     value = base64.urlsafe_b64encode(message.pk.bytes).rstrip(b"=").decode()
     signature = bounce_signer.signature(value, key=key)[:20]
     return (
-        f"{settings.RELAY_BOUNCE_LOCAL_PART}+{value}.{signature}"
+        f"{settings.BOUNCE_LOCAL_PART}+{value}.{signature}"
         f"@{message.domain.sender_domain}"
     )
 
@@ -454,8 +454,8 @@ async def send_via_mx(
 
     source_address = (
         # Spread the legs over the source IPs. No secret rides on the pick.
-        (random.choice(settings.RELAY_SMTP_SOURCE_IPS), 0)  # noqa: S311
-        if settings.RELAY_SMTP_SOURCE_IPS
+        (random.choice(settings.SMTP_SOURCE_IPS), 0)  # noqa: S311
+        if settings.SMTP_SOURCE_IPS
         else None
     )
     transmission.local_ip_address = source_address[0] if source_address else None
@@ -464,7 +464,7 @@ async def send_via_mx(
         port=25,
         use_tls=False,
         start_tls=True,
-        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+        local_hostname=settings.SMTP_PUBLIC_HOSTNAME,
         source_address=source_address,
     ) as smtp_client:
         # Read the socket before the mail transaction; a refusal drops it.
@@ -525,8 +525,7 @@ def check_outgoing_spam(message_pk, client_ip):
         timer.antivirus_ms = spam.antivirus_ms
         timer.profile_ms = spam.profile_ms
     is_spam = (
-        spam.action == SpamAction.REJECT
-        or spam.score >= settings.RELAY_RSPAMD_HOLD_SCORE
+        spam.action == SpamAction.REJECT or spam.score >= settings.RSPAMD_HOLD_SCORE
     )
     message.spam_score = spam.score
     message.spam_action = spam.action

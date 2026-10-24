@@ -85,7 +85,7 @@ class OnboardingEmail(TemplateEmail):
             "remaining_steps": self.state["remaining_steps"],
             "username": self.extra_context["user"].username,
             "short_name": self.extra_context["user"].get_short_name(),
-            "free_monthly_messages": intcomma(settings.RELAY_FREE_MONTHLY_MESSAGES),
+            "free_monthly_messages": intcomma(settings.FREE_MONTHLY_MESSAGES),
             "mcp_codex_command": (
                 f"codex mcp add relay --url {settings.MCP_RESOURCE_URL}"
             ),

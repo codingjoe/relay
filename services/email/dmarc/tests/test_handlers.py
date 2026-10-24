@@ -15,8 +15,8 @@ class TestProcessIncomingMessageReports:
     @pytest.mark.parametrize(
         ("local_part", "report_model"),
         [
-            (settings.RELAY_DMARC_REPORT_LOCAL_PART, DmarcReport),
-            (settings.RELAY_DMARC_RUF_LOCAL_PART, DmarcFailureReport),
+            (settings.DMARC_REPORT_LOCAL_PART, DmarcReport),
+            (settings.DMARC_RUF_LOCAL_PART, DmarcFailureReport),
         ],
     )
     async def test_report_recipient__binds_report_to_domain(

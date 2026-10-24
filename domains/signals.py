@@ -16,7 +16,7 @@ def synchronize_managed_domain(sender, instance, created, **kwargs):
         created or update_fields is None or "slug" in update_fields
     ):
         verified_at = timezone.now()
-        managed_domain_name = f"{instance.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
+        managed_domain_name = f"{instance.slug}.{settings.MANAGED_SENDER_DOMAIN}"
         try:
             domain = Domain.objects.get(org=instance, is_managed=True)
         except Domain.DoesNotExist:

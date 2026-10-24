@@ -61,8 +61,8 @@ Developer workflow, confirmed from product code and copy:
   subscriptions; you pay when relay relays. The hero claims the product,
   not the price: "Email sending, receiving, monitoring, and sandboxes. So
   good you'll check the dashboard for fun." The free tier and the price
-  per 1,000 emails come from `RELAY_FREE_MONTHLY_MESSAGES` (1,000) and
-  `RELAY_PRICE_PER_1000_MESSAGES` (€0.69), which the landing page and the
+  per 1,000 emails come from `FREE_MONTHLY_MESSAGES` (1,000) and
+  `PRICE_PER_1000_MESSAGES` (€0.69), which the landing page and the
   reputation cost card share; pricing is pre-launch and unvalidated.
 - Landing page stage framing: pre-launch/early access. The primary CTA is
   "get early access"; signup currently stays open via GitHub OAuth (the

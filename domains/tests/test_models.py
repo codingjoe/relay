@@ -73,19 +73,19 @@ class TestDomainPropertiesNoDb:
         )
 
     def test_spf_record__authorizes_each_pool_address(self, settings):
-        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10", "203.0.113.11"]
+        settings.DNS_SMTP_IPS = ["203.0.113.10", "203.0.113.11"]
 
         assert Domain(name="example.com").spf_record == (
             "v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
         )
 
     def test_spf_record__rejects_senders_outside_the_pool(self, settings):
-        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10"]
+        settings.DNS_SMTP_IPS = ["203.0.113.10"]
 
         assert Domain(name="example.com").spf_record.endswith("-all")
 
     def test_spf_record__empty_pool(self, settings):
-        settings.RELAY_DNS_SMTP_IPS = []
+        settings.DNS_SMTP_IPS = []
 
         assert Domain(name="example.com").spf_record == "v=spf1 -all"
 
@@ -106,21 +106,21 @@ class TestDomainClean:
         ["app.open.relay.example.com", "open.relay.example.com"],
     )
     def test_clean__rejects_relay_managed_names(self, name, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
-        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+        settings.PLATFORM_DOMAIN = "relay.example.com"
+        settings.MANAGED_SENDER_DOMAIN = "open.relay.example.com"
 
         with pytest.raises(ValidationError):
             Domain(name=name).clean()
 
     def test_clean__allows_managed_domain(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
-        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+        settings.PLATFORM_DOMAIN = "relay.example.com"
+        settings.MANAGED_SENDER_DOMAIN = "open.relay.example.com"
 
         Domain(name="acme.open.relay.example.com", is_managed=True).clean()
 
     def test_clean__rejects_unicode_dot_beneath_managed_zone(self, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
-        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+        settings.PLATFORM_DOMAIN = "relay.example.com"
+        settings.MANAGED_SENDER_DOMAIN = "open.relay.example.com"
 
         with pytest.raises(ValidationError):
             Domain(name="app。open.relay.example.com").clean()
@@ -134,8 +134,8 @@ class TestDomainClean:
         ],
     )
     def test_clean__rejects_platform_subdomain(self, name, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
-        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+        settings.PLATFORM_DOMAIN = "relay.example.com"
+        settings.MANAGED_SENDER_DOMAIN = "open.relay.example.com"
 
         with pytest.raises(ValidationError):
             Domain(name=name).clean()
@@ -182,7 +182,7 @@ class TestDomainClean:
         platform_org = Organization.objects.create(slug="platform-org")
 
         platform = Domain.objects.create(
-            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
             org=platform_org,
         )
 
@@ -193,7 +193,7 @@ class TestDomainClean:
     def test_save__creates_new_org_after_platform_domain(self):
         platform_org = Organization.objects.create(slug="platform-org")
         platform = Domain.objects.create(
-            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
             org=platform_org,
         )
 
@@ -206,7 +206,7 @@ class TestDomainClean:
     def test_save__allows_managed_sender_beneath_platform_domain(self):
         platform_org = Organization.objects.create(slug="platform-org")
         platform = Domain.objects.create(
-            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
             org=platform_org,
         )
         org = Organization.objects.create(slug="acme")
@@ -224,13 +224,13 @@ class TestDomainClean:
         first_org = Organization.objects.create(slug="first")
         second_org = Organization.objects.create(slug="second")
         Domain.objects.create(
-            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
             org=first_org,
         )
 
         with pytest.raises(IntegrityError), transaction.atomic():
             Domain.objects.create(
-                name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+                name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
                 org=second_org,
             )
 

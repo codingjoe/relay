@@ -113,10 +113,10 @@ class TestBuildDigestContext:
     def test_build_digest_context__carries_the_numbers_and_the_limits(
         self, org, settings
     ):
-        settings.RELAY_REPUTATION_WINDOW_DAYS = 7
-        settings.RELAY_REPUTATION_BOUNCE_RATE_THRESHOLD = 0.05
-        settings.RELAY_REPUTATION_COMPLAINT_RATE_THRESHOLD = 0.001
-        settings.RELAY_FREE_MONTHLY_MESSAGES = 1000
+        settings.REPUTATION_WINDOW_DAYS = 7
+        settings.REPUTATION_BOUNCE_RATE_THRESHOLD = 0.05
+        settings.REPUTATION_COMPLAINT_RATE_THRESHOLD = 0.001
+        settings.FREE_MONTHLY_MESSAGES = 1000
         stats = make_stats(total_sent=70)
 
         context = build_digest_context(
@@ -177,7 +177,7 @@ class TestBuildDigestContext:
 @pytest.mark.django_db
 class TestBuildOrgDigest:
     def test_build_org_digest__counts_the_window(self, org, settings):
-        settings.RELAY_REPUTATION_WINDOW_DAYS = 2
+        settings.REPUTATION_WINDOW_DAYS = 2
         make_message(org, "one@example.com")
         make_message(org, "one@example.com")
         make_message(org, "two@example.com", status=OutgoingMessage.Status.SANDBOXED)
@@ -198,7 +198,7 @@ class TestBuildOrgDigest:
         )
 
     def test_build_org_digest__counts_a_zero_window_as_one_day(self, org, settings):
-        settings.RELAY_REPUTATION_WINDOW_DAYS = 0
+        settings.REPUTATION_WINDOW_DAYS = 0
         make_message(org, "one@example.com")
 
         digest = build_org_digest(org)

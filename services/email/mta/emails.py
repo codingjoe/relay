@@ -46,7 +46,7 @@ class PostmasterForwardEmail(TemplateEmail):
                 pk=uuid.uuid7(),
                 content_type=ContentType.objects.get_for_model(IncomingMessage),
                 mail_from="sender@example.org",
-                rcpt_to=f"postmaster@{settings.RELAY_PLATFORM_DOMAIN}",
+                rcpt_to=f"postmaster@{settings.PLATFORM_DOMAIN}",
                 subject="Delivery delayed",
             )
         return super().render_preview(

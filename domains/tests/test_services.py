@@ -418,7 +418,7 @@ class TestVerifyDomainDns:
             "TXT",
             f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
-        dns_resolver.add(domain.name, "MX", f"10 {settings.RELAY_DNS_MX_HOSTNAMES[0]}.")
+        dns_resolver.add(domain.name, "MX", f"10 {settings.DNS_MX_HOSTNAMES[0]}.")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()
@@ -571,7 +571,7 @@ class TestVerifyDomainDns:
             "TXT",
             f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
         )
-        dns_resolver.add(domain.name, "MX", f"10 {settings.RELAY_DNS_MX_HOSTNAMES[0]}.")
+        dns_resolver.add(domain.name, "MX", f"10 {settings.DNS_MX_HOSTNAMES[0]}.")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()

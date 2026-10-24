@@ -34,8 +34,8 @@ environment_is_set() {
     smtp_source_addresses="$(comma_list "${smtp_addresses[@]}"),$server_address"
     # The pool is bound by the machine config and advertised by the mail
     # records, so a pool that changed since the last run has to publish again.
-    [ "$(dotenvx get RELAY_DNS_SMTP_IPS -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$smtp_source_addresses" ] || return 1
-    [ "$(dotenvx get RELAY_SMTP_SOURCE_IPS -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$smtp_source_addresses" ] || return 1
+    [ "$(dotenvx get DNS_SMTP_IPS -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$smtp_source_addresses" ] || return 1
+    [ "$(dotenvx get SMTP_SOURCE_IPS -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$smtp_source_addresses" ] || return 1
     [ "$(gh variable get HOSTNAME --env production 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
     [ "$(gh variable get TALOS_ENDPOINT 2>/dev/null)" = "$TALOS_ENDPOINT" ] || return 1
     [ "$(gh variable get TALOS_INSTALLER 2>/dev/null)" = "$TALOS_INSTALLER" ] || return 1
@@ -48,7 +48,7 @@ environment_is_set() {
     # the deploy then dies on "certificate signed by unknown authority".
     published_credentials_are_current || return 1
     [ "$(dotenvx get HOSTNAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$RELAY_HOSTNAME" ] || return 1
-    [ "$(dotenvx get RELAY_STORAGE_DOMAIN -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$STORAGE_HOSTNAME" ] || return 1
+    [ "$(dotenvx get STORAGE_DOMAIN -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$STORAGE_HOSTNAME" ] || return 1
     [ "$(dotenvx get AWS_S3_ENDPOINT_URL -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_ENDPOINT_URL" ] || return 1
     [ "$(dotenvx get AWS_STORAGE_BUCKET_NAME -f "$REPO_ROOT/.env.production" 2>/dev/null)" = "$S3_BUCKET" ] || return 1
 }
@@ -207,9 +207,9 @@ note "Keep $TALOS_DIR/secrets.yaml: it reissues the TALOSCONFIG credential and i
 
 note "Writing the infrastructure values to .env.production"
 dotenvx set HOSTNAME "$RELAY_HOSTNAME" -f .env.production --plain
-dotenvx set RELAY_STORAGE_DOMAIN "$STORAGE_HOSTNAME" -f .env.production --plain
-dotenvx set RELAY_DNS_SMTP_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
-dotenvx set RELAY_SMTP_SOURCE_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
+dotenvx set STORAGE_DOMAIN "$STORAGE_HOSTNAME" -f .env.production --plain
+dotenvx set DNS_SMTP_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
+dotenvx set SMTP_SOURCE_IPS "$SMTP_SOURCE_ADDRESSES" -f .env.production --plain
 dotenvx set AWS_S3_ENDPOINT_URL "$S3_ENDPOINT_URL" -f .env.production --plain
 dotenvx set AWS_STORAGE_BUCKET_NAME "$S3_BUCKET" -f .env.production --plain
 dotenvx set AWS_S3_REGION_NAME "$S3_REGION" -f .env.production --plain
@@ -217,7 +217,7 @@ dotenvx set AWS_S3_ADDRESSING_STYLE path -f .env.production --plain
 dotenvx set AWS_S3_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID" -f .env.production
 dotenvx set AWS_S3_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY" -f .env.production
 
-for key in POSTGRES_PASSWORD REDIS_PASSWORD RELAY_RSPAMD_PASSWORD SECRET_KEY; do
+for key in POSTGRES_PASSWORD REDIS_PASSWORD RSPAMD_PASSWORD SECRET_KEY; do
     if dotenvx get "$key" -f .env.production >/dev/null 2>&1; then
         note "$key is already set, leaving it alone"
     else

@@ -66,7 +66,7 @@ class TestDomainQuerySet:
     def test_root_for__managed_domain_beneath_platform_domain(self):
         platform_org = Organization.objects.create(slug="platform-org")
         Domain.objects.create(
-            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
             org=platform_org,
         )
         org = Organization.objects.create(slug="acme")
@@ -130,13 +130,11 @@ class TestDomainQuerySet:
 
     def test_resolve_records__public_smtp_hostname_a_records_without_domain(self):
         records = DNSResolver().resolve_records(
-            DNSLabel(settings.RELAY_SMTP_PUBLIC_HOSTNAME),
+            DNSLabel(settings.SMTP_PUBLIC_HOSTNAME),
             QTYPE.A,
         )
 
-        assert {str(record.rdata) for record in records} == set(
-            settings.RELAY_DNS_SMTP_IPS
-        )
+        assert {str(record.rdata) for record in records} == set(settings.DNS_SMTP_IPS)
 
 
 @pytest.mark.django_db
@@ -146,17 +144,13 @@ class TestResolve:
         records = DNSResolver().resolve_records(
             DNSLabel("mail.relay.acme.open.localhost"), QTYPE.A
         )
-        assert {str(record.rdata) for record in records} == set(
-            settings.RELAY_DNS_SMTP_IPS
-        )
+        assert {str(record.rdata) for record in records} == set(settings.DNS_SMTP_IPS)
 
     def test_resolve_records__a_records_for_user_domain_sender(self):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve_records(DNSLabel(domain.sender_domain), QTYPE.A)
-        assert {str(record.rdata) for record in records} == set(
-            settings.RELAY_DNS_SMTP_IPS
-        )
+        assert {str(record.rdata) for record in records} == set(settings.DNS_SMTP_IPS)
 
     def test_resolve_records__does_not_publish_a_for_domain_apex(self):
         org = Organization.objects.create(slug="o")
@@ -194,9 +188,9 @@ class TestResolve:
         records = DNSResolver().resolve_records(
             DNSLabel("acme.open.localhost"), QTYPE.MX
         )
-        assert len(records) == len(settings.RELAY_DNS_MX_HOSTNAMES)
+        assert len(records) == len(settings.DNS_MX_HOSTNAMES)
         assert {str(record.rdata.label).rstrip(".") for record in records} == set(
-            settings.RELAY_DNS_MX_HOSTNAMES
+            settings.DNS_MX_HOSTNAMES
         )
 
     def test_resolve_records__ns_records(self):
@@ -205,11 +199,11 @@ class TestResolve:
             DNSLabel("mail.acme.open.localhost"), QTYPE.NS
         )
         assert {str(record.rdata.label).rstrip(".") for record in records} == set(
-            settings.RELAY_DNS_NS_NAMESERVERS
+            settings.DNS_NS_NAMESERVERS
         )
 
     def test_resolve_records__spf_txt(self, settings):
-        settings.RELAY_DNS_SMTP_IPS = ["203.0.113.10", "203.0.113.11"]
+        settings.DNS_SMTP_IPS = ["203.0.113.10", "203.0.113.11"]
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve_records(
@@ -220,7 +214,7 @@ class TestResolve:
         assert txt_data == b"v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
 
     def test_resolve_records__spf_txt_splits_long_pool(self, settings):
-        settings.RELAY_DNS_SMTP_IPS = ["198.51.100.1"] * 20
+        settings.DNS_SMTP_IPS = ["198.51.100.1"] * 20
         org = Organization.objects.create(slug="o")
         Domain.objects.create(name="example.com", org=org)
         records = DNSResolver().resolve_records(
@@ -274,7 +268,7 @@ class TestResolve:
     def test_resolve_records__publishes_platform_dkim_txt(self):
         platform_org = Organization.objects.create(slug="platform-org")
         platform = Domain.objects.create(
-            name=canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN),
+            name=canonicalize_domain_name(settings.PLATFORM_DOMAIN),
             org=platform_org,
         )
         _field, selector, _key = platform.dkim_ciphers[0]
@@ -333,9 +327,7 @@ class TestResolve:
             DNSLabel(f"mta-sts.{domain.sender_domain}"), QTYPE.A
         )
 
-        assert {str(record.rdata) for record in records} == set(
-            settings.RELAY_DNS_SMTP_IPS
-        )
+        assert {str(record.rdata) for record in records} == set(settings.DNS_SMTP_IPS)
 
     def test_resolve_records__mta_sts_sender_domain_any_records(self):
         org = Organization.objects.create(slug="o")
@@ -345,9 +337,7 @@ class TestResolve:
             DNSLabel(f"mta-sts.{domain.sender_domain}"), QTYPE.ANY
         )
 
-        assert {str(record.rdata) for record in records} == set(
-            settings.RELAY_DNS_SMTP_IPS
-        )
+        assert {str(record.rdata) for record in records} == set(settings.DNS_SMTP_IPS)
 
     def test_resolve_records__mta_sts_no_cname_for_other_subdomains(self):
         org = Organization.objects.create(slug="o")

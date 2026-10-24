@@ -19,7 +19,7 @@ class DomainCreateForm(forms.ModelForm):
 
     def clean_name(self):
         name = canonicalize_domain_name(self.cleaned_data["name"])
-        platform_name = canonicalize_domain_name(settings.RELAY_PLATFORM_DOMAIN)
+        platform_name = canonicalize_domain_name(settings.PLATFORM_DOMAIN)
         if name == platform_name or name.endswith(f".{platform_name}"):
             raise forms.ValidationError(
                 _("Cannot add %(base)s or a name below it. relay manages that zone.")

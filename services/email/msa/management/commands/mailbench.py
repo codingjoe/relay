@@ -64,7 +64,7 @@ async def open_connection(config: dict) -> aiosmtplib.SMTP:
         port=config["EMAIL_PORT"],
         username=config["EMAIL_HOST_USER"],
         password=config["EMAIL_HOST_PASSWORD"],
-        local_hostname=settings.RELAY_SMTP_PUBLIC_HOSTNAME,
+        local_hostname=settings.SMTP_PUBLIC_HOSTNAME,
         start_tls=not config["EMAIL_USE_TLS"],
         use_tls=config["EMAIL_USE_TLS"],
     )

@@ -18,10 +18,7 @@ def publish_dns_records(dns_resolver, domain, fields):
                 dns_resolver.add(
                     domain.sender_domain,
                     "NS",
-                    *(
-                        f"{nameserver}."
-                        for nameserver in settings.RELAY_DNS_NS_NAMESERVERS
-                    ),
+                    *(f"{nameserver}." for nameserver in settings.DNS_NS_NAMESERVERS),
                 )
             case "spf":
                 dns_resolver.add(
@@ -38,10 +35,7 @@ def publish_dns_records(dns_resolver, domain, fields):
                 dns_resolver.add(
                     domain.name,
                     "MX",
-                    *(
-                        f"10 {hostname}."
-                        for hostname in settings.RELAY_DNS_MX_HOSTNAMES
-                    ),
+                    *(f"10 {hostname}." for hostname in settings.DNS_MX_HOSTNAMES),
                 )
             case "mta_sts":
                 dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
@@ -90,7 +84,7 @@ class TestDomainListView:
         domain_names = {d.name for d in domains}
         assert domain_names == {
             "acme.com",
-            f"{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}",
+            f"{org.slug}.{settings.MANAGED_SENDER_DOMAIN}",
         }
 
     def test_get__not_found_for_non_member(self, admin_client, write_org):
@@ -200,8 +194,8 @@ class TestDomainCreateView:
         )
 
     def test_post__rejects_platform_domain(self, admin_client, org, settings):
-        settings.RELAY_PLATFORM_DOMAIN = "relay.example.com"
-        settings.RELAY_MANAGED_SENDER_DOMAIN = "open.relay.example.com"
+        settings.PLATFORM_DOMAIN = "relay.example.com"
+        settings.MANAGED_SENDER_DOMAIN = "open.relay.example.com"
 
         response = admin_client.post(
             f"/org/{org.slug}/email/domains/new",
@@ -283,7 +277,7 @@ class TestDomainDetailView:
         assert b"Quick start: send email" in response.content
         assert b"Receiving: route incoming mail" in response.content
         assert b"Production: harden TLS and DKIM" in response.content
-        for mx_hostname in settings.RELAY_DNS_MX_HOSTNAMES:
+        for mx_hostname in settings.DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."'.encode() in response.content
 
     def test_get__renders_each_record_group_in_its_own_section(
@@ -306,7 +300,7 @@ class TestDomainDetailView:
             ),
             receiving: (
                 "<label>MX</label>",
-                *(f"{hostname}." for hostname in settings.RELAY_DNS_MX_HOSTNAMES),
+                *(f"{hostname}." for hostname in settings.DNS_MX_HOSTNAMES),
             ),
             production: (
                 "<label>MTA-STS</label>",
@@ -584,7 +578,7 @@ class TestMtaStsPolicyView:
         body = response.content.decode()
         assert "version: STSv1" in body
         assert "mode:" in body
-        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in body
+        assert f"mx: {settings.DNS_MX_HOSTNAMES[0]}" in body
         assert "max_age:" in body
 
     def test_get__returns_421_for_unknown_domain(self, client):
@@ -614,7 +608,7 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.app.example.com"
         )
         assert response.status_code == 200
-        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in response.content.decode()
+        assert f"mx: {settings.DNS_MX_HOSTNAMES[0]}" in response.content.decode()
 
     def test_get__selects_most_specific_domain(self, client, org):
         Domain.objects.create(name="example.com", org=org)
@@ -623,7 +617,7 @@ class TestMtaStsPolicyView:
             "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.app.example.com"
         )
         assert response.status_code == 200
-        assert f"mx: {settings.RELAY_DNS_MX_HOSTNAMES[0]}" in response.content.decode()
+        assert f"mx: {settings.DNS_MX_HOSTNAMES[0]}" in response.content.decode()
 
     def test_get__handles_uppercase_mta_sts_prefix(self, client, org):
         Domain.objects.create(name="example.com", org=org)
@@ -652,7 +646,7 @@ class TestMtaStsAuthorizeView:
 
     @pytest.mark.django_db
     def test_get__ok_for_managed_domain(self, client, org):
-        managed_name = f"{org.slug}.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
+        managed_name = f"{org.slug}.{settings.MANAGED_SENDER_DOMAIN}"
         response = client.get(
             "/internal/mta-sts/authorize/", {"domain": f"mta-sts.{managed_name}"}
         )

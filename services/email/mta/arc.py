@@ -236,7 +236,7 @@ def seal_message(
     if key is None:
         logger.warning("Missing RSA-2048 key for %s, skipping ARC seal", domain.name)
         return raw_bytes
-    selector = f"{settings.RELAY_DNS_DKIM_IDENTIFIER}-rsa2048"
+    selector = f"{settings.DNS_DKIM_IDENTIFIER}-rsa2048"
     try:
         privkey, _ = keys.dkim_key_material(key.encrypted_private_key, key.algorithm)
         arc_set = dkim.arc_sign(

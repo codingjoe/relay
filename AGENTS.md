@@ -191,7 +191,7 @@ so the bundle developer signs in without a password.
   free sender domain docs.
 - `REVIEW.md`. The reviewer's standing rules (conventions, dependency
   direction). `CLAUDE.md` and `.github/copilot-instructions.md` symlink to it.
-- `root/settings.py`. All `RELAY_*` config and environment variables.
+- `root/settings.py`. All platform config and environment variables.
 - `docs/docs/`. User-facing product documentation, served at `/docs/`.
 - `legal/docs/`. Legal page Markdown sources (imprint, privacy, terms).
 

@@ -10,7 +10,7 @@ class TestSynchronizeManagedDomain:
         org = Organization.objects.create(slug="acme")
 
         domain = Domain.objects.get(org=org, is_managed=True)
-        assert domain.name == f"acme.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
+        assert domain.name == f"acme.{settings.MANAGED_SENDER_DOMAIN}"
         assert domain.verified_at is not None
         assert domain.dns_checked_at is not None
         assert {
@@ -37,7 +37,7 @@ class TestSynchronizeManagedDomain:
 
         domain.refresh_from_db()
         assert domain.pk == domain_id
-        assert domain.name == f"renamed.{settings.RELAY_MANAGED_SENDER_DOMAIN}"
+        assert domain.name == f"renamed.{settings.MANAGED_SENDER_DOMAIN}"
         assert (
             domain.dkim_key_rsa2048_id,
             domain.dkim_key_ed25519_id,

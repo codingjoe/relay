@@ -1,1 +1,1 @@
-password = "${RELAY_RSPAMD_PASSWORD}";
+password = "${RSPAMD_PASSWORD}";
