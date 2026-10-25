@@ -3,8 +3,9 @@ import re
 import zoneinfo
 from types import SimpleNamespace
 
+from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
-from django.template import RequestContext, engines
+from django.template import Context, RequestContext, engines
 from django.test import RequestFactory
 from django.utils import timezone
 
@@ -31,6 +32,42 @@ def test_param_replace__isolated_context():
         {"page_obj": Paginator(range(120), 50).page(2)}
     )
     assert abstract.param_replace(context, page=3) == "direction=sent&page=3"
+
+
+def authenticate(request, *, staff=True, accessed=True):
+    request.user = User(is_staff=staff)
+    request.session = SimpleNamespace(accessed=accessed)
+    return request
+
+
+def test_admin_url__change_page():
+    context = Context({"object": Group(pk=1)})
+    context.request = authenticate(RequestFactory().get("/"))
+    assert abstract.admin_url(context) == "/admin/auth/group/1/change/"
+
+
+def test_admin_url__changelist():
+    context = Context({"object_list": Group.objects.none()})
+    context.request = authenticate(RequestFactory().get("/"))
+    assert abstract.admin_url(context) == "/admin/auth/group/"
+
+
+def test_admin_url__admin_index():
+    context = Context()
+    context.request = authenticate(RequestFactory().get("/"))
+    assert abstract.admin_url(context) == "/admin/"
+
+
+def test_admin_url__non_staff():
+    context = Context({"object": Group(pk=1)})
+    context.request = authenticate(RequestFactory().get("/"), staff=False)
+    assert abstract.admin_url(context) == ""
+
+
+def test_admin_url__session_not_accessed():
+    context = Context({"object": Group(pk=1)})
+    context.request = authenticate(RequestFactory().get("/"), accessed=False)
+    assert abstract.admin_url(context) == ""
 
 
 def test_pagination__multiple_pages():
