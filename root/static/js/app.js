@@ -1,4 +1,5 @@
 import "basecoat-css/all.min";
+import Mousetrap from "mousetrap";
 
 function sharePage() {
   const url = globalThis.location.href;
@@ -100,6 +101,18 @@ document.addEventListener("change", ({ target: select }) => {
     target.textContent = `${prefix}${select.selectedOptions[0]?.textContent ?? ""}`;
   }
 });
+
+const adminUrl = document.body.dataset.adminUrl;
+if (adminUrl) {
+  Mousetrap.bind(
+    "g a",
+    (event) => {
+      event.preventDefault();
+      globalThis.location.href = adminUrl;
+    },
+    "keydown",
+  );
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   for (const dialog of document.querySelectorAll("dialog[data-auto-open]")) {

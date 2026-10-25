@@ -2,9 +2,11 @@ import datetime
 import decimal
 from datetime import timedelta
 
+from django.contrib.admin.templatetags.admin_urls import admin_urlname
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
 from django.template.defaulttags import register
+from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
 from humanize import naturaldelta
@@ -92,6 +94,21 @@ def param_replace(context, **kwargs):
     for k in [k for k, v in d.items() if not v]:
         del d[k]
     return d.urlencode()
+
+
+@register.simple_tag(takes_context=True)
+def admin_url(context):
+    """Return the admin page for the current object or object list."""
+    request = context.request
+    if not request.session.accessed or not request.user.is_staff:
+        return ""
+    if obj := context.get("object"):
+        model, url_suffix, args = type(obj), "change", [obj.pk]
+    elif (object_list := context.get("object_list")) is not None:
+        model, url_suffix, args = object_list.model, "changelist", []
+    else:
+        return reverse("admin:index")
+    return reverse(admin_urlname(model._meta, url_suffix), args=args)
 
 
 @register.inclusion_tag("abstract/timestamp.html")
