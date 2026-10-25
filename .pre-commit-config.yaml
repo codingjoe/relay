@@ -74,7 +74,7 @@ repos:
     hooks:
       - id: poexam
   - repo: https://github.com/UnknownPlatypus/djangofmt-pre-commit
-    rev: v1.0.1
+    rev: v1.1.0
     hooks:
       - id: djangofmt
         exclude: ^(?:abstract/templates/django/forms/widgets/.*|abstract/templates/abstract/tabler\.html)$
