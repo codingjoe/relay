@@ -209,7 +209,9 @@ def store_outgoing_message(
             is_sandbox=is_sandbox,
             status=status,
             headers=OutgoingMessage.headers_from_raw(raw_bytes),
-            raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+            raw_body=SimpleUploadedFile(
+                "message.eml", raw_bytes, content_type="message/rfc822"
+            ),
         )
     if status == OutgoingMessage.Status.PENDING:
         if is_system_mail:

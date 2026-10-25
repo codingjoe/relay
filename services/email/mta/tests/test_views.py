@@ -133,6 +133,14 @@ class TestIncomingMessageDetailView:
         response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
         assert response.status_code == 200
 
+    def test_get__download_names_the_eml_like_the_stored_file(self, admin_client, org):
+        msg = make_incoming(org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
+
+        assert response.status_code == 200
+        assert f'download="{msg.id}.eml"' in response.content.decode()
+
 
 @pytest.mark.django_db
 class TestWebhookListView:

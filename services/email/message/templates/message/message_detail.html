@@ -136,7 +136,7 @@
             data-size="icon-xs"
             data-tooltip='{% translate "download message"|capfirst %}'
             href="{{ message.raw_body.url }}"
-            download
+            download="{{ message.raw_body_filename }}"
             aria-label='{% translate "download message"|capfirst %}'
           >
             {% tabler name="download" size="3.5" %}

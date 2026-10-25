@@ -243,7 +243,9 @@ def process_incoming_message(
                     message_id=message_id,
                     report_id="",
                     headers=TlsReport.headers_from_raw(raw_bytes),
-                    raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+                    raw_body=SimpleUploadedFile(
+                        "message.eml", raw_bytes, content_type="message/rfc822"
+                    ),
                 )
             transaction.on_commit(
                 lambda: parse_tls_report.enqueue(report_pk=str(report.pk))
@@ -264,7 +266,9 @@ def process_incoming_message(
                     message_id=message_id,
                     status=status,
                     headers=IncomingMessage.headers_from_raw(raw_bytes),
-                    raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+                    raw_body=SimpleUploadedFile(
+                        "message.eml", raw_bytes, content_type="message/rfc822"
+                    ),
                 )
             fbl_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
@@ -285,7 +289,9 @@ def process_incoming_message(
                     message_id=message_id,
                     status=status,
                     headers=IncomingMessage.headers_from_raw(raw_bytes),
-                    raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+                    raw_body=SimpleUploadedFile(
+                        "message.eml", raw_bytes, content_type="message/rfc822"
+                    ),
                 )
             bounce_report_received.send(sender=IncomingMessage, message=message)
             return "250 OK"
@@ -303,7 +309,9 @@ def process_incoming_message(
             message_id=message_id,
             status=status,
             headers=IncomingMessage.headers_from_raw(raw_bytes),
-            raw_body=SimpleUploadedFile("message.eml", raw_bytes),
+            raw_body=SimpleUploadedFile(
+                "message.eml", raw_bytes, content_type="message/rfc822"
+            ),
         )
     transaction.on_commit(
         lambda: check_incoming_spam.enqueue(
