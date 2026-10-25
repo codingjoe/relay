@@ -32,7 +32,7 @@ class OutgoingMessageQuerySet(models.QuerySet):
                 self.select_for_update(skip_locked=True)
                 .filter(
                     status=OutgoingMessage.Status.HELD,
-                    virus_action__in=OutgoingMessage.RELEASABLE_VIRUS_ACTIONS,
+                    virus_action=VirusAction.CLEAN,
                 )
                 .values_list("pk", flat=True)
             )
@@ -48,9 +48,6 @@ class OutgoingMessageQuerySet(models.QuerySet):
 
 class OutgoingMessage(Message):
     """Deliver outbound email submitted via the SMTP server."""
-
-    # Only a clean virus check allows a release.
-    RELEASABLE_VIRUS_ACTIONS = (VirusAction.CLEAN,)
 
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
@@ -112,8 +109,7 @@ class OutgoingMessage(Message):
     def can_release(self) -> bool:
         """Return whether a held message may be sent after review."""
         return (
-            self.status == self.Status.HELD
-            and self.virus_action in self.RELEASABLE_VIRUS_ACTIONS
+            self.status == self.Status.HELD and self.virus_action == VirusAction.CLEAN
         )
 
     def save(self, *args, **kwargs):
