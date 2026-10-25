@@ -1,5 +1,22 @@
 {% extends "message/message_detail.html" %}
 {% load i18n abstract message %}
+{% block status_actions %}
+  {% if message.can_release %}
+    <form method="post" action="{% url 'msa:message-release' org.slug message.pk %}" class="m-0">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn"
+        data-variant="secondary"
+        data-size="sm"
+        data-confirm='{% translate "release this message and send it despite the spam verdict?"|capfirst %}'
+      >
+        {% tabler name="send-2" size="3.5" %}
+        {% translate "release and send"|capfirst %}
+      </button>
+    </form>
+  {% endif %}
+{% endblock %}
 {% block timeline_dialogs %}
   {% for transmission in transmissions %}
     {% if transmission.output or transmission.details %}

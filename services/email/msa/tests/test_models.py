@@ -1,4 +1,5 @@
 import secrets
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
@@ -13,6 +14,7 @@ from services.email.msa.models import (
     SuppressionEntry,
     TerminalStatusError,
 )
+from services.email.spam.client import VirusAction
 
 
 def make_message(org, user, **kwargs):
@@ -151,6 +153,134 @@ class TestOutgoingMessageSave:
 
         msg.refresh_from_db()
         assert msg.status == OutgoingMessage.Status.HELD
+
+
+@pytest.mark.django_db
+class TestOutgoingMessageCanRelease:
+    @pytest.mark.parametrize(
+        ("status", "virus_action", "expected"),
+        [
+            (OutgoingMessage.Status.HELD, VirusAction.CLEAN, True),
+            (OutgoingMessage.Status.HELD, VirusAction.INFECTED, False),
+            (OutgoingMessage.Status.HELD, "", False),
+            (OutgoingMessage.Status.PENDING, VirusAction.CLEAN, False),
+        ],
+    )
+    def test_can_release(self, org, user, status, virus_action, expected):
+        msg = make_message(org, user, status=status, virus_action=virus_action)
+
+        assert msg.can_release is expected
+
+
+@pytest.mark.django_db
+class TestOutgoingMessageRelease:
+    def test_release__moves_held_clean_message_to_pending(self, org, user):
+        msg = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+        modified_at = msg.modified_at
+
+        assert OutgoingMessage.objects.filter(pk=msg.pk).release() == 1
+
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert msg.modified_at > modified_at
+
+    def test_release__ignores_messages_that_are_not_clean_spam_holds(self, org, user):
+        infected = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.INFECTED,
+        )
+        unscanned = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+        )
+        pending = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.PENDING,
+            virus_action=VirusAction.CLEAN,
+        )
+
+        assert OutgoingMessage.objects.release() == 0
+
+        for msg in (infected, unscanned, pending):
+            msg.refresh_from_db()
+        assert infected.status == OutgoingMessage.Status.HELD
+        assert unscanned.status == OutgoingMessage.Status.HELD
+        assert pending.status == OutgoingMessage.Status.PENDING
+
+    def test_release__only_touches_the_selected_rows(self, org, user):
+        selected = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+        other = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+
+        assert OutgoingMessage.objects.filter(pk=selected.pk).release() == 1
+
+        selected.refresh_from_db()
+        other.refresh_from_db()
+        assert selected.status == OutgoingMessage.Status.PENDING
+        assert other.status == OutgoingMessage.Status.HELD
+
+    def test_release__enqueues_delivery_for_each_released_message(
+        self, org, user, django_capture_on_commit_callbacks
+    ):
+        first = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+        second = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+
+        with (
+            patch("services.email.msa.models.deliver_message") as task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            assert OutgoingMessage.objects.release() == 2
+
+        assert {call.kwargs["message_id"] for call in task.enqueue.call_args_list} == {
+            str(first.pk),
+            str(second.pk),
+        }
+
+    def test_release__does_not_enqueue_when_nothing_matches(
+        self, org, user, django_capture_on_commit_callbacks
+    ):
+        make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.INFECTED,
+        )
+
+        with (
+            patch("services.email.msa.models.deliver_message") as task,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            assert OutgoingMessage.objects.release() == 0
+
+        task.enqueue.assert_not_called()
 
 
 @pytest.mark.django_db

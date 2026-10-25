@@ -78,6 +78,10 @@ test = [
 "services/email/proxy_protocol.py" = [ "N802" ]
 "**/tests/*.py" = [ "S101", "S104", "S106" ]
 "**/test_*.py" = [ "S101" ]
+# Django apps connect signals after the app registry is ready.
+"**/apps.py" = [ "PLC0415" ]
+# Task modules import models inside their functions.
+"**/tasks.py" = [ "PLC0415" ]
 "conftest.py" = [ "S106" ]
 [tool.ruff.lint]
 extend-select = [
@@ -89,6 +93,7 @@ extend-select = [
   "G",
   "N",
   "PERF",
+  "PLC0415",
   "PT",
   "PTH",
   "RET",

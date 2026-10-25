@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from email import message_from_bytes
 from email.utils import parseaddr
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 import aiosmtplib
 import botocore.exceptions
@@ -29,7 +30,8 @@ from services.email.spam.client import SpamAction, check_message
 from services.email.spam.retry import SPAM_SCAN_RETRY
 from services.email.tls import parse_peer_certificates
 
-from .models import OutgoingMessage, SuppressionEntry
+if TYPE_CHECKING:
+    from .models import OutgoingMessage
 
 logger = logging.getLogger(__name__)
 
@@ -632,6 +634,8 @@ def resolve_bounce_owner(rcpt_to: str) -> OutgoingMessage | None:
     submitted. Only relay can mint the token signature, so a message id
     alone names nothing. Anything else returns `None`.
     """
+    from .models import OutgoingMessage
+
     value, _, signature = rcpt_to.partition("@")[0].partition("+")[2].rpartition(".")
     try:
         key = next(
@@ -664,6 +668,8 @@ def parse_bounce_report(message_pk):
     retry transmission for visibility without changing the message
     status. Any other action is not tracked.
     """
+    from .models import OutgoingMessage, SuppressionEntry
+
     message = IncomingMessage.objects.get(pk=message_pk)
     owner = resolve_bounce_owner(message.rcpt_to)
     delivery_status = None

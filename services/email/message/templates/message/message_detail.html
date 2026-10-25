@@ -72,38 +72,41 @@
         {% endif %}
       </div>
       {% if message.spam_action or message.spam_score is not None or message.virus_action %}
-        <p class="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:flex-col lg:items-end lg:gap-y-2">
-          {% translate "what the scan found" as scan_tooltip %}
-          {% if message.spam_action or message.spam_score is not None %}
-            <a
-              class="status inline-flex items-center gap-1.5 hover:underline"
-              data-variant="{{ message.spam_badge_variant }}"
-              data-tooltip="{{ scan_tooltip }}"
-              href="{% url 'docs:detail' 'message-statuses' %}"
-              target="_blank"
-              rel="noopener"
-            >
-              {% tabler name=message.spam_icon size="3.5" %}
-              {% blocktranslate with action=message.get_spam_action_display trimmed %}
-                Spam {{ action }}
-              {% endblocktranslate %}
-              {% if message.spam_score is not None %}({{ message.spam_score }}){% endif %}
-            </a>
-          {% endif %}
-          {% if message.virus_action %}
-            <a
-              class="status inline-flex items-center gap-1.5 hover:underline"
-              data-variant="{{ message.virus_badge_variant }}"
-              data-tooltip="{{ scan_tooltip }}"
-              href="{% url 'docs:detail' 'message-statuses' %}"
-              target="_blank"
-              rel="noopener"
-            >
-              {% tabler name=message.virus_icon size="3.5" %}
-              {{ message.virus_display }}
-            </a>
-          {% endif %}
-        </p>
+        <div class="flex flex-col gap-3 lg:items-end">
+          {% block status_actions %}{% endblock %}
+          <p class="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:flex-col lg:items-end lg:gap-y-2">
+            {% translate "what the scan found" as scan_tooltip %}
+            {% if message.spam_action or message.spam_score is not None %}
+              <a
+                class="status inline-flex items-center gap-1.5 hover:underline"
+                data-variant="{{ message.spam_badge_variant }}"
+                data-tooltip="{{ scan_tooltip }}"
+                href="{% url 'docs:detail' 'message-statuses' %}"
+                target="_blank"
+                rel="noopener"
+              >
+                {% tabler name=message.spam_icon size="3.5" %}
+                {% blocktranslate with action=message.get_spam_action_display trimmed %}
+                  Spam {{ action }}
+                {% endblocktranslate %}
+                {% if message.spam_score is not None %}({{ message.spam_score }}){% endif %}
+              </a>
+            {% endif %}
+            {% if message.virus_action %}
+              <a
+                class="status inline-flex items-center gap-1.5 hover:underline"
+                data-variant="{{ message.virus_badge_variant }}"
+                data-tooltip="{{ scan_tooltip }}"
+                href="{% url 'docs:detail' 'message-statuses' %}"
+                target="_blank"
+                rel="noopener"
+              >
+                {% tabler name=message.virus_icon size="3.5" %}
+                {{ message.virus_display }}
+              </a>
+            {% endif %}
+          </p>
+        </div>
       {% endif %}
     </div>
   </article>
