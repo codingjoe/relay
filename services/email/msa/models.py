@@ -2,7 +2,7 @@ import datetime
 from enum import nonmember
 
 from django.core.validators import validate_email
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_letter.fields import HashedEmailField
@@ -10,6 +10,8 @@ from django_letter.fields import HashedEmailField
 from abstract.models import TimeStamped
 from accounts.models import Credential, OrganizationOwned
 from services.email.message.models import Message
+
+from .tasks import deliver_message
 
 
 class TerminalStatusError(ValueError):
@@ -21,8 +23,33 @@ class TerminalStatusError(ValueError):
         )
 
 
+class OutgoingMessageQuerySet(models.QuerySet):
+    def release(self) -> int:
+        """Release held spam messages and return how many moved."""
+        with transaction.atomic():
+            pks = list(
+                self.select_for_update(skip_locked=True)
+                .filter(
+                    status=OutgoingMessage.Status.HELD,
+                    virus_action__in=OutgoingMessage.RELEASABLE_VIRUS_ACTIONS,
+                )
+                .values_list("pk", flat=True)
+            )
+            if released := self.filter(pk__in=pks).update(
+                status=OutgoingMessage.Status.PENDING,
+                modified_at=timezone.now(),
+            ):
+                transaction.on_commit(
+                    lambda: [deliver_message.enqueue(message_id=str(pk)) for pk in pks]
+                )
+        return released
+
+
 class OutgoingMessage(Message):
     """Deliver outbound email submitted via the SMTP server."""
+
+    # A clean or unfinished virus check does not block a release.
+    RELEASABLE_VIRUS_ACTIONS = ("", "clean")
 
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
@@ -67,6 +94,8 @@ class OutgoingMessage(Message):
     class Meta(TimeStamped.Meta):
         ordering = ["-id"]
 
+    objects = OutgoingMessageQuerySet.as_manager()
+
     email_url_name = "msa:message-detail"
 
     def __str__(self):
@@ -77,6 +106,14 @@ class OutgoingMessage(Message):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__status = self.status
+
+    @property
+    def can_release(self) -> bool:
+        """Return whether a held message may be sent after review."""
+        return (
+            self.status == self.Status.HELD
+            and self.virus_action in self.RELEASABLE_VIRUS_ACTIONS
+        )
 
     def save(self, *args, **kwargs):
         """

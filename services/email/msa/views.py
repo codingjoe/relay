@@ -39,6 +39,21 @@ class OutgoingMessageDetailView(MessageDetailView):
         )
 
 
+class OutgoingMessageReleaseView(OrganizationScopedView, generic.View):
+    http_method_names = ["post"]
+
+    def post(self, request, org_slug, *args, **kwargs):
+        message = get_object_or_404(
+            OutgoingMessage.objects.filter(org=self.org),
+            pk=kwargs["pk"],
+        )
+        if OutgoingMessage.objects.filter(pk=message.pk).release():
+            messages.success(request, _("Queued the held message for delivery."))
+        else:
+            messages.error(request, _("Only held spam messages can be released."))
+        return redirect("msa:message-detail", org_slug=org_slug, pk=message.pk)
+
+
 class TestEmailView(OrganizationScopedView, generic.View):
     def post(self, request, org_slug, *args, **kwargs):
         started_at = timezone.now()

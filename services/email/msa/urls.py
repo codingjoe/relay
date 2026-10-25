@@ -14,6 +14,11 @@ urlpatterns = [
                     views.OutgoingMessageDetailView.as_view(),
                     name="message-detail",
                 ),
+                path(
+                    "<uuid:pk>/release",
+                    views.OutgoingMessageReleaseView.as_view(),
+                    name="message-release",
+                ),
                 path("test", views.TestEmailView.as_view(), name="message-test"),
             ]
         ),

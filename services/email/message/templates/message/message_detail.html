@@ -43,6 +43,7 @@
             </p>
           {% endif %}
         </div>
+        {% block status_actions %}{% endblock %}
         {% translate "Show the messages with this address" as address_tooltip %}
         {% if message.mail_from or message.rcpt_to or message.subject %}
           <dl class="m-0 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
