@@ -1,6 +1,7 @@
 import uuid
 from email import message_from_bytes
 from email.header import Header, decode_header
+from pathlib import Path
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -323,6 +324,11 @@ class Message(TimeStamped):
             return self.raw_body.read()
         except FileNotFoundError, ValueError:
             return b""
+
+    @property
+    def raw_body_filename(self) -> str:
+        """Return the stored body filename without its directory."""
+        return Path(self.raw_body.name).name
 
     @property
     def text_body(self) -> bytes:
