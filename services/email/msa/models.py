@@ -10,6 +10,7 @@ from django_letter.fields import HashedEmailField
 from abstract.models import TimeStamped
 from accounts.models import Credential, OrganizationOwned
 from services.email.message.models import Message
+from services.email.spam.client import VirusAction
 
 from .tasks import deliver_message
 
@@ -48,8 +49,8 @@ class OutgoingMessageQuerySet(models.QuerySet):
 class OutgoingMessage(Message):
     """Deliver outbound email submitted via the SMTP server."""
 
-    # A clean or unfinished virus check does not block a release.
-    RELEASABLE_VIRUS_ACTIONS = ("", "clean")
+    # Only a clean virus check allows a release.
+    RELEASABLE_VIRUS_ACTIONS = (VirusAction.CLEAN,)
 
     class Status(models.TextChoices):
         PENDING = "pending", _("pending")
