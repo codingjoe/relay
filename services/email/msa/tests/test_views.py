@@ -19,6 +19,7 @@ from services.email.msa.models import (
     OutgoingMessage,
     SuppressionEntry,
 )
+from services.email.spam.client import VirusAction
 
 
 def copy_button(content, value):
@@ -38,6 +39,7 @@ def make_message(org, user, **kwargs):
         mail_from=kwargs.get("mail_from", "alice@example.com"),
         subject=kwargs.get("subject", "Test"),
         status=kwargs.get("status", OutgoingMessage.Status.PENDING),
+        virus_action=kwargs.get("virus_action", ""),
     )
     raw = EmailMessage()
     raw["From"] = msg.mail_from
@@ -150,6 +152,118 @@ class TestMessageDetailView:
             "DKIM-Signature",
             "v=1; a=ed25519-sha256; b",
         ]
+
+
+@pytest.mark.django_db
+class TestMessageReleaseView:
+    def test_post__releases_held_clean_message(self, admin_client, org, user):
+        msg = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+
+        response = admin_client.post(
+            reverse("msa:message-release", kwargs={"org_slug": org.slug, "pk": msg.pk})
+        )
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "msa:message-detail",
+            kwargs={"org_slug": org.slug, "pk": msg.pk},
+        )
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.PENDING
+        assert any(
+            "Queued the held message for delivery." in str(message)
+            for message in get_messages(response.wsgi_request)
+        )
+
+    def test_post__refuses_unreleasable_message(self, admin_client, org, user):
+        msg = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.INFECTED,
+        )
+
+        response = admin_client.post(
+            reverse("msa:message-release", kwargs={"org_slug": org.slug, "pk": msg.pk})
+        )
+
+        assert response.status_code == 302
+        msg.refresh_from_db()
+        assert msg.status == OutgoingMessage.Status.HELD
+        assert any(
+            "Only held spam messages can be released." in str(message)
+            for message in get_messages(response.wsgi_request)
+        )
+
+    def test_post__not_found_for_another_org_message(
+        self, admin_client, org, write_org
+    ):
+        msg = make_message(
+            write_org,
+            None,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+
+        response = admin_client.post(
+            reverse("msa:message-release", kwargs={"org_slug": org.slug, "pk": msg.pk})
+        )
+
+        assert response.status_code == 404
+
+    def test_get__method_not_allowed(self, admin_client, org, user):
+        msg = make_message(org, user)
+
+        response = admin_client.get(
+            reverse("msa:message-release", kwargs={"org_slug": org.slug, "pk": msg.pk})
+        )
+
+        assert response.status_code == 405
+
+    def test_detail__shows_release_button_for_held_clean_message(
+        self, admin_client, org, user
+    ):
+        msg = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.CLEAN,
+        )
+
+        response = admin_client.get(
+            reverse("msa:message-detail", kwargs={"org_slug": org.slug, "pk": msg.pk})
+        )
+
+        assert response.status_code == 200
+        assert (
+            reverse("msa:message-release", kwargs={"org_slug": org.slug, "pk": msg.pk})
+            in response.content.decode()
+        )
+
+    def test_detail__hides_release_button_for_unreleasable_message(
+        self, admin_client, org, user
+    ):
+        msg = make_message(
+            org,
+            user,
+            status=OutgoingMessage.Status.HELD,
+            virus_action=VirusAction.INFECTED,
+        )
+
+        response = admin_client.get(
+            reverse("msa:message-detail", kwargs={"org_slug": org.slug, "pk": msg.pk})
+        )
+
+        assert response.status_code == 200
+        assert (
+            reverse("msa:message-release", kwargs={"org_slug": org.slug, "pk": msg.pk})
+            not in response.content.decode()
+        )
 
 
 @pytest.mark.django_db
