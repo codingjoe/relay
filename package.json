@@ -6,7 +6,8 @@
     "lodash.escape": "^4.0.1",
     "maplibre-gl": "^6.15.0",
     "mermaid": "^11.17.2",
-    "microlighter": "^2.2.0"
+    "microlighter": "^2.2.0",
+    "mousetrap": "^1.6.5"
   },
   "devDependencies": {
     "@tabler/icons-sprite": "^3.48.0",

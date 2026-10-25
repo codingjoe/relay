@@ -1,4 +1,4 @@
-{% load static i18n accounts esm %}
+{% load static i18n accounts esm abstract %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
   <head>
@@ -49,7 +49,10 @@
     {% esm '#js/snippets.js' %}
     {% esm '#js/amount.js' %}
   </head>
-  <body class="min-h-screen flex">
+  <body
+    class="min-h-screen flex"
+    data-admin-url="{% admin_url %}"
+  >
     {% if current_org and request.resolver_match.namespace != 'accounts' %}
       {% include "partials/sidebar.html" %}
     {% endif %}
