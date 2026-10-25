@@ -126,8 +126,6 @@ A rule lives either in this document or in `.relint.yml`, never both.
 
 - Reference `views.MyView.as_view()` in URL configs.
 - Do not import per-property. Import the module directly.
-- Import a task at module level. The task module imports models inside its
-  functions, so a model can import the task.
 
 ## MCP Components
 
