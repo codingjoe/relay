@@ -182,13 +182,25 @@ class MsaCredentialDeleteView(
         return super().form_valid(form)
 
 
-class SuppressionListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView):
+class SuppressionScopedView(OrganizationScopedView):
+    """Scope suppression views to the current org and return to the list."""
+
     model = SuppressionEntry
-    title = _("Suppression list")
-    parent = "accounts:org-home"
+    parent = "msa:suppression-list"
 
     def get_queryset(self):
         return self.model.objects.filter(org=self.org)
+
+    def get_success_url(self):
+        return reverse("msa:suppression-list", kwargs={"org_slug": self.org.slug})
+
+    def form_invalid(self, form):
+        raise BadRequest
+
+
+class SuppressionListView(SuppressionScopedView, NoStoreCacheMixin, generic.ListView):
+    title = _("Suppression list")
+    parent = "accounts:org-home"
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -196,13 +208,9 @@ class SuppressionListView(OrganizationScopedView, NoStoreCacheMixin, generic.Lis
         }
 
 
-class SuppressionCreateView(OrganizationScopedView, generic.FormView):
+class SuppressionCreateView(SuppressionScopedView, generic.FormView):
     http_method_names = ["post"]
     form_class = SuppressionEntryForm
-    parent = "msa:suppression-list"
-
-    def form_invalid(self, form):
-        raise BadRequest
 
     def form_valid(self, form):
         if SuppressionEntry.objects.create_or_update(
@@ -217,17 +225,9 @@ class SuppressionCreateView(OrganizationScopedView, generic.FormView):
             )
         return redirect(self.get_success_url())
 
-    def get_success_url(self):
-        return reverse("msa:suppression-list", kwargs={"org_slug": self.org.slug})
 
-
-class SuppressionRemoveView(OrganizationScopedView, generic.DeleteView):
+class SuppressionRemoveView(SuppressionScopedView, generic.DeleteView):
     http_method_names = ["post"]
-    model = SuppressionEntry
-    parent = "msa:suppression-list"
-
-    def get_queryset(self):
-        return self.model.objects.filter(org=self.org)
 
     def get_object(self, queryset=None):
         qs = (queryset or self.get_queryset()).filter(
@@ -239,17 +239,10 @@ class SuppressionRemoveView(OrganizationScopedView, generic.DeleteView):
         messages.success(self.request, _("Removed address from suppression list."))
         return super().form_valid(form)
 
-    def get_success_url(self):
-        return reverse("msa:suppression-list", kwargs={"org_slug": self.org.slug})
 
-
-class SuppressionCheckView(OrganizationScopedView, generic.FormView):
+class SuppressionCheckView(SuppressionScopedView, generic.FormView):
     http_method_names = ["post"]
     form_class = SuppressionEntryForm
-    parent = "msa:suppression-list"
-
-    def form_invalid(self, form):
-        raise BadRequest
 
     def form_valid(self, form):
         if SuppressionEntry.objects.is_suppressed(self.org, form.cleaned_data["email"]):
@@ -258,13 +251,9 @@ class SuppressionCheckView(OrganizationScopedView, generic.FormView):
             messages.success(self.request, _("Address is not on the suppression list."))
         return redirect(self.get_success_url())
 
-    def get_success_url(self):
-        return reverse("msa:suppression-list", kwargs={"org_slug": self.org.slug})
 
-
-class SuppressionClearView(OrganizationScopedView, generic.View):
+class SuppressionClearView(SuppressionScopedView, generic.View):
     http_method_names = ["post"]
-    parent = "msa:suppression-list"
 
     def post(self, request, org_slug, *args, **kwargs):
         SuppressionEntry.objects.filter(org=self.org).delete()
