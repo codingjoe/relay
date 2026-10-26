@@ -5,33 +5,11 @@ from types import SimpleNamespace
 
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
-from django.template import Context, RequestContext, engines
+from django.template import Context, engines
 from django.test import RequestFactory
 from django.utils import timezone
 
 from .. import abstract
-
-
-def test_param_replace():
-    request = RequestFactory().get("/messages/", {"direction": "sent"})
-    assert (
-        abstract.param_replace(RequestContext(request), page=2)
-        == "direction=sent&page=2"
-    )
-
-
-def test_param_replace__drops_empty_values():
-    request = RequestFactory().get("/messages/", {"direction": "sent", "email": "joe"})
-    assert abstract.param_replace(RequestContext(request), email="") == "direction=sent"
-
-
-def test_param_replace__isolated_context():
-    """Inclusion tags drop context processor values, but keep the request attribute."""
-    request = RequestFactory().get("/messages/", {"direction": "sent"})
-    context = RequestContext(request).new(
-        {"page_obj": Paginator(range(120), 50).page(2)}
-    )
-    assert abstract.param_replace(context, page=3) == "direction=sent&page=3"
 
 
 def authenticate(request, *, staff=True, accessed=True):

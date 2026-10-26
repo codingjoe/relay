@@ -12,7 +12,7 @@
             class="btn"
             data-variant="secondary"
             data-size="sm"
-            href="?{% param_replace page=page_obj.previous_page_number %}"
+            href="{% querystring page=page_obj.previous_page_number %}"
           >
             {% tabler name="chevron-left" %}
             {% translate "previous"|capfirst %}
@@ -30,7 +30,7 @@
             class="btn"
             data-variant="secondary"
             data-size="sm"
-            href="?{% param_replace page=page_obj.next_page_number %}"
+            href="{% querystring page=page_obj.next_page_number %}"
           >
             {% translate "next"|capfirst %}
             {% tabler name="chevron-right" %}
