@@ -62,12 +62,35 @@ class OrganizationScopedView(LoginRequiredMixin, BreadcrumbViewMixin):
                 raise Http404
             request.current_org = self.org
 
+    @property
+    def is_admin(self) -> bool:
+        """Return whether the requesting user administers the current org."""
+        return self.org.memberships.filter(
+            user=self.request.user, role=Membership.Role.ADMIN
+        ).exists()
+
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "org": self.org,
             "current_org": self.org,
             "user_orgs": self.user_orgs,
         }
+
+
+class OrganizationObjectMixin:
+    """Serve the current org as the view object."""
+
+    def get_object(self, queryset=None):
+        return self.org
+
+
+class RequireAdminMixin:
+    """Deny access to members who do not administer the current org."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.is_admin:
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
 
 
 class LoginView(NoStoreCacheMixin, generic.TemplateView):
@@ -152,42 +175,34 @@ class OrganizationHomeView(OrganizationScopedView, generic.View):
 
 
 class OrganizationDetailView(
-    OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
+    OrganizationScopedView,
+    OrganizationObjectMixin,
+    NoStoreCacheMixin,
+    generic.DetailView,
 ):
     context_object_name = "organization"
     title = _("Settings")
     parent = "accounts:org-home"
 
-    def get_object(self, queryset=None):
-        return self.org
-
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
             "memberships": self.org.memberships.select_related("user"),
-            "is_admin": self.org.memberships.filter(
-                user=self.request.user, role=Membership.Role.ADMIN
-            ).exists(),
+            "is_admin": self.is_admin,
             "member_form": MembershipForm(),
         }
 
 
 class OrganizationUpdateView(
-    OrganizationScopedView, NoStoreCacheMixin, generic.UpdateView
+    OrganizationScopedView,
+    OrganizationObjectMixin,
+    RequireAdminMixin,
+    NoStoreCacheMixin,
+    generic.UpdateView,
 ):
     model = Organization
     form_class = OrganizationForm
     title = _("Edit")
     parent = "accounts:org-detail"
-
-    def get_object(self, queryset=None):
-        return self.org
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.org.memberships.filter(
-            user=request.user, role=Membership.Role.ADMIN
-        ).exists():
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         messages.success(
@@ -201,22 +216,16 @@ class OrganizationUpdateView(
 
 
 class OrganizationDeleteView(
-    OrganizationScopedView, NoStoreCacheMixin, generic.DeleteView
+    OrganizationScopedView,
+    OrganizationObjectMixin,
+    RequireAdminMixin,
+    NoStoreCacheMixin,
+    generic.DeleteView,
 ):
     model = Organization
     success_url = reverse_lazy("accounts:org-list")
     title = _("Delete")
     parent = "accounts:org-detail"
-
-    def get_object(self, queryset=None):
-        return self.org
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.org.memberships.filter(
-            user=request.user, role=Membership.Role.ADMIN
-        ).exists():
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         messages.success(
@@ -235,21 +244,15 @@ class MembershipForm(ModelForm):
 
 
 class MembershipCreateView(
-    OrganizationScopedView, NoStoreCacheMixin, generic.DetailView
+    OrganizationScopedView,
+    OrganizationObjectMixin,
+    RequireAdminMixin,
+    NoStoreCacheMixin,
+    generic.DetailView,
 ):
     context_object_name = "organization"
     title = _("Settings")
     parent = "accounts:org-home"
-
-    def get_object(self, queryset=None):
-        return self.org
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.org.memberships.filter(
-            user=request.user, role=Membership.Role.ADMIN
-        ).exists():
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, org_slug, *args, **kwargs):
         self.object = self.org
@@ -284,17 +287,10 @@ class MembershipCreateView(
 
 
 class MembershipDeleteView(
-    OrganizationScopedView, NoStoreCacheMixin, generic.DeleteView
+    OrganizationScopedView, RequireAdminMixin, NoStoreCacheMixin, generic.DeleteView
 ):
     model = Membership
     parent = "accounts:org-detail"
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.org.memberships.filter(
-            user=request.user, role=Membership.Role.ADMIN
-        ).exists():
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
         return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=self.org)
@@ -312,18 +308,11 @@ class MembershipDeleteView(
 
 
 class MembershipUpdateView(
-    OrganizationScopedView, NoStoreCacheMixin, generic.UpdateView
+    OrganizationScopedView, RequireAdminMixin, NoStoreCacheMixin, generic.UpdateView
 ):
     model = Membership
     form_class = MembershipForm
     parent = "accounts:org-detail"
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.org.memberships.filter(
-            user=request.user, role=Membership.Role.ADMIN
-        ).exists():
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
         return get_object_or_404(Membership, pk=self.kwargs["member_pk"], org=self.org)
