@@ -78,14 +78,6 @@ class TestKeyIdFromPublicPem:
         assert keys.key_id_from_public_pem(pub1) != keys.key_id_from_public_pem(pub2)
 
 
-class TestLoadPublicPem:
-    def test_load_public_pem__returns_key_object(self):
-        private_pem = keys.generate_ed25519_private_key()
-        public_pem = keys.public_pem_from_private(private_pem)
-        loaded = keys.load_public_pem(public_pem)
-        assert isinstance(loaded, Ed25519PublicKey)
-
-
 class TestGenerate:
     def test_generate__ed25519(self):
         pair = keys.generate("ed25519")
@@ -97,7 +89,7 @@ class TestGenerate:
     def test_generate__rsa_2048(self):
         pair = keys.generate("rsa-2048")
         assert pair.algorithm == "rsa-2048"
-        public = keys.load_public_pem(pair.public_key_pem)
+        public = serialization.load_pem_public_key(pair.public_key_pem.encode())
         assert isinstance(public, rsa.RSAPublicKey)
         assert public.key_size == 2048
 
@@ -126,7 +118,7 @@ class TestLoad:
         pair = keys.generate("ed25519")
         private = keys.load(pair.ciphertext)
         # Load the public key and verify a signature made by the loaded private key.
-        public = keys.load_public_pem(pair.public_key_pem)
+        public = serialization.load_pem_public_key(pair.public_key_pem.encode())
         payload = b"hello"
         signature = private.sign(payload)
         public.verify(signature, payload)
