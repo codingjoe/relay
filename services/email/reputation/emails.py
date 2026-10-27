@@ -11,7 +11,7 @@ from .evaluation import ReputationSummary
 
 @weekly_digest_notification
 class WeeklyDigestEmail(TemplateEmail):
-    """Report one organization's sending volume and its sender reputation."""
+    """Report one organization's email volume and its sender reputation."""
 
     template_name = "emails/weekly_digest.html"
     subject = _("%(organization)s sent %(sent)s messages out the door")

@@ -11,6 +11,7 @@ from django.utils.translation import gettext, ngettext
 
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
+from services.email.mta.models import IncomingMessage
 
 from .models import FblReport
 
@@ -41,6 +42,22 @@ def sent_per_day(org, start):
         .exclude(is_sandbox=True),
         "created_at",
     )
+
+
+def received_per_day(org, start):
+    """Return the received message count per day since `start`."""
+    return count_per_day(
+        IncomingMessage.objects.filter(org=org, created_at__date__gte=start),
+        "created_at",
+    )
+
+
+def volume_per_day(org, start):
+    """Return the sent and received message count per day since `start`."""
+    counts = received_per_day(org, start)
+    for day, count in sent_per_day(org, start).items():
+        counts[day] = counts.get(day, 0) + count
+    return counts
 
 
 def bounced_per_day(org, start):
@@ -229,16 +246,17 @@ def build_reputation_chart(org):
 
 def build_volume_chart(org):
     """
-    Return the cumulative sending volume of this month and the last one.
+    Return the cumulative email volume of this month and the last one.
 
-    One point per day, this month and the same day of the last month, with
-    the free tier as the threshold line for billed organizations.
+    One point per day, this month and the same day of the last month. The
+    volume counts sent and received messages, with the free tier as the
+    threshold line for billed organizations.
     """
     today = timezone.localdate()
     this_month = today.replace(day=1)
     last_month = (this_month - timedelta(days=1)).replace(day=1)
     days_in_month = monthrange(today.year, today.month)[1]
-    per_day = sent_per_day(org, last_month)
+    per_day = volume_per_day(org, last_month)
 
     rows = []
     last_total = this_total = 0

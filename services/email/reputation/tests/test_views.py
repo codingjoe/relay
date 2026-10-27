@@ -240,15 +240,21 @@ class TestReputationOverviewView:
                 rcpt_to="rcpt@example.com",
                 raw_body=SimpleUploadedFile(f"{index}.eml", b"body"),
             )
+        IncomingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="report@gmail.com",
+            rcpt_to="postmaster@acme.com",
+        )
 
         response = admin_client.get(overview_url(org))
 
         assert response.status_code == 200
         content = response.content.decode()
-        assert response.context["cost"] == Decimal("0.02")
-        assert 'amount="0.02" currency="EUR"' in content
+        assert response.context["cost"] == Decimal("0.03")
+        assert 'amount="0.03" currency="EUR"' in content
         assert 'amount="10.0" currency="EUR"' in content
-        assert "3 messages this month." in content
+        assert "4 messages this month." in content
 
     def test_get__charts_the_rates_in_per_cent_with_their_limits(
         self, admin_client, org, user
@@ -300,6 +306,12 @@ class TestReputationOverviewView:
                 OutgoingMessage.objects.filter(pk=message.pk).update(
                     created_at=created_at
                 )
+        IncomingMessage.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="report@gmail.com",
+            rcpt_to="postmaster@acme.com",
+        )
 
         response = admin_client.get(overview_url(org))
 
@@ -311,7 +323,7 @@ class TestReputationOverviewView:
         last_month_cumulative = [
             row["last_month"] for row in chart["rows"] if row["last_month"] is not None
         ]
-        assert this_month_cumulative[-1] == 1
+        assert this_month_cumulative[-1] == 2
         assert last_month_cumulative[-1] == 1
         assert chart["threshold"]["value"] == settings.FREE_MONTHLY_MESSAGES
         assert "chart-volume" in response.content.decode()
