@@ -120,6 +120,7 @@ env = [
 ]
 filterwarnings = [
   "ignore:Setting ModelAdmin.list_select_related:django.utils.deprecation.RemovedInDjango70Warning",
+  "ignore:.*ByteString.*deprecated:DeprecationWarning:aiosmtpd.proxy_protocol",
 ]
 norecursedirs = [ "storage", ".venv", "node_modules", ".direnv", ".git", ".worktrees" ]
 python_files = [ "tests.py", "test_*.py", "*_tests.py" ]

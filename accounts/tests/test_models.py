@@ -9,7 +9,7 @@ from django_letter.notifications.models import NotificationPreference
 
 from accounts.models import Membership, Organization, UserPreference
 
-test_notification = Notification("test-notifiable", "Test notification")
+default_notification = Notification("test-notifiable", "Test notification")
 opt_in_notification = Notification("test-opt-in", "Test opt-in", default=False)
 
 
@@ -86,7 +86,7 @@ class TestMembershipQuerySet:
         assert [
             membership.user.email
             for membership in Membership.objects.filter(org=org).for_notification(
-                test_notification
+                default_notification
             )
         ] == ["alice@example.com", "bob@example.com"]
 
@@ -98,14 +98,14 @@ class TestMembershipQuerySet:
             email_hash=NotificationPreference._meta.get_field("email_hash").hash_email(
                 user.email
             ),
-            slug=test_notification.slug,
+            slug=default_notification.slug,
             enabled=False,
         )
 
         assert [
             membership.user.email
             for membership in Membership.objects.filter(org=org).for_notification(
-                test_notification
+                default_notification
             )
         ] == ["bob@example.com"]
 
@@ -141,7 +141,7 @@ class TestMembershipQuerySet:
         assert [
             membership.user.email
             for membership in Membership.objects.filter(org=org).for_notification(
-                test_notification
+                default_notification
             )
         ] == ["alice@example.com"]
 
