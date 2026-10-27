@@ -68,7 +68,7 @@ jobs:
       - run: uv run python manage.py check
       - run: uv run python manage.py collectstatic --no-input --no-esm
       - run: uv run python manage.py makemigrations --check --dry-run
-      - run: uv run py.test --cov --cov-report=xml --maxfail=5 -n auto -v --md report.md "--randomly-seed=${{ github.run_id }}"
+      - run: uv run --with=pytest-github-actions-annotate-failures py.test --cov --cov-report=xml --maxfail=5 -n auto -v --md report.md "--randomly-seed=${{ github.run_id }}"
       - name: Publish the test report to the job summary
         if: always()
         run: |
