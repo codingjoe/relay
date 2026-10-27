@@ -7,6 +7,7 @@ from django.utils import timezone
 from domains.models import Domain
 from services.email.message.models import Transmission
 from services.email.msa.models import OutgoingMessage
+from services.email.mta.models import IncomingMessage
 from services.email.reputation.charts import build_reputation_chart, build_volume_chart
 
 
@@ -27,6 +28,20 @@ def make_message(org, day):
         raw_body=SimpleUploadedFile("message.eml", b"body"),
     )
     OutgoingMessage.objects.filter(pk=message.pk).update(
+        created_at=timezone.make_aware(datetime.combine(day, time(hour=12)))
+    )
+    return message
+
+
+def make_received_message(org, day):
+    domain = Domain.objects.get_or_create(name="acme.com", org=org)[0]
+    message = IncomingMessage.objects.create(
+        org=org,
+        domain=domain,
+        mail_from="report@gmail.com",
+        rcpt_to="postmaster@acme.com",
+    )
+    IncomingMessage.objects.filter(pk=message.pk).update(
         created_at=timezone.make_aware(datetime.combine(day, time(hour=12)))
     )
     return message
@@ -196,6 +211,23 @@ class TestBuildVolumeChart:
 
         assert chart["this_month_total"] == 2
         assert chart["rows"][-1]["last_month"] == 1
+
+    def test_counts_received_mail(self, org, monkeypatch):
+        freeze_today(monkeypatch, date(2026, 9, 19))
+        make_message(org, date(2026, 8, 10))
+        make_received_message(org, date(2026, 8, 10))
+        make_message(org, date(2026, 9, 1))
+        make_received_message(org, date(2026, 9, 1))
+        make_received_message(org, date(2026, 9, 3))
+
+        chart = build_volume_chart(org)
+
+        rows = chart["rows"]
+        assert rows[0]["last_month"] == 0
+        assert rows[0]["this_month"] == 2
+        assert rows[2]["this_month"] == 3
+        assert rows[9]["last_month"] == 2
+        assert chart["this_month_total"] == 3
 
     def test_at_a_short_month__folds_the_previous_months_tail(self, org, monkeypatch):
         freeze_today(monkeypatch, date(2026, 2, 28))
