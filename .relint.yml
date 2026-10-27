@@ -30,6 +30,10 @@
   pattern: '(?i)\.first\(\)(?!.*#\s*noqa)'
   hint: 'Prefer `.get()` with proper exception handling over `.first()` and a None test. If `.first()` is intentional, add `# noqa` to the line.'
   filePattern: .*\.py
+- name: Filter incoming mail through the IncomingMessage relation
+  pattern: 'content_type__model\s*=\s*["'']incomingmessage["'']'
+  hint: 'Do not filter on `content_type__model="incomingmessage"`. Reports store their leaf content type, so the exact match misses them. Use `incomingmessage__isnull=False`.'
+  filePattern: .*\.py
 - name: Use translate instead of trans
   pattern: '\{%\s*trans\b'
   hint: |
