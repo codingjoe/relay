@@ -119,9 +119,6 @@ Your delegated domain receives report traffic automatically:
 | `bounce+{token}@{sender-subdomain}` | Bounce reports for one outgoing message | Store, parse, mark that message bounced, or record a delay |
 | `postmaster` (+extensions)          | Human mail to postmaster                | Store, then forward a summary to your team                 |
 
-The report messages also appear in the message log as received mail, so the
-received filter and the incoming chart include them.
-
 The DMARC and TLS report addresses exist because your DMARC and DNS
 records must name a collector, and relay is that collector. You see who
 authenticates as your domain, who fails, and which servers have TLS
