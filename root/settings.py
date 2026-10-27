@@ -595,10 +595,11 @@ LOGGING = {
         "mail.log": {
             "level": "WARNING",
         },
-        # threadmill logs through this logger.
+        # threadmill logs through this logger. Tests raise the level because
+        # pytest closes its captured stderr before multiprocessing's exit log.
         "multiprocessing": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": "WARNING" if TEST else "INFO",
             "propagate": False,
         },
     },
