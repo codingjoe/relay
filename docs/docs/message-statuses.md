@@ -159,10 +159,10 @@ with the URL, response code, and a response excerpt.
   bounced, failed, dropped, and webhook_failed, and outline for
   everything still open or neutral.
 - The message list graphs the last 30 days of messages by status. The sent
-  view graphs outgoing messages, the received view graphs incoming
-  messages, and the unfiltered view graphs both in one chart: outgoing bars
-  above the axis and incoming bars below it. The graph counts the same
-  messages the filters select.
+  view graphs outgoing messages. The received view graphs incoming
+  messages, including DMARC, RUF, and TLS reports. The unfiltered view
+  graphs both in one chart: outgoing bars above the axis and incoming bars
+  below it. The graph counts the same messages the filters select.
 - The message detail page leads with a delivery card: the status in the
   traffic-light colors of its badge, how long the delivery took, when the
   last transmission finished, the sender and recipient, and what the scan

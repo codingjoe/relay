@@ -52,23 +52,27 @@ def build_kind_charts(messages, model_names) -> list:
 
     Counts the queryset the list shows, so the chart follows the filters, and
     colors each status like its badge, so it reads the same in both places.
+    Incoming charts filter through the `IncomingMessage` parent, so report
+    subtypes count with the rest.
     """
     start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
-    rows = (
-        messages.filter(
-            content_type__model__in=model_names,
-            created_at__date__gte=start,
-        )
-        .annotate(day=TruncDate("created_at"))
-        .values("day", "content_type__model", "status")
-        .annotate(count=Count("id"))
-    )
+    messages = messages.filter(created_at__date__gte=start)
+    incoming_model_name = MESSAGE_KINDS["incoming"]
     charts = []
     for model_name in model_names:
+        if model_name == incoming_model_name:
+            kind_messages = messages.filter(incomingmessage__isnull=False)
+        else:
+            kind_messages = messages.filter(content_type__model=model_name)
         status_class = get_message_model(model_name).Status
+        rows = (
+            kind_messages.annotate(day=TruncDate("created_at"))
+            .values("day", "status")
+            .annotate(count=Count("id"))
+        )
         charts.append(
             build_chart_data(
-                [row for row in rows if row["content_type__model"] == model_name],
+                rows,
                 list(status_class),
                 status_colors(status_class),
                 start,

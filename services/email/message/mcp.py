@@ -92,7 +92,7 @@ def list_messages(
         case MessageDirection.SENT:
             queryset = queryset.filter(content_type__model="outgoingmessage")
         case MessageDirection.RECEIVED:
-            queryset = queryset.filter(content_type__model="incomingmessage")
+            queryset = queryset.filter(incomingmessage__isnull=False)
     if email:
         queryset = queryset.filter(
             Q(mail_from__icontains=email) | Q(rcpt_to__icontains=email)

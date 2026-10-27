@@ -1,7 +1,10 @@
 import pytest
+from django.apps import apps
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+
+from domains.models import Domain
 
 
 def empty_state(response):
@@ -14,6 +17,17 @@ def empty_state(response):
 
 @pytest.mark.django_db
 class TestMessageListView:
+    @pytest.fixture
+    def dmarc_report(self, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+        return apps.get_model("dmarc", "DmarcReport").objects.create(
+            org=org,
+            domain=domain,
+            mail_from="dmarc@google.com",
+            rcpt_to="dmarc@example.com",
+            report_id="report-1",
+        )
+
     def test_get__merges_both_directions_into_one_chart(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/messages/")
 
@@ -37,6 +51,27 @@ class TestMessageListView:
         assert response.status_code == 200
         keys = [series["key"] for series in response.context["chart"]["series"]]
         assert not any(key.startswith("outgoing_") for key in keys)
+
+    def test_get__received_direction_includes_reports(
+        self, admin_client, org, dmarc_report
+    ):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/messages/?direction=received"
+        )
+
+        assert response.status_code == 200
+        assert [message.kind for message in response.context["messages"]] == [
+            "dmarcreport"
+        ]
+        assert response.context["chart"]["rows"][-1]["received"] == 1
+
+    def test_get__all_direction_chart_counts_reports(
+        self, admin_client, org, dmarc_report
+    ):
+        response = admin_client.get(f"/org/{org.slug}/email/messages/")
+
+        assert response.status_code == 200
+        assert response.context["chart"]["rows"][-1]["incoming_received"] == -1
 
     def test_get__sent_direction_titles_the_chart(self, admin_client, org):
         response = admin_client.get(f"/org/{org.slug}/email/messages/?direction=sent")
