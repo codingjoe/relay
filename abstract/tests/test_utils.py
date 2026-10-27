@@ -1,4 +1,11 @@
+import pytest
+
 from abstract import utils
+
+
+def test_ci_annotation_probe():
+    """Temporary probe for the GitHub Actions failure annotation."""
+    pytest.fail("CI annotation probe")
 
 
 def test_md_2_html():
