@@ -71,13 +71,13 @@ class SigningKey(TimeStamped):
         )
 
     def public_bytes_raw(self) -> bytes:
-        return keys.load_public_pem(self.public_key).public_bytes(
+        return serialization.load_pem_public_key(self.public_key.encode()).public_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PublicFormat.Raw,
         )
 
     def public_bytes_der(self) -> bytes:
-        return keys.load_public_pem(self.public_key).public_bytes(
+        return serialization.load_pem_public_key(self.public_key.encode()).public_bytes(
             encoding=serialization.Encoding.DER,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )

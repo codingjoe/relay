@@ -31,9 +31,10 @@ A rule lives either in this document or in `.relint.yml`, never both.
   `reverse()`/`reverse_lazy()`, and templates (`{% url %}`). This keeps
   redirects valid when paths move.
 
-- Use `param_replace` (from `abstract` template tags) to build filtered
-  pagination URLs: `href="?{% param_replace page=page_obj.next_page_number %}"`.
-  Never hand-construct query strings in templates.
+- Use Django's built-in `{% querystring %}` to build filtered pagination
+  URLs: `href="{% querystring page=page_obj.next_page_number %}"`. It returns
+  the leading `?` itself, and `None` removes a parameter. Never hand-construct
+  query strings in templates.
 
 ## Primary Keys
 

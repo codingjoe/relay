@@ -68,10 +68,6 @@ def key_id_from_public_pem(public_pem: str) -> str:
     return hashlib.sha256(public_pem.encode()).hexdigest()[:16]
 
 
-def load_public_pem(public_pem: str):
-    return serialization.load_pem_public_key(public_pem.encode())
-
-
 def generate(algorithm: str) -> KeyPair:
     match algorithm:
         case "rsa-2048":

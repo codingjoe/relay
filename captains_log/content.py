@@ -2,7 +2,6 @@
 
 import pathlib
 
-import frontmatter
 from django.conf import settings
 from django.template import engines
 
@@ -27,11 +26,6 @@ class CaptainsLogContent(MarkdownContent):
             key=lambda article: article[1]["date"],
             reverse=True,
         )
-
-    @classmethod
-    def get_article(cls, slug: str) -> frontmatter.Post:
-        """Return the parsed article of one update."""
-        return frontmatter.load(cls.get_article_path(slug))
 
     @classmethod
     def render_body(cls, slug: str) -> str:

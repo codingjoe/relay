@@ -90,7 +90,7 @@
               <span role="heading">{% translate "direction"|capfirst %}</span>
               <a
                 role="menuitem"
-                href="?{% param_replace direction='all' %}"
+                href="{% querystring direction='all' %}"
                 data-checked="{% if direction == 'all' %}true{% else %}false{% endif %}"
               >
                 {% tabler name="arrows-right-left" %}
@@ -99,7 +99,7 @@
               </a>
               <a
                 role="menuitem"
-                href="?{% param_replace direction='sent' %}"
+                href="{% querystring direction='sent' %}"
                 data-checked="{% if direction == 'sent' %}true{% else %}false{% endif %}"
               >
                 {% tabler name="send" %}
@@ -108,7 +108,7 @@
               </a>
               <a
                 role="menuitem"
-                href="?{% param_replace direction='received' %}"
+                href="{% querystring direction='received' %}"
                 data-checked="{% if direction == 'received' %}true{% else %}false{% endif %}"
               >
                 {% tabler name="inbox" %}
@@ -122,7 +122,7 @@
               {% for value, label in status_choices %}
                 <a
                   role="menuitem"
-                  href="?{% param_replace status=value %}"
+                  href="{% querystring status=value %}"
                   data-checked="{% if status == value %}true{% else %}false{% endif %}"
                 >
                   {{ label|capfirst }}
@@ -135,7 +135,7 @@
       </div>
     </div>
     {% if email or status %}
-      <a class="btn" data-variant="ghost" href="?{% param_replace email='' status='' %}">
+      <a class="btn" data-variant="ghost" href="{% querystring email=None status=None %}">
         {% tabler name="restore" %}
         {% translate "clear"|capfirst %}
       </a>

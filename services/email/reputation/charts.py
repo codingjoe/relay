@@ -23,17 +23,24 @@ REPUTATION_CHART_COLORS = {
 }
 
 
-def sent_per_day(org, start):
-    """Return the deliverable outgoing message count per day since `start`."""
+def count_per_day(queryset, day_field, count_field="id", *, distinct=False):
+    """Return the daily row count of `queryset`, keyed by date."""
     rows = (
-        OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
-        .exclude(status=OutgoingMessage.Status.SANDBOXED)
-        .exclude(is_sandbox=True)
-        .annotate(day=TruncDate("created_at"))
+        queryset.annotate(day=TruncDate(day_field))
         .values("day")
-        .annotate(count=Count("id"))
+        .annotate(count=Count(count_field, distinct=distinct))
     )
     return {row["day"]: row["count"] for row in rows}
+
+
+def sent_per_day(org, start):
+    """Return the deliverable outgoing message count per day since `start`."""
+    return count_per_day(
+        OutgoingMessage.objects.filter(org=org, created_at__date__gte=start)
+        .exclude(status=OutgoingMessage.Status.SANDBOXED)
+        .exclude(is_sandbox=True),
+        "created_at",
+    )
 
 
 def bounced_per_day(org, start):
@@ -43,22 +50,19 @@ def bounced_per_day(org, start):
     Bounced transmissions count regardless of the recorded SMTP code, so
     a bounce a DSN reported without a code still shows.
     """
-    rows = (
+    return count_per_day(
         Transmission.objects.filter(
             message__org=org,
             message__created_at__date__gte=start,
             status=Transmission.Status.BOUNCED,
-        )
-        .annotate(day=TruncDate("message__created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
+        ),
+        "message__created_at",
     )
-    return {row["day"]: row["count"] for row in rows}
 
 
 def soft_bounces_per_day(org, start):
     """Return the daily count of messages whose delivery a 4xx refusal ended."""
-    rows = (
+    return count_per_day(
         OutgoingMessage.objects.filter(
             org=org,
             created_at__date__gte=start,
@@ -66,40 +70,34 @@ def soft_bounces_per_day(org, start):
             transmissions__status=Transmission.Status.FAILED,
             transmissions__code__gte=400,
             transmissions__code__lt=500,
-        )
-        .annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(count=Count("id", distinct=True))
+        ),
+        "created_at",
+        distinct=True,
     )
-    return {row["day"]: row["count"] for row in rows}
 
 
 def complaints_per_day(org, start):
     """Return the complaint count per day since `start`."""
-    reports = (
+    complaints = count_per_day(
         FblReport.objects.filter(
             org=org,
             created_at__date__gte=start,
             source=FblReport.Source.PROVIDER,
-        )
-        .annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(count=Count("complained_message", distinct=True))
+        ),
+        "created_at",
+        "complained_message",
+        distinct=True,
     )
-    complaints = {row["day"]: row["count"] for row in reports}
-    held = (
+    held = count_per_day(
         OutgoingMessage.objects.filter(
             org=org,
             created_at__date__gte=start,
             status=OutgoingMessage.Status.HELD,
-        )
-        .exclude(is_sandbox=True)
-        .annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(count=Count("id"))
+        ).exclude(is_sandbox=True),
+        "created_at",
     )
-    for row in held:
-        complaints[row["day"]] = complaints.get(row["day"], 0) + row["count"]
+    for day, count in held.items():
+        complaints[day] = complaints.get(day, 0) + count
     return complaints
 
 

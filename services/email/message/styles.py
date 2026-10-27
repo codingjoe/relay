@@ -42,18 +42,6 @@ def filter_styles(
     css_text: str, restrictions: Restrictions, scheme: str | None = None
 ) -> str:
     """Return a stylesheet without the parts the restrictions and the scheme drop."""
-    return rewrite_sheet(css_text, restrictions, scheme)
-
-
-def filter_declarations(text: str, restrictions: Restrictions) -> str:
-    """Return a declaration list, e.g. the styles attribute of an element."""
-    return rewrite_declarations(text, restrictions)
-
-
-def rewrite_sheet(
-    css_text: str, restrictions: Restrictions, scheme: str | None = None
-) -> str:
-    """Walk a stylesheet and keep every rule the restrictions allow."""
     kept = []
     position = 0
     while position < len(css_text):
@@ -102,7 +90,7 @@ def rewrite_block(
         ):
             return ""
         case "":
-            declarations = rewrite_declarations(body, restrictions)
+            declarations = filter_declarations(body, restrictions)
             # A rule whose every declaration fell away carries nothing.
             return f"{prelude}{{{declarations}}}" if declarations.strip() else ""
         case _ if name in restrictions.at_rules:
@@ -110,9 +98,9 @@ def rewrite_block(
         case "@media":
             return rewrite_media(prelude, body, restrictions, scheme)
         case _ if name in DECLARATION_AT_RULES:
-            return f"{prelude}{{{rewrite_declarations(body, restrictions)}}}"
+            return f"{prelude}{{{filter_declarations(body, restrictions)}}}"
         case _:
-            return f"{prelude}{{{rewrite_sheet(body, restrictions, scheme)}}}"
+            return f"{prelude}{{{filter_styles(body, restrictions, scheme)}}}"
 
 
 def rewrite_media(
@@ -133,10 +121,10 @@ def rewrite_media(
         if query.strip()
     ]
     if "all" in queries:
-        return rewrite_sheet(body, restrictions, scheme)
+        return filter_styles(body, restrictions, scheme)
     remaining = [query for query in queries if query != "not all"]
     return (
-        f"{prefix}{', '.join(remaining)}{{{rewrite_sheet(body, restrictions, scheme)}}}"
+        f"{prefix}{', '.join(remaining)}{{{filter_styles(body, restrictions, scheme)}}}"
         if remaining
         else ""
     )
@@ -174,7 +162,7 @@ def force_color_scheme(query: str, scheme: str) -> str:
     return " and ".join(remaining) if remaining else "all"
 
 
-def rewrite_declarations(text: str, restrictions: Restrictions) -> str:
+def filter_declarations(text: str, restrictions: Restrictions) -> str:
     """Return a declaration list without the declarations a client drops."""
     if find_stop(text, 0, "{") < len(text):
         # A nested rule sits between the declarations; leave the block alone.
