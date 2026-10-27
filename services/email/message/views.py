@@ -42,7 +42,7 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
             case self.Direction.SENT:
                 qs = qs.filter(content_type__model="outgoingmessage")
             case self.Direction.RECEIVED:
-                qs = qs.filter(content_type__model="incomingmessage")
+                qs = qs.filter(incomingmessage__isnull=False)
         if email := self.request.GET.get("email"):
             qs = qs.filter(Q(mail_from__icontains=email) | Q(rcpt_to__icontains=email))
         if status := self.request.GET.get("status"):
