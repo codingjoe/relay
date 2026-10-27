@@ -52,8 +52,6 @@ def build_kind_charts(messages, model_names) -> list:
 
     Counts the queryset the list shows, so the chart follows the filters, and
     colors each status like its badge, so it reads the same in both places.
-    Incoming charts filter through the `IncomingMessage` parent, so report
-    subtypes count with the rest.
     """
     start = timezone.localdate() - datetime.timedelta(days=CHART_DAYS - 1)
     messages = messages.filter(created_at__date__gte=start)
