@@ -68,7 +68,7 @@ repos:
     hooks:
       - id: yamlfmt
         # deploy/cluster is vendored verbatim; formatting breaks the upstream hash.
-        exclude: ^deploy/cluster/
+        exclude: (^deploy/cluster/|.*-lock.yaml$)
   - repo: https://github.com/poexam/poexam
     rev: v0.3.0
     hooks:

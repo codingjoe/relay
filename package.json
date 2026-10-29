@@ -1,21 +1,21 @@
 {
   "dependencies": {
-    "basecoat-css": "^1.0.2",
-    "echarts": "^6.1.0",
-    "lit": "^3.3.3",
-    "lodash.escape": "^4.0.1",
-    "maplibre-gl": "^6.15.0",
-    "mermaid": "^11.17.2",
-    "microlighter": "^2.2.0",
-    "mousetrap": "^1.6.5"
+    "basecoat-css": ">=1.0.2",
+    "echarts": ">=6.1.0",
+    "lit": ">=3.3.3",
+    "lodash.escape": ">=4.0.1",
+    "maplibre-gl": ">=6.15.0",
+    "mermaid": ">=11.17.2",
+    "microlighter": ">=2.2.0",
+    "mousetrap": ">=1.6.5"
   },
   "devDependencies": {
-    "@tabler/icons-sprite": "^3.48.0",
+    "@tabler/icons-sprite": "^3.50.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
-    "cssnano": "^9.2.2",
+    "cssnano": "^9.9.0",
     "esimport": "^0.10.2",
-    "postcss": "^8.5.29",
+    "postcss": "^8.5.32",
     "postcss-cli": "^11.0.1",
     "tailwindcss": "^4.3.3",
     "wireit": "^0.14.13"
@@ -26,7 +26,7 @@
     "#message/*": "./services/email/message/static/message/*"
   },
   "name": "relay",
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.16.1",
   "private": true,
   "scripts": {
     "build": "wireit",
