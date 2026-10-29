@@ -6,6 +6,8 @@ on:
 concurrency:
   group: backup
   cancel-in-progress: false
+permissions:
+  contents: read
 jobs:
   pg_dump:
     runs-on: ubuntu-latest
