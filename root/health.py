@@ -239,6 +239,14 @@ application_checks = [
         "health_check.DNS",
         {"hostname": "mail.relay.open.relays.to", "record_type": "MX"},
     ),
+    (
+        "health_check.RemoteCheck",
+        {
+            "url": f"{settings.PLATFORM_URL}/health/reputation/",
+            "label": "Reputation",
+            "timeout": timedelta(seconds=15),
+        },
+    ),
 ]
 
 pipeline_checks = [
