@@ -363,6 +363,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Relay config
 
 PLATFORM_DOMAIN = env("HOSTNAME", default="localhost")
+PLATFORM_URL = f"{'http' if DEBUG else 'https'}://{PLATFORM_DOMAIN}"
 
 STORAGE_DOMAIN = env("STORAGE_DOMAIN", default=f"storage.{PLATFORM_DOMAIN}")
 if AWS_STORAGE_BUCKET_NAME:
@@ -454,7 +455,7 @@ MTA_STS_POLICY_ID = env("MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 # https://docs.allauth.org/en/latest/idp/oidc/configuration.html
 
-MCP_BASE_URL = f"{'http' if DEBUG else 'https'}://{PLATFORM_DOMAIN}"
+MCP_BASE_URL = PLATFORM_URL
 MCP_RESOURCE_URL = f"{MCP_BASE_URL}/mcp"
 # The issuer ends in exactly one slash, the form OIDC clients normalize to.
 MCP_OIDC_ISSUER_URL = f"{MCP_BASE_URL}/"
