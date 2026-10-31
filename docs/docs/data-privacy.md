@@ -69,11 +69,13 @@ policy</a>. This table describes how the platform implements it.
 - **Customer-supplied Feedback-IDs.** relay replaces them with its own header
   at submission. The message does not carry your campaign identifiers.
 
-## Error monitoring with boundaries
+## Monitoring with boundaries
 
-Sentry is off by default. When operators enable it, the reports contain no
-message bodies, tokens, or credentials. Message content does not travel to
-reporting infrastructure.
+Sentry is off by default. When operators enable it, error reports contain no
+message bodies, tokens, or credentials. The services also send their `INFO`
+and higher log messages to Sentry. Those messages can contain sender and
+recipient addresses and IP addresses. Message bodies do not travel to reporting
+infrastructure.
 
 ## What relay does not do with your data
 

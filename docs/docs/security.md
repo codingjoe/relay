@@ -152,13 +152,15 @@ declared, repeatable provisioning the platform is built on. The keys are per
 cluster; replacing them means generating a new secrets bundle and rebuilding the
 node.
 
-## Error monitoring and secrets
+## Monitoring and secrets
 
-All relay processes report errors to Sentry, and reporting is off by default.
-The reports carry no message bodies, no tokens, and no credentials. relay
-reads secrets from its environment and never writes them to the database.
-Never send secrets inside email messages. Use the dashboard's credential
-management instead.
+All relay processes report errors and logs to Sentry, and reporting is off by
+default. Error reports carry no message bodies, no tokens, and no credentials.
+Logs are the same operational messages the services write to stdout, so they
+can contain sender and recipient addresses and IP addresses. Message bodies do
+not travel to Sentry. relay reads secrets from its environment and never writes
+them to the database. Never send secrets inside email messages. Use the
+dashboard's credential management instead.
 
 ## Related pages
 

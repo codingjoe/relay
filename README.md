@@ -338,11 +338,13 @@ Return-Path is.
   administered with `talosctl`, with Caddy as the ingress and Layer 4 proxy. See
   `deploy/README.md`.
 
-### Error monitoring (Sentry)
+### Monitoring (Sentry)
 
-Every process reports to a single Sentry project. Off by default; set
-`SENTRY_DSN` to enable. PII (email bodies, tokens, credentials) is never
-sent automatically.
+Every process reports errors and logs to a single Sentry project. Off by
+default; set `SENTRY_DSN` to enable. Error reports never carry message bodies,
+tokens, or credentials. Logs are the same operational messages the services
+write to stdout, so they can include sender and recipient addresses and IP
+addresses.
 
 | Variable                    | Default        | Description                                                      |
 | --------------------------- | -------------- | ---------------------------------------------------------------- |
@@ -350,6 +352,10 @@ sent automatically.
 | `SENTRY_ENVIRONMENT`        | `production`   | Sentry environment tag.                                          |
 | `SENTRY_RELEASE`            | _(empty)_      | Release tag. `sha-<commit>` in CI. Scopes page cache validators. |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.0`          | Tracing sample rate (0-1). Off by default.                       |
+
+The Python logging integration sends `INFO` and higher records to Sentry Logs.
+`ERROR` records still create error events, and `INFO` records also become
+breadcrumbs. No extra configuration is needed beyond `SENTRY_DSN`.
 
 The deploy workflow records each shipped release in Sentry, attaches the
 commits it carries and finalizes it once the pods are ready. The same tag
