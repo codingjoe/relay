@@ -64,7 +64,7 @@ ALLOWED_HOSTS = [
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-# Caddy is hostNetwork, so the Downward API supplies the node IP as the trusted peer.
+# Host-network Caddy reaches pods through the CNI gateway, so the deploy trusts the pod network.
 TRUSTED_PROXY_HOSTS = env.list("TRUSTED_PROXY_HOSTS", default=["127.0.0.1"])
 
 # Probes keep speaking plain HTTP; HSTS covers every subdomain.
