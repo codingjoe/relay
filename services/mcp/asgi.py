@@ -19,6 +19,7 @@ from fastmcp.server.middleware.logging import StructuredLoggingMiddleware  # noq
 from fastmcp.server.transforms.search import BM25SearchTransform  # noqa: E402
 from granian.utils.proxies import wrap_asgi_with_proxy_headers  # noqa: E402
 
+from abstract.proxy import get_trusted_proxy_hosts  # noqa: E402
 from abstract.scopes import MCP_REQUIRED_SCOPES, scopes  # noqa: E402
 
 from .middleware import DjangoRequestSignalsMiddleware  # noqa: E402
@@ -76,5 +77,5 @@ application = wrap_asgi_with_proxy_headers(
         # Caddy terminates TLS, so trust the public origin rather than the ASGI scheme.
         allowed_origins=[settings.MCP_BASE_URL],
     ),
-    trusted_hosts=settings.TRUSTED_PROXY_HOSTS,
+    trusted_hosts=get_trusted_proxy_hosts(),
 )

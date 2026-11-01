@@ -64,7 +64,7 @@ ALLOWED_HOSTS = [
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-# Host-network Caddy reaches pods through the CNI gateway, so the deploy trusts the pod network.
+# The CNI gateway, which host-network Caddy reaches pods from, is added in abstract.proxy.
 TRUSTED_PROXY_HOSTS = env.list("TRUSTED_PROXY_HOSTS", default=["127.0.0.1"])
 
 # Probes keep speaking plain HTTP; HSTS covers every subdomain.
