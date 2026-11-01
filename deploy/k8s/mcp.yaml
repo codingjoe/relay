@@ -25,6 +25,9 @@ spec:
             - name: HOSTNAME
               valueFrom:
                 secretKeyRef: {name: relay-infra, key: HOSTNAME}
+            - name: TRUSTED_PROXY_HOSTS
+              valueFrom:
+                fieldRef: {fieldPath: status.hostIP}
           envFrom:
             - configMapRef:
                 name: relay-config
