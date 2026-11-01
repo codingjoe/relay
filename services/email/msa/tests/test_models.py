@@ -1,5 +1,5 @@
 import secrets
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from django.contrib.auth.models import User
@@ -385,6 +385,26 @@ class TestTransmission:
     )
     def test_status_badge_variant(self, status, expected):
         assert Transmission(status=status).status_badge_variant == expected
+
+    @pytest.mark.django_db
+    def test_exit__records_metrics(self, org, user):
+        message = make_message(org, user)
+        attributes = {"status": Transmission.Status.SENT}
+
+        with (
+            patch("sentry_sdk.metrics.count") as count,
+            patch("sentry_sdk.metrics.distribution") as distribution,
+            Transmission(message=message, status=Transmission.Status.SENT),
+        ):
+            pass
+
+        count.assert_called_once_with("email_transmission", 1, attributes=attributes)
+        distribution.assert_called_once_with(
+            "email_transmission_duration",
+            ANY,
+            unit="second",
+            attributes=attributes,
+        )
 
 
 class TestMsaCredentialRepr:

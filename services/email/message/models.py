@@ -3,6 +3,7 @@ from email import message_from_bytes
 from email.header import Header, decode_header
 from pathlib import Path
 
+import sentry_sdk
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -530,6 +531,14 @@ class Transmission(Timing):
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is None or self.message_id is not None:
             super().__exit__(exc_type, exc_value, traceback)
+            attributes = {"status": self.status}
+            sentry_sdk.metrics.count("email_transmission", 1, attributes=attributes)
+            sentry_sdk.metrics.distribution(
+                "email_transmission_duration",
+                self.duration.total_seconds(),
+                unit="second",
+                attributes=attributes,
+            )
 
     @classmethod
     def tls_session_fields(cls, ssl):

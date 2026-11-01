@@ -131,6 +131,8 @@ endpoint misbehavior shows as data.
   and attaches its commits, so an error points at the release that produced it.
 - **Dashboard transmissions** show each outbound attempt with its SMTP
   conversation.
+- **Transmissions are measured in Sentry.** Every SMTP leg adds to a counter by
+  status and reports its duration. Metrics stay off until `SENTRY_DSN` is set.
 - **Sending IP reputation.** `/health/reputation/` queries public DNS
   blocklists for every egress sending IP. A listing answers 500 and names the
   blocklist: delist the address. A failed lookup answers 200 with a warning in
