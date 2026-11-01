@@ -205,9 +205,13 @@ class WebhookDelivery(Timing):
     )
 
     @property
+    def label(self) -> str:
+        return f"{self.get_status_display()} ({self.webhook.signing_key.key_id})"
+
+    @property
     def event(self) -> dict:
         return {
-            "name": f"{self.get_status_display()} ({self.webhook.signing_key.key_id})",
+            "name": self.label,
             "color": TIMELINE_COLORS[self.status],
             "start": int(self.started_at.timestamp() * 1000),
             "end": int(self.finished_at.timestamp() * 1000),
