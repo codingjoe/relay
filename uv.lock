@@ -1769,7 +1769,7 @@ dependencies = [
     { name = "sentry-sdk" },
     { name = "servestatic" },
     { name = "starlette" },
-    { name = "threadmill", extra = ["redis"] },
+    { name = "threadmill", extra = ["redis", "sentry"] },
     { name = "validators" },
 ]
 
@@ -1839,7 +1839,7 @@ requires-dist = [
     { name = "sentry-sdk", specifier = ">=2.71" },
     { name = "servestatic", specifier = ">=4.4" },
     { name = "starlette", specifier = ">=1.7" },
-    { name = "threadmill", extras = ["redis"], specifier = ">=0.8" },
+    { name = "threadmill", extras = ["redis", "sentry"], specifier = ">=0.10.0" },
     { name = "validators", specifier = ">=0.35" },
 ]
 
@@ -1858,7 +1858,7 @@ dev = [
     { name = "pytest-randomly", specifier = ">=5" },
     { name = "pytest-sugar", specifier = ">=1.1.1" },
     { name = "pytest-xdist", specifier = ">=3.8" },
-    { name = "threadmill", extras = ["inspector"], specifier = ">=0.8" },
+    { name = "threadmill", extras = ["inspector"], specifier = ">=0.10.0" },
 ]
 test = [
     { name = "django-coverage-plugin", specifier = ">=3.2.2" },
@@ -2058,14 +2058,14 @@ wheels = [
 
 [[package]]
 name = "threadmill"
-version = "0.8.4"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/11/ccf6bfbb0913e4c8191255c8e380d0c5f0c46c20386e8b2960dcb8c85f16/threadmill-0.8.4.tar.gz", hash = "sha256:a788ffaebbb8e27726eb2ce3c4658d0d0c1b83ed449f562b4636bd25710584a0", size = 36989, upload-time = "2026-10-19T09:54:15.317Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/98/6b7b983c3bb9cdffd891080570812bbd3eb5e931b47bfcab7439fc7fc0f6/threadmill-0.10.0.tar.gz", hash = "sha256:1da7cb091a4b62c1fcc9ed4eca65766928a607214002e76adf0f474b7de724ee", size = 39692, upload-time = "2026-11-01T22:10:45.501Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/74/21a780fa96d8b23f1f35439428a6733bf0d78eeb7ce35e5346f93e1c0d3c/threadmill-0.8.4-py3-none-any.whl", hash = "sha256:29612f5cbee695429482f98bd9cc0b8db4aea2193255a610a8a5ce5f15dfaa57", size = 39472, upload-time = "2026-10-19T09:54:14.062Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/cb/2643a4a809971909a024eceb2a8dfae82dddd6c5a6f760e01e47935c45f5/threadmill-0.10.0-py3-none-any.whl", hash = "sha256:6525b666ec4bb150dda72bab678d09e8e99538904604c2fc0d31045149e07e90", size = 42048, upload-time = "2026-11-01T22:10:43.935Z" },
 ]
 
 [package.optional-dependencies]
@@ -2074,6 +2074,9 @@ inspector = [
 ]
 redis = [
     { name = "redis" },
+]
+sentry = [
+    { name = "sentry-sdk" },
 ]
 
 [[package]]
