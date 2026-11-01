@@ -150,6 +150,8 @@ INSTALLED_APPS = [
     "django.forms",
     # Before staticfiles so its `collectstatic` override wins.
     "django_esm",
+    # Before Django's admin so it can extend the admin templates.
+    "django_cmdbar",
     # Django
     "django.contrib.admin",
     "django.contrib.auth",

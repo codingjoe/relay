@@ -505,6 +505,18 @@ socialaccount = [
 ]
 
 [[package]]
+name = "django-cmdbar"
+version = "0.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/85/502b1990d38d2536e45eb680b39cc0c170e6b2f186413d1d3bb333b4fc06/django_cmdbar-0.0.3.tar.gz", hash = "sha256:0dcf9e3e1d45bbc2f2b40803eeb0081dafc41d56dcf468aca0a39c31e4953d5d", size = 16138, upload-time = "2026-10-30T10:23:19.625Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7d/d5/6a49880006cd2bd5ec1de76b08f6b71817cbd37a8dd6bdf89209dbcc274e/django_cmdbar-0.0.3-py3-none-any.whl", hash = "sha256:6fb467cc6ae912ed8cfdb511562a0c2745ec762944778318a74956ac55c297cf", size = 11621, upload-time = "2026-10-30T10:23:18.146Z" },
+]
+
+[[package]]
 name = "django-coverage-plugin"
 version = "3.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1731,6 +1743,7 @@ dependencies = [
     { name = "defusedxml" },
     { name = "django" },
     { name = "django-allauth", extra = ["idp-oidc", "socialaccount"] },
+    { name = "django-cmdbar" },
     { name = "django-crontask" },
     { name = "django-environ" },
     { name = "django-esm" },
@@ -1800,6 +1813,7 @@ requires-dist = [
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "django", specifier = ">=6.1.1,<6.2" },
     { name = "django-allauth", extras = ["idp-oidc", "socialaccount"], specifier = ">=65.19.7" },
+    { name = "django-cmdbar", specifier = ">=0.0.3" },
     { name = "django-crontask", specifier = ">=2.0.1" },
     { name = "django-environ", specifier = ">=0.14" },
     { name = "django-esm", specifier = ">=0.11" },

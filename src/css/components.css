@@ -159,6 +159,17 @@
 body.admin {
   line-height: normal;
 
+  /* Basecoat zeroes the margin a modal <dialog> uses to center itself, and
+     the panel needs an edge to read as a surface over the dimmed page. */
+  & #django_cmdbar {
+    margin-inline: auto;
+    box-shadow: 0 1rem 2.5rem light-dark(rgb(0 0 0 / 33%), rgb(255 255 255 / 33%));
+
+    &::backdrop {
+      backdrop-filter: blur(2px);
+    }
+  }
+
   & :is(select, button, input[type="checkbox"], input[type="radio"], input[type="file"], input[type="submit"], input[type="button"], input[type="reset"]) {
     box-sizing: border-box;
   }
