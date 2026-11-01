@@ -539,6 +539,8 @@ class Transmission(Timing):
                 unit="second",
                 attributes=attributes,
             )
+        else:
+            self.finish_span(exc_type, exc_value, traceback)
 
     @classmethod
     def tls_session_fields(cls, ssl):

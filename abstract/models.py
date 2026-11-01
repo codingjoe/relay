@@ -1,6 +1,7 @@
 import datetime
 import uuid
 
+import sentry_sdk
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -45,9 +46,9 @@ class Timing(TimeStamped):
     """
     Time a block of code and label it for the message timeline.
 
-    Use as a context manager to stamp the start and end of a block and
-    persist the timing on exit. A start stamped before entering is kept.
-    Concrete timings implement `label`.
+    Use as a context manager to stamp the start and end of a block, persist
+    the timing on exit, and trace it as a Sentry span. A start stamped before
+    entering is kept. Concrete timings implement `label`.
     """
 
     id = models.UUIDField(
@@ -73,11 +74,32 @@ class Timing(TimeStamped):
     def __enter__(self):
         if self.started_at is None:
             self.started_at = timezone.now()
+        op = str(self._meta.verbose_name)
+        if sentry_sdk.get_current_span() is None:
+            # Transaction mode drops parentless spans, so start a trace instead.
+            self._span = sentry_sdk.start_transaction(op=op, name=op)
+        else:
+            self._span = sentry_sdk.start_span(op=op, name=op)
+        self._span.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.finished_at = timezone.now()
-        self.save(force_insert=True)
+        try:
+            self.finished_at = timezone.now()
+            self.save(force_insert=True)
+        finally:
+            self.finish_span(exc_type, exc_value, traceback)
+
+    def finish_span(self, exc_type, exc_value, traceback):
+        """Finish the Sentry span, recording the model's duration."""
+        label = self.label
+        if label:
+            # Transactions read `name`, child spans read `description`.
+            self._span.name = label
+            self._span.description = label
+        if self.finished_at is not None:
+            self._span.set_data("timing.duration_secs", self.duration.total_seconds())
+        self._span.__exit__(exc_type, exc_value, traceback)
 
     @property
     def duration(self) -> datetime.timedelta:

@@ -406,6 +406,54 @@ class TestTransmission:
             attributes=attributes,
         )
 
+    @pytest.mark.django_db
+    def test_enter__starts_service_span(self, org, user):
+        message = make_message(org, user)
+        with (
+            patch("sentry_sdk.get_current_span", return_value=None),
+            patch("sentry_sdk.start_transaction") as start_transaction,
+            Transmission(message=message, status=Transmission.Status.SENT),
+        ):
+            pass
+
+        start_transaction.assert_called_once_with(
+            op="transmission", name="transmission"
+        )
+        assert start_transaction.return_value.name == "sent"
+        assert start_transaction.return_value.description == "sent"
+        start_transaction.return_value.set_data.assert_called_once_with(
+            "timing.duration_secs", ANY
+        )
+        start_transaction.return_value.__exit__.assert_called_once_with(
+            None, None, None
+        )
+
+    @pytest.mark.django_db
+    def test_enter__starts_child_span(self, org, user):
+        message = make_message(org, user)
+        with (
+            patch("sentry_sdk.get_current_span", return_value=object()),
+            patch("sentry_sdk.start_span") as start_span,
+            Transmission(message=message, status=Transmission.Status.SENT),
+        ):
+            pass
+
+        start_span.assert_called_once_with(op="transmission", name="transmission")
+        assert start_span.return_value.description == "sent"
+
+    def test_exit__finishes_span_without_message(self):
+        transmission = Transmission()
+        with (
+            patch("sentry_sdk.get_current_span", return_value=None),
+            patch("sentry_sdk.start_transaction") as start_transaction,
+            pytest.raises(RuntimeError),
+            transmission,
+        ):
+            raise RuntimeError
+
+        start_transaction.return_value.set_data.assert_not_called()
+        start_transaction.return_value.__exit__.assert_called_once()
+
 
 class TestMsaCredentialRepr:
     def test_repr__returns_pk(self):

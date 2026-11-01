@@ -129,6 +129,9 @@ endpoint misbehavior shows as data.
   No message bodies, no credentials, no tokens travel there.
 - **Releases are tracked in Sentry**, every deploy names the revision it ships
   and attaches its commits, so an error points at the release that produced it.
+- **Timings become Sentry spans**, every transmission, spam check, and webhook
+  delivery records its duration. A timing that runs outside an active trace
+  starts a new one.
 - **Dashboard transmissions** show each outbound attempt with its SMTP
   conversation.
 - **Sending IP reputation.** `/health/reputation/` queries public DNS
