@@ -72,10 +72,7 @@ policy</a>. This table describes how the platform implements it.
 ## Monitoring with boundaries
 
 Sentry is off by default. When operators enable it, error reports contain no
-message bodies, tokens, or credentials. The services also send their `INFO`
-and higher log messages to Sentry. Those messages can contain sender and
-recipient addresses and IP addresses. Message bodies do not travel to reporting
-infrastructure.
+message bodies, tokens, or credentials.
 
 ## What relay does not do with your data
 
