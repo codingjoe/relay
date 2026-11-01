@@ -611,11 +611,12 @@ LOGGING = {
 }
 
 
-# Error monitoring (Sentry)
+# Monitoring (Sentry)
 if SENTRY_DSN and not TEST and not DEBUG:
     import sentry_sdk
     from sentry_sdk.integrations.asyncio import AsyncioIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.mcp import MCPIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
@@ -627,6 +628,7 @@ if SENTRY_DSN and not TEST and not DEBUG:
             AsyncioIntegration(),
             ThreadingIntegration(),
             MCPIntegration(),
+            LoggingIntegration(capture_sentry_logs=True),
         ],
         release=SENTRY_RELEASE or None,
         send_default_pii=False,
