@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% load static %}
+{% load static django_cmdbar %}
 
 {% block title %}{% if subtitle %}{{ subtitle }} |
   {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
@@ -7,6 +7,7 @@
 {% block extrastyle %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'django_cmdbar/palette.css' %}">
 {% endblock %}
 
 {% block bodyclass %}{{ block.super }} admin{% endblock %}
@@ -19,3 +20,8 @@
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
+
+{% block extrabody %}
+  {{ block.super }}
+  {% django_cmdbar %}
+{% endblock %}
