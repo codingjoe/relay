@@ -168,7 +168,7 @@ importers:
     dependencies:
       basecoat-css:
         specifier: '>=1.0.2'
-        version: 1.0.2
+        version: 1.1.0
       echarts:
         specifier: '>=6.1.0'
         version: 6.1.0
@@ -706,8 +706,8 @@ packages:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
 
-  basecoat-css@1.0.2:
-    resolution: {integrity: sha512-C6I5rr7HziIAoBYNGPO5U6HaU/6FuF3iVp++IgoEqqJ836is3XoRty6l1ibXqxnoIRZNnOAYDMX8QxVC+58zhw==}
+  basecoat-css@1.1.0:
+    resolution: {integrity: sha512-qQ25lbkdXiBQd8uBd4juOX1y2ut+Ww4Aaa7EwO9Is/jd143Ze/eRULQdJmiwAwzKKqkxtvg9YTJg79xXz2nLeg==}
 
   baseline-browser-mapping@2.11.32:
     resolution: {integrity: sha512-UvuxFU9P3hM29LrQdwu0cD6w6/+SFr+UlB9s/knI7+O2rK9xFxKUwSDWxGdbbqQ9/V7BJ5s0NI5nQAE4uJp3gQ==}
@@ -1956,7 +1956,7 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
-  basecoat-css@1.0.2: {}
+  basecoat-css@1.1.0: {}
 
   baseline-browser-mapping@2.11.32: {}
 
