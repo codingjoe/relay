@@ -17,7 +17,6 @@ from fastmcp.server.auth import RemoteAuthProvider  # noqa: E402
 from fastmcp.server.auth.providers.jwt import JWTVerifier  # noqa: E402
 from fastmcp.server.middleware.logging import StructuredLoggingMiddleware  # noqa: E402
 from fastmcp.server.transforms.search import BM25SearchTransform  # noqa: E402
-from granian.utils.proxies import wrap_asgi_with_proxy_headers  # noqa: E402
 
 from abstract.scopes import MCP_REQUIRED_SCOPES, scopes  # noqa: E402
 
@@ -65,16 +64,13 @@ async def health(_: Request) -> JSONResponse:
     return JSONResponse({"status": "ok"})
 
 
-application = wrap_asgi_with_proxy_headers(
-    mcp.http_app(
-        path="/mcp",
-        # No shared session state across replicas and workers, so requests are independent.
-        stateless_http=True,
-        json_response=True,
-        host_origin_protection=True,
-        allowed_hosts=[*settings.ALLOWED_HOSTS, "localhost"],
-        # Caddy terminates TLS, so trust the public origin rather than the ASGI scheme.
-        allowed_origins=[settings.MCP_BASE_URL],
-    ),
-    trusted_hosts=settings.TRUSTED_PROXY_HOSTS,
+application = mcp.http_app(
+    path="/mcp",
+    # No shared session state across replicas and workers, so requests are independent.
+    stateless_http=True,
+    json_response=True,
+    host_origin_protection=True,
+    allowed_hosts=[*settings.ALLOWED_HOSTS, "localhost"],
+    # Caddy terminates TLS, so trust the public origin rather than the ASGI scheme.
+    allowed_origins=[settings.MCP_BASE_URL],
 )
