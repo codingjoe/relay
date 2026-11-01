@@ -44,7 +44,7 @@ dependencies = [
   "sentry-sdk>=2.71",
   "servestatic>=4.4",
   "starlette>=1.7",
-  "threadmill[redis]>=0.8",
+  "threadmill[redis,sentry]>=0.10",
   "validators>=0.35",
 ]
 
@@ -54,7 +54,7 @@ dev = [
   "django-devbar>=0.7",
   "pytest-clarity>=1.0.1",
   "pytest-sugar>=1.1.1",
-  "threadmill[inspector]>=0.8",
+  "threadmill[inspector]>=0.10",
   { include-group = "test" },
 ]
 test = [
