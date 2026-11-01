@@ -4,6 +4,7 @@ import zoneinfo
 from types import SimpleNamespace
 
 from django.contrib.auth.models import Group, User
+from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.template import Context, engines
 from django.test import RequestFactory
@@ -32,6 +33,13 @@ def test_admin_url__changelist():
 
 def test_admin_url__admin_index():
     context = Context()
+    context.request = authenticate(RequestFactory().get("/"))
+    assert abstract.admin_url(context) == "/admin/"
+
+
+def test_admin_url__model_without_admin():
+    """Fall back to the admin index for models the admin does not serve."""
+    context = Context({"object_list": ContentType.objects.none()})
     context.request = authenticate(RequestFactory().get("/"))
     assert abstract.admin_url(context) == "/admin/"
 
