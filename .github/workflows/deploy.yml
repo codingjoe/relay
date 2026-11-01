@@ -108,8 +108,16 @@ jobs:
                   exit 1
               fi
           done
+          # Host-network Caddy reaches pods through the CNI gateway, which lives in the pod network.
+          trusted_proxies="$(kubectl get nodes --output jsonpath='{.items[*].spec.podCIDR}' |
+              tr -d '\n' | tr ' ' ',')"
+          if [ -z "$trusted_proxies" ]; then
+              echo "::error::no node reports a pod CIDR, so the proxy peer cannot be derived"
+              exit 1
+          fi
           certificates="/data/caddy/certificates/acme-v02.api.letsencrypt.org-directory"
           kubectl create secret generic relay-cluster-env \
+              --from-literal=TRUSTED_PROXY_HOSTS="$trusted_proxies" \
               --from-literal=DATABASE_URL="postgresql://postgres:${postgres_password}@postgres:5432/postgres" \
               --from-literal=REDIS_URL="redis://:${redis_password}@redis:6379/0" \
               --from-literal=TASK_REDIS_URL="redis://:${redis_password}@redis-tasks:6379/0" \
