@@ -64,6 +64,8 @@ ALLOWED_HOSTS = [
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Caddy is hostNetwork, so the Downward API supplies the node IP as the trusted peer.
+TRUSTED_PROXY_HOSTS = env.list("TRUSTED_PROXY_HOSTS", default=["127.0.0.1"])
 
 # Probes keep speaking plain HTTP; HSTS covers every subdomain.
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=not (DEBUG or TEST))
