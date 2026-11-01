@@ -6,7 +6,7 @@ from django.contrib.admin.templatetags.admin_urls import admin_urlname
 from django.contrib.humanize.templatetags import humanize
 from django.template import defaultfilters, loader
 from django.template.defaulttags import register
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import formats, timezone
 from django.utils.safestring import mark_safe
 from humanize import naturaldelta
@@ -79,7 +79,10 @@ def admin_url(context):
         model, url_suffix, args = object_list.model, "changelist", []
     else:
         return reverse("admin:index")
-    return reverse(admin_urlname(model._meta, url_suffix), args=args)
+    try:
+        return reverse(admin_urlname(model._meta, url_suffix), args=args)
+    except NoReverseMatch:
+        return reverse("admin:index")
 
 
 @register.inclusion_tag("abstract/timestamp.html")
