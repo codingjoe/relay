@@ -141,7 +141,10 @@ class TestDmarcReportDetailView:
 
         response = client.get(f"/org/{org.slug}/email/dmarc/{dmarc_report.pk}")
 
-        assert "sender-1.mail.example.org" in response.content.decode()
+        assert re.search(
+            r"<code[^>]*>sender-1\.mail\.example\.org</code>",
+            response.content.decode(),
+        )
 
     def test_get__renders_other_auth_results(self, client, org, dmarc_report):
         DmarcRecord.objects.create(
@@ -162,7 +165,7 @@ class TestDmarcReportDetailView:
 
         content = response.content.decode()
         assert response.status_code == 200
-        assert "evil.com" in content
+        assert re.search(r"<code>evil\.com</code>", content)
         assert "misaligned" in content
         assert re.search(r">\s*message\s*<", content)
 
