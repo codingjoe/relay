@@ -635,6 +635,10 @@ if SENTRY_DSN and not TEST and not DEBUG:
         release=SENTRY_RELEASE or None,
         send_default_pii=False,
         traces_sample_rate=float(
-            env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "0.0"
+            env("SENTRY_TRACES_SAMPLE_RATE", default="").strip() or "1.0"
+        ),
+        profile_lifecycle="trace",
+        profile_session_sample_rate=float(
+            env("SENTRY_PROFILE_SESSION_SAMPLE_RATE", default="").strip() or "1.0"
         ),
     )
