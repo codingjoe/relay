@@ -293,10 +293,18 @@ class TestReportListView:
     def test_get__dmarc_type_lists_dmarc_reports(
         self, admin_client, org, dmarc_report, tls_report
     ):
-        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=dmarc")
 
         assert response.status_code == 200
         assert list(response.context["reports"]) == [dmarc_report]
+
+    def test_get__no_type_lists_every_report(
+        self, admin_client, org, dmarc_report, tls_report
+    ):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+
+        assert response.status_code == 200
+        assert set(response.context["reports"]) == {dmarc_report, tls_report}
 
     def test_get__dmarc_type_filters_by_ip(
         self, admin_client, org, dmarc_report, tls_report
