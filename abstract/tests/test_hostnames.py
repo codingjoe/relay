@@ -1,12 +1,10 @@
 from types import SimpleNamespace
 
 import dns.exception
-from django.core.cache import cache
 
 from abstract.hostnames import (
     add_sender_hostname,
     is_relay_address,
-    lookup_sender_hostname,
     resolve_hostname,
 )
 
@@ -45,23 +43,8 @@ class TestIsRelayAddress:
         assert not is_relay_address("1.1.1.1")
 
 
-class TestLookupSenderHostname:
-    def test_lookup_sender_hostname__returns_ptr_hostname(self, dns_resolver):
-        cache.delete("relay:sender-hostname:8.8.8.8")
-        dns_resolver.add("8.8.8.8.in-addr.arpa", "PTR", "sender-1.mail.example.org.")
-        assert lookup_sender_hostname("8.8.8.8") == "sender-1.mail.example.org"
-
-    def test_lookup_sender_hostname__caches_lookup(self, dns_resolver):
-        cache.delete("relay:sender-hostname:8.8.8.8")
-        dns_resolver.add("8.8.8.8.in-addr.arpa", "PTR", "sender-1.mail.example.org.")
-        lookup_sender_hostname("8.8.8.8")
-        lookup_sender_hostname("8.8.8.8")
-        assert dns_resolver.lookups == [("8.8.8.8.in-addr.arpa", "PTR")]
-
-
 class TestAddSenderHostname:
     def test_add_sender_hostname__attaches_hostname(self, settings, dns_resolver):
-        cache.delete("relay:sender-hostname:8.8.8.8")
         settings.SMTP_SOURCE_IPS = ["8.8.8.8"]
         dns_resolver.add("8.8.8.8.in-addr.arpa", "PTR", "sender-1.mail.example.org.")
         report = SimpleNamespace()
