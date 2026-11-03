@@ -1,39 +1,38 @@
 {% extends "base.html" %}
-{% load i18n message abstract %}
+{% load i18n message abstract esm humanize %}
 {% block title %}{% translate "DMARC report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
     <h2 class="m-0">
       {% translate "DMARC report"|capfirst %}
-      {% if report.domain %}- {{ report.domain }}{% endif %}
+      {% if report.domain %}
+        <span class="text-muted-foreground">- {{ report.domain }}</span>
+      {% endif %}
     </h2>
   </header>
 
-  <div class="card p-6 mb-6">
-    <dl class="grid grid-cols-2 gap-4 m-0">
+  <div class="mb-6 rounded-2xl bg-muted p-4">
+    <dl class="m-0 grid gap-x-8 gap-y-4 sm:grid-cols-3">
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "reporter"|capfirst %}</dt>
-        <dd class="m-0">{{ report.reporting_org }}</dd>
+        <dd class="m-0 flex flex-col gap-0.5">
+          <span class="font-medium">{{ report.reporting_org|default:"-" }}</span>
+          {% if report.reporting_email %}
+            <code class="text-sm text-muted-foreground break-all">{{ report.reporting_email }}</code>
+          {% endif %}
+        </dd>
       </div>
       <div>
-        <dt class="text-sm text-muted-foreground">{% translate "reporting email"|capfirst %}</dt>
-        <dd class="m-0"><code>{{ report.reporting_email }}</code></dd>
+        <dt class="text-sm text-muted-foreground">{% translate "period"|capfirst %}</dt>
+        <dd class="m-0 flex flex-wrap items-center gap-x-2">
+          {% timestamp report.begin_at %}
+          <span class="text-muted-foreground" aria-hidden="true">&ndash;</span>
+          {% timestamp report.end_at %}
+        </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "report ID"|capfirst %}</dt>
-        <dd class="m-0">{{ report.report_id }}</dd>
-      </div>
-      <div>
-        <dt class="text-sm text-muted-foreground">{% translate "period start"|capfirst %}</dt>
-        <dd class="m-0">
-          {% timestamp report.begin_at %}
-        </dd>
-      </div>
-      <div>
-        <dt class="text-sm text-muted-foreground">{% translate "period end"|capfirst %}</dt>
-        <dd class="m-0">
-          {% timestamp report.end_at %}
-        </dd>
+        <dd class="m-0 break-all"><code class="text-sm">{{ report.report_id|default:"-" }}</code></dd>
       </div>
     </dl>
   </div>
@@ -49,46 +48,92 @@
     </div>
   {% endif %}
 
-  <div class="table-container">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>{% translate "source IP"|capfirst %}</th>
-          <th>{% translate "count"|capfirst %}</th>
-          <th>{% translate "disposition"|capfirst %}</th>
-          <th>DKIM</th>
-          <th>SPF</th>
-          <th>{% translate "header from"|capfirst %}</th>
-          <th>DKIM {% translate "result"|capfirst %}</th>
-          <th>SPF {% translate "result"|capfirst %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for record in records %}
-          <tr>
-            <td>
-              <a
-                class="link"
-                href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ record.source_ip_address|urlencode }}"
-              >{{ record.source_ip_address }}</a>
-            </td>
-            <td>{{ record.count }}</td>
-            <td>{{ record.get_disposition_display }}</td>
-            <td>{{ record.get_dkim_alignment_display }}</td>
-            <td>{{ record.get_spf_alignment_display }}</td>
-            <td>
-              <a
-                class="link"
-                href="{% url 'message:message-list' org.slug %}?domain={{ record.header_from|urlencode }}"
-              >{{ record.header_from|truncatechars:30 }}</a>
-            </td>
-            <td>{{ record.get_dkim_result_display }}</td>
-            <td>{{ record.get_spf_result_display }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="8">{% translate "No records in this report." %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  {% if records %}
+    <div class="item-group gap-3">
+      {% for record in records %}
+        <article class="item items-start" data-variant="outline">
+          <figure
+            class="status mt-0.5 grid size-10 shrink-0 place-items-center rounded-full"
+            data-variant="{{ record.disposition_variant }}"
+            aria-hidden="true"
+          >
+            {% tabler name=record.disposition_icon size="5" %}
+          </figure>
+          <section class="min-w-0 gap-2">
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 class="m-0 text-lg">
+                <a
+                  class="link break-all font-mono"
+                  href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ record.source_ip_address|urlencode }}"
+                >{{ record.source_ip_address }}</a>
+              </h3>
+              {% include "abstract/sender_badge.html" with report=record %}
+              <network-location
+                address="{{ record.source_ip_address }}"
+                hide-address
+                class="contents"
+                data-unavailable='{% translate "location unavailable" %}'
+                data-retry='{% translate "retry"|capfirst %}'
+              ></network-location>
+            </div>
+            {% include "abstract/sender_hostname.html" with report=record %}
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <span
+                class="badge"
+                data-size="sm"
+                data-variant="{{ record.disposition_variant }}"
+              >{{ record.disposition_label|capfirst }}</span>
+              {% include "dmarc/_auth_chip.html" with method="DKIM" result=record.dkim_result result_label=record.get_dkim_result_display alignment=record.dkim_alignment %}
+              {% include "dmarc/_auth_chip.html" with method="SPF" result=record.spf_result result_label=record.get_spf_result_display alignment=record.spf_alignment %}
+              <span class="text-sm">
+                <span class="text-muted-foreground">{% translate "header from"|capfirst %}</span>
+                {% if record.header_from %}
+                  <a
+                    class="link"
+                    href="{% url 'message:message-list' org.slug %}?domain={{ record.header_from|urlencode }}"
+                  >{{ record.header_from|truncatechars:40 }}</a>
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+              {% if record.envelope_from and record.envelope_from != record.header_from %}
+                <span class="text-sm">
+                  <span class="text-muted-foreground">{% translate "envelope from"|capfirst %}</span>
+                  <code>{{ record.envelope_from }}</code>
+                </span>
+              {% endif %}
+            </div>
+          </section>
+          <aside class="flex-col items-end self-start text-right">
+            <span class="block text-xl font-semibold tabular-nums leading-none sm:text-2xl">
+              {{ record.count|intcomma }}
+            </span>
+            <span class="text-xs text-muted-foreground">
+              {% if record.count == 1 %}
+                {% translate "message" %}
+              {% else %}
+                {% translate "messages" %}
+              {% endif %}
+            </span>
+          </aside>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="empty">
+      <header>
+        <figure class="max-w-48 mx-auto">
+          {% include "partials/illustration.html" with name="no-data" %}
+        </figure>
+        <h3>
+          {% if source_ip_filter %}
+            {% translate "No records match this source IP." %}
+          {% else %}
+            {% translate "No records in this report." %}
+          {% endif %}
+        </h3>
+      </header>
+    </section>
+  {% endif %}
+  {% esm '#js/network-location.js' %}
 {% endblock %}

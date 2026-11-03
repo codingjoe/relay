@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.hostnames import add_sender_hostname
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -53,6 +54,9 @@ class DmarcReportDetailView(
         records = self.object.records.all()
         if source_ip := self.request.GET.get("source_ip"):
             records = records.filter(source_ip_address=source_ip)
+        records = list(records)
+        for record in records:
+            add_sender_hostname(record, record.source_ip_address)
         return super().get_context_data(**kwargs) | {
             "records": records,
             "source_ip_filter": self.request.GET.get("source_ip", ""),
@@ -79,7 +83,10 @@ class DmarcFailureReportListView(
         return qs
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs) | {
+        context = super().get_context_data(**kwargs)
+        for report in context["reports"]:
+            add_sender_hostname(report, report.source_ip_address)
+        return context | {
             "domains": Domain.objects.filter(org=self.org),
             "filters": {
                 "domain": self.request.GET.get("domain", ""),
@@ -99,3 +106,8 @@ class DmarcFailureReportDetailView(
 
     def get_queryset(self):
         return DmarcFailureReport.objects.filter(org=self.org)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        add_sender_hostname(self.object, self.object.source_ip_address)
+        return context

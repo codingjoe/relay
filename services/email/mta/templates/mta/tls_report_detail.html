@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n message abstract %}
+{% load i18n message abstract esm %}
 {% block title %}{% translate "TLS report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -68,10 +68,23 @@
           <tr>
             <td>{{ failure.get_result_type_display }}</td>
             <td>
-              <a
-                class="link"
-                href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ failure.sending_mta_ip_address|urlencode }}"
-              >{{ failure.sending_mta_ip_address }}</a>
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <a
+                    class="link"
+                    href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ failure.sending_mta_ip_address|urlencode }}"
+                  >{{ failure.sending_mta_ip_address }}</a>
+                  {% include "abstract/sender_badge.html" with report=failure %}
+                  {% include "abstract/sender_hostname.html" with report=failure %}
+                </div>
+                <network-location
+                  address="{{ failure.sending_mta_ip_address }}"
+                  hide-address
+                  class="block"
+                  data-unavailable='{% translate "location unavailable" %}'
+                  data-retry='{% translate "retry"|capfirst %}'
+                ></network-location>
+              </div>
             </td>
             <td>
               <a
@@ -98,4 +111,5 @@
       </tbody>
     </table>
   </div>
+  {% esm '#js/network-location.js' %}
 {% endblock %}

@@ -17,29 +17,19 @@
 
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <form method="get" role="search" class="flex-1 min-w-56">
-      <input type="hidden" name="type" value="{{ type }}">
+      {% for value in types %}
+        <input type="hidden" name="type" value="{{ value }}">
+      {% endfor %}
       <div class="input-group">
-        {% if type == 'tls' %}
-          <input
-            id="filter-domain"
-            name="domain"
-            type="search"
-            value="{{ domain }}"
-            autocomplete="off"
-            aria-label='{% translate "search by domain" %}'
-            placeholder='{% translate "search by domain" %}'
-          >
-        {% else %}
-          <input
-            id="filter-ip"
-            name="ip"
-            type="search"
-            value="{{ ip }}"
-            autocomplete="off"
-            aria-label='{% translate "search by IP" %}'
-            placeholder='{% translate "search by IP" %}'
-          >
-        {% endif %}
+        <input
+          id="filter-search"
+          name="{{ search_field }}"
+          type="search"
+          value="{{ search_value }}"
+          autocomplete="off"
+          aria-label='{% if search_field == "domain" %}{% translate "search by domain" %}{% else %}{% translate "search by IP" %}{% endif %}'
+          placeholder='{% if search_field == "domain" %}{% translate "search by domain" %}{% else %}{% translate "search by IP" %}{% endif %}'
+        >
         <span data-align="start" aria-hidden="true">
           {% tabler name="search" %}
         </span>
@@ -66,10 +56,7 @@
         aria-expanded="false"
       >
         {% tabler name="filter" size=None %}
-        {{ type_label }}
-        {% for value in filter_values %}
-          <span class="badge" data-size="sm">{{ value }}</span>
-        {% endfor %}
+        {{ type_label|capfirst }}
         {% tabler name="chevron-down" size="3.5" %}
       </button>
       <div
@@ -103,48 +90,26 @@
           >
             <div role="group">
               <span role="heading">{% translate "type"|capfirst context "noun" %}</span>
-              <a
-                role="menuitem"
-                href="{% querystring type='dmarc' %}"
-                data-checked="{% if type == 'dmarc' %}true{% else %}false{% endif %}"
-              >
-                {% tabler name="shield-check" %}
-                DMARC
-                {% tabler name="check" %}
-              </a>
-              <a
-                role="menuitem"
-                href="{% querystring type='failures' %}"
-                data-checked="{% if type == 'failures' %}true{% else %}false{% endif %}"
-              >
-                {% tabler name="alert-triangle" %}
-                {% translate "DMARC failures"|capfirst %}
-                {% tabler name="check" %}
-              </a>
-              <a
-                role="menuitem"
-                href="{% querystring type='tls' %}"
-                data-checked="{% if type == 'tls' %}true{% else %}false{% endif %}"
-              >
-                {% tabler name="lock" %}
-                {% translate "TLS"|capfirst %}
-                {% tabler name="check" %}
-              </a>
-              <a
-                role="menuitem"
-                href="{% querystring type='fbl' %}"
-                data-checked="{% if type == 'fbl' %}true{% else %}false{% endif %}"
-              >
-                {% tabler name="flag" %}
-                {% translate "FBL"|capfirst %}
-                {% tabler name="check" %}
-              </a>
+              {% for option in type_options %}
+                <a
+                  role="menuitem"
+                  href="{{ option.href }}"
+                  data-checked="{{ option.checked|yesno:'true,false' }}"
+                >
+                  {% tabler name=option.icon %}
+                  {{ option.label }}
+                  {% if option.checked %}
+                    <span class="sr-only">{% translate "selected" %}</span>
+                  {% endif %}
+                  {% tabler name="check" data_indicator=True %}
+                </a>
+              {% endfor %}
             </div>
           </div>
         </div>
       </div>
     </div>
-    {% if ip or domain %}
+    {% if search_value %}
       <a class="btn" data-variant="ghost" href="{% querystring ip=None domain=None %}">
         {% tabler name="restore" %}
         {% translate "clear"|capfirst %}
@@ -160,22 +125,9 @@
             {% if report.domain %}{{ report.domain.name }}{% else %}-{% endif %}
           </h3>
           <div class="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-            {% if type == 'dmarc' %}
-              {% tabler name="shield-check" size="3.5" class="shrink-0" %}
-              <span class="sr-only">DMARC</span>
-            {% elif type == 'failures' %}
-              {% tabler name="alert-triangle" size="3.5" class="shrink-0" %}
-              <span class="sr-only">{% translate "DMARC failures"|capfirst %}</span>
-            {% elif type == 'fbl' %}
-              {% tabler name="flag" size="3.5" class="shrink-0" %}
-              <span class="sr-only">FBL</span>
-            {% else %}
-              {% tabler name="lock" size="3.5" class="shrink-0" %}
-              <span class="sr-only">TLS</span>
-            {% endif %}
-            <code class="truncate max-w-96">
-              {% if type == 'tls' %}{{ report.reporting_email|default:"-" }}{% elif type == 'fbl' %}{{ report.original_mail_from|default:"-" }}{% else %}{{ report.mail_from }}{% endif %}
-            </code>
+            {% tabler name=report.report_icon size="3.5" class="shrink-0" %}
+            <span class="sr-only">{{ report.report_type_label }}</span>
+            <code class="truncate max-w-96">{{ report.report_subtitle|default:"-" }}</code>
           </div>
         </section>
         <aside class="shrink-0">
@@ -183,7 +135,7 @@
         </aside>
       </a>
     {% empty %}
-      {% if not ip and not domain %}
+      {% if not search_value and not types %}
         <section class="empty">
           <header>
             <figure class="max-w-48 mx-auto">

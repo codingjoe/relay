@@ -148,8 +148,10 @@ an organization.
    the FBL address. relay matches the complaint to your message through the
    signed per-message Return-Path.
 4. Providers send aggregate reports every day. relay parses them.
-5. You read your report rows, and correct what you see. Policy updates and
-   key rotation are dashboard operations.
+5. You read your report rows, and correct what you see. relay marks source
+   IPs from its own sending pool as verified senders and shows their
+   reverse-DNS hostname. Each source IP also shows its approximate location
+   and network. Policy updates and key rotation are dashboard operations.
 6. Misconfigured senders become visible quickly. Fix or block them early.
 
 Reputation is a set of boring signals, done consistently. relay runs the

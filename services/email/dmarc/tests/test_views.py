@@ -91,6 +91,13 @@ class TestDmarcReportDetailView:
         assert response.status_code == 200
         assert "192.168.1.1" in response.content.decode()
 
+    def test_get__marks_relay_sender(self, client, org, dmarc_report, settings):
+        settings.SMTP_SOURCE_IPS = ["192.168.1.1"]
+        client.force_login(org.members.first())  # noqa: any member
+        response = client.get(f"/org/{org.slug}/email/dmarc/{dmarc_report.pk}")
+        assert response.status_code == 200
+        assert "Verified sender" in response.content.decode()
+
     def test_get__filters_records_by_source_ip(self, client, org, dmarc_report):
         client.force_login(org.members.first())  # noqa: any member
         response = client.get(

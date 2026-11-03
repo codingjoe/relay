@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import MissingAttachmentError, iter_attachments
+from abstract.hostnames import is_relay_address
 from abstract.models import TimeStamped
 from domains.models import Domain
 from services.email.mta.models import IncomingMessage
@@ -213,6 +214,42 @@ class DmarcRecord(TimeStamped):
     def __repr__(self):
         return f"<DmarcRecord {self.pk}>"
 
+    @property
+    def is_relay_sender(self):
+        """Return whether the source IP belongs to relay."""
+        return is_relay_address(self.source_ip_address)
+
+    @property
+    def disposition_variant(self):
+        match self.disposition:
+            case DmarcReport.Disposition.REJECT:
+                return "destructive"
+            case DmarcReport.Disposition.QUARANTINE:
+                return "warning"
+            case _:
+                return "success"
+
+    @property
+    def disposition_label(self):
+        """Return the policy outcome in plain words."""
+        match self.disposition:
+            case DmarcReport.Disposition.REJECT:
+                return _("rejected")
+            case DmarcReport.Disposition.QUARANTINE:
+                return _("quarantined")
+            case _:
+                return _("no action")
+
+    @property
+    def disposition_icon(self):
+        match self.disposition:
+            case DmarcReport.Disposition.REJECT:
+                return "shield-x"
+            case DmarcReport.Disposition.QUARANTINE:
+                return "shield-exclamation"
+            case _:
+                return "shield-check"
+
 
 class DmarcFailureReport(IncomingMessage):
     """DMARC forensic (RUF) report received from a reporting organization."""
@@ -323,6 +360,11 @@ class DmarcFailureReport(IncomingMessage):
         return (
             f"{self.reporting_org} → {self.domain or '?'} ({self.original_mail_from})"
         )
+
+    @property
+    def is_relay_sender(self):
+        """Return whether the source IP belongs to relay."""
+        return is_relay_address(self.source_ip_address)
 
     url_name = "failure-report-detail"
 

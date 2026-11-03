@@ -831,7 +831,7 @@
     modified_at: 2026-08-01 18:21:34.850000+00:00
     created_at: 2026-08-01 18:21:34.850000+00:00
     report: 019fbe8f-5efc-70c3-995b-59556bf2aa13
-    source_ip_address: 203.0.113.50
+    source_ip_address: 127.0.0.1
     count: 42
     disposition: none
     dkim_alignment: pass
@@ -848,7 +848,7 @@
     modified_at: 2026-08-01 18:21:34.855000+00:00
     created_at: 2026-08-01 18:21:34.855000+00:00
     report: 019fbe8f-5efc-70c3-995b-59556bf2aa13
-    source_ip_address: 198.51.100.25
+    source_ip_address: 8.8.8.8
     count: 3
     disposition: reject
     dkim_alignment: fail
@@ -911,7 +911,7 @@
   fields:
     reporting_org: google.com
     reporting_email: noreply-dmarc@google.com
-    source_ip_address: 198.51.100.25
+    source_ip_address: 9.9.9.9
     arrival_at: 2026-07-20 14:30:00+00:00
     original_mail_from: spammer@evil.com
     original_rcpt_to: user@acme.com

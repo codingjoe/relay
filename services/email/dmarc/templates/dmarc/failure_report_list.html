@@ -56,7 +56,13 @@
           >
             <td>{{ report.arrival_at|naturalday|default:"-" }}</td>
             <td>{{ report.domain|default:"-" }}</td>
-            <td>{{ report.source_ip_address|default:"-" }}</td>
+            <td>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span>{{ report.source_ip_address|default:"-" }}</span>
+                {% include "abstract/sender_badge.html" %}
+                {% include "abstract/sender_hostname.html" %}
+              </div>
+            </td>
             <td>{{ report.original_mail_from|truncatechars:30 }}</td>
             <td>{{ report.get_delivery_result_display }}</td>
           </tr>

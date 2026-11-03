@@ -378,19 +378,35 @@ class TestReportListView:
         assert response.status_code == 200
         assert list(response.context["reports"]) == [fbl_report]
 
-    def test_get__unknown_type_falls_back_to_dmarc(
+    def test_get__unknown_type_lists_all_reports(
         self, admin_client, org, dmarc_report, fbl_report
     ):
         response = admin_client.get(f"/org/{org.slug}/email/reports/?type=bogus")
 
         assert response.status_code == 200
-        assert list(response.context["reports"]) == [dmarc_report]
+        assert set(response.context["reports"]) == {dmarc_report, fbl_report}
+
+    def test_get__multiple_types_merge_reports(
+        self, admin_client, org, dmarc_report, tls_report
+    ):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/reports/?type=dmarc&type=tls"
+        )
+
+        assert response.status_code == 200
+        assert set(response.context["reports"]) == {dmarc_report, tls_report}
 
     def test_get__dmarc_type_shows_chart(self, admin_client, org, dmarc_report):
-        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=dmarc")
 
         assert response.status_code == 200
         assert "series" in response.context["chart"]
+
+    def test_get__all_types_has_no_chart(self, admin_client, org, dmarc_report):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+
+        assert response.status_code == 200
+        assert response.context["chart"] is None
 
     def test_get__tls_type_shows_chart(self, admin_client, org, tls_report):
         response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")
@@ -409,21 +425,6 @@ class TestReportListView:
 
         assert response.status_code == 200
         assert "chart-reports" not in response.content.decode()
-
-    def test_get__names_the_filter_values_in_the_trigger(
-        self, admin_client, org, tls_report
-    ):
-        response = admin_client.get(
-            f"/org/{org.slug}/email/reports/?type=tls&domain=acme.com"
-        )
-
-        assert response.status_code == 200
-        trigger = (
-            response.content.decode()
-            .split('id="report-filters-trigger"', 1)[1]
-            .split("</button>", 1)[0]
-        )
-        assert "acme.com" in trigger
 
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/email/reports/")

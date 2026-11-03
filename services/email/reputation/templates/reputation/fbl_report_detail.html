@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n abstract message %}
+{% load i18n abstract message esm %}
 {% block title %}{% translate "FBL report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
@@ -25,7 +25,29 @@
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
-        <dd class="m-0">{{ report.source_ip_address|default:"-" }}</dd>
+        <dd class="m-0">
+          {% if report.source_ip_address %}
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <a
+                  class="link"
+                  href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ report.source_ip_address|urlencode }}"
+                >{{ report.source_ip_address }}</a>
+                {% include "abstract/sender_badge.html" with report=report %}
+                {% include "abstract/sender_hostname.html" with report=report %}
+              </div>
+              <network-location
+                address="{{ report.source_ip_address }}"
+                hide-address
+                class="block"
+                data-unavailable='{% translate "location unavailable" %}'
+                data-retry='{% translate "retry"|capfirst %}'
+              ></network-location>
+            </div>
+          {% else %}
+            -
+          {% endif %}
+        </dd>
       </div>
       <div>
         <dt class="text-sm text-muted-foreground">{% translate "arrived"|capfirst %}</dt>
@@ -87,4 +109,5 @@
       </div>
     </div>
   {% endif %}
+  {% esm '#js/network-location.js' %}
 {% endblock %}

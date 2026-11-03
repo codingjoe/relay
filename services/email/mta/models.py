@@ -8,6 +8,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from abstract.email_utils import MissingAttachmentError, iter_attachments
+from abstract.hostnames import is_relay_address
 from abstract.models import TimeStamped, Timing
 from accounts.models import OrganizationOwned
 from kms.models import SigningKey
@@ -407,6 +408,11 @@ class TlsFailure(TimeStamped):
         indexes = [
             models.Index(fields=["report", "result_type"]),
         ]
+
+    @property
+    def is_relay_sender(self):
+        """Return whether the sending MTA address belongs to relay."""
+        return is_relay_address(self.sending_mta_ip_address)
 
     def __str__(self):
         return f"{self.get_result_type_display()} ×{self.count} ({self.receiving_mx_hostname})"

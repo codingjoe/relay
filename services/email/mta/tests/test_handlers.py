@@ -18,7 +18,6 @@ from services.email.mta.handlers import (
     is_fbl_report,
     process_incoming_message,
     received_header,
-    resolve_remote_host,
 )
 from services.email.mta.models import IncomingMessage, TlsReport
 from services.email.mta.tests.conftest import (
@@ -283,23 +282,6 @@ class TestProcessIncomingMessageReports:
         report = await TlsReport.objects.aget(domain=domain)
         assert result == "250 OK"
         assert report.org == org
-
-
-class TestResolveRemoteHost:
-    def test_resolve_remote_host__returns_ptr_hostname(self, dns_resolver):
-        dns_resolver.add("8.8.8.8.in-addr.arpa", "PTR", "dns.google.")
-        assert resolve_remote_host("8.8.8.8") == "dns.google"
-
-    def test_resolve_remote_host__returns_empty_string_without_ptr(self, dns_resolver):
-        assert resolve_remote_host("8.8.8.8") == ""
-
-    def test_resolve_remote_host__skips_private_addresses(self, dns_resolver):
-        assert resolve_remote_host("10.244.0.1") == ""
-        assert dns_resolver.lookups == []
-
-    def test_resolve_remote_host__skips_malformed_addresses(self, dns_resolver):
-        assert resolve_remote_host("not-an-ip") == ""
-        assert dns_resolver.lookups == []
 
 
 class TestProcessIncomingMessageTransmission:

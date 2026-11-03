@@ -1,0 +1,3 @@
+{% if report.is_relay_sender and report.sender_hostname %}
+  <code class="text-sm text-muted-foreground break-all">{{ report.sender_hostname }}</code>
+{% endif %}
