@@ -83,10 +83,7 @@ class DmarcFailureReportListView(
         return qs
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        for report in context["reports"]:
-            add_sender_hostname(report, report.source_ip_address)
-        return context | {
+        return super().get_context_data(**kwargs) | {
             "domains": Domain.objects.filter(org=self.org),
             "filters": {
                 "domain": self.request.GET.get("domain", ""),

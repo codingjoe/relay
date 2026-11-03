@@ -157,3 +157,16 @@ class TestFblReport:
 class TestFblReportRepr:
     def test_repr__returns_pk(self):
         assert repr(FblReport(pk=1)) == "<FblReport 1>"
+
+
+class TestFblReportRelaySender:
+    def test_is_relay_sender__true_for_configured_address(self, settings):
+        settings.SMTP_SOURCE_IPS = ["10.0.0.3"]
+        report = FblReport(source_ip_address="10.0.0.3")
+        assert report.is_relay_sender
+
+    def test_is_relay_sender__false_for_other_address(self, settings):
+        settings.SMTP_SOURCE_IPS = ["10.0.0.3"]
+        settings.DNS_SMTP_IPS = []
+        report = FblReport(source_ip_address="10.0.0.4")
+        assert not report.is_relay_sender

@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import dns.exception
 from django.core.cache import cache
 
 from abstract.hostnames import (
@@ -72,3 +73,13 @@ class TestAddSenderHostname:
         report = SimpleNamespace()
         add_sender_hostname(report, "1.1.1.1")
         assert not hasattr(report, "sender_hostname")
+
+
+class TestResolveHostnameFailures:
+    def test_resolve_hostname__returns_empty_string_on_timeout(self, dns_resolver):
+        dns_resolver.fail("8.8.8.8.in-addr.arpa", "PTR", dns.exception.Timeout())
+        assert resolve_hostname("8.8.8.8") == ""
+
+    def test_resolve_hostname__returns_empty_string_on_dns_error(self, dns_resolver):
+        dns_resolver.fail("8.8.8.8.in-addr.arpa", "PTR", dns.exception.DNSException())
+        assert resolve_hostname("8.8.8.8") == ""

@@ -148,6 +148,22 @@ class TestFblReportDetailView:
         assert ("From", "feedback@gmail.com") in response.context["headers"]
         assert "User marked the message as spam." in response.context["body"]
 
+    def test_get__marks_the_relay_source_ip(self, admin_client, org, settings):
+        settings.SMTP_SOURCE_IPS = ["10.9.9.9"]
+        report = self.make_report_with_body(org, b"")
+        report.source_ip_address = "10.9.9.9"
+        report.save(update_fields=["source_ip_address"])
+
+        response = admin_client.get(
+            reverse(
+                "monitoring:fbl-report-detail",
+                kwargs={"org_slug": org.slug, "pk": report.pk},
+            )
+        )
+
+        assert response.status_code == 200
+        assert "Sent by relay" in response.content.decode()
+
     def test_get__shows_report_without_body(self, admin_client, org):
         report = self.make_report_with_body(org, b"")
         response = admin_client.get(

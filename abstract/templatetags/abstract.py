@@ -91,6 +91,8 @@ def admin_url(context):
 @register.inclusion_tag("abstract/timestamp.html")
 def timestamp(value):
     """Render a `<time>` element with naturaltime and ISO 8601 tooltip."""
+    if value is None:
+        return {"value": None, "iso": "", "natural": ""}
     if isinstance(value, datetime.datetime) and timezone.is_aware(value):
         value = timezone.localtime(value)
     return {

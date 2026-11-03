@@ -1,11 +1,13 @@
 import gzip
+import re
 from email.message import EmailMessage
 
 import pytest
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 
 from domains.models import Domain
-from services.email.dmarc.models import DmarcRecord, DmarcReport
+from services.email.dmarc.models import DmarcFailureReport, DmarcRecord, DmarcReport
 
 SAMPLE_XML = b"""<?xml version="1.0"?>
 <feedback>
@@ -117,3 +119,85 @@ class TestDmarcReportDetailView:
         )
         assert response.status_code == 200
         assert "192.168.1.1" not in response.content.decode()
+
+    def test_get__shows_the_relay_hostname(
+        self, client, org, dmarc_report, settings, dns_resolver
+    ):
+        cache.delete("relay:sender-hostname:8.8.8.8")
+        settings.SMTP_SOURCE_IPS = ["8.8.8.8"]
+        dns_resolver.add("8.8.8.8.in-addr.arpa", "PTR", "sender-1.mail.example.org.")
+        DmarcRecord.objects.create(
+            report=dmarc_report,
+            source_ip_address="8.8.8.8",
+            count=2,
+            disposition="none",
+            dkim_alignment="pass",
+            spf_alignment="pass",
+            dkim_result="pass",
+            spf_result="pass",
+            header_from="acme.com",
+        )
+        client.force_login(org.members.first())  # noqa: any member
+
+        response = client.get(f"/org/{org.slug}/email/dmarc/{dmarc_report.pk}")
+
+        assert "sender-1.mail.example.org" in response.content.decode()
+
+    def test_get__renders_other_auth_results(self, client, org, dmarc_report):
+        DmarcRecord.objects.create(
+            report=dmarc_report,
+            source_ip_address="9.9.9.9",
+            count=1,
+            disposition="reject",
+            dkim_alignment="fail",
+            spf_alignment="fail",
+            dkim_result="none",
+            spf_result="fail",
+            header_from="",
+            envelope_from="evil.com",
+        )
+        client.force_login(org.members.first())  # noqa: any member
+
+        response = client.get(f"/org/{org.slug}/email/dmarc/{dmarc_report.pk}")
+
+        content = response.content.decode()
+        assert response.status_code == 200
+        assert "evil.com" in content
+        assert "misaligned" in content
+        assert re.search(r">\s*message\s*<", content)
+
+    def test_get__empty_report_shows_no_records(self, client, org):
+        domain = Domain.objects.create(name="empty.example", org=org)
+        report = DmarcReport.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="reporter@example.com",
+            rcpt_to="dmarc@empty.example",
+            report_id="empty-1",
+        )
+        client.force_login(org.members.first())  # noqa: any member
+
+        response = client.get(f"/org/{org.slug}/email/dmarc/{report.pk}")
+
+        assert response.status_code == 200
+        assert "No records in this report." in response.content.decode()
+
+
+@pytest.mark.django_db
+class TestDmarcFailureReportDetailView:
+    def test_get__marks_relay_sender(self, client, org, settings):
+        settings.SMTP_SOURCE_IPS = ["10.0.0.7"]
+        domain = Domain.objects.create(name="failure.example", org=org)
+        report = DmarcFailureReport.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="reporter@example.com",
+            rcpt_to="ruf@failure.example",
+            source_ip_address="10.0.0.7",
+        )
+        client.force_login(org.members.first())  # noqa: any member
+
+        response = client.get(f"/org/{org.slug}/email/dmarc/failures/{report.pk}")
+
+        assert response.status_code == 200
+        assert "Sent by relay" in response.content.decode()

@@ -4,7 +4,7 @@ from django.urls import reverse
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcRecord, DmarcReport
 from services.email.msa.models import MsaCredential, OutgoingMessage
-from services.email.mta.models import IncomingMessage, TlsReport
+from services.email.mta.models import IncomingMessage, TlsFailure, TlsReport
 from services.email.reputation.models import FblReport
 
 
@@ -346,6 +346,20 @@ class TestReportListView:
         self, admin_client, org, tls_report, dmarc_report
     ):
         response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")
+
+        assert response.status_code == 200
+        assert list(response.context["reports"]) == [tls_report]
+
+    def test_get__tls_type_filters_by_sending_ip(self, admin_client, org, tls_report):
+        TlsFailure.objects.create(
+            report=tls_report,
+            policy_type=TlsFailure.PolicyType.STS,
+            result_type=TlsFailure.ResultType.CERTIFICATE_EXPIRED,
+            sending_mta_ip_address="10.9.9.9",
+        )
+        response = admin_client.get(
+            f"/org/{org.slug}/email/reports/?type=tls&ip=10.9.9.9"
+        )
 
         assert response.status_code == 200
         assert list(response.context["reports"]) == [tls_report]
