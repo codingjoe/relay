@@ -47,7 +47,7 @@ spec:
             !!merge <<: *healthProbe
             periodSeconds: 15
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 256Mi}
             limits: {cpu: "1", memory: 512Mi}
 ---
 apiVersion: v1

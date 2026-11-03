@@ -88,3 +88,18 @@ repo root.
 
 - [ ] Upgrade by hand with `deploy/upgrade.sh`.
 - [ ] Or trigger the workflow with `gh workflow run upgrade.yml`.
+
+## Resize
+
+The server type is `SERVER_TYPE` in `deploy/config.sh`. A resize keeps the
+server, its addresses and its disk. The workloads stop while it runs.
+
+- [ ] Make the pod memory requests fit the smaller node. The scheduler counts
+  requests, not the memory the pods use.
+- [ ] Deploy the manifests.
+- [ ] Shut down the server:
+  `hcloud server shutdown --wait --wait-timeout 5m relays.to`.
+- [ ] Change the type and keep the disk:
+  `hcloud server change-type --keep-disk relays.to cx43`.
+- [ ] Power it on with `hcloud server poweron relays.to`.
+- [ ] Check that every pod returns: `kubectl get pods`.
