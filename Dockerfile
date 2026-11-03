@@ -12,7 +12,7 @@ COPY --exclude=.env ./ /app
 ENV GOMEMLIMIT=2GiB
 RUN mkdir -p root/static/css && pnpm run build
 
-FROM ghcr.io/astral-sh/uv:0.13.6-trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:0.13.7-trixie-slim AS build
 LABEL title="SMTP Server"
 LABEL license="BSD-2-Clause"
 LABEL url="https://github.com/codingjoe/the-box"
