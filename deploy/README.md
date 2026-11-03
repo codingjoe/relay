@@ -97,9 +97,11 @@ server, its addresses and its disk. The workloads stop while it runs.
 - [ ] Make the pod memory requests fit the smaller node. The scheduler counts
   requests, not the memory the pods use.
 - [ ] Deploy the manifests.
+- [ ] Pick a type whose disk is at least as large as the current disk. Hetzner
+  cannot shrink a disk in place.
 - [ ] Shut down the server:
   `hcloud server shutdown --wait --wait-timeout 5m relays.to`.
 - [ ] Change the type and keep the disk:
-  `hcloud server change-type --keep-disk relays.to cx43`.
+  `hcloud server change-type --keep-disk relays.to cpx42`.
 - [ ] Power it on with `hcloud server poweron relays.to`.
 - [ ] Check that every pod returns: `kubectl get pods`.
