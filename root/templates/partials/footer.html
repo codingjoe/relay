@@ -1,51 +1,111 @@
 {% load i18n %}
-<footer class="relative border-t border-border px-6 py-4 text-sm">
-  <div class="flex items-center justify-between gap-4 flex-wrap max-w-7xl w-full mx-auto">
-    <span class="text-muted-foreground">
+<footer class="relative border-t border-border px-6 py-6 sm:py-8 text-sm">
+  <div class="grid gap-8 sm:grid-cols-3 xl:grid-cols-5 max-w-7xl w-full mx-auto">
+    <div class="hidden sm:block sm:col-span-3 xl:col-span-2 text-muted-foreground">
       <strong class="brand text-foreground">relay</strong>
       | Communication as a Service
-    </span>
-    <nav class="flex gap-3">
-      <a
-        href="{% url 'open-source' %}"
-        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
-      >{% translate "open source"|capfirst %}</a>
-      <a
-        href="{% url 'legal:imprint' %}"
-        class="text-muted-foreground hover:text-foreground transition-colors"
-      >{% translate "imprint"|capfirst %}</a>
-      <a
-        href="{% url 'legal:terms' %}"
-        class="text-muted-foreground hover:text-foreground transition-colors"
-      >{% translate "terms of service"|title %}</a>
-      <a
-        href="{% url 'legal:privacy' %}"
-        class="text-muted-foreground hover:text-foreground transition-colors"
-      >{% translate "privacy policy"|title %}</a>
-      <a
-        href="{% url 'docs:list' %}"
-        target="_blank"
-        rel="noopener"
-        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
-      >{% translate "docs"|capfirst %}</a>
-      <a
-        href="{% url 'captains_log:list' %}"
-        target="_blank"
-        rel="noopener"
-        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
-      >{% translate "station log"|capfirst %}</a>
-      <a
-        href="{% url 'know_how:list' %}"
-        target="_blank"
-        rel="noopener"
-        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
-      >{% translate "know how"|capfirst %}</a>
-      <a
-        href="{% url 'alternative_to:list' %}"
-        target="_blank"
-        rel="noopener"
-        class="text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
-      >{% translate "alternative to"|capfirst %}</a>
+    </div>
+    <nav class="hidden sm:flex flex-col gap-3" aria-labelledby="footer-product">
+      <h2
+        id="footer-product"
+        class="m-0 text-xs font-mono font-medium uppercase tracking-widest text-muted-foreground"
+      >
+        {% translate "product"|capfirst %}
+      </h2>
+      <ul class="flex flex-col gap-2 m-0 p-0 list-none">
+        <li>
+          <a
+            href="{% url 'docs:list' %}"
+            target="_blank"
+            rel="noopener"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "docs"|capfirst %}</a>
+        </li>
+        <li>
+          <a
+            href="{% url 'alternative_to:list' %}"
+            target="_blank"
+            rel="noopener"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "alternative to"|capfirst %}</a>
+        </li>
+        <li>
+          <a
+            href="{% url 'captains_log:list' %}"
+            target="_blank"
+            rel="noopener"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "station log"|capfirst %}</a>
+        </li>
+      </ul>
+    </nav>
+    <nav class="hidden sm:flex flex-col gap-3" aria-labelledby="footer-community">
+      <h2
+        id="footer-community"
+        class="m-0 text-xs font-mono font-medium uppercase tracking-widest text-muted-foreground"
+      >
+        {% translate "community"|capfirst %}
+      </h2>
+      <ul class="flex flex-col gap-2 m-0 p-0 list-none">
+        <li>
+          <a
+            href="{% url 'open-source' %}"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "open source"|capfirst %}</a>
+        </li>
+        <li>
+          <a
+            href="{% url 'know_how:list' %}"
+            target="_blank"
+            rel="noopener"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "know how"|capfirst %}</a>
+        </li>
+        <li>
+          <a
+            href="https://discord.gg/S2KqMNyUWe"
+            target="_blank"
+            rel="noopener"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "discord"|capfirst %}</a>
+        </li>
+        <li>
+          <a
+            href="https://www.linkedin.com/company/relays-to/"
+            target="_blank"
+            rel="noopener"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >LinkedIn</a>
+        </li>
+      </ul>
+    </nav>
+    <nav class="flex flex-col gap-3" aria-labelledby="footer-legal">
+      <h2
+        id="footer-legal"
+        class="sr-only sm:not-sr-only m-0 text-xs font-mono font-medium uppercase tracking-widest text-muted-foreground"
+      >
+        {% translate "legal"|capfirst %}
+      </h2>
+      <ul class="flex flex-wrap gap-4 sm:flex-col sm:gap-2 m-0 p-0 list-none">
+        <li>
+          <a
+            href="{% url 'legal:imprint' %}"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "imprint"|capfirst %}</a>
+        </li>
+        <li>
+          <a
+            href="{% url 'legal:terms' %}"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "terms of service"|title %}</a>
+        </li>
+        <li>
+          <a
+            href="{% url 'legal:privacy' %}"
+            class="text-muted-foreground hover:text-foreground transition-colors"
+          >{% translate "privacy policy"|title %}</a>
+        </li>
+      </ul>
     </nav>
   </div>
   <a
