@@ -51,7 +51,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "django-debug-toolbar>=8",
-  "django-devbar>=0.7",
+  "django-devbar>=1.0.0",
   "pytest-clarity>=1.0.1",
   "pytest-sugar>=1.1.1",
   "threadmill[inspector]>=0.10",
