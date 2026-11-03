@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           args: ["-m", "granian", "--port", "8000", "--host", "0.0.0.0", "root.asgi:application"]
           env:
             - name: HOSTNAME
@@ -83,7 +83,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           args:
             - "-m"
             - manage
@@ -146,7 +146,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: sender
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           args:
             - "-m"
             - manage
@@ -205,7 +205,7 @@ spec:
     spec:
       containers:
         - name: crontask
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           args: ["-m", "manage", "crontask"]
           env:
             - name: HOSTNAME
@@ -249,7 +249,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migration
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           resources:
             requests: {cpu: 100m, memory: 512Mi}
             limits: {memory: 1Gi}

@@ -18,7 +18,7 @@ configMapGenerator:
     files:
       - dnsdist/dnsdist.conf
 images:
-  - name: ghcr.io/codingjoe/relay
+  - name: ghcr.io/relays-to/relay
     newTag: local
 labels:
   - includeSelectors: false

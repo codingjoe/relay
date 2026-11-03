@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: msa
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           args: ["-m", "manage", "msa", "--ports", "587"]
           env:
             - name: HOSTNAME
@@ -98,7 +98,7 @@ spec:
     spec:
       containers:
         - name: mta
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           args: ["-m", "manage", "mta"]
           env:
             - name: HOSTNAME

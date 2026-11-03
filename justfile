@@ -1,7 +1,7 @@
 # Development and operations recipes for relay.
 
 # The image the minikube overlay runs.
-development_image := "ghcr.io/codingjoe/relay:local"
+development_image := "ghcr.io/relays-to/relay:local"
 
 # The port the local web UI is forwarded to.
 web_port := "8000"

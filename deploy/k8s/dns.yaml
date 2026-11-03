@@ -97,7 +97,7 @@ spec:
     spec:
       containers:
         - name: dns
-          image: ghcr.io/codingjoe/relay
+          image: ghcr.io/relays-to/relay
           args: ["-m", "manage", "dns", "--port", "5353"]
           env:
             - name: HOSTNAME
