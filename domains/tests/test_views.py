@@ -306,9 +306,9 @@ class TestDomainDetailView:
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"Sending: send email" in response.content
-        assert b"Receiving: route incoming mail" in response.content
-        assert b"Reporting: authenticate and encrypt" in response.content
+        assert b"<summary>Sending</summary>" in response.content
+        assert b"<summary>Receiving</summary>" in response.content
+        assert b"<summary>Reporting</summary>" in response.content
         for mx_hostname in settings.DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."'.encode() in response.content
 
