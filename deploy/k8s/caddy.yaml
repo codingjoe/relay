@@ -63,7 +63,7 @@ spec:
             !!merge <<: *caddyProbe
             periodSeconds: 15
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 128Mi}
             limits: {cpu: "1", memory: 256Mi}
       volumes:
         - name: caddy-config
