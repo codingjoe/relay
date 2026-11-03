@@ -155,6 +155,13 @@ jobs:
           kubectl get deployment --no-headers \
               --output custom-columns='NAME:.metadata.name,IMAGE:.spec.template.spec.containers[0].image' \
               > /tmp/previous-images.txt
+      - name: Drop failed pods from earlier releases
+        run: |
+          # A terminal pod is not garbage collected by its ReplicaSet, so every
+          # earlier crash lingers and fails the readiness gate below, which
+          # then rolls the whole release back.
+          kubectl delete pod --all --field-selector=status.phase=Failed \
+              --ignore-not-found
       - name: Apply
         run: |
           kubectl delete job --ignore-not-found migration clamav-updater

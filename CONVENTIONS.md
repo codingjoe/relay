@@ -71,6 +71,13 @@ A rule lives either in this document or in `.relint.yml`, never both.
 - Always include explicit `update_fields=` to avoid race conditions and be explicit.
 - Use `force_insert=True` when creating a new instance.
 
+## Migrations
+
+- Never drop a column or table in the same release that stops using it. A
+  failed deploy rolls the images back but keeps the migrations applied, so the
+  previous image must still run. Ship the code change first and drop the schema
+  in a later release.
+
 ## Model methods
 
 - A model that defines `__str__` must also define `__repr__`, or inherit one

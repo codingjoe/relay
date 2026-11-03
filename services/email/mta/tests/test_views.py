@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from domains.models import Domain
 from services.email.mta.models import IncomingMessage, Webhook, WebhookDelivery
@@ -111,6 +112,26 @@ class TestIncomingMessageDetailView:
         assert "headers" in response.context
         assert "webhook_deliveries" in response.context
         assert any(h[0] == "Subject" for h in response.context["headers"])
+
+    def test_get__renders_webhook_deliveries(self, admin_client, org):
+        msg = make_incoming(org)
+        webhook = make_webhook(org, url="https://example.com/hook")
+        now = timezone.now()
+        WebhookDelivery.objects.create(
+            message=msg,
+            webhook=webhook,
+            status=WebhookDelivery.Status.SENT,
+            started_at=now,
+            finished_at=now,
+            response_code=200,
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/incoming/{msg.id}")
+
+        assert response.status_code == 200
+        assert [
+            delivery.webhook for delivery in response.context["webhook_deliveries"]
+        ] == [webhook]
 
     def test_get__handles_multipart(self, admin_client, org):
         raw = (
