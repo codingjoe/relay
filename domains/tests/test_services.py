@@ -12,6 +12,7 @@ from domains.services import (
     check_mta_sts,
     check_spf,
     check_tls_rpt,
+    matches_mta_sts_mx_pattern,
     parse_mta_sts_txt_record,
     verify_domain_dns,
     verify_nameserver_delegation,
@@ -57,8 +58,73 @@ class TestCheckDmarc:
     def test_check_dmarc__present(self, dns_resolver):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
-        dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+        dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{domain.dmarc_record}"')
         assert check_dmarc(domain) is True
+
+    def test_check_dmarc__requires_reporting_addresses(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(domain.dmarc_record_name, "TXT", '"v=DMARC1; p=none"')
+        assert check_dmarc(domain) is False
+
+    def test_check_dmarc__rejects_wrong_rua(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        record = domain.dmarc_record.replace(
+            domain.dmarc_reporting_address, "other@example.com"
+        )
+        dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{record}"')
+        assert check_dmarc(domain) is False
+
+    def test_check_dmarc__rejects_wrong_ruf(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        record = domain.dmarc_record.replace(
+            domain.dmarc_ruf_reporting_address, "other@example.com"
+        )
+        dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{record}"')
+        assert check_dmarc(domain) is False
+
+    def test_check_dmarc__accepts_extra_reporting_addresses(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        record = domain.dmarc_record.replace(
+            f"rua=mailto:{domain.dmarc_reporting_address}",
+            f"rua=mailto:{domain.dmarc_reporting_address},mailto:other@example.com",
+        )
+        dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{record}"')
+        assert check_dmarc(domain) is True
+
+    def test_check_dmarc__accepts_size_limit(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        record = domain.dmarc_record.replace(
+            f"rua=mailto:{domain.dmarc_reporting_address}",
+            f"rua=mailto:{domain.dmarc_reporting_address}!10m",
+        )
+        dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{record}"')
+        assert check_dmarc(domain) is True
+
+    def test_check_dmarc__joins_split_txt_strings(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(
+            domain.dmarc_record_name,
+            "TXT",
+            f'"{domain.dmarc_record[:20]}" "{domain.dmarc_record[20:]}"',
+        )
+        assert check_dmarc(domain) is True
+
+    def test_check_dmarc__rejects_multiple_records(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(
+            domain.dmarc_record_name,
+            "TXT",
+            f'"{domain.dmarc_record}"',
+            f'"{domain.dmarc_record.replace("p=quarantine", "p=none")}"',
+        )
+        assert check_dmarc(domain) is False
 
     def test_check_dmarc__absent(self, dns_resolver):
         org = Organization.objects.create(slug="o")
@@ -148,11 +214,44 @@ def test_parse_mta_sts_txt_record__rejects_control_whitespace():
     assert parse_mta_sts_txt_record("v=STSv1;\rid=test") is None
 
 
+class TestMatchesMtaStsMxPattern:
+    @pytest.mark.parametrize(
+        ("hostname", "pattern"),
+        [
+            ("mx1.example.com", "mx1.example.com"),
+            ("MX1.Example.com", "mx1.example.com."),
+            ("mail.example.com", "*.example.com"),
+        ],
+    )
+    def test_matches_mta_sts_mx_pattern__ok(self, hostname, pattern):
+        assert matches_mta_sts_mx_pattern(hostname, pattern) is True
+
+    @pytest.mark.parametrize(
+        ("hostname", "pattern"),
+        [
+            ("mx1.example.com", "mx2.example.com"),
+            ("example.com", "*.example.com"),
+            ("foo.bar.example.com", "*.example.com"),
+            ("mail.example.com", "*.other.com"),
+        ],
+    )
+    def test_matches_mta_sts_mx_pattern__mismatch(self, hostname, pattern):
+        assert matches_mta_sts_mx_pattern(hostname, pattern) is False
+
+
 @pytest.mark.django_db
 class TestCheckMtaSts:
-    def test_check_mta_sts__requires_txt_and_expected_cname(self, dns_resolver):
-        org = Organization.objects.create(slug="o")
+    @pytest.fixture
+    def domain(self, org, dns_resolver):
         domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(
+            domain.name,
+            "MX",
+            *(f"10 {hostname}." for hostname in settings.DNS_MX_HOSTNAMES),
+        )
+        return domain
+
+    def test_check_mta_sts__requires_txt_and_expected_cname(self, domain, dns_resolver):
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -162,9 +261,60 @@ class TestCheckMtaSts:
 
         assert check_mta_sts(domain) is True
 
-    def test_check_mta_sts__joins_split_txt_strings(self, dns_resolver):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
+    def test_check_mta_sts__rejects_missing_mx(self, domain, dns_resolver):
+        dns_resolver.fail(domain.name, "MX", dns.resolver.NXDOMAIN())
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+
+        assert check_mta_sts(domain) is False
+
+    def test_check_mta_sts__rejects_unlisted_mx(self, domain, dns_resolver):
+        dns_resolver.add(domain.name, "MX", "10 mx.other.com.")
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+
+        assert check_mta_sts(domain) is False
+
+    def test_check_mta_sts__accepts_explicit_mx_hosts(self, domain, dns_resolver):
+        domain.mta_sts_mx_hostnames = ["mx1.other.com", "*.mx2.other.com"]
+        dns_resolver.add(
+            domain.name,
+            "MX",
+            "10 mx1.other.com.",
+            "20 mail.mx2.other.com.",
+        )
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+
+        assert check_mta_sts(domain) is True
+
+    def test_check_mta_sts__rejects_multi_label_wildcard_match(
+        self, domain, dns_resolver
+    ):
+        domain.mta_sts_mx_hostnames = ["*.other.com"]
+        dns_resolver.add(domain.name, "MX", "10 foo.bar.other.com.")
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+
+        assert check_mta_sts(domain) is False
+
+    def test_check_mta_sts__joins_split_txt_strings(self, domain, dns_resolver):
         dns_resolver.add(
             f"_mta-sts.{domain.name}",
             "TXT",
@@ -178,9 +328,7 @@ class TestCheckMtaSts:
 
         assert check_mta_sts(domain) is True
 
-    def test_check_mta_sts__rejects_other_cname(self, dns_resolver):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
+    def test_check_mta_sts__rejects_other_cname(self, domain, dns_resolver):
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -190,9 +338,7 @@ class TestCheckMtaSts:
 
         assert check_mta_sts(domain) is False
 
-    def test_check_mta_sts__rejects_version_prefix(self, dns_resolver):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
+    def test_check_mta_sts__rejects_version_prefix(self, domain, dns_resolver):
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv10; id=test"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -202,9 +348,7 @@ class TestCheckMtaSts:
 
         assert check_mta_sts(domain) is False
 
-    def test_check_mta_sts__requires_non_empty_policy_id(self, dns_resolver):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
+    def test_check_mta_sts__requires_non_empty_policy_id(self, domain, dns_resolver):
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=  "')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -224,12 +368,10 @@ class TestCheckMtaSts:
     )
     def test_check_mta_sts__rejects_invalid_policy_fields(
         self,
+        domain,
         dns_resolver,
         record,
     ):
-
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -241,11 +383,9 @@ class TestCheckMtaSts:
 
     def test_check_mta_sts__accepts_one_candidate_with_unrelated_txt(
         self,
+        domain,
         dns_resolver,
     ):
-
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
         dns_resolver.add(
             f"_mta-sts.{domain.name}",
             "TXT",
@@ -260,9 +400,9 @@ class TestCheckMtaSts:
 
         assert check_mta_sts(domain) is True
 
-    def test_check_mta_sts__rejects_multiple_candidate_records(self, dns_resolver):
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
+    def test_check_mta_sts__rejects_multiple_candidate_records(
+        self, domain, dns_resolver
+    ):
         dns_resolver.add(
             f"_mta-sts.{domain.name}",
             "TXT",
@@ -284,12 +424,10 @@ class TestCheckMtaSts:
     )
     def test_check_mta_sts__rejects_malformed_tags(
         self,
+        domain,
         dns_resolver,
         record,
     ):
-
-        org = Organization.objects.create(slug="o")
-        domain = Domain.objects.create(name="example.com", org=org)
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{record}"')
 
         assert check_mta_sts(domain) is False
@@ -406,7 +544,7 @@ class TestVerifyDomainDns:
         for field in ("dkim_rsa2048", "dkim_ed25519"):
             cname_name, target = domain.dkim_cnames[field]
             dns_resolver.add(cname_name, "CNAME", f"{target}.")
-        dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+        dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{domain.dmarc_record}"')
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -478,16 +616,16 @@ class TestVerifyDomainDns:
             for field in (
                 *Domain.SENDING_CHECK_FIELDS,
                 *Domain.RECEIVING_CHECK_FIELDS,
-                *Domain.PRODUCTION_CHECK_FIELDS,
+                *Domain.REPORTING_CHECK_FIELDS,
             )
         } == {
             "nameserver": "NS record not found or incorrect.",
             "spf": "SPF record not found or incorrect.",
             "dkim_rsa2048": "RSA-2048 DKIM record not found or incorrect.",
             "dkim_ed25519": "Ed25519 DKIM record not found or incorrect.",
-            "dmarc": "DMARC record not found or incorrect.",
+            "dmarc": "DMARC record or reporting addresses not found or incorrect.",
             "mx": "MX record not found or incorrect.",
-            "mta_sts": "MTA-STS record not found or incorrect.",
+            "mta_sts": "MTA-STS record or MX hosts not found or incorrect.",
             "tls_rpt": "TLS-RPT record not found or incorrect.",
         }
 
@@ -507,7 +645,6 @@ class TestVerifyDomainDns:
             "CNAME",
             "relay-rsa2048._domainkey.mail.relay.example.com.",
         )
-        dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
         verify_domain_dns(domain)
 
         domain.refresh_from_db()
@@ -559,7 +696,7 @@ class TestVerifyDomainDns:
         for field in ("dkim_rsa2048", "dkim_ed25519"):
             cname_name, target = domain.dkim_cnames[field]
             dns_resolver.add(cname_name, "CNAME", f"{target}.")
-        dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+        dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{domain.dmarc_record}"')
         dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",

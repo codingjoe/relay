@@ -4,10 +4,11 @@ from django.contrib.messages import get_messages
 
 from domains.models import Domain
 
-QUICK_START_FIELDS = ("nameserver", "spf", "dkim_rsa2048", "dmarc")
+QUICK_START_FIELDS = ("nameserver", "spf", "dkim_rsa2048")
+SENDING_FIELDS = (*QUICK_START_FIELDS, "dkim_ed25519")
 RECEIVING_FIELDS = ("mx",)
-PRODUCTION_FIELDS = ("dkim_ed25519", "mta_sts", "tls_rpt")
-ALL_CHECK_FIELDS = (*QUICK_START_FIELDS, *RECEIVING_FIELDS, *PRODUCTION_FIELDS)
+REPORTING_FIELDS = ("dmarc", "mta_sts", "tls_rpt")
+ALL_CHECK_FIELDS = (*SENDING_FIELDS, *RECEIVING_FIELDS, *REPORTING_FIELDS)
 
 
 def publish_dns_records(dns_resolver, domain, fields):
@@ -30,7 +31,9 @@ def publish_dns_records(dns_resolver, domain, fields):
                 name, target = domain.dkim_cnames[field]
                 dns_resolver.add(name, "CNAME", f"{target}.")
             case "dmarc":
-                dns_resolver.add(domain.dmarc_record_name, "TXT", "v=DMARC1; p=none")
+                dns_resolver.add(
+                    domain.dmarc_record_name, "TXT", f'"{domain.dmarc_record}"'
+                )
             case "mx":
                 dns_resolver.add(
                     domain.name,
@@ -229,6 +232,35 @@ class TestDomainDetailView:
         )
         assert "ETag" in response.headers
 
+    def test_post__updates_mta_sts_mx_hosts(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/{domain.pk}/",
+            {
+                "mta_sts_mx_hostnames": (
+                    "MX1.Other.com.\nmx1.other.com\n*.MX2.Other.com."
+                )
+            },
+        )
+
+        assert response.status_code == 302
+        domain.refresh_from_db()
+        assert domain.mta_sts_mx_hostnames == ["mx1.other.com", "*.mx2.other.com"]
+
+    def test_post__rejects_invalid_mta_sts_mx_hostname(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.post(
+            f"/org/{org.slug}/email/domains/{domain.pk}/",
+            {"mta_sts_mx_hostnames": "mx*.other.com"},
+        )
+
+        assert response.status_code == 200
+        assert b"Enter a valid domain name" in response.content
+        domain.refresh_from_db()
+        assert domain.mta_sts_mx_hostnames == []
+
     def test_get__not_modified_when_etag_matches(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
         url = f"/org/{org.slug}/email/domains/{domain.pk}/"
@@ -274,9 +306,9 @@ class TestDomainDetailView:
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"Quick start: send email" in response.content
+        assert b"Sending: send email" in response.content
         assert b"Receiving: route incoming mail" in response.content
-        assert b"Production: harden TLS and DKIM" in response.content
+        assert b"Reporting: authenticate and encrypt" in response.content
         for mx_hostname in settings.DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."'.encode() in response.content
 
@@ -287,28 +319,29 @@ class TestDomainDetailView:
         verify_dns(admin_client, org, domain, dns_resolver, ALL_CHECK_FIELDS)
 
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
-        quick_start, receiving, production, _apex = response.content.decode().split(
+        sending, receiving, reporting, _apex = response.content.decode().split(
             "<summary>"
         )[1:]
 
         sections = {
-            quick_start: (
+            sending: (
                 "<label>NS</label>",
                 domain.root_spf_record,
                 domain.dkim_cnames["dkim_rsa2048"][1],
-                domain.dmarc_record,
+                domain.dkim_cnames["dkim_ed25519"][1],
             ),
             receiving: (
                 "<label>MX</label>",
                 *(f"{hostname}." for hostname in settings.DNS_MX_HOSTNAMES),
             ),
-            production: (
+            reporting: (
+                "<label>DMARC</label>",
+                domain.dmarc_record,
                 "<label>MTA-STS</label>",
                 domain.mta_sts_record,
                 domain.mta_sts_cname_target,
                 "<label>TLS-RPT</label>",
                 domain.tls_rpt_record,
-                domain.dkim_cnames["dkim_ed25519"][1],
             ),
         }
         for section, records in sections.items():
@@ -346,7 +379,7 @@ class TestDomainDetailView:
 
         assert b"Sending" in response.content
         assert b"Receiving" in response.content
-        assert b"Production ready" in response.content
+        assert b"Reporting" in response.content
         assert b"not verified" not in response.content
         assert b"not ready" not in response.content
         assert b"not set up" not in response.content
@@ -358,7 +391,7 @@ class TestDomainDetailView:
 
         assert b"Sending not set up" in response.content
         assert b"Receiving not set up" in response.content
-        assert b"Production not set up" in response.content
+        assert b"Reporting not set up" in response.content
 
     def test_get__sending_badge_fails_while_a_record_is_missing(
         self, admin_client, org, dns_resolver
@@ -371,20 +404,20 @@ class TestDomainDetailView:
 
         assert b"Sending not verified" in response.content
 
-    def test_get__production_badge_fails_while_a_record_is_missing(
+    def test_get__reporting_badge_fails_while_a_record_is_missing(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
         publish_dns_records(
             dns_resolver,
             domain,
-            (*QUICK_START_FIELDS, *RECEIVING_FIELDS, "dkim_ed25519"),
+            (*SENDING_FIELDS, *RECEIVING_FIELDS, "dmarc"),
         )
         admin_client.post(f"/org/{org.slug}/email/domains/{domain.pk}/verify")
 
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"Production not ready" in response.content
+        assert b"Reporting not verified" in response.content
 
     def test_get__not_found_for_managed_domain(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -428,7 +461,7 @@ class TestDomainVerifyView:
             ("error", "sending verification failed: 3 of 4 checks are still failing.")
         ]
 
-    def test_post__sending_published_reports_receiving_not_set_up(
+    def test_post__sending_quick_start_reports_failing_count(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -439,53 +472,11 @@ class TestDomainVerifyView:
             domain,
             dns_resolver,
             QUICK_START_FIELDS,
-        ) == [("info", "receiving verification is not set up yet.")]
-
-    def test_post__production_started_reports_receiving_not_set_up(
-        self, admin_client, org, dns_resolver
-    ):
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        assert verify_dns(
-            admin_client,
-            org,
-            domain,
-            dns_resolver,
-            (*QUICK_START_FIELDS, "dkim_ed25519"),
-        ) == [("info", "receiving verification is not set up yet.")]
-
-    def test_post__receiving_published_reports_production_not_set_up(
-        self, admin_client, org, dns_resolver
-    ):
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        assert verify_dns(
-            admin_client,
-            org,
-            domain,
-            dns_resolver,
-            (*QUICK_START_FIELDS, *RECEIVING_FIELDS),
-        ) == [("info", "production verification is not set up yet.")]
-
-    def test_post__production_incomplete_reports_failing_count(
-        self, admin_client, org, dns_resolver
-    ):
-        domain = Domain.objects.create(name="example.com", org=org)
-
-        assert verify_dns(
-            admin_client,
-            org,
-            domain,
-            dns_resolver,
-            (*QUICK_START_FIELDS, *RECEIVING_FIELDS, "dkim_ed25519"),
         ) == [
-            (
-                "error",
-                "production verification failed: 2 of 3 checks are still failing.",
-            )
+            ("error", "sending verification failed: 1 of 4 checks are still failing.")
         ]
 
-    def test_post__production_nearly_ready_reports_failing_count(
+    def test_post__sending_published_reports_receiving_not_set_up(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -495,11 +486,37 @@ class TestDomainVerifyView:
             org,
             domain,
             dns_resolver,
-            (*QUICK_START_FIELDS, *RECEIVING_FIELDS, "dkim_ed25519", "mta_sts"),
+            SENDING_FIELDS,
+        ) == [("info", "receiving verification is not set up yet.")]
+
+    def test_post__receiving_published_reports_reporting_not_set_up(
+        self, admin_client, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        assert verify_dns(
+            admin_client,
+            org,
+            domain,
+            dns_resolver,
+            (*SENDING_FIELDS, *RECEIVING_FIELDS),
+        ) == [("info", "reporting verification is not set up yet.")]
+
+    def test_post__reporting_nearly_ready_reports_failing_count(
+        self, admin_client, org, dns_resolver
+    ):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        assert verify_dns(
+            admin_client,
+            org,
+            domain,
+            dns_resolver,
+            (*SENDING_FIELDS, *RECEIVING_FIELDS, "dmarc", "mta_sts"),
         ) == [
             (
                 "error",
-                "production verification failed: 1 of 3 checks are still failing.",
+                "reporting verification failed: 1 of 3 checks are still failing.",
             )
         ]
 
@@ -513,7 +530,7 @@ class TestDomainVerifyView:
             org,
             domain,
             dns_resolver,
-            (*QUICK_START_FIELDS, *PRODUCTION_FIELDS),
+            (*SENDING_FIELDS, *REPORTING_FIELDS),
         ) == [("info", "receiving verification is not set up yet.")]
 
     def test_post__every_check_passes_reports_success(
@@ -580,6 +597,21 @@ class TestMtaStsPolicyView:
         assert "mode:" in body
         assert f"mx: {settings.DNS_MX_HOSTNAMES[0]}" in body
         assert "max_age:" in body
+
+    def test_get__serves_explicit_mx_hosts(self, client, org):
+        Domain.objects.create(
+            name="example.com",
+            org=org,
+            mta_sts_mx_hostnames=["mx1.other.com", "*.mx2.other.com"],
+        )
+        response = client.get(
+            "/.well-known/mta-sts.txt", HTTP_HOST="mta-sts.example.com"
+        )
+
+        body = response.content.decode()
+        assert "mx: mx1.other.com" in body
+        assert "mx: *.mx2.other.com" in body
+        assert f"mx: {settings.DNS_MX_HOSTNAMES[0]}" not in body
 
     def test_get__returns_421_for_unknown_domain(self, client):
         response = client.get(

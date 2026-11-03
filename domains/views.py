@@ -14,7 +14,7 @@ from abstract.views import (
 from accounts.views import OrganizationScopedView
 
 from . import resolver
-from .forms import DomainCreateForm
+from .forms import DomainCreateForm, DomainMtaStsForm
 from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
 
@@ -67,7 +67,26 @@ class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.Deta
             "dkim_cnames": self.object.dkim_cnames,
             "mx_hostnames": settings.DNS_MX_HOSTNAMES,
             "mx_priority": resolver.DNSResolver.MX_PRIORITY,
+            "mta_sts_form": DomainMtaStsForm(instance=self.object),
         }
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = DomainMtaStsForm(request.POST, instance=self.object)
+        if form.is_valid():
+            domain = form.save(commit=False)
+            domain.save(update_fields=["mta_sts_mx_hostnames"])
+            messages.success(
+                request,
+                _("Updated the MTA-STS policy for “%(name)s”.")
+                % {"name": self.object.name},
+            )
+            response = redirect(self.object.get_absolute_url())
+        else:
+            response = self.render_to_response(
+                self.get_context_data() | {"mta_sts_form": form}
+            )
+        return response
 
 
 class DomainVerifyView(OrganizationScopedView, generic.View):
@@ -75,7 +94,7 @@ class DomainVerifyView(OrganizationScopedView, generic.View):
     TIERS = (
         (_("sending"), Domain.SENDING_CHECK_FIELDS),
         (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
-        (_("production"), Domain.PRODUCTION_CHECK_FIELDS),
+        (_("reporting"), Domain.REPORTING_CHECK_FIELDS),
     )
 
     def post(self, request, org_slug, pk, *args, **kwargs):
@@ -157,7 +176,7 @@ class MtaStsPolicyView(generic.DetailView):
         return super().get_context_data(**kwargs) | {
             "mta_sts_mode": settings.MTA_STS_MODE,
             "mta_sts_max_age": settings.MTA_STS_MAX_AGE,
-            "mx_hostnames": settings.DNS_MX_HOSTNAMES,
+            "mx_hostnames": self.object.mta_sts_mx_hosts,
         }
 
     def get(self, request, *args, **kwargs):

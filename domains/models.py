@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from functools import reduce
 from operator import or_
 
@@ -28,6 +30,16 @@ def validate_domain_name(value):
     """Validate that *value* is a syntactically valid domain name."""
     if validators.domain(canonicalize_domain_name(value)) is not True:
         raise ValidationError(_("Enter a valid domain name, for example acme.com"))
+
+
+def validate_mta_sts_mx_hosts(value):
+    """Validate a list of MTA-STS MX hosts with optional RFC 8461 wildcards."""
+    if not isinstance(value, list):
+        raise ValidationError(_("MX hosts must be a list."))
+    for hostname in value:
+        if not isinstance(hostname, str):
+            raise ValidationError(_("Each MX host must be a string."))
+        validate_domain_name(hostname.removeprefix("*."))
 
 
 class DomainQuerySet(models.QuerySet):
@@ -78,9 +90,10 @@ class DomainQuerySet(models.QuerySet):
 
 
 class Domain(TimeStamped):
-    SENDING_CHECK_FIELDS = ("nameserver", "spf", "dkim_rsa2048", "dmarc")
+    SENDING_CHECK_FIELDS = ("nameserver", "spf", "dkim_rsa2048", "dkim_ed25519")
+    SENDING_QUICK_START_FIELDS = ("nameserver", "spf", "dkim_rsa2048")
     RECEIVING_CHECK_FIELDS = ("mx",)
-    PRODUCTION_CHECK_FIELDS = ("dkim_ed25519", "mta_sts", "tls_rpt")
+    REPORTING_CHECK_FIELDS = ("dmarc", "mta_sts", "tls_rpt")
 
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
@@ -188,6 +201,15 @@ class Domain(TimeStamped):
         blank=True,
         help_text=_("Failure detail if the MTA-STS record is incorrect."),
     )
+    mta_sts_mx_hostnames = models.JSONField(
+        _("MTA-STS MX hosts"),
+        default=list,
+        blank=True,
+        validators=[validate_mta_sts_mx_hosts],
+        help_text=_(
+            "MX hosts for the MTA-STS policy. Empty follows the MX record hostnames."
+        ),
+    )
     tls_rpt_status = models.TextField(
         _("TLS-RPT status"),
         choices=Status,
@@ -275,13 +297,15 @@ class Domain(TimeStamped):
         return self.checks_passing(self.RECEIVING_CHECK_FIELDS)
 
     @property
-    def production_checks_passing(self):
-        return self.checks_passing(self.PRODUCTION_CHECK_FIELDS)
+    def reporting_checks_passing(self):
+        return self.checks_passing(self.REPORTING_CHECK_FIELDS)
 
     @property
     def is_sending_verified(self):
-        """Return whether the domain can send authenticated mail."""
-        return self.sending_checks_passing == len(self.SENDING_CHECK_FIELDS)
+        """Return whether the domain passes the sending quick start."""
+        return self.checks_passing(self.SENDING_QUICK_START_FIELDS) == len(
+            self.SENDING_QUICK_START_FIELDS
+        )
 
     is_managed = models.BooleanField(
         _("managed"),
@@ -416,13 +440,32 @@ class Domain(TimeStamped):
         return "v=DMARC1; p=quarantine"
 
     @property
+    def mta_sts_mx_hosts(self):
+        """Return the MX hosts the MTA-STS policy advertises."""
+        return self.mta_sts_mx_hostnames or settings.DNS_MX_HOSTNAMES
+
+    @property
+    def mta_sts_policy_id(self):
+        """Return the policy id derived from the policy content."""
+        digest = hashlib.sha256(
+            "\n".join(
+                [
+                    settings.MTA_STS_MODE,
+                    str(settings.MTA_STS_MAX_AGE),
+                    *self.mta_sts_mx_hosts,
+                ]
+            ).encode()
+        ).digest()
+        return base64.b32encode(digest[:16], padded=False).decode()
+
+    @property
     def mta_sts_record_name(self):
         return f"_mta-sts.{self.name}"
 
     @property
     def mta_sts_record(self):
         """Return the MTA-STS DNS record for _mta-sts.{domain}."""
-        return f"v=STSv1; id={settings.MTA_STS_POLICY_ID}"
+        return f"v=STSv1; id={self.mta_sts_policy_id}"
 
     @property
     def mta_sts_hostname(self):

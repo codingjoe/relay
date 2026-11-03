@@ -30,21 +30,21 @@
     </span>
   {% endif %}
 {% endwith %}
-{% with total=domain.PRODUCTION_CHECK_FIELDS|length passing=domain.production_checks_passing %}
+{% with total=domain.REPORTING_CHECK_FIELDS|length passing=domain.reporting_checks_passing %}
   {% if passing == total %}
     <span class="badge" data-size="sm">
       {% tabler name="circle-check" size="3.5" %}
-      {% translate "production ready"|capfirst %}
+      {% translate "reporting"|capfirst %}
     </span>
   {% elif passing %}
     <span class="badge" data-size="sm" data-variant="destructive">
       {% tabler name="circle-x" size="3.5" %}
-      {% translate "production not ready"|capfirst %}
+      {% translate "reporting not verified"|capfirst %}
     </span>
   {% else %}
     <span class="badge" data-size="sm" data-variant="outline">
       {% tabler name="circle-dashed" size="3.5" %}
-      {% translate "production not set up"|capfirst %}
+      {% translate "reporting not set up"|capfirst %}
     </span>
   {% endif %}
 {% endwith %}
