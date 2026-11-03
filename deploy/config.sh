@@ -17,7 +17,7 @@
 # Inputs, with defaults in parentheses:
 #
 #   RELAY_HOSTNAME          (relays.to)              public hostname
-#   SERVER_TYPE             (cx43)                   hcloud server type
+#   SERVER_TYPE             (cpx42)                  hcloud server type
 #   SERVER_LOCATION         (fsn1)                   hcloud location
 #   SMTP_FLOATING_IP_COUNT  (2)                      size of the SMTP egress pool
 #   S3_BUCKET               (relay-<hostname with dots replaced by dashes>)
@@ -193,7 +193,7 @@ if [ -n "$RELAY_HOSTNAME_REQUESTED" ] && [ "$RELAY_HOSTNAME_REQUESTED" != "${REL
 fi
 RELAY_HOSTNAME="${RELAY_HOSTNAME_REQUESTED:-${RELAY_HOSTNAME:-relays.to}}"
 
-SERVER_TYPE="${SERVER_TYPE:-cx43}"
+SERVER_TYPE="${SERVER_TYPE:-cpx42}"
 SERVER_LOCATION="${SERVER_LOCATION:-fsn1}"
 SMTP_FLOATING_IP_COUNT="${SMTP_FLOATING_IP_COUNT:-2}"
 S3_BUCKET="${S3_BUCKET:-relay-${RELAY_HOSTNAME//./-}}"
