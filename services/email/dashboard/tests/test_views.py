@@ -424,11 +424,83 @@ class TestReportListView:
         assert response.status_code == 200
         assert "series" in response.context["chart"]
 
-    def test_get__all_types_has_no_chart(self, admin_client, org, dmarc_report):
+    def test_get__all_types_shows_chart(self, admin_client, org, dmarc_report):
         response = admin_client.get(f"/org/{org.slug}/email/reports/")
 
         assert response.status_code == 200
-        assert response.context["chart"] is None
+        assert [series["key"] for series in response.context["chart"]["series"]] == [
+            "dmarc-pass",
+            "dmarc-quarantine",
+            "dmarc-reject",
+            "failures",
+            "tls",
+            "fbl",
+        ]
+        assert [series["label"] for series in response.context["chart"]["series"]] == [
+            "DMARC passed",
+            "DMARC quarantined",
+            "DMARC rejected",
+            "DMARC failures",
+            "TLS failures",
+            "FBL",
+        ]
+
+    def test_get__all_types_chart_sums_dmarc_messages_by_disposition(
+        self, admin_client, org, dmarc_report
+    ):
+        DmarcRecord.objects.filter(report=dmarc_report).update(
+            count=5, disposition=DmarcReport.Disposition.NONE
+        )
+        for disposition, count in (
+            (DmarcReport.Disposition.QUARANTINE, 3),
+            (DmarcReport.Disposition.REJECT, 2),
+        ):
+            DmarcRecord.objects.create(
+                report=dmarc_report,
+                source_ip_address="10.0.0.9",
+                count=count,
+                disposition=disposition,
+            )
+
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+        chart = response.context["chart"]
+
+        assert sum(row["dmarc-pass"] for row in chart["rows"]) == 5
+        assert sum(row["dmarc-quarantine"] for row in chart["rows"]) == 3
+        assert sum(row["dmarc-reject"] for row in chart["rows"]) == 2
+
+    def test_get__all_types_chart_sums_tls_failed_sessions(
+        self, admin_client, org, domain, tls_report
+    ):
+        TlsReport.objects.create(
+            org=org,
+            domain=domain,
+            mail_from="tlsrpt@gmail.com",
+            rcpt_to="tlsrpt@acme.com",
+            receiving_domain="acme.com",
+            report_id="tls-2",
+            failed_session_count=7,
+        )
+
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+
+        assert response.status_code == 200
+        assert sum(row["tls"] for row in response.context["chart"]["rows"]) == 7
+
+    def test_get__multiple_types_chart_shows_only_selected_types(
+        self, admin_client, org, dmarc_report, tls_report
+    ):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/reports/?type=dmarc&type=tls"
+        )
+
+        assert response.status_code == 200
+        assert [series["key"] for series in response.context["chart"]["series"]] == [
+            "dmarc-pass",
+            "dmarc-quarantine",
+            "dmarc-reject",
+            "tls",
+        ]
 
     def test_get__tls_type_shows_chart(self, admin_client, org, tls_report):
         response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")

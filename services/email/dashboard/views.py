@@ -1,4 +1,3 @@
-from django.db import models
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
@@ -15,6 +14,7 @@ from services.email.mta.charts import build_tls_chart
 from services.email.mta.models import TlsReport
 from services.email.reputation.models import FblReport
 
+from .charts import ReportType, build_report_chart
 from .onboarding import get_email_context
 
 
@@ -51,12 +51,6 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
     title = _("Recipient reports")
     parent = "accounts:org-home"
 
-    class ReportType(models.TextChoices):
-        DMARC = "dmarc", _("DMARC")
-        FAILURES = "failures", _("DMARC failures")
-        TLS = "tls", _("TLS")
-        FBL = "fbl", _("FBL")
-
     TYPE_ICONS = {
         ReportType.DMARC: "shield-check",
         ReportType.FAILURES: "alert-triangle",
@@ -66,8 +60,12 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
 
     def get_selected_types(self):
         """Return the valid report types named by the repeated `type` parameter."""
-        valid = {choice.value for choice in self.ReportType}
-        return [value for value in self.request.GET.getlist("type") if value in valid]
+        valid = {choice.value for choice in ReportType}
+        return list(
+            dict.fromkeys(
+                value for value in self.request.GET.getlist("type") if value in valid
+            )
+        )
 
     def get_search(self):
         """Return the active search parameter and its value."""
@@ -80,21 +78,21 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
     def get_type_queryset(self, choice, field, value):
         """Return the queryset for one report type with the active filter."""
         match choice:
-            case self.ReportType.DMARC:
+            case ReportType.DMARC:
                 qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
                 if field == "ip" and value:
                     qs = qs.filter(records__source_ip_address=value).distinct()
-            case self.ReportType.FAILURES:
+            case ReportType.FAILURES:
                 qs = DmarcFailureReport.objects.filter(org=self.org).select_related(
                     "domain"
                 )
                 if field == "ip" and value:
                     qs = qs.filter(source_ip_address=value)
-            case self.ReportType.TLS:
+            case ReportType.TLS:
                 qs = TlsReport.objects.filter(org=self.org).select_related("domain")
                 if field == "ip" and value:
                     qs = qs.filter(failures__sending_mta_ip_address=value).distinct()
-            case self.ReportType.FBL:
+            case ReportType.FBL:
                 qs = FblReport.objects.filter(org=self.org).select_related("domain")
                 if field == "ip" and value:
                     qs = qs.filter(source_ip_address=value)
@@ -107,20 +105,18 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
         report.report_type_label = choice.label
         report.report_icon = self.TYPE_ICONS[choice]
         match choice:
-            case self.ReportType.TLS:
+            case ReportType.TLS:
                 report.report_subtitle = report.reporting_email
-            case self.ReportType.FBL:
+            case ReportType.FBL:
                 report.report_subtitle = report.original_mail_from
             case _:
                 report.report_subtitle = report.mail_from
 
     def get_queryset(self):
-        selected = self.get_selected_types() or [
-            choice.value for choice in self.ReportType
-        ]
+        selected = self.get_selected_types() or [choice.value for choice in ReportType]
         field, value = self.get_search()
         reports = []
-        for choice in (self.ReportType(selected_type) for selected_type in selected):
+        for choice in (ReportType(selected_type) for selected_type in selected):
             qs = self.get_type_queryset(choice, field, value)
             for report in qs:
                 self.annotate_report(report, choice)
@@ -128,20 +124,23 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
         return sorted(reports, key=lambda report: report.created_at, reverse=True)
 
     def get_chart(self, selected):
-        """Return the title and chart of a single selected report type, or none."""
-        match selected:
-            case [self.ReportType.DMARC]:
-                return _("messages by DMARC verdict"), build_dmarc_chart(self.org)
-            case [self.ReportType.TLS]:
-                return _("failures by type"), build_tls_chart(self.org)
-            case _:
-                return None, None
+        """Return the title and chart for the selected report types, or none."""
+        if len(selected) == 1:
+            match selected[0]:
+                case ReportType.DMARC:
+                    return _("messages by DMARC verdict"), build_dmarc_chart(self.org)
+                case ReportType.TLS:
+                    return _("failures by type"), build_tls_chart(self.org)
+                case _:
+                    return None, None
+        report_types = [ReportType(value) for value in selected] or list(ReportType)
+        return _("volume by report type"), build_report_chart(self.org, report_types)
 
     def get_type_label(self, selected):
         """Return the trigger label for the selected report types."""
-        if not selected or len(selected) == len(self.ReportType):
+        if not selected or len(selected) == len(ReportType):
             return _("all reports")
-        return ", ".join(str(self.ReportType(value).label) for value in selected)
+        return ", ".join(str(ReportType(value).label) for value in selected)
 
     def get_type_options(self, selected):
         """Return one toggle link per report type."""
@@ -149,7 +148,7 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
         query.pop("page", None)
         query.pop("type", None)
         options = []
-        for choice in self.ReportType:
+        for choice in ReportType:
             values = [value for value in selected if value != choice.value]
             if choice.value not in selected:
                 values.append(choice.value)
