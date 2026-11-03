@@ -120,17 +120,17 @@
               <code>{{ webhook.address_pattern }}</code>
             </p>
             <div role="group" class="field mt-2">
-              <label for="webhook-key-{{ webhook.pk }}">{% translate "public key"|capfirst %}</label>
+              <label for="webhook-secret-{{ webhook.pk }}">{% translate "signing secret"|capfirst %}</label>
               <div class="input-group">
                 <input
-                  id="webhook-key-{{ webhook.pk }}"
+                  id="webhook-secret-{{ webhook.pk }}"
                   class="break-all"
                   type="text"
                   readonly
-                  value="{{ webhook.public_key_serialized }}"
+                  value="{{ webhook.signing_secret }}"
                   data-select
                 >
-                {% include "abstract/copy_button.html" with value=webhook.public_key_serialized size="icon-xs" label=_("copy public key")|capfirst %}
+                {% include "abstract/copy_button.html" with value=webhook.signing_secret size="icon-xs" label=_("copy signing secret")|capfirst %}
               </div>
             </div>
           </section>
@@ -196,7 +196,7 @@
         Deliveries follow the
         <a href="https://standardwebhooks.com" target="_blank" rel="noopener">Standard Webhooks</a> specification. Each
         delivery includes <code>webhook-id</code>, <code>webhook-timestamp</code>, and <code>webhook-signature</code>
-        headers. Use the endpoint's public key (shown above) with any <a
+        headers. Use the endpoint's signing secret (shown above) with any <a
           href="{{ sdk_url }}"
           target="_blank"
           rel="noopener">Standard Webhooks SDK</a> to verify signatures. No custom code needed. See the

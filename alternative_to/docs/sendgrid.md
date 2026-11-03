@@ -56,7 +56,7 @@ SendGrid asks you to add SPF, DKIM, and DMARC records to your DNS provider. You 
 
 ### Incoming mail
 
-SendGrid Inbound Parse routes mail to a webhook URL you provide. DKIM and SPF for inbound are your responsibility. relay runs its own MX server with STARTTLS. It stores the raw body in S3 and delivers signed webhook events with Ed25519 keys.
+SendGrid Inbound Parse routes mail to a webhook URL you provide. DKIM and SPF for inbound are your responsibility. relay runs its own MX server with STARTTLS. It stores the raw body in S3 and delivers signed webhook events with HMAC-SHA256 signatures.
 
 ### EU data sovereignty
 

@@ -43,7 +43,7 @@ Developer workflow, confirmed from product code and copy:
 - Custom domains are added with NS delegation + DMARC only; the dashboard
   verifies and serves the remaining records.
 - Send via SMTP submission (ports 587/465) or MCP; receive via MX to
-  Standard Webhooks (Ed25519-signed, `whpk_` keys) or MCP.
+  Standard Webhooks (HMAC-SHA256-signed, `whsec_` secrets) or MCP.
 - Monitor DMARC aggregate (RUA) and forensic (RUF) reports, TLS-RPT, bounce
   rates, and sender reputation per domain.
 - Suppression list, message retention (30 days), unlimited domains and team

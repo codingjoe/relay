@@ -56,7 +56,7 @@ Mailchimp and Mandrill give you SPF, DKIM, and DMARC records to add to your DNS 
 
 ### Incoming mail
 
-Mailchimp does not handle inbound mail at all. relay runs an MX server that receives incoming email with STARTTLS. It dispatches each message to your webhooks with an Ed25519 signature, per the Standard Webhooks spec.
+Mailchimp does not handle inbound mail at all. relay runs an MX server that receives incoming email with STARTTLS. It dispatches each message to your webhooks with an HMAC-SHA256 signature, per the Standard Webhooks spec. You verify each delivery with the webhook's signing secret.
 
 ### EU data sovereignty
 

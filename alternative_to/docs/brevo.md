@@ -56,7 +56,7 @@ Brevo gives you SPF and DKIM records to add to your DNS provider. You rotate key
 
 ### Incoming mail
 
-The inbound handling in Brevo is minimal. It focuses on outbound. relay runs an MX server that receives incoming email with STARTTLS. It dispatches each message to your webhooks with an Ed25519 signature, per the Standard Webhooks spec.
+The inbound handling in Brevo is minimal. It focuses on outbound. relay runs an MX server that receives incoming email with STARTTLS. It dispatches each message to your webhooks with an HMAC-SHA256 signature, per the Standard Webhooks spec. You verify each delivery with the webhook's signing secret.
 
 ### EU data sovereignty
 

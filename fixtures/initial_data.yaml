@@ -670,7 +670,6 @@
     name: App webhook
     address_pattern: '*@app.acme.com'
     domain: 5
-    signing_key: 3
     mx_status: ok
     mx_error: ''
     mx_checked_at: 2026-07-15 00:00:00+00:00

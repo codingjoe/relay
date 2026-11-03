@@ -1,6 +1,6 @@
 ---
 name: Webhooks
-description: Standard Webhooks deliveries with Ed25519 signatures, verification code, and the retry schedule
+description: Standard Webhooks deliveries with HMAC-SHA256 signatures, verification code, and the retry schedule
 author: Johannes Maron
 ---
 
@@ -8,7 +8,7 @@ author: Johannes Maron
 
 relay hands inbound email to your application over HTTPS. Deliveries follow
 the [Standard Webhooks](https://standardwebhooks.com) specification, one
-signature keypair per webhook, flat JSON payloads, and a defined retry
+signing secret per webhook, flat JSON payloads, and a defined retry
 schedule. This page is the reference for everything on the wire.
 
 ## Structure
@@ -22,8 +22,8 @@ glob pattern, and points at one HTTPS URL:
   `*@app.acme.com`, `support@acme.com`, or `bill+*@acme.com`. A pattern is
   optional. A webhook without a pattern receives everything for its domain.
 - **URL**. Must use HTTPS.
-- **One keypair per webhook**. Each webhook derives its own Ed25519 signing
-  key. Public keys display in `whpk_` form, and you use them to verify.
+- **One signing secret per webhook**. Each webhook has its own secret in
+  `whsec_` form. Copy it from the dashboard and use it to verify deliveries.
 
 ## The payload
 
@@ -59,23 +59,23 @@ relay signs each delivery and sends four headers:
 | ------------------- | ----------------------------------- | ----------------- |
 | `webhook-id`        | `msg_<uuidv7>`, unique per delivery | `msg_0199ac21...` |
 | `webhook-timestamp` | Unix seconds at signing             | 1787986278        |
-| `webhook-signature` | `v1a,<base64 Ed25519 signature>`    | `v1a,2lR0...`     |
+| `webhook-signature` | `v1,<base64 HMAC-SHA256 signature>` | `v1,2lR0...`      |
 | `Content-Type`      | `application/json`                  |                   |
 
-The signed content is `{id}.{timestamp}.{body}`. The signature is an Ed25519
-signature of that byte string with the webhook's private key.
+The signed content is `{id}.{timestamp}.{body}`. The signature is an
+HMAC-SHA256 signature of that byte string with the webhook's signing secret.
 
 ## Verify a delivery
 
-Do not trust deliveries without verification. The URL is the only secret the
-sender needs. Any Standard Webhooks SDK does the job:
+Do not trust deliveries without verification. Verify every delivery with the
+webhook's signing secret. Any Standard Webhooks SDK does the job:
 
 ```python
 import json
 
 from standardwebhooks import Webhook
 
-wh = Webhook(webhook_public_key)  # whpk_... string
+wh = Webhook(webhook_signing_secret)  # whsec_... string
 
 
 def handler(payload: bytes, headers: dict[str, str]) -> None:
@@ -130,9 +130,10 @@ for real inbound mail.
 
 ## Security model
 
-The private signing key stays encrypted in the relay database. The public
-keys show in the dashboard and rotate only with a new webhook. Signatures
-identify the webhook and its timestamp, so your endpoint verifies both.
+The signing secret stays encrypted in the relay database and appears in the
+dashboard for you to copy. It changes only when you create a new webhook.
+Signatures cover the webhook id, timestamp, and body, so your endpoint
+verifies both authenticity and freshness.
 
 ## A complete receiving endpoint
 
@@ -143,7 +144,7 @@ from fastapi import FastAPI, Request, HTTPException
 from standardwebhooks import Webhook
 
 app = FastAPI()
-wh = Webhook(WEBHOOK_PUBLIC_KEY)
+wh = Webhook(WEBHOOK_SIGNING_SECRET)
 
 
 @app.post("/mail")
