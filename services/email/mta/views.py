@@ -11,7 +11,6 @@ from django.views import generic
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
-from kms.models import SigningKey
 from services.email.message.views import MessageDetailView
 
 from .charts import build_tls_chart
@@ -43,7 +42,7 @@ class IncomingMessageDetailView(MessageDetailView):
     def get_timings(self, message):
         self.deliveries = WebhookDelivery.objects.filter(
             message=message
-        ).select_related("webhook__signing_key")
+        ).select_related("webhook")
         return chain(super().get_timings(message), self.deliveries)
 
     def get_context_data(self, **kwargs):
@@ -64,7 +63,7 @@ class WebhookListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
     parent = "accounts:org-home"
 
     def get_queryset(self):
-        return Webhook.objects.filter(org=self.org).select_related("signing_key")
+        return Webhook.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(**kwargs) | {
@@ -87,7 +86,6 @@ class WebhookCreateView(OrganizationScopedView, generic.CreateView):
         with transaction.atomic():
             webhook = form.save(commit=False)
             webhook.org = self.org
-            webhook.signing_key = SigningKey.generate(SigningKey.Algorithm.ED25519)
             webhook.save(force_insert=True)
             self.object = webhook
         messages.success(self.request, _("Created webhook."))

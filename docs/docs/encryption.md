@@ -109,9 +109,10 @@ relay keeps every private signing key encrypted at rest:
 
 - DKIM private keys (one RSA-2048 and one Ed25519 key per
   domain) are Fernet-encrypted before storage,
-- each webhook carries its own Ed25519 signing keypair, encrypted the same
-  way,
-- only public keys appear in DNS or the dashboard.
+- each webhook carries its own HMAC-SHA256 signing secret, encrypted the
+  same way,
+- only DKIM public keys appear in DNS; webhook signing secrets appear only
+  in the dashboard.
 
 An attacker with database access obtains ciphertexts, not signing power.
 

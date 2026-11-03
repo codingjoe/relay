@@ -5,7 +5,6 @@ import pytest
 from django.core.files.base import ContentFile
 
 from domains.models import Domain
-from kms.models import SigningKey
 from services.email.mta.models import IncomingMessage, Webhook, WebhookDelivery
 
 
@@ -26,7 +25,6 @@ def make_incoming(org, raw_body=b"From: a@b\r\nTo: c@d\r\nSubject: hi\r\n\r\nbod
 
 
 def make_webhook(org, url, pattern="*@example.com"):
-    signing_key = SigningKey.generate("ed25519")
     domain = Domain.objects.create(name=f"hook-{org.slug}.com", org=org)
     return Webhook.objects.create(
         org=org,
@@ -34,7 +32,6 @@ def make_webhook(org, url, pattern="*@example.com"):
         name="",
         address_pattern=f"*@{domain.name}",
         domain=domain,
-        signing_key=signing_key,
     )
 
 
@@ -167,15 +164,15 @@ class TestWebhookListView:
         assert '"type": "email.received"' in response.context["webhook_payload"]
         assert b"codehilite" in response.content
 
-    def test_get__copy_button_escapes_public_key(
+    def test_get__copy_button_escapes_signing_secret(
         self, admin_client, org, webhook_server
     ):
         webhook = make_webhook(org, url=f"{webhook_server}/x")
         response = admin_client.get(f"/org/{org.slug}/email/webhooks/")
         assert response.status_code == 200
         content = response.content.decode()
-        assert f'data-copy="{webhook.public_key_serialized}"' in content
-        assert 'aria-label="Copy public key"' in content
+        assert f'data-copy="{webhook.signing_secret}"' in content
+        assert 'aria-label="Copy signing secret"' in content
 
     def test_get__filters_by_org(self, admin_client, org, write_org, webhook_server):
         make_webhook(org, url=f"{webhook_server}/a")
@@ -222,7 +219,7 @@ class TestWebhookCreateView:
         assert webhook.url == "https://example.com/hook"
         assert webhook.name == "My hook"
         assert webhook.address_pattern == "*@example.com"
-        assert webhook.signing_key is not None
+        assert webhook.signing_secret.startswith("whsec_")
 
     def test_post__uses_address_pattern_prefix(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -312,7 +309,7 @@ class TestWebhookTestView:
         assert req["path"] == "/hook"
         assert req["headers"]["webhook-id"].startswith("msg_")
         assert "webhook-timestamp" in req["headers"]
-        assert req["headers"]["webhook-signature"].startswith("v1a,")
+        assert req["headers"]["webhook-signature"].startswith("v1,")
         delivery = WebhookDelivery.objects.get(webhook=webhook)
         assert delivery.is_test is True
         assert delivery.status == WebhookDelivery.Status.SENT

@@ -56,7 +56,7 @@ Mailjet gives you SPF and DKIM records to add to your DNS provider. You rotate k
 
 ### Incoming mail
 
-Mailjet inbound parse routes mail to a webhook you provide. DKIM and SPF for inbound are managed by Mailjet. relay runs an MX server that you control. It stores raw bodies in your S3 and dispatches Standard Webhooks with Ed25519 signatures. You verify each delivery with a public key you hold.
+Mailjet inbound parse routes mail to a webhook you provide. DKIM and SPF for inbound are managed by Mailjet. relay runs an MX server that you control. It stores raw bodies in your S3 and dispatches Standard Webhooks with HMAC-SHA256 signatures. You verify each delivery with the webhook's signing secret.
 
 ### EU data sovereignty
 

@@ -56,7 +56,7 @@ With SES, you publish SPF, DKIM, and DMARC records yourself. relay automates thi
 
 ### Incoming mail
 
-SES does not receive mail. For inbound, you need a separate service or AWS Lambda with S3. relay runs an MX server that receives incoming email. It dispatches each message to your webhooks with an Ed25519 signature, per the Standard Webhooks spec.
+SES does not receive mail. For inbound, you need a separate service or AWS Lambda with S3. relay runs an MX server that receives incoming email. It dispatches each message to your webhooks with an HMAC-SHA256 signature, per the Standard Webhooks spec. You verify each delivery with the webhook's signing secret.
 
 ### EU data sovereignty
 
