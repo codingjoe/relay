@@ -70,13 +70,14 @@ how the remote server answered.
 
 ## Signing key protection
 
-A private signer key must stay secret. relay generates each signing key at
-creation, encrypts it with Fernet under the platform KMS key, and stores only
-the ciphertext. The database never contains a private key in plain form, and
-decryption happens only where message delivery needs the key material.
+A private signer key and a webhook signing secret must stay secret. relay
+generates each one at creation, encrypts it with Fernet under the platform
+KMS key, and stores only the ciphertext. The database never contains either
+in plain form.
 
-DKIM public keys are public by design and appear in DNS. Webhook public keys
-appear in the dashboard in `whpk_` format for you to verify deliveries. See
+DKIM public keys are public by design and appear in DNS. Webhook signing
+secrets appear in the dashboard in `whsec_` format for you to verify
+deliveries. See
 <a href="{% url 'docs:detail' slug='webhooks' %}">Webhooks</a> for the
 verification procedure.
 

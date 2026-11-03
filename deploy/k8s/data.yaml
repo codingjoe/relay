@@ -51,7 +51,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
-            requests: {cpu: 250m}
+            requests: {cpu: 250m, memory: 512Mi}
             limits: {cpu: "2", memory: 1Gi}
       volumes:
         - name: data
@@ -112,7 +112,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
-            requests: {cpu: 50m}
+            requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: data
@@ -173,7 +173,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 128Mi}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: data
@@ -233,7 +233,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
-            requests: {cpu: 50m}
+            requests: {cpu: 50m, memory: 64Mi}
             limits: {cpu: "1", memory: 256Mi}
       volumes:
         # The cache is disposable: no volume, a restart leaves it cold.

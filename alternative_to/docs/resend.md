@@ -56,7 +56,7 @@ Resend gives you DKIM and SPF records, plus MX or CNAME records for the Return-P
 
 ### Incoming mail
 
-Both services receive mail over MX and hand it to webhooks. Resend parses the body and the attachments and exposes them over its API. relay runs its own MX server with STARTTLS. It evaluates the sender's DMARC, seals the result with ARC, and dispatches each message to your webhooks with an Ed25519 signature, per the Standard Webhooks spec. You verify each delivery with a public key you hold, without sharing a signing secret.
+Both services receive mail over MX and hand it to webhooks. Resend parses the body and the attachments and exposes them over its API. relay runs its own MX server with STARTTLS. It evaluates the sender's DMARC, seals the result with ARC, and dispatches each message to your webhooks with an HMAC-SHA256 signature, per the Standard Webhooks spec. You verify each delivery with the webhook's signing secret.
 
 ### EU data sovereignty
 

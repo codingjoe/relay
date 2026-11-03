@@ -60,7 +60,7 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 30
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 128Mi}
             limits: {cpu: "0.5", memory: 512Mi}
       volumes:
         - name: config
@@ -132,5 +132,5 @@ spec:
             failureThreshold: 5
             initialDelaySeconds: 10
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 192Mi}
             limits: {cpu: "0.5", memory: 256Mi}

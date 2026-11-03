@@ -1,4 +1,7 @@
 import base64
+import hashlib
+import hmac
+import secrets
 import uuid
 from enum import nonmember
 from fnmatch import fnmatch
@@ -11,10 +14,18 @@ from abstract.email_utils import MissingAttachmentError, iter_attachments
 from abstract.hostnames import is_relay_address
 from abstract.models import TimeStamped, Timing
 from accounts.models import OrganizationOwned
-from kms.models import SigningKey
+from kms import keystore
 from services.email.message.models import Message
 
 from .parser import parse_tls_report
+
+WEBHOOK_SECRET_PREFIX = "whsec_"  # noqa: S105
+
+
+def generate_encrypted_webhook_secret() -> str:
+    """Return a new Fernet-encrypted Standard Webhooks signing secret."""
+    secret = base64.b64encode(secrets.token_bytes(32)).decode("ascii")
+    return keystore.encrypt(f"{WEBHOOK_SECRET_PREFIX}{secret}")
 
 
 class IncomingMessage(Message):
@@ -98,11 +109,11 @@ class Webhook(OrganizationOwned):
         related_name="webhooks",
         help_text=_("Receiving domain this webhook listens on."),
     )
-    signing_key = models.ForeignKey(
-        SigningKey,
-        on_delete=models.PROTECT,
-        related_name="webhooks",
-        help_text=_("Ed25519 keypair used to sign webhook payloads."),
+    encrypted_signing_secret = models.TextField(
+        _("signing secret"),
+        default=generate_encrypted_webhook_secret,
+        editable=False,
+        help_text=_("Fernet-encrypted Standard Webhooks signing secret."),
     )
     mx_status = models.TextField(
         _("MX status"),
@@ -149,12 +160,16 @@ class Webhook(OrganizationOwned):
         return fnmatch(rcpt_to.lower(), self.address_pattern.lower())
 
     @property
-    def public_key_serialized(self) -> str:
-        return f"whpk_{base64.b64encode(self.signing_key.public_bytes_raw()).decode()}"
+    def signing_secret(self) -> str:
+        return keystore.decrypt(self.encrypted_signing_secret)
 
     def sign(self, msg_id: str, timestamp: int, payload: bytes) -> str:
         signed_content = f"{msg_id}.{timestamp}.".encode() + payload
-        return f"v1a,{base64.b64encode(self.signing_key.sign(signed_content)).decode()}"
+        secret = base64.b64decode(
+            self.signing_secret.removeprefix(WEBHOOK_SECRET_PREFIX), validate=True
+        )
+        signature = hmac.new(secret, signed_content, hashlib.sha256).digest()
+        return f"v1,{base64.b64encode(signature).decode()}"
 
 
 TIMELINE_COLORS = {
@@ -207,7 +222,7 @@ class WebhookDelivery(Timing):
 
     @property
     def label(self) -> str:
-        return f"{self.get_status_display()} ({self.webhook.signing_key.key_id})"
+        return f"{self.get_status_display()} ({self.webhook.name or self.webhook.url})"
 
     @property
     def event(self) -> dict:

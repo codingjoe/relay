@@ -61,7 +61,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 256Mi}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: caddy-data
@@ -141,7 +141,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 256Mi}
             limits: {cpu: "1", memory: 512Mi}
       volumes:
         - name: caddy-data
@@ -262,7 +262,9 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
           resources:
-            requests: {cpu: 100m}
+            # The limit covers a signature reload. The request is what the
+            # scheduler reserves, and four GiB per replica does not fit the node.
+            requests: {cpu: 100m, memory: 1Gi}
             limits: {memory: 4Gi}
       volumes:
         - name: signatures
@@ -300,7 +302,7 @@ spec:
           # https://github.com/Cisco-Talos/clamav-docker/issues/111
           image: clamav/clamav:1.5.4_base-debian13-slim
           resources:
-            requests: {cpu: 100m}
+            requests: {cpu: 100m, memory: 256Mi}
             limits: {memory: 1Gi}
           args: ["sh", "-c", "freshclam --foreground --stdout || test -e /var/lib/clamav/main.cvd"]
           env:
@@ -366,7 +368,7 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 5
           resources:
-            requests: {cpu: 50m}
+            requests: {cpu: 50m, memory: 256Mi}
             limits: {cpu: "1", memory: 512Mi}
 ---
 apiVersion: v1

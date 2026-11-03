@@ -56,7 +56,7 @@ Mailgun generates SPF, DKIM, and tracking CNAME records for you to paste into yo
 
 ### Incoming mail
 
-Mailgun Routes forward inbound mail to a URL or storage. DKIM and SPF for inbound are managed by Mailgun, not by you. relay runs an MX server that you control. It stores raw bodies in your own S3 and dispatches Standard Webhooks with Ed25519 signatures. You verify each delivery with a public key you hold.
+Mailgun Routes forward inbound mail to a URL or storage. DKIM and SPF for inbound are managed by Mailgun, not by you. relay runs an MX server that you control. It stores raw bodies in your own S3 and dispatches Standard Webhooks with HMAC-SHA256 signatures. You verify each delivery with the webhook's signing secret.
 
 ### EU data sovereignty
 

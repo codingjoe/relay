@@ -18,7 +18,6 @@ from django_letter.exceptions import EmailImproperlyConfigured
 
 from accounts.models import Membership
 from domains.models import Domain
-from kms.models import SigningKey
 from services.email.message.models import SpamCheck, Transmission
 from services.email.msa.models import OutgoingMessage
 from services.email.mta.emails import PostmasterForwardEmail
@@ -613,7 +612,6 @@ def make_webhook(org, address_pattern="*", is_active=True):
         name="Hook",
         address_pattern=address_pattern,
         domain=Domain.objects.get(org=org),
-        signing_key=SigningKey.generate("ed25519"),
         is_active=is_active,
     )
 
