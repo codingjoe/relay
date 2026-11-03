@@ -3,36 +3,6 @@ import { LitElement, html } from "lit";
 const cache = new Map();
 const ENDPOINT = "https://ipwho.is/";
 
-/** Return whether the address is routable on the public internet. */
-function isPublicAddress(address) {
-  if (address.includes(":")) {
-    const normalized = address.toLowerCase();
-    return !(
-      normalized === "::1" ||
-      normalized.startsWith("fe80:") ||
-      /^f[cd][0-9a-f]{2}:/.test(normalized)
-    );
-  }
-  const parts = address.split(".").map(Number);
-  if (
-    parts.length !== 4 ||
-    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
-  ) {
-    return false;
-  }
-  const [first, second] = parts;
-  return !(
-    first === 0 ||
-    first === 10 ||
-    first === 127 ||
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168) ||
-    (first === 100 && second >= 64 && second <= 127) ||
-    first >= 224
-  );
-}
-
 /** Show the network behind an address, with an optional map. */
 export class NetworkLocation extends LitElement {
   static properties = {
@@ -64,12 +34,6 @@ export class NetworkLocation extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    // Private addresses have no public location, so skip the lookup and the
-    // placeholder entirely.
-    if (!isPublicAddress(this.address)) {
-      this.skipped = true;
-      return;
-    }
     // Dialogs keep their content out of view until opened, so the lookup
     // waits for the first paint instead of running for every message.
     this.observer = new IntersectionObserver(async (entries) => {
@@ -270,7 +234,7 @@ export class NetworkLocation extends LitElement {
   }
 
   render() {
-    if (!this.address || this.skipped) {
+    if (!this.address) {
       return html``;
     }
     if (this.loading) {
