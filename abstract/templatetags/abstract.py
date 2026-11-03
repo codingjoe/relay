@@ -76,10 +76,11 @@ def admin_url(context):
     if obj := context.get("object"):
         model, url_suffix, args = type(obj), "change", [obj.pk]
     elif (object_list := context.get("object_list")) is not None:
-        # Merged lists paginate plain Python lists, which name no model.
-        if not hasattr(object_list, "model"):
+        try:
+            model, url_suffix, args = object_list.model, "changelist", []
+        except AttributeError:
+            # Merged lists paginate plain Python lists, which name no model.
             return reverse("admin:index")
-        model, url_suffix, args = object_list.model, "changelist", []
     else:
         return reverse("admin:index")
     try:
