@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load abstract humanize i18n message %}
-{% block title %}{% translate "recipient reports"|capfirst %} | relay{% endblock %}
+{% block title %}{% translate "reports"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between mb-6">
-    <h2 class="m-0">{% translate "recipient reports"|capfirst %}</h2>
+    <h2 class="m-0">{% translate "reports"|capfirst %}</h2>
     <p class="text-sm text-muted-foreground m-0" role="status">
       {% blocktranslate count counter=paginator.count with count=paginator.count|intword trimmed %}
         {{ count }} report{% plural %}{{ count }} reports
