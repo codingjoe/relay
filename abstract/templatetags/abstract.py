@@ -76,7 +76,11 @@ def admin_url(context):
     if obj := context.get("object"):
         model, url_suffix, args = type(obj), "change", [obj.pk]
     elif (object_list := context.get("object_list")) is not None:
-        model, url_suffix, args = object_list.model, "changelist", []
+        try:
+            model, url_suffix, args = object_list.model, "changelist", []
+        except AttributeError:
+            # Merged lists paginate plain Python lists, which name no model.
+            return reverse("admin:index")
     else:
         return reverse("admin:index")
     try:
@@ -88,6 +92,8 @@ def admin_url(context):
 @register.inclusion_tag("abstract/timestamp.html")
 def timestamp(value):
     """Render a `<time>` element with naturaltime and ISO 8601 tooltip."""
+    if value is None:
+        return {"value": None, "iso": "", "natural": ""}
     if isinstance(value, datetime.datetime) and timezone.is_aware(value):
         value = timezone.localtime(value)
     return {

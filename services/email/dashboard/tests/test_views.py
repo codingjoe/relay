@@ -4,7 +4,7 @@ from django.urls import reverse
 from domains.models import Domain
 from services.email.dmarc.models import DmarcFailureReport, DmarcRecord, DmarcReport
 from services.email.msa.models import MsaCredential, OutgoingMessage
-from services.email.mta.models import IncomingMessage, TlsReport
+from services.email.mta.models import IncomingMessage, TlsFailure, TlsReport
 from services.email.reputation.models import FblReport
 
 
@@ -293,10 +293,18 @@ class TestReportListView:
     def test_get__dmarc_type_lists_dmarc_reports(
         self, admin_client, org, dmarc_report, tls_report
     ):
-        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=dmarc")
 
         assert response.status_code == 200
         assert list(response.context["reports"]) == [dmarc_report]
+
+    def test_get__no_type_lists_every_report(
+        self, admin_client, org, dmarc_report, tls_report
+    ):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+
+        assert response.status_code == 200
+        assert set(response.context["reports"]) == {dmarc_report, tls_report}
 
     def test_get__dmarc_type_filters_by_ip(
         self, admin_client, org, dmarc_report, tls_report
@@ -342,6 +350,20 @@ class TestReportListView:
         assert response.status_code == 200
         assert list(response.context["reports"]) == [tls_report]
 
+    def test_get__tls_type_filters_by_sending_ip(self, admin_client, org, tls_report):
+        TlsFailure.objects.create(
+            report=tls_report,
+            policy_type=TlsFailure.PolicyType.STS,
+            result_type=TlsFailure.ResultType.CERTIFICATE_EXPIRED,
+            sending_mta_ip_address="10.9.9.9",
+        )
+        response = admin_client.get(
+            f"/org/{org.slug}/email/reports/?type=tls&ip=10.9.9.9"
+        )
+
+        assert response.status_code == 200
+        assert list(response.context["reports"]) == [tls_report]
+
     def test_get__tls_type_filters_by_domain(
         self, admin_client, org, tls_report, dmarc_report
     ):
@@ -378,19 +400,35 @@ class TestReportListView:
         assert response.status_code == 200
         assert list(response.context["reports"]) == [fbl_report]
 
-    def test_get__unknown_type_falls_back_to_dmarc(
+    def test_get__unknown_type_lists_all_reports(
         self, admin_client, org, dmarc_report, fbl_report
     ):
         response = admin_client.get(f"/org/{org.slug}/email/reports/?type=bogus")
 
         assert response.status_code == 200
-        assert list(response.context["reports"]) == [dmarc_report]
+        assert set(response.context["reports"]) == {dmarc_report, fbl_report}
+
+    def test_get__multiple_types_merge_reports(
+        self, admin_client, org, dmarc_report, tls_report
+    ):
+        response = admin_client.get(
+            f"/org/{org.slug}/email/reports/?type=dmarc&type=tls"
+        )
+
+        assert response.status_code == 200
+        assert set(response.context["reports"]) == {dmarc_report, tls_report}
 
     def test_get__dmarc_type_shows_chart(self, admin_client, org, dmarc_report):
-        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+        response = admin_client.get(f"/org/{org.slug}/email/reports/?type=dmarc")
 
         assert response.status_code == 200
         assert "series" in response.context["chart"]
+
+    def test_get__all_types_has_no_chart(self, admin_client, org, dmarc_report):
+        response = admin_client.get(f"/org/{org.slug}/email/reports/")
+
+        assert response.status_code == 200
+        assert response.context["chart"] is None
 
     def test_get__tls_type_shows_chart(self, admin_client, org, tls_report):
         response = admin_client.get(f"/org/{org.slug}/email/reports/?type=tls")
@@ -409,21 +447,6 @@ class TestReportListView:
 
         assert response.status_code == 200
         assert "chart-reports" not in response.content.decode()
-
-    def test_get__names_the_filter_values_in_the_trigger(
-        self, admin_client, org, tls_report
-    ):
-        response = admin_client.get(
-            f"/org/{org.slug}/email/reports/?type=tls&domain=acme.com"
-        )
-
-        assert response.status_code == 200
-        trigger = (
-            response.content.decode()
-            .split('id="report-filters-trigger"', 1)[1]
-            .split("</button>", 1)[0]
-        )
-        assert "acme.com" in trigger
 
     def test_get__requires_login(self, client, org):
         response = client.get(f"/org/{org.slug}/email/reports/")

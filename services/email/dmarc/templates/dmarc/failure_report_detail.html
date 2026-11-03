@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load abstract i18n message %}
+{% load abstract i18n message esm %}
 {% block title %}{% translate "DMARC failure report"|capfirst %} | relay{% endblock %}
 {% block content %}
   <header class="mb-6">
@@ -49,10 +49,23 @@
         <dt class="text-sm text-muted-foreground">{% translate "source IP"|capfirst %}</dt>
         <dd class="m-0">
           {% if report.source_ip_address %}
-            <a
-              class="link"
-              href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ report.source_ip_address|urlencode }}"
-            >{{ report.source_ip_address }}</a>
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <a
+                  class="link"
+                  href="{% url 'email-dashboard:report-list' org.slug %}?ip={{ report.source_ip_address|urlencode }}"
+                >{{ report.source_ip_address }}</a>
+                {% include "abstract/sender_badge.html" %}
+                {% include "abstract/sender_hostname.html" %}
+              </div>
+              <network-location
+                address="{{ report.source_ip_address }}"
+                hide-address
+                class="block"
+                data-unavailable='{% translate "location unavailable" %}'
+                data-retry='{% translate "retry"|capfirst %}'
+              ></network-location>
+            </div>
           {% else %}
             -
           {% endif %}
@@ -110,4 +123,5 @@
       </details>
     </section>
   {% endif %}
+  {% esm '#js/network-location.js' %}
 {% endblock %}

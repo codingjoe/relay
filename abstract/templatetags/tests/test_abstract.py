@@ -44,6 +44,13 @@ def test_admin_url__model_without_admin():
     assert abstract.admin_url(context) == "/admin/"
 
 
+def test_admin_url__plain_object_list():
+    """Fall back to the admin index for merged lists that hold a plain list."""
+    context = Context({"object_list": [Group(pk=1)]})
+    context.request = authenticate(RequestFactory().get("/"))
+    assert abstract.admin_url(context) == "/admin/"
+
+
 def test_admin_url__non_staff():
     context = Context({"object": Group(pk=1)})
     context.request = authenticate(RequestFactory().get("/"), staff=False)

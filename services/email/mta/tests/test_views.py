@@ -3,10 +3,17 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 from django.core.files.base import ContentFile
+from django.urls import reverse
 from django.utils import timezone
 
 from domains.models import Domain
-from services.email.mta.models import IncomingMessage, Webhook, WebhookDelivery
+from services.email.mta.models import (
+    IncomingMessage,
+    TlsFailure,
+    TlsReport,
+    Webhook,
+    WebhookDelivery,
+)
 
 
 def make_incoming(org, raw_body=b"From: a@b\r\nTo: c@d\r\nSubject: hi\r\n\r\nbody"):
@@ -356,3 +363,35 @@ class TestWebhookTestView:
             f"/org/{org.slug}/email/webhooks/{webhook.pk}/test"
         )
         assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestTlsReportDetailView:
+    def test_get__marks_the_relay_sending_ip(self, client, org, settings):
+        settings.SMTP_SOURCE_IPS = ["10.0.0.9"]
+        domain = Domain.objects.create(name="tls.example", org=org)
+        report = TlsReport.objects.create(
+            org=org,
+            domain=domain,
+            receiving_domain="tls.example",
+            mail_from="reporter@example.com",
+            rcpt_to="tls@tls.example",
+            report_id="tls-1",
+        )
+        TlsFailure.objects.create(
+            report=report,
+            policy_type=TlsFailure.PolicyType.STS,
+            result_type=TlsFailure.ResultType.CERTIFICATE_EXPIRED,
+            sending_mta_ip_address="10.0.0.9",
+        )
+        client.force_login(org.members.first())  # noqa: any member
+
+        response = client.get(
+            reverse(
+                "mta:tls-report-detail",
+                kwargs={"org_slug": org.slug, "pk": report.pk},
+            )
+        )
+
+        assert response.status_code == 200
+        assert "Sent by relay" in response.content.decode()

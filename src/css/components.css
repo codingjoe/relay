@@ -21,8 +21,7 @@
   @apply text-warning;
 }
 
-/* Message status text and card tint. The models hand the badge variant over
-   as a data attribute, so the templates carry no class logic. */
+/* Status text, card tint, and item figure colors. */
 .status {
   --status-color: var(--color-muted-foreground);
   color: var(--status-color);
@@ -42,6 +41,11 @@
 
 .card[data-variant] {
   background-color: color-mix(in srgb, var(--status-color, transparent) 10%, transparent);
+}
+
+/* Status icon on item figures. */
+.item > figure.status {
+  background-color: color-mix(in srgb, var(--status-color) 10%, transparent);
 }
 
 /* Extra-small button sizes for controls that sit inline with badges

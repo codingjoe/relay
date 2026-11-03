@@ -2,6 +2,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.hostnames import add_sender_hostname
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -61,6 +62,7 @@ class FblReportDetailView(
             if isinstance(payload, bytes)
             else ""
         )
+        add_sender_hostname(self.object, self.object.source_ip_address)
         return context | {
             "headers": headers,
             "body": body,

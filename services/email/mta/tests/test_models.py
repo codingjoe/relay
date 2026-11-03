@@ -168,3 +168,16 @@ class TestWebhookDeliveryRepr:
 class TestTlsFailureRepr:
     def test_repr__returns_pk(self):
         assert repr(TlsFailure(pk=1)) == "<TlsFailure 1>"
+
+
+class TestTlsFailureRelaySender:
+    def test_is_relay_sender__true_for_configured_address(self, settings):
+        settings.SMTP_SOURCE_IPS = ["10.0.0.9"]
+        failure = TlsFailure(sending_mta_ip_address="10.0.0.9")
+        assert failure.is_relay_sender
+
+    def test_is_relay_sender__false_for_other_address(self, settings):
+        settings.SMTP_SOURCE_IPS = ["10.0.0.9"]
+        settings.DNS_SMTP_IPS = []
+        failure = TlsFailure(sending_mta_ip_address="10.0.0.10")
+        assert not failure.is_relay_sender

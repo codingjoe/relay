@@ -1,0 +1,13 @@
+{% load abstract i18n %}
+{% if report.is_relay_sender %}
+  <span
+    class="badge"
+    data-size="sm"
+    data-variant="success"
+    data-tooltip='{% translate "sent by relay"|capfirst %}'
+  >
+    {% tabler name="circle-check" size="3.5" %}
+    relay
+    <span class="sr-only">{% translate "verified sender"|capfirst %}</span>
+  </span>
+{% endif %}

@@ -91,10 +91,11 @@ decision, not a hidden default.
   scope only.
 - **Sending requires the platform** to talk to receiving mail servers and to
   DNS resolvers. Delivery is the product.
-- **IP location lookups happen in your browser**, and only when you open a
-  transmission drawer that carries an IP address. Your browser sends that
-  address to ipwho.is for an approximate location and loads map tiles from
-  OpenFreeMap. relay does not proxy these requests, does not store the
+- **IP location lookups happen in your browser.** relay runs them when you
+  open a transmission drawer that carries an IP address and when a DMARC
+  report lists source IPs. Your browser sends those addresses to ipwho.is
+  for an approximate location. Transmission drawers also load map tiles
+  from OpenFreeMap. relay does not proxy these requests, does not store the
   result, and does not send message data to either service.
 - **Reports come in** from mailbox providers to the addresses your DMARC
   and TLS-RPT records name. relay parses them for your dashboards.

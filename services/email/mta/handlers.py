@@ -1,12 +1,9 @@
-import ipaddress
 import logging
 import re
 from email import message_from_bytes
 from email.message import Message
 from email.utils import formatdate
 
-import dns.exception
-import dns.resolver
 from aiosmtpd.smtp import TLSSetupException
 from asgiref.sync import sync_to_async
 from django.conf import settings
@@ -15,6 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from abstract.email_utils import decode_header_value
+from abstract.hostnames import resolve_hostname
 from abstract.mailauth import Disposition, DmarcEvaluation
 from abstract.signals import request_scoped
 from domains.models import Domain
@@ -38,33 +36,6 @@ logger = logging.getLogger(__name__)
 # HELO names are attacker-controlled; only these characters may reach the
 # Received header so they cannot inject header lines or Received clauses.
 HELO_ALLOWED_CHARS = re.compile(r"[A-Za-z0-9.\-:\[\]]")
-
-
-def resolve_remote_host(ip: str) -> str:
-    """Return the reverse-DNS hostname of a public IP address, if one exists."""
-    hostname = ""
-    try:
-        address = ipaddress.ip_address(ip)
-    except ValueError:
-        address = None
-    if address is not None and address.is_global:
-        try:
-            answer = dns.resolver.resolve(address.reverse_pointer, "PTR", lifetime=2.0)
-        except dns.resolver.NXDOMAIN, dns.resolver.NoAnswer:
-            answer = None
-        except dns.exception.Timeout, dns.resolver.NoNameservers:
-            logger.warning("Reverse DNS lookup failed for %r", ip, exc_info=True)
-            answer = None
-        except dns.exception.DNSException:
-            logger.warning(
-                "Reverse DNS lookup failed for malformed address %r",
-                ip,
-                exc_info=True,
-            )
-            answer = None
-        if answer is not None:
-            hostname = str(answer[0]).rstrip(".")
-    return hostname
 
 
 def received_header(session) -> bytes:
@@ -204,7 +175,7 @@ def process_incoming_message(
     subject = decode_header_value(msg.get("Subject", ""))
     message_id = msg.get("Message-ID", "")
     started_at = timezone.now()
-    remote_host = resolve_remote_host(client_ip)
+    remote_host = resolve_hostname(client_ip)
 
     match local_part:
         case settings.DMARC_REPORT_LOCAL_PART | settings.DMARC_RUF_LOCAL_PART:

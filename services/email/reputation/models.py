@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from abstract.hostnames import is_relay_address
 from accounts.models import OrganizationOwned
 from services.email.message.models import Message
 
@@ -154,6 +155,11 @@ class FblReport(OrganizationOwned):
                 fields=["feedback_type"], name="reputation__feedbac_bddb85_idx"
             ),
         ]
+
+    @property
+    def is_relay_sender(self):
+        """Return whether the source IP belongs to relay."""
+        return is_relay_address(self.source_ip_address)
 
     @property
     def status_badge_variant(self) -> str:

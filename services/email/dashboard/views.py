@@ -57,60 +57,126 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
         TLS = "tls", _("TLS")
         FBL = "fbl", _("FBL")
 
-    def get_queryset(self):
-        report_type = self.request.GET.get("type", self.ReportType.DMARC)
-        domain = self.request.GET.get("domain", "")
-        ip = self.request.GET.get("ip", "")
-        match report_type:
+    TYPE_ICONS = {
+        ReportType.DMARC: "shield-check",
+        ReportType.FAILURES: "alert-triangle",
+        ReportType.TLS: "lock",
+        ReportType.FBL: "flag",
+    }
+
+    def get_selected_types(self):
+        """Return the valid report types named by the repeated `type` parameter."""
+        valid = {choice.value for choice in self.ReportType}
+        return [value for value in self.request.GET.getlist("type") if value in valid]
+
+    def get_search(self):
+        """Return the active search parameter and its value."""
+        if ip := self.request.GET.get("ip"):
+            return "ip", ip
+        if domain := self.request.GET.get("domain"):
+            return "domain", domain
+        return "ip", ""
+
+    def get_type_queryset(self, choice, field, value):
+        """Return the queryset for one report type with the active filter."""
+        match choice:
             case self.ReportType.DMARC:
                 qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
-                if ip:
-                    qs = qs.filter(records__source_ip_address=ip)
+                if field == "ip" and value:
+                    qs = qs.filter(records__source_ip_address=value).distinct()
             case self.ReportType.FAILURES:
                 qs = DmarcFailureReport.objects.filter(org=self.org).select_related(
                     "domain"
                 )
-                if ip:
-                    qs = qs.filter(source_ip_address=ip)
+                if field == "ip" and value:
+                    qs = qs.filter(source_ip_address=value)
             case self.ReportType.TLS:
                 qs = TlsReport.objects.filter(org=self.org).select_related("domain")
-                if domain:
-                    qs = qs.filter(domain__name=domain)
+                if field == "ip" and value:
+                    qs = qs.filter(failures__sending_mta_ip_address=value).distinct()
             case self.ReportType.FBL:
-                qs = FblReport.objects.filter(org=self.org)
-                if domain:
-                    qs = qs.filter(domain__name=domain)
-                if ip:
-                    qs = qs.filter(source_ip_address=ip)
-            case _:
-                qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
+                qs = FblReport.objects.filter(org=self.org).select_related("domain")
+                if field == "ip" and value:
+                    qs = qs.filter(source_ip_address=value)
+        if field == "domain" and value:
+            qs = qs.filter(domain__name=value)
         return qs
 
-    def get_chart(self, report_type):
-        """Return the title and chart of the open report type, or none."""
-        match report_type:
-            case self.ReportType.DMARC:
-                return _("messages by DMARC verdict"), build_dmarc_chart(self.org)
+    def annotate_report(self, report, choice):
+        """Attach the per-row display values of one report type."""
+        report.report_type_label = choice.label
+        report.report_icon = self.TYPE_ICONS[choice]
+        match choice:
             case self.ReportType.TLS:
+                report.report_subtitle = report.reporting_email
+            case self.ReportType.FBL:
+                report.report_subtitle = report.original_mail_from
+            case _:
+                report.report_subtitle = report.mail_from
+
+    def get_queryset(self):
+        selected = self.get_selected_types() or [
+            choice.value for choice in self.ReportType
+        ]
+        field, value = self.get_search()
+        reports = []
+        for choice in (self.ReportType(selected_type) for selected_type in selected):
+            qs = self.get_type_queryset(choice, field, value)
+            for report in qs:
+                self.annotate_report(report, choice)
+            reports.extend(qs)
+        return sorted(reports, key=lambda report: report.created_at, reverse=True)
+
+    def get_chart(self, selected):
+        """Return the title and chart of a single selected report type, or none."""
+        match selected:
+            case [self.ReportType.DMARC]:
+                return _("messages by DMARC verdict"), build_dmarc_chart(self.org)
+            case [self.ReportType.TLS]:
                 return _("failures by type"), build_tls_chart(self.org)
             case _:
                 return None, None
 
+    def get_type_label(self, selected):
+        """Return the trigger label for the selected report types."""
+        if not selected or len(selected) == len(self.ReportType):
+            return _("all reports")
+        return ", ".join(str(self.ReportType(value).label) for value in selected)
+
+    def get_type_options(self, selected):
+        """Return one toggle link per report type."""
+        query = self.request.GET.copy()
+        query.pop("page", None)
+        query.pop("type", None)
+        options = []
+        for choice in self.ReportType:
+            values = [value for value in selected if value != choice.value]
+            if choice.value not in selected:
+                values.append(choice.value)
+            params = query.copy()
+            if values:
+                params.setlist("type", values)
+            options.append(
+                {
+                    "value": choice.value,
+                    "label": choice.label,
+                    "icon": self.TYPE_ICONS[choice],
+                    "checked": choice.value in selected,
+                    "href": f"?{params.urlencode()}",
+                }
+            )
+        return options
+
     def get_context_data(self, **kwargs):
-        report_type = self.request.GET.get("type", self.ReportType.DMARC)
-        domain = self.request.GET.get("domain", "")
-        ip = self.request.GET.get("ip", "")
-        try:
-            type_label = self.ReportType(report_type).label
-        except ValueError:
-            type_label = self.ReportType.DMARC.label
-        chart_title, chart = self.get_chart(report_type)
+        selected = self.get_selected_types()
+        field, value = self.get_search()
+        chart_title, chart = self.get_chart(selected)
         return super().get_context_data(**kwargs) | {
-            "type": report_type,
-            "domain": domain,
-            "ip": ip,
-            "type_label": type_label,
-            "filter_values": [value for value in (domain, ip) if value],
+            "types": selected,
+            "type_label": self.get_type_label(selected),
+            "type_options": self.get_type_options(selected),
+            "search_field": field,
+            "search_value": value,
             "chart_title": chart_title,
             "chart": chart,
         }

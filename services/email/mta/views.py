@@ -8,6 +8,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 
+from abstract.hostnames import add_sender_hostname
 from abstract.views import ConditionalGetMixin, NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
 from domains.models import Domain
@@ -166,6 +167,9 @@ class TlsReportDetailView(
         return TlsReport.objects.filter(org=self.org)
 
     def get_context_data(self, **kwargs):
+        failures = list(self.object.failures.all())
+        for failure in failures:
+            add_sender_hostname(failure, failure.sending_mta_ip_address)
         return super().get_context_data(**kwargs) | {
-            "failures": self.object.failures.all(),
+            "failures": failures,
         }

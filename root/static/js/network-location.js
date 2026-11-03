@@ -8,6 +8,7 @@ export class NetworkLocation extends LitElement {
   static properties = {
     address: { type: String },
     map: { type: Boolean },
+    hideAddress: { type: Boolean, attribute: "hide-address" },
     details: { state: true },
     error: { state: true },
     loading: { state: true },
@@ -18,6 +19,7 @@ export class NetworkLocation extends LitElement {
     super();
     this.address = "";
     this.map = false;
+    this.hideAddress = false;
     this.details = null;
     this.error = false;
     this.loading = false;
@@ -64,7 +66,12 @@ export class NetworkLocation extends LitElement {
   }
 
   get labels() {
-    return document.getElementById("transmission-profile")?.dataset ?? {};
+    const labels = document.getElementById("transmission-profile")?.dataset ?? {};
+    return {
+      unavailable: this.dataset.unavailable || labels.unavailable,
+      retry: this.dataset.retry || labels.retry,
+      map: labels.map,
+    };
   }
 
   async lookup() {
@@ -133,8 +140,12 @@ export class NetworkLocation extends LitElement {
     if (!this.map) {
       return html`
         <div class="flex flex-col gap-1.5">
-          <code class="text-sm font-medium">${this.address}</code>
-          <div class="skeleton h-3 w-40"></div>
+          ${
+            this.hideAddress
+              ? ""
+              : html`<code class="text-sm font-medium">${this.address}</code>`
+          }
+          <div class="skeleton h-5 w-40"></div>
         </div>
       `;
     }
@@ -151,11 +162,14 @@ export class NetworkLocation extends LitElement {
 
   renderUnavailable() {
     return html`
-      <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <code class="text-sm font-medium">${this.address}</code>
-        <span class="text-xs text-muted-foreground">
-          ${this.labels.unavailable || "Location unavailable."}
-        </span>
+      <div
+        class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground"
+      >
+        ${
+          this.hideAddress ? "" : html`<code class="font-medium">${this.address}</code>`
+        }
+        <span>${this.labels.unavailable || "Location unavailable."}</span>
+        <span aria-hidden="true">·</span>
         <button
           type="button"
           class="btn"
@@ -172,15 +186,19 @@ export class NetworkLocation extends LitElement {
   renderSummary() {
     return html`
       <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <code class="text-sm font-medium">${this.address}</code>
         ${
-          this.location
-            ? html`<span class="text-sm text-muted-foreground">${this.location}</span>`
-            : ""
+          this.hideAddress
+            ? ""
+            : html`<code class="text-sm font-medium">${this.address}</code>`
         }
         ${
           this.network
             ? html`<span class="badge" data-variant="secondary">${this.network}</span>`
+            : ""
+        }
+        ${
+          this.location
+            ? html`<span class="text-sm text-muted-foreground">${this.location}</span>`
             : ""
         }
       </div>

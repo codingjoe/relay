@@ -1,0 +1,20 @@
+{% load abstract i18n %}
+<span class="flex items-center gap-1.5 text-sm">
+  {% if result == 'pass' %}
+    {% tabler name="circle-check" size="4" class="text-success" %}
+  {% elif result == 'fail' %}
+    {% tabler name="circle-x" size="4" class="text-destructive" %}
+  {% else %}
+    {% tabler name="circle-dashed" size="4" class="text-muted-foreground" %}
+  {% endif %}
+  <span class="font-medium">{{ method }}</span>
+  <span>{{ result_label|default:"-" }}</span>
+  <span class="text-muted-foreground" aria-hidden="true">·</span>
+  <span class="text-muted-foreground">
+    {% if alignment == 'pass' %}
+      {% translate "aligned" %}
+    {% else %}
+      {% translate "misaligned" %}
+    {% endif %}
+  </span>
+</span>
