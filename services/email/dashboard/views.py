@@ -48,7 +48,7 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
 
     context_object_name = "reports"
     paginate_by = 50
-    title = _("Recipient reports")
+    title = _("Reports")
     parent = "accounts:org-home"
 
     TYPE_ICONS = {

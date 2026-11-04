@@ -453,7 +453,6 @@ PRICE_PER_1000_MESSAGES = env.float("PRICE_PER_1000_MESSAGES", default=0.69)
 
 MTA_STS_MODE = env("MTA_STS_MODE", default="enforce")
 MTA_STS_MAX_AGE = env.int("MTA_STS_MAX_AGE", default=604800)
-MTA_STS_POLICY_ID = env("MTA_STS_POLICY_ID", default="20260730T100000Z")
 
 # https://docs.allauth.org/en/latest/idp/oidc/configuration.html
 

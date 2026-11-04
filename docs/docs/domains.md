@@ -73,22 +73,24 @@ flowchart TD
     E --> F{Checks ok?}
     F -- No --> G[Fix shown record, check again]
     G --> E
-    F -- Yes --> H[Verified for sending, receiving, or both]
+    F -- Yes --> H[Verified for sending, receiving, or reporting]
     H --> I[Nameserver serves the DNS now]
 ```
 
-Verification reads the live DNS for seven records and splits the result
-into two independent purposes:
+Verification reads the live DNS and splits the result into three
+independent purposes:
 
-- Sending: NS delegation on the sender subdomain, SPF authorization, the
-  two DKIM CNAMEs, and the DMARC record at the root.
-- Receiving: the MX record at the root, the MTA-STS record and CNAME, and
-  the TLS-RPT record with the relay reporting address.
+- Sending: NS delegation on the sender subdomain, SPF authorization, and
+  the two DKIM CNAMEs. The Ed25519 record is hardening.
+- Receiving: the MX record at the root.
+- Reporting: the DMARC record with relay reporting addresses, the MTA-STS
+  TXT and CNAME records with live MX hosts matching the policy, and the
+  TLS-RPT record with the relay reporting address.
 
 Each purpose verifies on its own. Publish only the sending records and the
-domain shows sending verified while receiving reads as not set up. Checks
-run per record, and the dashboard shows each of them, so a wrong record is
-identifiable. Re-check at any time.
+domain shows sending verified while receiving and reporting read as not set
+up. Checks run per record, and the dashboard shows each of them, so a wrong
+record is identifiable. Re-check at any time.
 
 ## What the nameserver serves
 
@@ -116,6 +118,12 @@ already serves. relay serves the policy over HTTPS and issues the
 certificate for `mta-sts.acme.com` on the first fetch. You add no record
 and no certificate for that name.
 
+The policy lists the MX record hostnames by default. If the domain receives
+mail through another provider, edit the MTA-STS MX hosts on the domain page.
+Enter one host per line. RFC 8461 wildcard patterns such as `*.example.com`
+are allowed. An empty field follows the MX record hostnames. Verification
+fails when a live MX record does not match one of the listed hosts.
+
 ## Receiving-domain notes
 
 A domain can send and receive independently of each other. `app.acme.com` as
@@ -127,14 +135,14 @@ the acceptance flow.
 
 ## Troubleshooting
 
-| Symptom                                             | Likely cause                                       | Fix                                                   |
-| --------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------- |
-| NS check fails                                      | Delegation missing or typo in the NS records       | Publish the NS records from the dashboard instruction |
-| DKIM CNAME check fails                              | CNAME not published yet or typo                    | Copy the selector names exactly                       |
-| DMARC check fails                                   | No `v=DMARC1` at the root, wrong collector address | Publish the shown record                              |
-| MTA-STS check fails                                 | TXT record wrong or CNAME missing                  | Publish both, wait for DNS propagation                |
-| TXT merge needed                                    | Multiple TXT entries at the same name              | One entry per value, quoted as shown                  |
-| Verification stays pending shortly after publishing | DNS caching                                        | Check again after the TTL of your zone                |
+| Symptom                                             | Likely cause                                              | Fix                                                           |
+| --------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------- |
+| NS check fails                                      | Delegation missing or typo in the NS records              | Publish the NS records from the dashboard instruction         |
+| DKIM CNAME check fails                              | CNAME not published yet or typo                           | Copy the selector names exactly                               |
+| DMARC check fails                                   | No `v=DMARC1` at the root, or missing relay `rua`/`ruf`   | Publish the shown record with both reporting addresses        |
+| MTA-STS check fails                                 | TXT or CNAME wrong, or an MX record is outside the policy | Publish both records and list the live MX hosts in the policy |
+| TXT merge needed                                    | Multiple TXT entries at the same name                     | One entry per value, quoted as shown                          |
+| Verification stays pending shortly after publishing | DNS caching                                               | Check again after the TTL of your zone                        |
 
 ## Related pages
 

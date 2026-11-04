@@ -6,7 +6,12 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from accounts.models import Organization
-from domains.models import Domain, canonicalize_domain_name, validate_domain_name
+from domains.models import (
+    Domain,
+    canonicalize_domain_name,
+    validate_domain_name,
+    validate_mta_sts_mx_hosts,
+)
 from kms import keys
 
 
@@ -39,6 +44,33 @@ class TestValidateDomainName:
     def test_validate_domain_name__rejects_leading_hyphen(self):
         with pytest.raises(ValidationError):
             validate_domain_name("-example.com")
+
+
+class TestValidateMtaStsMxHosts:
+    def test_validate_mta_sts_mx_hosts__accepts_hostnames(self):
+        validate_mta_sts_mx_hosts(["mx1.example.com", "mx2.example.com"])
+
+    def test_validate_mta_sts_mx_hosts__accepts_wildcard(self):
+        validate_mta_sts_mx_hosts(["*.example.com"])
+
+    def test_validate_mta_sts_mx_hosts__rejects_trailing_dot(self):
+        with pytest.raises(ValidationError):
+            validate_mta_sts_mx_hosts(["mx1.example.com."])
+
+    def test_validate_mta_sts_mx_hosts__accepts_empty_list(self):
+        validate_mta_sts_mx_hosts([])
+
+    def test_validate_mta_sts_mx_hosts__rejects_embedded_wildcard(self):
+        with pytest.raises(ValidationError):
+            validate_mta_sts_mx_hosts(["mx*.example.com"])
+
+    def test_validate_mta_sts_mx_hosts__rejects_string(self):
+        with pytest.raises(ValidationError):
+            validate_mta_sts_mx_hosts("mx1.example.com")
+
+    def test_validate_mta_sts_mx_hosts__rejects_non_string_item(self):
+        with pytest.raises(ValidationError):
+            validate_mta_sts_mx_hosts([10])
 
 
 class TestGenerateRsaPrivateKey:
@@ -338,6 +370,60 @@ class TestMtaStsRecord:
     def test_mta_sts_record__includes_policy_id(self):
         record = Domain(name="example.com").mta_sts_record
         assert "id=" in record
+
+    def test_mta_sts_record__uses_domain_policy_id(self):
+        domain = Domain(name="example.com", mta_sts_mx_hostnames=["mx1.other.com"])
+        assert domain.mta_sts_record == f"v=STSv1; id={domain.mta_sts_policy_id}"
+
+
+class TestMtaStsMxHosts:
+    def test_mta_sts_mx_hosts__uses_mx_record_hostnames(self, settings):
+        settings.DNS_MX_HOSTNAMES = ["mx1.example.com"]
+
+        assert Domain(name="example.com").mta_sts_mx_hosts == ["mx1.example.com"]
+
+    def test_mta_sts_mx_hosts__uses_explicit_hostnames(self):
+        domain = Domain(
+            name="example.com",
+            mta_sts_mx_hostnames=["mx1.other.com", "*.mx2.other.com"],
+        )
+
+        assert domain.mta_sts_mx_hosts == ["mx1.other.com", "*.mx2.other.com"]
+
+
+class TestMtaStsPolicyId:
+    def test_mta_sts_policy_id__is_alphanumeric_and_short(self):
+        policy_id = Domain(name="example.com").mta_sts_policy_id
+
+        assert policy_id.isalnum()
+        assert len(policy_id) <= 32
+
+    def test_mta_sts_policy_id__is_stable_for_same_policy(self):
+        domain = Domain(name="example.com")
+
+        assert domain.mta_sts_policy_id == domain.mta_sts_policy_id
+
+    def test_mta_sts_policy_id__changes_with_explicit_hostnames(self):
+        first = Domain(name="example.com", mta_sts_mx_hostnames=["mx1.other.com"])
+        second = Domain(name="example.com", mta_sts_mx_hostnames=["mx2.other.com"])
+
+        assert first.mta_sts_policy_id != second.mta_sts_policy_id
+
+    def test_mta_sts_policy_id__changes_with_mode(self, settings):
+        settings.MTA_STS_MODE = "testing"
+        first = Domain(name="example.com").mta_sts_policy_id
+
+        settings.MTA_STS_MODE = "enforce"
+
+        assert first != Domain(name="example.com").mta_sts_policy_id
+
+    def test_mta_sts_policy_id__changes_with_max_age(self, settings):
+        settings.MTA_STS_MAX_AGE = 86400
+        first = Domain(name="example.com").mta_sts_policy_id
+
+        settings.MTA_STS_MAX_AGE = 604800
+
+        assert first != Domain(name="example.com").mta_sts_policy_id
 
 
 class TestDmarcRecord:

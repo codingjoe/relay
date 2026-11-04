@@ -82,9 +82,13 @@ no action: relay hosts the whole zone, so it serves the policy host and the
 certificate as well.
 
 The policy document sets `mode: enforce`, a max-age of 7 days, and the relay
-MX hostnames as the only valid delivery targets. The policy id changes when
-the policy changes. A sender that caches the policy therefore trusts relay
-MX names and rejects downgrade attempts for your domain.
+MX hostnames as the only valid delivery targets. If your domain receives mail
+elsewhere, open the domain page and list those MX hosts in the MTA-STS
+settings. The field accepts one host per line and RFC 8461 wildcard patterns
+such as `*.example.com`. An empty field follows the MX record hostnames. The
+policy id changes when you change the list. A sender that caches the policy
+therefore trusts the listed MX names and rejects downgrade attempts for your
+domain.
 
 ## DMARC: consent on the receiving side
 

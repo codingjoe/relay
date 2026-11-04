@@ -24,6 +24,11 @@ CHECK_LABELS = {
     "tls_rpt": "TLS-RPT",
 }
 
+CHECK_ERRORS = {
+    "dmarc": _("DMARC record or reporting addresses not found or incorrect."),
+    "mta_sts": _("MTA-STS record or MX hosts not found or incorrect."),
+}
+
 
 def parse_mta_sts_txt_record(value):
     """Return valid MTA-STS tags, or `None` for a malformed record."""
@@ -71,14 +76,39 @@ def verify_nameserver_delegation(domain):
 def check_dmarc(domain):
     try:
         txt_records = dns.resolver.resolve(domain.dmarc_record_name, "TXT")
-        return any(
-            "".join(
-                s.decode() if isinstance(s, bytes) else s for s in r.strings
-            ).startswith("v=DMARC1")
-            for r in txt_records
-        )
     except dns.exception.DNSException:
         return False
+
+    dmarc_records = []
+    for record in txt_records:
+        value = "".join(
+            string.decode() if isinstance(string, bytes) else string
+            for string in record.strings
+        )
+        if value.startswith("v=DMARC1"):
+            dmarc_records.append(value)
+    if len(dmarc_records) != 1:
+        return False
+
+    tags = {}
+    for field in dmarc_records[0].split(";"):
+        name, separator, value = field.partition("=")
+        if separator:
+            tags[name.strip().lower()] = value.strip()
+
+    def parse_reporting_addresses(tag):
+        return {
+            uri.strip().split("!", 1)[0].lower()
+            for uri in tags.get(tag, "").split(",")
+            if uri.strip()
+        }
+
+    return (
+        f"mailto:{domain.dmarc_reporting_address}".lower()
+        in parse_reporting_addresses("rua")
+        and f"mailto:{domain.dmarc_ruf_reporting_address}".lower()
+        in parse_reporting_addresses("ruf")
+    )
 
 
 def check_spf(domain):
@@ -120,8 +150,31 @@ def check_mx(domain):
     )
 
 
+def matches_mta_sts_mx_pattern(hostname, pattern):
+    """Return whether an MX hostname matches an MTA-STS mx pattern."""
+    hostname = hostname.rstrip(".").lower()
+    pattern = pattern.rstrip(".").lower()
+    if pattern.startswith("*."):
+        label, _, suffix = hostname.partition(".")
+        matches = bool(label) and suffix == pattern.removeprefix("*.")
+    else:
+        matches = hostname == pattern
+    return matches
+
+
 def check_mta_sts(domain):
     try:
+        mx_records = dns.resolver.resolve(domain.name, "MX")
+        mx_hosts = {str(record.exchange).rstrip(".").lower() for record in mx_records}
+        if not mx_hosts or not all(
+            any(
+                matches_mta_sts_mx_pattern(hostname, pattern)
+                for pattern in domain.mta_sts_mx_hosts
+            )
+            for hostname in mx_hosts
+        ):
+            return False
+
         txt_records = dns.resolver.resolve(domain.mta_sts_record_name, "TXT")
         candidate_records = []
         for txt_record in txt_records:
@@ -201,8 +254,11 @@ def verify_domain_dns(domain):
                 f"{field}_error",
                 ""
                 if ok
-                else _("%(name)s record not found or incorrect.")
-                % {"name": CHECK_LABELS[field]},
+                else CHECK_ERRORS.get(
+                    field,
+                    _("%(name)s record not found or incorrect.")
+                    % {"name": CHECK_LABELS[field]},
+                ),
             )
         except dns.exception.DNSException as error:
             setattr(domain, f"{field}_status", Domain.Status.ERROR)
