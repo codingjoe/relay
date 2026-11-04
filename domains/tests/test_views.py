@@ -294,24 +294,19 @@ class TestDomainDetailView:
         assert response.status_code == 200
         assert response.headers["ETag"] != etag
 
-    def test_get__warns_about_apex_ns_delegation(self, admin_client, org):
-        domain = Domain.objects.create(name="example.com", org=org)
-        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
-        assert b"apex delegation replaces the current DNS service" in response.content
-        assert (
-            b"Websites and other services on this domain will stop" in response.content
-        )
-
     def test_get__groups_records_into_one_tab_per_purpose(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+        content = response.content.decode()
 
-        assert b'id="domain-dns-tab-sending"' in response.content
-        assert b'id="domain-dns-tab-receiving"' in response.content
-        assert b'id="domain-dns-tab-reporting"' in response.content
-        assert b'id="domain-dns-tab-delegation"' in response.content
+        assert 'id="domain-dns-tab-sending"' in content
+        assert 'id="domain-dns-tab-receiving"' in content
+        assert 'id="domain-dns-tab-reporting"' in content
+        prerequisite = content.split('role="tabpanel"')[0]
+        for ns in settings.DNS_NS_NAMESERVERS:
+            assert f"<code>{ns}.</code>" in prerequisite
         for mx_hostname in settings.DNS_MX_HOSTNAMES:
-            assert f'value="{mx_hostname}."'.encode() in response.content
+            assert f'value="{mx_hostname}."' in content
 
     def test_get__renders_each_record_group_in_its_own_tab(
         self, admin_client, org, dns_resolver
@@ -320,9 +315,8 @@ class TestDomainDetailView:
         verify_dns(admin_client, org, domain, dns_resolver, ALL_CHECK_FIELDS)
 
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
-        sending, receiving, reporting, delegation = response.content.decode().split(
-            'role="tabpanel"'
-        )[1:]
+        content = response.content.decode()
+        sending, receiving, reporting = content.split('role="tabpanel"')[1:]
 
         tabs = {
             sending: (
@@ -343,15 +337,16 @@ class TestDomainDetailView:
                 "<label>TLS-RPT</label>",
                 domain.tls_rpt_record,
             ),
-            delegation: (
-                "<label>NS</label>",
-                f'value="{domain.sender_domain.removesuffix(f".{domain.name}")}"',
-            ),
         }
         for tab, records in tabs.items():
             for record in records:
                 assert record in tab
                 assert sum(record in other for other in tabs) == 1
+
+        prerequisite = content.split('role="tabpanel"')[0]
+        for ns in settings.DNS_NS_NAMESERVERS:
+            assert f"<code>{ns}.</code>" in prerequisite
+            assert sum(f"<code>{ns}.</code>" in tab for tab in tabs) == 0
 
     def test_get__renders_passing_check_status(self, admin_client, org, dns_resolver):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -386,7 +381,7 @@ class TestDomainDetailView:
         assert b"Sending" in response.content
         assert b"Receiving" in response.content
         assert b"Reporting" in response.content
-        assert b"Delegation" in response.content
+        assert b"Service prerequisite" in response.content
         assert b"Not verified" not in response.content
         assert b"Not ready" not in response.content
         assert b"Not set up" not in response.content
@@ -399,7 +394,7 @@ class TestDomainDetailView:
         assert b"Sending" in response.content
         assert b"Receiving" in response.content
         assert b"Reporting" in response.content
-        assert b"Delegation" in response.content
+        assert b"Service prerequisite" in response.content
         assert response.content.count(b"Not set up") == 4
 
     def test_get__sending_tab_fails_while_a_record_is_missing(

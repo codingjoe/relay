@@ -37,11 +37,33 @@
     </form>
   </header>
 
+  <div class="mb-6 flex flex-col gap-2">
+    <p class="text-muted-foreground">
+      <strong class="text-foreground">{% translate "service prerequisite"|capfirst %}:</strong>
+      {% blocktranslate trimmed with sender_domain=domain.sender_domain %}
+        Delegate the sender subdomain {{ sender_domain }} to our nameservers. Sending and reporting both depend on it,
+        because the SPF include, the DKIM CNAME targets, and the reporting addresses live in that subdomain.
+      {% endblocktranslate %}
+    </p>
+    <div class="flex items-center gap-2 flex-wrap text-sm">
+      {% include "domains/_status_mark.html" with passing=domain.delegation_checks_passing total=domain.DELEGATION_CHECK_FIELDS|length only %}
+      {% translate "copy nameserver" as copy_nameserver_label %}
+      {% for ns in nameservers %}
+        <span class="inline-flex items-center gap-1">
+          <code>{{ ns }}.</code>
+          {% include "abstract/copy_button.html" with value=ns|add:"." size="icon-xs" label=copy_nameserver_label|capfirst %}
+        </span>
+      {% endfor %}
+    </div>
+    {% if domain.nameserver_error %}
+      <p class="text-sm text-destructive">{{ domain.nameserver_error }}</p>
+    {% endif %}
+  </div>
+
   <p class="text-muted-foreground mb-6">
     {% blocktranslate trimmed %}
-      Delegate the sender subdomain, then publish the sending records to send email from this domain. Add the receiving
-      records to take inbound mail and the reporting records to authenticate your domain and collect reports. Relaxed
-      DMARC alignment covers all subdomains.
+      Publish the sending records to send email from this domain. Add the receiving records to take inbound mail and the
+      reporting records to authenticate your domain and collect reports. Relaxed DMARC alignment covers all subdomains.
     {% endblocktranslate %}
   </p>
 
@@ -56,7 +78,7 @@
         tabindex="0"
       >
         {% translate "sending"|capfirst %}
-        {% include "domains/_tab_status.html" with passing=domain.sending_checks_passing total=domain.SENDING_READINESS_FIELDS|length only %}
+        {% include "domains/_status_mark.html" with passing=domain.sending_checks_passing total=domain.SENDING_READINESS_FIELDS|length only %}
       </button>
       <button
         type="button"
@@ -67,7 +89,7 @@
         tabindex="-1"
       >
         {% translate "receiving"|capfirst %}
-        {% include "domains/_tab_status.html" with passing=domain.receiving_checks_passing total=domain.RECEIVING_CHECK_FIELDS|length only %}
+        {% include "domains/_status_mark.html" with passing=domain.receiving_checks_passing total=domain.RECEIVING_CHECK_FIELDS|length only %}
       </button>
       <button
         type="button"
@@ -78,18 +100,7 @@
         tabindex="-1"
       >
         {% translate "reporting"|capfirst %}
-        {% include "domains/_tab_status.html" with passing=domain.reporting_checks_passing total=domain.REPORTING_READINESS_FIELDS|length only %}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id="domain-dns-tab-delegation"
-        aria-controls="domain-dns-panel-delegation"
-        aria-selected="false"
-        tabindex="-1"
-      >
-        {% translate "delegation"|capfirst %}
-        {% include "domains/_tab_status.html" with passing=domain.delegation_checks_passing total=domain.DELEGATION_CHECK_FIELDS|length only %}
+        {% include "domains/_status_mark.html" with passing=domain.reporting_checks_passing total=domain.REPORTING_READINESS_FIELDS|length only %}
       </button>
     </nav>
 
@@ -264,55 +275,6 @@
               {% include "domains/_record_value.html" with record_value=domain.tls_rpt_record quote=True %}
             </div>
           </div>
-        </div>
-      </section>
-    </div>
-
-    <div
-      role="tabpanel"
-      id="domain-dns-panel-delegation"
-      aria-labelledby="domain-dns-tab-delegation"
-      tabindex="-1"
-      hidden
-    >
-      <section class="card p-6">
-        <p class="text-sm text-muted-foreground">
-          {% blocktranslate trimmed %}
-            Delegate the sender subdomain to relay. Sending and reporting both depend on this delegation: the SPF
-            include, the DKIM CNAME targets, and the DMARC and TLS-RPT reporting addresses all live in this subdomain.
-          {% endblocktranslate %}
-        </p>
-        <div role="group" class="field">
-          {% include "domains/_check_status.html" with status=domain.nameserver_status error=domain.nameserver_error label="NS" %}
-          <p class="text-sm text-muted-foreground">
-            {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
-          </p>
-          {% for ns in nameservers %}
-            <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-              {% include "domains/_record_name.html" with record_type="NS" record_name=domain.sender_domain %}
-              {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
-            </div>
-          {% endfor %}
-        </div>
-
-        <div class="flex flex-col gap-3 border-t border-border pt-6">
-          <h3 class="m-0 text-sm font-semibold">{% translate "apex NS delegation"|capfirst %}</h3>
-          <div class="alert" data-variant="destructive">
-            {% tabler name="alert-triangle" %}
-            <h2>{% translate "DNS warning" %}</h2>
-            <section>
-              <p>{% translate "Caution: apex delegation replaces the current DNS service for this domain." %}</p>
-              <p>
-                {% translate "We serve email records only. Websites and other services on this domain will stop." %}
-              </p>
-            </section>
-          </div>
-          {% for ns in nameservers %}
-            <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-              {% include "domains/_record_name.html" with record_type="NS" record_name=domain.name %}
-              {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
-            </div>
-          {% endfor %}
         </div>
       </section>
     </div>
