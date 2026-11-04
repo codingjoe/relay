@@ -302,30 +302,30 @@ class TestDomainDetailView:
             b"Websites and other services on this domain will stop" in response.content
         )
 
-    def test_get__groups_records_into_one_section_per_badge(self, admin_client, org):
+    def test_get__groups_records_into_one_tab_per_purpose(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"<summary>Sending</summary>" in response.content
-        assert b"<summary>Receiving</summary>" in response.content
-        assert b"<summary>Reporting</summary>" in response.content
+        assert b'id="domain-dns-tab-sending"' in response.content
+        assert b'id="domain-dns-tab-receiving"' in response.content
+        assert b'id="domain-dns-tab-reporting"' in response.content
+        assert b'id="domain-dns-tab-delegation"' in response.content
         for mx_hostname in settings.DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."'.encode() in response.content
 
-    def test_get__renders_each_record_group_in_its_own_section(
+    def test_get__renders_each_record_group_in_its_own_tab(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
         verify_dns(admin_client, org, domain, dns_resolver, ALL_CHECK_FIELDS)
 
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
-        sending, receiving, reporting, _apex = response.content.decode().split(
-            "<summary>"
+        sending, receiving, reporting, delegation = response.content.decode().split(
+            'role="tabpanel"'
         )[1:]
 
-        sections = {
+        tabs = {
             sending: (
-                "<label>NS</label>",
                 domain.root_spf_record,
                 domain.dkim_cnames["dkim_rsa2048"][1],
                 domain.dkim_cnames["dkim_ed25519"][1],
@@ -343,11 +343,15 @@ class TestDomainDetailView:
                 "<label>TLS-RPT</label>",
                 domain.tls_rpt_record,
             ),
+            delegation: (
+                "<label>NS</label>",
+                f'value="{domain.sender_domain.removesuffix(f".{domain.name}")}"',
+            ),
         }
-        for section, records in sections.items():
+        for tab, records in tabs.items():
             for record in records:
-                assert record in section
-                assert sum(record in other for other in sections) == 1
+                assert record in tab
+                assert sum(record in other for other in tabs) == 1
 
     def test_get__renders_passing_check_status(self, admin_client, org, dns_resolver):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -370,7 +374,9 @@ class TestDomainDetailView:
         assert b"Failing" in response.content
         assert b"NS record not found or incorrect." in response.content
 
-    def test_get__badges_name_every_group_ready(self, admin_client, org, dns_resolver):
+    def test_get__tab_status_names_every_group_ready(
+        self, admin_client, org, dns_resolver
+    ):
         domain = Domain.objects.create(name="example.com", org=org)
         publish_dns_records(dns_resolver, domain, ALL_CHECK_FIELDS)
         admin_client.post(f"/org/{org.slug}/email/domains/{domain.pk}/verify")
@@ -380,20 +386,23 @@ class TestDomainDetailView:
         assert b"Sending" in response.content
         assert b"Receiving" in response.content
         assert b"Reporting" in response.content
-        assert b"not verified" not in response.content
-        assert b"not ready" not in response.content
-        assert b"not set up" not in response.content
+        assert b"Delegation" in response.content
+        assert b"Not verified" not in response.content
+        assert b"Not ready" not in response.content
+        assert b"Not set up" not in response.content
 
-    def test_get__badges_name_every_group_unpublished(self, admin_client, org):
+    def test_get__tab_status_names_every_group_unpublished(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
 
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"Sending not set up" in response.content
-        assert b"Receiving not set up" in response.content
-        assert b"Reporting not set up" in response.content
+        assert b"Sending" in response.content
+        assert b"Receiving" in response.content
+        assert b"Reporting" in response.content
+        assert b"Delegation" in response.content
+        assert response.content.count(b"Not set up") == 4
 
-    def test_get__sending_badge_fails_while_a_record_is_missing(
+    def test_get__sending_tab_fails_while_a_record_is_missing(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -402,9 +411,9 @@ class TestDomainDetailView:
 
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"Sending not verified" in response.content
+        assert b"Not verified" in response.content
 
-    def test_get__reporting_badge_fails_while_a_record_is_missing(
+    def test_get__reporting_tab_fails_while_a_record_is_missing(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -417,7 +426,7 @@ class TestDomainDetailView:
 
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-        assert b"Reporting not verified" in response.content
+        assert b"Not verified" in response.content
 
     def test_get__not_found_for_managed_domain(self, admin_client, org):
         domain = Domain.objects.get(org=org, is_managed=True)
@@ -443,22 +452,22 @@ class TestDomainVerifyView:
         assert response.status_code == 302
         assert response.url.endswith(f"/org/{org.slug}/email/domains/{domain.pk}/")
 
-    def test_post__nothing_published_reports_sending_not_set_up(
+    def test_post__nothing_published_reports_delegation_not_set_up(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
 
         assert verify_dns(admin_client, org, domain, dns_resolver, ()) == [
-            ("info", "sending verification is not set up yet.")
+            ("info", "delegation verification is not set up yet.")
         ]
 
-    def test_post__sending_started_reports_failing_count(
+    def test_post__delegation_published_reports_sending_not_set_up(
         self, admin_client, org, dns_resolver
     ):
         domain = Domain.objects.create(name="example.com", org=org)
 
         assert verify_dns(admin_client, org, domain, dns_resolver, ("nameserver",)) == [
-            ("error", "sending verification failed: 3 of 4 checks are still failing.")
+            ("info", "sending verification is not set up yet.")
         ]
 
     def test_post__sending_quick_start_reports_failing_count(
@@ -473,7 +482,7 @@ class TestDomainVerifyView:
             dns_resolver,
             QUICK_START_FIELDS,
         ) == [
-            ("error", "sending verification failed: 1 of 4 checks are still failing.")
+            ("error", "sending verification failed: 1 of 3 checks are still failing.")
         ]
 
     def test_post__sending_published_reports_receiving_not_set_up(

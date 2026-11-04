@@ -90,8 +90,9 @@ class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.Deta
 
 
 class DomainVerifyView(OrganizationScopedView, generic.View):
-    # The three exclusive record groups, in badge order.
+    # The record groups, in verification order.
     TIERS = (
+        (_("delegation"), Domain.DELEGATION_CHECK_FIELDS),
         (_("sending"), Domain.SENDING_CHECK_FIELDS),
         (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
         (_("reporting"), Domain.REPORTING_CHECK_FIELDS),

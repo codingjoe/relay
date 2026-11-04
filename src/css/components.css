@@ -155,6 +155,14 @@
   }
 }
 
+/* The domain record tabs wrap on narrow screens instead of widening the page. */
+.domain-record-tabs > [role="tablist"] {
+  height: auto;
+  max-width: 100%;
+  flex-wrap: wrap;
+  row-gap: calc(var(--spacing) * 0.5);
+}
+
 /* Restore the admin shell and native controls after basecoat's resets. */
 :where(html:has(body.admin), body.admin, body.admin *, body.admin *::before, body.admin *::after) {
   box-sizing: content-box;

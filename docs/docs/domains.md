@@ -77,20 +77,23 @@ flowchart TD
     H --> I[Nameserver serves the DNS now]
 ```
 
-Verification reads the live DNS and splits the result into three
-independent purposes:
+Verification reads the live DNS and splits the result into four purposes:
 
-- Sending: NS delegation on the sender subdomain, SPF authorization, and
-  the two DKIM CNAMEs. The Ed25519 record is hardening.
+- Delegation: NS delegation on the sender subdomain. Sending and reporting
+  both depend on it, because the SPF include, the DKIM CNAME targets, and
+  the DMARC and TLS-RPT reporting addresses live in that subdomain.
+- Sending: SPF authorization and the two DKIM CNAMEs. The Ed25519 record is
+  hardening.
 - Receiving: the MX record at the root.
 - Reporting: the DMARC record with relay reporting addresses, the MTA-STS
   TXT and CNAME records with live MX hosts matching the policy, and the
   TLS-RPT record with the relay reporting address.
 
-Each purpose verifies on its own. Publish only the sending records and the
-domain shows sending verified while receiving and reporting read as not set
-up. Checks run per record, and the dashboard shows each of them, so a wrong
-record is identifiable. Re-check at any time.
+Each tab shows its own records, and the delegation check counts toward both
+sending and reporting readiness. Publish the delegation and the sending
+records and the domain shows sending verified while receiving and reporting
+still need setup. Checks run per record, and the dashboard shows each of
+them, so a wrong record is identifiable. Re-check at any time.
 
 ## What the nameserver serves
 

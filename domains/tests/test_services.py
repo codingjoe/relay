@@ -614,6 +614,7 @@ class TestVerifyDomainDns:
         assert {
             field: getattr(domain, f"{field}_error")
             for field in (
+                *Domain.DELEGATION_CHECK_FIELDS,
                 *Domain.SENDING_CHECK_FIELDS,
                 *Domain.RECEIVING_CHECK_FIELDS,
                 *Domain.REPORTING_CHECK_FIELDS,

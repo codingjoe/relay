@@ -5,16 +5,13 @@
   <header class="flex items-center justify-between gap-4 mb-6">
     <div class="min-w-0">
       <h2 class="m-0">{{ domain.name }}</h2>
-      <p class="m-0 mt-2 flex items-center gap-2 flex-wrap text-sm">
-        {% include "domains/_purpose_badges.html" %}
-        {% if domain.dns_checked_at %}
-          <span class="text-muted-foreground">
-            {% blocktranslate with checked_at=domain.dns_checked_at|date:"DATETIME_FORMAT" trimmed %}
-              Last DNS check: {{ checked_at }}
-            {% endblocktranslate %}
-          </span>
-        {% endif %}
-      </p>
+      {% if domain.dns_checked_at %}
+        <p class="m-0 mt-2 text-sm text-muted-foreground">
+          {% blocktranslate with checked_at=domain.dns_checked_at|date:"DATETIME_FORMAT" trimmed %}
+            Last DNS check: {{ checked_at }}
+          {% endblocktranslate %}
+        </p>
+      {% endif %}
     </div>
     <form method="post">
       {% csrf_token %}
@@ -42,35 +39,74 @@
 
   <p class="text-muted-foreground mb-6">
     {% blocktranslate trimmed %}
-      Publish the sending records to send email from this domain. Add the receiving records to take inbound mail and the
-      reporting records to authenticate your domain and collect reports. Relaxed DMARC alignment covers all subdomains.
+      Delegate the sender subdomain, then publish the sending records to send email from this domain. Add the receiving
+      records to take inbound mail and the reporting records to authenticate your domain and collect reports. Relaxed
+      DMARC alignment covers all subdomains.
     {% endblocktranslate %}
   </p>
 
-  <section class="accordion mb-6">
-    <details open>
-      <summary>{% translate "sending"|capfirst %}</summary>
-      <section>
-        <p class="text-sm text-muted-foreground mb-4">
+  <div class="tabs domain-record-tabs mb-6" id="domain-dns-tabs">
+    <nav role="tablist" aria-orientation="horizontal">
+      <button
+        type="button"
+        role="tab"
+        id="domain-dns-tab-sending"
+        aria-controls="domain-dns-panel-sending"
+        aria-selected="true"
+        tabindex="0"
+      >
+        {% translate "sending"|capfirst %}
+        {% include "domains/_tab_status.html" with passing=domain.sending_checks_passing total=domain.SENDING_READINESS_FIELDS|length only %}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="domain-dns-tab-receiving"
+        aria-controls="domain-dns-panel-receiving"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        {% translate "receiving"|capfirst %}
+        {% include "domains/_tab_status.html" with passing=domain.receiving_checks_passing total=domain.RECEIVING_CHECK_FIELDS|length only %}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="domain-dns-tab-reporting"
+        aria-controls="domain-dns-panel-reporting"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        {% translate "reporting"|capfirst %}
+        {% include "domains/_tab_status.html" with passing=domain.reporting_checks_passing total=domain.REPORTING_READINESS_FIELDS|length only %}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="domain-dns-tab-delegation"
+        aria-controls="domain-dns-panel-delegation"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        {% translate "delegation"|capfirst %}
+        {% include "domains/_tab_status.html" with passing=domain.delegation_checks_passing total=domain.DELEGATION_CHECK_FIELDS|length only %}
+      </button>
+    </nav>
+
+    <div
+      role="tabpanel"
+      id="domain-dns-panel-sending"
+      aria-labelledby="domain-dns-tab-sending"
+      tabindex="-1"
+    >
+      <section class="card p-6">
+        <p class="text-sm text-muted-foreground">
           {% blocktranslate trimmed %}
-            Delegate the sender subdomain and publish the records below, then verify DNS again. This is everything this
-            domain needs to send authenticated email.
+            Publish the SPF and DKIM records below, then verify DNS again. This is everything this domain needs to send
+            authenticated email once the sender subdomain is delegated.
           {% endblocktranslate %}
         </p>
         <div class="flex flex-col gap-4">
-          <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.nameserver_status error=domain.nameserver_error label="NS" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
-            </p>
-            {% for ns in nameservers %}
-              <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-                {% include "domains/_record_name.html" with record_type="NS" record_name=domain.sender_domain %}
-                {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
-              </div>
-            {% endfor %}
-          </div>
-
           <div role="group" class="field">
             {% include "domains/_check_status.html" with status=domain.spf_status error=domain.spf_error label="SPF" badge="spf" %}
             <p class="text-sm text-muted-foreground">
@@ -113,12 +149,17 @@
           </div>
         </div>
       </section>
-    </details>
+    </div>
 
-    <details>
-      <summary>{% translate "receiving"|capfirst %}</summary>
-      <section>
-        <p class="text-sm text-muted-foreground mb-4">
+    <div
+      role="tabpanel"
+      id="domain-dns-panel-receiving"
+      aria-labelledby="domain-dns-tab-receiving"
+      tabindex="-1"
+      hidden
+    >
+      <section class="card p-6">
+        <p class="text-sm text-muted-foreground">
           {% blocktranslate trimmed %}
             Point the MX record at relay, then verify DNS again. A sending-only domain can leave this record out.
           {% endblocktranslate %}
@@ -146,15 +187,21 @@
           </div>
         </div>
       </section>
-    </details>
+    </div>
 
-    <details>
-      <summary>{% translate "reporting"|capfirst %}</summary>
-      <section>
-        <p class="text-sm text-muted-foreground mb-4">
+    <div
+      role="tabpanel"
+      id="domain-dns-panel-reporting"
+      aria-labelledby="domain-dns-tab-reporting"
+      tabindex="-1"
+      hidden
+    >
+      <section class="card p-6">
+        <p class="text-sm text-muted-foreground">
           {% blocktranslate trimmed %}
             Publish the DMARC, MTA-STS, and TLS-RPT records to authenticate your domain, enforce TLS, and collect
-            reports. A sending-only domain can leave these records out.
+            reports. The reporting addresses live on the sender subdomain, so the delegation must be in place for them
+            to work. A sending-only domain can leave these records out.
           {% endblocktranslate %}
         </p>
         <div class="flex flex-col gap-4">
@@ -219,26 +266,55 @@
           </div>
         </div>
       </section>
-    </details>
+    </div>
 
-    <details>
-      <summary>{% translate "apex NS delegation"|capfirst %}</summary>
-      <section>
-        <div class="alert mb-4" data-variant="destructive">
-          {% tabler name="alert-triangle" %}
-          <h2>{% translate "DNS warning" %}</h2>
-          <section>
-            <p>{% translate "Caution: apex delegation replaces the current DNS service for this domain." %}</p>
-            <p>{% translate "We serve email records only. Websites and other services on this domain will stop." %}</p>
-          </section>
+    <div
+      role="tabpanel"
+      id="domain-dns-panel-delegation"
+      aria-labelledby="domain-dns-tab-delegation"
+      tabindex="-1"
+      hidden
+    >
+      <section class="card p-6">
+        <p class="text-sm text-muted-foreground">
+          {% blocktranslate trimmed %}
+            Delegate the sender subdomain to relay. Sending and reporting both depend on this delegation: the SPF
+            include, the DKIM CNAME targets, and the DMARC and TLS-RPT reporting addresses all live in this subdomain.
+          {% endblocktranslate %}
+        </p>
+        <div role="group" class="field">
+          {% include "domains/_check_status.html" with status=domain.nameserver_status error=domain.nameserver_error label="NS" %}
+          <p class="text-sm text-muted-foreground">
+            {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
+          </p>
+          {% for ns in nameservers %}
+            <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
+              {% include "domains/_record_name.html" with record_type="NS" record_name=domain.sender_domain %}
+              {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
+            </div>
+          {% endfor %}
         </div>
-        {% for ns in nameservers %}
-          <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-            {% include "domains/_record_name.html" with record_type="NS" record_name=domain.name %}
-            {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
+
+        <div class="flex flex-col gap-3 border-t border-border pt-6">
+          <h3 class="m-0 text-sm font-semibold">{% translate "apex NS delegation"|capfirst %}</h3>
+          <div class="alert" data-variant="destructive">
+            {% tabler name="alert-triangle" %}
+            <h2>{% translate "DNS warning" %}</h2>
+            <section>
+              <p>{% translate "Caution: apex delegation replaces the current DNS service for this domain." %}</p>
+              <p>
+                {% translate "We serve email records only. Websites and other services on this domain will stop." %}
+              </p>
+            </section>
           </div>
-        {% endfor %}
+          {% for ns in nameservers %}
+            <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
+              {% include "domains/_record_name.html" with record_type="NS" record_name=domain.name %}
+              {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
+            </div>
+          {% endfor %}
+        </div>
       </section>
-    </details>
-  </section>
+    </div>
+  </div>
 {% endblock %}
