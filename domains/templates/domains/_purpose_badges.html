@@ -1,5 +1,5 @@
 {% load abstract i18n %}
-{% with total=domain.SENDING_CHECK_FIELDS|length passing=domain.sending_checks_passing %}
+{% with total=domain.SENDING_READINESS_FIELDS|length passing=domain.sending_checks_passing %}
   {% if passing == total %}
     <span class="badge" data-size="sm">
       {% tabler name="circle-check" size="3.5" %}
@@ -30,7 +30,7 @@
     </span>
   {% endif %}
 {% endwith %}
-{% with total=domain.REPORTING_CHECK_FIELDS|length passing=domain.reporting_checks_passing %}
+{% with total=domain.REPORTING_READINESS_FIELDS|length passing=domain.reporting_checks_passing %}
   {% if passing == total %}
     <span class="badge" data-size="sm">
       {% tabler name="circle-check" size="3.5" %}

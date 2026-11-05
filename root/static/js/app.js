@@ -7,6 +7,26 @@ function sharePage() {
   if (navigator.share) navigator.share({ title: document.title, url }).catch(() => {});
 }
 
+let copyToast;
+
+function copyText(value) {
+  const written = navigator.clipboard?.writeText(value);
+  if (!written) return;
+  written.then(
+    () => {
+      const toaster = document.getElementById("toaster");
+      if (!toaster?.toast) return;
+      copyToast?.close?.();
+      copyToast = toaster.toast({
+        category: "success",
+        title: toaster.dataset.copiedMessage ?? "Copied",
+        duration: 2000,
+      });
+    },
+    () => {},
+  );
+}
+
 class Action {
   static names = ["dialog", "dialog-close", "copy", "share", "href", "toggle"];
 
@@ -48,7 +68,7 @@ class Action {
   }
 
   copy() {
-    navigator.clipboard?.writeText(this.trigger.dataset.copy);
+    copyText(this.trigger.dataset.copy);
   }
 
   share() {
@@ -90,6 +110,16 @@ document.addEventListener("focusin", (event) => {
     event.target.hasAttribute("data-select")
   ) {
     event.target.select();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (
+    event.target instanceof HTMLInputElement &&
+    event.target.hasAttribute("data-select")
+  ) {
+    event.target.select();
+    copyText(event.target.dataset.copyValue ?? event.target.value);
   }
 });
 

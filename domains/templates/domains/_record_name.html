@@ -1,11 +1,10 @@
-{% load abstract i18n %}
-<span data-align="start">{{ record_type }}</span>
+{% load abstract %}
+<span data-align="start" class="min-w-14">{{ record_type }}</span>
 <input
-  class="max-sm:basis-[calc(100%-2.75rem)] text-right"
+  class="record-input text-right sm:w-64 sm:min-w-64"
   type="text"
   readonly
-  value="{{ record_name|relative_record_name:domain }}"
+  value="{{ record_name }}"
   data-select
+  data-copy-value="{{ record_name|relative_record_name:domain }}"
 >
-<span class="select-none ps-1 text-sm text-muted-foreground empty:hidden">{{ record_name|apex_suffix:domain }}</span>
-{% include "abstract/copy_button.html" with value=record_name|relative_record_name:domain size="icon-xs" label=_("copy name")|capfirst %}

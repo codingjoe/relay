@@ -17,6 +17,7 @@ from . import resolver
 from .forms import DomainCreateForm, DomainMtaStsForm
 from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
+from .zonefile import build_zone_file
 
 
 class DomainListView(OrganizationScopedView, ConditionalGetListMixin, generic.ListView):
@@ -89,9 +90,36 @@ class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.Deta
         return response
 
 
+class DomainZoneFileView(OrganizationScopedView, generic.View):
+    def get(self, request, org_slug, pk, group, *args, **kwargs):
+        domain = get_object_or_404(
+            Domain,
+            org=self.org,
+            is_managed=False,
+            pk=pk,
+        )
+        platform = request.get_host().split(":")[0]
+        try:
+            content = build_zone_file(
+                domain,
+                group,
+                nameservers=[f"ns1.{platform}", f"ns2.{platform}"],
+                mx_hostnames=settings.DNS_MX_HOSTNAMES,
+                mx_priority=resolver.DNSResolver.MX_PRIORITY,
+            )
+        except ValueError as error:
+            raise Http404 from error
+        response = HttpResponse(content, content_type="text/plain; charset=utf-8")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{domain.name}-{group}.zone"'
+        )
+        return response
+
+
 class DomainVerifyView(OrganizationScopedView, generic.View):
-    # The three exclusive record groups, in badge order.
+    # The record groups, in verification order.
     TIERS = (
+        (_("delegation"), Domain.DELEGATION_CHECK_FIELDS),
         (_("sending"), Domain.SENDING_CHECK_FIELDS),
         (_("receiving"), Domain.RECEIVING_CHECK_FIELDS),
         (_("reporting"), Domain.REPORTING_CHECK_FIELDS),

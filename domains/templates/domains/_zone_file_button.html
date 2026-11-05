@@ -1,0 +1,11 @@
+{% load abstract i18n %}
+<a
+  class="btn shrink-0"
+  data-variant="outline"
+  data-size="sm"
+  href="{% url 'domains:domain-zonefile' org.slug domain.pk group %}"
+  download
+>
+  {% tabler name="download" size="3.5" %}
+  {% translate "zone file"|capfirst %}
+</a>

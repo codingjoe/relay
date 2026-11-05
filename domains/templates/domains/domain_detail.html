@@ -1,20 +1,17 @@
 {% extends "base.html" %}
-{% load abstract i18n %}
+{% load i18n %}
 {% block title %}{{ domain.name }} | relay{% endblock %}
 {% block content %}
   <header class="flex items-center justify-between gap-4 mb-6">
     <div class="min-w-0">
       <h2 class="m-0">{{ domain.name }}</h2>
-      <p class="m-0 mt-2 flex items-center gap-2 flex-wrap text-sm">
-        {% include "domains/_purpose_badges.html" %}
-        {% if domain.dns_checked_at %}
-          <span class="text-muted-foreground">
-            {% blocktranslate with checked_at=domain.dns_checked_at|date:"DATETIME_FORMAT" trimmed %}
-              Last DNS check: {{ checked_at }}
-            {% endblocktranslate %}
-          </span>
-        {% endif %}
-      </p>
+      {% if domain.dns_checked_at %}
+        <p class="m-0 mt-2 text-sm text-muted-foreground">
+          {% blocktranslate with checked_at=domain.dns_checked_at|date:"DATETIME_FORMAT" trimmed %}
+            Last DNS check: {{ checked_at }}
+          {% endblocktranslate %}
+        </p>
+      {% endif %}
     </div>
     <form method="post">
       {% csrf_token %}
@@ -40,205 +37,182 @@
     </form>
   </header>
 
-  <p class="text-muted-foreground mb-6">
-    {% blocktranslate trimmed %}
-      Publish the sending records to send email from this domain. Add the receiving records to take inbound mail and the
-      reporting records to authenticate your domain and collect reports. Relaxed DMARC alignment covers all subdomains.
-    {% endblocktranslate %}
-  </p>
+  <div class="mb-6 flex items-start justify-between gap-4">
+    <p>
+      {% blocktranslate trimmed %}
+        Delegate the sender subdomain to relay. Sending and reporting do not work until the delegation is live.
+      {% endblocktranslate %}
+    </p>
+    {% include "domains/_zone_file_button.html" with group="delegation" %}
+  </div>
+  <div role="group" class="field mb-6">
+    {% include "domains/_check_error.html" with error=domain.nameserver_error %}
+    {% for ns in nameservers %}
+      {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns status=domain.nameserver_status quote=False priority=None %}
+    {% endfor %}
+  </div>
 
-  <section class="accordion mb-6">
-    <details open>
-      <summary>{% translate "sending"|capfirst %}</summary>
-      <section>
-        <p class="text-sm text-muted-foreground mb-4">
-          {% blocktranslate trimmed %}
-            Delegate the sender subdomain and publish the records below, then verify DNS again. This is everything this
-            domain needs to send authenticated email.
-          {% endblocktranslate %}
-        </p>
+  <div class="tabs domain-record-tabs mb-6" id="domain-dns-tabs">
+    <nav role="tablist" aria-orientation="horizontal">
+      <button
+        type="button"
+        role="tab"
+        id="domain-dns-tab-sending"
+        aria-controls="domain-dns-panel-sending"
+        aria-selected="true"
+        tabindex="0"
+      >
+        {% translate "sending"|capfirst %}
+        {% include "domains/_status_mark.html" with passing=domain.sending_checks_passing total=domain.SENDING_READINESS_FIELDS|length only %}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="domain-dns-tab-receiving"
+        aria-controls="domain-dns-panel-receiving"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        {% translate "receiving"|capfirst %}
+        {% include "domains/_status_mark.html" with passing=domain.receiving_checks_passing total=domain.RECEIVING_CHECK_FIELDS|length only %}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="domain-dns-tab-reporting"
+        aria-controls="domain-dns-panel-reporting"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        {% translate "reporting"|capfirst %}
+        {% include "domains/_status_mark.html" with passing=domain.reporting_checks_passing total=domain.REPORTING_READINESS_FIELDS|length only %}
+      </button>
+    </nav>
+
+    <div
+      role="tabpanel"
+      id="domain-dns-panel-sending"
+      aria-labelledby="domain-dns-tab-sending"
+      tabindex="-1"
+    >
+      <section class="card p-6">
+        <div class="flex items-start justify-between gap-4">
+          <p>
+            {% blocktranslate trimmed %}
+              Publish the SPF and DKIM records below, then verify DNS again. This is everything this domain needs to
+              send authenticated email once the sender subdomain is delegated.
+            {% endblocktranslate %}
+          </p>
+          {% include "domains/_zone_file_button.html" with group="sending" %}
+        </div>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.nameserver_status error=domain.nameserver_error label="NS" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "delegate the sender subdomain to our nameservers."|capfirst %}
-            </p>
-            {% for ns in nameservers %}
-              <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-                {% include "domains/_record_name.html" with record_type="NS" record_name=domain.sender_domain %}
-                {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
-              </div>
-            {% endfor %}
+            {% include "domains/_check_error.html" with error=domain.spf_error %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.name record_value=domain.root_spf_record quote=True status=domain.spf_status priority=None %}
           </div>
 
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.spf_status error=domain.spf_error label="SPF" badge="spf" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
-            </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.name %}
-              {% include "domains/_record_value.html" with record_value=domain.root_spf_record quote=True %}
-            </div>
-          </div>
-
-          <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.dkim_rsa2048_status error=domain.dkim_rsa2048_error label="DKIM" badge="dkim" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "signs outbound email with the RSA-2048 key."|capfirst %}
-            </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 %}
-              {% include "domains/_record_value.html" with record_value=dkim_cnames.dkim_rsa2048.1 trailing_dot=True %}
-            </div>
+            {% include "domains/_check_error.html" with error=domain.dkim_rsa2048_error %}
+            {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 record_value=dkim_cnames.dkim_rsa2048.1 status=domain.dkim_rsa2048_status quote=False priority=None %}
           </div>
 
           <div class="flex flex-col gap-4 border-t border-border pt-4">
-            <div>
-              <h3 class="m-0 text-sm font-semibold">{% translate "hardening"|capfirst %}</h3>
-              <p class="mt-1 text-sm text-muted-foreground">
-                {% translate "Add the Ed25519 DKIM record for a second signature algorithm." %}
-              </p>
-            </div>
             <div role="group" class="field">
-              {% include "domains/_check_status.html" with status=domain.dkim_ed25519_status error=domain.dkim_ed25519_error label="DKIM" badge="dkim" %}
-              <p class="text-sm text-muted-foreground">
-                {% translate "adds an Ed25519 signature to outbound email. Relay signs with both keys."|capfirst %}
-              </p>
-              <div class="input-group flex-wrap max-sm:h-auto">
-                {% include "domains/_record_name.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 %}
-                {% include "domains/_record_value.html" with record_value=dkim_cnames.dkim_ed25519.1 trailing_dot=True %}
-              </div>
+              {% include "domains/_check_error.html" with error=domain.dkim_ed25519_error %}
+              {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 record_value=dkim_cnames.dkim_ed25519.1 status=domain.dkim_ed25519_status quote=False priority=None %}
             </div>
           </div>
         </div>
       </section>
-    </details>
+    </div>
 
-    <details>
-      <summary>{% translate "receiving"|capfirst %}</summary>
-      <section>
-        <p class="text-sm text-muted-foreground mb-4">
-          {% blocktranslate trimmed %}
-            Point the MX record at relay, then verify DNS again. A sending-only domain can leave this record out.
-          {% endblocktranslate %}
-        </p>
+    <div
+      role="tabpanel"
+      id="domain-dns-panel-receiving"
+      aria-labelledby="domain-dns-tab-receiving"
+      tabindex="-1"
+      hidden
+    >
+      <section class="card p-6">
+        <div class="flex items-start justify-between gap-4">
+          <p>
+            {% blocktranslate trimmed %}
+              Point the MX record at relay, then verify DNS again. A sending-only domain can leave this record out.
+            {% endblocktranslate %}
+          </p>
+          {% include "domains/_zone_file_button.html" with group="receiving" %}
+        </div>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.mx_status error=domain.mx_error label="MX" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "routes incoming email for this domain to relay."|capfirst %}
-            </p>
+            {% include "domains/_check_error.html" with error=domain.mx_error %}
             {% for mx_hostname in mx_hostnames %}
-              <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-                {% include "domains/_record_name.html" with record_type="MX" record_name=domain.name %}
-                <input
-                  class="basis-12 flex-none"
-                  type="text"
-                  readonly
-                  value="{{ mx_priority }}"
-                  data-select
-                >
-                {% include "abstract/copy_button.html" with value=mx_priority size="icon-xs" label=_("copy priority")|capfirst %}
-                {% include "domains/_record_value.html" with record_value=mx_hostname trailing_dot=True %}
-              </div>
+              {% include "domains/_record_row.html" with record_type="MX" record_name=domain.name priority=mx_priority record_value=mx_hostname status=domain.mx_status quote=False %}
             {% endfor %}
           </div>
         </div>
       </section>
-    </details>
+    </div>
 
-    <details>
-      <summary>{% translate "reporting"|capfirst %}</summary>
-      <section>
-        <p class="text-sm text-muted-foreground mb-4">
-          {% blocktranslate trimmed %}
-            Publish the DMARC, MTA-STS, and TLS-RPT records to authenticate your domain, enforce TLS, and collect
-            reports. A sending-only domain can leave these records out.
-          {% endblocktranslate %}
-        </p>
+    <div
+      role="tabpanel"
+      id="domain-dns-panel-reporting"
+      aria-labelledby="domain-dns-tab-reporting"
+      tabindex="-1"
+      hidden
+    >
+      <section class="card p-6">
+        <div class="flex items-start justify-between gap-4">
+          <p>
+            {% blocktranslate trimmed %}
+              Publish the DMARC, MTA-STS, and TLS-RPT records to authenticate your domain, enforce TLS, and collect
+              reports. The reporting addresses live on the sender subdomain, so the delegation must be in place for them
+              to work. A sending-only domain can leave these records out.
+            {% endblocktranslate %}
+          </p>
+          {% include "domains/_zone_file_button.html" with group="reporting" %}
+        </div>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.dmarc_status error=domain.dmarc_error label="DMARC" badge="dmarc" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "Email authentication policy with relay reporting addresses. Relaxed alignment covers subdomains." %}
-            </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.dmarc_record_name %}
-              {% include "domains/_record_value.html" with record_value=domain.dmarc_record quote=True %}
-            </div>
+            {% include "domains/_check_error.html" with error=domain.dmarc_error %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.dmarc_record_name record_value=domain.dmarc_record quote=True status=domain.dmarc_status priority=None %}
           </div>
 
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.mta_sts_status error=domain.mta_sts_error label="MTA-STS" badge="mta-sts" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "Enforce TLS for incoming mail. Add the TXT record and the CNAME record at your DNS provider." %}
-            </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.mta_sts_record_name %}
-              {% include "domains/_record_value.html" with record_value=domain.mta_sts_record quote=True %}
-            </div>
-            <div class="input-group flex-wrap max-sm:h-auto mt-2">
-              {% include "domains/_record_name.html" with record_type="CNAME" record_name=domain.mta_sts_hostname %}
-              {% include "domains/_record_value.html" with record_value=domain.mta_sts_cname_target trailing_dot=True %}
-            </div>
-            <form method="post" class="mt-3 flex flex-col gap-3">
-              {% csrf_token %}
-              <div role="group" class="field">
-                <label for="{{ mta_sts_form.mta_sts_mx_hostnames.id_for_label }}">
-                  {{ mta_sts_form.mta_sts_mx_hostnames.label }}
-                </label>
-                {{ mta_sts_form.mta_sts_mx_hostnames }}
-                <p
-                  class="text-sm text-muted-foreground"
-                  id="{{ mta_sts_form.mta_sts_mx_hostnames.auto_id }}_helptext"
-                >
-                  {{ mta_sts_form.mta_sts_mx_hostnames.help_text }}
-                </p>
-                {% for error in mta_sts_form.mta_sts_mx_hostnames.errors %}
-                  <p class="text-sm text-destructive">{{ error }}</p>
-                {% endfor %}
-              </div>
-              <div>
-                <button type="submit" class="btn" data-size="sm">
-                  {% translate "save"|capfirst context "verb" %}
-                </button>
-              </div>
-            </form>
+            {% include "domains/_check_error.html" with error=domain.mta_sts_error %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.mta_sts_record_name record_value=domain.mta_sts_record quote=True status=domain.mta_sts_status priority=None %}
+            {% include "domains/_record_row.html" with record_type="CNAME" record_name=domain.mta_sts_hostname record_value=domain.mta_sts_cname_target status=domain.mta_sts_status quote=False priority=None %}
           </div>
 
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with status=domain.tls_rpt_status error=domain.tls_rpt_error label="TLS-RPT" badge="tls-rpt" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "Receive TLS failure reports from senders. Add this record at your DNS provider for the root domain." %}
-            </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.tls_rpt_record_name %}
-              {% include "domains/_record_value.html" with record_value=domain.tls_rpt_record quote=True %}
-            </div>
+            {% include "domains/_check_error.html" with error=domain.tls_rpt_error %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.tls_rpt_record_name record_value=domain.tls_rpt_record quote=True status=domain.tls_rpt_status priority=None %}
           </div>
-        </div>
-      </section>
-    </details>
 
-    <details>
-      <summary>{% translate "apex NS delegation"|capfirst %}</summary>
-      <section>
-        <div class="alert mb-4" data-variant="destructive">
-          {% tabler name="alert-triangle" %}
-          <h2>{% translate "DNS warning" %}</h2>
-          <section>
-            <p>{% translate "Caution: apex delegation replaces the current DNS service for this domain." %}</p>
-            <p>{% translate "We serve email records only. Websites and other services on this domain will stop." %}</p>
-          </section>
+          <form method="post" class="flex flex-col gap-3">
+            {% csrf_token %}
+            <div role="group" class="field">
+              <label for="{{ mta_sts_form.mta_sts_mx_hostnames.id_for_label }}">
+                {{ mta_sts_form.mta_sts_mx_hostnames.label }}
+              </label>
+              {{ mta_sts_form.mta_sts_mx_hostnames }}
+              <p
+                class="text-sm text-muted-foreground"
+                id="{{ mta_sts_form.mta_sts_mx_hostnames.auto_id }}_helptext"
+              >
+                {{ mta_sts_form.mta_sts_mx_hostnames.help_text }}
+              </p>
+              {% for error in mta_sts_form.mta_sts_mx_hostnames.errors %}
+                <p class="text-sm text-destructive">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <div>
+              <button type="submit" class="btn" data-size="sm">
+                {% translate "save"|capfirst context "verb" %}
+              </button>
+            </div>
+          </form>
         </div>
-        {% for ns in nameservers %}
-          <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-            {% include "domains/_record_name.html" with record_type="NS" record_name=domain.name %}
-            {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
-          </div>
-        {% endfor %}
       </section>
-    </details>
-  </section>
+    </div>
+  </div>
 {% endblock %}

@@ -191,21 +191,6 @@ def test_human_duration__hours():
     assert abstract.human_duration(datetime.timedelta(hours=3)) == "3 hours"
 
 
-def test_apex_suffix__relative_name():
-    assert (
-        abstract.apex_suffix("mail.relay.acme.com", SimpleNamespace(name="acme.com"))
-        == ".acme.com"
-    )
-
-
-def test_apex_suffix__at_the_apex():
-    assert abstract.apex_suffix("acme.com", SimpleNamespace(name="acme.com")) == ""
-
-
-def test_apex_suffix__unrelated_name():
-    assert abstract.apex_suffix("example.net", SimpleNamespace(name="acme.com")) == ""
-
-
 def test_tabler():
     """Render the sprite reference with the default size."""
     template = engines["django"].from_string(

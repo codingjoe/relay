@@ -39,6 +39,34 @@
   --status-color: var(--color-destructive);
 }
 
+/* Basecoat's toast category only picks the icon. Tint the toast and its
+   icon here so the four categories read as success, info, warning, and
+   error, matching the badge and card status tints. */
+.toast[data-category="success"] {
+  --status-color: var(--color-success);
+}
+
+.toast[data-category="info"] {
+  --status-color: var(--color-link);
+}
+
+.toast[data-category="warning"] {
+  --status-color: var(--color-warning);
+}
+
+.toast[data-category="error"] {
+  --status-color: var(--color-destructive);
+}
+
+.toast[data-category] .toast-content {
+  border-color: color-mix(in srgb, var(--status-color) 30%, var(--color-border));
+  background-color: color-mix(in srgb, var(--status-color) 10%, var(--color-popover));
+}
+
+.toast[data-category] .toast-content > svg {
+  color: var(--status-color);
+}
+
 .card[data-variant] {
   background-color: color-mix(in srgb, var(--status-color, transparent) 10%, transparent);
 }
@@ -153,6 +181,22 @@
     display: flex;
     align-items: center;
   }
+}
+
+/* The domain record tabs wrap on narrow screens instead of widening the page. */
+.domain-record-tabs > [role="tablist"] {
+  height: auto;
+  max-width: 100%;
+  flex-wrap: wrap;
+  row-gap: calc(var(--spacing) * 0.5);
+}
+
+/* A record input hugs its own text, so the copy button sits next to the
+   value it copies instead of at the far end of a stretched row. */
+.field .input-group > .record-input {
+  field-sizing: content;
+  flex: 0 1 auto;
+  max-width: 100%;
 }
 
 /* Restore the admin shell and native controls after basecoat's resets. */

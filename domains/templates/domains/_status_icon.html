@@ -1,0 +1,13 @@
+{% load abstract i18n %}
+<span class="inline-flex shrink-0 items-center {{ extra_class }}">
+  {% if status == 'ok' %}
+    {% tabler name="circle-check" size="4" class="text-primary" %}
+    <span class="sr-only">{% translate "passing"|capfirst %}</span>
+  {% elif status == 'error' %}
+    {% tabler name="circle-x" size="4" class="text-destructive" %}
+    <span class="sr-only">{% translate "failing"|capfirst %}</span>
+  {% else %}
+    {% tabler name="circle-dashed" size="4" class="text-muted-foreground" %}
+    <span class="sr-only">{% translate "not checked"|capfirst %}</span>
+  {% endif %}
+</span>

@@ -90,10 +90,13 @@ class DomainQuerySet(models.QuerySet):
 
 
 class Domain(TimeStamped):
-    SENDING_CHECK_FIELDS = ("nameserver", "spf", "dkim_rsa2048", "dkim_ed25519")
-    SENDING_QUICK_START_FIELDS = ("nameserver", "spf", "dkim_rsa2048")
+    DELEGATION_CHECK_FIELDS = ("nameserver",)
+    SENDING_CHECK_FIELDS = ("spf", "dkim_rsa2048", "dkim_ed25519")
+    SENDING_READINESS_FIELDS = (*DELEGATION_CHECK_FIELDS, *SENDING_CHECK_FIELDS)
+    SENDING_QUICK_START_FIELDS = (*DELEGATION_CHECK_FIELDS, "spf", "dkim_rsa2048")
     RECEIVING_CHECK_FIELDS = ("mx",)
     REPORTING_CHECK_FIELDS = ("dmarc", "mta_sts", "tls_rpt")
+    REPORTING_READINESS_FIELDS = (*DELEGATION_CHECK_FIELDS, *REPORTING_CHECK_FIELDS)
 
     class VerificationMethod(models.TextChoices):
         DNS = "dns", _("DNS")
@@ -289,8 +292,12 @@ class Domain(TimeStamped):
         )
 
     @property
+    def delegation_checks_passing(self):
+        return self.checks_passing(self.DELEGATION_CHECK_FIELDS)
+
+    @property
     def sending_checks_passing(self):
-        return self.checks_passing(self.SENDING_CHECK_FIELDS)
+        return self.checks_passing(self.SENDING_READINESS_FIELDS)
 
     @property
     def receiving_checks_passing(self):
@@ -298,7 +305,7 @@ class Domain(TimeStamped):
 
     @property
     def reporting_checks_passing(self):
-        return self.checks_passing(self.REPORTING_CHECK_FIELDS)
+        return self.checks_passing(self.REPORTING_READINESS_FIELDS)
 
     @property
     def is_sending_verified(self):

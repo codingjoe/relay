@@ -14,6 +14,11 @@ urlpatterns = [
                 path("", views.DomainDetailView.as_view(), name="domain-detail"),
                 path("delete", views.DomainDeleteView.as_view(), name="domain-delete"),
                 path("verify", views.DomainVerifyView.as_view(), name="domain-verify"),
+                path(
+                    "zonefile/<str:group>",
+                    views.DomainZoneFileView.as_view(),
+                    name="domain-zonefile",
+                ),
             ]
         ),
     ),

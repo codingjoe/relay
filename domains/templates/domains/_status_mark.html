@@ -1,0 +1,11 @@
+{% load abstract i18n %}
+{% if passing == total %}
+  {% tabler name="circle-check" size="3.5" class="text-primary" %}
+  <span class="sr-only">{% translate "passing"|capfirst %}</span>
+{% elif passing %}
+  {% tabler name="circle-x" size="3.5" class="text-destructive" %}
+  <span class="sr-only">{% translate "not verified"|capfirst %}</span>
+{% else %}
+  {% tabler name="circle-dashed" size="3.5" class="text-muted-foreground" %}
+  <span class="sr-only">{% translate "not set up"|capfirst %}</span>
+{% endif %}
