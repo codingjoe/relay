@@ -114,24 +114,6 @@ class TestComputeOrgReputation:
 
         assert stats["complaints"] == 0
 
-    def test_compute_org_reputation__held_message_not_double_counted_by_fbl(
-        self, org, user
-    ):
-        domain = Domain.objects.create(name="reputation.test", org=org)
-        message = OutgoingMessage.objects.create(
-            org=org,
-            mail_from="sender@acme.com",
-            rcpt_to="rcpt@example.com",
-            domain=domain,
-            status=OutgoingMessage.Status.HELD,
-            raw_body=SimpleUploadedFile("test.eml", b"x"),
-        )
-        FblReport.create_for_spam(message)
-
-        stats = compute_org_reputation(org)
-
-        assert stats["complaints"] == 1
-
     def test_compute_org_reputation__counts_bounced_without_code_as_hard_bounce(
         self, org, user
     ):
@@ -405,7 +387,7 @@ class TestCheckReputationOnHeldMessage:
         assert org.suspended_at is None
 
     @pytest.mark.django_db
-    def test_check_reputation_on_held_message__creates_relay_fbl_report(
+    def test_check_reputation_on_held_message__creates_no_fbl_report(
         self, django_capture_on_commit_callbacks, org, user, mailoutbox, settings
     ):
         domain = Domain.objects.create(name="acme.com", org=org)
@@ -422,14 +404,11 @@ class TestCheckReputationOnHeldMessage:
             message.status = OutgoingMessage.Status.HELD
             message.save(update_fields=["status"])
 
-        report = FblReport.objects.get(org=org)
-        assert report.source == FblReport.Source.RELAY
-        assert report.original_rcpt_to == "rcpt@example.com"
-        assert report.message_id == message.pk
+        assert not FblReport.objects.exists()
         assert len(mailoutbox) == 0
 
     @pytest.mark.django_db(transaction=True)
-    def test_check_reputation_on_held_message__creates_relay_fbl_report_for_outgoing_spam(
+    def test_check_reputation_on_held_message__creates_no_fbl_report_for_outgoing_spam(
         self, org, user
     ):
         domain = Domain.objects.create(name="acme.com", org=org)
@@ -448,9 +427,7 @@ class TestCheckReputationOnHeldMessage:
         ):
             check_outgoing_spam.func(message_pk=str(message.pk), client_ip="1.2.3.4")
 
-        report = FblReport.objects.get(org=org)
-        assert report.source == FblReport.Source.RELAY
-        assert report.original_rcpt_to == "bob@example.com"
+        assert not FblReport.objects.exists()
 
 
 class TestCheckReputationOnIncomingMessage:
@@ -493,7 +470,6 @@ class TestBuildReputationChart:
             status=OutgoingMessage.Status.HELD,
             raw_body=SimpleUploadedFile("test.eml", b"x"),
         )
-        FblReport.create_for_spam(message)
         report_email = IncomingMessage.objects.create(
             org=org,
             domain=domain,
