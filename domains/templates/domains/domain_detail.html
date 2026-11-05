@@ -39,7 +39,6 @@
 
   <section class="card mb-6">
     <header>
-      <h3>{% translate "before you start"|capfirst %}</h3>
       <p>
         {% blocktranslate trimmed %}
           Delegate the sender subdomain to relay. Sending and reporting do not work until the delegation is live.
@@ -48,7 +47,7 @@
     </header>
     <section class="flex flex-col gap-4">
       <div role="group" class="field">
-        {% include "domains/_check_status.html" with error=domain.nameserver_error label="NS" %}
+        {% include "domains/_check_error.html" with error=domain.nameserver_error %}
         {% for ns in nameservers %}
           {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns status=domain.nameserver_status %}
         {% endfor %}
@@ -115,33 +114,18 @@
         </p>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with error=domain.spf_error label="SPF" badge="spf" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
-            </p>
+            {% include "domains/_check_error.html" with error=domain.spf_error %}
             {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.name record_value=domain.root_spf_record quote=True status=domain.spf_status %}
           </div>
 
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with error=domain.dkim_rsa2048_error label="DKIM" badge="dkim" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "signs outbound email with the RSA-2048 key."|capfirst %}
-            </p>
+            {% include "domains/_check_error.html" with error=domain.dkim_rsa2048_error %}
             {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 record_value=dkim_cnames.dkim_rsa2048.1 status=domain.dkim_rsa2048_status %}
           </div>
 
           <div class="flex flex-col gap-4 border-t border-border pt-4">
-            <div>
-              <h3 class="m-0 text-sm font-semibold">{% translate "hardening"|capfirst %}</h3>
-              <p class="mt-1 text-sm text-muted-foreground">
-                {% translate "Add the Ed25519 DKIM record for a second signature algorithm." %}
-              </p>
-            </div>
             <div role="group" class="field">
-              {% include "domains/_check_status.html" with error=domain.dkim_ed25519_error label="DKIM" badge="dkim" %}
-              <p class="text-sm text-muted-foreground">
-                {% translate "adds an Ed25519 signature to outbound email. Relay signs with both keys."|capfirst %}
-              </p>
+              {% include "domains/_check_error.html" with error=domain.dkim_ed25519_error %}
               {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 record_value=dkim_cnames.dkim_ed25519.1 status=domain.dkim_ed25519_status %}
             </div>
           </div>
@@ -164,10 +148,7 @@
         </p>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with error=domain.mx_error label="MX" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "routes incoming email for this domain to relay."|capfirst %}
-            </p>
+            {% include "domains/_check_error.html" with error=domain.mx_error %}
             {% for mx_hostname in mx_hostnames %}
               {% include "domains/_record_row.html" with record_type="MX" record_name=domain.name priority=mx_priority record_value=mx_hostname status=domain.mx_status %}
             {% endfor %}
@@ -193,18 +174,12 @@
         </p>
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with error=domain.dmarc_error label="DMARC" badge="dmarc" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "Email authentication policy with relay reporting addresses. Relaxed alignment covers subdomains." %}
-            </p>
+            {% include "domains/_check_error.html" with error=domain.dmarc_error %}
             {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.dmarc_record_name record_value=domain.dmarc_record quote=True status=domain.dmarc_status %}
           </div>
 
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with error=domain.mta_sts_error label="MTA-STS" badge="mta-sts" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "Enforce TLS for incoming mail. Add the TXT record and the CNAME record at your DNS provider." %}
-            </p>
+            {% include "domains/_check_error.html" with error=domain.mta_sts_error %}
             {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.mta_sts_record_name record_value=domain.mta_sts_record quote=True status=domain.mta_sts_status %}
             {% include "domains/_record_row.html" with record_type="CNAME" record_name=domain.mta_sts_hostname record_value=domain.mta_sts_cname_target status=domain.mta_sts_status %}
             <form method="post" class="mt-3 flex flex-col gap-3">
@@ -233,10 +208,7 @@
           </div>
 
           <div role="group" class="field">
-            {% include "domains/_check_status.html" with error=domain.tls_rpt_error label="TLS-RPT" badge="tls-rpt" %}
-            <p class="text-sm text-muted-foreground">
-              {% translate "Receive TLS failure reports from senders. Add this record at your DNS provider for the root domain." %}
-            </p>
+            {% include "domains/_check_error.html" with error=domain.tls_rpt_error %}
             {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.tls_rpt_record_name record_value=domain.tls_rpt_record quote=True status=domain.tls_rpt_status %}
           </div>
         </div>

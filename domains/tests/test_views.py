@@ -324,17 +324,11 @@ class TestDomainDetailView:
                 domain.dkim_cnames["dkim_rsa2048"][1],
                 domain.dkim_cnames["dkim_ed25519"][1],
             ),
-            receiving: (
-                "<label>MX</label>",
-                *(f"{hostname}." for hostname in settings.DNS_MX_HOSTNAMES),
-            ),
+            receiving: (*(f"{hostname}." for hostname in settings.DNS_MX_HOSTNAMES),),
             reporting: (
-                "<label>DMARC</label>",
                 domain.dmarc_record,
-                "<label>MTA-STS</label>",
                 domain.mta_sts_record,
                 domain.mta_sts_cname_target,
-                "<label>TLS-RPT</label>",
                 domain.tls_rpt_record,
             ),
         }
